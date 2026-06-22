@@ -1,12 +1,14 @@
+"use client";
+
 import React, { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import Button from "./common/custom-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import DiscordIcon from "@/icons/discord";
 import { pb } from "@/lib/pocketbase";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
+import { Loader2, LogIn } from "lucide-react";
 
 type FormData = {
   username: string;
@@ -17,261 +19,228 @@ type FormData = {
 
 function LoginPopoverButton() {
   const auth = useAuthStore();
-  const [formData, setFormData] = useState<FormData>({
+  const [form, setForm] = useState<FormData>({
     username: "",
     email: "",
     password: "",
     confirm_password: "",
   });
-  const [tabValue, setTabValue] = useState<"login" | "signup">("login");
+  const [tab, setTab] = useState<"login" | "signup">("login");
+  const [loading, setLoading] = useState(false);
+  const [discordLoading, setDiscordLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  const loginWithEmail = async () => {
-    try {
-      if (formData.username === "" || formData.password === "") {
-        toast.error("Please fill in all fields", {
-          style: { background: "red" },
-        });
-        return;
-      }
+  const field = (key: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
 
-      await pb
-        .collection("users")
-        .authWithPassword(formData.username, formData.password);
-
-      if (pb.authStore.isValid && pb.authStore.record) {
-        toast.success("Login successful", { style: { background: "green" } });
-        clearForm();
-        auth.setAuth({
-          id: pb.authStore.record.id,
-          email: pb.authStore.record.email,
-          username: pb.authStore.record.username,
-          avatar: pb.authStore.record.avatar,
-          collectionId: pb.authStore.record.collectionId,
-          collectionName: pb.authStore.record.collectionName,
-          autoSkip: pb.authStore.record.autoSkip,
-        });
-      }
-    } catch (e) {
-      console.error("Login error:", e);
-      toast.error("Invalid username or password", {
-        style: { background: "red" },
-      });
-    }
-  };
-
-  const signupWithEmail = async () => {
-    if (
-      formData.username === "" ||
-      formData.password === "" ||
-      formData.email === "" ||
-      formData.confirm_password === ""
-    ) {
-      toast.error("Please fill in all fields", {
-        style: { background: "red" },
-      });
-      return;
-    }
-
-    try {
-      const user = await pb.collection("users").create({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        passwordConfirm: formData.confirm_password,
-      });
-
-      if (user) {
-        toast.success("Account created successfully. Please login.", {
-          style: { background: "green" },
-        });
-        clearForm();
-        setTabValue("login");
-      }
-    } catch (e: any) {
-      if (e.response?.data) {
-        for (const key in e.response?.data) {
-          toast.error(`${key}: ${e.response.data[key].message}`, {
-            style: { background: "red" },
-          });
-        }
-      } else {
-        toast.error("Signup failed. Please try again.", {
-          style: { background: "red" },
-        });
-      }
-    }
-  };
-
-  const clearForm = () => {
-    setFormData({
-      username: "",
-      email: "",
-      password: "",
-      confirm_password: "",
+  const syncAuth = () => {
+    const r = pb.authStore.record!;
+    auth.setAuth({
+      id: r.id,
+      email: r.email,
+      username: r.username,
+      avatar: r.avatar,
+      collectionId: r.collectionId,
+      collectionName: r.collectionName,
+      autoSkip: r.autoSkip ?? false,
     });
   };
 
   const loginWithDiscord = async () => {
-    const res = await pb.collection("users").authWithOAuth2({
-      provider: "discord",
-    });
+    setDiscordLoading(true);
+    try {
+      const res = await pb.collection("users").authWithOAuth2({ provider: "discord" });
+      if (pb.authStore.isValid && pb.authStore.record) {
+        const discordUsername = res.meta?.username ?? res.meta?.name;
+        if (discordUsername) {
+          await pb.collection("users").update(pb.authStore.record.id, {
+            username: discordUsername,
+          });
+          // re-fetch so username is fresh
+          await pb.collection("users").authRefresh();
+        }
+        syncAuth();
+        toast.success("Logged in with Discord!");
+        setOpen(false);
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Discord login failed. Make sure Discord OAuth is enabled in PocketBase.");
+    } finally {
+      setDiscordLoading(false);
+    }
+  };
 
-    if (pb.authStore.isValid && pb.authStore.record) {
-      await pb.collection("users").update(pb.authStore.record?.id!, {
-        username: res.meta?.username,
-      });
+  const loginWithEmail = async () => {
+    if (!form.username || !form.password) {
+      toast.error("Fill in all fields");
+      return;
+    }
+    setLoading(true);
+    try {
+      await pb.collection("users").authWithPassword(form.username, form.password);
+      if (pb.authStore.isValid) {
+        syncAuth();
+        toast.success("Welcome back!");
+        setOpen(false);
+      }
+    } catch {
+      toast.error("Invalid username or password");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      toast.success("Login successful", { style: { background: "green" } });
-      auth.setAuth({
-        id: pb.authStore.record.id,
-        email: pb.authStore.record.email,
-        username: pb.authStore.record.username,
-        avatar: pb.authStore.record.avatar,
-        collectionId: pb.authStore.record.collectionId,
-        collectionName: pb.authStore.record.collectionName,
-        autoSkip: pb.authStore.record.autoSkip,
+  const signupWithEmail = async () => {
+    if (!form.username || !form.email || !form.password || !form.confirm_password) {
+      toast.error("Fill in all fields");
+      return;
+    }
+    if (form.password !== form.confirm_password) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setLoading(true);
+    try {
+      await pb.collection("users").create({
+        username: form.username,
+        email: form.email,
+        password: form.password,
+        passwordConfirm: form.confirm_password,
       });
+      toast.success("Account created! Please log in.");
+      setForm({ username: "", email: "", password: "", confirm_password: "" });
+      setTab("login");
+    } catch (e: any) {
+      if (e?.response?.data) {
+        Object.entries(e.response.data).forEach(([k, v]: any) =>
+          toast.error(`${k}: ${v.message}`),
+        );
+      } else {
+        toast.error("Signup failed. Try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className="bg-white text-md text-black hover:bg-gray-200 hover:text-black transition-all duration-300"
-        >
+        <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-green-700 text-green-300 text-sm font-semibold hover:bg-green-900/40 hover:border-green-500 transition-all">
+          <LogIn className="w-4 h-4" />
           Login
-        </Button>
+        </button>
       </PopoverTrigger>
+
       <PopoverContent
         side="bottom"
-        className="bg-black bg-opacity-50 backdrop-blur-sm w-[300px] mt-4 mr-4 p-4"
+        align="end"
+        className="w-80 mt-2 p-0 bg-[#020f04] border border-green-900/60 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
       >
-        <Tabs
-          defaultValue={tabValue}
-          value={tabValue}
-          onValueChange={(value) => setTabValue(value as "login" | "signup")}
-        >
-          <TabsList>
-            <TabsTrigger onClick={clearForm} value="login">
-              Login
-            </TabsTrigger>
-            <TabsTrigger onClick={clearForm} value="signup">
-              Signup
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="login" className="flex flex-col gap-2">
-            <div className="mt-2">
-              <p className="text-gray-300 text-xs">Email or Username:</p>
+        {/* Discord — primary CTA */}
+        <div className="p-5 pb-3">
+          <p className="text-center text-xs text-green-700 font-mono mb-3 tracking-wider">
+            sign in to KittyAnime
+          </p>
+          <button
+            onClick={loginWithDiscord}
+            disabled={discordLoading}
+            className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold text-sm transition-colors disabled:opacity-60"
+          >
+            {discordLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <DiscordIcon className="w-5 h-5" />
+            )}
+            Continue with Discord
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 px-5 py-1">
+          <div className="h-px flex-1 bg-green-900/40" />
+          <span className="text-[10px] text-green-800 font-mono">or</span>
+          <div className="h-px flex-1 bg-green-900/40" />
+        </div>
+
+        {/* Email / password */}
+        <div className="p-5 pt-2">
+          <Tabs value={tab} onValueChange={(v) => { setTab(v as any); setForm({ username:"", email:"", password:"", confirm_password:"" }); }}>
+            <TabsList className="w-full bg-green-950/40 border border-green-900/40 h-8 rounded-lg">
+              <TabsTrigger value="login" className="flex-1 text-xs data-[state=active]:bg-green-800 data-[state=active]:text-white rounded-md">
+                Login
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="flex-1 text-xs data-[state=active]:bg-green-800 data-[state=active]:text-white rounded-md">
+                Sign Up
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="flex flex-col gap-2.5 mt-3">
               <Input
-                required
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-                type="text"
-                value={formData.username}
-                placeholder="Enter your email/username"
+                placeholder="Username or email"
+                value={form.username}
+                onChange={field("username")}
+                onKeyDown={(e) => e.key === "Enter" && loginWithEmail()}
+                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
               />
-            </div>
-            <div>
-              <p className="text-gray-300 text-xs">Password:</p>
               <Input
-                required
                 type="password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                placeholder="Enter your password"
+                placeholder="Password"
+                value={form.password}
+                onChange={field("password")}
+                onKeyDown={(e) => e.key === "Enter" && loginWithEmail()}
+                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
               />
-            </div>
-            <Button
-              variant="default"
-              className="w-full text-xs"
-              size="sm"
-              type="submit"
-              onClick={loginWithEmail}
-            >
-              Login
-            </Button>
-            <hr className="text-white text-xs text-center" />
-            <Button
-              variant="default"
-              className="bg-blue-600 hover:bg-blue-800 text-white w-full text-xs"
-              size="sm"
-              onClick={loginWithDiscord}
-            >
-              <DiscordIcon className="mr-2" />
-              Login with Discord
-            </Button>
-          </TabsContent>
-          <TabsContent value="signup" className="flex flex-col gap-2">
-            <div>
-              <p className="text-gray-300 text-xs">Username:</p>
+              <button
+                onClick={loginWithEmail}
+                disabled={loading}
+                className="w-full py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                Login
+              </button>
+            </TabsContent>
+
+            <TabsContent value="signup" className="flex flex-col gap-2.5 mt-3">
               <Input
-                required
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-                type="text"
-                placeholder="Enter your username"
+                placeholder="Username"
+                value={form.username}
+                onChange={field("username")}
+                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
               />
-            </div>
-            <div>
-              <p className="text-gray-300 text-xs">Email:</p>
               <Input
-                required
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Email"
+                value={form.email}
+                onChange={field("email")}
+                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
               />
-            </div>
-            <div>
-              <p className="text-gray-300 text-xs">Password:</p>
               <Input
-                required
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Password"
+                value={form.password}
+                onChange={field("password")}
+                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
               />
-            </div>
-            <div>
-              <p className="text-gray-300 text-xs">Confirm Password:</p>
               <Input
-                required
-                onChange={(e) =>
-                  setFormData({ ...formData, confirm_password: e.target.value })
-                }
                 type="password"
-                placeholder="Enter your password again"
+                placeholder="Confirm password"
+                value={form.confirm_password}
+                onChange={field("confirm_password")}
+                onKeyDown={(e) => e.key === "Enter" && signupWithEmail()}
+                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
               />
-            </div>
-            <Button
-              variant="default"
-              className="w-full text-xs"
-              size="sm"
-              type="submit"
-              onClick={signupWithEmail}
-            >
-              Signup
-            </Button>
-            <hr className="text-white text-xs text-center" />
-            <Button
-              variant="default"
-              className="bg-blue-600 hover:bg-blue-800 text-white w-full text-xs"
-              size="sm"
-              onClick={loginWithDiscord}
-            >
-              <DiscordIcon className="mr-2" />
-              Signup with Discord
-            </Button>
-          </TabsContent>
-        </Tabs>
+              <button
+                onClick={signupWithEmail}
+                disabled={loading}
+                className="w-full py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                Create Account
+              </button>
+            </TabsContent>
+          </Tabs>
+        </div>
       </PopoverContent>
     </Popover>
   );

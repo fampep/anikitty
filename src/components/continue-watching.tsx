@@ -74,8 +74,10 @@ const ContinueWatching = (props: Props) => {
   return (
     <Container className="flex flex-col gap-5 py-10 items-center lg:items-start">
       <div className="flex items-center gap-2">
-        <History />
-        <h5 className="text-2xl font-bold">Continue Watching</h5>
+        <History className="text-green-500" />
+        <h5 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-emerald-500">
+          Continue Watching
+        </h5>
       </div>
       <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-5 content-center">
         {anime?.map(
@@ -102,13 +104,13 @@ const ContinueWatching = (props: Props) => {
 const LoadingSkeleton = () => {
   return (
     <Container className="flex flex-col gap-5 py-10 items-center lg:items-start lg:mt-[10.125rem] z-20 ">
-      <div className="h-10 w-[15.625rem] animate-pulse bg-slate-700"></div>
+      <div className="h-10 w-[15.625rem] animate-pulse bg-green-950/60"></div>
       <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-5 content-center">
         {[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1].map((_, idx) => {
           return (
             <div
               key={idx}
-              className="rounded-xl h-[15.625rem] min-w-[10.625rem] max-w-[12.625rem] md:h-[18.75rem] md:max-w-[12.5rem] animate-pulse bg-slate-700"
+              className="rounded-xl h-[15.625rem] min-w-[10.625rem] max-w-[12.625rem] md:h-[18.75rem] md:max-w-[12.5rem] animate-pulse bg-green-950/60"
             ></div>
           );
         })}

@@ -3,7 +3,6 @@
 import React from "react";
 import { ROUTES } from "@/constants/routes";
 import AnimeCard from "@/components/anime-card";
-
 import BlurFade from "@/components/ui/blur-fade";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetSearchAnimeResults } from "@/query/get-search-results";
@@ -13,16 +12,14 @@ import Select from "@/components/common/select";
 import {
   statuses,
   types,
-  ratings,
   seasons,
-  languages,
   sort,
   genres,
 } from "@/constants/search-filters";
 import { SearchAnimeParams } from "@/types/anime";
-import Button from "@/components/common/custom-button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { SlidersHorizontal, RotateCcw, Search } from "lucide-react";
 
 const SearchResults = () => {
   const params = useAnimeSearchParams();
@@ -45,22 +42,16 @@ const SearchResults = () => {
   });
 
   const handleNextPage = () => {
-    if (searchResults?.hasNextPage) {
-      handlePageChange((params.page || 1) + 1);
-    }
+    if (searchResults?.hasNextPage) handlePageChange((params.page || 1) + 1);
   };
-
   const handlePreviousPage = () => {
-    if ((params.page || 1) > 1) {
-      handlePageChange((params.page || 1) - 1);
-    }
+    if ((params.page || 1) > 1) handlePageChange((params.page || 1) - 1);
   };
-
   const handlePageChange = (pageNumber: number) => {
     if (pageNumber < 1) return;
-    const _params = new URLSearchParams(searchParams.toString());
-    _params.set("page", pageNumber.toString());
-    router.push(`/search?${_params.toString()}`);
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("page", pageNumber.toString());
+    router.push(`/search?${p.toString()}`);
   };
 
   const onChange = (key: keyof typeof filters, value: string) => {
@@ -68,89 +59,69 @@ const SearchResults = () => {
   };
 
   const applyFilters = () => {
-    const searchParams = new URLSearchParams();
-
-    onChange("q", params.q);
-
+    const p = new URLSearchParams();
+    if (params.q) p.set("q", params.q);
     Object.entries(filters).forEach(([key, value]) => {
-      if (typeof value === "string" && value.trim() !== "") {
-        searchParams.set(key, value);
-      } else if (typeof value === "number" && !isNaN(value)) {
-        searchParams.set(key, value.toString());
+      if (key === "q") return;
+      if (typeof value === "string" && value.trim() && value !== "all") {
+        p.set(key, value);
+      } else if (typeof value === "number" && !isNaN(value) && key !== "page") {
+        p.set(key, value.toString());
       }
     });
-
-    searchParams.delete("page");
-
-    router.push(`/search?${searchParams.toString()}`);
+    router.push(`/search?${p.toString()}`);
   };
 
   const resetFilters = () => {
-    setFilters({
-      q: "",
-      page: 1,
-      type: "",
-      status: "",
-      rated: "",
-      season: "",
-      language: "",
-      sort: "",
-      genres: "",
-    });
-    router.push('/search?q=""');
+    setFilters({ q: "", page: 1, type: "", status: "", rated: "", season: "", language: "", sort: "", genres: "" });
+    router.push('/search?q=');
   };
 
+  const activeFilterCount = [
+    filters.type && filters.type !== "all",
+    filters.status,
+    filters.season,
+    filters.sort && filters.sort !== "default",
+    filters.genres,
+  ].filter(Boolean).length;
+
   return (
-    <div className="flex flex-col gap-10 mt-28 lg:mt-36 pb-20 min-h-[75vh]">
-      <div className="bg-slate-800 bg-opacity-50 backdrop-blur-sm rounded-lg p-5 flex flex-col gap-5">
-        <p className="text-lg font-semibold">Filters</p>
-        <div className="flex flex-wrap gap-3">
-          <Select
-            options={types}
-            placeholder="Type"
-            value={filters.type}
-            onChange={(val) => onChange("type", val)}
-          />
-          <Select
-            options={statuses}
-            placeholder="Status"
-            value={filters.status}
-            onChange={(val) => onChange("status", val)}
-          />
-          <Select
-            options={ratings}
-            placeholder="Rated"
-            value={filters.rated}
-            onChange={(val) => onChange("rated", val)}
-          />
-          <Select
-            options={seasons}
-            placeholder="Season"
-            value={filters.season}
-            onChange={(val) => onChange("season", val)}
-          />
-          <Select
-            options={languages}
-            placeholder="Language"
-            value={filters.language}
-            onChange={(val) => onChange("language", val)}
-          />
-          <Select
-            options={sort}
-            placeholder="Sort"
-            value={filters.sort}
-            onChange={(val) => onChange("sort", val)}
-          />
+    <div className="flex flex-col gap-8 mt-28 lg:mt-36 pb-20 min-h-[75vh]">
+      {/* Filter panel */}
+      <div className="bg-green-950/20 border border-green-900/40 backdrop-blur-sm rounded-xl p-5 flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-green-500" />
+            <span className="text-sm font-semibold text-green-300">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-green-700 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-1 text-xs text-green-700 hover:text-green-400 transition-colors"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Reset
+          </button>
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Select options={types} placeholder="Type" value={filters.type || ""} onChange={(val) => onChange("type", val)} />
+          <Select options={statuses} placeholder="Status" value={filters.status || ""} onChange={(val) => onChange("status", val)} />
+          <Select options={seasons} placeholder="Season" value={filters.season || ""} onChange={(val) => onChange("season", val)} />
+          <Select options={sort} placeholder="Sort" value={filters.sort || ""} onChange={(val) => onChange("sort", val)} />
+        </div>
+
         <div>
-          <p className="text-lg font-semibold mt-4">Genres</p>
+          <p className="text-xs font-semibold text-green-600 uppercase tracking-widest mb-3">Genres</p>
           <ToggleGroup
             type="multiple"
-            className="flex flex-wrap justify-start gap-2 mt-4"
-            value={filters.genres?.split(",") || []}
-            onValueChange={(value) => {
-              onChange("genres", value.filter(Boolean).join(","));
-            }}
+            className="flex flex-wrap justify-start gap-1.5"
+            value={filters.genres?.split(",").filter(Boolean) || []}
+            onValueChange={(value) => onChange("genres", value.filter(Boolean).join(","))}
           >
             {genres.map((genre) => (
               <ToggleGroupItem
@@ -158,11 +129,8 @@ const SearchResults = () => {
                 key={genre.value}
                 size="sm"
                 className={cn(
-                  "border border-slate-700 hover:border-[#e9376b] hover:text-[#e9376b] hover:bg-transparent",
-                  "data-[state=on]:border-[#e9376b] data-[state=on]:text-white data-[state=on]:bg-[#e9376b]",
-                  filters.genres?.split(",").includes(genre.value)
-                    ? "bg-[#e9376b] text-white"
-                    : "text-slate-300",
+                  "border border-green-900/60 text-green-700 hover:border-green-600 hover:text-green-400 hover:bg-green-950/40 text-xs h-7 px-2.5 rounded-full transition-colors",
+                  "data-[state=on]:border-green-500 data-[state=on]:text-green-300 data-[state=on]:bg-green-900/50",
                 )}
               >
                 {genre.label}
@@ -170,66 +138,76 @@ const SearchResults = () => {
             ))}
           </ToggleGroup>
         </div>
-        <div className="flex items-center gap-2 mt-4">
-          <Button
-            size="sm"
-            className="w-[6.25rem] hover:bg-[#e9376b] bg-[#e9376b] text-white"
-            onClick={applyFilters}
-          >
-            Filter
-          </Button>
-          <Button
-            size="sm"
-            className="w-[6.25rem]"
-            onClick={resetFilters}
-            variant="link"
-          >
-            Reset
-          </Button>
-        </div>
+
+        <button
+          onClick={applyFilters}
+          className="self-start flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+        >
+          <Search className="h-3.5 w-3.5" />
+          Apply Filters
+        </button>
       </div>
-      <div className="text-2xl font-semibold">
-        {displayPhrase === "" ? (
-          "Filter Results"
-        ) : (
-          <>
-            Search Results for{" "}
-            <span className="font-[800]">&quot;{params.q}&quot;</span>
-          </>
+
+      {/* Heading */}
+      <div className="flex items-center gap-3">
+        <div className="h-5 w-1 bg-green-500 rounded-full" />
+        <h1 className="text-xl font-bold text-green-100">
+          {displayPhrase === "" ? (
+            "Browse Anime"
+          ) : (
+            <>
+              Results for{" "}
+              <span className="text-green-400">&ldquo;{displayPhrase}&rdquo;</span>
+            </>
+          )}
+        </h1>
+        {searchResults && !isLoading && (
+          <span className="text-xs text-green-700 font-mono">
+            page {searchResults.currentPage}/{searchResults.totalPages}
+          </span>
         )}
       </div>
-      {isLoading && (
-        <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-5 content-center">
-          {[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1].map((_, idx) => {
-            return (
-              <div
-                key={idx}
-                className="rounded-xl h-[15.625rem] min-w-[10.625rem] max-w-[12.625rem] md:h-[18.75rem] md:max-w-[12.5rem] animate-pulse bg-slate-700"
-              ></div>
-            );
-          })}
+
+      {/* Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+          {Array.from({ length: 14 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl h-[15rem] md:h-[18rem] animate-pulse bg-green-950/40"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+          {searchResults?.animes.map((anime, idx) => (
+            <BlurFade key={anime.id} delay={idx * 0.04} inView>
+              <AnimeCard
+                title={anime.name}
+                subTitle={anime.type}
+                poster={anime.poster}
+                href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                className="self-center justify-self-center w-full"
+                showGenre={false}
+                episodeCard
+                sub={anime.episodes?.sub}
+                dub={anime.episodes?.dub}
+              />
+            </BlurFade>
+          ))}
+          {searchResults?.animes.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+              <span className="text-5xl mb-4">🐱</span>
+              <p className="text-green-500 font-medium">No anime found</p>
+              <p className="text-green-700 text-sm mt-1">Try adjusting your filters or search term</p>
+            </div>
+          )}
         </div>
       )}
-      <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-5 content-center">
-        {searchResults?.animes.map((anime, idx) => (
-          <BlurFade key={idx} delay={idx * 0.05} inView>
-            <AnimeCard
-              title={anime.name}
-              subTitle={anime.type}
-              poster={anime.poster}
-              href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-              className="self-center justify-self-center"
-              showGenre={false}
-              episodeCard
-              sub={anime?.episodes?.sub}
-              dub={anime?.episodes?.dub}
-            />
-          </BlurFade>
-        ))}
-      </div>
-      {searchResults && searchResults.totalPages && (
+
+      {searchResults && searchResults.totalPages > 1 && (
         <Pagination
-          totalPages={searchResults?.totalPages}
+          totalPages={searchResults.totalPages}
           currentPage={params.page}
           handleNextPage={handleNextPage}
           handlePageChange={handlePageChange}

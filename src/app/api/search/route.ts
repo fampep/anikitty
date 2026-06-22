@@ -1,49 +1,134 @@
-import { hianime } from "@/lib/hianime";
-import { SearchAnimeParams } from "@/types/anime";
+import { queryAniList, toTitle, toFormat } from "@/lib/anilist";
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const params = parseSearchParams(searchParams);
-    const data = await hianime.search(params.q, params.page, {
-      type: params.type,
-      status: params.status,
-      rated: params.rated,
-      season: params.season,
-      language: params.language,
-      sort: params.sort,
-      genres: params.genres,
-    });
-    return Response.json({ data });
-  } catch (err) {
-    console.log(err);
-    return Response.json({ error: "something went wrong" }, { status: 500 });
+const QUERY = `
+  query (
+    $search: String
+    $page: Int
+    $perPage: Int
+    $format: MediaFormat
+    $status: MediaStatus
+    $season: MediaSeason
+    $genre_in: [String]
+    $sort: [MediaSort]
+  ) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo { total currentPage lastPage hasNextPage perPage }
+      media(
+        type: ANIME
+        search: $search
+        format: $format
+        status: $status
+        season: $season
+        genre_in: $genre_in
+        sort: $sort
+      ) {
+        id
+        title { english romaji }
+        coverImage { extraLarge }
+        episodes
+        format
+        status
+        nextAiringEpisode { episode }
+      }
+    }
   }
+`;
+
+const FORMAT_MAP: Record<string, string> = {
+  tv: "TV",
+  movie: "MOVIE",
+  ova: "OVA",
+  ona: "ONA",
+  special: "SPECIAL",
+  music: "MUSIC",
+  "tv-short": "TV_SHORT",
+};
+
+const STATUS_MAP: Record<string, string> = {
+  "finished-airing": "FINISHED",
+  "currently-airing": "RELEASING",
+  "not-yet-aired": "NOT_YET_RELEASED",
+};
+
+const SORT_MAP: Record<string, string> = {
+  score: "SCORE_DESC",
+  "name-a-z": "TITLE_ENGLISH",
+  "most-watched": "POPULARITY_DESC",
+  "recently-added": "START_DATE_DESC",
+  "recently-updated": "UPDATED_AT_DESC",
+  "released-date": "START_DATE_DESC",
+};
+
+function slugToGenre(slug: string): string {
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
-const parseSearchParams = (
-  searchParams: URLSearchParams,
-): SearchAnimeParams => {
-  const getString = (key: string) => {
-    const val = searchParams.get(key);
-    return val === null ? undefined : val;
-  };
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q") || "";
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const type = searchParams.get("type") || "";
+  const status = searchParams.get("status") || "";
+  const season = searchParams.get("season") || "";
+  const genres = searchParams.get("genres") || "";
+  const sortParam = searchParams.get("sort") || "";
 
-  const getNumber = (key: string) => {
-    const val = searchParams.get(key);
-    const num = val ? parseInt(val, 10) : undefined;
-    return num === undefined || isNaN(num) ? undefined : num;
-  };
+  const cleanQ = q.replace(/^"+|"+$/g, "").trim();
 
-  return {
-    q: getString("q") || "",
-    page: getNumber("page") || 1,
-    type: getString("type"),
-    status: getString("status"),
-    rated: getString("rated"),
-    season: getString("season"),
-    language: getString("language"),
-    sort: getString("sort"),
-    genres: getString("genres"),
-  };
-};
+  const format = FORMAT_MAP[type] ?? undefined;
+  const aniStatus = STATUS_MAP[status] ?? undefined;
+  const aniSeason = season ? season.toUpperCase() : undefined;
+  const genreList = genres
+    ? genres.split(",").map(slugToGenre).filter(Boolean)
+    : undefined;
+
+  const sortValue = SORT_MAP[sortParam];
+  const sortArr = sortValue
+    ? [sortValue]
+    : cleanQ
+      ? ["SEARCH_MATCH"]
+      : ["POPULARITY_DESC"];
+
+  try {
+    const raw = await queryAniList(QUERY, {
+      search: cleanQ || undefined,
+      page,
+      perPage: 20,
+      format,
+      status: aniStatus,
+      season: aniSeason,
+      genre_in: genreList,
+      sort: sortArr,
+    });
+
+    const pageInfo = raw.Page?.pageInfo ?? {};
+    const animes = (raw.Page?.media ?? []).map((m: any) => ({
+      id: String(m.id),
+      name: toTitle(m.title),
+      jname: m.title?.romaji ?? "",
+      poster: m.coverImage?.extraLarge ?? "",
+      episodes: {
+        sub: m.nextAiringEpisode
+          ? m.nextAiringEpisode.episode - 1
+          : (m.episodes ?? 0),
+        dub: 0,
+      },
+      type: toFormat(m.format),
+    }));
+
+    return Response.json({
+      data: {
+        animes,
+        totalPages: pageInfo.lastPage ?? 1,
+        hasNextPage: pageInfo.hasNextPage ?? false,
+        currentPage: pageInfo.currentPage ?? page,
+      },
+    });
+  } catch (err) {
+    console.error("AniList search error:", err);
+    return Response.json({ error: "Search failed" }, { status: 500 });
+  }
+}

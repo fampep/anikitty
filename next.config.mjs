@@ -4,6 +4,7 @@ import withPWA from "next-pwa";
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  serverExternalPackages: ["@dovakiin0/aniwatch"],
   images: {
     remotePatterns: [
       {

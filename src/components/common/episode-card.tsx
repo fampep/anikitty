@@ -69,7 +69,7 @@ const EpisodeCard = ({
           className={cn([
             "h-[5.25rem] rounded-lg cursor-pointer w-full flex items-center justify-center bg-secondary md:text-base text-xs",
 
-            hasWatchedEpisode && "bg-slate-900",
+            hasWatchedEpisode && "bg-green-950/40",
           ])}
         >
           {`Episode ${props.episode.number}`}
@@ -85,11 +85,9 @@ const EpisodeCard = ({
           className="flex gap-5 items-center w-full relative h-fit rounded-md p-2"
           style={
             selectedEpisode === props.episode.episodeId
-              ? { backgroundColor: "#e9376b" }
+              ? { backgroundColor: "#166534", borderLeft: "3px solid #22c55e" }
               : hasWatchedEpisode
-                ? {
-                    backgroundColor: "#0f172a",
-                  }
+                ? { backgroundColor: "#052e16", opacity: 0.75 }
                 : {}
           }
         >

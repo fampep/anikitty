@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+
+const KITTY_ICON = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg";
 import { cn } from "@/lib/utils";
 
 import Container from "./container";
@@ -88,21 +90,19 @@ const NavBar = () => {
       className={cn([
         "h-fit w-full",
         "sticky top-0 z-[100] duration-300",
-        isHeaderFixed ? "fixed bg-gradient-to-b from-slate-700" : "",
+        isHeaderFixed ? "fixed bg-gradient-to-b from-[#020f04]" : "",
         isHeaderSticky
-          ? "bg-clip-padding backdrop-filter backdrop-blur-md bg-opacity-10 bg-slate-900"
+          ? "bg-clip-padding backdrop-filter backdrop-blur-md bg-opacity-10 bg-[#020f04]"
           : "",
+        "border-b border-green-900/40",
       ])}
     >
-      {!hasSeenDomainChangeBanner && (
-        <Alert variant="default" className="text-amber-300 bg-opacity-5">
+      {false && !hasSeenDomainChangeBanner && (
+        <Alert variant="default" className="text-green-300 bg-green-950/30 border-green-800">
           <AlertTitle className="font-bold flex items-center justify-center space-x-2">
             <div className="flex items-center gap-2">
               <InfoIcon size="20" />
-              <p>
-                The domain has been changed from <i>kitsunee.online</i>. Please
-                bookmark the new domain <i>kitsunee.moe</i>
-              </p>
+              <p>Welcome to KittyAnime! 🐾</p>
             </div>
             <p
               className="cursor-pointer"
@@ -111,9 +111,7 @@ const NavBar = () => {
                 setHasSeenDomainChangeBanner(true);
               }}
             >
-              <i>
-                <u>Close</u>
-              </i>
+              <i><u>Close</u></i>
             </p>
           </AlertTitle>
         </Alert>
@@ -121,17 +119,29 @@ const NavBar = () => {
       <Container className="flex items-center justify-between py-2 gap-20 ">
         <Link
           href={ROUTES.HOME}
-          className="flex items-center gap-1 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer group"
         >
-          <Image src="/icon.png" alt="logo" width={70} height={70} />
-          <h1
-            className={cn([
-              nightTokyo.className,
-              "text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-pink-600 tracking-widest",
-            ])}
-          >
-            Kitsunee
-          </h1>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-green-500/20 blur-md group-hover:bg-green-500/40 transition-all duration-300"></div>
+            <img
+              src={KITTY_ICON}
+              alt="KittyAnime"
+              width={38}
+              height={38}
+              className="relative drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+            />
+          </div>
+          <div className="flex flex-col leading-none">
+            <h1
+              className={cn([
+                nightTokyo.className,
+                "text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-300 via-emerald-400 to-green-600 tracking-widest kitty-text-glow",
+              ])}
+            >
+              KittyAnime
+            </h1>
+            <span className="text-[10px] text-green-600/70 tracking-widest font-mono ml-0.5">~ nya ~</span>
+          </div>
         </Link>
 
         <div className="hidden lg:flex items-center gap-10 ml-20">

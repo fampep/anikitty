@@ -18,7 +18,7 @@ export default function Home() {
   const { data, isLoading } = useGetHomePageData();
 
   return (
-    <div className="flex flex-col bg-[#121212]">
+    <div className="flex flex-col bg-[#020f04]">
       <HeroSection
         spotlightAnime={data?.spotlightAnimes as SpotlightAnime[]}
         isDataLoading={isLoading}
@@ -34,21 +34,21 @@ export default function Home() {
         loading={isLoading}
         featuredAnime={[
           {
-            title: "Most Favorite Anime",
+            title: "🐾 Most Favorite Anime",
             anime: data?.mostFavoriteAnimes as IAnime[],
           },
           {
-            title: "Most Popular Anime",
+            title: "🐱 Most Popular Anime",
             anime: data?.mostPopularAnimes as IAnime[],
           },
           {
-            title: "Latest Completed Anime",
+            title: "✨ Latest Completed Anime",
             anime: data?.latestCompletedAnimes as LatestCompletedAnime[],
           },
         ]}
       />
       <AnimeSections
-        title={"Trending Anime"}
+        title={"🔥 Trending Anime"}
         trendingAnime={data?.trendingAnimes as IAnime[]}
         loading={isLoading}
       />
@@ -56,7 +56,7 @@ export default function Home() {
       <AnimeSchedule />
 
       <AnimeSections
-        title={"Upcoming Animes"}
+        title={"🗓️ Upcoming Animes"}
         trendingAnime={data?.topUpcomingAnimes as IAnime[]}
         loading={isLoading}
       />

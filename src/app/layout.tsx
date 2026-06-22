@@ -23,9 +23,9 @@ const geistSans = localFont({
 //   weight: "100 900",
 // });
 
-const APP_NAME = "Kitsune";
-const APP_DEFAULT_TITLE = "Kitsune | Anime Streaming";
-const APP_DESCRIPTION = "Stream your favourite anime with ease and no ads";
+const APP_NAME = "KittyAnime";
+const APP_DEFAULT_TITLE = "KittyAnime | Anime Streaming";
+const APP_DESCRIPTION = "Stream your favourite anime with ease and no ads ~ nya~";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
