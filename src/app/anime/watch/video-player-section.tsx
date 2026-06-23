@@ -232,16 +232,17 @@ const VideoPlayerSection = () => {
           <div className="flex items-center gap-1">
             <Layers className="w-3 h-3 text-white/35 shrink-0" />
             <select
-              value={selectedServer?.quality ?? ""}
+              value={selectedServer ? streamData.allServers!.indexOf(selectedServer).toString() : ""}
               onChange={(e) => {
-                const s = streamData.allServers!.find((sv) => sv.quality === e.target.value) ?? null;
+                const idx = parseInt(e.target.value);
+                const s = isNaN(idx) ? null : (streamData.allServers![idx] ?? null);
                 setSelectedServer(s);
               }}
               className="bg-black border border-white/15 text-white/60 text-[11px] font-mono rounded px-1.5 py-0.5 h-6 cursor-pointer hover:border-white/30 focus:outline-none"
             >
               <option value="">Default</option>
-              {streamData.allServers!.map((sv) => (
-                <option key={sv.quality} value={sv.quality} className="bg-black">
+              {streamData.allServers!.map((sv, i) => (
+                <option key={i} value={i} className="bg-black">
                   {sv.quality}
                 </option>
               ))}

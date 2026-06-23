@@ -65,48 +65,6 @@ export default function KittyPlayer({
         (t) => !!t.file && t.kind !== "thumbnails" && t.kind !== "chapters",
       );
 
-      // ── Settings ──────────────────────────────────────────────────────
-      const settingItems: any[] = [];
-
-      // Subtitle selector — only added when there are subtitle tracks
-      if (subTracks.length > 0) {
-        settingItems.push({
-          html: "Subtitle",
-          width: 220,
-          tooltip: subTracks[0]?.label ?? "Off",
-          selector: [
-            { html: "Off", default: false },
-            ...subTracks.map((t, i) => ({
-              html: t.label || `Track ${i + 1}`,
-              url: t.file,
-              default: i === 0,
-            })),
-          ],
-          onSelect: (item: any, art: any) => {
-            if (!item.url) {
-              art.subtitle.show = false;
-            } else {
-              art.subtitle.url = item.url;
-              art.subtitle.show = true;
-            }
-            return item.html;
-          },
-        });
-      }
-
-      // Quality placeholder — updated once HLS manifest is parsed
-      settingItems.push({
-        html: "Quality",
-        width: 160,
-        tooltip: "Auto",
-        selector: [{ html: "Auto", value: -1, default: true }],
-        onSelect: (item: any, art: any) => {
-          if (art.hls) art.hls.currentLevel = item.value;
-          return item.html;
-        },
-      });
-
-      // ── ArtPlayer options ──────────────────────────────────────────────
       const artOptions: any = {
         container: containerRef.current!,
         url: proxiedSrc,
@@ -115,7 +73,7 @@ export default function KittyPlayer({
         autoplay: true,
         volume: 1,
         pip: true,
-        setting: settingItems,
+        setting: true,
         playbackRate: true,
         fullscreen: true,
         playsInline: true,
@@ -131,21 +89,28 @@ export default function KittyPlayer({
               hls.attachMedia(video);
               artInstance.hls = hls;
 
-              // Populate quality levels after manifest is parsed
+              // Populate quality selector once HLS knows the available levels
               hls.on(Hls.Events.MANIFEST_PARSED, (_: any, data: any) => {
                 const levels: any[] = data.levels ?? [];
                 if (levels.length > 1) {
-                  const qualitySelector = [
-                    { html: "Auto", value: -1, default: true },
-                    ...levels.map((l: any, i: number) => ({
-                      html: l.height ? `${l.height}p` : `Source ${i + 1}`,
-                      value: i,
-                    })),
-                  ];
-                  artInstance.setting.update({
+                  const heightCounts: Record<number, number> = {};
+                  for (const l of levels) {
+                    if (l.height) heightCounts[l.height] = (heightCounts[l.height] ?? 0) + 1;
+                  }
+                  artInstance.setting.add({
                     html: "Quality",
+                    width: 160,
                     tooltip: "Auto",
-                    selector: qualitySelector,
+                    selector: [
+                      { html: "Auto", value: -1, default: true },
+                      ...levels.map((l: any, i: number) => {
+                        let label = l.height ? `${l.height}p` : `Source ${i + 1}`;
+                        if (l.height && heightCounts[l.height] > 1 && l.bitrate) {
+                          label = `${l.height}p · ${Math.round(l.bitrate / 1000)}k`;
+                        }
+                        return { html: label, value: i };
+                      }),
+                    ],
                     onSelect: (item: any) => {
                       hls.currentLevel = item.value;
                       return item.html;
@@ -176,6 +141,34 @@ export default function KittyPlayer({
       }
 
       const art = new Artplayer(artOptions);
+
+      // Add subtitle track selector after player is ready
+      art.on("ready", () => {
+        if (subTracks.length > 1) {
+          art.setting.add({
+            html: "Subtitle",
+            width: 220,
+            tooltip: subTracks[0]?.label ?? "Default",
+            selector: [
+              { html: "Off", default: false },
+              ...subTracks.map((t, i) => ({
+                html: t.label || `Track ${i + 1}`,
+                url: t.file,
+                default: i === 0,
+              })),
+            ],
+            onSelect: (item: any) => {
+              if (!item.url) {
+                art.subtitle.show = false;
+              } else {
+                art.subtitle.url = item.url;
+                art.subtitle.show = true;
+              }
+              return item.html;
+            },
+          });
+        }
+      });
 
       art.on("play", () => {
         if (!startFiredRef.current) {
