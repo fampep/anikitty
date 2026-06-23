@@ -55,7 +55,10 @@ export async function GET(req: Request) {
 
   const url = `${BASE}/provider/${encodeURIComponent(provider)}/stream-direct?anilistId=${anilistId}&episode=${episode}&audio=${audio}`;
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
+    });
     const data = await res.json();
     if (!res.ok) {
       return Response.json(
@@ -64,7 +67,13 @@ export async function GET(req: Request) {
       );
     }
     return Response.json(normalise(data), { status: 200 });
-  } catch {
-    return Response.json({ file: null, error: "Failed to reach provider" }, { status: 200 });
+  } catch (e: any) {
+    const timedOut = e?.name === "AbortError" || e?.name === "TimeoutError";
+    return Response.json(
+      { file: null, error: timedOut ? `${provider} timed out` : "Failed to reach provider" },
+      { status: 200 },
+    );
   }
 }
+
+export const maxDuration = 10;

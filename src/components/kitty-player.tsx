@@ -65,6 +65,8 @@ export default function KittyPlayer({
         (t) => !!t.file && t.kind !== "thumbnails" && t.kind !== "chapters",
       );
 
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
       const artOptions: any = {
         container: containerRef.current!,
         url: proxiedSrc,
@@ -72,7 +74,7 @@ export default function KittyPlayer({
         poster,
         autoplay: true,
         volume: 1,
-        pip: true,
+        pip: !isMobile,
         setting: true,
         playbackRate: true,
         fullscreen: true,

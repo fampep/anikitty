@@ -24,6 +24,7 @@ const ContinueWatching = ({ loading }: Props) => {
   const { auth } = useAuthStore();
   const [items, setItems] = useState<ContinueItem[]>([]);
   const [fetched, setFetched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth) {
@@ -32,6 +33,7 @@ const ContinueWatching = ({ loading }: Props) => {
       return;
     }
 
+    setError(null);
     anisurgeContinue
       .get(true, 14)
       .then((res) => {
@@ -69,11 +71,20 @@ const ContinueWatching = ({ loading }: Props) => {
           }),
         );
       })
-      .catch(() => setItems([]))
+      .catch((e: any) => {
+        console.error("[ContinueWatching]", e);
+        setError(e?.message ?? "Failed to load watch history");
+        setItems([]);
+      })
       .finally(() => setFetched(true));
   }, [auth]);
 
   if (loading || !fetched) return <LoadingSkeleton />;
+  if (error) return (
+    <Container className="py-6">
+      <p className="text-white/35 text-sm font-mono">Watch history unavailable: {error}</p>
+    </Container>
+  );
   if (!items.length) return null;
 
   return (
