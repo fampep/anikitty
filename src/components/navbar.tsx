@@ -18,10 +18,10 @@ import useScrollPosition from "@/hooks/use-scroll-position";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
 import LoginPopoverButton from "./login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
-import { pb } from "@/lib/pocketbase";
 import NavbarAvatar from "./navbar-avatar";
 import { toast } from "sonner";
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { anisurgeAuth, clearAnisurgeToken, getAnisurgeToken } from "@/lib/anisurge";
 
 const menuItems: Array<{ title: string; href?: string }> = [
   // {
@@ -54,34 +54,27 @@ const NavBar = () => {
 
   useEffect(() => {
     const refreshAuth = async () => {
-      const auth_token = JSON.parse(
-        localStorage.getItem("pocketbase_auth") as string,
-      );
-      if (auth_token) {
-        try {
-          const user = await pb.collection("users").authRefresh();
-          if (user) {
-            auth.setAuth({
-              id: user.record.id,
-              email: user.record.email,
-              username: user.record.username,
-              avatar: user.record.avatar,
-              collectionId: user.record.collectionId,
-              collectionName: user.record.collectionName,
-              autoSkip: user.record.autoSkip,
-            });
-          }
-        } catch (e) {
-          console.error("Auth refresh error:", e);
-          localStorage.removeItem("pocketbase_auth");
+      const token = getAnisurgeToken();
+      if (!token) return;
+      try {
+        const me = await anisurgeAuth.me();
+        const user = me?.user ?? me;
+        auth.setAuth({
+          id: me.anisurgeUserId ?? user.externalUserId ?? "",
+          username: user.username ?? "",
+          email: user.email ?? "",
+          avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
+        });
+      } catch (e: any) {
+        if (e?.status === 401) {
+          clearAnisurgeToken();
           auth.clearAuth();
-          toast.error("Login session expired.", {
-            style: { background: "red" },
-          });
+          toast.error("Session expired. Please log in again.");
         }
       }
     };
     refreshAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

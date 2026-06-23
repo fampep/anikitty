@@ -3,21 +3,15 @@ import { persist } from "zustand/middleware";
 
 export type IAuth = {
   id: string;
-  avatar: string;
-  email: string;
   username: string;
-  collectionId: string;
-  collectionName: string;
-  autoSkip: boolean;
-  anilistUsername?: string;
+  email: string;
+  avatar: string; // full URL from Anisurge (avatarUrl or customPfpUrl)
 };
 
 export interface IAuthStore {
   auth: IAuth | null;
   setAuth: (state: IAuth) => void;
   clearAuth: () => void;
-  isRefreshing: boolean;
-  setIsRefreshing: (val: boolean) => void;
 }
 
 export const useAuthStore = create<IAuthStore>()(
@@ -26,19 +20,13 @@ export const useAuthStore = create<IAuthStore>()(
       auth: null,
       setAuth: (state: IAuth) => set({ auth: state }),
       clearAuth: () => set({ auth: null }),
-      isRefreshing: true,
-      setIsRefreshing: (val: boolean) => set({ isRefreshing: val }),
     }),
     {
       name: "auth",
-      partialize: (state) => ({
-        auth: state.auth,
-      }),
-      version: 0,
+      partialize: (state) => ({ auth: state.auth }),
+      version: 1,
     },
   ),
 );
 
-export const useAuthHydrated = () => {
-  return useAuthStore.persist.hasHydrated();
-};
+export const useAuthHydrated = () => useAuthStore.persist.hasHydrated();

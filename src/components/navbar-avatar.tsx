@@ -6,7 +6,7 @@ import { IAuthStore } from "@/store/auth-store";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import Link from "next/link";
 import { User, LogOut, BookMarked } from "lucide-react";
-import { pb } from "@/lib/pocketbase";
+import { anisurgeAuth, clearAnisurgeToken } from "@/lib/anisurge";
 
 type Props = { auth: IAuthStore };
 
@@ -17,7 +17,8 @@ function NavbarAvatar({ auth }: Props) {
   const close = () => setOpen(false);
 
   const handleLogout = () => {
-    pb.authStore.clear();
+    anisurgeAuth.logout();
+    clearAnisurgeToken();
     auth.clearAuth();
     close();
   };
@@ -28,9 +29,7 @@ function NavbarAvatar({ auth }: Props) {
         <button className="relative rounded-full ring-2 ring-white/20 hover:ring-white/50 transition-all">
           <Avatar
             username={auth.auth.username}
-            url={auth.auth.avatar}
-            id={auth.auth.id}
-            collectionID={auth.auth.collectionId}
+            url={auth.auth.avatar || undefined}
             className="w-8 h-8"
           />
           <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-white/70 rounded-full border-2 border-black" />
@@ -45,9 +44,7 @@ function NavbarAvatar({ auth }: Props) {
         <div className="px-4 py-3 border-b border-white/10 flex items-center gap-3">
           <Avatar
             username={auth.auth.username}
-            url={auth.auth.avatar}
-            id={auth.auth.id}
-            collectionID={auth.auth.collectionId}
+            url={auth.auth.avatar || undefined}
             className="w-9 h-9 shrink-0"
           />
           <div className="min-w-0">
@@ -55,7 +52,7 @@ function NavbarAvatar({ auth }: Props) {
               {auth.auth.username}
             </p>
             <p className="text-white/30 text-[10px] font-mono truncate">
-              passphrase account
+              {auth.auth.email}
             </p>
           </div>
         </div>
@@ -89,12 +86,7 @@ function NavbarAvatar({ auth }: Props) {
   );
 }
 
-function MenuItem({
-  href,
-  icon,
-  label,
-  onClick,
-}: {
+function MenuItem({ href, icon, label, onClick }: {
   href: string;
   icon: React.ReactNode;
   label: string;

@@ -5,71 +5,76 @@ import Container from "./container";
 import AnimeCard from "./anime-card";
 import { ROUTES } from "@/constants/routes";
 import BlurFade from "./ui/blur-fade";
-import { IAnime } from "@/types/anime";
 import { History } from "lucide-react";
-import useBookMarks, { WatchHistory } from "@/hooks/use-get-bookmark";
 import { useAuthStore } from "@/store/auth-store";
+import { anisurgeContinue } from "@/lib/anisurge";
+import { WatchHistory } from "@/hooks/use-get-bookmark";
 
-type Props = {
-  loading: boolean;
-};
-
-interface WatchedAnime extends IAnime {
-  episode: WatchHistory | string;
+interface ContinueItem {
+  id: string;
+  name: string;
+  poster: string;
+  episodeId: string;
+  watchDetail: WatchHistory;
 }
 
-const ContinueWatching = (props: Props) => {
-  const [anime, setAnime] = useState<WatchedAnime[] | null>(null);
+type Props = { loading: boolean };
 
+const ContinueWatching = ({ loading }: Props) => {
   const { auth } = useAuthStore();
-  const { bookmarks } = useBookMarks({
-    page: 1,
-    per_page: 14,
-    status: "watching",
-  });
+  const [items, setItems] = useState<ContinueItem[]>([]);
+  const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
     if (!auth) {
-      if (typeof window !== "undefined") {
-        const storedData = localStorage.getItem("watched");
-        const watchedAnimes: {
-          anime: { id: string; title: string; poster: string };
-          episodes: string[];
-        }[] = storedData ? JSON.parse(storedData) : [];
-
-        if (!Array.isArray(watchedAnimes)) {
-          localStorage.removeItem("watched");
-          return;
-        }
-
-        const animes = watchedAnimes.reverse().map((anime) => ({
-          id: anime.anime.id,
-          name: anime.anime.title,
-          poster: anime.anime.poster,
-          episode: anime.episodes[anime.episodes.length - 1],
-        }));
-        setAnime(animes as WatchedAnime[]);
-      }
-    } else {
-      if (bookmarks && bookmarks.length > 0) {
-        const animes = bookmarks.map((anime) => ({
-          id: anime.animeId,
-          name: anime.animeTitle,
-          poster: anime.thumbnail,
-          episode: anime.expand.watchHistory
-            ? anime.expand.watchHistory.sort(
-              (a, b) => b.episodeNumber - a.episodeNumber,
-            )[0]
-            : null,
-        }));
-        setAnime(animes as WatchedAnime[]);
-      }
+      setItems([]);
+      setFetched(true);
+      return;
     }
-  }, [auth, bookmarks]);
 
-  if (props.loading) return <LoadingSkeleton />;
+    anisurgeContinue
+      .get(true, 14)
+      .then((res) => {
+        const data: any[] = res?.data ?? [];
+        setItems(
+          data.map((r) => {
+            const animeData = r.anime ?? {};
+            const title =
+              animeData?.title?.english ??
+              animeData?.title?.user_preferred ??
+              animeData?.title?.romaji ??
+              r.animeId;
+            const poster =
+              animeData?.cover_image?.large ??
+              animeData?.cover_image?.extra_large ??
+              animeData?.poster ??
+              "";
 
-  if ((!anime || !anime.length) && !props.loading) return <></>;
+            const episodeNumber = parseInt((r.episodeId ?? "ep-0").replace("ep-", ""), 10) || 0;
+
+            return {
+              id: r.animeId,
+              name: title,
+              poster,
+              episodeId: r.episodeId,
+              watchDetail: {
+                id: r.animeId,
+                current: r.currentTime ?? 0,
+                timestamp: r.duration ?? 0,
+                episodeId: r.episodeId ?? "",
+                episodeNumber,
+                created: r.lastUpdated ?? "",
+              },
+            };
+          }),
+        );
+      })
+      .catch(() => setItems([]))
+      .finally(() => setFetched(true));
+  }, [auth]);
+
+  if (loading || !fetched) return <LoadingSkeleton />;
+  if (!items.length) return null;
 
   return (
     <Container className="flex flex-col gap-5 py-10 items-center lg:items-start">
@@ -80,44 +85,36 @@ const ContinueWatching = (props: Props) => {
           Continue Watching
         </h5>
       </div>
-      <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-5 content-center">
-        {anime?.map(
-          (ani, idx) =>
-            ani.episode && (
-              <BlurFade key={idx} delay={idx * 0.05} inView>
-                <AnimeCard
-                  title={ani.name}
-                  poster={ani.poster}
-                  className="self-center justify-self-center"
-                  href={`${ROUTES.WATCH}?anime=${ani.id}&episode=${typeof ani.episode !== "string" ? ani.episode.episodeId : ani.episode}`}
-                  watchDetail={
-                    typeof ani.episode !== "string" ? ani.episode : null
-                  }
-                />
-              </BlurFade>
-            ),
-        )}
+
+      <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-4">
+        {items.map((item, idx) => (
+          <BlurFade key={item.id} delay={idx * 0.04} inView>
+            <AnimeCard
+              title={item.name}
+              poster={item.poster}
+              className="w-full"
+              href={`${ROUTES.WATCH}?anime=${item.id}&episode=${item.episodeId}`}
+              watchDetail={item.watchDetail}
+            />
+          </BlurFade>
+        ))}
       </div>
     </Container>
   );
 };
 
-const LoadingSkeleton = () => {
-  return (
-    <Container className="flex flex-col gap-5 py-10 items-center lg:items-start lg:mt-[10.125rem] z-20 ">
-      <div className="h-10 w-[15.625rem] animate-pulse bg-white/8"></div>
-      <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-5 content-center">
-        {[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1].map((_, idx) => {
-          return (
-            <div
-              key={idx}
-              className="rounded-xl h-[15.625rem] min-w-[10.625rem] max-w-[12.625rem] md:h-[18.75rem] md:max-w-[12.5rem] animate-pulse bg-white/8"
-            ></div>
-          );
-        })}
-      </div>
-    </Container>
-  );
-};
+const LoadingSkeleton = () => (
+  <Container className="flex flex-col gap-5 py-10 items-center lg:items-start">
+    <div className="flex items-center gap-3">
+      <div className="w-0.5 h-5 bg-white/20 animate-pulse" />
+      <div className="h-6 w-44 animate-pulse bg-white/8 rounded" />
+    </div>
+    <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-4">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div key={i} className="rounded-xl h-[15.625rem] md:h-[18.75rem] animate-pulse bg-white/8" />
+      ))}
+    </div>
+  </Container>
+);
 
 export default ContinueWatching;

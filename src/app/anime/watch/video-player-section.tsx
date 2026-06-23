@@ -86,9 +86,16 @@ const VideoPlayerSection = () => {
     watchedIdRef.current = await syncWatchProgress(
       bookmarkIdRef.current,
       watchedIdRef.current,
-      { episodeId, episodeNumber: parseInt(episodeNo) || 0, current, duration },
+      {
+        episodeId,
+        episodeNumber: parseInt(episodeNo) || 0,
+        current,
+        duration,
+        language: audio,
+        server: provider,
+      },
     );
-  }, [auth, episodeId, episodeNo, syncWatchProgress]);
+  }, [auth, episodeId, episodeNo, audio, provider, syncWatchProgress]);
 
   const {
     data: streamData,

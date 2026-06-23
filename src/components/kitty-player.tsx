@@ -56,12 +56,57 @@ export default function KittyPlayer({
         artRef.current = null;
       }
 
-      const referer = headers?.Referer ?? headers?.referer ?? "";
-      const origin  = headers?.Origin  ?? headers?.origin  ?? "";
+      const referer  = headers?.Referer  ?? headers?.referer  ?? "";
+      const origin   = headers?.Origin   ?? headers?.origin   ?? "";
       const proxiedSrc = `/api/kitty/hls?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}&origin=${encodeURIComponent(origin)}`;
 
-      const validTracks = (tracks ?? []).filter((t) => !!t.file);
+      // Subtitle tracks only (skip thumbnail / chapter tracks)
+      const subTracks = (tracks ?? []).filter(
+        (t) => !!t.file && t.kind !== "thumbnails" && t.kind !== "chapters",
+      );
 
+      // ── Settings ──────────────────────────────────────────────────────
+      const settingItems: any[] = [];
+
+      // Subtitle selector — only added when there are subtitle tracks
+      if (subTracks.length > 0) {
+        settingItems.push({
+          html: "Subtitle",
+          width: 220,
+          tooltip: subTracks[0]?.label ?? "Off",
+          selector: [
+            { html: "Off", default: false },
+            ...subTracks.map((t, i) => ({
+              html: t.label || `Track ${i + 1}`,
+              url: t.file,
+              default: i === 0,
+            })),
+          ],
+          onSelect: (item: any, art: any) => {
+            if (!item.url) {
+              art.subtitle.show = false;
+            } else {
+              art.subtitle.url = item.url;
+              art.subtitle.show = true;
+            }
+            return item.html;
+          },
+        });
+      }
+
+      // Quality placeholder — updated once HLS manifest is parsed
+      settingItems.push({
+        html: "Quality",
+        width: 160,
+        tooltip: "Auto",
+        selector: [{ html: "Auto", value: -1, default: true }],
+        onSelect: (item: any, art: any) => {
+          if (art.hls) art.hls.currentLevel = item.value;
+          return item.html;
+        },
+      });
+
+      // ── ArtPlayer options ──────────────────────────────────────────────
       const artOptions: any = {
         container: containerRef.current!,
         url: proxiedSrc,
@@ -70,7 +115,7 @@ export default function KittyPlayer({
         autoplay: true,
         volume: 1,
         pip: true,
-        setting: true,
+        setting: settingItems,
         playbackRate: true,
         fullscreen: true,
         playsInline: true,
@@ -85,6 +130,30 @@ export default function KittyPlayer({
               hls.loadSource(url);
               hls.attachMedia(video);
               artInstance.hls = hls;
+
+              // Populate quality levels after manifest is parsed
+              hls.on(Hls.Events.MANIFEST_PARSED, (_: any, data: any) => {
+                const levels: any[] = data.levels ?? [];
+                if (levels.length > 1) {
+                  const qualitySelector = [
+                    { html: "Auto", value: -1, default: true },
+                    ...levels.map((l: any, i: number) => ({
+                      html: l.height ? `${l.height}p` : `Source ${i + 1}`,
+                      value: i,
+                    })),
+                  ];
+                  artInstance.setting.update({
+                    html: "Quality",
+                    tooltip: "Auto",
+                    selector: qualitySelector,
+                    onSelect: (item: any) => {
+                      hls.currentLevel = item.value;
+                      return item.html;
+                    },
+                  });
+                }
+              });
+
               artInstance.on("destroy", () => hls.destroy());
             } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
               video.src = url;
@@ -93,9 +162,9 @@ export default function KittyPlayer({
         },
       };
 
-      if (validTracks[0]) {
+      if (subTracks[0]) {
         artOptions.subtitle = {
-          url: validTracks[0].file,
+          url: subTracks[0].file,
           type: "vtt",
           style: {
             color: "#fff",

@@ -122,8 +122,6 @@ function ProfilePage() {
                   className="w-28 h-28 md:w-32 md:h-32"
                   username={auth.username}
                   url={auth.avatar}
-                  collectionID={auth.collectionId}
-                  id={auth.id}
                 />
               </div>
             </div>
