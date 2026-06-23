@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   animeId: string;
-  title: string;
+  title?: string;
   subOrDub?: { sub: number; dub: number };
   episodes: IEpisodes;
   isLoading: boolean;
@@ -21,6 +21,7 @@ type Props = {
 
 const EpisodePlaylist = ({
   animeId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   title,
   subOrDub,
   episodes,
