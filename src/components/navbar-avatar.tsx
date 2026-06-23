@@ -5,7 +5,7 @@ import Avatar from "./common/avatar";
 import { IAuthStore } from "@/store/auth-store";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import Link from "next/link";
-import { User, LogOut, Settings, BookMarked } from "lucide-react";
+import { User, LogOut, BookMarked } from "lucide-react";
 import { pb } from "@/lib/pocketbase";
 
 type Props = { auth: IAuthStore };
@@ -25,7 +25,7 @@ function NavbarAvatar({ auth }: Props) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="relative rounded-full ring-2 ring-green-600/60 hover:ring-green-400 transition-all">
+        <button className="relative rounded-full ring-2 ring-white/20 hover:ring-white/50 transition-all">
           <Avatar
             username={auth.auth.username}
             url={auth.auth.avatar}
@@ -33,17 +33,16 @@ function NavbarAvatar({ auth }: Props) {
             collectionID={auth.auth.collectionId}
             className="w-8 h-8"
           />
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#020f04]" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-white/70 rounded-full border-2 border-black" />
         </button>
       </PopoverTrigger>
 
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-52 mt-2 p-0 bg-[#020f04] border border-green-900/60 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+        className="w-52 mt-2 p-0 bg-[#0a0a0a] border border-white/15 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
       >
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-green-900/40 flex items-center gap-3">
+        <div className="px-4 py-3 border-b border-white/10 flex items-center gap-3">
           <Avatar
             username={auth.auth.username}
             url={auth.auth.avatar}
@@ -52,16 +51,15 @@ function NavbarAvatar({ auth }: Props) {
             className="w-9 h-9 shrink-0"
           />
           <div className="min-w-0">
-            <p className="text-green-200 font-semibold text-sm truncate">
+            <p className="text-white/85 font-semibold text-sm truncate">
               {auth.auth.username}
             </p>
-            <p className="text-green-700 text-[10px] font-mono truncate">
-              {auth.auth.email}
+            <p className="text-white/30 text-[10px] font-mono truncate">
+              passphrase account
             </p>
           </div>
         </div>
 
-        {/* Menu items */}
         <div className="py-1">
           <MenuItem
             href={`/profile/${auth.auth.username}`}
@@ -77,7 +75,7 @@ function NavbarAvatar({ auth }: Props) {
           />
         </div>
 
-        <div className="border-t border-green-900/40 py-1">
+        <div className="border-t border-white/10 py-1">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-colors"
@@ -106,9 +104,9 @@ function MenuItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-4 py-2 text-sm text-green-300 hover:bg-green-900/30 hover:text-green-200 transition-colors"
+      className="flex items-center gap-2.5 px-4 py-2 text-sm text-white/65 hover:bg-white/8 hover:text-white/90 transition-colors"
     >
-      <span className="text-green-600">{icon}</span>
+      <span className="text-white/35">{icon}</span>
       {label}
     </Link>
   );

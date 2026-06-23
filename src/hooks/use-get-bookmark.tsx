@@ -47,6 +47,11 @@ function useBookMarks({
 
   const filterParts = [];
 
+  // Always scope to current user
+  if (auth?.id) {
+    filterParts.push(`user='${auth.id}'`);
+  }
+
   if (animeID) {
     filterParts.push(`animeId='${animeID}'`);
   }
@@ -99,7 +104,7 @@ function useBookMarks({
     }
     try {
       const res = await pb.collection<Bookmark>("bookmarks").getList(1, 1, {
-        filter: `animeId='${animeID}'`,
+        filter: `animeId='${animeID}' && user='${auth.id}'`,
       });
 
       if (res.totalItems > 0) {

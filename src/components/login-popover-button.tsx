@@ -1,37 +1,40 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Input } from "./ui/input";
-import DiscordIcon from "@/icons/discord";
 import { pb } from "@/lib/pocketbase";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { Loader2, LogIn } from "lucide-react";
+import { Check, Copy, Loader2, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  generatePassphrase,
+  normalizePassphrase,
+  passphraseToCredentials,
+} from "@/lib/passphrase";
 
-type FormData = {
-  username: string;
-  email: string;
-  password: string;
-  confirm_password: string;
-};
+type View = "menu" | "create" | "login";
 
 function LoginPopoverButton() {
   const auth = useAuthStore();
-  const [form, setForm] = useState<FormData>({
-    username: "",
-    email: "",
-    password: "",
-    confirm_password: "",
-  });
-  const [tab, setTab] = useState<"login" | "signup">("login");
-  const [loading, setLoading] = useState(false);
-  const [discordLoading, setDiscordLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<View>("menu");
+  const [loading, setLoading] = useState(false);
 
-  const field = (key: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [key]: e.target.value }));
+  const [phrase, setPhrase] = useState("");
+  useEffect(() => { setPhrase(generatePassphrase()); }, []);
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const [input, setInput] = useState("");
+
+  const resetState = () => {
+    setView("menu");
+    setPhrase(generatePassphrase());
+    setSaved(false);
+    setCopied(false);
+    setInput("");
+    setLoading(false);
+  };
 
   const syncAuth = () => {
     const r = pb.authStore.record!;
@@ -43,91 +46,92 @@ function LoginPopoverButton() {
       collectionId: r.collectionId,
       collectionName: r.collectionName,
       autoSkip: r.autoSkip ?? false,
+      anilistUsername: r.anilistUsername ?? undefined,
     });
   };
 
-  const loginWithDiscord = async () => {
-    setDiscordLoading(true);
+  const handleCopy = useCallback(async () => {
     try {
-      const res = await pb.collection("users").authWithOAuth2({ provider: "discord" });
-      if (pb.authStore.isValid && pb.authStore.record) {
-        const discordUsername = res.meta?.username ?? res.meta?.name;
-        if (discordUsername) {
-          await pb.collection("users").update(pb.authStore.record.id, {
-            username: discordUsername,
-          });
-          // re-fetch so username is fresh
-          await pb.collection("users").authRefresh();
-        }
-        syncAuth();
-        toast.success("Logged in with Discord!");
-        setOpen(false);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(phrase);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = phrase;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
       }
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e?.message ?? "Discord login failed. Make sure Discord OAuth is enabled in PocketBase.");
-    } finally {
-      setDiscordLoading(false);
-    }
-  };
+    } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [phrase]);
 
-  const loginWithEmail = async () => {
-    if (!form.username || !form.password) {
-      toast.error("Fill in all fields");
+  const handleCreate = async () => {
+    if (!saved) {
+      toast.error("Please confirm you've saved your passphrase");
       return;
     }
     setLoading(true);
     try {
-      await pb.collection("users").authWithPassword(form.username, form.password);
-      if (pb.authStore.isValid) {
-        syncAuth();
-        toast.success("Welcome back!");
-        setOpen(false);
+      const creds = await passphraseToCredentials(phrase);
+      await pb.collection("users").create({
+        email: creds.email,
+        password: creds.password,
+        passwordConfirm: creds.password,
+        username: creds.username,
+        emailVisibility: false,
+      });
+      await pb.collection("users").authWithPassword(creds.email, creds.password);
+      syncAuth();
+      toast.success("Account created! Keep your passphrase safe.");
+      setOpen(false);
+      resetState();
+    } catch (e: any) {
+      const msg = e?.response?.data?.email?.message ?? e?.message;
+      if (msg?.includes("already exists") || msg?.includes("unique")) {
+        toast.error("That passphrase is already in use. Generate a new one.");
+      } else {
+        toast.error(msg ?? "Failed to create account");
       }
-    } catch {
-      toast.error("Invalid username or password");
     } finally {
       setLoading(false);
     }
   };
 
-  const signupWithEmail = async () => {
-    if (!form.username || !form.email || !form.password || !form.confirm_password) {
-      toast.error("Fill in all fields");
-      return;
-    }
-    if (form.password !== form.confirm_password) {
-      toast.error("Passwords do not match");
+  const handleLogin = async () => {
+    const normalized = normalizePassphrase(input);
+    if (normalized.split(" ").length < 4) {
+      toast.error("Enter your full passphrase");
       return;
     }
     setLoading(true);
     try {
-      await pb.collection("users").create({
-        username: form.username,
-        email: form.email,
-        password: form.password,
-        passwordConfirm: form.confirm_password,
-      });
-      toast.success("Account created! Please log in.");
-      setForm({ username: "", email: "", password: "", confirm_password: "" });
-      setTab("login");
-    } catch (e: any) {
-      if (e?.response?.data) {
-        Object.entries(e.response.data).forEach(([k, v]: any) =>
-          toast.error(`${k}: ${v.message}`),
-        );
-      } else {
-        toast.error("Signup failed. Try again.");
-      }
+      const creds = await passphraseToCredentials(normalized);
+      await pb.collection("users").authWithPassword(creds.email, creds.password);
+      syncAuth();
+      toast.success("Welcome back!");
+      setOpen(false);
+      resetState();
+    } catch {
+      toast.error("Passphrase not recognised. Check spelling and spacing.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) resetState();
+      }}
+    >
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-green-700 text-green-300 text-sm font-semibold hover:bg-green-900/40 hover:border-green-500 transition-all">
+        <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-white/20 text-white/70 text-sm font-semibold hover:bg-white/10 hover:border-white/40 hover:text-white transition-all">
           <LogIn className="w-4 h-4" />
           Login
         </button>
@@ -136,111 +140,155 @@ function LoginPopoverButton() {
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-80 mt-2 p-0 bg-[#020f04] border border-green-900/60 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+        className="w-84 mt-2 p-0 bg-[#0a0a0a] border border-white/15 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+        style={{ width: "22rem" }}
       >
-        {/* Discord — primary CTA */}
-        <div className="p-5 pb-3">
-          <p className="text-center text-xs text-green-700 font-mono mb-3 tracking-wider">
-            sign in to KittyAnime
-          </p>
-          <button
-            onClick={loginWithDiscord}
-            disabled={discordLoading}
-            className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold text-sm transition-colors disabled:opacity-60"
-          >
-            {discordLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <DiscordIcon className="w-5 h-5" />
-            )}
-            Continue with Discord
-          </button>
-        </div>
+        {/* ── Menu ──────────────────────────────────────────────── */}
+        {view === "menu" && (
+          <div className="p-5 flex flex-col gap-3">
+            <p className="text-center text-xs text-white/35 font-mono tracking-wider mb-1">
+              sign in to KittyAnime
+            </p>
+            <button
+              onClick={() => setView("create")}
+              className="w-full py-2.5 rounded-lg bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors"
+            >
+              Create account
+            </button>
+            <button
+              onClick={() => setView("login")}
+              className="w-full py-2.5 rounded-lg border border-white/15 hover:border-white/30 text-white/70 hover:text-white font-semibold text-sm transition-colors"
+            >
+              I already have a passphrase
+            </button>
+            <p className="text-center text-[10px] text-white/20 font-mono mt-1">
+              No email required
+            </p>
+          </div>
+        )}
 
-        <div className="flex items-center gap-3 px-5 py-1">
-          <div className="h-px flex-1 bg-green-900/40" />
-          <span className="text-[10px] text-green-800 font-mono">or</span>
-          <div className="h-px flex-1 bg-green-900/40" />
-        </div>
-
-        {/* Email / password */}
-        <div className="p-5 pt-2">
-          <Tabs value={tab} onValueChange={(v) => { setTab(v as any); setForm({ username:"", email:"", password:"", confirm_password:"" }); }}>
-            <TabsList className="w-full bg-green-950/40 border border-green-900/40 h-8 rounded-lg">
-              <TabsTrigger value="login" className="flex-1 text-xs data-[state=active]:bg-green-800 data-[state=active]:text-white rounded-md">
-                Login
-              </TabsTrigger>
-              <TabsTrigger value="signup" className="flex-1 text-xs data-[state=active]:bg-green-800 data-[state=active]:text-white rounded-md">
-                Sign Up
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login" className="flex flex-col gap-2.5 mt-3">
-              <Input
-                placeholder="Username or email"
-                value={form.username}
-                onChange={field("username")}
-                onKeyDown={(e) => e.key === "Enter" && loginWithEmail()}
-                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={field("password")}
-                onKeyDown={(e) => e.key === "Enter" && loginWithEmail()}
-                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
-              />
+        {/* ── Create account ────────────────────────────────────── */}
+        {view === "create" && (
+          <div className="p-5 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
               <button
-                onClick={loginWithEmail}
-                disabled={loading}
-                className="w-full py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                onClick={() => setView("menu")}
+                className="text-white/35 hover:text-white/70 text-xs"
               >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Login
+                ← back
               </button>
-            </TabsContent>
+              <p className="text-white/80 font-semibold text-sm">Your passphrase</p>
+            </div>
 
-            <TabsContent value="signup" className="flex flex-col gap-2.5 mt-3">
-              <Input
-                placeholder="Username"
-                value={form.username}
-                onChange={field("username")}
-                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
-              />
-              <Input
-                type="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={field("email")}
-                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={field("password")}
-                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
-              />
-              <Input
-                type="password"
-                placeholder="Confirm password"
-                value={form.confirm_password}
-                onChange={field("confirm_password")}
-                onKeyDown={(e) => e.key === "Enter" && signupWithEmail()}
-                className="bg-green-950/30 border-green-900/60 text-green-100 placeholder:text-green-800 text-sm h-9 focus:border-green-600 focus:ring-0"
-              />
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              This passphrase <em>is</em> your account — it&apos;s your username and
+              password in one. Write it down and keep it safe. There is no recovery.
+            </p>
+
+            <div className="rounded-lg border border-white/12 bg-white/5 p-3">
+              <div className="flex flex-wrap gap-1.5">
+                {phrase.split(" ").map((word, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/10 border border-white/12 text-white/80 text-xs font-mono"
+                  >
+                    <span className="text-white/30 text-[9px]">{i + 1}</span>
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
               <button
-                onClick={signupWithEmail}
-                disabled={loading}
-                className="w-full py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                onClick={handleCopy}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/15 hover:border-white/30 text-white/55 hover:text-white/80 text-xs font-semibold transition-colors"
               >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create Account
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? "Copied!" : "Copy"}
               </button>
-            </TabsContent>
-          </Tabs>
-        </div>
+              <button
+                onClick={() => { setPhrase(generatePassphrase()); setSaved(false); setCopied(false); }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/15 hover:border-white/30 text-white/55 hover:text-white/80 text-xs font-semibold transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                New phrase
+              </button>
+            </div>
+
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <div
+                onClick={() => setSaved((s) => !s)}
+                className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                  saved
+                    ? "bg-white border-white"
+                    : "border-white/25 bg-transparent"
+                }`}
+              >
+                {saved && <Check className="w-2.5 h-2.5 text-black" />}
+              </div>
+              <span className="text-xs text-white/40 leading-tight">
+                I&apos;ve saved my passphrase. I understand it cannot be recovered.
+              </span>
+            </label>
+
+            <button
+              onClick={handleCreate}
+              disabled={loading || !saved}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold text-sm transition-colors"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              <ShieldCheck className="w-4 h-4" />
+              Create account
+            </button>
+          </div>
+        )}
+
+        {/* ── Login ─────────────────────────────────────────────── */}
+        {view === "login" && (
+          <div className="p-5 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setView("menu")}
+                className="text-white/35 hover:text-white/70 text-xs"
+              >
+                ← back
+              </button>
+              <p className="text-white/80 font-semibold text-sm">Enter passphrase</p>
+            </div>
+
+            <p className="text-[11px] text-white/40">
+              Type or paste your 12-word passphrase. Words separated by spaces.
+            </p>
+
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleLogin();
+                }
+              }}
+              placeholder="word word word word word word word word word word word word"
+              rows={3}
+              className="w-full resize-none rounded-lg border border-white/15 bg-white/5 text-white/85 placeholder:text-white/20 text-sm font-mono p-3 focus:outline-none focus:border-white/30 leading-relaxed"
+            />
+
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-60 text-black font-semibold text-sm transition-colors"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LogIn className="w-4 h-4" />
+              )}
+              Login
+            </button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

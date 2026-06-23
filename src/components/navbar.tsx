@@ -90,15 +90,15 @@ const NavBar = () => {
       className={cn([
         "h-fit w-full",
         "sticky top-0 z-[100] duration-300",
-        isHeaderFixed ? "fixed bg-gradient-to-b from-[#020f04]" : "",
+        isHeaderFixed ? "fixed bg-gradient-to-b from-black" : "",
         isHeaderSticky
-          ? "bg-clip-padding backdrop-filter backdrop-blur-md bg-opacity-10 bg-[#020f04]"
+          ? "bg-clip-padding backdrop-filter backdrop-blur-md bg-opacity-10 bg-black"
           : "",
-        "border-b border-green-900/40",
+        "border-b border-white/10",
       ])}
     >
       {false && !hasSeenDomainChangeBanner && (
-        <Alert variant="default" className="text-green-300 bg-green-950/30 border-green-800">
+        <Alert variant="default" className="text-white/70 bg-white/5 border-white/15">
           <AlertTitle className="font-bold flex items-center justify-center space-x-2">
             <div className="flex items-center gap-2">
               <InfoIcon size="20" />
@@ -122,25 +122,25 @@ const NavBar = () => {
           className="flex items-center gap-2 cursor-pointer group"
         >
           <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-green-500/20 blur-md group-hover:bg-green-500/40 transition-all duration-300"></div>
+            <div className="absolute inset-0 rounded-full bg-white/10 blur-md group-hover:bg-white/20 transition-all duration-300"></div>
             <img
               src={KITTY_ICON}
               alt="KittyAnime"
               width={38}
               height={38}
-              className="relative drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+              className="relative opacity-90"
             />
           </div>
           <div className="flex flex-col leading-none">
             <h1
               className={cn([
                 nightTokyo.className,
-                "text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-300 via-emerald-400 to-green-600 tracking-widest kitty-text-glow",
+                "text-2xl font-bold text-white tracking-widest",
               ])}
             >
               KittyAnime
             </h1>
-            <span className="text-[10px] text-green-600/70 tracking-widest font-mono ml-0.5">~ nya ~</span>
+            <span className="text-[10px] text-white/35 tracking-widest font-mono ml-0.5">~ nya ~</span>
           </div>
         </Link>
 

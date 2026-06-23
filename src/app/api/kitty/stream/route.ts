@@ -54,7 +54,17 @@ export async function GET(req: Request) {
   }
 
   const url = `${BASE}/provider/${encodeURIComponent(provider)}/stream-direct?anilistId=${anilistId}&episode=${episode}&audio=${audio}`;
-  const res = await fetch(url, { cache: "no-store" });
-  const data = await res.json();
-  return Response.json(normalise(data), { status: res.status });
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    const data = await res.json();
+    if (!res.ok) {
+      return Response.json(
+        { file: null, error: data?.message ?? "Provider unavailable" },
+        { status: 200 },
+      );
+    }
+    return Response.json(normalise(data), { status: 200 });
+  } catch {
+    return Response.json({ file: null, error: "Failed to reach provider" }, { status: 200 });
+  }
 }

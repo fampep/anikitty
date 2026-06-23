@@ -35,7 +35,8 @@ function AnimeHeatmap() {
         .collection<BookmarkData>("bookmarks")
         .getFullList({
           filter: `user = "${auth.id}"`,
-          fields: "watchHistory", // Only fetch the relation IDs needed
+          fields: "watchHistory",
+          requestKey: null,
         });
 
       if (!bookmarkRecords || bookmarkRecords.length === 0) {
@@ -78,7 +79,8 @@ function AnimeHeatmap() {
           .collection<WatchHistory>("watched")
           .getFullList({
             filter: watchedFilter,
-            fields: "created", // Only need the creation date
+            fields: "created",
+            requestKey: null,
           });
         const dailyCounts: { [key: string]: number } = {};
         let totalCount = 0;

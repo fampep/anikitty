@@ -9,7 +9,6 @@ import {
   CarouselContent,
   CarouselItem,
 } from "./ui/carousel";
-import Button from "./common/custom-button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BlurFade from "./ui/blur-fade";
@@ -24,53 +23,65 @@ type Props = {
 const AnimeCarousel = (props: Props) => {
   const [api, setApi] = React.useState<CarouselApi>();
 
+  if (!props.anime?.length) return null;
+
   return (
-    <div className={cn(["flex flex-col gap-5", props.className])}>
-      <div className="w-full flex items-center justify-between">
-        <h5 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-emerald-500">
-          {props.title}
-        </h5>
+    <div className={cn("flex flex-col gap-4", props.className)}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => {
-              api?.scrollPrev();
-            }}
-            className="rounded-full bg-transparent border border-green-700/60 h-9 w-9 hover:bg-green-950 hover:border-green-500"
+          <div className="w-px h-5 bg-white/30" />
+          <h5 className="text-lg md:text-xl font-bold text-white tracking-tight">
+            {props.title}
+          </h5>
+          <span className="text-[11px] font-mono text-white/25 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+            {props.anime.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => api?.scrollPrev()}
+            className="h-8 w-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95"
           >
-            <ArrowLeft className="text-green-400 shrink-0" />
-          </Button>
-          <Button
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
             onClick={() => api?.scrollNext()}
-            className="rounded-full bg-transparent border border-green-700/60 h-9 w-9 hover:bg-green-950 hover:border-green-500"
+            className="h-8 w-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95"
           >
-            <ArrowRight className="text-green-400 shrink-0" />
-          </Button>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
-      <Carousel className="w-full" setApi={setApi} opts={{}}>
-        <CarouselContent className="w-full">
-          {props.anime?.map((ani, idx) => (
-            <BlurFade key={idx} delay={idx * 0.05} inView>
+
+      {/* Carousel with gradient edge fades */}
+      <div className="relative">
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+        <Carousel className="w-full" setApi={setApi} opts={{}}>
+          <CarouselContent className="w-full">
+            {props.anime.map((ani, idx) => (
               <CarouselItem
                 key={idx}
                 className="lg:basis-[1/5] basis-[1/2] sm:basis-[1/3] md:basis-[1/4] xl:basis-[1/6] 2xl:basis-[1/7]"
               >
-                <AnimeCard
-                  key={idx}
-                  title={ani.name}
-                  subTitle={ani.type}
-                  episodeCard
-                  sub={ani.episodes.sub}
-                  dub={ani.episodes.dub}
-                  href={`${ROUTES.ANIME_DETAILS}/${ani.id}`}
-                  poster={ani.poster}
-                  className="self-center justify-self-center min-w-[12rem]"
-                />
+                <BlurFade delay={idx * 0.04} inView>
+                  <AnimeCard
+                    title={ani.name}
+                    subTitle={ani.type}
+                    episodeCard
+                    sub={ani.episodes.sub}
+                    dub={ani.episodes.dub}
+                    href={`${ROUTES.ANIME_DETAILS}/${ani.id}`}
+                    poster={ani.poster}
+                    className="self-center justify-self-center min-w-[12rem]"
+                  />
+                </BlurFade>
               </CarouselItem>
-            </BlurFade>
-          ))}
-        </CarouselContent>
-      </Carousel>
+            ))}
+          </CarouselContent>
+        </Carousel>
+      </div>
     </div>
   );
 };

@@ -3,6 +3,7 @@ import Container from "./container";
 import FeaturedCollectionCard from "./featured-collection-card";
 import { SectionHeading } from "./section-heading";
 import { IAnime, LatestCompletedAnime } from "@/types/anime";
+import { Layers } from "lucide-react";
 
 type Props = {
   featuredAnime: [
@@ -17,8 +18,8 @@ const FeaturedCollection = ({ featuredAnime, loading }: Props) => {
   if (loading) return <LoadingSkeleton />;
   return (
     <Container className="flex flex-col gap-5 items-center lg:items-start py-5">
-      <SectionHeading emoji="🐾" title="Featured Collection" />
-      <div className="grid w-full gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <SectionHeading icon={<Layers className="w-4 h-4" />} title="Featured Collection" />
+      <div className="grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {featuredAnime.map((category, idx) => (
           <FeaturedCollectionCard
             title={category.title}
@@ -31,23 +32,21 @@ const FeaturedCollection = ({ featuredAnime, loading }: Props) => {
   );
 };
 
-const LoadingSkeleton = () => {
-  return (
-    <Container className="flex flex-col gap-5 py-10 items-center lg:items-start ">
-      <div className="h-10 w-[15.625rem] animate-pulse bg-green-950/60"></div>
-      <div className="grid w-full gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 1, 1].map((_, idx) => {
-          return (
-            <div
-              key={idx}
-              className="rounded-xl h-[15.625rem] w-[100%] md:h-[18.75rem] animate-pulse bg-green-950/60"
-            ></div>
-          );
-        })}
-      </div>
-    </Container>
-  );
-};
+const LoadingSkeleton = () => (
+  <Container className="flex flex-col gap-5 py-10 items-center lg:items-start">
+    <div className="flex items-center gap-3">
+      <div className="w-0.5 h-5 bg-white/20 animate-pulse" />
+      <div className="h-6 w-48 animate-pulse bg-white/8 rounded" />
+    </div>
+    <div className="grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      {[0, 1, 2].map((_, idx) => (
+        <div
+          key={idx}
+          className="rounded-xl h-[18rem] animate-pulse bg-white/5"
+        />
+      ))}
+    </div>
+  </Container>
+);
 
 export default FeaturedCollection;
-

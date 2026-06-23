@@ -31,6 +31,10 @@ export const metadata: Metadata = {
   applicationName: APP_NAME,
   title: APP_DEFAULT_TITLE,
   description: APP_DESCRIPTION,
+  icons: {
+    icon: "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg",
+    apple: "/icon-192x192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -74,7 +78,8 @@ export default function RootLayout({
           gtag('config', 'G-X9RZ58XPH1');`}
         </Script>
         <PublicEnvScript />
-        <link rel="icon" href="/icon.png" type="image/png" sizes="192x192" />
+        <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg" type="image/svg+xml" />
+        <link rel="alternate icon" href="/icon.png" type="image/png" sizes="192x192" />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden`}
