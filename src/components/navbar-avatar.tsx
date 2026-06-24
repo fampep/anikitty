@@ -5,7 +5,8 @@ import Avatar from "./common/avatar";
 import { IAuthStore } from "@/store/auth-store";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import Link from "next/link";
-import { User, LogOut, BookMarked } from "lucide-react";
+import { User, LogOut, BookMarked, Settings } from "lucide-react";
+import { ROUTES } from "@/constants/routes";
 import { anisurgeAuth, clearAnisurgeToken } from "@/lib/anisurge";
 
 type Props = { auth: IAuthStore };
@@ -68,6 +69,12 @@ function NavbarAvatar({ auth }: Props) {
             href={`/profile/${auth.auth.username}#watchlist`}
             icon={<BookMarked className="w-3.5 h-3.5" />}
             label="Watchlist"
+            onClick={close}
+          />
+          <MenuItem
+            href={ROUTES.SETTINGS}
+            icon={<Settings className="w-3.5 h-3.5" />}
+            label="Settings"
             onClick={close}
           />
         </div>

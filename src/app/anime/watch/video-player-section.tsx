@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
+import { useSettingsStore } from "@/store/settings-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { anisurgeContinue } from "@/lib/anisurge";
 import dynamic from "next/dynamic";
@@ -37,11 +38,7 @@ const VideoPlayerSection = () => {
   const episodeId = searchParams.get("episode");
   const { selectedEpisode, anime } = useAnimeStore();
 
-  const [preferDub, setPreferDub] = useState<boolean>(() => {
-    if (typeof window !== "undefined")
-      return localStorage.getItem("preferDub") === "true";
-    return false;
-  });
+  const { preferDub, setPreferDub } = useSettingsStore();
 
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
@@ -231,7 +228,7 @@ const VideoPlayerSection = () => {
             className={`h-6 px-2.5 text-[11px] font-bold gap-1 rounded-none border-0 ${
               !preferDub ? "bg-white/15 text-white hover:bg-white/20" : "bg-transparent text-white/40 hover:bg-white/10"
             }`}
-            onClick={() => { localStorage.setItem("preferDub", "false"); setPreferDub(false); }}
+            onClick={() => setPreferDub(false)}
           >
             <Captions className="w-3 h-3" /> SUB
           </Button>
@@ -241,7 +238,7 @@ const VideoPlayerSection = () => {
             className={`h-6 px-2.5 text-[11px] font-bold gap-1 rounded-none border-0 ${
               preferDub ? "bg-white/15 text-white hover:bg-white/20" : "bg-transparent text-white/40 hover:bg-white/10"
             }`}
-            onClick={() => { localStorage.setItem("preferDub", "true"); setPreferDub(true); }}
+            onClick={() => setPreferDub(true)}
           >
             <Mic className="w-3 h-3" /> DUB
           </Button>

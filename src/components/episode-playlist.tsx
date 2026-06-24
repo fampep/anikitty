@@ -5,9 +5,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { useAnimeStore } from "@/store/anime-store";
+import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
 import { Bookmark } from "@/hooks/use-get-bookmark";
-import { LayoutGrid, List, Search } from "lucide-react";
+import { LayoutList, Grid2x2, LayoutGrid, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -19,30 +20,28 @@ type Props = {
   bookmarks?: Bookmark[] | null;
 };
 
-const EpisodePlaylist = ({
-  animeId,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  title,
-  subOrDub,
-  episodes,
-  isLoading,
-  bookmarks,
-}: Props) => {
+const LAYOUT_OPTIONS: { value: EpisodeLayout; icon: React.ReactNode; label: string }[] = [
+  { value: "list",      icon: <LayoutList  className="w-3.5 h-3.5" />, label: "List" },
+  { value: "compact",   icon: <Grid2x2     className="w-3.5 h-3.5" />, label: "Compact" },
+  { value: "thumbnail", icon: <LayoutGrid  className="w-3.5 h-3.5" />, label: "Thumbnails" },
+];
+
+const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading, bookmarks }: Props) => {
   const searchParams = useSearchParams();
   const episodeId = searchParams.get("episode");
   const isLatestEpisode = searchParams.get("type");
 
-  const { setSelectedEpisode } = useAnimeStore();
+  const { setSelectedEpisode, anime } = useAnimeStore();
+  const { episodeLayout, setEpisodeLayout } = useSettingsStore();
+
+  const animePoster = anime?.anime?.info?.poster ?? "";
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const episodeRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const total = episodes?.totalEpisodes ?? 0;
-  const [currentGroup, setCurrentGroup] = useState(
-    `1-${Math.min(50, total)}`,
-  );
+  const [currentGroup, setCurrentGroup] = useState(`1-${Math.min(50, total)}`);
   const [search, setSearch] = useState("");
-  const [compact, setCompact] = useState(false);
 
   const groupRanges = (): Array<{ label: string; value: string }> => {
     const opts: Array<{ label: string; value: string }> = [];
@@ -57,12 +56,8 @@ const EpisodePlaylist = ({
 
   const [start, end] = currentGroup.split("-").map(Number);
 
-  const baseFiltered = episodes.episodes.filter(
-    (_, i) => i >= start - 1 && i <= end - 1,
-  );
-
-  const [filteredEpisodes, setFilteredEpisodes] =
-    React.useState<Episode[]>(baseFiltered);
+  const baseFiltered = episodes.episodes.filter((_, i) => i >= start - 1 && i <= end - 1);
+  const [filteredEpisodes, setFilteredEpisodes] = useState<Episode[]>(baseFiltered);
 
   useEffect(() => {
     if ((!episodeId || !episodeId.includes("ep")) && !!episodes?.episodes.length) {
@@ -78,9 +73,7 @@ const EpisodePlaylist = ({
   useEffect(() => {
     if (!episodes || !currentGroup) return;
     const [s, e] = currentGroup.split("-").map(Number);
-    setFilteredEpisodes(
-      episodes.episodes.filter((_, i) => i >= s - 1 && i <= e - 1),
-    );
+    setFilteredEpisodes(episodes.episodes.filter((_, i) => i >= s - 1 && i <= e - 1));
   }, [episodes, currentGroup]);
 
   useEffect(() => {
@@ -89,8 +82,7 @@ const EpisodePlaylist = ({
       const el = episodeRefs.current[idx];
       const container = scrollContainerRef.current;
       if (el && container) {
-        container.scrollTop =
-          el.offsetTop - container.offsetHeight / 2 + el.offsetHeight / 2 + 80;
+        container.scrollTop = el.offsetTop - container.offsetHeight / 2 + el.offsetHeight / 2 + 80;
       }
     }
     // eslint-disable-next-line
@@ -101,17 +93,13 @@ const EpisodePlaylist = ({
     setSearch(val);
     if (!val) {
       const [s, en] = currentGroup.split("-").map(Number);
-      setFilteredEpisodes(
-        episodes.episodes.filter((_, i) => i >= s - 1 && i <= en - 1),
-      );
+      setFilteredEpisodes(episodes.episodes.filter((_, i) => i >= s - 1 && i <= en - 1));
       return;
     }
     const v = val.toLowerCase();
     setFilteredEpisodes(
       episodes.episodes.filter(
-        (ep) =>
-          ep.number.toString().includes(v) ||
-          ep.title?.toLowerCase().includes(v),
+        (ep) => ep.number.toString().includes(v) || ep.title?.toLowerCase().includes(v),
       ),
     );
   };
@@ -132,24 +120,30 @@ const EpisodePlaylist = ({
       <div className="shrink-0 px-4 pt-3.5 pb-3 border-b border-white/8 space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="text-[13px] font-semibold text-white leading-none">
-              Episodes
-            </h3>
+            <h3 className="text-[13px] font-semibold text-white leading-none">Episodes</h3>
             <p className="text-[11px] text-white/30 mt-1 font-mono leading-none">
               {total} {total === 1 ? "episode" : "episodes"}
             </p>
           </div>
-          <button
-            onClick={() => setCompact((c) => !c)}
-            title={compact ? "List view" : "Compact view"}
-            className="p-1.5 rounded-md border border-white/10 text-white/30 hover:text-white/60 hover:border-white/20 transition-colors shrink-0"
-          >
-            {compact ? (
-              <List className="w-3.5 h-3.5" />
-            ) : (
-              <LayoutGrid className="w-3.5 h-3.5" />
-            )}
-          </button>
+
+          {/* Layout toggle */}
+          <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8 shrink-0">
+            {LAYOUT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setEpisodeLayout(opt.value)}
+                title={opt.label}
+                className={cn(
+                  "p-1.5 rounded-md transition-all duration-150",
+                  episodeLayout === opt.value
+                    ? "bg-white/15 text-white"
+                    : "text-white/25 hover:text-white/55",
+                )}
+              >
+                {opt.icon}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Search */}
@@ -185,18 +179,14 @@ const EpisodePlaylist = ({
       </div>
 
       {/* Episode list */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto py-1.5"
-      >
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto py-1.5">
         {isLoading ? (
           <PlaylistSkeleton />
         ) : filteredEpisodes.length === 0 ? (
           <div className="flex items-center justify-center py-12 text-white/25 text-xs font-mono">
             no episodes found
           </div>
-        ) : compact ? (
-          /* Compact number grid */
+        ) : episodeLayout === "compact" ? (
           <div className="grid grid-cols-5 gap-1 px-2 pb-2">
             {filteredEpisodes.map((episode, idx) => (
               <div key={idx} ref={(el) => { episodeRefs.current[idx] = el; }}>
@@ -207,6 +197,21 @@ const EpisodePlaylist = ({
                   episode={episode}
                   animeId={animeId}
                   watchedEpisodes={bookmarks?.[0]?.expand?.watchHistory}
+                />
+              </div>
+            ))}
+          </div>
+        ) : episodeLayout === "thumbnail" ? (
+          <div className="grid grid-cols-2 gap-2 px-2 pb-2 pt-1">
+            {filteredEpisodes.map((episode, idx) => (
+              <div key={idx} ref={(el) => { episodeRefs.current[idx] = el; }}>
+                <EpisodeCard
+                  subOrDub={subOrDub}
+                  variant="thumbnail"
+                  episode={episode}
+                  animeId={animeId}
+                  watchedEpisodes={bookmarks?.[0]?.expand?.watchHistory}
+                  animePoster={animePoster}
                 />
               </div>
             ))}

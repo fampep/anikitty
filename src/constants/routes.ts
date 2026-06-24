@@ -5,4 +5,5 @@ export const ROUTES = {
   SEARCH: "/search",
   SCHEDULE: "/schedule",
   TRENDING: "/trending",
+  SETTINGS: "/settings",
 };

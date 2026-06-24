@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
 import { Episode } from "@/types/episodes";
 import { useAnimeStore } from "@/store/anime-store";
 import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
-import { Captions, Check, Mic } from "lucide-react";
+import { Captions, Check, Mic, Play } from "lucide-react";
 import Link from "next/link";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 
@@ -15,9 +16,10 @@ type Props = {
   episode: Episode;
   showCard?: boolean;
   animeId: string;
-  variant?: "card" | "list";
+  variant?: "card" | "list" | "thumbnail";
   subOrDub?: { sub: number; dub: number };
   watchedEpisodes?: WatchHistory[] | null;
+  animePoster?: string;
 };
 
 const EpisodeCard = ({
@@ -37,9 +39,12 @@ const EpisodeCard = ({
     props.episode.title &&
     props.episode.title.toLowerCase() !== `episode ${props.episode.number}`;
 
+  const href = `${ROUTES.WATCH}?anime=${props.animeId}&episode=${props.episode.episodeId}`;
+
+  // ── Compact number grid cell ──────────────────────────────────────
   if (!showCard && variant === "card") {
     return (
-      <Link href={`${ROUTES.WATCH}?anime=${props.animeId}&episode=${props.episode.episodeId}`}>
+      <Link href={href}>
         <div
           className={cn(
             "h-[5.25rem] rounded-lg cursor-pointer w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-all",
@@ -51,6 +56,82 @@ const EpisodeCard = ({
         >
           <span className="font-mono font-bold">{props.episode.number}</span>
           {hasWatchedEpisode && <Check className="w-3 h-3 opacity-50" />}
+        </div>
+      </Link>
+    );
+  }
+
+  // ── Thumbnail card ────────────────────────────────────────────────
+  if (variant === "thumbnail") {
+    return (
+      <Link href={href}>
+        <div
+          className={cn(
+            "group rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border",
+            isActive
+              ? "border-white/30 ring-1 ring-white/20"
+              : "border-white/8 hover:border-white/20",
+            hasWatchedEpisode && !isActive && "opacity-55",
+          )}
+        >
+          {/* Thumbnail */}
+          <div className="relative aspect-[16/9] bg-black overflow-hidden">
+            {props.animePoster ? (
+              <Image
+                src={props.animePoster}
+                alt={`Episode ${props.episode.number}`}
+                fill
+                className="object-cover scale-110 group-hover:scale-100 transition-transform duration-300 blur-[1px] group-hover:blur-0"
+                unoptimized
+              />
+            ) : (
+              <div className="absolute inset-0 bg-white/5" />
+            )}
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+            {/* Play on hover */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="bg-white/90 rounded-full p-2 shadow-lg">
+                <Play className="w-4 h-4 text-black fill-black" />
+              </div>
+            </div>
+
+            {/* Ep number */}
+            <div className="absolute bottom-1.5 left-2 flex items-center gap-1.5">
+              <span className="text-[10px] font-mono font-bold text-white/80 bg-black/60 px-1.5 py-0.5 rounded">
+                EP {props.episode.number}
+              </span>
+              {props.episode.isFiller && (
+                <span className="text-[9px] font-mono text-yellow-400/70 bg-yellow-900/40 px-1 py-0.5 rounded">
+                  FILLER
+                </span>
+              )}
+              {hasWatchedEpisode && (
+                <Check className="w-3 h-3 text-white/50" />
+              )}
+            </div>
+
+            {/* Sub/dub dots */}
+            <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+              {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
+                <Captions className="w-3 h-3 text-sky-400/70" />
+              )}
+              {props.subOrDub && props.episode.number <= props.subOrDub.dub && (
+                <Mic className="w-3 h-3 text-purple-400/70" />
+              )}
+            </div>
+          </div>
+
+          {/* Title below thumbnail */}
+          <div className="px-2.5 py-2 bg-[#0a0a0a]">
+            <p className={cn(
+              "text-[11px] leading-tight line-clamp-1 font-medium",
+              isActive ? "text-white" : "text-white/55 group-hover:text-white/80",
+            )}>
+              {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}
+            </p>
+          </div>
         </div>
       </Link>
     );
@@ -68,9 +149,9 @@ const EpisodeCard = ({
     );
   }
 
-  // List variant — the main one used in the episode playlist sidebar
+  // ── List variant ─────────────────────────────────────────────────
   return (
-    <Link href={`${ROUTES.WATCH}?anime=${props.animeId}&episode=${props.episode.episodeId}`}>
+    <Link href={href}>
       <div
         className={cn(
           "group flex items-center gap-3 mx-1 px-2.5 py-2.5 rounded-lg cursor-pointer transition-all relative",
@@ -80,7 +161,7 @@ const EpisodeCard = ({
           hasWatchedEpisode && !isActive && "opacity-55",
         )}
       >
-        {/* Ep number pill */}
+        {/* Ep number */}
         <span
           className={cn(
             "text-[11px] font-mono font-bold w-7 text-center shrink-0 tabular-nums",
@@ -105,11 +186,14 @@ const EpisodeCard = ({
           )}
         </div>
 
-        {/* Right side indicators */}
+        {/* Right indicators */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {hasWatchedEpisode && (
-            <Check className="w-3 h-3 text-white/30" />
+          {props.episode.isFiller && (
+            <span className="text-[8px] font-mono text-yellow-400/50 bg-yellow-900/30 px-1 py-0.5 rounded">
+              FILLER
+            </span>
           )}
+          {hasWatchedEpisode && <Check className="w-3 h-3 text-white/30" />}
           {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
             <Captions className="w-3 h-3 text-white/25" />
           )}
