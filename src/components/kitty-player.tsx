@@ -49,6 +49,9 @@ export default function KittyPlayer({
 
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
 
+  const startTimeRef = useRef(startTime);
+  useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
+
   const referer = headers?.Referer ?? headers?.referer ?? "";
   const origin = headers?.Origin ?? headers?.origin ?? "";
   const proxiedSrc = src
@@ -89,6 +92,13 @@ export default function KittyPlayer({
     }
   }, []);
 
+  const handleCanPlay = useCallback(() => {
+    const t = startTimeRef.current;
+    if (t > 10 && playerRef.current) {
+      playerRef.current.currentTime = t;
+    }
+  }, []);
+
   const handlePlay = useCallback(() => {
     if (!startFiredRef.current) {
       startFiredRef.current = true;
@@ -116,8 +126,8 @@ export default function KittyPlayer({
         playsInline
         crossOrigin
         autoPlay
-        startTime={startTime > 10 ? startTime : 0}
         className="w-full h-full"
+        onCanPlay={handleCanPlay}
         onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}
         googleCast={{ receiverApplicationId: "CC1AD845" }}

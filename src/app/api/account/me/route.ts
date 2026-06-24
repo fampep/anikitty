@@ -37,14 +37,13 @@ export async function PUT(req: Request) {
     const { avatarUrl, bannerUrl, bio } = await req.json();
     const db = getDb();
 
-    const updates: Record<string, string | null> = {};
-    if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl ?? null;
-    if (bannerUrl !== undefined) updates.bannerUrl = bannerUrl ?? null;
-    if (bio !== undefined) updates.bio = bio ? String(bio).slice(0, 200) : null;
-
     const [user] = await db
       .update(users)
-      .set(updates)
+      .set({
+        ...(avatarUrl !== undefined && { avatarUrl: avatarUrl ?? null }),
+        ...(bannerUrl !== undefined && { bannerUrl: bannerUrl ?? null }),
+        ...(bio !== undefined && { bio: bio ? String(bio).slice(0, 200) : null }),
+      })
       .where(eq(users.id, payload.userId))
       .returning({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl, bio: users.bio });
 

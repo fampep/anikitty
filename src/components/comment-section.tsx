@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
 import { getAnisurgeToken } from "@/lib/anisurge";
-import { MessageSquare, Send, Trash2, Loader2, ImagePlay, X, Search } from "lucide-react";
+import { MessageSquare, Send, Trash2, Loader2, ImagePlay, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Comment {
@@ -15,12 +15,6 @@ interface Comment {
   userId: string;
   username: string;
   avatarUrl?: string | null;
-}
-
-interface GifResult {
-  id: string;
-  preview: string;
-  original: string;
 }
 
 function relativeTime(iso: string): string {
@@ -61,11 +55,8 @@ function CommentAvatar({ username, avatarUrl }: { username: string; avatarUrl?: 
   );
 }
 
-function GifPicker({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
-  const [query, setQuery] = useState("");
-  const [gifs, setGifs] = useState<GifResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+function GifUrlPanel({ onAttach, onClose }: { onAttach: (url: string) => void; onClose: () => void }) {
+  const [url, setUrl] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -78,61 +69,48 @@ function GifPicker({ onSelect, onClose }: { onSelect: (url: string) => void; onC
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose]);
 
-  useEffect(() => {
-    if (!query.trim()) { setGifs([]); return; }
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/gifs?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setGifs(data.gifs ?? []);
-      } catch { setGifs([]); }
-      finally { setLoading(false); }
-    }, 400);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [query]);
+  const isValidUrl = url.trim().startsWith("http");
+
+  const handleAttach = () => {
+    if (!isValidUrl) return;
+    onAttach(url.trim());
+    onClose();
+  };
 
   return (
     <div
       ref={panelRef}
-      className="absolute bottom-full mb-2 left-0 z-50 w-72 rounded-xl border border-white/12 bg-[#111] shadow-2xl shadow-black/60 overflow-hidden"
+      className="absolute bottom-full mb-2 left-0 z-50 w-80 rounded-xl border border-white/12 bg-[#111] shadow-2xl shadow-black/60 overflow-hidden"
     >
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/8">
-        <Search className="w-3.5 h-3.5 text-white/30 shrink-0" />
+      <div className="px-4 py-3 border-b border-white/8">
+        <p className="text-[11px] font-mono text-white/35 mb-2">Paste a GIF link from GIPHY, Tenor, etc.</p>
         <input
           ref={inputRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search GIFs…"
-          className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAttach()}
+          placeholder="https://media.giphy.com/…"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-white/25 transition-colors"
         />
-        {loading && <Loader2 className="w-3.5 h-3.5 text-white/30 animate-spin shrink-0" />}
       </div>
 
-      <div className="h-56 overflow-y-auto p-2 scrollbar-hide">
-        {gifs.length === 0 && !loading ? (
-          <p className="text-center text-white/20 text-xs font-mono py-8">
-            {query ? "No results" : "Type to search GIFs"}
-          </p>
-        ) : (
-          <div className="columns-2 gap-1.5 space-y-1.5">
-            {gifs.map((g) => (
-              <button
-                key={g.id}
-                onClick={() => { onSelect(g.original); onClose(); }}
-                className="w-full rounded-lg overflow-hidden hover:opacity-80 hover:ring-1 hover:ring-white/30 transition-all"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={g.preview} alt="" loading="lazy" className="w-full h-auto block" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Preview */}
+      {isValidUrl && (
+        <div className="px-4 py-3 border-b border-white/8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="GIF preview" className="max-h-32 w-auto rounded-lg block" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        </div>
+      )}
 
-      <div className="px-3 py-1.5 border-t border-white/6 flex items-center justify-end">
-        <span className="text-[9px] font-mono text-white/15 tracking-wider">Powered by GIPHY</span>
+      <div className="flex items-center justify-end gap-2 px-4 py-2.5">
+        <button onClick={onClose} className="text-xs text-white/30 hover:text-white/60 transition-colors">Cancel</button>
+        <button
+          onClick={handleAttach}
+          disabled={!isValidUrl}
+          className="px-3.5 py-1.5 rounded-lg bg-white/10 border border-white/15 text-white/70 text-xs font-medium hover:bg-white/18 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+        >
+          Attach GIF
+        </button>
       </div>
     </div>
   );
@@ -146,7 +124,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [draft, setDraft] = useState("");
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
-  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showGifPanel, setShowGifPanel] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchComments = useCallback(async () => {
@@ -232,6 +210,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                 className="w-full bg-transparent px-4 pt-3 pb-2 text-sm text-white placeholder:text-white/20 resize-none focus:outline-none"
               />
 
+              {/* GIF preview */}
               {selectedGif && (
                 <div className="px-4 pb-3">
                   <div className="relative inline-block rounded-lg overflow-hidden ring-1 ring-white/15">
@@ -247,12 +226,13 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                 </div>
               )}
 
+              {/* Toolbar */}
               <div className="flex items-center justify-between px-3 pb-2.5 pt-1 border-t border-white/6">
                 <div className="relative">
                   <button
-                    onClick={() => setShowGifPicker((v) => !v)}
+                    onClick={() => setShowGifPanel((v) => !v)}
                     className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold tracking-wider border transition-all ${
-                      showGifPicker || selectedGif
+                      showGifPanel || selectedGif
                         ? "bg-white/12 border-white/25 text-white"
                         : "border-white/8 text-white/35 hover:border-white/20 hover:text-white/60"
                     }`}
@@ -261,10 +241,10 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                     <ImagePlay className="w-3.5 h-3.5" />
                     GIF
                   </button>
-                  {showGifPicker && (
-                    <GifPicker
-                      onSelect={(url) => { setSelectedGif(url); setShowGifPicker(false); }}
-                      onClose={() => setShowGifPicker(false)}
+                  {showGifPanel && (
+                    <GifUrlPanel
+                      onAttach={(url) => { setSelectedGif(url); setShowGifPanel(false); }}
+                      onClose={() => setShowGifPanel(false)}
                     />
                   )}
                 </div>
