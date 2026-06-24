@@ -9,7 +9,7 @@
  * keeping the same referer/origin headers for every subsequent request.
  */
 
-function buildUpstream(_rawUrl: string, _referer: string, _origin: string): Headers {
+function buildUpstream(): Headers {
   const h = new Headers();
   h.set("Referer", "https://kittyapi.buzz/");
   h.set("Origin", "https://kittyapi.buzz");
@@ -77,7 +77,7 @@ export async function GET(req: Request) {
   }
 
   const upstream = await fetch(decoded, {
-    headers: buildUpstream(decoded, referer, origin),
+    headers: buildUpstream(),
     cache: "no-store",
   });
 
