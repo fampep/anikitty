@@ -24,20 +24,8 @@ import { toast } from "sonner";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { anisurgeAuth, clearAnisurgeToken, getAnisurgeToken } from "@/lib/anisurge";
 
-const menuItems: Array<{ title: string; href?: string }> = [
-  // {
-  //   title: "Home",
-  //   href: ROUTES.HOME,
-  // },
-  // {
-  //   title: "Catalog",
-  // },
-  // {
-  //   title: "News",
-  // },
-  // {
-  //   title: "Collection",
-  // },
+const menuItems: Array<{ title: string; href: string }> = [
+  { title: "Home", href: ROUTES.HOME },
 ];
 
 const NavBar = () => {
@@ -137,9 +125,13 @@ const NavBar = () => {
           </div>
         </Link>
 
-        <div className="hidden lg:flex items-center gap-10 ml-20">
+        <div className="hidden lg:flex items-center gap-6 ml-10">
           {menuItems.map((menu, idx) => (
-            <Link href={menu.href || "#"} key={idx}>
+            <Link
+              href={menu.href}
+              key={idx}
+              className="text-sm text-white/50 hover:text-white/90 transition-colors duration-200 font-medium tracking-wide"
+            >
               {menu.title}
             </Link>
           ))}
@@ -175,9 +167,10 @@ const MobileMenuSheet = ({ trigger }: { trigger: ReactNode }) => {
           <div className="flex flex-col gap-5 mt-10">
             {menuItems.map((menu, idx) => (
               <Link
-                href={menu.href || "#"}
+                href={menu.href}
                 key={idx}
                 onClick={() => setOpen(false)}
+                className="text-white/70 hover:text-white transition-colors font-medium"
               >
                 {menu.title}
               </Link>

@@ -40,8 +40,9 @@ const AnimeCard = ({
     <Link href={props.href as string} className="block w-full">
       <div
         className={cn(
-          "rounded-2xl overflow-hidden relative cursor-pointer group",
-          "transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-white/10 hover:ring-1 hover:ring-white/15",
+          "rounded-xl overflow-hidden relative cursor-pointer group",
+          "transition-all duration-300",
+          "hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.18),0_8px_32px_rgba(0,0,0,0.7)]",
           variant === "sm" &&
             "h-[12rem] min-[320px]:h-[16.625rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           variant === "lg" &&
@@ -59,8 +60,16 @@ const AnimeCard = ({
           unoptimized
         />
 
-        {/* Subtle vignette always present */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10 opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+        {/* Base vignette */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10 opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
+
+        {/* Shimmer sweep on hover */}
+        <div className="absolute inset-0 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          <div
+            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/6 to-transparent -skew-x-12"
+            style={{ animation: "shimmer 1.2s ease forwards" }}
+          />
+        </div>
 
         {/* Type badge — top-left */}
         {props.subTitle && !props.episodeCard && (
@@ -73,7 +82,7 @@ const AnimeCard = ({
 
         {/* Play button on hover */}
         <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
-          <div className="bg-white/95 rounded-full p-3 shadow-2xl shadow-black/60 scale-90 group-hover:scale-100 transition-transform duration-200">
+          <div className="bg-white rounded-full p-3 shadow-2xl shadow-black/80 scale-75 group-hover:scale-100 transition-transform duration-200">
             <Play className="h-5 w-5 text-black fill-black" />
           </div>
         </div>
@@ -85,7 +94,7 @@ const AnimeCard = ({
 
             {/* Bottom info */}
             <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-3 flex flex-col gap-1">
-              <h5 className="line-clamp-2 text-[13px] font-semibold leading-tight text-white drop-shadow">
+              <h5 className="line-clamp-2 text-[12px] font-semibold leading-tight text-white/95 drop-shadow">
                 {props.title}
               </h5>
 

@@ -63,19 +63,25 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
           {String(count).padStart(2, "0")}
         </span>
 
-        {/* Dot indicators */}
+        {/* Progress bar indicators */}
         {count > 1 && (
-          <div className="flex items-center gap-1.5 mx-auto md:mx-0 md:absolute md:left-1/2 md:-translate-x-1/2">
+          <div className="flex items-center gap-1 mx-auto md:mx-0 md:absolute md:left-1/2 md:-translate-x-1/2">
             {Array.from({ length: count }).map((_, i) => (
               <button
                 key={i}
                 onClick={() => api?.scrollTo(i)}
-                className={`rounded-full transition-all duration-400 ${
-                  i === current
-                    ? "w-6 h-1.5 bg-white"
-                    : "w-1.5 h-1.5 bg-white/25 hover:bg-white/50"
+                className={`h-[3px] rounded-full overflow-hidden bg-white/20 hover:bg-white/35 transition-all duration-300 ${
+                  i === current ? "w-8" : "w-3"
                 }`}
-              />
+              >
+                {i === current && (
+                  <div
+                    key={current}
+                    className="h-full bg-white rounded-full"
+                    style={{ animation: "progressBar 7s linear forwards", width: "0%" }}
+                  />
+                )}
+              </button>
             ))}
           </div>
         )}
