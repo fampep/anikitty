@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { useGetAnimeBanner } from "@/query/get-banner-anime";
 import { cn } from "@/lib/utils";
+import CommentSection from "@/components/comment-section";
 
 const SelectOptions: ISelectOptions[] = [
   { value: "plan to watch", label: "Plan to Watch", icon: BookmarkCheck },
@@ -183,6 +184,7 @@ const Page = () => {
               ...(anime.seasons.length > 0
                 ? [{ value: "relations", label: "Relations" }]
                 : []),
+              { value: "comments", label: "Comments" },
             ].map((tab) => (
               <TabsTrigger
                 key={tab.value}
@@ -271,6 +273,11 @@ const Page = () => {
               </div>
             </TabsContent>
           )}
+          <TabsContent value="comments" className="mt-6">
+            <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
+              <CommentSection animeId={info.id} />
+            </div>
+          </TabsContent>
         </Tabs>
 
         {anime.recommendedAnimes.length > 0 && (

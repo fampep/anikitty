@@ -6,6 +6,7 @@ import {
   integer,
   timestamp,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -58,5 +59,21 @@ export const watchProgress = pgTable(
   },
   (t) => ({
     userAnimeEp: unique("progress_user_anime_ep").on(t.userId, t.animeId, t.episodeId),
+  }),
+);
+
+export const comments = pgTable(
+  "comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    animeId: varchar("anime_id", { length: 255 }).notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    animeIdx: index("comments_anime_id_idx").on(t.animeId),
   }),
 );

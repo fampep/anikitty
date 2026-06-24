@@ -5,6 +5,7 @@ import parse from "html-react-parser";
 import { ROUTES } from "@/constants/routes";
 
 import Container from "@/components/container";
+import CommentSection from "@/components/comment-section";
 import { useAnimeStore } from "@/store/anime-store";
 
 import EpisodePlaylist from "@/components/episode-playlist";
@@ -238,6 +239,13 @@ const Layout = (props: Props) => {
           />
         )}
       </div>
+
+      {/* Comments */}
+      {currentAnimeId && (
+        <div className="mt-10 rounded-xl border border-white/8 bg-[#080808] p-5">
+          <CommentSection animeId={currentAnimeId} />
+        </div>
+      )}
 
       <div className="mt-10">
         <AnimeCarousel title="Also Watch" anime={anime.relatedAnimes as IAnime[]} />
