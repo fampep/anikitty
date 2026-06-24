@@ -40,14 +40,14 @@ export async function POST(req: Request) {
     const [user] = await db
       .insert(users)
       .values({ username, email: email.toLowerCase(), passwordHash })
-      .returning({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl });
+      .returning({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl, role: users.role });
 
-    const token = await signToken({ userId: user.id, username: user.username });
+    const token = await signToken({ userId: user.id, username: user.username, role: user.role ?? "user" });
 
     return NextResponse.json({
       anisurgeToken: token,
       anisurgeUserId: user.id,
-      user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, customPfpUrl: null },
+      user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, role: user.role ?? "user" },
     });
   } catch (e: any) {
     console.error("[signup]", e);
