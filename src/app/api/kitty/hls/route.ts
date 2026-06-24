@@ -1,32 +1,46 @@
 const KITTY_PROXY = "https://kittyapi.buzz/proxy-stream";
 
-// If the URL is already a kittyapi.buzz/proxy-stream URL, extract the inner CDN URL.
-// That inner URL is what we use as the base for resolving relative paths in the m3u8.
+/**
+ * Detect whether a URL is already a proxy endpoint (CDN or kittyapi).
+ * These should be fetched directly — wrapping them again causes 403/404.
+ * Pattern: any URL whose path is /proxy-segment or /proxy-stream with a ?url= param.
+ */
+function isAlreadyProxied(decoded: string): boolean {
+  try {
+    const u = new URL(decoded);
+    return (
+      u.searchParams.has("url") &&
+      (u.pathname === "/proxy-segment" || u.pathname === "/proxy-stream")
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Extract the real CDN URL from a proxy URL's ?url= param.
+ * Used as the base URL when resolving relative paths inside an m3u8 manifest.
+ */
 function extractContentUrl(decoded: string): string {
   try {
     const u = new URL(decoded);
-    if (
-      (u.hostname === "kittyapi.buzz" || u.hostname === "www.kittyapi.buzz") &&
-      u.pathname === "/proxy-stream" &&
-      u.searchParams.has("url")
-    ) {
+    if (u.searchParams.has("url")) {
       return decodeURIComponent(u.searchParams.get("url")!);
     }
   } catch {}
   return decoded;
 }
 
-// Fetch URL: kittyapi.buzz proxy-stream URLs are fetched directly (force https).
-// Raw CDN URLs are wrapped in proxy-stream so the CDN sees the right Referer/Origin.
+/**
+ * Build the actual fetch URL:
+ * - Proxy URLs (CDN or kittyapi): fetch directly (already have right Referer/Origin).
+ * - Raw CDN URLs: route through kittyapi.buzz/proxy-stream.
+ * Also normalises http:// → https:// for safety.
+ */
 function buildFetchUrl(decoded: string): string {
-  try {
-    const u = new URL(decoded);
-    if (u.hostname === "kittyapi.buzz" || u.hostname === "www.kittyapi.buzz") {
-      // Normalise http → https and fetch directly (already proxied)
-      u.protocol = "https:";
-      return u.toString();
-    }
-  } catch {}
+  if (isAlreadyProxied(decoded)) {
+    return decoded.replace(/^http:\/\//, "https://");
+  }
   return `${KITTY_PROXY}?url=${encodeURIComponent(decoded)}`;
 }
 
@@ -78,9 +92,9 @@ export async function GET(req: Request) {
     return new Response("invalid url encoding", { status: 400 });
   }
 
-  // The real CDN URL — used as base for resolving m3u8 relative paths
+  // Use the real CDN URL as the base for m3u8 relative path resolution
   const contentUrl = extractContentUrl(decoded);
-  // Fetch URL — avoids double-proxying kittyapi.buzz URLs
+  // Fetch directly if already proxied, otherwise wrap in kittyapi.buzz
   const fetchUrl = buildFetchUrl(decoded);
 
   const upstream = await fetch(fetchUrl, { cache: "no-store" });
