@@ -155,8 +155,9 @@ const ContinueWatching = ({ loading }: Props) => {
         >
           {items.map((item, idx) => (
             <BlurFade key={item.id} delay={idx * 0.04} inView>
-              <div className="w-[152px] shrink-0">
+              <div className="w-[130px] shrink-0">
                 <AnimeCard
+                  compact
                   title={item.name}
                   poster={item.poster}
                   className="w-full max-w-none"
@@ -180,7 +181,7 @@ const LoadingSkeleton = () => (
     </div>
     <div className="flex gap-3 overflow-hidden w-full">
       {Array.from({ length: 7 }).map((_, i) => (
-        <div key={i} className="w-[152px] shrink-0 rounded-xl h-[202px] animate-pulse bg-white/8" />
+        <div key={i} className="w-[130px] shrink-0 rounded-xl aspect-[2/3] animate-pulse bg-white/8" />
       ))}
     </div>
   </Container>

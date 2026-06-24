@@ -21,11 +21,13 @@ type Props = {
   showGenre?: boolean;
   watchDetail?: WatchHistory | null;
   rank?: number;
+  compact?: boolean;
 };
 
 const AnimeCard = ({
   displayDetails = true,
   variant = "sm",
+  compact = false,
   rank,
   ...props
 }: Props) => {
@@ -45,10 +47,11 @@ const AnimeCard = ({
           "rounded-xl overflow-hidden relative cursor-pointer group",
           "transition-all duration-300",
           "hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_16px_48px_rgba(0,0,0,0.8)]",
-          variant === "sm" &&
+          !compact && variant === "sm" &&
             "h-[12rem] min-[320px]:h-[16.625rem] sm:h-[18rem] w-full max-w-[12.625rem]",
-          variant === "lg" &&
+          !compact && variant === "lg" &&
             "max-w-[12.625rem] md:max-w-[18.75rem] h-auto md:h-[25rem] shrink-0 lg:w-[18.75rem]",
+          compact && "aspect-[2/3] w-full",
           props.className,
         )}
       >
@@ -82,7 +85,7 @@ const AnimeCard = ({
           </div>
         )}
 
-        {/* Rank watermark — bottom-right, behind content */}
+        {/* Rank watermark */}
         {rank && (
           <div className="absolute bottom-10 right-1 z-[15] text-[4.5rem] font-black leading-none text-white/[0.07] select-none pointer-events-none pr-1">
             {String(rank).padStart(2, "0")}
@@ -92,7 +95,6 @@ const AnimeCard = ({
         {/* Play button on hover */}
         <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
           <div className="relative">
-            {/* Pulse ring */}
             <div
               className="absolute inset-0 rounded-full bg-white/30"
               style={{ animation: "pulse-ring 0.8s ease-out forwards" }}
@@ -109,14 +111,14 @@ const AnimeCard = ({
             <div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-black/50 to-transparent" />
 
             {/* Bottom info */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-3 flex flex-col gap-1.5">
-              <h5 className="line-clamp-2 text-[12px] font-semibold leading-tight text-white/95 drop-shadow-sm">
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-2.5 pb-2.5 flex flex-col gap-1">
+              <h5 className="line-clamp-2 text-[11px] font-semibold leading-tight text-white/95 drop-shadow-sm">
                 {props.title}
               </h5>
 
               {props.watchDetail && (
                 <>
-                  <p className="text-[10px] text-white/40 font-mono">
+                  <p className="text-[9px] text-white/40 font-mono">
                     EP {props.watchDetail.episodeNumber} ·{" "}
                     {formatSecondsToMMSS(props.watchDetail.current)}/
                     {formatSecondsToMMSS(props.watchDetail.timestamp)}
@@ -126,21 +128,21 @@ const AnimeCard = ({
               )}
 
               {props.episodeCard && (
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 flex-wrap">
                   {props.sub != null && props.sub > 0 && (
-                    <span className="inline-flex items-center gap-0.5 bg-sky-500/15 text-sky-300 border border-sky-500/25 text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
-                      <Captions className="h-2.5 w-2.5" />
+                    <span className="inline-flex items-center gap-0.5 bg-sky-500/15 text-sky-300 border border-sky-500/25 text-[9px] font-bold px-1 py-0.5 rounded backdrop-blur-sm">
+                      <Captions className="h-2 w-2" />
                       {props.sub}
                     </span>
                   )}
                   {props.dub != null && props.dub > 0 && (
-                    <span className="inline-flex items-center gap-0.5 bg-purple-500/15 text-purple-300 border border-purple-500/25 text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
-                      <Mic className="h-2.5 w-2.5" />
+                    <span className="inline-flex items-center gap-0.5 bg-purple-500/15 text-purple-300 border border-purple-500/25 text-[9px] font-bold px-1 py-0.5 rounded backdrop-blur-sm">
+                      <Mic className="h-2 w-2" />
                       {props.dub}
                     </span>
                   )}
                   {props.subTitle && (
-                    <span className="text-[10px] text-white/35 font-mono">
+                    <span className="text-[9px] text-white/35 font-mono">
                       {props.subTitle}
                     </span>
                   )}

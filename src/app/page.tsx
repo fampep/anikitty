@@ -46,6 +46,8 @@ export default function Home() {
         trendingAnime={data?.trendingAnimes as IAnime[]}
         loading={isLoading}
         showRanks
+        layout="row"
+        seeAllHref={ROUTES.TRENDING}
       />
 
       {/* Quick links to dedicated pages */}
