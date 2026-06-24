@@ -13,9 +13,10 @@ type Props = {
   loading: boolean;
   title: string;
   icon?: React.ReactNode;
+  showRanks?: boolean;
 };
 
-const AnimeSections = ({ trendingAnime, loading, title, icon }: Props) => {
+const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks }: Props) => {
   if (loading) return <LoadingSkeleton />;
   if (!trendingAnime?.length) return null;
 
@@ -34,6 +35,7 @@ const AnimeSections = ({ trendingAnime, loading, title, icon }: Props) => {
               episodeCard
               sub={anime?.episodes?.sub}
               dub={anime?.episodes?.dub}
+              rank={showRanks ? idx + 1 : undefined}
             />
           </BlurFade>
         ))}

@@ -116,8 +116,16 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
     {/* Layered cinematic gradients */}
     <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent z-10" />
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/40 z-10" />
-    {/* Subtle vignette on right edge */}
+    {/* Vignette right edge */}
     <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-black/60 to-transparent z-10" />
+    {/* Film grain texture */}
+    <div
+      className="absolute inset-0 z-[11] pointer-events-none opacity-[0.035]"
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        backgroundSize: "256px 256px",
+      }}
+    />
 
     {/* Content */}
     <div className="absolute inset-0 z-20 flex items-end md:items-center pb-28 md:pb-0">

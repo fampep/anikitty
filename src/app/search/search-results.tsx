@@ -141,7 +141,7 @@ const SearchResults = () => {
 
         <button
           onClick={applyFilters}
-          className="self-start flex items-center gap-2 bg-white text-black hover:bg-white/90 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+          className="self-start flex items-center gap-2 bg-white text-black hover:bg-white/90 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
         >
           <Search className="h-3.5 w-3.5" />
           Apply Filters

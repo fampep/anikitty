@@ -3,4 +3,6 @@ export const ROUTES = {
   ANIME_DETAILS: "/anime",
   WATCH: "/anime/watch",
   SEARCH: "/search",
+  SCHEDULE: "/schedule",
+  TRENDING: "/trending",
 };

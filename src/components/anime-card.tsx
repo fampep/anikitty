@@ -20,11 +20,13 @@ type Props = {
   href?: string;
   showGenre?: boolean;
   watchDetail?: WatchHistory | null;
+  rank?: number;
 };
 
 const AnimeCard = ({
   displayDetails = true,
   variant = "sm",
+  rank,
   ...props
 }: Props) => {
   const safeCurrent =
@@ -42,7 +44,7 @@ const AnimeCard = ({
         className={cn(
           "rounded-xl overflow-hidden relative cursor-pointer group",
           "transition-all duration-300",
-          "hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.18),0_8px_32px_rgba(0,0,0,0.7)]",
+          "hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_16px_48px_rgba(0,0,0,0.8)]",
           variant === "sm" &&
             "h-[12rem] min-[320px]:h-[16.625rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           variant === "lg" &&
@@ -61,12 +63,12 @@ const AnimeCard = ({
         />
 
         {/* Base vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10 opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10 opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
 
         {/* Shimmer sweep on hover */}
         <div className="absolute inset-0 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
           <div
-            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/6 to-transparent -skew-x-12"
+            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12"
             style={{ animation: "shimmer 1.2s ease forwards" }}
           />
         </div>
@@ -74,57 +76,71 @@ const AnimeCard = ({
         {/* Type badge — top-left */}
         {props.subTitle && !props.episodeCard && (
           <div className="absolute top-2 left-2 z-20">
-            <span className="bg-black/80 text-white/80 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/15">
+            <span className="bg-black/75 text-white/70 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/12">
               {props.subTitle}
             </span>
           </div>
         )}
 
+        {/* Rank watermark — bottom-right, behind content */}
+        {rank && (
+          <div className="absolute bottom-10 right-1 z-[15] text-[4.5rem] font-black leading-none text-white/[0.07] select-none pointer-events-none pr-1">
+            {String(rank).padStart(2, "0")}
+          </div>
+        )}
+
         {/* Play button on hover */}
         <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
-          <div className="bg-white rounded-full p-3 shadow-2xl shadow-black/80 scale-75 group-hover:scale-100 transition-transform duration-200">
-            <Play className="h-5 w-5 text-black fill-black" />
+          <div className="relative">
+            {/* Pulse ring */}
+            <div
+              className="absolute inset-0 rounded-full bg-white/30"
+              style={{ animation: "pulse-ring 0.8s ease-out forwards" }}
+            />
+            <div className="relative bg-white rounded-full p-3 shadow-2xl shadow-black/80 scale-75 group-hover:scale-100 transition-transform duration-200">
+              <Play className="h-5 w-5 text-black fill-black" />
+            </div>
           </div>
         </div>
 
         {displayDetails && (
           <>
-            {/* Dark gradient overlay */}
-            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            {/* Strong bottom gradient */}
+            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-black/50 to-transparent" />
 
             {/* Bottom info */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-3 flex flex-col gap-1">
-              <h5 className="line-clamp-2 text-[12px] font-semibold leading-tight text-white/95 drop-shadow">
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-3 flex flex-col gap-1.5">
+              <h5 className="line-clamp-2 text-[12px] font-semibold leading-tight text-white/95 drop-shadow-sm">
                 {props.title}
               </h5>
 
               {props.watchDetail && (
                 <>
-                  <p className="text-[10px] text-white/45 font-mono">
+                  <p className="text-[10px] text-white/40 font-mono">
                     EP {props.watchDetail.episodeNumber} ·{" "}
                     {formatSecondsToMMSS(props.watchDetail.current)}/
                     {formatSecondsToMMSS(props.watchDetail.timestamp)}
                   </p>
-                  <Progress value={percentage} className="h-0.5 bg-white/15 [&>div]:bg-white/70" />
+                  <Progress value={percentage} className="h-[2px] bg-white/12 [&>div]:bg-white/60" />
                 </>
               )}
 
               {props.episodeCard && (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {props.sub != null && props.sub > 0 && (
-                    <span className="inline-flex items-center gap-0.5 bg-black/60 text-white/80 border border-white/20 text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
+                    <span className="inline-flex items-center gap-0.5 bg-sky-500/15 text-sky-300 border border-sky-500/25 text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
                       <Captions className="h-2.5 w-2.5" />
                       {props.sub}
                     </span>
                   )}
                   {props.dub != null && props.dub > 0 && (
-                    <span className="inline-flex items-center gap-0.5 bg-black/60 text-white/80 border border-white/20 text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
+                    <span className="inline-flex items-center gap-0.5 bg-purple-500/15 text-purple-300 border border-purple-500/25 text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
                       <Mic className="h-2.5 w-2.5" />
                       {props.dub}
                     </span>
                   )}
                   {props.subTitle && (
-                    <span className="text-[10px] text-white/40 font-mono">
+                    <span className="text-[10px] text-white/35 font-mono">
                       {props.subTitle}
                     </span>
                   )}

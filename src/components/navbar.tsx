@@ -26,6 +26,8 @@ import { anisurgeAuth, clearAnisurgeToken, getAnisurgeToken } from "@/lib/anisur
 
 const menuItems: Array<{ title: string; href: string }> = [
   { title: "Home", href: ROUTES.HOME },
+  { title: "Schedule", href: ROUTES.SCHEDULE },
+  { title: "Trending", href: ROUTES.TRENDING },
 ];
 
 const NavBar = () => {
