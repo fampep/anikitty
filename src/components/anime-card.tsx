@@ -85,6 +85,15 @@ const AnimeCard = ({
           </div>
         )}
 
+        {/* DUB badge — top-right corner, always visible */}
+        {props.episodeCard && props.dub != null && props.dub > 0 && (
+          <div className="absolute top-2 right-2 z-20">
+            <span className="bg-purple-600/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded backdrop-blur-sm tracking-wider shadow-lg shadow-purple-900/50">
+              DUB
+            </span>
+          </div>
+        )}
+
         {/* Rank watermark */}
         {rank && (
           <div className="absolute bottom-10 right-1 z-[15] text-[4.5rem] font-black leading-none text-white/[0.07] select-none pointer-events-none pr-1">
@@ -130,18 +139,18 @@ const AnimeCard = ({
               {props.episodeCard && (
                 <div className="flex items-center gap-1 flex-wrap">
                   {props.sub != null && props.sub > 0 && (
-                    <span className="inline-flex items-center gap-0.5 bg-sky-500/15 text-sky-300 border border-sky-500/25 text-[9px] font-bold px-1 py-0.5 rounded backdrop-blur-sm">
+                    <span className="inline-flex items-center gap-0.5 bg-sky-500/15 text-sky-300 border border-sky-500/25 text-[9px] font-bold px-1 py-0.5 rounded">
                       <Captions className="h-2 w-2" />
                       {props.sub}
                     </span>
                   )}
                   {props.dub != null && props.dub > 0 && (
-                    <span className="inline-flex items-center gap-0.5 bg-purple-500/15 text-purple-300 border border-purple-500/25 text-[9px] font-bold px-1 py-0.5 rounded backdrop-blur-sm">
+                    <span className="inline-flex items-center gap-0.5 bg-purple-500/15 text-purple-300 border border-purple-500/25 text-[9px] font-bold px-1 py-0.5 rounded">
                       <Mic className="h-2 w-2" />
                       {props.dub}
                     </span>
                   )}
-                  {props.subTitle && (
+                  {props.subTitle && !props.sub && !props.dub && (
                     <span className="text-[9px] text-white/35 font-mono">
                       {props.subTitle}
                     </span>
