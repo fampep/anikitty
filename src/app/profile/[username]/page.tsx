@@ -1,18 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Container from "@/components/container";
 import Avatar from "@/components/common/avatar";
 import { useAuthHydrated, useAuthStore } from "@/store/auth-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
-import { pb } from "@/lib/pocketbase";
-import { toast } from "sonner";
+import { anisurgeWatchlist } from "@/lib/anisurge";
 import AnimeLists from "./components/anime-lists";
 import AnimeHeatmap from "./components/anime-heatmap";
 import Loading from "@/app/loading";
 import {
-  Camera,
   Clock,
   CheckCircle,
   BookOpen,
@@ -23,21 +21,21 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-function useBookmarkCounts(userId: string | undefined) {
+function useBookmarkCounts(auth: any) {
   const [counts, setCounts] = useState({ watching: 0, completed: 0, plan: 0, onHold: 0, dropped: 0 });
   useEffect(() => {
-    if (!userId) return;
-    const statuses = [
-      ["watching", "watching"],
-      ["completed", "completed"],
-      ["plan", "plan to watch"],
-      ["onHold", "on hold"],
-      ["dropped", "dropped"],
+    if (!auth) return;
+    const folders = [
+      ["watching",  "WATCHING"],
+      ["completed", "COMPLETED"],
+      ["plan",      "PLANNING"],
+      ["onHold",    "PAUSED"],
+      ["dropped",   "DROPPED"],
     ] as const;
     Promise.all(
-      statuses.map(([key, s]) =>
-        pb.collection("bookmarks").getList(1, 1, { filter: `status='${s}'` })
-          .then((r) => ({ key, count: r.totalItems }))
+      folders.map(([key, folder]) =>
+        anisurgeWatchlist.get(folder, 1, 0)
+          .then((r: any) => ({ key, count: r?.total ?? 0 }))
           .catch(() => ({ key, count: 0 })),
       ),
     ).then((results) => {
@@ -51,7 +49,7 @@ function useBookmarkCounts(userId: string | undefined) {
         dropped:   map.dropped   ?? 0,
       });
     });
-  }, [userId]);
+  }, [auth]);
   return counts;
 }
 
@@ -64,13 +62,11 @@ const STATUS_TABS = [
 ] as const;
 
 function ProfilePage() {
-  const { auth, setAuth } = useAuthStore();
+  const { auth } = useAuthStore();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const hasHydrated = useAuthHydrated();
-  const [avatarLoading, setAvatarLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("watching");
-  const counts = useBookmarkCounts(auth?.id);
+  const counts = useBookmarkCounts(auth);
 
   useEffect(() => {
     if (hasHydrated && !auth) router.replace("/");
@@ -80,21 +76,6 @@ function ProfilePage() {
   if (!auth) return null;
 
   const totalAnime = counts.watching + counts.completed + counts.plan + counts.onHold + counts.dropped;
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarLoading(true);
-    try {
-      const res = await pb.collection("users").update(auth.id, { avatar: file });
-      setAuth({ ...auth, avatar: res.avatar });
-      toast.success("Avatar updated!");
-    } catch {
-      toast.error("Failed to update avatar");
-    } finally {
-      setAvatarLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen pb-24">
@@ -115,7 +96,7 @@ function ProfilePage() {
         {/* ── Top identity row ────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 mb-8">
           {/* Avatar */}
-          <div className="relative group shrink-0">
+          <div className="shrink-0">
             <div className="rounded-full p-[3px] bg-gradient-to-br from-white/30 via-white/20 to-white/10 shadow-2xl">
               <div className="rounded-full p-[2px] bg-black">
                 <Avatar
@@ -125,16 +106,7 @@ function ProfilePage() {
                 />
               </div>
             </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={avatarLoading}
-              className="absolute inset-0 rounded-full flex items-center justify-center bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Camera className="w-6 h-6 text-white drop-shadow" />
-            </button>
           </div>
-
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
 
           {/* Name + meta */}
           <div className="flex-1 text-center sm:text-left pb-1">

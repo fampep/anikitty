@@ -20,7 +20,6 @@ import { env } from "next-runtime-env"; // Ensure this works in client component
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
-import { pb } from "@/lib/pocketbase";
 import Image from "next/image";
 
 const WATCH_PROGRESS_UPDATE_INTERVAL = 10000; // Update every 10 seconds
@@ -147,46 +146,9 @@ function KitsunePlayer({
       }
 
       bookmarkIdRef.current = id;
-      hasMetMinWatchTimeRef.current = false; // Reset min watch time check
-
-      // Now find the specific watched record ID for THIS episode
-      // Fetch again with expand (or use initial list if sufficient)
-      try {
-        const expandedBookmark = await pb.collection("bookmarks").getOne(id, {
-          expand: "watchHistory",
-        });
-
-        if (!isMounted) return;
-
-        const history = expandedBookmark.expand?.watchHistory as
-          | any[]
-          | undefined;
-        const existingWatched = history?.find(
-          (watched: any) => watched.episodeId === serversData.episodeId,
-        );
-
-        if (existingWatched) {
-          watchedRecordIdRef.current = existingWatched.id;
-          initialSeekTimeRef.current =
-            typeof existingWatched.current === "number"
-              ? existingWatched.current
-              : null;
-          hasMetMinWatchTimeRef.current =
-            initialSeekTimeRef.current !== null &&
-            initialSeekTimeRef.current >= WATCH_PROGRESS_MIN_WATCH_TIME;
-        } else {
-          watchedRecordIdRef.current = null; // Explicitly set to null
-          initialSeekTimeRef.current = null; // Ensure it's null if no record
-          hasMetMinWatchTimeRef.current = false;
-        }
-      } catch (e) {
-        console.error("Error fetching bookmark watch history:", e);
-        if (!isMounted) return;
-        // Keep bookmarkId, but assume no watched record found
-        watchedRecordIdRef.current = null;
-        initialSeekTimeRef.current = null; // Ensure it's null if no record
-        hasMetMinWatchTimeRef.current = false;
-      }
+      hasMetMinWatchTimeRef.current = false;
+      watchedRecordIdRef.current = null;
+      initialSeekTimeRef.current = null;
     };
 
     fetchBookmarkAndWatchedId();
