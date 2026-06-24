@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 
 const KITTY_ICON = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg";
@@ -7,7 +8,7 @@ const Footer = () => {
   return (
     <footer className="w-full bg-black border-t border-white/10 shadow-xl p-8 flex flex-col items-center space-y-5">
       <div className="flex flex-col items-center gap-1">
-        <img
+        <Image
           src={KITTY_ICON}
           alt="KittyAnime"
           width={56}

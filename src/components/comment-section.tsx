@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
 import { getAnisurgeToken } from "@/lib/anisurge";
 import { MessageSquare, Send, Trash2, Loader2 } from "lucide-react";
@@ -41,10 +42,12 @@ function Avatar({ username, avatarUrl }: { username: string; avatarUrl?: string 
 
   if (avatarUrl) {
     return (
-      <img
+      <Image
         src={avatarUrl}
         alt={username}
-        className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/10"
+        width={32}
+        height={32}
+        className="rounded-full object-cover shrink-0 ring-1 ring-white/10"
       />
     );
   }

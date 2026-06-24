@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 const KITTY_ICON = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg";
 import { cn } from "@/lib/utils";
@@ -115,7 +116,7 @@ const NavBar = () => {
         >
           <div className="relative">
             <div className="absolute inset-0 rounded-full bg-white/10 blur-md group-hover:bg-white/20 transition-all duration-300"></div>
-            <img
+            <Image
               src={KITTY_ICON}
               alt="KittyAnime"
               width={38}
