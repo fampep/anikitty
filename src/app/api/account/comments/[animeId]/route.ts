@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { comments, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { eq, desc, sql, leftJoin } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export async function GET(req: Request, { params }: { params: Promise<{ animeId: string }> }) {
   const { animeId } = await params;
