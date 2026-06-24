@@ -13,6 +13,7 @@ import Container from "@/components/container";
 const HeroSection = dynamic(() => import("@/components/hero-section"));
 const LatestEpisodesAnime = dynamic(() => import("@/components/latest-episodes-section"));
 const AnimeSections = dynamic(() => import("@/components/anime-sections"));
+const LatestComments = dynamic(() => import("@/components/latest-comments"));
 
 export default function Home() {
   const { data, isLoading } = useGetHomePageData();
@@ -49,6 +50,8 @@ export default function Home() {
         layout="row"
         seeAllHref={ROUTES.TRENDING}
       />
+
+      <LatestComments />
 
       {/* Quick links to dedicated pages */}
       <Container className="py-6">
