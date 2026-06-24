@@ -28,7 +28,6 @@ export interface KittyStreamResponse {
 export const KITTY_PROVIDERS = [
   "Miruro",
   "AllAnime",
-  "ReAnime",
   "Anitaku",
   "Anikage",
   "AnimeHeaven",
@@ -37,7 +36,6 @@ export const KITTY_PROVIDERS = [
   "Senshi",
   "Animetsu",
   "AnimeParadise",
-  "AniDao",
   "AniNeko",
   "Animeverse",
   "Animo",
