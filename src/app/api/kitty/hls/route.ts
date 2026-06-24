@@ -9,10 +9,10 @@
  * keeping the same referer/origin headers for every subsequent request.
  */
 
-function buildUpstream(rawUrl: string, referer: string, origin: string): Headers {
+function buildUpstream(_rawUrl: string, _referer: string, _origin: string): Headers {
   const h = new Headers();
-  if (referer) h.set("Referer", referer);
-  if (origin)  h.set("Origin",  origin);
+  h.set("Referer", "https://kittyapi.buzz/");
+  h.set("Origin", "https://kittyapi.buzz");
   h.set(
     "User-Agent",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
