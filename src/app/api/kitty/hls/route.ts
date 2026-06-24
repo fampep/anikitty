@@ -1,49 +1,3 @@
-const KITTY_PROXY = "https://kittyapi.buzz/proxy-stream";
-
-/**
- * Detect whether a URL is already a proxy endpoint (CDN or kittyapi).
- * These should be fetched directly — wrapping them again causes 403/404.
- * Pattern: any URL whose path is /proxy-segment or /proxy-stream with a ?url= param.
- */
-function isAlreadyProxied(decoded: string): boolean {
-  try {
-    const u = new URL(decoded);
-    return (
-      u.searchParams.has("url") &&
-      (u.pathname === "/proxy-segment" || u.pathname === "/proxy-stream")
-    );
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Extract the real CDN URL from a proxy URL's ?url= param.
- * Used as the base URL when resolving relative paths inside an m3u8 manifest.
- */
-function extractContentUrl(decoded: string): string {
-  try {
-    const u = new URL(decoded);
-    if (u.searchParams.has("url")) {
-      return decodeURIComponent(u.searchParams.get("url")!);
-    }
-  } catch {}
-  return decoded;
-}
-
-/**
- * Build the actual fetch URL:
- * - Proxy URLs (CDN or kittyapi): fetch directly (already have right Referer/Origin).
- * - Raw CDN URLs: route through kittyapi.buzz/proxy-stream.
- * Also normalises http:// → https:// for safety.
- */
-function buildFetchUrl(decoded: string): string {
-  if (isAlreadyProxied(decoded)) {
-    return decoded.replace(/^http:\/\//, "https://");
-  }
-  return `${KITTY_PROXY}?url=${encodeURIComponent(decoded)}`;
-}
-
 function isM3u8ByUrl(url: string): boolean {
   return url.endsWith(".m3u8") || url.includes(".m3u8?") || url.includes(".m3u8&");
 }
@@ -92,12 +46,7 @@ export async function GET(req: Request) {
     return new Response("invalid url encoding", { status: 400 });
   }
 
-  // Use the real CDN URL as the base for m3u8 relative path resolution
-  const contentUrl = extractContentUrl(decoded);
-  // Fetch directly if already proxied, otherwise wrap in kittyapi.buzz
-  const fetchUrl = buildFetchUrl(decoded);
-
-  const upstream = await fetch(fetchUrl, { cache: "no-store" });
+  const upstream = await fetch(decoded, { cache: "no-store" });
 
   if (!upstream.ok) {
     return new Response(`upstream ${upstream.status}`, { status: upstream.status });
@@ -105,10 +54,9 @@ export async function GET(req: Request) {
 
   const contentType = upstream.headers.get("content-type") ?? "";
 
-  // Fast path: URL or content-type clearly indicates m3u8
-  if (isM3u8ByUrl(contentUrl) || isM3u8ByContentType(contentType)) {
+  if (isM3u8ByUrl(decoded) || isM3u8ByContentType(contentType)) {
     const text = await upstream.text();
-    const rewritten = rewriteManifest(text, contentUrl);
+    const rewritten = rewriteManifest(text, decoded);
     return new Response(rewritten, {
       status: 200,
       headers: {
@@ -119,12 +67,11 @@ export async function GET(req: Request) {
     });
   }
 
-  // Slow path: peek at body to detect extensionless m3u8
   const buffer = await upstream.arrayBuffer();
   const peek = new TextDecoder("utf-8", { fatal: false }).decode(buffer.slice(0, 16)).trimStart();
   if (peek.startsWith("#EXTM3U")) {
     const text = new TextDecoder().decode(buffer);
-    const rewritten = rewriteManifest(text, contentUrl);
+    const rewritten = rewriteManifest(text, decoded);
     return new Response(rewritten, {
       status: 200,
       headers: {
@@ -135,7 +82,6 @@ export async function GET(req: Request) {
     });
   }
 
-  // Binary segment
   return new Response(buffer, {
     status: 200,
     headers: {
