@@ -7,22 +7,12 @@ export interface KittyTrack {
   label: string;
 }
 
-export interface KittyServer {
-  file: string;
-  quality: string;
-  headers: Record<string, string>;
-}
-
+// Matches the Kitty API response: { file, headers, tracks }
 export interface KittyStreamResponse {
   file: string;
   headers: Record<string, string>;
   tracks: KittyTrack[];
-  server?: string;
-  provider?: string;
-  episode?: number;
-  anilistId?: number;
-  cached?: boolean;
-  allServers?: KittyServer[];
+  error?: string;
 }
 
 export const KITTY_PROVIDERS = [
