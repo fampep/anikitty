@@ -28,12 +28,12 @@ export async function POST(req: Request) {
     if (!valid)
       return NextResponse.json({ error: "Invalid username/email or password" }, { status: 401 });
 
-    const token = await signToken({ userId: user.id, username: user.username });
+    const token = await signToken({ userId: user.id, username: user.username, role: user.role ?? "user" });
 
     return NextResponse.json({
       anisurgeToken: token,
       anisurgeUserId: user.id,
-      user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, customPfpUrl: null },
+      user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null, role: user.role ?? "user" },
     });
   } catch (e: any) {
     console.error("[login]", e);

@@ -17,6 +17,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   bannerUrl: text("banner_url"),
   bio: text("bio"),
+  role: varchar("role", { length: 20 }).notNull().default("user"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -63,6 +64,13 @@ export const watchProgress = pgTable(
     userAnimeEp: unique("progress_user_anime_ep").on(t.userId, t.animeId, t.episodeId),
   }),
 );
+
+export const roles = pgTable("roles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 50 }).notNull().unique(),
+  color: varchar("color", { length: 20 }).notNull().default("#ffffff"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 export const comments = pgTable(
   "comments",

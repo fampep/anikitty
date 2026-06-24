@@ -31,6 +31,7 @@ import {
   Loader2,
   ImageIcon,
 } from "lucide-react";
+import { RoleBadge } from "@/components/role-badge";
 import { toast } from "sonner";
 
 function useBookmarkCounts(auth: any) {
@@ -282,6 +283,9 @@ function ProfilePage() {
                 <ShieldCheck className="w-3 h-3" />
                 passphrase account
               </span>
+              {auth.role && auth.role !== "user" && (
+                <RoleBadge role={auth.role} size="sm" />
+              )}
               <button
                 onClick={() => setEditOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto sm:ml-auto"

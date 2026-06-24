@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { getAnisurgeToken } from "@/lib/anisurge";
 import { MessageSquare, Send, Trash2, Loader2, ImagePlay, X } from "lucide-react";
 import { toast } from "sonner";
+import { RoleBadge } from "@/components/role-badge";
 
 interface Comment {
   id: string;
@@ -15,6 +16,8 @@ interface Comment {
   userId: string;
   username: string;
   avatarUrl?: string | null;
+  role?: string | null;
+  roleColor?: string | null;
 }
 
 function relativeTime(iso: string): string {
@@ -284,6 +287,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="text-[13px] font-semibold text-white/85">{c.username}</span>
+                  {c.role && c.role !== "user" && <RoleBadge role={c.role} color={c.roleColor} />}
                   <span className="text-[11px] font-mono text-white/20">{relativeTime(c.createdAt)}</span>
                   {auth?.id === c.userId && (
                     <button

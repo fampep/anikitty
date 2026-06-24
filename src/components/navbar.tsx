@@ -55,6 +55,7 @@ const NavBar = () => {
           avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
           bannerUrl: user.bannerUrl ?? null,
           bio: user.bio ?? null,
+          role: user.role ?? "user",
         });
       } catch (e: any) {
         if (e?.status === 401) {

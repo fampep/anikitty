@@ -8,6 +8,7 @@ export type IAuth = {
   avatar: string;
   bannerUrl?: string | null;
   bio?: string | null;
+  role?: string | null;
 };
 
 export interface IAuthStore {

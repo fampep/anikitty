@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 const secret = () =>
   new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-secret-change-in-production-please");
 
-export async function signToken(payload: { userId: string; username: string }) {
+export async function signToken(payload: { userId: string; username: string; role: string }) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -13,10 +13,10 @@ export async function signToken(payload: { userId: string; username: string }) {
 
 export async function verifyToken(
   token: string,
-): Promise<{ userId: string; username: string } | null> {
+): Promise<{ userId: string; username: string; role: string } | null> {
   try {
     const { payload } = await jwtVerify(token, await secret());
-    return payload as { userId: string; username: string };
+    return payload as { userId: string; username: string; role: string };
   } catch {
     return null;
   }
