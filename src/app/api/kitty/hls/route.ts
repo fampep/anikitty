@@ -1,19 +1,11 @@
-/**
- * HLS proxy — routes all upstream fetches through kittyapi.buzz/proxy-segment
- * so that the CDN sees kittyapi.buzz's server IP and trusted Referer, not Vercel's.
- * Manifests (.m3u8) are rewritten so every subsequent segment/sub-manifest request
- * also routes back through this proxy (and therefore through kittyapi.buzz).
- */
-
 const KITTY_PROXY = "https://kittyapi.buzz/proxy-segment";
 
-function isM3u8(contentType: string, url: string): boolean {
-  return (
-    contentType.includes("mpegurl") ||
-    contentType.includes("m3u8") ||
-    url.endsWith(".m3u8") ||
-    url.includes(".m3u8?")
-  );
+function isM3u8ByUrl(url: string): boolean {
+  return url.endsWith(".m3u8") || url.includes(".m3u8?") || url.includes(".m3u8&");
+}
+
+function isM3u8ByContentType(ct: string): boolean {
+  return ct.includes("mpegurl") || ct.includes("m3u8");
 }
 
 function rewriteManifest(body: string, manifestUrl: string): string {
@@ -65,10 +57,10 @@ export async function GET(req: Request) {
 
   const contentType = upstream.headers.get("content-type") ?? "";
 
-  if (isM3u8(contentType, decoded)) {
+  // Fast path: URL or content-type clearly indicates m3u8
+  if (isM3u8ByUrl(decoded) || isM3u8ByContentType(contentType)) {
     const text = await upstream.text();
     const rewritten = rewriteManifest(text, decoded);
-
     return new Response(rewritten, {
       status: 200,
       headers: {
@@ -79,7 +71,24 @@ export async function GET(req: Request) {
     });
   }
 
-  return new Response(upstream.body, {
+  // Slow path: ambiguous URL (e.g. no .m3u8 extension) — peek at the body
+  const buffer = await upstream.arrayBuffer();
+  const peek = new TextDecoder("utf-8", { fatal: false }).decode(buffer.slice(0, 16)).trimStart();
+  if (peek.startsWith("#EXTM3U")) {
+    const text = new TextDecoder().decode(buffer);
+    const rewritten = rewriteManifest(text, decoded);
+    return new Response(rewritten, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/vnd.apple.mpegurl",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  // Binary segment
+  return new Response(buffer, {
     status: 200,
     headers: {
       "Content-Type": contentType || "video/MP2T",
