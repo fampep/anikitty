@@ -43,7 +43,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   if (isDataLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="h-[85vh] w-full relative overflow-hidden">
+    <div className="h-[90vh] w-full relative overflow-hidden">
       <Carousel className="w-full h-full" setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="h-full">
           {spotlightAnime?.map((anime, index) => (
@@ -54,114 +54,129 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
         </CarouselContent>
       </Carousel>
 
-      {/* Nav arrows */}
-      <div className="absolute hidden md:flex items-center gap-3 right-8 bottom-24 z-50">
-        <Button
-          onClick={() => api?.scrollPrev()}
-          size="icon"
-          className="rounded-full bg-black/40 border border-white/20 hover:bg-white/15 backdrop-blur-sm h-10 w-10"
-        >
-          <ArrowLeft className="h-4 w-4 text-white/80" />
-        </Button>
-        <Button
-          onClick={() => api?.scrollNext()}
-          size="icon"
-          className="rounded-full bg-black/40 border border-white/20 hover:bg-white/15 backdrop-blur-sm h-10 w-10"
-        >
-          <ArrowRight className="h-4 w-4 text-white/80" />
-        </Button>
-      </div>
+      {/* Bottom controls row */}
+      <div className="absolute bottom-8 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12">
+        {/* Slide counter */}
+        <span className="text-white/30 text-xs font-mono tracking-widest hidden md:block">
+          <span className="text-white/70">{String(current + 1).padStart(2, "0")}</span>
+          {" / "}
+          {String(count).padStart(2, "0")}
+        </span>
 
-      {/* Dot indicators */}
-      {count > 1 && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5">
-          {Array.from({ length: count }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => api?.scrollTo(i)}
-              className={`rounded-full transition-all duration-300 ${
-                i === current
-                  ? "w-5 h-1.5 bg-white"
-                  : "w-1.5 h-1.5 bg-white/30 hover:bg-white/60"
-              }`}
-            />
-          ))}
+        {/* Dot indicators */}
+        {count > 1 && (
+          <div className="flex items-center gap-1.5 mx-auto md:mx-0 md:absolute md:left-1/2 md:-translate-x-1/2">
+            {Array.from({ length: count }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => api?.scrollTo(i)}
+                className={`rounded-full transition-all duration-400 ${
+                  i === current
+                    ? "w-6 h-1.5 bg-white"
+                    : "w-1.5 h-1.5 bg-white/25 hover:bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Nav arrows */}
+        <div className="hidden md:flex items-center gap-2">
+          <Button
+            onClick={() => api?.scrollPrev()}
+            size="icon"
+            className="rounded-full bg-black/40 border border-white/15 hover:bg-white/10 hover:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 text-white/70" />
+          </Button>
+          <Button
+            onClick={() => api?.scrollNext()}
+            size="icon"
+            className="rounded-full bg-black/40 border border-white/15 hover:bg-white/10 hover:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
+          >
+            <ArrowRight className="h-3.5 w-3.5 text-white/70" />
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
   <div
-    className="w-full h-[85vh] bg-cover bg-no-repeat bg-center relative"
+    className="w-full h-[90vh] bg-cover bg-no-repeat bg-center relative"
     style={{ backgroundImage: `url(${anime?.poster})` }}
   >
-    {/* Gradient overlays */}
-    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent z-10" />
-    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20 z-10" />
+    {/* Layered cinematic gradients */}
+    <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent z-10" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/40 z-10" />
+    {/* Subtle vignette on right edge */}
+    <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-black/60 to-transparent z-10" />
 
     {/* Content */}
-    <div className="absolute inset-0 z-20 flex items-end md:items-center pb-20 md:pb-0">
+    <div className="absolute inset-0 z-20 flex items-end md:items-center pb-28 md:pb-0">
       <Container className="w-full">
-        <div className="max-w-xl space-y-4">
+        <div className="max-w-lg space-y-4">
           {/* Rank + type */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {anime.rank && (
-              <span className="text-xs font-mono font-bold text-white/90 bg-white/10 border border-white/20 px-2 py-0.5 rounded">
+              <span className="text-[11px] font-mono font-bold text-white/80 bg-white/8 border border-white/15 px-2 py-0.5 rounded-md backdrop-blur-sm">
                 #{anime.rank}
               </span>
             )}
             {anime.type && (
-              <span className="text-xs font-mono text-white/50 uppercase tracking-widest">
+              <span className="text-[10px] font-mono text-white/40 uppercase tracking-[0.2em]">
                 {anime.type}
               </span>
             )}
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl md:text-5xl font-black leading-tight text-white drop-shadow-lg">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-black leading-[1.05] text-white">
             {anime.name}
           </h1>
 
           {/* Episode + info badges */}
           <div className="flex flex-wrap items-center gap-2">
             {anime.episodes?.sub != null && anime.episodes.sub > 0 && (
-              <span className="inline-flex items-center gap-1 bg-white/10 text-white border border-white/20 text-xs font-bold px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1 bg-white/10 text-white/90 border border-white/15 text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
                 <Captions className="h-3 w-3" />
                 SUB {anime.episodes.sub}
               </span>
             )}
             {anime.episodes?.dub != null && anime.episodes.dub > 0 && (
-              <span className="inline-flex items-center gap-1 bg-white/10 text-white border border-white/20 text-xs font-bold px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1 bg-white/10 text-white/90 border border-white/15 text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
                 <Mic className="h-3 w-3" />
                 DUB {anime.episodes.dub}
               </span>
             )}
             {anime.otherInfo?.slice(0, 3).map((info, i) => (
-              <span key={i} className="text-xs text-white/50 font-mono">
+              <span key={i} className="text-xs text-white/40 font-mono">
                 {info}
               </span>
             ))}
           </div>
 
           {/* Description */}
-          <p className="text-sm md:text-base text-white/65 line-clamp-3 leading-relaxed">
+          <p className="text-sm md:text-[15px] text-white/55 line-clamp-3 leading-relaxed">
             {parse(anime?.description ?? "")}
           </p>
 
+          {/* Divider */}
+          <div className="w-12 h-px bg-white/20" />
+
           {/* CTA buttons */}
-          <div className="flex items-center gap-3 !mt-6">
+          <div className="flex items-center gap-3">
             <ButtonLink
               href={`${ROUTES.WATCH}?anime=${anime.id}`}
-              className="flex items-center gap-2 h-11 bg-white text-black font-bold px-6 rounded-xl hover:bg-white/90 transition-all"
+              className="flex items-center gap-2 h-11 bg-white text-black font-bold px-6 rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-lg shadow-white/10"
             >
               <Play className="h-4 w-4 fill-current" />
               Watch Now
             </ButtonLink>
             <ButtonLink
               href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-              className="flex items-center gap-2 h-11 bg-black/30 border border-white/25 text-white/80 hover:bg-white/10 hover:border-white/40 px-5 rounded-xl backdrop-blur-sm transition-all"
+              className="flex items-center gap-2 h-11 bg-white/5 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/35 px-5 rounded-xl backdrop-blur-sm transition-all"
             >
               <Info className="h-4 w-4" />
               Details
@@ -174,22 +189,25 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
 );
 
 const LoadingSkeleton = () => (
-  <div className="h-[85vh] w-full relative bg-black">
-    <div className="absolute inset-0 flex items-end md:items-center pb-20 md:pb-0">
+  <div className="h-[90vh] w-full relative bg-black">
+    <div className="absolute inset-0 flex items-end md:items-center pb-28 md:pb-0">
       <Container className="w-full">
-        <div className="max-w-xl space-y-4">
-          <div className="h-5 w-24 animate-pulse bg-white/10 rounded" />
-          <div className="h-12 w-3/4 animate-pulse bg-white/10 rounded-lg" />
+        <div className="max-w-lg space-y-4">
+          <div className="h-4 w-20 animate-pulse bg-white/10 rounded-md" />
+          <div className="h-14 w-4/5 animate-pulse bg-white/10 rounded-lg" />
           <div className="flex gap-2">
-            <div className="h-6 w-20 animate-pulse bg-white/10 rounded-full" />
-            <div className="h-6 w-20 animate-pulse bg-white/10 rounded-full" />
+            <div className="h-7 w-20 animate-pulse bg-white/10 rounded-full" />
+            <div className="h-7 w-20 animate-pulse bg-white/10 rounded-full" />
           </div>
-          <div className="h-4 w-full animate-pulse bg-white/8 rounded" />
-          <div className="h-4 w-5/6 animate-pulse bg-white/8 rounded" />
-          <div className="h-4 w-4/6 animate-pulse bg-white/8 rounded" />
-          <div className="flex gap-3 pt-2">
+          <div className="space-y-2">
+            <div className="h-3.5 w-full animate-pulse bg-white/6 rounded" />
+            <div className="h-3.5 w-5/6 animate-pulse bg-white/6 rounded" />
+            <div className="h-3.5 w-4/6 animate-pulse bg-white/6 rounded" />
+          </div>
+          <div className="w-12 h-px bg-white/10" />
+          <div className="flex gap-3">
             <div className="h-11 w-36 animate-pulse bg-white/15 rounded-xl" />
-            <div className="h-11 w-28 animate-pulse bg-white/10 rounded-xl" />
+            <div className="h-11 w-28 animate-pulse bg-white/8 rounded-xl" />
           </div>
         </div>
       </Container>

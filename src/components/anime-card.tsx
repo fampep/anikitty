@@ -40,8 +40,8 @@ const AnimeCard = ({
     <Link href={props.href as string} className="block w-full">
       <div
         className={cn(
-          "rounded-xl overflow-hidden relative cursor-pointer group",
-          "transition-all duration-300 hover:scale-[1.03] hover:shadow-xl hover:shadow-black/70",
+          "rounded-2xl overflow-hidden relative cursor-pointer group",
+          "transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-white/10 hover:ring-1 hover:ring-white/15",
           variant === "sm" &&
             "h-[12rem] min-[320px]:h-[16.625rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           variant === "lg" &&
