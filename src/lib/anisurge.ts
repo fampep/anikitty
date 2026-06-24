@@ -111,6 +111,9 @@ export const anisurgeContinue = {
       `/watch/continue?${latestPerAnime ? "latestPerAnime=true&" : ""}limit=${limit}&offset=${offset}`,
     ),
 
+  getEpisode: (animeId: string, episodeId: string) =>
+    bff(`/watch/continue/${encodeURIComponent(animeId)}/${encodeURIComponent(episodeId)}`),
+
   remove: (animeId: string, episodeId: string) =>
     bff(`/watch/continue/${encodeURIComponent(animeId)}/${encodeURIComponent(episodeId)}`, {
       method: "DELETE",

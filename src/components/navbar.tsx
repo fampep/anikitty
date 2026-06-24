@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-const KITTY_ICON = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg";
+const KITTY_ICON = "/jiji.jpg";
 import { cn } from "@/lib/utils";
 
 import Container from "./container";
@@ -102,14 +102,13 @@ const NavBar = () => {
           href={ROUTES.HOME}
           className="flex items-center gap-2 cursor-pointer group"
         >
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-white/10 blur-md group-hover:bg-white/20 transition-all duration-300"></div>
+          <div className="relative w-10 h-10 rounded-full overflow-hidden ring-1 ring-white/15 group-hover:ring-white/35 transition-all duration-300">
             <Image
               src={KITTY_ICON}
               alt="KittyAnime"
-              width={38}
-              height={38}
-              className="relative opacity-90"
+              fill
+              className="object-cover object-top"
+              unoptimized
             />
           </div>
           <div className="flex flex-col leading-none">

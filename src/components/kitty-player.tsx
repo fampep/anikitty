@@ -21,6 +21,7 @@ interface KittyPlayerProps {
   tracks?: KittyTrack[];
   headers?: Record<string, string>;
   skipTimes?: SkipTimes;
+  startTime?: number;
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
 }
@@ -31,6 +32,7 @@ export default function KittyPlayer({
   tracks = [],
   headers = {},
   skipTimes,
+  startTime = 0,
   onStart,
   onProgress,
 }: KittyPlayerProps) {
@@ -114,6 +116,7 @@ export default function KittyPlayer({
         playsInline
         crossOrigin
         autoPlay
+        startTime={startTime > 10 ? startTime : 0}
         className="w-full h-full"
         onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}

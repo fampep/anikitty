@@ -32,8 +32,8 @@ export const metadata: Metadata = {
   title: APP_DEFAULT_TITLE,
   description: APP_DESCRIPTION,
   icons: {
-    icon: "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg",
-    apple: "/icon-192x192.png",
+    icon: "/jiji.jpg",
+    apple: "/jiji.jpg",
   },
   appleWebApp: {
     capable: true,
@@ -82,8 +82,8 @@ export default function RootLayout({
           gtag('config', 'G-X9RZ58XPH1');`}
         </Script>
         <PublicEnvScript />
-        <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg" type="image/svg+xml" />
-        <link rel="alternate icon" href="/icon.png" type="image/png" sizes="192x192" />
+        <link rel="icon" href="/jiji.jpg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/jiji.jpg" />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden`}

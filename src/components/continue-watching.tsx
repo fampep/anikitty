@@ -160,7 +160,7 @@ const ContinueWatching = ({ loading }: Props) => {
                   title={item.name}
                   poster={item.poster}
                   className="w-full max-w-none"
-                  href={`${ROUTES.WATCH}?anime=${item.id}&episode=${item.episodeId}`}
+                  href={`${ROUTES.WATCH}?anime=${item.id}&episode=${item.episodeId}${item.watchDetail.current > 10 ? `&t=${Math.floor(item.watchDetail.current)}` : ""}`}
                   watchDetail={item.watchDetail}
                 />
               </div>

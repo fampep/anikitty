@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 
-const KITTY_ICON = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f431.svg";
+const KITTY_ICON = "/jiji.jpg";
 
 const Footer = () => {
   return (
@@ -14,13 +14,9 @@ const Footer = () => {
           {/* Brand */}
           <div className="flex flex-col items-center md:items-start gap-1.5">
             <div className="flex items-center gap-2.5">
-              <Image
-                src={KITTY_ICON}
-                alt="KittyAnime"
-                width={32}
-                height={32}
-                className="opacity-75"
-              />
+              <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-white/15">
+                <Image src={KITTY_ICON} alt="KittyAnime" fill className="object-cover object-top" unoptimized />
+              </div>
               <p className="text-lg font-bold text-white/90 tracking-widest">KittyAnime</p>
             </div>
             <p className="text-[11px] text-white/25 font-mono tracking-widest">~ nya ~</p>

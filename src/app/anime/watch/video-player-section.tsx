@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
+import { anisurgeContinue } from "@/lib/anisurge";
 import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
@@ -58,11 +59,29 @@ const VideoPlayerSection = () => {
     ? selectedEpisode.replace("ep-", "")
     : selectedEpisode ?? "";
 
+  // ── Resume position ──────────────────────────────────────────────
+  const [startTime, setStartTime] = useState(0);
+
   // ── Progress tracking ────────────────────────────────────────────
   const { auth } = useAuthStore();
   const { createOrUpdateBookMark, syncWatchProgress } = useBookMarks({ populate: false });
   const bookmarkIdRef = useRef<string | null>(null);
   const watchedIdRef  = useRef<string | null>(null);
+
+  const animeSlug = anime?.anime?.info?.id ?? null;
+
+  useEffect(() => {
+    setStartTime(0);
+    if (!auth || !animeSlug || !episodeId) return;
+    anisurgeContinue.getEpisode(animeSlug, episodeId)
+      .then((r: any) => {
+        const t = r?.currentTime ?? 0;
+        const dur = r?.duration ?? 0;
+        // Only resume if more than 10s in and not within last 30s of the episode
+        if (t > 10 && (dur <= 0 || t < dur - 30)) setStartTime(t);
+      })
+      .catch(() => {});
+  }, [auth, animeSlug, episodeId]);
 
   const handleStart = useCallback(async () => {
     if (!auth || !anime?.anime?.info) return;
@@ -165,6 +184,7 @@ const VideoPlayerSection = () => {
         tracks={streamData.tracks ?? []}
         headers={streamData.headers ?? {}}
         skipTimes={skipTimes}
+        startTime={startTime}
         onStart={handleStart}
         onProgress={handleProgress}
       />
