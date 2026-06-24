@@ -33,7 +33,7 @@ const Footer = () => {
           <div className="flex flex-col items-center md:items-start gap-2">
             <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-1">Links</p>
             <a
-              href="https://github.com/Dovakiin0/Kitsune"
+              href="https://github.com/fampep/anikitty"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-white/45 hover:text-white/80 transition-colors"
@@ -42,7 +42,7 @@ const Footer = () => {
               GitHub
             </a>
             <a
-              href="https://discord.gg/6yAJ3XDHTt"
+              href="https://discord.gg/AWpSHbEDZ2"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-white/45 hover:text-white/80 transition-colors"
@@ -59,7 +59,7 @@ const Footer = () => {
             KittyAnime does not store any files on the server. All media is hosted on 3rd party services.
           </p>
           <p className="text-[11px] text-white/15 shrink-0">
-            © KittyAnime 🐾
+            © KittyAnime
           </p>
         </div>
       </div>
