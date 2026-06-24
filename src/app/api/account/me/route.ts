@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
   const db = getDb();
   const [user] = await db
-    .select({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl })
+    .select({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl, bio: users.bio })
     .from(users)
     .where(eq(users.id, payload.userId))
     .limit(1);
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     anisurgeUserId: user.id,
-    user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, customPfpUrl: null },
+    user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null },
   });
 }
 
@@ -34,18 +34,23 @@ export async function PUT(req: Request) {
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { avatarUrl } = await req.json();
+    const { avatarUrl, bannerUrl, bio } = await req.json();
     const db = getDb();
+
+    const updates: Record<string, string | null> = {};
+    if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl ?? null;
+    if (bannerUrl !== undefined) updates.bannerUrl = bannerUrl ?? null;
+    if (bio !== undefined) updates.bio = bio ? String(bio).slice(0, 200) : null;
 
     const [user] = await db
       .update(users)
-      .set({ avatarUrl: avatarUrl ?? null })
+      .set(updates)
       .where(eq(users.id, payload.userId))
-      .returning({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl });
+      .returning({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl, bio: users.bio });
 
     return NextResponse.json({
       anisurgeUserId: user.id,
-      user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null },
+      user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null },
     });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

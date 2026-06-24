@@ -5,7 +5,9 @@ export type IAuth = {
   id: string;
   username: string;
   email: string;
-  avatar: string; // full URL from Anisurge (avatarUrl or customPfpUrl)
+  avatar: string;
+  bannerUrl?: string | null;
+  bio?: string | null;
 };
 
 export interface IAuthStore {

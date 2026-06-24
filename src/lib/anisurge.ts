@@ -68,6 +68,9 @@ export const anisurgeAuth = {
     bff("/auth/logout", { method: "POST" }).catch(() => {}),
 
   me: () => bff("/me"),
+
+  updateProfile: (data: { avatarUrl?: string | null; bannerUrl?: string | null; bio?: string | null }) =>
+    bff("/me", { method: "PUT", body: JSON.stringify(data) }),
 };
 
 // ── Watchlist ────────────────────────────────────────────────────────

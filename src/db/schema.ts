@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"),
+  bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -70,7 +72,8 @@ export const comments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     animeId: varchar("anime_id", { length: 255 }).notNull(),
-    body: text("body").notNull(),
+    body: text("body").notNull().default(""),
+    gifUrl: text("gif_url"),
     createdAt: timestamp("created_at").defaultNow(),
   },
   (t) => ({

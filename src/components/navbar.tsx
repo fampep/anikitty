@@ -53,6 +53,8 @@ const NavBar = () => {
           username: user.username ?? "",
           email: user.email ?? "",
           avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
+          bannerUrl: user.bannerUrl ?? null,
+          bio: user.bio ?? null,
         });
       } catch (e: any) {
         if (e?.status === 401) {
