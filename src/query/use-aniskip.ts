@@ -33,11 +33,9 @@ async function parseChapterVtt(url: string): Promise<SkipTimes> {
     const lines = block.trim().split("\n").map((l) => l.trim());
     const timingIdx = lines.findIndex((l) => l.includes("-->"));
     if (timingIdx < 0) continue;
-
     const [startStr, endStr] = lines[timingIdx].split("-->").map((s) => s.trim());
     const label = lines.slice(timingIdx + 1).join(" ").trim();
     if (!startStr || !endStr || !label) continue;
-
     const start = vttTimeToSeconds(startStr);
     const end   = vttTimeToSeconds(endStr);
     if (INTRO_RE.test(label)) out.intro = { start, end };
@@ -47,15 +45,94 @@ async function parseChapterVtt(url: string): Promise<SkipTimes> {
   return out;
 }
 
-// ── 2. M3U8 manifest parsing (#EXT-X-DATERANGE + #EXTINF titles) ─────
+// ── 2. AniSkip API ────────────────────────────────────────────────────
+
+// Resolve AniList ID → MAL ID via AniList GraphQL when malId is unavailable
+async function resolveMalId(anilistId: number): Promise<number | null> {
+  try {
+    const res = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: "query ($id:Int!){Media(id:$id,type:ANIME){idMal}}",
+        variables: { id: anilistId },
+      }),
+    });
+    const json = await res.json();
+    return json?.data?.Media?.idMal ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Apply split-cour relation rules: may remap malId + episode to a different entry
+async function applyRelationRules(
+  malId: number,
+  episode: number,
+): Promise<{ malId: number; episode: number }> {
+  try {
+    const res = await fetch(`https://api.aniskip.com/v2/relation-rules/${malId}`);
+    if (!res.ok) return { malId, episode };
+    const json = await res.json();
+    if (!json.found) return { malId, episode };
+
+    // Rules are ordered; pick the first one where our episode is >= fromEpisode
+    for (const rule of json.results ?? []) {
+      if (episode >= rule.fromEpisode) {
+        return {
+          malId:   rule.toMalId,
+          episode: episode - rule.fromEpisode + rule.toEpisode,
+        };
+      }
+    }
+  } catch {
+    // fall through
+  }
+  return { malId, episode };
+}
+
+async function fetchAniSkipTimes(
+  malId: number,
+  episode: number,
+  anilistId?: number,
+): Promise<SkipTimes> {
+  // Resolve MAL ID from AniList if not provided
+  let resolvedMalId = malId > 0 ? malId : null;
+  if (!resolvedMalId && anilistId) {
+    resolvedMalId = await resolveMalId(anilistId);
+  }
+  if (!resolvedMalId) return {};
+
+  // Apply split-cour remapping
+  const mapped = await applyRelationRules(resolvedMalId, episode);
+
+  // Fetch skip times
+  const url =
+    `https://api.aniskip.com/v2/skip-times/${mapped.malId}/${mapped.episode}` +
+    `?types[]=op&types[]=ed&episodeLength=0`;
+
+  const res = await fetch(url);
+  if (!res.ok) return {};
+  const json = await res.json();
+  if (!json.found) return {};
+
+  const out: SkipTimes = {};
+  for (const result of json.results ?? []) {
+    const { startTime, endTime } = result.interval ?? {};
+    if (startTime == null || endTime == null) continue;
+    if (result.skipType === "op") out.intro = { start: startTime, end: endTime };
+    if (result.skipType === "ed") out.outro = { start: startTime, end: endTime };
+  }
+  return out;
+}
+
+// ── 3. M3U8 manifest parsing (#EXT-X-DATERANGE + #EXTINF titles) ─────
 
 function parseHlsAttrs(attrStr: string): Record<string, string> {
   const attrs: Record<string, string> = {};
   const re = /([A-Z0-9-]+)=("(?:[^"\\]|\\.)*"|[^,\s]+)/g;
   let m;
-  while ((m = re.exec(attrStr)) !== null) {
-    attrs[m[1]] = m[2].replace(/^"|"$/g, "");
-  }
+  while ((m = re.exec(attrStr)) !== null) attrs[m[1]] = m[2].replace(/^"|"$/g, "");
   return attrs;
 }
 
@@ -65,66 +142,49 @@ function parseMediaPlaylistText(text: string): SkipTimes {
   let programDateTimeMs: number | null = null;
   let accSec = 0;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    // Wall-clock reference for DATERANGE offsets
+  for (const line of lines) {
     if (line.startsWith("#EXT-X-PROGRAM-DATE-TIME:")) {
       programDateTimeMs = new Date(line.slice(25).trim()).getTime();
       continue;
     }
-
-    // Explicit named range: #EXT-X-DATERANGE:ID="intro",START-DATE="...",DURATION=87.5
     if (line.startsWith("#EXT-X-DATERANGE:")) {
       if (programDateTimeMs === null) continue;
-      const attrs     = parseHlsAttrs(line.slice(17));
-      const id        = (attrs.ID ?? "").toLowerCase();
-      const title     = (attrs["X-TITLE"] ?? attrs.TITLE ?? id).toLowerCase();
+      const attrs = parseHlsAttrs(line.slice(17));
+      const id    = (attrs.ID ?? "").toLowerCase();
+      const title = (attrs["X-TITLE"] ?? attrs.TITLE ?? id).toLowerCase();
+      const dur   = parseFloat(attrs.DURATION ?? "0");
       const startDate = attrs["START-DATE"];
-      const dur       = parseFloat(attrs.DURATION ?? "0");
       if (!startDate || isNaN(dur) || dur <= 0) continue;
-      const offsetSec = (new Date(startDate).getTime() - programDateTimeMs) / 1000;
-      if (offsetSec < 0) continue;
-      const interval: SkipInterval = { start: offsetSec, end: offsetSec + dur };
-      if (INTRO_RE.test(id) || INTRO_RE.test(title)) out.intro = out.intro ?? interval;
-      if (OUTRO_RE.test(id) || OUTRO_RE.test(title)) out.outro = out.outro ?? interval;
+      const off = (new Date(startDate).getTime() - programDateTimeMs) / 1000;
+      if (off < 0) continue;
+      const iv: SkipInterval = { start: off, end: off + dur };
+      if (INTRO_RE.test(id) || INTRO_RE.test(title)) out.intro = out.intro ?? iv;
+      if (OUTRO_RE.test(id) || OUTRO_RE.test(title)) out.outro = out.outro ?? iv;
       continue;
     }
-
-    // Named segment: #EXTINF:4.004,Intro
     if (line.startsWith("#EXTINF:")) {
-      const commaIdx = line.indexOf(",");
-      const segDur   = parseFloat(line.slice(8, commaIdx > 8 ? commaIdx : undefined));
-      const label    = commaIdx > 0 ? line.slice(commaIdx + 1).trim() : "";
-
+      const ci     = line.indexOf(",");
+      const segDur = parseFloat(line.slice(8, ci > 8 ? ci : undefined));
+      const label  = ci > 0 ? line.slice(ci + 1).trim() : "";
       if (label) {
-        const interval: SkipInterval = { start: accSec, end: accSec + (isNaN(segDur) ? 0 : segDur) };
-        if (INTRO_RE.test(label)) out.intro = out.intro ?? interval;
-        if (OUTRO_RE.test(label)) out.outro = out.outro ?? interval;
+        const iv: SkipInterval = { start: accSec, end: accSec + (isNaN(segDur) ? 0 : segDur) };
+        if (INTRO_RE.test(label)) out.intro = out.intro ?? iv;
+        if (OUTRO_RE.test(label)) out.outro = out.outro ?? iv;
       }
-
       accSec += isNaN(segDur) ? 0 : segDur;
     }
   }
-
   return out;
 }
 
 async function parseM3u8SkipTimes(src: string, referer: string): Promise<SkipTimes> {
   const toProxy = (u: string) =>
     `/api/kitty/hls?url=${encodeURIComponent(u)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`;
-
   try {
     const masterRes = await fetch(toProxy(src));
     if (!masterRes.ok) return {};
     const masterText = await masterRes.text();
-
-    // If already a media playlist, parse it directly
-    if (!masterText.includes("#EXT-X-STREAM-INF:")) {
-      return parseMediaPlaylistText(masterText);
-    }
-
-    // Master playlist → follow first variant URL (already proxied by hls route)
+    if (!masterText.includes("#EXT-X-STREAM-INF:")) return parseMediaPlaylistText(masterText);
     const lines = masterText.split("\n");
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].trim().startsWith("#EXT-X-STREAM-INF:")) {
@@ -138,10 +198,7 @@ async function parseM3u8SkipTimes(src: string, referer: string): Promise<SkipTim
         }
       }
     }
-  } catch {
-    // silently fail — skip times are a nice-to-have
-  }
-
+  } catch { /* silently fail */ }
   return {};
 }
 
@@ -151,6 +208,9 @@ export function useSkipTimes(
   tracks: KittyTrack[] | undefined,
   m3u8Src?: string,
   referer?: string,
+  malId?: number,
+  anilistId?: number,
+  episodeNumber?: number,
 ) {
   const chapterTrack = tracks?.find(
     (t) =>
@@ -161,7 +221,7 @@ export function useSkipTimes(
       t.label?.toLowerCase().includes("intro"),
   );
 
-  // 1 — Chapter VTT supplied by the stream (most accurate)
+  // 1 — Chapter VTT from the stream
   const vttQuery = useQuery<SkipTimes>({
     queryKey: ["chapters", chapterTrack?.file],
     queryFn: () => parseChapterVtt(chapterTrack!.file),
@@ -171,17 +231,36 @@ export function useSkipTimes(
   });
   const vttHasData = !!(vttQuery.data?.intro || vttQuery.data?.outro);
 
-  // 2 — Parse the m3u8 manifest for EXT-X-DATERANGE / named EXTINF segments
+  // 2 — AniSkip (with MAL resolution + split-cour rules)
+  const canUseAniSkip = (!!malId || !!anilistId) && !!episodeNumber;
+  const aniSkipQuery = useQuery<SkipTimes>({
+    queryKey: ["aniskip", malId, anilistId, episodeNumber],
+    queryFn: () => fetchAniSkipTimes(malId ?? 0, episodeNumber!, anilistId),
+    enabled: canUseAniSkip && vttQuery.isFetched && !vttHasData,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const aniSkipHasData = !!(aniSkipQuery.data?.intro || aniSkipQuery.data?.outro);
+
+  // 3 — m3u8 DATERANGE / named EXTINF segments (last resort)
   const m3u8Query = useQuery<SkipTimes>({
     queryKey: ["m3u8-chapters", m3u8Src],
     queryFn: () => parseM3u8SkipTimes(m3u8Src!, referer ?? ""),
-    enabled: !!m3u8Src && vttQuery.isFetched && !vttHasData,
+    enabled: !!m3u8Src && aniSkipQuery.isFetched && !aniSkipHasData && !vttHasData,
     staleTime: Infinity,
     retry: false,
   });
 
-  const data = vttHasData ? vttQuery.data : (m3u8Query.data ?? vttQuery.data);
-  const isLoading = vttQuery.isLoading || (!vttHasData && m3u8Query.isLoading);
+  const data = vttHasData
+    ? vttQuery.data
+    : aniSkipHasData
+      ? aniSkipQuery.data
+      : (m3u8Query.data ?? vttQuery.data);
+
+  const isLoading =
+    vttQuery.isLoading ||
+    (!vttHasData && aniSkipQuery.isLoading) ||
+    (!vttHasData && !aniSkipHasData && m3u8Query.isLoading);
 
   return { data, isLoading };
 }
