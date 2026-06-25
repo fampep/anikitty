@@ -2,26 +2,19 @@ FROM node:20-alpine AS base
 
 # ── Stage 1: Install dependencies ──────────────────────────────────────
 FROM base AS deps
-RUN apk add --no-cache libc6-compat curl
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install bun for faster installs + build (respects bun.lock)
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:${PATH}"
-
-COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile
+COPY package*.json ./
+RUN npm ci
 
 # ── Stage 2: Build ─────────────────────────────────────────────────────
 FROM base AS builder
 WORKDIR /app
 
-# Copy node_modules from deps (bun installed)
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time env vars — set these in Coolify as build args
-# NOTE: only public vars; secrets like DATABASE_URL/JWT_SECRET must not be baked at build time
 ARG NEXT_PUBLIC_PROXY_URL
 ARG NEXT_PUBLIC_API_URL
 
@@ -31,7 +24,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=1536"
 
-RUN bun run build
+RUN npm run build
 
 # ── Stage 3: Runner ────────────────────────────────────────────────────
 FROM base AS runner
@@ -47,12 +40,9 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 RUN addgroup --system --gid 1001 nodejs \
- && adduser  --system --uid 1001 nextjs
+ && adduser --system --uid 1001 nextjs
 
-# Public dir includes PWA sw.js generated at build time
 COPY --from=builder /app/public ./public
-
-# Standalone output (smallest possible image)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
