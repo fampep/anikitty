@@ -74,7 +74,6 @@ export default function KittyPlayer({
   const subTracks = tracks.filter(
     (t) => !!t.file && t.kind !== "thumbnails" && t.kind !== "chapters" && t.kind !== "metadata",
   );
-  // Pass the chapters track to vidstack so it renders segment markers on the progress bar
   const chapterTrack = tracks.find(
     (t) =>
       !!t.file &&
@@ -84,6 +83,11 @@ export default function KittyPlayer({
         t.label?.toLowerCase().includes("skip") ||
         t.label?.toLowerCase().includes("intro")),
   );
+  // Thumbnails VTT → sprite sheet for progress-bar hover preview
+  const thumbnailTrack = tracks.find((t) => !!t.file && t.kind === "thumbnails");
+  const thumbnailsUrl = thumbnailTrack?.file
+    ? `/api/kitty/hls?url=${encodeURIComponent(thumbnailTrack.file)}`
+    : undefined;
 
   useEffect(() => {
     startFiredRef.current = false;
@@ -203,7 +207,7 @@ export default function KittyPlayer({
             />
           ))}
         </MediaProvider>
-        <DefaultVideoLayout icons={defaultLayoutIcons} />
+        <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={thumbnailsUrl} />
       </MediaPlayer>
 
       {/* Next episode button */}
