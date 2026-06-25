@@ -94,22 +94,18 @@ const VideoPlayerSection = () => {
   const handleStart = useCallback(async () => {
     if (!auth || !anime?.anime?.info) return;
     const { id: slug, name, poster } = anime.anime.info;
-    const bId = await createOrUpdateBookMark(slug, name, poster, "watching", false);
-    bookmarkIdRef.current = bId;
+    // Add to watchlist silently — doesn't gate progress saving
+    createOrUpdateBookMark(slug, name, poster, "watching", false)
+      .then((bId) => { bookmarkIdRef.current = bId; })
+      .catch(() => {});
   }, [auth, anime, createOrUpdateBookMark]);
 
-  // Canonical save — called on 10s interval AND on pause
+  // Save progress directly — watchlist entry is not required
   const saveProgress = useCallback(async (current: number, duration: number) => {
-    if (!auth || !episodeId || !episodeNo || !current || !duration) return;
-    // Ensure bookmark exists before saving watch progress
-    if (!bookmarkIdRef.current && animeSlug && anime?.anime?.info) {
-      const { name, poster } = anime.anime.info;
-      const bId = await createOrUpdateBookMark(animeSlug, name, poster, "watching", false);
-      bookmarkIdRef.current = bId;
-    }
-    if (!bookmarkIdRef.current) return;
+    if (!auth || !episodeId || !episodeNo || !animeSlug) return;
+    if (!current || !duration) return;
     watchedIdRef.current = await syncWatchProgress(
-      bookmarkIdRef.current,
+      animeSlug,
       watchedIdRef.current,
       {
         episodeId,
@@ -120,7 +116,7 @@ const VideoPlayerSection = () => {
         server: provider,
       },
     );
-  }, [auth, episodeId, episodeNo, audio, provider, animeSlug, anime, createOrUpdateBookMark, syncWatchProgress]);
+  }, [auth, episodeId, episodeNo, audio, provider, animeSlug, syncWatchProgress]);
 
   // Track live position in ref (fires every timeupdate — no state update)
   const handleLiveTime = useCallback((t: number, dur: number) => {
