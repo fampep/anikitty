@@ -30,7 +30,7 @@ export async function GET(req: Request) {
       LIMIT ${limit}
       OFFSET ${offset}
     `);
-    items = result.rows as Array<Record<string, unknown>>;
+    items = result as Array<Record<string, unknown>>;
   } else {
     const rows = await db
       .select()
