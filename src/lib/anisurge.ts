@@ -58,14 +58,11 @@ export function folderToStatus(folder: string): string {
 
 // ── Auth ─────────────────────────────────────────────────────────────
 export const anisurgeAuth = {
-  login: (identifier: string, password: string) =>
-    bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
-
   loginWithAnisurge: (identifier: string, password: string) =>
     bff("/auth/anisurge-login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
 
-  signup: (username: string, email: string, password: string) =>
-    bff("/auth/signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
+  signupWithAnisurge: (username: string, email: string, password: string) =>
+    bff("/auth/anisurge-signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
 
   logout: () =>
     bff("/auth/logout", { method: "POST" }).catch(() => {}),
