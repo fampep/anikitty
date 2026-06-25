@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { Loader2, LogIn, UserPlus } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Zap } from "lucide-react";
 import { anisurgeAuth, setAnisurgeToken } from "@/lib/anisurge";
 
 type Tab = "login" | "signup";
@@ -31,13 +31,13 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
   };
 
   const syncAuth = (data: any) => {
-    setAnisurgeToken(data.token ?? data.anisurgeToken);
+    setAnisurgeToken(data.anisurgeToken);
     const user = data.user ?? {};
     setAuth({
-      id: user.id ?? data.anisurgeUserId ?? "",
+      id: data.anisurgeUserId ?? user.externalUserId ?? "",
       username: user.username ?? "",
       email: user.email ?? "",
-      avatar: user.avatarUrl ?? "",
+      avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
       bannerUrl: user.bannerUrl ?? null,
       bio: user.bio ?? null,
       role: user.role ?? "user",
@@ -68,6 +68,10 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
       toast.error("Fill in all fields");
       return;
     }
+    if (!/^[a-zA-Z0-9]{3,10}$/.test(username.trim())) {
+      toast.error("Username must be 3–10 alphanumeric characters");
+      return;
+    }
     setLoading(true);
     try {
       const data = await anisurgeAuth.signupWithAnisurge(username.trim(), email.trim(), signupPassword);
@@ -78,7 +82,9 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     } catch (e: any) {
       const msg = e?.body?.error ?? "Signup failed";
       toast.error(
-        e?.status === 409 ? "Username or email already taken" : msg,
+        msg.toLowerCase().includes("taken") || e?.status === 409
+          ? "Username or email already taken"
+          : msg,
       );
     } finally {
       setLoading(false);
@@ -104,8 +110,17 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         className="p-0 bg-[#0a0a0a] border border-white/12 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
         style={{ width: "22rem" }}
       >
-        {/* Tabs */}
-        <div className="px-5 pt-5 pb-0">
+        {/* Header */}
+        <div className="px-5 pt-5 pb-0 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-white/60 text-xs font-mono">powered by</p>
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/12 border border-violet-500/20 text-violet-400/70">
+              <Zap className="w-2.5 h-2.5" />
+              Anisurge
+            </span>
+          </div>
+
+          {/* Tabs */}
           <div className="flex rounded-lg bg-white/[0.04] border border-white/8 p-0.5">
             <button
               onClick={() => setTab("login")}
@@ -139,7 +154,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               label="Username or email"
               value={identifier}
               onChange={setIdentifier}
-              placeholder="your username or email"
+              placeholder="your Anisurge username"
               onEnter={handleLogin}
             />
             <Field
@@ -153,10 +168,10 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/12 hover:border-white/25 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-              Sign in
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              Sign in with Anisurge
             </button>
           </div>
         )}
@@ -168,7 +183,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               label="Username"
               value={username}
               onChange={setUsername}
-              placeholder="3–25 characters"
+              placeholder="3–10 alphanumeric"
               onEnter={handleSignup}
             />
             <Field
@@ -183,17 +198,17 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               label="Password"
               value={signupPassword}
               onChange={setSignupPassword}
-              placeholder="min. 8 characters"
+              placeholder="••••••••"
               type="password"
               onEnter={handleSignup}
             />
             <button
               onClick={handleSignup}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/12 hover:border-white/25 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Create account
+              Create Anisurge account
             </button>
           </div>
         )}

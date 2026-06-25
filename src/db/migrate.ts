@@ -81,17 +81,6 @@ export async function migrateDb() {
       CREATE INDEX IF NOT EXISTS comments_anime_id_idx ON comments (anime_id)
     `;
 
-    await client`
-      CREATE TABLE IF NOT EXISTS skip_cache (
-        cache_key   VARCHAR(255) NOT NULL PRIMARY KEY,
-        intro_start DOUBLE PRECISION,
-        intro_end   DOUBLE PRECISION,
-        outro_start DOUBLE PRECISION,
-        outro_end   DOUBLE PRECISION,
-        fetched_at  TIMESTAMP DEFAULT NOW()
-      )
-    `;
-
     // Add columns introduced after initial table creation
     await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`;
     await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`;

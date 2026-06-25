@@ -6,7 +6,7 @@ import { IAuthStore } from "@/store/auth-store";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import Link from "next/link";
 import {
-  User, LogOut, BookMarked, Settings,
+  User, LogOut, BookMarked, Settings, Zap,
   Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
@@ -92,6 +92,10 @@ function NavbarAvatar({ auth }: Props) {
                     Admin
                   </span>
                 )}
+              </div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <Zap className="w-2.5 h-2.5 text-violet-400/60 shrink-0" />
+                <p className="text-white/25 text-[10px] font-mono truncate">Anisurge</p>
               </div>
             </div>
           </div>

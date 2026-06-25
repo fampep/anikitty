@@ -47,16 +47,7 @@ async function parseChapterVtt(url: string): Promise<SkipTimes> {
   return out;
 }
 
-// ── 2. IntroDB via server-side cached route ───────────────────────────
-
-async function fetchIntroDbTimes(anilistId: number, episode: number): Promise<SkipTimes> {
-  const url = `/api/kitty/skip-times?anilistId=${anilistId}&episode=${episode}`;
-  const res = await fetch(url);
-  if (!res.ok) return {};
-  return res.json() as Promise<SkipTimes>;
-}
-
-// ── 3. M3U8 #EXT-X-DATERANGE parsing (last resort) ───────────────────
+// ── 2. M3U8 manifest parsing (#EXT-X-DATERANGE + #EXTINF titles) ─────
 
 function parseHlsAttrs(attrStr: string): Record<string, string> {
   const attrs: Record<string, string> = {};
@@ -72,24 +63,47 @@ function parseMediaPlaylistText(text: string): SkipTimes {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const out: SkipTimes = {};
   let programDateTimeMs: number | null = null;
+  let accSec = 0;
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Wall-clock reference for DATERANGE offsets
     if (line.startsWith("#EXT-X-PROGRAM-DATE-TIME:")) {
       programDateTimeMs = new Date(line.slice(25).trim()).getTime();
       continue;
     }
+
+    // Explicit named range: #EXT-X-DATERANGE:ID="intro",START-DATE="...",DURATION=87.5
     if (line.startsWith("#EXT-X-DATERANGE:")) {
       if (programDateTimeMs === null) continue;
-      const attrs = parseHlsAttrs(line.slice(17));
-      const id    = (attrs.ID ?? "").toLowerCase();
+      const attrs     = parseHlsAttrs(line.slice(17));
+      const id        = (attrs.ID ?? "").toLowerCase();
+      const title     = (attrs["X-TITLE"] ?? attrs.TITLE ?? id).toLowerCase();
       const startDate = attrs["START-DATE"];
-      const dur   = parseFloat(attrs.DURATION ?? "0");
+      const dur       = parseFloat(attrs.DURATION ?? "0");
       if (!startDate || isNaN(dur) || dur <= 0) continue;
       const offsetSec = (new Date(startDate).getTime() - programDateTimeMs) / 1000;
       if (offsetSec < 0) continue;
       const interval: SkipInterval = { start: offsetSec, end: offsetSec + dur };
-      if (INTRO_RE.test(id)) out.intro = interval;
-      if (OUTRO_RE.test(id)) out.outro = interval;
+      if (INTRO_RE.test(id) || INTRO_RE.test(title)) out.intro = out.intro ?? interval;
+      if (OUTRO_RE.test(id) || OUTRO_RE.test(title)) out.outro = out.outro ?? interval;
+      continue;
+    }
+
+    // Named segment: #EXTINF:4.004,Intro
+    if (line.startsWith("#EXTINF:")) {
+      const commaIdx = line.indexOf(",");
+      const segDur   = parseFloat(line.slice(8, commaIdx > 8 ? commaIdx : undefined));
+      const label    = commaIdx > 0 ? line.slice(commaIdx + 1).trim() : "";
+
+      if (label) {
+        const interval: SkipInterval = { start: accSec, end: accSec + (isNaN(segDur) ? 0 : segDur) };
+        if (INTRO_RE.test(label)) out.intro = out.intro ?? interval;
+        if (OUTRO_RE.test(label)) out.outro = out.outro ?? interval;
+      }
+
+      accSec += isNaN(segDur) ? 0 : segDur;
     }
   }
 
@@ -105,10 +119,12 @@ async function parseM3u8SkipTimes(src: string, referer: string): Promise<SkipTim
     if (!masterRes.ok) return {};
     const masterText = await masterRes.text();
 
+    // If already a media playlist, parse it directly
     if (!masterText.includes("#EXT-X-STREAM-INF:")) {
       return parseMediaPlaylistText(masterText);
     }
 
+    // Master playlist → follow first variant URL (already proxied by hls route)
     const lines = masterText.split("\n");
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].trim().startsWith("#EXT-X-STREAM-INF:")) {
@@ -123,7 +139,7 @@ async function parseM3u8SkipTimes(src: string, referer: string): Promise<SkipTim
       }
     }
   } catch {
-    // silently fail
+    // silently fail — skip times are a nice-to-have
   }
 
   return {};
@@ -135,8 +151,6 @@ export function useSkipTimes(
   tracks: KittyTrack[] | undefined,
   m3u8Src?: string,
   referer?: string,
-  anilistId?: number,
-  episodeNumber?: number,
 ) {
   const chapterTrack = tracks?.find(
     (t) =>
@@ -147,7 +161,7 @@ export function useSkipTimes(
       t.label?.toLowerCase().includes("intro"),
   );
 
-  // 1 — Chapter VTT from the stream (best source)
+  // 1 — Chapter VTT supplied by the stream (most accurate)
   const vttQuery = useQuery<SkipTimes>({
     queryKey: ["chapters", chapterTrack?.file],
     queryFn: () => parseChapterVtt(chapterTrack!.file),
@@ -157,35 +171,17 @@ export function useSkipTimes(
   });
   const vttHasData = !!(vttQuery.data?.intro || vttQuery.data?.outro);
 
-  // 2 — IntroDB API with server-side DB cache
-  const introDbQuery = useQuery<SkipTimes>({
-    queryKey: ["introdb", anilistId, episodeNumber],
-    queryFn: () => fetchIntroDbTimes(anilistId!, episodeNumber!),
-    enabled: !!anilistId && !!episodeNumber && vttQuery.isFetched && !vttHasData,
-    staleTime: Infinity,
-    retry: false,
-  });
-  const animeSkipHasData = !!(introDbQuery.data?.intro || introDbQuery.data?.outro);
-
-  // 3 — m3u8 DATERANGE markers (last resort)
+  // 2 — Parse the m3u8 manifest for EXT-X-DATERANGE / named EXTINF segments
   const m3u8Query = useQuery<SkipTimes>({
     queryKey: ["m3u8-chapters", m3u8Src],
     queryFn: () => parseM3u8SkipTimes(m3u8Src!, referer ?? ""),
-    enabled: !!m3u8Src && introDbQuery.isFetched && !animeSkipHasData && !vttHasData,
+    enabled: !!m3u8Src && vttQuery.isFetched && !vttHasData,
     staleTime: Infinity,
     retry: false,
   });
 
-  const data = vttHasData
-    ? vttQuery.data
-    : animeSkipHasData
-      ? introDbQuery.data
-      : (m3u8Query.data ?? vttQuery.data);
-
-  const isLoading =
-    vttQuery.isLoading ||
-    (!vttHasData && introDbQuery.isLoading) ||
-    (!vttHasData && !animeSkipHasData && m3u8Query.isLoading);
+  const data = vttHasData ? vttQuery.data : (m3u8Query.data ?? vttQuery.data);
+  const isLoading = vttQuery.isLoading || (!vttHasData && m3u8Query.isLoading);
 
   return { data, isLoading };
 }

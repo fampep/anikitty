@@ -1,0 +1,17 @@
+(()=>{var e={};e.id=6285,e.ids=[6285],e.modules={10846:e=>{"use strict";e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},29294:e=>{"use strict";e.exports=require("next/dist/server/app-render/work-async-storage.external.js")},33497:(e,r,t)=>{"use strict";async function s(e,r){let t=await fetch("https://graphql.anilist.co",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({query:e,variables:r}),cache:"no-store"}),s=await t.json();if(s.errors)throw Error(s.errors[0].message);return s.data}function n(e){return e.english||e.romaji||"Unknown"}function a(e){return e?({TV:"TV",TV_SHORT:"TV",MOVIE:"Movie",OVA:"OVA",ONA:"ONA",SPECIAL:"Special",MUSIC:"Music"})[e]??e:"TV"}function o(e){return({FINISHED:"Finished Airing",RELEASING:"Currently Airing",NOT_YET_RELEASED:"Not yet aired",CANCELLED:"Cancelled",HIATUS:"On Hiatus"})[e??""]??"Unknown"}function i(e){if(!e?.year)return"N/A";let r=[e.year];return e.month&&r.push(e.month),e.day&&r.push(e.day),new Date(e.year,(e.month??1)-1,e.day??1).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}t.d(r,{LW:()=>i,Vr:()=>a,lH:()=>s,mf:()=>o,wy:()=>n})},44870:e=>{"use strict";e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},63033:e=>{"use strict";e.exports=require("next/dist/server/app-render/work-unit-async-storage.external.js")},64463:(e,r,t)=>{"use strict";t.r(r),t.d(r,{patchFetch:()=>h,routeModule:()=>c,serverHooks:()=>g,workAsyncStorage:()=>d,workUnitAsyncStorage:()=>l});var s={};t.r(s),t.d(s,{GET:()=>p});var n=t(96559),a=t(48088),o=t(37719),i=t(33497);let u=`
+  query ($search: String) {
+    Page(page: 1, perPage: 10) {
+      media(type: ANIME, search: $search, sort: SEARCH_MATCH) {
+        id
+        title { english romaji }
+        coverImage { large }
+        format
+        episodes
+        status
+        averageScore
+        seasonYear
+        nextAiringEpisode { episode }
+      }
+    }
+  }
+`;async function p(e){let{searchParams:r}=new URL(e.url),t=(r.get("q")||"").trim();if(!t)return Response.json({data:{suggestions:[]}});try{let e=await (0,i.lH)(u,{search:t}),r=(e.Page?.media??[]).map(e=>({id:String(e.id),name:(0,i.wy)(e.title),jname:e.title?.romaji??"",poster:e.coverImage?.large??"",type:(0,i.Vr)(e.format),episodes:{sub:e.nextAiringEpisode?e.nextAiringEpisode.episode-1:e.episodes??0,dub:0},moreInfo:[e.seasonYear?String(e.seasonYear):null,e.episodes?`${e.episodes} eps`:null,e.averageScore?`${(e.averageScore/10).toFixed(1)}★`:null].filter(Boolean)}));return Response.json({data:{suggestions:r}})}catch(e){return console.error("Suggestion search error:",e),Response.json({data:{suggestions:[]}})}}let c=new n.AppRouteRouteModule({definition:{kind:a.RouteKind.APP_ROUTE,page:"/api/search/suggestion/route",pathname:"/api/search/suggestion",filename:"route",bundlePath:"app/api/search/suggestion/route"},resolvedPagePath:"C:\\Users\\lukas\\Downloads\\anikitty\\src\\app\\api\\search\\suggestion\\route.ts",nextConfigOutput:"standalone",userland:s}),{workAsyncStorage:d,workUnitAsyncStorage:l,serverHooks:g}=c;function h(){return(0,o.patchFetch)({workAsyncStorage:d,workUnitAsyncStorage:l})}},78335:()=>{},96487:()=>{},96559:(e,r,t)=>{"use strict";e.exports=t(44870)}};var r=require("../../../../webpack-runtime.js");r.C(e);var t=e=>r(r.s=e),s=r.X(0,[7719],()=>t(64463));module.exports=s})();

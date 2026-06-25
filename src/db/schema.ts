@@ -7,7 +7,6 @@ import {
   timestamp,
   unique,
   index,
-  doublePrecision,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -73,15 +72,6 @@ export const roles = pgTable("roles", {
   name: varchar("name", { length: 50 }).notNull().unique(),
   color: varchar("color", { length: 20 }).notNull().default("#ffffff"),
   createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const skipCache = pgTable("skip_cache", {
-  cacheKey:   varchar("cache_key", { length: 255 }).primaryKey(),
-  introStart: doublePrecision("intro_start"),
-  introEnd:   doublePrecision("intro_end"),
-  outroStart: doublePrecision("outro_start"),
-  outroEnd:   doublePrecision("outro_end"),
-  fetchedAt:  timestamp("fetched_at").defaultNow(),
 });
 
 export const comments = pgTable(

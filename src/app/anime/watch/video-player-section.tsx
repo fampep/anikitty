@@ -171,8 +171,6 @@ const VideoPlayerSection = () => {
     streamData?.tracks,
     streamData?.file,
     streamData?.headers?.Referer ?? streamData?.headers?.referer ?? "",
-    anilistId,
-    parseInt(episodeNo) || undefined,
   );
 
   // Change provider but resume from current position, not original start
