@@ -5,14 +5,38 @@ import Avatar from "./common/avatar";
 import { IAuthStore } from "@/store/auth-store";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import Link from "next/link";
-import { User, LogOut, BookMarked, Settings, Zap } from "lucide-react";
+import {
+  User, LogOut, BookMarked, Settings, Zap,
+  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
+} from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { anisurgeAuth, clearAnisurgeToken } from "@/lib/anisurge";
+import { useUserLevel } from "@/hooks/use-user-level";
+import type { LevelTier } from "@/lib/user-level";
 
 type Props = { auth: IAuthStore };
 
+// Map icon name string → Lucide component
+const TIER_ICONS: Record<string, React.ElementType> = {
+  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
+};
+
+function TierIcon({ tier, className }: { tier: LevelTier; className?: string }) {
+  const Icon = TIER_ICONS[tier.icon] ?? Star;
+  return <Icon className={className} style={{ color: tier.color }} />;
+}
+
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
+}
+
 function NavbarAvatar({ auth }: Props) {
   const [open, setOpen] = React.useState(false);
+  const level = useUserLevel();
+
   if (!auth.auth) return null;
 
   const close = () => setOpen(false);
@@ -25,6 +49,8 @@ function NavbarAvatar({ auth }: Props) {
   };
 
   const isAdmin = auth.auth.role === "admin";
+  const tier = level?.tier;
+  const rgb = tier ? hexToRgb(tier.color) : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -42,7 +68,7 @@ function NavbarAvatar({ auth }: Props) {
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-56 mt-2 p-0 bg-[#0d0d0d] border border-white/10 rounded-xl shadow-2xl shadow-black/70 overflow-hidden"
+        className="w-60 mt-2 p-0 bg-[#0d0d0d] border border-white/10 rounded-xl shadow-2xl shadow-black/70 overflow-hidden"
       >
         {/* User header */}
         <div className="relative px-4 py-3.5 border-b border-white/8 overflow-hidden">
@@ -73,6 +99,45 @@ function NavbarAvatar({ auth }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Level badge + XP bar */}
+          {level && tier && rgb && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <TierIcon tier={tier} className="w-3 h-3" />
+                  <span className="text-[10px] font-bold" style={{ color: tier.color }}>
+                    {tier.name}
+                  </span>
+                </div>
+                <span
+                  className="text-[10px] font-mono font-bold px-1.5 py-px rounded"
+                  style={{
+                    color: tier.color,
+                    backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},0.12)`,
+                  }}
+                >
+                  Lv.{level.level}
+                </span>
+              </div>
+              {/* XP progress bar */}
+              <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-none"
+                  style={{
+                    width: `${level.progressPct}%`,
+                    backgroundColor: tier.color,
+                  }}
+                />
+              </div>
+              <div className="flex justify-between mt-0.5">
+                <span className="text-[9px] font-mono text-white/20">{level.xp} eps</span>
+                <span className="text-[9px] font-mono text-white/20">
+                  {level.level < 100 ? `Lv.${level.level + 1}` : "MAX"}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="py-1.5">

@@ -58,6 +58,10 @@ const VideoPlayerSection = () => {
   // ── Resume position ──────────────────────────────────────────────
   const [startTime, setStartTime] = useState(0);
 
+  // Live position tracking — updated every timeupdate event (no re-render)
+  const liveTimeRef = useRef(0);
+  const liveDurationRef = useRef(0);
+
   // ── Progress tracking ────────────────────────────────────────────
   const { auth } = useAuthStore();
   const { createOrUpdateBookMark, syncWatchProgress } = useBookMarks({ populate: false });
@@ -66,6 +70,15 @@ const VideoPlayerSection = () => {
 
   const animeSlug = anime?.anime?.info?.id ?? null;
 
+  // Reset refs when episode changes so we don't cross-contaminate
+  useEffect(() => {
+    bookmarkIdRef.current = null;
+    watchedIdRef.current = null;
+    liveTimeRef.current = 0;
+    liveDurationRef.current = 0;
+  }, [episodeId]);
+
+  // Fetch saved resume position (only when episode actually changes)
   useEffect(() => {
     setStartTime(0);
     if (!auth || !animeSlug || !episodeId) return;
@@ -73,7 +86,6 @@ const VideoPlayerSection = () => {
       .then((r: any) => {
         const t = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
-        // Only resume if more than 10s in and not within last 30s of the episode
         if (t > 10 && (dur <= 0 || t < dur - 30)) setStartTime(t);
       })
       .catch(() => {});
@@ -81,13 +93,21 @@ const VideoPlayerSection = () => {
 
   const handleStart = useCallback(async () => {
     if (!auth || !anime?.anime?.info) return;
-    const { id: animeSlug, name, poster } = anime.anime.info;
-    const bId = await createOrUpdateBookMark(animeSlug, name, poster, "watching", false);
+    const { id: slug, name, poster } = anime.anime.info;
+    const bId = await createOrUpdateBookMark(slug, name, poster, "watching", false);
     bookmarkIdRef.current = bId;
   }, [auth, anime, createOrUpdateBookMark]);
 
-  const handleProgress = useCallback(async (current: number, duration: number) => {
-    if (!auth || !bookmarkIdRef.current || !episodeId || !episodeNo) return;
+  // Canonical save — called on 10s interval AND on pause
+  const saveProgress = useCallback(async (current: number, duration: number) => {
+    if (!auth || !episodeId || !episodeNo || !current || !duration) return;
+    // Ensure bookmark exists before saving watch progress
+    if (!bookmarkIdRef.current && animeSlug && anime?.anime?.info) {
+      const { name, poster } = anime.anime.info;
+      const bId = await createOrUpdateBookMark(animeSlug, name, poster, "watching", false);
+      bookmarkIdRef.current = bId;
+    }
+    if (!bookmarkIdRef.current) return;
     watchedIdRef.current = await syncWatchProgress(
       bookmarkIdRef.current,
       watchedIdRef.current,
@@ -100,7 +120,31 @@ const VideoPlayerSection = () => {
         server: provider,
       },
     );
-  }, [auth, episodeId, episodeNo, audio, provider, syncWatchProgress]);
+  }, [auth, episodeId, episodeNo, audio, provider, animeSlug, anime, createOrUpdateBookMark, syncWatchProgress]);
+
+  // Track live position in ref (fires every timeupdate — no state update)
+  const handleLiveTime = useCallback((t: number, dur: number) => {
+    liveTimeRef.current = t;
+    liveDurationRef.current = dur;
+  }, []);
+
+  // Save on pauses as well as on the 10s interval
+  const handleProgress = useCallback((current: number, duration: number) => {
+    saveProgress(current, duration);
+  }, [saveProgress]);
+
+  // Save progress on tab close / navigation away
+  useEffect(() => {
+    const onUnload = () => {
+      const t = liveTimeRef.current;
+      const dur = liveDurationRef.current;
+      if (t > 5 && dur > 0) {
+        saveProgress(t, dur);
+      }
+    };
+    window.addEventListener("beforeunload", onUnload);
+    return () => window.removeEventListener("beforeunload", onUnload);
+  }, [saveProgress]);
 
   const {
     data: streamData,
@@ -111,9 +155,19 @@ const VideoPlayerSection = () => {
 
   const { data: skipTimes } = useSkipTimes(streamData?.tracks);
 
+  // Change provider but resume from current position, not original start
   const handleProviderChange = (p: KittyProvider) => {
+    const t = liveTimeRef.current;
+    if (t > 5) setStartTime(t);
     setProvider(p);
     localStorage.setItem("kittyProvider", p);
+  };
+
+  // Change audio track and resume from current position
+  const handleAudioChange = (dub: boolean) => {
+    const t = liveTimeRef.current;
+    if (t > 5) setStartTime(t);
+    setPreferDub(dub);
   };
 
   if (!episodeId && !selectedEpisode) {
@@ -183,6 +237,7 @@ const VideoPlayerSection = () => {
         startTime={startTime}
         onStart={handleStart}
         onProgress={handleProgress}
+        onLiveTime={handleLiveTime}
       />
 
       {/* Controls bar */}
@@ -227,7 +282,7 @@ const VideoPlayerSection = () => {
                 ? "bg-white text-black"
                 : "text-white/35 hover:text-white/60 hover:bg-white/6"
             }`}
-            onClick={() => setPreferDub(false)}
+            onClick={() => handleAudioChange(false)}
           >
             <Captions className="w-3 h-3" /> SUB
           </button>
@@ -238,7 +293,7 @@ const VideoPlayerSection = () => {
                 ? "bg-white text-black"
                 : "text-white/35 hover:text-white/60 hover:bg-white/6"
             }`}
-            onClick={() => setPreferDub(true)}
+            onClick={() => handleAudioChange(true)}
           >
             <Mic className="w-3 h-3" /> DUB
           </button>

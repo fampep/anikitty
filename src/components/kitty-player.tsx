@@ -25,6 +25,7 @@ interface KittyPlayerProps {
   startTime?: number;
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
+  onLiveTime?: (current: number, duration: number) => void;
 }
 
 export default function KittyPlayer({
@@ -36,16 +37,19 @@ export default function KittyPlayer({
   startTime = 0,
   onStart,
   onProgress,
+  onLiveTime,
 }: KittyPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
+  const onLiveTimeRef = useRef(onLiveTime);
   const skipRef = useRef(skipTimes);
   const lastProgressTs = useRef(0);
   const startFiredRef = useRef(false);
 
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
+  useEffect(() => { onLiveTimeRef.current = onLiveTime; }, [onLiveTime]);
   useEffect(() => { skipRef.current = skipTimes; }, [skipTimes]);
 
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
@@ -88,6 +92,9 @@ export default function KittyPlayer({
     const dur = player.duration;
     const st = skipRef.current;
 
+    // Always fire live time so parent can track current position
+    onLiveTimeRef.current?.(t, dur);
+
     setCurrentTime(t);
 
     if (st?.intro && t >= st.intro.start && t < st.intro.end) {
@@ -121,6 +128,17 @@ export default function KittyPlayer({
     }
   }, []);
 
+  // Save progress immediately on pause
+  const handlePause = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    const t = player.currentTime;
+    const dur = player.duration;
+    if (t > 5 && dur > 0) {
+      onProgressRef.current?.(t, dur);
+    }
+  }, []);
+
   const seekTo = useCallback((time: number) => {
     const player = playerRef.current;
     if (player) {
@@ -148,6 +166,7 @@ export default function KittyPlayer({
         onCanPlay={handleCanPlay}
         onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}
+        onPause={handlePause}
         googleCast={{ receiverApplicationId: "CC1AD845" }}
       >
         <MediaProvider>

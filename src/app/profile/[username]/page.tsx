@@ -30,8 +30,11 @@ import {
   Pencil,
   Loader2,
   ImageIcon,
+  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
 } from "lucide-react";
 import { RoleBadge } from "@/components/role-badge";
+import { useUserLevel } from "@/hooks/use-user-level";
+import type { LevelTier } from "@/lib/user-level";
 import { toast } from "sonner";
 
 function useBookmarkCounts(auth: any) {
@@ -200,6 +203,15 @@ function EditProfileDialog({
   );
 }
 
+const TIER_ICONS: Record<string, React.ElementType> = {
+  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
+};
+
+function TierIcon({ tier, className }: { tier: LevelTier; className?: string }) {
+  const Icon = TIER_ICONS[tier.icon] ?? Star;
+  return <Icon className={className} style={{ color: tier.color }} />;
+}
+
 function ProfilePage() {
   const { auth, setAuth } = useAuthStore();
   const router = useRouter();
@@ -207,6 +219,7 @@ function ProfilePage() {
   const [activeTab, setActiveTab] = useState<string>("watching");
   const [editOpen, setEditOpen] = useState(false);
   const counts = useBookmarkCounts(auth);
+  const levelData = useUserLevel();
 
   useEffect(() => {
     if (hasHydrated && !auth) router.replace("/");
@@ -308,6 +321,41 @@ function ProfilePage() {
               <QuickStat label="Plan"      value={counts.plan}      color="text-white/80" />
               <QuickStat label="Dropped"   value={counts.dropped}   color="text-red-400" />
             </div>
+
+            {/* Level card */}
+            {levelData && (
+              <div className="mt-4 flex items-center gap-3 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 max-w-xs w-full">
+                <TierIcon tier={levelData.tier} className="w-6 h-6 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-sm font-bold leading-tight"
+                      style={{ color: levelData.tier.color }}
+                    >
+                      {levelData.tier.name}
+                    </span>
+                    <span
+                      className="text-xs font-mono font-bold shrink-0"
+                      style={{ color: levelData.tier.color }}
+                    >
+                      Lv.{levelData.level}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-none"
+                      style={{
+                        width: `${levelData.progressPct}%`,
+                        backgroundColor: levelData.tier.color,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-mono text-white/25 mt-1">
+                    {levelData.xp} episodes watched
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
