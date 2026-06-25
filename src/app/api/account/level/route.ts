@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { eq, countDistinct } from "drizzle-orm";
-import { xpToLevel, getLevelProgress } from "@/lib/user-level";
+import { getLevelProgress } from "@/lib/user-level";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
