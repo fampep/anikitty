@@ -201,13 +201,13 @@ export default function CommentSection({ animeId }: { animeId: string }) {
     setComments((prev) =>
       prev.map((c) => {
         if (c.id !== commentId) return c;
-        const prev = c.myVote;
-        const next = prev === vote ? 0 : vote;
+        const prevVote = c.myVote;
+        const nextVote = prevVote === vote ? 0 : vote;
         return {
           ...c,
-          likes: c.likes + (next === 1 ? 1 : 0) - (prev === 1 ? 1 : 0),
-          dislikes: c.dislikes + (next === -1 ? 1 : 0) - (prev === -1 ? 1 : 0),
-          myVote: next as 0 | 1 | -1,
+          likes: c.likes + (nextVote === 1 ? 1 : 0) - (prevVote === 1 ? 1 : 0),
+          dislikes: c.dislikes + (nextVote === -1 ? 1 : 0) - (prevVote === -1 ? 1 : 0),
+          myVote: nextVote as 0 | 1 | -1,
         };
       }),
     );

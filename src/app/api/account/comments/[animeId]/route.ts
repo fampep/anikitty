@@ -34,28 +34,31 @@ export async function GET(req: Request, { params }: { params: Promise<{ animeId:
     .from(comments)
     .where(eq(comments.animeId, animeId));
 
-  // Vote aggregates for all comments in this anime
-  const voteAgg = await db
-    .select({
-      commentId: commentVotes.commentId,
-      likes: sql<number>`sum(case when ${commentVotes.vote} = 1 then 1 else 0 end)::int`,
-      dislikes: sql<number>`sum(case when ${commentVotes.vote} = -1 then 1 else 0 end)::int`,
-    })
-    .from(commentVotes)
-    .innerJoin(comments, eq(comments.id, commentVotes.commentId))
-    .where(eq(comments.animeId, animeId))
-    .groupBy(commentVotes.commentId);
-
-  const voteMap = new Map(voteAgg.map((v) => [v.commentId, v]));
-
+  // Vote aggregates — guarded so a missing table never breaks comment loading
+  let voteAgg: { commentId: string; likes: number; dislikes: number }[] = [];
   let myVotes: { commentId: string; vote: number }[] = [];
-  if (payload) {
-    myVotes = await db
-      .select({ commentId: commentVotes.commentId, vote: commentVotes.vote })
+  try {
+    voteAgg = await db
+      .select({
+        commentId: commentVotes.commentId,
+        likes: sql<number>`sum(case when ${commentVotes.vote} = 1 then 1 else 0 end)::int`,
+        dislikes: sql<number>`sum(case when ${commentVotes.vote} = -1 then 1 else 0 end)::int`,
+      })
       .from(commentVotes)
       .innerJoin(comments, eq(comments.id, commentVotes.commentId))
-      .where(and(eq(comments.animeId, animeId), eq(commentVotes.userId, payload.userId)));
-  }
+      .where(eq(comments.animeId, animeId))
+      .groupBy(commentVotes.commentId);
+
+    if (payload) {
+      myVotes = await db
+        .select({ commentId: commentVotes.commentId, vote: commentVotes.vote })
+        .from(commentVotes)
+        .innerJoin(comments, eq(comments.id, commentVotes.commentId))
+        .where(and(eq(comments.animeId, animeId), eq(commentVotes.userId, payload.userId)));
+    }
+  } catch { /* comment_votes table not yet migrated — return comments without vote data */ }
+
+  const voteMap = new Map(voteAgg.map((v) => [v.commentId, v]));
   const myVoteMap = new Map(myVotes.map((v) => [v.commentId, v.vote]));
 
   const enriched = rows.map((c) => ({

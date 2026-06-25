@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { anisurgeWatchlist, anisurgeAuth, getAnisurgeToken } from "@/lib/anisurge";
 import AnimeLists from "./components/anime-lists";
 import AnimeHeatmap from "./components/anime-heatmap";
+import ContinueWatching from "@/components/continue-watching";
 import Loading from "@/app/loading";
 import {
   Clock,
@@ -446,6 +447,10 @@ function ProfilePage() {
 
         {/* ── Main content ────────────────────────────────────────── */}
         <div className="flex flex-col gap-10">
+          <section className="-mx-4 md:-mx-6 lg:-mx-8">
+            <ContinueWatching loading={false} />
+          </section>
+
           <section>
             <SectionLabel icon={<List className="w-4 h-4" />} title="Watchlist" />
             <Tabs value={activeTab} onValueChange={setActiveTab}>
