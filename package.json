@@ -1,5 +1,5 @@
 {
-  "name": "kitsune",
+  "name": "anikitty",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,14 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "build:worker": "opennextjs-cloudflare build",
-    "deploy": "opennextjs-cloudflare build && wrangler deploy",
-    "preview": "opennextjs-cloudflare build && wrangler dev"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@dovakiin0/aniwatch": "^2.24.6-custom-1",
-    "@neondatabase/serverless": "^1.1.0",
+    "postgres": "^3.4.5",
     "@radix-ui/react-avatar": "^1.1.4",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-icons": "^1.3.2",
@@ -30,7 +27,6 @@
     "@radix-ui/react-toggle": "^1.1.9",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.0",
-    "@types/video.js": "^7.3.58",
     "@vidstack/react": "^1.15.6",
     "artplayer": "^5.3.0",
     "artplayer-plugin-ambilight": "^1.0.0",
@@ -60,12 +56,9 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
-    "video.js": "^8.23.8",
-    "vidstack": "^0.6.15",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.19.11",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -74,11 +67,8 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^8",
     "eslint-config-next": "14.2.14",
-    "pino": "^9.7.0",
-    "pino-pretty": "^13.0.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5",
-    "wrangler": "^4.104.0"
+    "typescript": "^5"
   }
 }

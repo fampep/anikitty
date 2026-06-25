@@ -1,43 +1,57 @@
 FROM node:20-alpine AS base
 
-# 1. Install dependencies only when needed
+# ── Stage 1: Install dependencies ──────────────────────────────────────
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat git
-
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json ./
-RUN  npm install
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# 2. Rebuild the source code only when needed
+# ── Stage 2: Build ─────────────────────────────────────────────────────
 FROM base AS builder
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Build-time env vars — set these in Coolify as build args
+ARG DATABASE_URL
+ARG JWT_SECRET
+ARG NEXT_PUBLIC_PROXY_URL
+ARG NEXT_PUBLIC_API_URL
+
+ENV DATABASE_URL=$DATABASE_URL
+ENV JWT_SECRET=$JWT_SECRET
+ENV NEXT_PUBLIC_PROXY_URL=$NEXT_PUBLIC_PROXY_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 RUN npm run build
 
-# 3. Production image, copy all the files and run next
+# ── Stage 3: Runner ────────────────────────────────────────────────────
 FROM base AS runner
 WORKDIR /app
 
-LABEL org.opencontainers.image.title="Kitsune" \
-  org.opencontainers.image.description="Anime streaming app" \
-  org.opencontainers.image.maintainer="dovakiin0@kitsunee.online" \
-  org.opencontainers.image.source="https://github.com/dovakiin0/Kitsune.git" \
-  org.opencontainers.image.vendor="kitsunee.online"
+LABEL org.opencontainers.image.title="AniKitty" \
+      org.opencontainers.image.description="Anime streaming — anikitty.moe" \
+      org.opencontainers.image.source="https://github.com/fampep/anikitty"
 
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser  --system --uid 1001 nextjs
+
+# Public dir includes PWA sw.js generated at build time
 COPY --from=builder /app/public ./public
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/ ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static/ ./.next/static/
+# Standalone output (smallest possible image)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
