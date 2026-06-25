@@ -81,9 +81,18 @@ export async function migrateDb() {
       CREATE INDEX IF NOT EXISTS comments_anime_id_idx ON comments (anime_id)
     `;
 
-    // Add columns introduced after initial table creation
-    await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`;
-    await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`;
+    // Add columns introduced after initial table creation — each isolated so one
+    // failure does not prevent the rest from running.
+    const alters = [
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`,
+      `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS episode_number INTEGER NOT NULL DEFAULT 0`,
+    ];
+    for (const sql of alters) {
+      await client.unsafe(sql).catch((e: unknown) =>
+        console.error("[migrate] alter failed:", sql, e),
+      );
+    }
 
     // Ensure the site owner always has admin role
     await client`UPDATE users SET role = 'admin' WHERE username = 'fampep' AND role != 'admin'`;
