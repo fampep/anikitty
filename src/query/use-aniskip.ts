@@ -47,10 +47,10 @@ async function parseChapterVtt(url: string): Promise<SkipTimes> {
   return out;
 }
 
-// ── 2. anime-skip.com via server-side cached route ────────────────────
+// ── 2. IntroDB via server-side cached route ───────────────────────────
 
-async function fetchAnimeSkipTimes(title: string, episode: number): Promise<SkipTimes> {
-  const url = `/api/kitty/skip-times?title=${encodeURIComponent(title)}&episode=${episode}`;
+async function fetchIntroDbTimes(anilistId: number, episode: number): Promise<SkipTimes> {
+  const url = `/api/kitty/skip-times?anilistId=${anilistId}&episode=${episode}`;
   const res = await fetch(url);
   if (!res.ok) return {};
   return res.json() as Promise<SkipTimes>;
@@ -135,7 +135,7 @@ export function useSkipTimes(
   tracks: KittyTrack[] | undefined,
   m3u8Src?: string,
   referer?: string,
-  animeName?: string,
+  anilistId?: number,
   episodeNumber?: number,
 ) {
   const chapterTrack = tracks?.find(
@@ -157,21 +157,21 @@ export function useSkipTimes(
   });
   const vttHasData = !!(vttQuery.data?.intro || vttQuery.data?.outro);
 
-  // 2 — anime-skip.com API with server-side DB cache
-  const animeSkipQuery = useQuery<SkipTimes>({
-    queryKey: ["anime-skip", animeName, episodeNumber],
-    queryFn: () => fetchAnimeSkipTimes(animeName!, episodeNumber!),
-    enabled: !!animeName && !!episodeNumber && vttQuery.isFetched && !vttHasData,
+  // 2 — IntroDB API with server-side DB cache
+  const introDbQuery = useQuery<SkipTimes>({
+    queryKey: ["introdb", anilistId, episodeNumber],
+    queryFn: () => fetchIntroDbTimes(anilistId!, episodeNumber!),
+    enabled: !!anilistId && !!episodeNumber && vttQuery.isFetched && !vttHasData,
     staleTime: Infinity,
     retry: false,
   });
-  const animeSkipHasData = !!(animeSkipQuery.data?.intro || animeSkipQuery.data?.outro);
+  const animeSkipHasData = !!(introDbQuery.data?.intro || introDbQuery.data?.outro);
 
   // 3 — m3u8 DATERANGE markers (last resort)
   const m3u8Query = useQuery<SkipTimes>({
     queryKey: ["m3u8-chapters", m3u8Src],
     queryFn: () => parseM3u8SkipTimes(m3u8Src!, referer ?? ""),
-    enabled: !!m3u8Src && animeSkipQuery.isFetched && !animeSkipHasData && !vttHasData,
+    enabled: !!m3u8Src && introDbQuery.isFetched && !animeSkipHasData && !vttHasData,
     staleTime: Infinity,
     retry: false,
   });
@@ -179,12 +179,12 @@ export function useSkipTimes(
   const data = vttHasData
     ? vttQuery.data
     : animeSkipHasData
-      ? animeSkipQuery.data
+      ? introDbQuery.data
       : (m3u8Query.data ?? vttQuery.data);
 
   const isLoading =
     vttQuery.isLoading ||
-    (!vttHasData && animeSkipQuery.isLoading) ||
+    (!vttHasData && introDbQuery.isLoading) ||
     (!vttHasData && !animeSkipHasData && m3u8Query.isLoading);
 
   return { data, isLoading };

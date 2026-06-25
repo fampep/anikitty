@@ -3,69 +3,84 @@ import { getDb } from "@/db";
 import { skipCache } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const ANIME_SKIP_API = "https://api.anime-skip.com/graphql";
-const ANIME_SKIP_KEY = "sVGouiJe0dwZGFMDoKLm5rFAkVcvZEPI";
+const INTRODB_BASE   = "https://introdb.app";
+const ANILIST_GQL    = "https://graphql.anilist.co";
 
-// Timestamp type names from anime-skip that map to intro / outro
-const INTRO_TYPES  = new Set(["intro", "new-intro", "mixed-intro"]);
-const OUTRO_TYPES  = new Set(["credits", "new-credits", "mixed-credits", "outro"]);
+// ── AniList → IMDB ID ────────────────────────────────────────────────
 
-interface AnimeSkipTimestamp { at: number; type: { name: string } }
-
-async function fetchFromAnimeSkip(
-  showName: string,
-  episodeNumber: number,
-): Promise<{ introStart: number | null; introEnd: number | null; outroStart: number | null; outroEnd: number | null }> {
-  const query = `
-    query FindEpisodes($showName: String!, $episodeNumber: Float!) {
-      findEpisodesByShowName(showName: $showName, episodeNumber: $episodeNumber) {
-        timestamps {
-          at
-          type { name }
-        }
-      }
-    }
-  `;
-
-  const res = await fetch(ANIME_SKIP_API, {
+async function getImdbId(anilistId: number): Promise<string | null> {
+  const res = await fetch(ANILIST_GQL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Client-ID": ANIME_SKIP_KEY,
-    },
-    body: JSON.stringify({ query, variables: { showName, episodeNumber } }),
-    next: { revalidate: 0 },
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: `query ($id: Int!) {
+        Media(id: $id, type: ANIME) {
+          externalLinks { url site }
+        }
+      }`,
+      variables: { id: anilistId },
+    }),
+    next: { revalidate: 86400 }, // AniList data rarely changes
   });
 
-  if (!res.ok) throw new Error(`anime-skip ${res.status}`);
+  if (!res.ok) return null;
+  const json = await res.json();
+  const links: { url: string; site: string }[] =
+    json?.data?.Media?.externalLinks ?? [];
+
+  const imdbLink = links.find((l) =>
+    l.site?.toLowerCase() === "imdb" ||
+    l.url?.includes("imdb.com/title/"),
+  );
+
+  if (!imdbLink) return null;
+  const match = imdbLink.url.match(/\/title\/(tt\d+)/);
+  return match?.[1] ?? null;
+}
+
+// ── IntroDB segments ──────────────────────────────────────────────────
+
+interface IntroDbSegment {
+  segment_type: string;
+  start_sec: number | string;
+  end_sec: number | string;
+}
+
+function toSec(v: number | string): number {
+  if (typeof v === "number") return v;
+  // clock string: mm:ss or hh:mm:ss
+  const parts = String(v).split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return Number(v) || 0;
+}
+
+async function fetchIntroDb(
+  imdbId: string,
+  episode: number,
+  season = 1,
+): Promise<{ introStart: number | null; introEnd: number | null; outroStart: number | null; outroEnd: number | null }> {
+  const url = `${INTRODB_BASE}/segments?imdb_id=${imdbId}&season=${season}&episode=${episode}`;
+  const res = await fetch(url, { next: { revalidate: 0 } });
+  if (!res.ok) return { introStart: null, introEnd: null, outroStart: null, outroEnd: null };
 
   const json = await res.json();
-  const episodes: { timestamps: AnimeSkipTimestamp[] }[] =
-    json?.data?.findEpisodesByShowName ?? [];
-
-  // Pick the first episode result that has any timestamps
-  const ep = episodes.find((e) => e.timestamps?.length > 0);
-  if (!ep) return { introStart: null, introEnd: null, outroStart: null, outroEnd: null };
-
-  // Sort timestamps ascending by time
-  const sorted = [...ep.timestamps].sort((a, b) => a.at - b.at);
+  const segments: IntroDbSegment[] = json?.segments ?? [];
 
   let introStart: number | null = null;
   let introEnd:   number | null = null;
   let outroStart: number | null = null;
   let outroEnd:   number | null = null;
 
-  for (let i = 0; i < sorted.length; i++) {
-    const ts = sorted[i];
-    const nextAt = sorted[i + 1]?.at ?? ts.at + 90; // 90s fallback for last segment
-
-    if (INTRO_TYPES.has(ts.type.name) && introStart === null) {
-      introStart = ts.at;
-      introEnd   = nextAt;
+  for (const seg of segments) {
+    const type = seg.segment_type?.toLowerCase();
+    if (type === "intro" && introStart === null) {
+      introStart = toSec(seg.start_sec);
+      introEnd   = toSec(seg.end_sec);
     }
-    if (OUTRO_TYPES.has(ts.type.name) && outroStart === null) {
-      outroStart = ts.at;
-      outroEnd   = nextAt;
+    if ((type === "outro" || type === "credits") && outroStart === null) {
+      outroStart = toSec(seg.start_sec);
+      outroEnd   = toSec(seg.end_sec);
     }
   }
 
@@ -75,19 +90,16 @@ async function fetchFromAnimeSkip(
 // ── Route ────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const title   = searchParams.get("title")?.trim();
-  const episode = searchParams.get("episode");
+  const anilistId = parseInt(searchParams.get("anilistId") ?? "");
+  const episode   = parseFloat(searchParams.get("episode") ?? "");
+  const season    = parseInt(searchParams.get("season") ?? "1") || 1;
 
-  if (!title || !episode) return NextResponse.json({});
+  if (!anilistId || isNaN(episode)) return NextResponse.json({});
 
-  const epNum    = parseFloat(episode);
-  if (isNaN(epNum)) return NextResponse.json({});
-
-  const cacheKey = `${title.toLowerCase()}:${epNum}`;
-
+  const cacheKey = `introdb:${anilistId}:${season}:${episode}`;
   const db = getDb();
 
-  // 1 — Check cache
+  // 1 — Cache hit
   const [cached] = await db
     .select()
     .from(skipCache)
@@ -106,15 +118,17 @@ export async function GET(req: Request) {
     });
   }
 
-  // 2 — Fetch from anime-skip.com
-  let row: { introStart: number | null; introEnd: number | null; outroStart: number | null; outroEnd: number | null };
-  try {
-    row = await fetchFromAnimeSkip(title, epNum);
-  } catch {
-    return NextResponse.json({});
+  // 2 — Get IMDB ID from AniList
+  const imdbId = await getImdbId(anilistId).catch(() => null);
+
+  let row = { introStart: null as number | null, introEnd: null as number | null,
+              outroStart: null as number | null, outroEnd: null as number | null };
+
+  if (imdbId) {
+    row = await fetchIntroDb(imdbId, episode, season).catch(() => row);
   }
 
-  // 3 — Persist (even a null result, so we don't keep hitting the API)
+  // 3 — Cache (including empty results so we don't hammer the APIs again)
   await db
     .insert(skipCache)
     .values({ cacheKey, ...row })
@@ -122,7 +136,7 @@ export async function GET(req: Request) {
       target: skipCache.cacheKey,
       set: { ...row, fetchedAt: new Date() },
     })
-    .catch(() => {}); // non-fatal
+    .catch(() => {});
 
   return NextResponse.json({
     intro: row.introStart !== null && row.introEnd !== null
