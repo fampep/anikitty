@@ -435,7 +435,7 @@ function KitsunePlayer({
       playsInline: true,
       autoPlayback: true,
       airplay: true,
-      theme: "#F5316F",
+      theme: "#ffffff",
       moreVideoAttr: { crossOrigin: "anonymous" },
       subtitle: subtitleConfig,
       icons: {
@@ -746,7 +746,7 @@ function KitsunePlayer({
   return (
     <div
       className={cn(
-        "relative w-full h-auto aspect-video  min-h-[20vh] sm:min-h-[30vh] md:min-h-[40vh] lg:min-h-[60vh] max-h-[500px] lg:max-h-[calc(100vh-150px)] bg-black overflow-hidden", // Added relative and overflow-hidden
+        "relative w-full aspect-video bg-black overflow-hidden rounded-b-none",
         rest.className ?? "",
       )}
     >
