@@ -8,6 +8,7 @@ import { useAnimeStore } from "@/store/anime-store";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
 import { Bookmark } from "@/hooks/use-get-bookmark";
+import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { LayoutList, Grid2x2, LayoutGrid, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,9 @@ const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading, bookmarks }: 
 
   const { setSelectedEpisode, anime } = useAnimeStore();
   const { episodeLayout, setEpisodeLayout } = useSettingsStore();
+
+  // Live episode-level progress from the DB (replaces the always-empty bookmark expand)
+  const watchedEpisodes = useEpisodeProgress(animeId);
 
   const animePoster = anime?.anime?.info?.poster ?? "";
 
@@ -196,7 +200,7 @@ const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading, bookmarks }: 
                   showCard={false}
                   episode={episode}
                   animeId={animeId}
-                  watchedEpisodes={bookmarks?.[0]?.expand?.watchHistory}
+                  watchedEpisodes={watchedEpisodes}
                 />
               </div>
             ))}
@@ -210,7 +214,7 @@ const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading, bookmarks }: 
                   variant="thumbnail"
                   episode={episode}
                   animeId={animeId}
-                  watchedEpisodes={bookmarks?.[0]?.expand?.watchHistory}
+                  watchedEpisodes={watchedEpisodes}
                   animePoster={animePoster}
                 />
               </div>
@@ -224,7 +228,7 @@ const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading, bookmarks }: 
                 variant="list"
                 episode={episode}
                 animeId={animeId}
-                watchedEpisodes={bookmarks?.[0]?.expand?.watchHistory}
+                watchedEpisodes={watchedEpisodes}
               />
             </div>
           ))

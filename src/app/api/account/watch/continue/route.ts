@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and } from "drizzle-orm";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -13,13 +13,14 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const latestPerAnime = searchParams.get("latestPerAnime") === "true";
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
+  const animeIdFilter = searchParams.get("animeId") ?? null;
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 500);
   const offset = parseInt(searchParams.get("offset") ?? "0");
 
   const db = getDb();
   let items: Array<Record<string, unknown>>;
 
-  if (latestPerAnime) {
+  if (latestPerAnime && !animeIdFilter) {
     const result = await db.execute(sql`
       SELECT DISTINCT ON (anime_id)
         id, user_id, anime_id, episode_id, current_time, duration,
@@ -32,10 +33,14 @@ export async function GET(req: Request) {
     `);
     items = result as Array<Record<string, unknown>>;
   } else {
+    const conditions = [eq(watchProgress.userId, payload.userId)];
+    if (animeIdFilter) {
+      conditions.push(eq(watchProgress.animeId, animeIdFilter));
+    }
     const rows = await db
       .select()
       .from(watchProgress)
-      .where(eq(watchProgress.userId, payload.userId))
+      .where(and(...conditions))
       .orderBy(desc(watchProgress.updatedAt))
       .limit(limit)
       .offset(offset);

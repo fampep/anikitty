@@ -114,6 +114,9 @@ export const anisurgeContinue = {
       `/watch/continue?${latestPerAnime ? "latestPerAnime=true&" : ""}limit=${limit}&offset=${offset}`,
     ),
 
+  getByAnime: (animeId: string, limit = 500) =>
+    bff(`/watch/continue?animeId=${encodeURIComponent(animeId)}&limit=${limit}`),
+
   getEpisode: (animeId: string, episodeId: string) =>
     bff(`/watch/continue/${encodeURIComponent(animeId)}/${encodeURIComponent(episodeId)}`),
 
