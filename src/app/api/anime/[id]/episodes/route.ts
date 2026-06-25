@@ -16,25 +16,35 @@ const QUERY = `
   }
 `;
 
-// Try to extract episode number from a streaming episode title.
-// Crunchyroll titles are often "Episode 1 - Title" or "EP 1" etc.
+// Matches "Episode 3 - " or "Ep. 3: " prefix to strip from Crunchyroll titles.
 const EP_NUM_RE = /(?:episode|ep\.?)\s*(\d+)/i;
+const EP_PREFIX_RE = /^(?:episode|ep\.?)\s*\d+\s*[-:–]\s*/i;
 
-function buildImageMap(streamingEps: Array<{ title: string; thumbnail?: string }>): Record<number, string> {
-  const map: Record<number, string> = {};
+function buildMaps(streamingEps: Array<{ title: string; thumbnail?: string }>) {
+  const imageMap: Record<number, string> = {};
+  const titleMap: Record<number, string> = {};
 
   for (let i = 0; i < streamingEps.length; i++) {
     const ep = streamingEps[i];
-    if (!ep.thumbnail) continue;
+    const raw = ep.title ?? "";
 
-    const match = EP_NUM_RE.exec(ep.title ?? "");
+    const match = EP_NUM_RE.exec(raw);
     const num = match ? parseInt(match[1], 10) : i + 1;
-    if (num > 0 && !map[num]) {
-      map[num] = ep.thumbnail;
+    if (num <= 0) continue;
+
+    if (ep.thumbnail && !imageMap[num]) {
+      imageMap[num] = ep.thumbnail;
+    }
+
+    // Strip "Episode N - " prefix to get the actual episode title
+    const clean = raw.replace(EP_PREFIX_RE, "").trim();
+    if (clean && !EP_NUM_RE.test(clean) && !titleMap[num]) {
+      // Only save if what's left isn't just another "Episode N" string
+      titleMap[num] = clean;
     }
   }
 
-  return map;
+  return { imageMap, titleMap };
 }
 
 export async function GET(
@@ -58,10 +68,10 @@ export async function GET(
       : (m.episodes ?? 1);
 
     const count = Math.max(totalEpisodes, 1);
-    const imageMap = buildImageMap(m.streamingEpisodes ?? []);
+    const { imageMap, titleMap } = buildMaps(m.streamingEpisodes ?? []);
 
     const episodes = Array.from({ length: count }, (_, i) => ({
-      title: `Episode ${i + 1}`,
+      title: titleMap[i + 1] ?? `Episode ${i + 1}`,
       episodeId: `ep-${i + 1}`,
       number: i + 1,
       isFiller: false,
