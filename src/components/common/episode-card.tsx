@@ -190,11 +190,17 @@ const EpisodeCard = ({
   }
 
   // ── List variant ─────────────────────────────────────────────────
+  const listHistory = props.watchedEpisodes?.find((w) => w.episodeId === props.episode.episodeId);
+  const listCurrent = listHistory?.current ?? 0;
+  const listDuration = listHistory?.duration ?? 0;
+  const listProgressPct = listDuration > 0 ? Math.min(100, (listCurrent / listDuration) * 100) : 0;
+  const listInProgress = listCurrent > 10 && listProgressPct < 95;
+
   return (
     <Link href={href}>
       <div
         className={cn(
-          "group flex items-center gap-3 mx-1 px-2.5 py-2.5 rounded-lg cursor-pointer transition-all relative",
+          "group flex items-center gap-3 mx-1 px-2.5 py-2.5 rounded-lg cursor-pointer transition-all relative overflow-hidden",
           isActive
             ? "bg-white/10 border-l-2 border-white/60"
             : "hover:bg-white/5 border-l-2 border-transparent",
@@ -241,6 +247,15 @@ const EpisodeCard = ({
             <Mic className="w-3 h-3 text-white/25" />
           )}
         </div>
+
+        {listInProgress && (
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5">
+            <div
+              className="h-full bg-amber-400/70"
+              style={{ width: `${listProgressPct}%` }}
+            />
+          </div>
+        )}
       </div>
     </Link>
   );
