@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 
 import Container from "@/components/container";
@@ -48,6 +48,7 @@ const Page = () => {
   const { slug } = useParams();
   const { data: anime, isLoading } = useGetAnimeDetails(slug as string);
   const { auth } = useAuthStore();
+  const [hianimeDub, setHianimeDub] = useState<number | null>(null);
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
     animeID: slug as string,
     page: 1,
@@ -58,6 +59,14 @@ const Page = () => {
   const { data: banner, isLoading: bannerLoading } = useGetAnimeBanner(
     anime?.anime.info.anilistId!,
   );
+
+  useEffect(() => {
+    if (!slug) return;
+    fetch(`/api/anime/${slug}/dub-count`)
+      .then((r) => r.json())
+      .then((d) => { if (d.dub != null) setHianimeDub(d.dub); })
+      .catch(() => {});
+  }, [slug]);
 
   const handleSelect = async (value: string) => {
     if (!auth) return;
@@ -150,8 +159,8 @@ const Page = () => {
               {stats?.episodes?.sub !== undefined && (
                 <StatPill label={`${stats.episodes.sub} Sub`} teal />
               )}
-              {stats?.episodes?.dub !== undefined && stats.episodes.dub > 0 && (
-                <StatPill label={`${stats.episodes.dub} Dub`} purple />
+              {hianimeDub != null && hianimeDub > 0 && (
+                <StatPill label={`${hianimeDub} Dub`} purple />
               )}
             </div>
 

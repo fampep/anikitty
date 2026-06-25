@@ -16,27 +16,27 @@ const QUERY = `
     }
     trending: Page(page: 1, perPage: 20) {
       media(type: ANIME, sort: TRENDING_DESC) {
-        id title { english romaji } coverImage { extraLarge } episodes format trending
+        id title { english romaji } coverImage { extraLarge } episodes format trending averageScore seasonYear status
       }
     }
     popular: Page(page: 1, perPage: 20) {
       media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
-        id title { english romaji } coverImage { extraLarge } episodes format
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
     favorite: Page(page: 1, perPage: 20) {
       media(type: ANIME, sort: FAVOURITES_DESC) {
-        id title { english romaji } coverImage { extraLarge } episodes format
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
     latest: Page(page: 1, perPage: 20) {
       media(type: ANIME, sort: END_DATE_DESC, status: FINISHED) {
-        id title { english romaji } coverImage { extraLarge } episodes format
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
     upcoming: Page(page: 1, perPage: 20) {
       media(type: ANIME, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) {
-        id title { english romaji } coverImage { extraLarge } episodes format
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
   }
@@ -54,6 +54,9 @@ function toAnime(m: any) {
     },
     type: toFormat(m.format),
     rank: m.trending ?? undefined,
+    score: m.averageScore ?? null,
+    year: m.seasonYear ?? null,
+    status: m.status ?? null,
   };
 }
 

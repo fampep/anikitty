@@ -83,6 +83,9 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
                 href={`${ROUTES.ANIME_DETAILS}/${ani.id}`}
                 poster={ani.poster}
                 compact
+                score={ani.score}
+                year={ani.year}
+                status={ani.status}
               />
             </div>
           ))}

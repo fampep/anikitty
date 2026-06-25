@@ -29,6 +29,8 @@ const QUERY = `
         format
         status
         nextAiringEpisode { episode }
+        averageScore
+        seasonYear
       }
     }
   }
@@ -117,6 +119,9 @@ export async function GET(request: Request) {
         dub: 0,
       },
       type: toFormat(m.format),
+      score: m.averageScore ?? null,
+      year: m.seasonYear ?? null,
+      status: m.status ?? null,
     }));
 
     return Response.json({

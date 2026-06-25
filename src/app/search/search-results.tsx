@@ -192,6 +192,9 @@ const SearchResults = () => {
                 episodeCard
                 sub={anime.episodes?.sub}
                 dub={anime.episodes?.dub}
+                score={anime.score}
+                year={anime.year}
+                status={anime.status}
               />
             </BlurFade>
           ))}

@@ -35,6 +35,9 @@ export interface IAnime {
   episodes: Episodes;
   type?: Type;
   rank?: number;
+  score?: number | null;
+  year?: number | null;
+  status?: string | null;
 }
 
 export interface IAnimeSearch {

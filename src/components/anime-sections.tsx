@@ -45,6 +45,9 @@ const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout 
               sub={anime?.episodes?.sub}
               dub={anime?.episodes?.dub}
               rank={showRanks ? idx + 1 : undefined}
+              score={anime.score}
+              year={anime.year}
+              status={anime.status}
             />
           </BlurFade>
         ))}
@@ -136,6 +139,9 @@ function RowLayout({
                   sub={anime?.episodes?.sub}
                   dub={anime?.episodes?.dub}
                   rank={showRanks ? idx + 1 : undefined}
+                  score={anime.score}
+                  year={anime.year}
+                  status={anime.status}
                 />
               </div>
             </BlurFade>

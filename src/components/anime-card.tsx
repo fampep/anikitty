@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { cn, formatSecondsToMMSS } from "@/lib/utils";
-import { Captions, Mic, Play } from "lucide-react";
+import { Captions, Mic, Play, Star } from "lucide-react";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { Progress } from "./ui/progress";
 
@@ -22,6 +22,16 @@ type Props = {
   watchDetail?: WatchHistory | null;
   rank?: number;
   compact?: boolean;
+  score?: number | null;
+  year?: number | null;
+  status?: string | null;
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  RELEASING: "text-emerald-400",
+  FINISHED: "text-white/35",
+  NOT_YET_RELEASED: "text-amber-400",
+  CANCELLED: "text-red-400",
 };
 
 const AnimeCard = ({
@@ -39,6 +49,8 @@ const AnimeCard = ({
       : 0;
   const clampedCurrent = Math.min(safeCurrent, safeTotal);
   const percentage = safeTotal > 0 ? (clampedCurrent / safeTotal) * 100 : 0;
+
+  const scoreDisplay = props.score ? (props.score / 10).toFixed(1) : null;
 
   return (
     <Link href={props.href as string} className="block w-full">
@@ -76,8 +88,18 @@ const AnimeCard = ({
           />
         </div>
 
-        {/* Type badge — top-left */}
-        {props.subTitle && !props.episodeCard && (
+        {/* Score badge — top-left */}
+        {scoreDisplay && !props.watchDetail && (
+          <div className="absolute top-2 left-2 z-20">
+            <span className="flex items-center gap-0.5 bg-black/70 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm border border-amber-500/20">
+              <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+              {scoreDisplay}
+            </span>
+          </div>
+        )}
+
+        {/* Type badge — top-left (when no score) */}
+        {props.subTitle && !props.episodeCard && !scoreDisplay && (
           <div className="absolute top-2 left-2 z-20">
             <span className="bg-black/75 text-white/70 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/12">
               {props.subTitle}
@@ -85,11 +107,20 @@ const AnimeCard = ({
           </div>
         )}
 
-        {/* DUB badge — top-right corner, always visible */}
+        {/* DUB badge — top-right corner */}
         {props.episodeCard && props.dub != null && props.dub > 0 && (
           <div className="absolute top-2 right-2 z-20">
             <span className="bg-purple-600/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded backdrop-blur-sm tracking-wider shadow-lg shadow-purple-900/50">
               DUB
+            </span>
+          </div>
+        )}
+
+        {/* Year — top-right when no dub */}
+        {props.year && !(props.episodeCard && props.dub && props.dub > 0) && (
+          <div className="absolute top-2 right-2 z-20">
+            <span className="bg-black/60 text-white/50 text-[10px] font-mono px-1.5 py-0.5 rounded backdrop-blur-sm">
+              {props.year}
             </span>
           </div>
         )}
@@ -150,11 +181,17 @@ const AnimeCard = ({
                       {props.dub}
                     </span>
                   )}
-                  {props.subTitle && !props.sub && !props.dub && (
-                    <span className="text-[9px] text-white/35 font-mono">
+                  {props.subTitle && (
+                    <span className={cn("text-[9px] font-mono", STATUS_COLORS[props.status ?? ""] ?? "text-white/35")}>
                       {props.subTitle}
                     </span>
                   )}
+                </div>
+              )}
+
+              {!props.episodeCard && !props.watchDetail && props.subTitle && scoreDisplay && (
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] text-white/35 font-mono">{props.subTitle}</span>
                 </div>
               )}
             </div>
