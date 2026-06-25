@@ -238,8 +238,8 @@ const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading }: Props) => {
 
 const PlaylistSkeleton = () => (
   <div className="space-y-0.5 px-1">
-    {Array.from({ length: 9 }).map((_, i) => (
-      <div key={i} className="h-10 rounded-lg animate-pulse bg-white/5" />
+    {Array.from({ length: 7 }).map((_, i) => (
+      <div key={i} className="h-[61px] rounded-xl animate-pulse bg-white/5" />
     ))}
   </div>
 );

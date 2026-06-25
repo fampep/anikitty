@@ -189,73 +189,98 @@ const EpisodeCard = ({
     );
   }
 
-  // ── List variant ─────────────────────────────────────────────────
+  // ── List variant — Crunchyroll-style thumbnail row ───────────────
   const listHistory = props.watchedEpisodes?.find((w) => w.episodeId === props.episode.episodeId);
   const listCurrent = listHistory?.current ?? 0;
   const listDuration = listHistory?.duration ?? 0;
   const listProgressPct = listDuration > 0 ? Math.min(100, (listCurrent / listDuration) * 100) : 0;
   const listInProgress = listCurrent > 10 && listProgressPct < 95;
+  const listCompleted = listProgressPct >= 95 || (hasWatchedEpisode && !listInProgress);
 
   return (
     <Link href={href}>
       <div
         className={cn(
-          "group flex items-center gap-3 mx-1 px-2.5 py-2.5 rounded-lg cursor-pointer transition-all relative overflow-hidden",
+          "group flex gap-0 mx-1 mb-0.5 rounded-xl cursor-pointer transition-all relative overflow-hidden",
           isActive
-            ? "bg-white/10 border-l-2 border-white/60"
-            : "hover:bg-white/5 border-l-2 border-transparent",
-          hasWatchedEpisode && !isActive && "opacity-55",
+            ? "bg-white/10 ring-1 ring-white/20"
+            : "hover:bg-white/[0.06]",
+          hasWatchedEpisode && !isActive && "opacity-60",
         )}
       >
-        {/* Ep number */}
-        <span
-          className={cn(
-            "text-[11px] font-mono font-bold w-7 text-center shrink-0 tabular-nums",
-            isActive ? "text-white" : "text-white/35",
-          )}
-        >
-          {props.episode.number}
-        </span>
+        {/* Thumbnail */}
+        <div className="relative shrink-0 w-[108px] rounded-l-xl overflow-hidden">
+          <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+            {props.episode.image ? (
+              <Image
+                src={props.episode.image}
+                alt={`EP ${props.episode.number}`}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                unoptimized
+                sizes="108px"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex items-center justify-center">
+                <span className="text-2xl font-black font-mono text-white/8 select-none">
+                  {String(props.episode.number).padStart(2, "0")}
+                </span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-        {/* Title */}
-        <div className="flex-1 min-w-0">
+            {/* EP badge */}
+            <span className="absolute bottom-1.5 left-1.5 text-[9px] font-mono font-bold text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
+              EP {props.episode.number}
+            </span>
+
+            {/* Filler badge */}
+            {props.episode.isFiller && (
+              <span className="absolute top-1 right-1 text-[8px] font-mono text-amber-400/80 bg-black/65 px-1 py-0.5 rounded">
+                FILLER
+              </span>
+            )}
+
+            {/* Completed check */}
+            {listCompleted && (
+              <div className="absolute top-1.5 left-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/90">
+                <Check className="w-2.5 h-2.5 text-white" />
+              </div>
+            )}
+
+            {/* Progress bar */}
+            {listProgressPct > 0 && !listCompleted && (
+              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-black/40">
+                <div className="h-full bg-amber-400/90" style={{ width: `${listProgressPct}%` }} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0 px-3 py-2.5 flex flex-col justify-center gap-1.5">
           <p
             className={cn(
-              "text-[13px] leading-tight line-clamp-1",
-              isActive ? "text-white font-semibold" : "text-white/65 group-hover:text-white/85",
+              "text-[12px] font-semibold leading-snug line-clamp-2",
+              isActive ? "text-white" : "text-white/75 group-hover:text-white/95",
             )}
           >
             {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}
           </p>
-          {hasMeaningfulTitle && (
-            <p className="text-[10px] text-white/25 font-mono mt-0.5">EP {props.episode.number}</p>
-          )}
-        </div>
-
-        {/* Right indicators */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {props.episode.isFiller && (
-            <span className="text-[8px] font-mono text-yellow-400/50 bg-yellow-900/30 px-1 py-0.5 rounded">
-              FILLER
-            </span>
-          )}
-          {hasWatchedEpisode && <Check className="w-3 h-3 text-white/30" />}
-          {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
-            <Captions className="w-3 h-3 text-white/25" />
-          )}
-          {props.subOrDub && props.episode.number <= props.subOrDub.dub && (
-            <Mic className="w-3 h-3 text-white/25" />
-          )}
-        </div>
-
-        {listInProgress && (
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5">
-            <div
-              className="h-full bg-amber-400/70"
-              style={{ width: `${listProgressPct}%` }}
-            />
+          <div className="flex items-center gap-1.5">
+            {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
+              <Captions className="w-3 h-3 text-sky-400/65" />
+            )}
+            {props.subOrDub && props.episode.number <= props.subOrDub.dub && (
+              <Mic className="w-3 h-3 text-purple-400/65" />
+            )}
+            {listInProgress && listCurrent > 0 && (
+              <span className="text-[9px] font-mono text-amber-300/60 ml-auto">
+                {Math.floor(listCurrent / 60)}:{String(Math.floor(listCurrent % 60)).padStart(2, "0")}
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </Link>
   );

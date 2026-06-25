@@ -153,11 +153,17 @@ const Page = () => {
               {stats?.type && (
                 <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />
               )}
+              {stats?.episodes?.sub !== undefined && (
+                <StatPill label={`${stats.episodes.sub} episodes`} />
+              )}
+              {(moreInfo as any)?.duration && (
+                <StatPill label={(moreInfo as any).duration} />
+              )}
               {moreInfo?.status && !isAiring && (
                 <StatPill label={moreInfo.status} />
               )}
-              {stats?.episodes?.sub !== undefined && (
-                <StatPill label={`${stats.episodes.sub} Sub`} teal />
+              {moreInfo?.premiered && (
+                <StatPill label={moreInfo.premiered} />
               )}
               {hasDub && (
                 <StatPill label="DUB" purple />
@@ -222,36 +228,99 @@ const Page = () => {
             ))}
           </TabsList>
 
-          <TabsContent value="overview" className="mt-8">
-            <div className="grid md:grid-cols-[220px_1fr] gap-8">
-              <div className="rounded-xl bg-white/3 border border-white/6 p-4 h-fit">
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
-                  Details
+          <TabsContent value="overview" className="mt-8 space-y-8">
+            {/* Synopsis */}
+            <div>
+              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
+                Synopsis
+              </h3>
+              <p className="text-sm text-white/60 leading-8">{info.description}</p>
+            </div>
+
+            {/* Alternative Titles */}
+            {moreInfo.synonyms && (
+              <div>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
+                  Alternative Titles
                 </h3>
+                <div className="flex flex-wrap gap-2">
+                  {moreInfo.japanese && (
+                    <span className="px-3 py-1.5 text-[12px] rounded-lg border border-white/10 text-white/55 bg-white/4">
+                      {moreInfo.japanese}
+                    </span>
+                  )}
+                  {String(moreInfo.synonyms)
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map((s) => (
+                      <span
+                        key={s}
+                        className="px-3 py-1.5 text-[12px] rounded-lg border border-white/8 text-white/40 bg-white/[0.02]"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Studios */}
+            {moreInfo.studios && (
+              <div>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
+                  Studios
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {String(moreInfo.studios)
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map((s) => (
+                      <span
+                        key={s}
+                        className="px-3 py-1.5 text-[12px] rounded-lg border border-white/12 text-white/65 bg-white/5 font-medium"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  {moreInfo.producers?.map((p) => (
+                    <span
+                      key={p}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-white/8 text-white/35 bg-white/[0.02]"
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Details grid */}
+            <div>
+              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
+                Details
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Aired", value: moreInfo.aired },
-                  { label: "Rating", value: stats?.rating },
                   { label: "Type", value: stats?.type },
-                  { label: "Status", value: moreInfo.status },
-                  { label: "Studios", value: moreInfo.studios },
+                  { label: "Episodes", value: stats?.episodes?.sub },
                   { label: "Duration", value: (moreInfo as any).duration },
+                  { label: "Status", value: moreInfo.status },
+                  { label: "Aired", value: moreInfo.aired },
+                  { label: "Premiered", value: moreInfo.premiered },
+                  { label: "Score", value: moreInfo.malscore },
+                  { label: "Rating", value: stats?.rating },
                 ]
                   .filter((r) => r.value)
                   .map((row) => (
-                    <div key={row.label} className="flex flex-col py-2.5 border-b border-white/5 last:border-0">
-                      <span className="text-[10px] font-mono text-white/25 uppercase tracking-wider">
+                    <div key={row.label} className="rounded-xl bg-white/3 border border-white/6 px-4 py-3">
+                      <span className="text-[10px] font-mono text-white/25 uppercase tracking-wider block mb-1">
                         {row.label}
                       </span>
-                      <span className="text-[13px] text-white/65 mt-0.5">{row.value}</span>
+                      <span className="text-[13px] text-white/70 font-medium">{row.value}</span>
                     </div>
                   ))}
-              </div>
-
-              <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
-                  Synopsis
-                </h3>
-                <p className="text-sm text-white/60 leading-8">{info.description}</p>
               </div>
             </div>
           </TabsContent>
