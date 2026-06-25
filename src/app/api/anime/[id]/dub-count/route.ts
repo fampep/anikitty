@@ -1,4 +1,3 @@
-import { hianime } from "@/lib/hianime";
 import { queryAniList, toTitle } from "@/lib/anilist";
 
 const TITLE_QUERY = `
@@ -9,35 +8,34 @@ const TITLE_QUERY = `
   }
 `;
 
+const KITTY_BASE = "https://kittyapi.buzz";
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const numId = parseInt(id, 10);
-  if (isNaN(numId)) {
-    return Response.json({ sub: null, dub: null }, { status: 400 });
-  }
+  if (isNaN(numId)) return Response.json({ hasDub: false });
 
   try {
     const raw = await queryAniList(TITLE_QUERY, { id: numId });
     const title = toTitle(raw.Media?.title);
-    if (!title) return Response.json({ sub: null, dub: null });
+    if (!title) return Response.json({ hasDub: false });
 
-    const suggestions = await hianime.searchSuggestions(title);
-    const first = suggestions.suggestions?.[0];
-    if (!first?.id) return Response.json({ sub: null, dub: null });
+    const searchRes = await fetch(
+      `${KITTY_BASE}/provider/Miruro/search?q=${encodeURIComponent(title)}`,
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!searchRes.ok) return Response.json({ hasDub: false });
 
-    const info = await hianime.getInfo(first.id);
-    const episodes = info?.anime?.info?.stats?.episodes;
+    const results: Array<{ url: string; hasDub: boolean }> = await searchRes.json();
+    const match = results.find((r) => r.url === String(numId));
 
-    return Response.json({
-      sub: episodes?.sub ?? null,
-      dub: episodes?.dub ?? null,
-    });
+    return Response.json({ hasDub: match?.hasDub ?? false });
   } catch {
-    return Response.json({ sub: null, dub: null });
+    return Response.json({ hasDub: false });
   }
 }
 
-export const maxDuration = 20;
+export const maxDuration = 15;

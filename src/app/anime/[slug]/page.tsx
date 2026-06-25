@@ -48,7 +48,7 @@ const Page = () => {
   const { slug } = useParams();
   const { data: anime, isLoading } = useGetAnimeDetails(slug as string);
   const { auth } = useAuthStore();
-  const [hianimeDub, setHianimeDub] = useState<number | null>(null);
+  const [hasDub, setHasDub] = useState(false);
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
     animeID: slug as string,
     page: 1,
@@ -64,7 +64,7 @@ const Page = () => {
     if (!slug) return;
     fetch(`/api/anime/${slug}/dub-count`)
       .then((r) => r.json())
-      .then((d) => { if (d.dub != null) setHianimeDub(d.dub); })
+      .then((d) => { if (d.hasDub) setHasDub(true); })
       .catch(() => {});
   }, [slug]);
 
@@ -159,8 +159,8 @@ const Page = () => {
               {stats?.episodes?.sub !== undefined && (
                 <StatPill label={`${stats.episodes.sub} Sub`} teal />
               )}
-              {hianimeDub != null && hianimeDub > 0 && (
-                <StatPill label={`${hianimeDub} Dub`} purple />
+              {hasDub && (
+                <StatPill label="DUB" purple />
               )}
             </div>
 

@@ -89,6 +89,9 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
                   episodeCard
                   sub={anime.episodes.sub}
                   dub={anime.episodes.dub}
+                  score={(anime as any).score}
+                  year={(anime as any).year}
+                  status={(anime as any).status}
                 />
               </div>
             </BlurFade>
