@@ -16,6 +16,10 @@ import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { SkipForward, ChevronRight, X } from "lucide-react";
 
+const THUMB_W = 192;
+const THUMB_H = 108;
+const CAPTURE_INTERVAL = 10; // seconds between captured frames
+
 interface KittyPlayerProps {
   src: string;
   poster?: string;
@@ -29,6 +33,30 @@ interface KittyPlayerProps {
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;
   onNextEpisode?: () => void;
+}
+
+function formatTime(s: number): string {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+
+function formatVttTime(s: number): string {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  const ms = Math.round((s % 1) * 1000);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
+}
+
+interface SeekPreview {
+  x: number;
+  sliderY: number;
+  containerW: number;
+  time: number;
+  img: string | null;
 }
 
 export default function KittyPlayer({
@@ -69,6 +97,121 @@ export default function KittyPlayer({
   const startTimeRef = useRef(startTime);
   useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
 
+  // ── Thumbnail capture ─────────────────────────────────────────────
+  const thumbnailFrames = useRef<Map<number, string>>(new Map());
+  const captureCanvas  = useRef<HTMLCanvasElement | null>(null);
+  const lastCaptureT   = useRef(-Infinity);
+  const blobUrlRef     = useRef<string | null>(null);
+  const [generatedThumbsUrl, setGeneratedThumbsUrl] = useState<string | undefined>(undefined);
+  const durationRef = useRef(0);
+  useEffect(() => { durationRef.current = duration; }, [duration]);
+
+  const [seekPreview, setSeekPreview] = useState<SeekPreview | null>(null);
+
+  const captureFrame = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    const t = player.currentTime;
+    if (t < 1) return;
+    if (t - lastCaptureT.current < CAPTURE_INTERVAL - 0.5) return;
+
+    const roundedT = Math.floor(t / CAPTURE_INTERVAL) * CAPTURE_INTERVAL;
+    if (thumbnailFrames.current.has(roundedT)) return;
+
+    const videoEl = containerRef.current?.querySelector("video");
+    if (!videoEl || videoEl.readyState < 2) return;
+
+    if (!captureCanvas.current) {
+      captureCanvas.current = document.createElement("canvas");
+      captureCanvas.current.width  = THUMB_W;
+      captureCanvas.current.height = THUMB_H;
+    }
+    const ctx = captureCanvas.current.getContext("2d");
+    if (!ctx) return;
+
+    try {
+      ctx.drawImage(videoEl, 0, 0, THUMB_W, THUMB_H);
+      const dataUrl = captureCanvas.current.toDataURL("image/jpeg", 0.72);
+      thumbnailFrames.current.set(roundedT, dataUrl);
+      lastCaptureT.current = t;
+
+      // Rebuild VTT blob every few frames to avoid constant re-renders
+      if (thumbnailFrames.current.size % 3 === 1 || thumbnailFrames.current.size === 1) {
+        const times = Array.from(thumbnailFrames.current.keys()).sort((a, b) => a - b);
+        const vttLines = ["WEBVTT", ""];
+        for (let i = 0; i < times.length; i++) {
+          const start = times[i];
+          const end   = times[i + 1] ?? start + CAPTURE_INTERVAL;
+          vttLines.push(`${formatVttTime(start)} --> ${formatVttTime(end)}`);
+          vttLines.push(thumbnailFrames.current.get(start)!);
+          vttLines.push("");
+        }
+        const blob = new Blob([vttLines.join("\n")], { type: "text/vtt" });
+        if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = URL.createObjectURL(blob);
+        setGeneratedThumbsUrl(blobUrlRef.current);
+      }
+    } catch { /* canvas tainted — stream has strict CORS */ }
+  }, []);
+
+  // Clean up blob and frames when source changes
+  useEffect(() => {
+    thumbnailFrames.current.clear();
+    lastCaptureT.current = -Infinity;
+    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
+    setGeneratedThumbsUrl(undefined);
+    setSeekPreview(null);
+  }, [src]);
+
+  useEffect(() => () => {
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+  }, []);
+
+  // ── Seek-bar hover preview ────────────────────────────────────────
+  const rafRef = useRef(0);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const onMove = (e: MouseEvent) => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const slider = container.querySelector(".vds-time-slider");
+        if (!slider) return;
+
+        const sliderRect    = slider.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        const inX = e.clientX >= sliderRect.left - 4 && e.clientX <= sliderRect.right + 4;
+        const inY = e.clientY >= sliderRect.top - 32 && e.clientY <= sliderRect.bottom + 16;
+        if (!inX || !inY) { setSeekPreview(null); return; }
+
+        const pct  = Math.max(0, Math.min(1, (e.clientX - sliderRect.left) / sliderRect.width));
+        const time = pct * durationRef.current;
+        const key  = Math.floor(time / CAPTURE_INTERVAL) * CAPTURE_INTERVAL;
+        const img  = thumbnailFrames.current.get(key) ?? null;
+
+        setSeekPreview({
+          x: e.clientX - containerRect.left,
+          sliderY: sliderRect.top - containerRect.top,
+          containerW: containerRect.width,
+          time,
+          img,
+        });
+      });
+    };
+
+    const onLeave = () => { cancelAnimationFrame(rafRef.current); setSeekPreview(null); };
+
+    container.addEventListener("mousemove", onMove);
+    container.addEventListener("mouseleave", onLeave);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      container.removeEventListener("mousemove", onMove);
+      container.removeEventListener("mouseleave", onLeave);
+    };
+  }, []);
+
   const referer = headers?.Referer ?? headers?.referer ?? "";
   const origin  = headers?.Origin  ?? headers?.origin  ?? "";
   const proxiedSrc = src
@@ -97,6 +240,9 @@ export default function KittyPlayer({
       ? `/api/kitty/chapters?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}`
       : undefined;
   const effectiveChapterUrl = chapterTrack?.file ?? m3u8ChaptersUrl;
+
+  // Vidstack uses stream thumbnails if available, otherwise our generated ones
+  const effectiveThumbnails = thumbnailsUrl ?? generatedThumbsUrl;
 
   // Reset state when src changes
   useEffect(() => {
@@ -191,7 +337,9 @@ export default function KittyPlayer({
         onProgressRef.current?.(t, dur);
       }
     }
-  }, []);
+
+    captureFrame();
+  }, [captureFrame]);
 
   const handleCanPlay = useCallback(() => {
     const t = startTimeRef.current;
@@ -238,6 +386,11 @@ export default function KittyPlayer({
   const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
   const skipOffset = showNext ? "bottom-[8.5rem]" : "bottom-[4.5rem]";
 
+  // Clamp preview x so thumbnail stays inside the container
+  const previewX = seekPreview
+    ? Math.max(THUMB_W / 2 + 4, Math.min(seekPreview.x, seekPreview.containerW - THUMB_W / 2 - 4))
+    : 0;
+
   return (
     <div ref={containerRef} className="vds-kitty relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
       <MediaPlayer
@@ -270,7 +423,7 @@ export default function KittyPlayer({
             />
           ))}
         </MediaProvider>
-        <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={thumbnailsUrl} />
+        <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={effectiveThumbnails} />
 
         {/* ── Overlay buttons — inside MediaPlayer so they survive fullscreen ── */}
 
@@ -303,6 +456,35 @@ export default function KittyPlayer({
           />
         )}
       </MediaPlayer>
+
+      {/* ── Seek bar thumbnail preview (our captured frames) ─────────── */}
+      {seekPreview && !thumbnailsUrl && (
+        <div
+          className="absolute z-50 pointer-events-none"
+          style={{
+            left: previewX,
+            top: seekPreview.sliderY - THUMB_H - 44,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/80"
+              style={{ width: THUMB_W, height: THUMB_H, outline: "2px solid rgba(255,255,255,0.22)" }}>
+              {seekPreview.img ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={seekPreview.img} width={THUMB_W} height={THUMB_H} alt="" className="block" />
+              ) : (
+                <div className="w-full h-full bg-black/90 flex items-center justify-center">
+                  <span className="text-white/20 text-[11px] font-mono">no preview</span>
+                </div>
+              )}
+            </div>
+            <div className="bg-black/85 backdrop-blur-sm rounded-md px-2.5 py-0.5">
+              <span className="text-white text-[13px] font-mono font-semibold">{formatTime(seekPreview.time)}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
