@@ -18,7 +18,7 @@ import { SkipForward, ChevronRight, X } from "lucide-react";
 
 const THUMB_W = 192;
 const THUMB_H = 108;
-const CAPTURE_INTERVAL = 10; // seconds between captured frames
+const MAX_FRAMES = 30; // max background-generated frames regardless of episode length
 
 interface KittyPlayerProps {
   src: string;
@@ -35,28 +35,12 @@ interface KittyPlayerProps {
   onNextEpisode?: () => void;
 }
 
-function formatTime(s: number): string {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = Math.floor(s % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-  return `${m}:${String(sec).padStart(2, "0")}`;
-}
-
 function formatVttTime(s: number): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = Math.floor(s % 60);
   const ms = Math.round((s % 1) * 1000);
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
-}
-
-interface SeekPreview {
-  x: number;
-  sliderY: number;
-  containerW: number;
-  time: number;
-  img: string | null;
 }
 
 export default function KittyPlayer({
@@ -97,121 +81,7 @@ export default function KittyPlayer({
   const startTimeRef = useRef(startTime);
   useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
 
-  // ── Thumbnail capture ─────────────────────────────────────────────
-  const thumbnailFrames = useRef<Map<number, string>>(new Map());
-  const captureCanvas  = useRef<HTMLCanvasElement | null>(null);
-  const lastCaptureT   = useRef(-Infinity);
-  const blobUrlRef     = useRef<string | null>(null);
-  const [generatedThumbsUrl, setGeneratedThumbsUrl] = useState<string | undefined>(undefined);
-  const durationRef = useRef(0);
-  useEffect(() => { durationRef.current = duration; }, [duration]);
-
-  const [seekPreview, setSeekPreview] = useState<SeekPreview | null>(null);
-
-  const captureFrame = useCallback(() => {
-    const player = playerRef.current;
-    if (!player) return;
-    const t = player.currentTime;
-    if (t < 1) return;
-    if (t - lastCaptureT.current < CAPTURE_INTERVAL - 0.5) return;
-
-    const roundedT = Math.floor(t / CAPTURE_INTERVAL) * CAPTURE_INTERVAL;
-    if (thumbnailFrames.current.has(roundedT)) return;
-
-    const videoEl = containerRef.current?.querySelector("video");
-    if (!videoEl || videoEl.readyState < 2) return;
-
-    if (!captureCanvas.current) {
-      captureCanvas.current = document.createElement("canvas");
-      captureCanvas.current.width  = THUMB_W;
-      captureCanvas.current.height = THUMB_H;
-    }
-    const ctx = captureCanvas.current.getContext("2d");
-    if (!ctx) return;
-
-    try {
-      ctx.drawImage(videoEl, 0, 0, THUMB_W, THUMB_H);
-      const dataUrl = captureCanvas.current.toDataURL("image/jpeg", 0.72);
-      thumbnailFrames.current.set(roundedT, dataUrl);
-      lastCaptureT.current = t;
-
-      // Rebuild VTT blob every few frames to avoid constant re-renders
-      if (thumbnailFrames.current.size % 3 === 1 || thumbnailFrames.current.size === 1) {
-        const times = Array.from(thumbnailFrames.current.keys()).sort((a, b) => a - b);
-        const vttLines = ["WEBVTT", ""];
-        for (let i = 0; i < times.length; i++) {
-          const start = times[i];
-          const end   = times[i + 1] ?? start + CAPTURE_INTERVAL;
-          vttLines.push(`${formatVttTime(start)} --> ${formatVttTime(end)}`);
-          vttLines.push(thumbnailFrames.current.get(start)!);
-          vttLines.push("");
-        }
-        const blob = new Blob([vttLines.join("\n")], { type: "text/vtt" });
-        if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = URL.createObjectURL(blob);
-        setGeneratedThumbsUrl(blobUrlRef.current);
-      }
-    } catch { /* canvas tainted — stream has strict CORS */ }
-  }, []);
-
-  // Clean up blob and frames when source changes
-  useEffect(() => {
-    thumbnailFrames.current.clear();
-    lastCaptureT.current = -Infinity;
-    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
-    setGeneratedThumbsUrl(undefined);
-    setSeekPreview(null);
-  }, [src]);
-
-  useEffect(() => () => {
-    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-  }, []);
-
-  // ── Seek-bar hover preview ────────────────────────────────────────
-  const rafRef = useRef(0);
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const onMove = (e: MouseEvent) => {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => {
-        const slider = container.querySelector(".vds-time-slider");
-        if (!slider) return;
-
-        const sliderRect    = slider.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-
-        const inX = e.clientX >= sliderRect.left - 4 && e.clientX <= sliderRect.right + 4;
-        const inY = e.clientY >= sliderRect.top - 32 && e.clientY <= sliderRect.bottom + 16;
-        if (!inX || !inY) { setSeekPreview(null); return; }
-
-        const pct  = Math.max(0, Math.min(1, (e.clientX - sliderRect.left) / sliderRect.width));
-        const time = pct * durationRef.current;
-        const key  = Math.floor(time / CAPTURE_INTERVAL) * CAPTURE_INTERVAL;
-        const img  = thumbnailFrames.current.get(key) ?? null;
-
-        setSeekPreview({
-          x: e.clientX - containerRect.left,
-          sliderY: sliderRect.top - containerRect.top,
-          containerW: containerRect.width,
-          time,
-          img,
-        });
-      });
-    };
-
-    const onLeave = () => { cancelAnimationFrame(rafRef.current); setSeekPreview(null); };
-
-    container.addEventListener("mousemove", onMove);
-    container.addEventListener("mouseleave", onLeave);
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      container.removeEventListener("mousemove", onMove);
-      container.removeEventListener("mouseleave", onLeave);
-    };
-  }, []);
-
+  // Derived early so effects can reference them
   const referer = headers?.Referer ?? headers?.referer ?? "";
   const origin  = headers?.Origin  ?? headers?.origin  ?? "";
   const proxiedSrc = src
@@ -234,24 +104,134 @@ export default function KittyPlayer({
   const thumbnailsUrl = thumbnailTrack?.file
     ? `/api/kitty/hls?url=${encodeURIComponent(thumbnailTrack.file)}`
     : undefined;
-
   const m3u8ChaptersUrl =
     !chapterTrack && src
       ? `/api/kitty/chapters?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}`
       : undefined;
   const effectiveChapterUrl = chapterTrack?.file ?? m3u8ChaptersUrl;
 
-  // Vidstack uses stream thumbnails if available, otherwise our generated ones
-  const effectiveThumbnails = thumbnailsUrl ?? generatedThumbsUrl;
+  // ── Thumbnail generation ──────────────────────────────────────────
+  const thumbnailFrames = useRef<Map<number, string>>(new Map());
+  const thumbCanvas     = useRef<HTMLCanvasElement | null>(null);
+  const blobUrlRef      = useRef<string | null>(null);
+  const bgStarted       = useRef(false);
+  const [generatedThumbsUrl, setGeneratedThumbsUrl] = useState<string | undefined>(undefined);
 
-  // Reset state when src changes
+  const rebuildVtt = useCallback(() => {
+    const keys = Array.from(thumbnailFrames.current.keys()).sort((a, b) => a - b);
+    if (keys.length === 0) return;
+    const interval = keys.length > 1 ? keys[1] - keys[0] : 10;
+    const lines = ["WEBVTT", ""];
+    for (let i = 0; i < keys.length; i++) {
+      const start = keys[i];
+      const end   = i + 1 < keys.length ? keys[i + 1] : start + interval;
+      lines.push(`${formatVttTime(start)} --> ${formatVttTime(end)}`);
+      lines.push(thumbnailFrames.current.get(start)!);
+      lines.push("");
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/vtt" });
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    blobUrlRef.current = URL.createObjectURL(blob);
+    setGeneratedThumbsUrl(blobUrlRef.current);
+  }, []);
+
+  // Reset on source change
   useEffect(() => {
+    thumbnailFrames.current.clear();
+    bgStarted.current = false;
+    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
+    setGeneratedThumbsUrl(undefined);
     startFiredRef.current = false;
     lastProgressTs.current = 0;
     setActiveSkip(null);
     setCurrentTime(0);
     setCountdown(null);
   }, [src]);
+
+  useEffect(() => () => {
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+  }, []);
+
+  // Background: seek the hidden HLS video through the whole episode
+  useEffect(() => {
+    if (!duration || duration < 10) return;
+    if (bgStarted.current) return;
+    bgStarted.current = true;
+
+    // Space frames evenly: at most MAX_FRAMES, at least every 10s
+    const interval  = Math.max(10, duration / MAX_FRAMES);
+    const timestamps: number[] = [];
+    for (let t = 0; t < duration; t += interval) timestamps.push(t);
+
+    let destroyed = false;
+    let hlsInst: { destroy: () => void } | null = null;
+    const vid = document.createElement("video");
+    vid.muted    = true;
+    vid.preload  = "none";
+    vid.style.cssText = "position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:-9999px";
+
+    if (!thumbCanvas.current) {
+      thumbCanvas.current = document.createElement("canvas");
+      thumbCanvas.current.width  = THUMB_W;
+      thumbCanvas.current.height = THUMB_H;
+    }
+    const canvas = thumbCanvas.current;
+    let idx = 0;
+    let captured = 0;
+
+    const captureAndNext = () => {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        try {
+          ctx.drawImage(vid, 0, 0, THUMB_W, THUMB_H);
+          const key = Math.round(vid.currentTime);
+          thumbnailFrames.current.set(key, canvas.toDataURL("image/jpeg", 0.72));
+          captured++;
+          // Publish partial VTT every 5 frames so preview appears quickly
+          if (captured % 5 === 0) rebuildVtt();
+        } catch { /* CORS-tainted canvas — thumbnail feature unavailable */ }
+      }
+      if (!destroyed && idx < timestamps.length) {
+        vid.currentTime = timestamps[idx++];
+      } else if (!destroyed) {
+        rebuildVtt();
+      }
+    };
+
+    vid.addEventListener("seeked", captureAndNext);
+
+    const startSeeking = () => {
+      if (!destroyed && timestamps.length > 0) {
+        vid.currentTime = timestamps[idx++];
+      }
+    };
+
+    import("hls.js").then(({ default: Hls }) => {
+      if (destroyed) return;
+      if (Hls.isSupported()) {
+        const h = new Hls({ maxBufferSize: 0, maxBufferLength: 8, startLevel: 0, debug: false });
+        hlsInst = h;
+        h.loadSource(proxiedSrc);
+        h.attachMedia(vid);
+        h.on(Hls.Events.MANIFEST_PARSED, startSeeking);
+      } else if (vid.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safari: native HLS support
+        vid.src = proxiedSrc;
+        vid.addEventListener("loadedmetadata", startSeeking, { once: true });
+      }
+    }).catch(() => { /* hls.js unavailable */ });
+
+    return () => {
+      destroyed = true;
+      vid.removeEventListener("seeked", captureAndNext);
+      hlsInst?.destroy();
+      vid.src = "";
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration, proxiedSrc, rebuildVtt]);
+
+  // Stream-provided thumbnails take priority; fall back to our generated ones
+  const effectiveThumbnails = thumbnailsUrl ?? generatedThumbsUrl;
 
   // Re-enter fullscreen when autoFullscreen is requested (next-episode transition)
   useEffect(() => {
@@ -337,9 +317,7 @@ export default function KittyPlayer({
         onProgressRef.current?.(t, dur);
       }
     }
-
-    captureFrame();
-  }, [captureFrame]);
+  }, []);
 
   const handleCanPlay = useCallback(() => {
     const t = startTimeRef.current;
@@ -361,19 +339,13 @@ export default function KittyPlayer({
     if (t > 5 && dur > 0) onProgressRef.current?.(t, dur);
   }, []);
 
-  // Episode ended → start countdown if there's a next episode
   const handleEnded = useCallback(() => {
-    if (nextEpisode) {
-      setCountdown(5);
-    }
+    if (nextEpisode) setCountdown(5);
   }, [nextEpisode]);
 
   const seekTo = useCallback((time: number) => {
     const player = playerRef.current;
-    if (player) {
-      player.currentTime = time;
-      player.play();
-    }
+    if (player) { player.currentTime = time; player.play(); }
     setActiveSkip(null);
   }, []);
 
@@ -385,11 +357,6 @@ export default function KittyPlayer({
   const nearEnd  = duration > 60 && currentTime >= duration - 90;
   const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
   const skipOffset = showNext ? "bottom-[8.5rem]" : "bottom-[4.5rem]";
-
-  // Clamp preview x so thumbnail stays inside the container
-  const previewX = seekPreview
-    ? Math.max(THUMB_W / 2 + 4, Math.min(seekPreview.x, seekPreview.containerW - THUMB_W / 2 - 4))
-    : 0;
 
   return (
     <div ref={containerRef} className="vds-kitty relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
@@ -423,19 +390,13 @@ export default function KittyPlayer({
             />
           ))}
         </MediaProvider>
+        {/* thumbnails prop activates Vidstack's built-in seekbar preview with timestamp */}
         <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={effectiveThumbnails} />
 
-        {/* ── Overlay buttons — inside MediaPlayer so they survive fullscreen ── */}
-
-        {/* Next episode (near end or outro active) */}
         {showNext && nextEpisode && (
-          <NextEpisodeButton
-            episode={nextEpisode}
-            onClick={() => onNextEpisodeRef.current?.()}
-          />
+          <NextEpisodeButton episode={nextEpisode} onClick={() => onNextEpisodeRef.current?.()} />
         )}
 
-        {/* Skip intro / credits */}
         {activeSkip && activeInterval && countdown === null && (
           <SkipButton
             type={activeSkip}
@@ -446,7 +407,6 @@ export default function KittyPlayer({
           />
         )}
 
-        {/* Episode-end countdown overlay */}
         {countdown !== null && nextEpisode && (
           <CountdownOverlay
             episode={nextEpisode}
@@ -456,35 +416,6 @@ export default function KittyPlayer({
           />
         )}
       </MediaPlayer>
-
-      {/* ── Seek bar thumbnail preview (our captured frames) ─────────── */}
-      {seekPreview && !thumbnailsUrl && (
-        <div
-          className="absolute z-50 pointer-events-none"
-          style={{
-            left: previewX,
-            top: seekPreview.sliderY - THUMB_H - 44,
-            transform: "translateX(-50%)",
-          }}
-        >
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/80"
-              style={{ width: THUMB_W, height: THUMB_H, outline: "2px solid rgba(255,255,255,0.22)" }}>
-              {seekPreview.img ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={seekPreview.img} width={THUMB_W} height={THUMB_H} alt="" className="block" />
-              ) : (
-                <div className="w-full h-full bg-black/90 flex items-center justify-center">
-                  <span className="text-white/20 text-[11px] font-mono">no preview</span>
-                </div>
-              )}
-            </div>
-            <div className="bg-black/85 backdrop-blur-sm rounded-md px-2.5 py-0.5">
-              <span className="text-white text-[13px] font-mono font-semibold">{formatTime(seekPreview.time)}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -584,13 +515,12 @@ function CountdownOverlay({
       ? episode.title
       : `Episode ${episode.number}`;
 
-  const circumference = 2 * Math.PI * 20; // r=20
+  const circumference = 2 * Math.PI * 20;
   const dashOffset = circumference * (1 - countdown / 5);
 
   return (
     <div className="absolute inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
       <div className="pointer-events-auto flex items-center gap-4 px-5 py-4 rounded-2xl border border-white/20 bg-black/85 backdrop-blur-md shadow-2xl shadow-black/60 animate-in slide-in-from-right-6 fade-in duration-300">
-        {/* Circular countdown ring */}
         <div className="relative w-12 h-12 shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
             <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
@@ -607,16 +537,12 @@ function CountdownOverlay({
             {countdown}
           </span>
         </div>
-
-        {/* Text */}
         <div className="flex flex-col min-w-0">
           <span className="text-[10px] font-mono text-white/40 leading-none mb-1">Up next</span>
           <span className="text-sm font-semibold text-white leading-tight truncate max-w-[180px]">
             {title}
           </span>
         </div>
-
-        {/* Actions */}
         <div className="flex flex-col gap-1.5 shrink-0">
           <button
             onClick={onSkip}
