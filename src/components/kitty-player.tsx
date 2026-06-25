@@ -46,6 +46,7 @@ export default function KittyPlayer({
   onNextEpisode,
 }: KittyPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
   const onLiveTimeRef = useRef(onLiveTime);
@@ -127,6 +128,43 @@ export default function KittyPlayer({
     return () => clearTimeout(t);
   }, [countdown]);
 
+  // Gold intro/outro markers on the vidstack progress bar
+  useEffect(() => {
+    if (!duration || !skipTimes) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const inject = () => {
+      const track = container.querySelector(".vds-slider-track");
+      if (!track) return;
+      track.querySelectorAll(".kitty-skip-marker").forEach((el) => el.remove());
+
+      const ranges = [
+        { interval: skipTimes.intro },
+        { interval: skipTimes.outro },
+      ].filter((r): r is { interval: NonNullable<typeof r.interval> } => !!r.interval);
+
+      for (const { interval } of ranges) {
+        const marker = document.createElement("div");
+        marker.className = "kitty-skip-marker";
+        marker.style.cssText = `
+          position:absolute;top:0;height:100%;pointer-events:none;border-radius:2px;z-index:2;
+          left:${(interval.start / duration) * 100}%;
+          width:${((interval.end - interval.start) / duration) * 100}%;
+          background:rgba(255,196,0,0.65);
+        `;
+        track.appendChild(marker);
+      }
+    };
+
+    inject();
+    const t = setTimeout(inject, 400);
+    return () => {
+      clearTimeout(t);
+      containerRef.current?.querySelectorAll(".kitty-skip-marker").forEach((el) => el.remove());
+    };
+  }, [duration, skipTimes]);
+
   const handleTimeUpdate = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
@@ -201,7 +239,7 @@ export default function KittyPlayer({
   const skipOffset = showNext ? "bottom-[8.5rem]" : "bottom-[4.5rem]";
 
   return (
-    <div className="vds-kitty relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
+    <div ref={containerRef} className="vds-kitty relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
       <MediaPlayer
         ref={playerRef}
         src={{ src: proxiedSrc, type: "application/x-mpegurl" }}
