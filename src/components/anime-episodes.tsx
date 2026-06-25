@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Input } from "./ui/input";
 import { Search } from "lucide-react";
 import EpisodeCard from "./common/episode-card";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
@@ -25,84 +24,71 @@ const AnimeEpisodes = ({ animeId }: Props) => {
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
   const [ranges, setRanges] = useState<string[]>([]);
   const [selectedRange, setSelectedRange] = useState<string>("");
+  const [query, setQuery] = useState("");
 
   const { data, isLoading } = useGetAllEpisodes(animeId);
 
   useEffect(() => {
     if (data) {
-      const episodes = data.episodes;
-      setAllEpisodes(episodes);
+      const eps = data.episodes;
+      setAllEpisodes(eps);
 
-      if (episodes.length > 50) {
-        // Calculate ranges
-        const rangesArray = [];
-        for (let i = 0; i < episodes.length; i += 50) {
-          const start = i + 1;
-          const end = Math.min(i + 50, episodes.length);
-          rangesArray.push(`${start}-${end}`);
+      if (eps.length > 50) {
+        const rangesArray: string[] = [];
+        for (let i = 0; i < eps.length; i += 50) {
+          rangesArray.push(`${i + 1}-${Math.min(i + 50, eps.length)}`);
         }
         setRanges(rangesArray);
         setSelectedRange(rangesArray[0]);
-
-        // Filter the first range directly from episodes
-        const filteredEpisodes = episodes.filter(
-          (_, index) => index + 1 >= 1 && index + 1 <= 50,
-        );
-        setEpisodes(filteredEpisodes);
+        setEpisodes(eps.slice(0, 50));
       } else {
-        setEpisodes(episodes);
+        setEpisodes(eps);
       }
     }
   }, [data]);
 
   const handleRangeChange = (range: string) => {
     setSelectedRange(range);
-
+    setQuery("");
     const [start, end] = range.split("-").map(Number);
-    const filteredEpisodes = allEpisodes.filter(
-      (_, index) => index + 1 >= start && index + 1 <= end,
-    );
-    setEpisodes(filteredEpisodes);
+    setEpisodes(allEpisodes.slice(start - 1, end));
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value.toLowerCase();
-    if (!query) {
-      // Reset episodes to the selected range
-      const [start, end] = selectedRange.split("-").map(Number);
-      const filteredEpisodes = allEpisodes.filter(
-        (_, index) => index + 1 >= start && index + 1 <= end,
-      );
-      setEpisodes(filteredEpisodes);
-    } else {
-      const filteredEpisodes = episodes.filter((episode, index) => {
-        return (
-          (index + 1).toString().includes(query) ||
-          episode.title.toLowerCase().includes(query) ||
-          "episode".includes(query.trim())
-        );
-      });
-      setEpisodes(filteredEpisodes);
+    const q = e.target.value;
+    setQuery(q);
+    if (!q.trim()) {
+      const [start, end] = (selectedRange || "1-50").split("-").map(Number);
+      setEpisodes(allEpisodes.slice(start - 1, end));
+      return;
     }
+    const lower = q.toLowerCase();
+    setEpisodes(
+      allEpisodes.filter((ep, idx) =>
+        (idx + 1).toString().includes(lower) ||
+        ep.title.toLowerCase().includes(lower) ||
+        "episode".includes(lower.trim()),
+      ),
+    );
   };
 
   return (
-    <>
-      <div className="flex w-full items-center justify-between">
-        <h3 className="text-xl font-semibold">Episodes</h3>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-5">
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+          {allEpisodes.length > 0 ? `${allEpisodes.length} Episodes` : "Episodes"}
+        </h3>
+        <div className="flex items-center gap-2 flex-wrap">
           {ranges.length > 0 && (
             <Select onValueChange={handleRangeChange} value={selectedRange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue
-                  className="text-white"
-                  placeholder="Select Range"
-                />
+              <SelectTrigger className="h-8 text-xs w-[130px] bg-white/4 border-white/10 text-white/65 hover:bg-white/7 transition-colors">
+                <SelectValue placeholder="Range" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#0e0e0e] border-white/10">
                 <SelectGroup>
                   {ranges.map((range) => (
-                    <SelectItem key={range} value={range}>
+                    <SelectItem key={range} value={range} className="text-xs text-white/70">
                       {range}
                     </SelectItem>
                   ))}
@@ -110,17 +96,20 @@ const AnimeEpisodes = ({ animeId }: Props) => {
               </SelectContent>
             </Select>
           )}
-          <div className="relative max-w-[21.875rem] ">
-            <Search className="absolute inset-y-0 left-2 m-auto h-4 w-4" />
-            <Input
-              placeholder="Search for episode..."
-              className=" w-full pl-8 text-white border-white"
+          <div className="relative">
+            <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
+            <input
+              value={query}
+              placeholder="Search episode…"
               onChange={handleSearch}
+              className="h-8 pl-8 pr-3 text-xs rounded-lg bg-white/4 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-white/25 focus:bg-white/7 transition-all w-44"
             />
           </div>
         </div>
       </div>
-      <div className="grid lg:grid-cols-5 grid-cols-4 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-9 w-full gap-5 content-center">
+
+      {/* Grid */}
+      <div className="grid lg:grid-cols-5 grid-cols-4 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-9 gap-3 content-center">
         {episodes.map((episode, idx) => (
           <EpisodeCard
             episode={episode}
@@ -130,22 +119,22 @@ const AnimeEpisodes = ({ animeId }: Props) => {
           />
         ))}
         {!episodes.length && !isLoading && (
-          <div className="lg:col-span-5 col-span-2 sm:col-span-3 md:col-span-4 xl:col-span-6 2xl:col-span-7 flex items-center justify-center py-10 bg-slate-900 rounded-md">
-            No Episodes
+          <div className={cn(
+            "lg:col-span-5 col-span-4 sm:col-span-5 md:col-span-6 xl:col-span-8 2xl:col-span-9",
+            "flex items-center justify-center py-16 rounded-xl bg-white/3 border border-white/6",
+          )}>
+            <p className="text-white/25 text-sm font-mono">No episodes found</p>
           </div>
         )}
         {isLoading &&
-          Array.from({ length: 14 }).map((_, idx) => (
+          Array.from({ length: 18 }).map((_, idx) => (
             <div
               key={idx}
-              className={cn([
-                "h-[6.25rem] rounded-lg cursor-pointer w-full flex items-center justify-center animate-pulse bg-slate-800",
-                "self-center justify-self-center",
-              ])}
-            ></div>
+              className="rounded-lg w-full aspect-[3/2] animate-pulse bg-white/6 self-center justify-self-center"
+            />
           ))}
       </div>
-    </>
+    </div>
   );
 };
 

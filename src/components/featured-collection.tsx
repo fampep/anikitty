@@ -17,13 +17,14 @@ type Props = {
 const FeaturedCollection = ({ featuredAnime, loading }: Props) => {
   if (loading) return <LoadingSkeleton />;
   return (
-    <Container className="flex flex-col gap-5 items-center lg:items-start py-5">
-      <SectionHeading icon={<Layers className="w-4 h-4" />} title="Featured Collection" />
+    <Container className="flex flex-col gap-5 items-center lg:items-start py-8">
+      <SectionHeading icon={<Layers className="w-4 h-4" />} title="Featured Collection" subtitle="Curated lists across all time" />
       <div className="grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {featuredAnime.map((category, idx) => (
           <FeaturedCollectionCard
             title={category.title}
             key={idx}
+            index={idx}
             anime={category.anime}
           />
         ))}

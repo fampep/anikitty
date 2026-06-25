@@ -76,10 +76,10 @@ const NavBar = () => {
         {/* Logo */}
         <Link href={ROUTES.HOME} className="flex items-center gap-2.5 shrink-0 group">
           <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-white/15 group-hover:ring-white/40 transition-all duration-300 shrink-0">
-            <Image src={KITTY_ICON} alt="KittyAnime" fill className="object-cover object-top" unoptimized />
+            <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
           </div>
           <span className={cn(nightTokyo.className, "text-xl font-bold text-white tracking-widest hidden sm:block")}>
-            KittyAnime
+            AniKitty
           </span>
         </Link>
 
@@ -141,7 +141,7 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-5 border-b border-white/8">
             <span className={cn(nightTokyo.className, "text-lg font-bold text-white tracking-widest")}>
-              KittyAnime
+              AniKitty
             </span>
             <SheetClose className="p-1 rounded-lg hover:bg-white/8 transition-colors text-white/50 hover:text-white">
               <X className="h-4 w-4" />

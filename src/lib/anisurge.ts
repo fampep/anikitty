@@ -61,6 +61,9 @@ export const anisurgeAuth = {
   login: (identifier: string, password: string) =>
     bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
 
+  loginWithAnisurge: (identifier: string, password: string) =>
+    bff("/auth/anisurge-login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
+
   signup: (username: string, email: string, password: string) =>
     bff("/auth/signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
 

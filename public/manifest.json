@@ -4,8 +4,8 @@
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
-  "name": "KittyAnime",
-  "short_name": "KittyAnime",
+  "name": "AniKitty",
+  "short_name": "AniKitty",
   "description": "Stream your favourite anime with ease and no ads ~ nya~",
   "orientation": "portrait-primary",
   "icons": [

@@ -5,7 +5,14 @@ import FeaturedCollection from "@/components/featured-collection";
 import { useGetHomePageData } from "@/query/get-home-page-data";
 import { IAnime, LatestCompletedAnime, SpotlightAnime } from "@/types/anime";
 import dynamic from "next/dynamic";
-import { Flame, CalendarDays, CalendarClock, ArrowRight } from "lucide-react";
+import {
+  Flame,
+  CalendarDays,
+  CalendarClock,
+  ArrowRight,
+  Sparkles,
+  Clock,
+} from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import Container from "@/components/container";
@@ -20,6 +27,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col bg-black">
+      {/* ── Act 1: Discovery ── */}
       <HeroSection
         spotlightAnime={data?.spotlightAnimes as SpotlightAnime[]}
         isDataLoading={isLoading}
@@ -32,6 +40,7 @@ export default function Home() {
 
       <ContinueWatching loading={isLoading} />
 
+      {/* ── Act 2: Browse ── */}
       <FeaturedCollection
         loading={isLoading}
         featuredAnime={[
@@ -42,7 +51,7 @@ export default function Home() {
       />
 
       <AnimeSections
-        title="Trending Anime"
+        title="Trending Now"
         icon={<Flame className="w-4 h-4" />}
         trendingAnime={data?.trendingAnimes as IAnime[]}
         loading={isLoading}
@@ -51,44 +60,89 @@ export default function Home() {
         seeAllHref={ROUTES.TRENDING}
       />
 
-      <LatestComments />
+      {/* ── Act 3: Community & Explore ── */}
+      <Container className="py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 items-start">
+          {/* Left: Latest Comments */}
+          <LatestComments bare />
 
-      {/* Quick links to dedicated pages */}
-      <Container className="py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Link
-            href={ROUTES.SCHEDULE}
-            className="group flex items-center justify-between px-5 py-4 rounded-xl bg-white/4 border border-white/10 hover:bg-white/7 hover:border-white/20 transition-all duration-200"
-          >
-            <div className="flex items-center gap-3">
-              <CalendarDays className="w-5 h-5 text-white/40 group-hover:text-white/70 transition-colors" />
-              <div>
-                <p className="text-sm font-semibold text-white/75 group-hover:text-white/95 transition-colors">
-                  Weekly Schedule
-                </p>
-                <p className="text-[11px] text-white/30 font-mono">See what&apos;s airing this week</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-white/25 group-hover:text-white/60 group-hover:translate-x-0.5 transition-all" />
-          </Link>
+          {/* Right: Explore */}
+          <div className="flex flex-col gap-4">
+            <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">
+              Explore
+            </p>
 
-          <Link
-            href={ROUTES.TRENDING}
-            className="group flex items-center justify-between px-5 py-4 rounded-xl bg-white/4 border border-white/10 hover:bg-white/7 hover:border-white/20 transition-all duration-200"
-          >
-            <div className="flex items-center gap-3">
-              <CalendarClock className="w-5 h-5 text-white/40 group-hover:text-white/70 transition-colors" />
-              <div>
-                <p className="text-sm font-semibold text-white/75 group-hover:text-white/95 transition-colors">
-                  Upcoming Anime
-                </p>
-                <p className="text-[11px] text-white/30 font-mono">Browse what&apos;s coming soon</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-white/25 group-hover:text-white/60 group-hover:translate-x-0.5 transition-all" />
-          </Link>
+            <ExploreCard
+              href={ROUTES.SCHEDULE}
+              icon={<CalendarDays className="w-5 h-5" />}
+              title="Weekly Schedule"
+              description="See what's airing this week"
+              accent="from-sky-500/10"
+            />
+
+            <ExploreCard
+              href={ROUTES.TRENDING}
+              icon={<CalendarClock className="w-5 h-5" />}
+              title="Upcoming Anime"
+              description="Browse what's coming soon"
+              accent="from-violet-500/10"
+            />
+
+            <ExploreCard
+              href={ROUTES.TRENDING}
+              icon={<Sparkles className="w-5 h-5" />}
+              title="Trending Now"
+              description="What everyone is watching"
+              accent="from-amber-500/10"
+            />
+
+            <ExploreCard
+              href={ROUTES.SEARCH}
+              icon={<Clock className="w-5 h-5" />}
+              title="Browse All Anime"
+              description="Search through thousands of titles"
+              accent="from-emerald-500/10"
+            />
+          </div>
         </div>
       </Container>
     </div>
+  );
+}
+
+function ExploreCard({
+  href,
+  icon,
+  title,
+  description,
+  accent,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  accent: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group relative flex items-center justify-between px-4 py-3.5 rounded-xl bg-white/3 border border-white/8 hover:bg-white/6 hover:border-white/16 transition-all duration-200 overflow-hidden`}
+    >
+      {/* Accent gradient on hover */}
+      <div className={`absolute inset-0 bg-gradient-to-r ${accent} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+      <div className="relative flex items-center gap-3">
+        <span className="text-white/35 group-hover:text-white/70 transition-colors">
+          {icon}
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-white/70 group-hover:text-white/95 transition-colors leading-tight">
+            {title}
+          </p>
+          <p className="text-[11px] text-white/28 font-mono mt-0.5">{description}</p>
+        </div>
+      </div>
+      <ArrowRight className="relative w-4 h-4 text-white/20 group-hover:text-white/55 group-hover:translate-x-0.5 transition-all shrink-0" />
+    </Link>
   );
 }

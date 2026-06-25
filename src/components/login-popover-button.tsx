@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { Loader2, LogIn, UserPlus } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Zap, ArrowLeft } from "lucide-react";
 import { anisurgeAuth, setAnisurgeToken } from "@/lib/anisurge";
 
-type View = "menu" | "login" | "signup";
+type View = "menu" | "local-login" | "anisurge-login" | "signup";
 
 function LoginPopoverButton() {
   const { setAuth } = useAuthStore();
@@ -39,10 +39,13 @@ function LoginPopoverButton() {
       username: user.username ?? "",
       email: user.email ?? "",
       avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
+      bannerUrl: user.bannerUrl ?? null,
+      bio: user.bio ?? null,
+      role: user.role ?? "user",
     });
   };
 
-  const handleLogin = async () => {
+  const handleLocalLogin = async () => {
     if (!identifier.trim() || !password) {
       toast.error("Enter your username/email and password");
       return;
@@ -56,6 +59,25 @@ function LoginPopoverButton() {
       reset();
     } catch (e: any) {
       toast.error(e?.body?.error ?? "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnisurgeLogin = async () => {
+    if (!identifier.trim() || !password) {
+      toast.error("Enter your Anisurge username/email and password");
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await anisurgeAuth.loginWithAnisurge(identifier.trim(), password);
+      syncAuth(data);
+      toast.success("Logged in with Anisurge!");
+      setOpen(false);
+      reset();
+    } catch (e: any) {
+      toast.error(e?.body?.error ?? "Invalid Anisurge credentials");
     } finally {
       setLoading(false);
     }
@@ -101,25 +123,45 @@ function LoginPopoverButton() {
       <PopoverContent
         side="bottom"
         align="end"
-        className="p-0 bg-[#0a0a0a] border border-white/15 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+        className="p-0 bg-[#0a0a0a] border border-white/12 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
         style={{ width: "22rem" }}
       >
-        {/* Menu */}
+        {/* ── Menu ── */}
         {view === "menu" && (
-          <div className="p-5 flex flex-col gap-3">
-            <p className="text-center text-xs text-white/35 font-mono tracking-wider mb-1">
-              sign in to KittyAnime
+          <div className="p-5 flex flex-col gap-2.5">
+            <p className="text-center text-[11px] text-white/30 font-mono tracking-wider mb-1">
+              sign in to AniKitty
             </p>
+
+            {/* AniKitty login */}
             <button
-              onClick={() => setView("login")}
+              onClick={() => setView("local-login")}
               className="w-full py-2.5 rounded-lg bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center justify-center gap-2"
             >
               <LogIn className="w-4 h-4" />
-              Login
+              Login with AniKitty
             </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-2 my-0.5">
+              <div className="flex-1 h-px bg-white/8" />
+              <span className="text-[10px] font-mono text-white/20">or</span>
+              <div className="flex-1 h-px bg-white/8" />
+            </div>
+
+            {/* Anisurge login */}
+            <button
+              onClick={() => setView("anisurge-login")}
+              className="w-full py-2.5 rounded-lg border border-violet-500/30 bg-violet-500/8 text-violet-300/80 hover:bg-violet-500/15 hover:border-violet-500/50 hover:text-violet-200 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Login with Anisurge
+            </button>
+
+            {/* Create account */}
             <button
               onClick={() => setView("signup")}
-              className="w-full py-2.5 rounded-lg border border-white/15 hover:border-white/30 text-white/70 hover:text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-lg border border-white/12 hover:border-white/25 text-white/55 hover:text-white/80 font-semibold text-sm transition-colors flex items-center justify-center gap-2 mt-0.5"
             >
               <UserPlus className="w-4 h-4" />
               Create account
@@ -127,11 +169,13 @@ function LoginPopoverButton() {
           </div>
         )}
 
-        {/* Login */}
-        {view === "login" && (
+        {/* ── Local Login ── */}
+        {view === "local-login" && (
           <div className="p-5 flex flex-col gap-3.5">
             <div className="flex items-center gap-2 mb-1">
-              <button onClick={() => setView("menu")} className="text-white/35 hover:text-white/70 text-xs">← back</button>
+              <button onClick={() => setView("menu")} className="text-white/35 hover:text-white/70 transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
               <p className="text-white/80 font-semibold text-sm">Login</p>
             </div>
 
@@ -140,7 +184,7 @@ function LoginPopoverButton() {
               value={identifier}
               onChange={setIdentifier}
               placeholder="kittyuser"
-              onEnter={handleLogin}
+              onEnter={handleLocalLogin}
             />
             <Field
               label="Password"
@@ -148,25 +192,82 @@ function LoginPopoverButton() {
               onChange={setPassword}
               placeholder="••••••••"
               type="password"
-              onEnter={handleLogin}
+              onEnter={handleLocalLogin}
             />
 
             <button
-              onClick={handleLogin}
+              onClick={handleLocalLogin}
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-60 text-black font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
               Login
             </button>
+
+            <p className="text-[11px] text-white/25 text-center">
+              Have an Anisurge account?{" "}
+              <button
+                onClick={() => { setIdentifier(""); setPassword(""); setView("anisurge-login"); }}
+                className="text-violet-400/70 hover:text-violet-300 transition-colors"
+              >
+                Use Anisurge login
+              </button>
+            </p>
           </div>
         )}
 
-        {/* Signup */}
+        {/* ── Anisurge Login ── */}
+        {view === "anisurge-login" && (
+          <div className="p-5 flex flex-col gap-3.5">
+            <div className="flex items-center gap-2 mb-1">
+              <button onClick={() => setView("menu")} className="text-white/35 hover:text-white/70 transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <p className="text-white/80 font-semibold text-sm">Anisurge Login</p>
+              <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/12 border border-violet-500/20 text-violet-400/70">
+                <Zap className="w-2.5 h-2.5" />
+                Anisurge
+              </span>
+            </div>
+
+            <p className="text-[11px] text-white/35 font-mono leading-relaxed -mt-1">
+              Use your existing Anisurge account credentials.
+            </p>
+
+            <Field
+              label="Username or email"
+              value={identifier}
+              onChange={setIdentifier}
+              placeholder="your Anisurge username"
+              onEnter={handleAnisurgeLogin}
+            />
+            <Field
+              label="Password"
+              value={password}
+              onChange={setPassword}
+              placeholder="••••••••"
+              type="password"
+              onEnter={handleAnisurgeLogin}
+            />
+
+            <button
+              onClick={handleAnisurgeLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              Sign in with Anisurge
+            </button>
+          </div>
+        )}
+
+        {/* ── Signup ── */}
         {view === "signup" && (
           <div className="p-5 flex flex-col gap-3.5">
             <div className="flex items-center gap-2 mb-1">
-              <button onClick={() => setView("menu")} className="text-white/35 hover:text-white/70 text-xs">← back</button>
+              <button onClick={() => setView("menu")} className="text-white/35 hover:text-white/70 transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
               <p className="text-white/80 font-semibold text-sm">Create account</p>
             </div>
 
@@ -233,8 +334,10 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
         placeholder={placeholder}
-        autoComplete={type === "password" ? "current-password" : type === "email" ? "email" : "username"}
-        className="h-9 px-3 rounded-lg bg-white/5 border border-white/12 text-white/85 placeholder:text-white/20 text-sm focus:outline-none focus:border-white/30 transition-colors"
+        autoComplete={
+          type === "password" ? "current-password" : type === "email" ? "email" : "username"
+        }
+        className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-white/85 placeholder:text-white/20 text-sm focus:outline-none focus:border-white/28 transition-colors"
       />
     </div>
   );
