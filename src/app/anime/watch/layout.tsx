@@ -235,7 +235,6 @@ const Layout = (props: Props) => {
             subOrDub={stats?.episodes}
             episodes={episodes}
             isLoading={episodeLoading}
-            bookmarks={bookmarks}
           />
         )}
       </div>

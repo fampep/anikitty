@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, History } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { anisurgeContinue } from "@/lib/anisurge";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
+import { useProgressStore } from "@/store/progress-store";
 
 interface ContinueItem {
   id: string;
@@ -22,6 +23,7 @@ type Props = { loading: boolean };
 
 const ContinueWatching = ({ loading }: Props) => {
   const { auth } = useAuthStore();
+  const lastSaved = useProgressStore((s) => s.lastSaved);
   const [items, setItems] = useState<ContinueItem[]>([]);
   const [fetched, setFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,7 @@ const ContinueWatching = ({ loading }: Props) => {
     setError(null);
     anisurgeContinue
       .get(true, 14)
+      // lastSaved in deps so we re-fetch whenever progress is saved
       .then((res) => {
         const data: any[] = res?.data ?? [];
         setItems(
@@ -80,7 +83,7 @@ const ContinueWatching = ({ loading }: Props) => {
         setItems([]);
       })
       .finally(() => setFetched(true));
-  }, [auth]);
+  }, [auth, lastSaved]);
 
   const updateScrollState = () => {
     const el = scrollRef.current;

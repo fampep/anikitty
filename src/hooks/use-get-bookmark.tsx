@@ -8,6 +8,7 @@ import {
   statusToFolder,
   folderToStatus,
 } from "@/lib/anisurge";
+import { useProgressStore } from "@/store/progress-store";
 
 type Props = {
   animeID?: string;
@@ -176,6 +177,7 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
         ...(infoTitle ? { animeTitle: infoTitle } : {}),
         ...(infoPoster ? { animeThumbnail: infoPoster } : {}),
       });
+      useProgressStore.getState().notify();
     } catch (e) {
       console.error("syncWatchProgress error:", e);
     }

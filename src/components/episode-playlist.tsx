@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { useAnimeStore } from "@/store/anime-store";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
-import { Bookmark } from "@/hooks/use-get-bookmark";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { LayoutList, Grid2x2, LayoutGrid, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,7 +17,6 @@ type Props = {
   subOrDub?: { sub: number; dub: number };
   episodes: IEpisodes;
   isLoading: boolean;
-  bookmarks?: Bookmark[] | null;
 };
 
 const LAYOUT_OPTIONS: { value: EpisodeLayout; icon: React.ReactNode; label: string }[] = [
@@ -27,7 +25,7 @@ const LAYOUT_OPTIONS: { value: EpisodeLayout; icon: React.ReactNode; label: stri
   { value: "thumbnail", icon: <LayoutGrid  className="w-3.5 h-3.5" />, label: "Thumbnails" },
 ];
 
-const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading, bookmarks }: Props) => {
+const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading }: Props) => {
   const searchParams = useSearchParams();
   const episodeId = searchParams.get("episode");
   const isLatestEpisode = searchParams.get("type");

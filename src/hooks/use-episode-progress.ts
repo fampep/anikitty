@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
+import { useProgressStore } from "@/store/progress-store";
 import { anisurgeContinue } from "@/lib/anisurge";
 import type { WatchHistory } from "@/hooks/use-get-bookmark";
 
 export function useEpisodeProgress(animeId: string | null): WatchHistory[] {
   const { auth } = useAuthStore();
+  const lastSaved = useProgressStore((s) => s.lastSaved);
   const [episodes, setEpisodes] = useState<WatchHistory[]>([]);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export function useEpisodeProgress(animeId: string | null): WatchHistory[] {
         );
       })
       .catch(() => setEpisodes([]));
-  }, [auth, animeId]);
+  }, [auth, animeId, lastSaved]);
 
   return episodes;
 }
