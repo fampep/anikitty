@@ -24,7 +24,6 @@ import {
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 
 const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
   ssr: false,
@@ -173,7 +172,7 @@ const VideoPlayerSection = () => {
   }
 
   return (
-    <div className="flex flex-col gap-0 rounded-xl overflow-hidden border border-white/10">
+    <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10">
       <KittyPlayer
         key={`${anilistId}-${episodeNo}-${audio}-${provider}`}
         src={streamData.file}
@@ -187,61 +186,62 @@ const VideoPlayerSection = () => {
       />
 
       {/* Controls bar */}
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-black/95 border-t border-white/10">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 bg-[#0a0a0a] border-t border-white/8">
 
-        {/* Left — identity */}
+        {/* Left — episode info */}
         <div className="flex items-center gap-2 mr-auto min-w-0">
-          <span className="text-sm select-none shrink-0">🐱</span>
-          <div className="hidden sm:flex flex-col min-w-0">
-            <span className="text-[10px] font-mono text-white/25 leading-none">kittyapi.buzz</span>
-          </div>
           {episodeNo && (
-            <Badge className="bg-white/10 text-white/70 border border-white/15 text-[10px] px-1.5 py-0 h-4 font-mono shrink-0">
+            <span className="text-[11px] font-bold font-mono text-white/50 bg-white/6 border border-white/10 px-2 py-0.5 rounded-md shrink-0">
               EP {episodeNo}
-            </Badge>
+            </span>
           )}
           {(skipTimes?.intro || skipTimes?.outro) && (
-            <Badge className="bg-white/5 text-white/40 border border-white/10 text-[10px] px-1.5 py-0 h-4 hidden sm:inline-flex">
-              chapters
-            </Badge>
+            <span className="text-[10px] font-mono text-white/25 hidden sm:inline shrink-0">
+              · chapters
+            </span>
           )}
+          <span className="text-[10px] font-mono text-white/15 hidden sm:inline truncate">
+            kittyapi.buzz
+          </span>
         </div>
 
         {/* Provider selector */}
-        <div className="flex items-center gap-1">
-          <Server className="w-3 h-3 text-white/35 shrink-0" />
+        <div className="flex items-center gap-1.5">
+          <Server className="w-3 h-3 text-white/25 shrink-0" />
           <select
             value={provider}
             onChange={(e) => handleProviderChange(e.target.value as KittyProvider)}
-            className="bg-black border border-white/15 text-white/60 text-[11px] font-mono rounded px-1.5 py-0.5 h-6 cursor-pointer hover:border-white/30 focus:outline-none"
+            className="bg-[#111] border border-white/12 text-white/55 text-[11px] font-mono rounded-lg px-2 py-1 cursor-pointer hover:border-white/25 hover:text-white/75 focus:outline-none focus:border-white/25 transition-all appearance-none"
           >
             {KITTY_PROVIDERS.map((p) => (
-              <option key={p} value={p} className="bg-black">{p}</option>
+              <option key={p} value={p} className="bg-[#111]">{p}</option>
             ))}
           </select>
         </div>
 
-        {/* Sub / Dub */}
-        <div className="flex items-center rounded-md overflow-hidden border border-white/15">
-          <Button
-            size="sm"
-            className={`h-6 px-2.5 text-[11px] font-bold gap-1 rounded-none border-0 ${
-              !preferDub ? "bg-white/15 text-white hover:bg-white/20" : "bg-transparent text-white/40 hover:bg-white/10"
+        {/* Sub / Dub toggle */}
+        <div className="flex items-center rounded-lg overflow-hidden border border-white/12 bg-white/[0.03]">
+          <button
+            className={`flex items-center gap-1 h-7 px-2.5 text-[11px] font-bold transition-all ${
+              !preferDub
+                ? "bg-white text-black"
+                : "text-white/35 hover:text-white/60 hover:bg-white/6"
             }`}
             onClick={() => setPreferDub(false)}
           >
             <Captions className="w-3 h-3" /> SUB
-          </Button>
-          <div className="w-px h-4 bg-white/15" />
-          <Button
-            size="sm"
-            className={`h-6 px-2.5 text-[11px] font-bold gap-1 rounded-none border-0 ${
-              preferDub ? "bg-white/15 text-white hover:bg-white/20" : "bg-transparent text-white/40 hover:bg-white/10"
+          </button>
+          <div className="w-px h-4 bg-white/12" />
+          <button
+            className={`flex items-center gap-1 h-7 px-2.5 text-[11px] font-bold transition-all ${
+              preferDub
+                ? "bg-white text-black"
+                : "text-white/35 hover:text-white/60 hover:bg-white/6"
             }`}
             onClick={() => setPreferDub(true)}
           >
             <Mic className="w-3 h-3" /> DUB
-          </Button>
+          </button>
         </div>
       </div>
     </div>

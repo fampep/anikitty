@@ -5,6 +5,7 @@ import FeaturedCollection from "@/components/featured-collection";
 import { useGetHomePageData } from "@/query/get-home-page-data";
 import { IAnime, LatestCompletedAnime, SpotlightAnime } from "@/types/anime";
 import dynamic from "next/dynamic";
+import React from "react";
 import {
   Flame,
   CalendarDays,
@@ -62,46 +63,43 @@ export default function Home() {
 
       {/* ── Act 3: Community & Explore ── */}
       <Container className="py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start">
           {/* Left: Latest Comments */}
           <LatestComments bare />
 
           {/* Right: Explore */}
-          <div className="flex flex-col gap-4">
-            <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-2">
               Explore
             </p>
 
             <ExploreCard
               href={ROUTES.SCHEDULE}
-              icon={<CalendarDays className="w-5 h-5" />}
-              title="Weekly Schedule"
-              description="See what's airing this week"
-              accent="from-sky-500/10"
+              icon={<CalendarDays className="w-4 h-4" />}
+              title="Schedule"
+              description="What's airing this week"
+              color="sky"
             />
-
             <ExploreCard
               href={ROUTES.TRENDING}
-              icon={<CalendarClock className="w-5 h-5" />}
-              title="Upcoming Anime"
-              description="Browse what's coming soon"
-              accent="from-violet-500/10"
+              icon={<CalendarClock className="w-4 h-4" />}
+              title="Upcoming"
+              description="Coming soon"
+              color="violet"
             />
-
             <ExploreCard
               href={ROUTES.TRENDING}
-              icon={<Sparkles className="w-5 h-5" />}
-              title="Trending Now"
+              icon={<Sparkles className="w-4 h-4" />}
+              title="Trending"
               description="What everyone is watching"
-              accent="from-amber-500/10"
+              color="amber"
             />
-
             <ExploreCard
               href={ROUTES.SEARCH}
-              icon={<Clock className="w-5 h-5" />}
-              title="Browse All Anime"
-              description="Search through thousands of titles"
-              accent="from-emerald-500/10"
+              icon={<Clock className="w-4 h-4" />}
+              title="Browse All"
+              description="Search thousands of titles"
+              color="emerald"
             />
           </div>
         </div>
@@ -110,39 +108,42 @@ export default function Home() {
   );
 }
 
+const COLOR_MAP: Record<string, { icon: string; bg: string; border: string }> = {
+  sky:     { icon: "text-sky-400",     bg: "group-hover:bg-sky-500/6",     border: "group-hover:border-sky-500/20" },
+  violet:  { icon: "text-violet-400",  bg: "group-hover:bg-violet-500/6",  border: "group-hover:border-violet-500/20" },
+  amber:   { icon: "text-amber-400",   bg: "group-hover:bg-amber-500/6",   border: "group-hover:border-amber-500/20" },
+  emerald: { icon: "text-emerald-400", bg: "group-hover:bg-emerald-500/6", border: "group-hover:border-emerald-500/20" },
+};
+
 function ExploreCard({
   href,
   icon,
   title,
   description,
-  accent,
+  color,
 }: {
   href: string;
   icon: React.ReactNode;
   title: string;
   description: string;
-  accent: string;
+  color: string;
 }) {
+  const c = COLOR_MAP[color] ?? COLOR_MAP.sky;
   return (
     <Link
       href={href}
-      className={`group relative flex items-center justify-between px-4 py-3.5 rounded-xl bg-white/3 border border-white/8 hover:bg-white/6 hover:border-white/16 transition-all duration-200 overflow-hidden`}
+      className={`group flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.025] border border-white/8 ${c.bg} ${c.border} transition-all duration-200`}
     >
-      {/* Accent gradient on hover */}
-      <div className={`absolute inset-0 bg-gradient-to-r ${accent} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-
-      <div className="relative flex items-center gap-3">
-        <span className="text-white/35 group-hover:text-white/70 transition-colors">
-          {icon}
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-white/70 group-hover:text-white/95 transition-colors leading-tight">
-            {title}
-          </p>
-          <p className="text-[11px] text-white/28 font-mono mt-0.5">{description}</p>
-        </div>
+      <span className={`shrink-0 transition-colors text-white/25 group-hover:${c.icon}`}>
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-white/65 group-hover:text-white/90 transition-colors leading-tight truncate">
+          {title}
+        </p>
+        <p className="text-[11px] text-white/25 font-mono mt-0.5 truncate">{description}</p>
       </div>
-      <ArrowRight className="relative w-4 h-4 text-white/20 group-hover:text-white/55 group-hover:translate-x-0.5 transition-all shrink-0" />
+      <ArrowRight className="w-3.5 h-3.5 text-white/15 group-hover:text-white/40 group-hover:translate-x-0.5 transition-all shrink-0" />
     </Link>
   );
 }

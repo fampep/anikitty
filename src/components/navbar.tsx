@@ -68,23 +68,30 @@ const NavBar = () => {
       className={cn(
         "fixed top-0 left-0 right-0 z-[100] transition-all duration-300",
         isScrolled
-          ? "bg-black/80 backdrop-blur-xl border-b border-white/8 shadow-lg shadow-black/40"
-          : "bg-gradient-to-b from-black/70 to-transparent border-b border-transparent",
+          ? "bg-black/85 backdrop-blur-xl shadow-xl shadow-black/50"
+          : "bg-gradient-to-b from-black/60 to-transparent",
       )}
     >
+      {/* Bottom border that fades in on scroll */}
+      <div className={cn(
+        "absolute bottom-0 left-0 right-0 h-px transition-opacity duration-300",
+        isScrolled ? "opacity-100" : "opacity-0",
+        "bg-gradient-to-r from-transparent via-white/10 to-transparent",
+      )} />
+
       <Container className="flex items-center h-14 gap-6">
         {/* Logo */}
         <Link href={ROUTES.HOME} className="flex items-center gap-2.5 shrink-0 group">
-          <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-white/15 group-hover:ring-white/40 transition-all duration-300 shrink-0">
+          <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/12 group-hover:ring-white/35 transition-all duration-200 shrink-0">
             <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
           </div>
-          <span className={cn(nightTokyo.className, "text-xl font-bold text-white tracking-widest hidden sm:block")}>
+          <span className={cn(nightTokyo.className, "text-[1.1rem] font-bold text-white/90 tracking-widest hidden sm:block group-hover:text-white transition-colors")}>
             AniKitty
           </span>
         </Link>
 
         {/* Desktop nav links */}
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-0.5">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -93,10 +100,10 @@ const NavBar = () => {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-150",
                   isActive
-                    ? "bg-white/10 text-white border border-white/15"
-                    : "text-white/50 hover:text-white/90 hover:bg-white/6",
+                    ? "text-white font-semibold bg-white/8 border border-white/12"
+                    : "text-white/45 font-medium hover:text-white/85 hover:bg-white/5",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -110,14 +117,14 @@ const NavBar = () => {
         <div className="flex-1" />
 
         {/* Search + auth */}
-        <div className="hidden lg:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-2.5">
           <SearchBar />
           {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
         </div>
 
         {/* Mobile */}
-        <div className="lg:hidden flex items-center gap-3">
-          <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />} />
+        <div className="lg:hidden flex items-center gap-2.5">
+          <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/60" suppressHydrationWarning />} />
           {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
         </div>
       </Container>

@@ -14,9 +14,8 @@ export const SectionHeading = ({
   subtitle?: string;
 }) => (
   <div className="flex items-center gap-3 w-full">
-    <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-white/70 to-white/15 shrink-0" />
     {icon && (
-      <span className="text-white/40 flex items-center shrink-0">{icon}</span>
+      <span className="text-white/50 flex items-center shrink-0">{icon}</span>
     )}
     <div className="min-w-0">
       <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-tight">
@@ -29,10 +28,10 @@ export const SectionHeading = ({
     {href && (
       <Link
         href={href}
-        className="ml-auto flex items-center gap-1 text-[12px] font-mono text-white/30 hover:text-white/65 transition-colors duration-200 shrink-0 group"
+        className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-white/30 hover:text-white/70 transition-colors duration-200 shrink-0 group px-2.5 py-1 rounded-lg border border-transparent hover:border-white/10 hover:bg-white/5"
       >
         View All
-        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+        <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
       </Link>
     )}
   </div>
