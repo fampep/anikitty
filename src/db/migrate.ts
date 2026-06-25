@@ -80,6 +80,10 @@ export async function migrateDb() {
     await client`
       CREATE INDEX IF NOT EXISTS comments_anime_id_idx ON comments (anime_id)
     `;
+
+    // Add columns introduced after initial table creation
+    await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`;
+    await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`;
   } finally {
     await client.end();
   }

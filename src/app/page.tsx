@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, Tv2, Shield, MessageSquare, Users, LogIn } from "lucide-react";
+import { ArrowRight, Tv2, Shield, MessageSquare, Users, LogIn, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { nightTokyo } from "@/utils/fonts";
 import { useOnlineCount } from "@/hooks/use-online-count";

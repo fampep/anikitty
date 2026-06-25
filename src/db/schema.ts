@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   bannerUrl: text("banner_url"),
   bio: text("bio"),
   role: varchar("role", { length: 20 }).notNull().default("user"),
+  anisurgeToken: text("anisurge_token"),
+  anisurgeUsername: varchar("anisurge_username", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
