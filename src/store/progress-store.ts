@@ -18,7 +18,7 @@ interface ProgressStore {
   getProgress: (animeId: string, episodeId: string) => { current: number; duration: number } | null;
 }
 
-export const useProgressStore = create<ProgressStore>((set, get) => ({
+export const useProgressStore = create<ProgressStore>((set) => ({
   lastSaved: 0,
   notify: () => set({ lastSaved: Date.now() }),
 
