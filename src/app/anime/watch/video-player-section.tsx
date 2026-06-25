@@ -83,8 +83,13 @@ const VideoPlayerSection = () => {
       : undefined;
   }, [allEpisodes, episodeId]);
 
+  const [autoFullscreen, setAutoFullscreen] = useState(false);
+
   const handleNextEpisode = useCallback(() => {
     if (!nextEpisode || !animeSlug) return;
+    // Preserve fullscreen across episode change
+    const isFs = !!document.fullscreenElement;
+    setAutoFullscreen(isFs);
     setSelectedEpisode(nextEpisode.episodeId);
     router.push(`/anime/watch?anime=${animeSlug}&episode=${nextEpisode.episodeId}`);
   }, [nextEpisode, animeSlug, setSelectedEpisode, router]);
@@ -257,6 +262,7 @@ const VideoPlayerSection = () => {
         headers={streamData.headers ?? {}}
         skipTimes={skipTimes}
         startTime={startTime}
+        autoFullscreen={autoFullscreen}
         nextEpisode={nextEpisode ? { id: nextEpisode.episodeId, number: nextEpisode.number, title: nextEpisode.title } : undefined}
         onStart={handleStart}
         onProgress={handleProgress}

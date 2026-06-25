@@ -14,7 +14,7 @@ import { DefaultVideoLayout, defaultLayoutIcons } from "@vidstack/react/player/l
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
-import { SkipForward, ChevronRight } from "lucide-react";
+import { SkipForward, ChevronRight, X } from "lucide-react";
 
 interface KittyPlayerProps {
   src: string;
@@ -23,6 +23,7 @@ interface KittyPlayerProps {
   headers?: Record<string, string>;
   skipTimes?: SkipTimes;
   startTime?: number;
+  autoFullscreen?: boolean;
   nextEpisode?: { id: string; number: number; title: string };
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
@@ -37,6 +38,7 @@ export default function KittyPlayer({
   headers = {},
   skipTimes,
   startTime = 0,
+  autoFullscreen = false,
   nextEpisode,
   onStart,
   onProgress,
@@ -59,6 +61,7 @@ export default function KittyPlayer({
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const onNextEpisodeRef = useRef(onNextEpisode);
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
 
@@ -66,7 +69,7 @@ export default function KittyPlayer({
   useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
 
   const referer = headers?.Referer ?? headers?.referer ?? "";
-  const origin = headers?.Origin ?? headers?.origin ?? "";
+  const origin  = headers?.Origin  ?? headers?.origin  ?? "";
   const proxiedSrc = src
     ? `/api/kitty/hls?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}&origin=${encodeURIComponent(origin)}`
     : "";
@@ -83,36 +86,55 @@ export default function KittyPlayer({
         t.label?.toLowerCase().includes("skip") ||
         t.label?.toLowerCase().includes("intro")),
   );
-  // Thumbnails VTT → sprite sheet for progress-bar hover preview
   const thumbnailTrack = tracks.find((t) => !!t.file && t.kind === "thumbnails");
   const thumbnailsUrl = thumbnailTrack?.file
     ? `/api/kitty/hls?url=${encodeURIComponent(thumbnailTrack.file)}`
     : undefined;
 
-  // If no chapter track came from the stream, derive one from the m3u8 on the server
   const m3u8ChaptersUrl =
     !chapterTrack && src
       ? `/api/kitty/chapters?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}`
       : undefined;
   const effectiveChapterUrl = chapterTrack?.file ?? m3u8ChaptersUrl;
 
+  // Reset state when src changes
   useEffect(() => {
     startFiredRef.current = false;
     lastProgressTs.current = 0;
     setActiveSkip(null);
     setCurrentTime(0);
+    setCountdown(null);
   }, [src]);
+
+  // Re-enter fullscreen when autoFullscreen is requested (next-episode transition)
+  useEffect(() => {
+    if (!autoFullscreen) return;
+    const timer = setTimeout(() => {
+      playerRef.current?.enterFullscreen().catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [autoFullscreen]);
+
+  // Countdown tick → fire next episode at 0
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      setCountdown(null);
+      onNextEpisodeRef.current?.();
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   const handleTimeUpdate = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
-    const t = player.currentTime;
+    const t   = player.currentTime;
     const dur = player.duration;
-    const st = skipRef.current;
+    const st  = skipRef.current;
 
-    // Always fire live time so parent can track current position
     onLiveTimeRef.current?.(t, dur);
-
     setCurrentTime(t);
     if (dur > 0) setDuration(dur);
 
@@ -135,9 +157,7 @@ export default function KittyPlayer({
 
   const handleCanPlay = useCallback(() => {
     const t = startTimeRef.current;
-    if (t > 10 && playerRef.current) {
-      playerRef.current.currentTime = t;
-    }
+    if (t > 10 && playerRef.current) playerRef.current.currentTime = t;
   }, []);
 
   const handlePlay = useCallback(() => {
@@ -147,16 +167,20 @@ export default function KittyPlayer({
     }
   }, []);
 
-  // Save progress immediately on pause
   const handlePause = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
-    const t = player.currentTime;
+    const t   = player.currentTime;
     const dur = player.duration;
-    if (t > 5 && dur > 0) {
-      onProgressRef.current?.(t, dur);
-    }
+    if (t > 5 && dur > 0) onProgressRef.current?.(t, dur);
   }, []);
+
+  // Episode ended → start countdown if there's a next episode
+  const handleEnded = useCallback(() => {
+    if (nextEpisode) {
+      setCountdown(5);
+    }
+  }, [nextEpisode]);
 
   const seekTo = useCallback((time: number) => {
     const player = playerRef.current;
@@ -172,10 +196,8 @@ export default function KittyPlayer({
   const activeInterval: SkipInterval | undefined =
     activeSkip === "intro" ? skipTimes?.intro : activeSkip === "outro" ? skipTimes?.outro : undefined;
 
-  // Show next episode button when within 90s of end, or outro is active and there's a next episode
-  const nearEnd = duration > 60 && currentTime >= duration - 90;
-  const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro");
-  // Stack next-episode above skip button when both are visible
+  const nearEnd  = duration > 60 && currentTime >= duration - 90;
+  const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
   const skipOffset = showNext ? "bottom-[8.5rem]" : "bottom-[4.5rem]";
 
   return (
@@ -192,17 +214,13 @@ export default function KittyPlayer({
         onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}
         onPause={handlePause}
+        onEnded={handleEnded}
         googleCast={{ receiverApplicationId: "CC1AD845" }}
       >
         <MediaProvider>
           {poster && <Poster className="vds-poster" src={poster} alt="" />}
-          {/* Chapters track — from stream or derived from the m3u8 manifest */}
           {effectiveChapterUrl && (
-            <Track
-              src={effectiveChapterUrl}
-              kind="chapters"
-              default
-            />
+            <Track src={effectiveChapterUrl} kind="chapters" default />
           )}
           {subTracks.map((track, i) => (
             <Track
@@ -215,29 +233,43 @@ export default function KittyPlayer({
           ))}
         </MediaProvider>
         <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={thumbnailsUrl} />
+
+        {/* ── Overlay buttons — inside MediaPlayer so they survive fullscreen ── */}
+
+        {/* Next episode (near end or outro active) */}
+        {showNext && nextEpisode && (
+          <NextEpisodeButton
+            episode={nextEpisode}
+            onClick={() => onNextEpisodeRef.current?.()}
+          />
+        )}
+
+        {/* Skip intro / credits */}
+        {activeSkip && activeInterval && countdown === null && (
+          <SkipButton
+            type={activeSkip}
+            interval={activeInterval}
+            currentTime={currentTime}
+            bottomClass={skipOffset}
+            onSkip={() => seekTo(activeInterval.end)}
+          />
+        )}
+
+        {/* Episode-end countdown overlay */}
+        {countdown !== null && nextEpisode && (
+          <CountdownOverlay
+            episode={nextEpisode}
+            countdown={countdown}
+            onSkip={() => { setCountdown(null); onNextEpisodeRef.current?.(); }}
+            onCancel={() => setCountdown(null)}
+          />
+        )}
       </MediaPlayer>
-
-      {/* Next episode button */}
-      {showNext && nextEpisode && (
-        <NextEpisodeButton
-          episode={nextEpisode}
-          onClick={() => onNextEpisodeRef.current?.()}
-        />
-      )}
-
-      {/* Skip intro / credits button */}
-      {activeSkip && activeInterval && (
-        <SkipButton
-          type={activeSkip}
-          interval={activeInterval}
-          currentTime={currentTime}
-          bottomClass={skipOffset}
-          onSkip={() => seekTo(activeInterval.end)}
-        />
-      )}
     </div>
   );
 }
+
+// ── Skip button ───────────────────────────────────────────────────────
 
 function SkipButton({
   type,
@@ -252,16 +284,16 @@ function SkipButton({
   bottomClass?: string;
   onSkip: () => void;
 }) {
-  const label = type === "intro" ? "Skip Intro" : "Skip Credits";
-  const elapsed = Math.max(0, currentTime - interval.start);
-  const total = interval.end - interval.start;
+  const label     = type === "intro" ? "Skip Intro" : "Skip Credits";
+  const elapsed   = Math.max(0, currentTime - interval.start);
+  const total     = interval.end - interval.start;
   const remaining = Math.max(0, Math.ceil(interval.end - currentTime));
-  const progress = total > 0 ? Math.min(1, elapsed / total) : 0;
+  const progress  = total > 0 ? Math.min(1, elapsed / total) : 0;
 
   return (
     <button
       onClick={onSkip}
-      className={`absolute ${bottomClass} right-4 z-20 group flex flex-col overflow-hidden rounded-xl border border-white/20 bg-black/80 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/90 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200`}
+      className={`absolute ${bottomClass} right-4 z-50 group flex flex-col overflow-hidden rounded-xl border border-white/20 bg-black/80 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/90 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200`}
       style={{ minWidth: 148 }}
     >
       <div className="flex items-center gap-2 px-4 py-2.5">
@@ -281,6 +313,8 @@ function SkipButton({
   );
 }
 
+// ── Next episode button ───────────────────────────────────────────────
+
 function NextEpisodeButton({
   episode,
   onClick,
@@ -288,14 +322,15 @@ function NextEpisodeButton({
   episode: { number: number; title: string };
   onClick: () => void;
 }) {
-  const title = episode.title && episode.title.toLowerCase() !== `episode ${episode.number}`
-    ? episode.title
-    : `Episode ${episode.number}`;
+  const title =
+    episode.title && episode.title.toLowerCase() !== `episode ${episode.number}`
+      ? episode.title
+      : `Episode ${episode.number}`;
 
   return (
     <button
       onClick={onClick}
-      className="absolute bottom-[4.5rem] right-4 z-20 group flex items-center gap-3 px-4 py-3 rounded-xl border border-white/20 bg-black/85 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/95 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200"
+      className="absolute bottom-[4.5rem] right-4 z-50 group flex items-center gap-3 px-4 py-3 rounded-xl border border-white/20 bg-black/85 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/95 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200"
       style={{ maxWidth: 260 }}
     >
       <div className="flex flex-col items-start min-w-0">
@@ -308,5 +343,75 @@ function NextEpisodeButton({
       </div>
       <ChevronRight className="w-4 h-4 text-white/50 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
     </button>
+  );
+}
+
+// ── End-of-episode countdown overlay ─────────────────────────────────
+
+function CountdownOverlay({
+  episode,
+  countdown,
+  onSkip,
+  onCancel,
+}: {
+  episode: { number: number; title: string };
+  countdown: number;
+  onSkip: () => void;
+  onCancel: () => void;
+}) {
+  const title =
+    episode.title && episode.title.toLowerCase() !== `episode ${episode.number}`
+      ? episode.title
+      : `Episode ${episode.number}`;
+
+  const circumference = 2 * Math.PI * 20; // r=20
+  const dashOffset = circumference * (1 - countdown / 5);
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
+      <div className="pointer-events-auto flex items-center gap-4 px-5 py-4 rounded-2xl border border-white/20 bg-black/85 backdrop-blur-md shadow-2xl shadow-black/60 animate-in slide-in-from-right-6 fade-in duration-300">
+        {/* Circular countdown ring */}
+        <div className="relative w-12 h-12 shrink-0">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+            <circle
+              cx="24" cy="24" r="20" fill="none"
+              stroke="white" strokeWidth="3"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="round"
+              className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
+            {countdown}
+          </span>
+        </div>
+
+        {/* Text */}
+        <div className="flex flex-col min-w-0">
+          <span className="text-[10px] font-mono text-white/40 leading-none mb-1">Up next</span>
+          <span className="text-sm font-semibold text-white leading-tight truncate max-w-[180px]">
+            {title}
+          </span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col gap-1.5 shrink-0">
+          <button
+            onClick={onSkip}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors"
+          >
+            Play now <ChevronRight className="w-3 h-3" />
+          </button>
+          <button
+            onClick={onCancel}
+            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white/8 text-white/50 text-xs font-medium hover:bg-white/14 hover:text-white/80 transition-colors"
+          >
+            <X className="w-3 h-3" /> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
