@@ -35,6 +35,9 @@ const NavBar = () => {
   const pathname = usePathname();
   const isScrolled = y > 20;
 
+  // Landing page has its own nav
+  if (pathname === "/") return null;
+
   useEffect(() => {
     const refreshAuth = async () => {
       const token = getAnisurgeToken();

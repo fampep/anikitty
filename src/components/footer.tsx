@@ -1,12 +1,22 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Flame, CalendarDays, Search } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useOnlineCount } from "@/hooks/use-online-count";
 
 const KITTY_ICON = "/jiji.jpg";
 
 const Footer = () => {
+  const pathname = usePathname();
+  const count = useOnlineCount();
+
+  // Landing page has its own footer
+  if (pathname === "/") return null;
+
   return (
     <footer className="w-full bg-black mt-10 relative overflow-hidden">
       {/* Top fade */}
@@ -26,6 +36,20 @@ const Footer = () => {
             <p className="text-[11px] text-white/20 font-mono leading-relaxed max-w-[180px]">
               Free anime streaming. No ads. No limits.
             </p>
+
+            {/* Online counter */}
+            {count !== null && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                </span>
+                <span className="text-[11px] text-white/30 font-mono">
+                  {count.toLocaleString()} online
+                </span>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 mt-1">
               <a
                 href="https://github.com/fampep/anikitty"
@@ -49,7 +73,7 @@ const Footer = () => {
           {/* Browse */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">Browse</p>
-            <NavLink href="/" label="Home" />
+            <NavLink href="/home" label="Home" />
             <NavLink href="/search" label="Search" icon={<Search className="w-3 h-3" />} />
             <NavLink href="/trending" label="Trending" icon={<Flame className="w-3 h-3" />} />
             <NavLink href="/schedule" label="Schedule" icon={<CalendarDays className="w-3 h-3" />} />
@@ -58,7 +82,6 @@ const Footer = () => {
           {/* Account */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">Account</p>
-            <NavLink href="/login" label="Sign In" />
             <NavLink href="/settings" label="Settings" />
             <a
               href="https://anisurge.me"

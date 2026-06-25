@@ -9,7 +9,7 @@ import { anisurgeAuth, setAnisurgeToken } from "@/lib/anisurge";
 
 type Tab = "login" | "signup";
 
-function LoginPopoverButton() {
+function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode } = {}) {
   const { setAuth } = useAuthStore();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("login");
@@ -94,10 +94,14 @@ function LoginPopoverButton() {
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-white/20 text-white/70 text-sm font-semibold hover:bg-white/10 hover:border-white/40 hover:text-white transition-all">
-          <LogIn className="w-4 h-4" />
-          Login
-        </button>
+        {customTrigger ? (
+          <span>{customTrigger}</span>
+        ) : (
+          <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-white/20 text-white/70 text-sm font-semibold hover:bg-white/10 hover:border-white/40 hover:text-white transition-all">
+            <LogIn className="w-4 h-4" />
+            Login
+          </button>
+        )}
       </PopoverTrigger>
 
       <PopoverContent
