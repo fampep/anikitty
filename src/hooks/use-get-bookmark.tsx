@@ -20,6 +20,7 @@ type Props = {
 export type WatchHistory = {
   id: string;
   current: number;
+  duration?: number;
   timestamp: number;
   episodeId: string;
   episodeNumber: number;

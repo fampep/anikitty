@@ -63,57 +63,82 @@ const EpisodeCard = ({
 
   // ── Thumbnail card ────────────────────────────────────────────────
   if (variant === "thumbnail") {
+    // Find resume data for this episode
+    const history = props.watchedEpisodes?.find(
+      (w) => w.episodeId === props.episode.episodeId,
+    );
+    const current = history?.current ?? 0;
+    const duration = history?.duration ?? 0;
+    const progressPct = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
+    const isInProgress = current > 10 && progressPct < 95;
+    const isCompleted = progressPct >= 95 || (hasWatchedEpisode && !isInProgress);
+
+    const episodeImage = props.episode.image;
+
     return (
       <Link href={href}>
         <div
           className={cn(
             "group rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border",
             isActive
-              ? "border-white/30 ring-1 ring-white/20"
+              ? "border-white/35 ring-1 ring-white/15"
               : "border-white/8 hover:border-white/20",
-            hasWatchedEpisode && !isActive && "opacity-55",
           )}
         >
-          {/* Thumbnail */}
-          <div className="relative aspect-[16/9] bg-black overflow-hidden">
-            {props.animePoster ? (
+          {/* Thumbnail image area */}
+          <div className="relative aspect-[16/9] bg-[#0d0d0d] overflow-hidden">
+            {episodeImage ? (
               <Image
-                src={props.animePoster}
+                src={episodeImage}
                 alt={`Episode ${props.episode.number}`}
                 fill
-                className="object-cover scale-110 group-hover:scale-100 transition-transform duration-300 blur-[1px] group-hover:blur-0"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
                 unoptimized
+                sizes="(max-width: 640px) 50vw, 200px"
               />
             ) : (
-              <div className="absolute inset-0 bg-white/5" />
+              /* No screenshot available — show a clean dark numbered placeholder */
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
+                <span className="text-3xl font-black font-mono text-white/8 select-none">
+                  {String(props.episode.number).padStart(2, "0")}
+                </span>
+              </div>
             )}
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-            {/* Play on hover */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <div className="bg-white/90 rounded-full p-2 shadow-lg">
-                <Play className="w-4 h-4 text-black fill-black" />
+            {/* Dark overlay for text legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+
+            {/* Play button on hover */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-xl">
+                <Play className="w-3.5 h-3.5 text-black fill-black" />
               </div>
             </div>
 
-            {/* Ep number */}
-            <div className="absolute bottom-1.5 left-2 flex items-center gap-1.5">
-              <span className="text-[10px] font-mono font-bold text-white/80 bg-black/60 px-1.5 py-0.5 rounded">
+            {/* Bottom-left: ep number + filler badge */}
+            <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+              <span className="text-[10px] font-mono font-bold text-white/85 bg-black/55 backdrop-blur-sm px-1.5 py-0.5 rounded">
                 EP {props.episode.number}
               </span>
               {props.episode.isFiller && (
-                <span className="text-[9px] font-mono text-yellow-400/70 bg-yellow-900/40 px-1 py-0.5 rounded">
+                <span className="text-[9px] font-mono text-amber-400/80 bg-black/55 px-1 py-0.5 rounded">
                   FILLER
                 </span>
               )}
-              {hasWatchedEpisode && (
-                <Check className="w-3 h-3 text-white/50" />
-              )}
             </div>
 
-            {/* Sub/dub dots */}
+            {/* Top-right: sub/dub + completed */}
             <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+              {isCompleted && (
+                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/80 backdrop-blur-sm">
+                  <Check className="w-2.5 h-2.5 text-white" />
+                </span>
+              )}
+              {isInProgress && !isCompleted && (
+                <span className="text-[9px] font-bold font-mono text-amber-300/90 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
+                  RESUME
+                </span>
+              )}
               {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
                 <Captions className="w-3 h-3 text-sky-400/70" />
               )}
@@ -121,16 +146,31 @@ const EpisodeCard = ({
                 <Mic className="w-3 h-3 text-purple-400/70" />
               )}
             </div>
+
+            {/* Progress bar — only shown if in progress */}
+            {progressPct > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-black/40">
+                <div
+                  className="h-full bg-amber-400/90 transition-none"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Title below thumbnail */}
-          <div className="px-2.5 py-2 bg-[#0a0a0a]">
+          {/* Title row */}
+          <div className="px-2.5 py-2 bg-[#0a0a0a] flex items-center gap-2 min-w-0">
             <p className={cn(
-              "text-[11px] leading-tight line-clamp-1 font-medium",
-              isActive ? "text-white" : "text-white/55 group-hover:text-white/80",
+              "text-[11px] leading-tight line-clamp-1 font-medium flex-1 min-w-0",
+              isActive ? "text-white" : "text-white/50 group-hover:text-white/80",
             )}>
               {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}
             </p>
+            {isInProgress && current > 0 && (
+              <span className="text-[9px] font-mono text-white/25 shrink-0">
+                {Math.floor(current / 60)}:{String(Math.floor(current % 60)).padStart(2, "0")}
+              </span>
+            )}
           </div>
         </div>
       </Link>

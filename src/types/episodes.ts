@@ -8,6 +8,7 @@ export interface Episode {
   episodeId: string;
   number: number;
   isFiller: boolean;
+  image?: string | null;
 }
 
 export interface IEpisodeSource {
