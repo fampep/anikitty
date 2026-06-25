@@ -12,8 +12,6 @@ import {
   Captions,
   Mic,
   Play,
-  KeyRound,
-  ShieldCheck,
   Loader2,
   LinkIcon,
   Unlink,
@@ -208,67 +206,6 @@ function AnisurgeSyncSection() {
   );
 }
 
-function AdminClaimSection() {
-  const { auth, setAuth } = useAuthStore();
-  const [key, setKey] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  if (!auth || auth.role === "admin") return null;
-
-  const claim = async () => {
-    if (!key.trim()) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/claim", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("anisurgeToken") ?? ""}`,
-        },
-        body: JSON.stringify({ key: key.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
-      localStorage.setItem("anisurgeToken", data.token);
-      setAuth({ ...auth, role: "admin" });
-      toast.success("Admin access granted");
-      setKey("");
-    } catch (e: any) {
-      toast.error(e.message ?? "Invalid key");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <section>
-      <SectionLabel
-        icon={<KeyRound className="w-4 h-4" />}
-        title="Admin Access"
-        description="Enter the site admin key to gain elevated permissions"
-      />
-      <div className="mt-4 flex gap-2">
-        <input
-          type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && claim()}
-          placeholder="Admin key…"
-          className="flex-1 bg-white/4 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors font-mono"
-        />
-        <button
-          onClick={claim}
-          disabled={loading || !key.trim()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/14 disabled:opacity-35 transition-all"
-        >
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-          Claim
-        </button>
-      </div>
-    </section>
-  );
-}
-
 export default function SettingsPage() {
   const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay } =
     useSettingsStore();
@@ -353,7 +290,6 @@ export default function SettingsPage() {
           </section>
 
           <AnisurgeSyncSection />
-          <AdminClaimSection />
 
           {/* Language indicator */}
           <section>

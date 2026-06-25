@@ -84,6 +84,9 @@ export async function migrateDb() {
     // Add columns introduced after initial table creation
     await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`;
     await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`;
+
+    // Ensure the site owner always has admin role
+    await client`UPDATE users SET role = 'admin' WHERE username = 'fampep' AND role != 'admin'`;
   } finally {
     await client.end();
   }

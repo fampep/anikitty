@@ -13,6 +13,7 @@ import {
   KittyProvider,
 } from "@/query/get-kitty-stream";
 import { useSkipTimes } from "@/query/use-aniskip";
+import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
   Captions,
   Mic,
@@ -21,7 +22,7 @@ import {
   Cat,
   Server,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -34,8 +35,9 @@ const DEFAULT_PROVIDER: KittyProvider = "Miruro";
 
 const VideoPlayerSection = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const episodeId = searchParams.get("episode");
-  const { selectedEpisode, anime } = useAnimeStore();
+  const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
   const { preferDub, setPreferDub } = useSettingsStore();
 
@@ -50,6 +52,7 @@ const VideoPlayerSection = () => {
 
   const audio: "sub" | "dub" = preferDub ? "dub" : "sub";
   const anilistId = anime?.anime?.info?.anilistId;
+  const malId     = anime?.anime?.info?.malId;
 
   const episodeNo = selectedEpisode?.startsWith("ep-")
     ? selectedEpisode.replace("ep-", "")
@@ -69,6 +72,22 @@ const VideoPlayerSection = () => {
   const watchedIdRef  = useRef<string | null>(null);
 
   const animeSlug = anime?.anime?.info?.id ?? null;
+
+  // Episode list for next-episode navigation
+  const { data: allEpisodes } = useGetAllEpisodes(animeSlug ?? "");
+  const nextEpisode = React.useMemo(() => {
+    if (!allEpisodes?.episodes || !episodeId) return undefined;
+    const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
+    return idx >= 0 && idx < allEpisodes.episodes.length - 1
+      ? allEpisodes.episodes[idx + 1]
+      : undefined;
+  }, [allEpisodes, episodeId]);
+
+  const handleNextEpisode = useCallback(() => {
+    if (!nextEpisode || !animeSlug) return;
+    setSelectedEpisode(nextEpisode.episodeId);
+    router.push(`/anime/watch?anime=${animeSlug}&episode=${nextEpisode.episodeId}`);
+  }, [nextEpisode, animeSlug, setSelectedEpisode, router]);
 
   // Reset refs when episode changes so we don't cross-contaminate
   useEffect(() => {
@@ -149,7 +168,11 @@ const VideoPlayerSection = () => {
     refetch: retryStream,
   } = useGetKittyStream(anilistId, episodeNo || undefined, audio, provider);
 
-  const { data: skipTimes } = useSkipTimes(streamData?.tracks);
+  const { data: skipTimes } = useSkipTimes(
+    streamData?.tracks,
+    malId,
+    parseInt(episodeNo) || undefined,
+  );
 
   // Change provider but resume from current position, not original start
   const handleProviderChange = (p: KittyProvider) => {
@@ -231,9 +254,11 @@ const VideoPlayerSection = () => {
         headers={streamData.headers ?? {}}
         skipTimes={skipTimes}
         startTime={startTime}
+        nextEpisode={nextEpisode ? { id: nextEpisode.episodeId, number: nextEpisode.number, title: nextEpisode.title } : undefined}
         onStart={handleStart}
         onProgress={handleProgress}
         onLiveTime={handleLiveTime}
+        onNextEpisode={handleNextEpisode}
       />
 
       {/* Controls bar */}

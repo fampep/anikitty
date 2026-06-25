@@ -14,7 +14,7 @@ import { DefaultVideoLayout, defaultLayoutIcons } from "@vidstack/react/player/l
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
-import { SkipForward } from "lucide-react";
+import { SkipForward, ChevronRight } from "lucide-react";
 
 interface KittyPlayerProps {
   src: string;
@@ -23,9 +23,11 @@ interface KittyPlayerProps {
   headers?: Record<string, string>;
   skipTimes?: SkipTimes;
   startTime?: number;
+  nextEpisode?: { id: string; number: number; title: string };
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;
+  onNextEpisode?: () => void;
 }
 
 export default function KittyPlayer({
@@ -35,9 +37,11 @@ export default function KittyPlayer({
   headers = {},
   skipTimes,
   startTime = 0,
+  nextEpisode,
   onStart,
   onProgress,
   onLiveTime,
+  onNextEpisode,
 }: KittyPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
   const onStartRef = useRef(onStart);
@@ -54,6 +58,9 @@ export default function KittyPlayer({
 
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const onNextEpisodeRef = useRef(onNextEpisode);
+  useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
 
   const startTimeRef = useRef(startTime);
   useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
@@ -96,6 +103,7 @@ export default function KittyPlayer({
     onLiveTimeRef.current?.(t, dur);
 
     setCurrentTime(t);
+    if (dur > 0) setDuration(dur);
 
     if (st?.intro && t >= st.intro.start && t < st.intro.end) {
       setActiveSkip("intro");
@@ -153,6 +161,12 @@ export default function KittyPlayer({
   const activeInterval: SkipInterval | undefined =
     activeSkip === "intro" ? skipTimes?.intro : activeSkip === "outro" ? skipTimes?.outro : undefined;
 
+  // Show next episode button when within 90s of end, or outro is active and there's a next episode
+  const nearEnd = duration > 60 && currentTime >= duration - 90;
+  const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro");
+  // Stack next-episode above skip button when both are visible
+  const skipOffset = showNext ? "bottom-[8.5rem]" : "bottom-[4.5rem]";
+
   return (
     <div className="vds-kitty relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
       <MediaPlayer
@@ -192,12 +206,21 @@ export default function KittyPlayer({
         <DefaultVideoLayout icons={defaultLayoutIcons} />
       </MediaPlayer>
 
-      {/* Skip button */}
+      {/* Next episode button */}
+      {showNext && nextEpisode && (
+        <NextEpisodeButton
+          episode={nextEpisode}
+          onClick={() => onNextEpisodeRef.current?.()}
+        />
+      )}
+
+      {/* Skip intro / credits button */}
       {activeSkip && activeInterval && (
         <SkipButton
           type={activeSkip}
           interval={activeInterval}
           currentTime={currentTime}
+          bottomClass={skipOffset}
           onSkip={() => seekTo(activeInterval.end)}
         />
       )}
@@ -209,11 +232,13 @@ function SkipButton({
   type,
   interval,
   currentTime,
+  bottomClass = "bottom-[4.5rem]",
   onSkip,
 }: {
   type: "intro" | "outro";
   interval: SkipInterval;
   currentTime: number;
+  bottomClass?: string;
   onSkip: () => void;
 }) {
   const label = type === "intro" ? "Skip Intro" : "Skip Credits";
@@ -225,10 +250,9 @@ function SkipButton({
   return (
     <button
       onClick={onSkip}
-      className="absolute bottom-[4.5rem] right-4 z-20 group flex flex-col overflow-hidden rounded-xl border border-white/20 bg-black/80 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/90 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200"
+      className={`absolute ${bottomClass} right-4 z-20 group flex flex-col overflow-hidden rounded-xl border border-white/20 bg-black/80 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/90 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200`}
       style={{ minWidth: 148 }}
     >
-      {/* Main label row */}
       <div className="flex items-center gap-2 px-4 py-2.5">
         <SkipForward className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors shrink-0" />
         <span className="text-sm font-semibold text-white leading-none">{label}</span>
@@ -236,14 +260,42 @@ function SkipButton({
           {remaining}s
         </span>
       </div>
-
-      {/* Progress bar fill */}
       <div className="relative h-[3px] w-full bg-white/10">
         <div
           className="absolute left-0 top-0 h-full bg-white/70 transition-none"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
+    </button>
+  );
+}
+
+function NextEpisodeButton({
+  episode,
+  onClick,
+}: {
+  episode: { number: number; title: string };
+  onClick: () => void;
+}) {
+  const title = episode.title && episode.title.toLowerCase() !== `episode ${episode.number}`
+    ? episode.title
+    : `Episode ${episode.number}`;
+
+  return (
+    <button
+      onClick={onClick}
+      className="absolute bottom-[4.5rem] right-4 z-20 group flex items-center gap-3 px-4 py-3 rounded-xl border border-white/20 bg-black/85 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/95 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200"
+      style={{ maxWidth: 260 }}
+    >
+      <div className="flex flex-col items-start min-w-0">
+        <span className="text-[10px] font-mono text-white/35 group-hover:text-white/55 transition-colors leading-none mb-1">
+          Next episode
+        </span>
+        <span className="text-sm font-semibold text-white leading-tight truncate w-full">
+          {title}
+        </span>
+      </div>
+      <ChevronRight className="w-4 h-4 text-white/50 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
     </button>
   );
 }
