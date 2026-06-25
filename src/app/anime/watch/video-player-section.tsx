@@ -52,7 +52,6 @@ const VideoPlayerSection = () => {
 
   const audio: "sub" | "dub" = preferDub ? "dub" : "sub";
   const anilistId = anime?.anime?.info?.anilistId;
-  const malId     = anime?.anime?.info?.malId;
 
   const episodeNo = selectedEpisode?.startsWith("ep-")
     ? selectedEpisode.replace("ep-", "")
@@ -170,8 +169,8 @@ const VideoPlayerSection = () => {
 
   const { data: skipTimes } = useSkipTimes(
     streamData?.tracks,
-    malId,
-    parseInt(episodeNo) || undefined,
+    streamData?.file,
+    streamData?.headers?.Referer ?? streamData?.headers?.referer ?? "",
   );
 
   // Change provider but resume from current position, not original start
