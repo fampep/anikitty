@@ -90,3 +90,21 @@ export const comments = pgTable(
     animeIdx: index("comments_anime_id_idx").on(t.animeId),
   }),
 );
+
+export const commentVotes = pgTable(
+  "comment_votes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    vote: integer("vote").notNull(), // 1 = like, -1 = dislike
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    commentUser: unique("comment_votes_comment_user").on(t.commentId, t.userId),
+  }),
+);

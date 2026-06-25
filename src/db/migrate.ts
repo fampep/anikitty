@@ -81,6 +81,17 @@ export async function migrateDb() {
       CREATE INDEX IF NOT EXISTS comments_anime_id_idx ON comments (anime_id)
     `;
 
+    await client`
+      CREATE TABLE IF NOT EXISTS comment_votes (
+        id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        comment_id  UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+        user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        vote        INTEGER NOT NULL,
+        created_at  TIMESTAMP DEFAULT NOW(),
+        UNIQUE(comment_id, user_id)
+      )
+    `;
+
     // Add columns introduced after initial table creation — each isolated so one
     // failure does not prevent the rest from running.
     const alters = [

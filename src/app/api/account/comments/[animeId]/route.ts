@@ -1,11 +1,14 @@
 import { getDb } from "@/db";
-import { comments, users, roles } from "@/db/schema";
+import { comments, users, roles, commentVotes } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 
 export async function GET(req: Request, { params }: { params: Promise<{ animeId: string }> }) {
   const { animeId } = await params;
   const db = getDb();
+
+  const token = extractToken(req);
+  const payload = token ? await verifyToken(token) : null;
 
   const rows = await db
     .select({
@@ -31,7 +34,38 @@ export async function GET(req: Request, { params }: { params: Promise<{ animeId:
     .from(comments)
     .where(eq(comments.animeId, animeId));
 
-  return Response.json({ comments: rows, total: total[0]?.count ?? 0 });
+  // Vote aggregates for all comments in this anime
+  const voteAgg = await db
+    .select({
+      commentId: commentVotes.commentId,
+      likes: sql<number>`sum(case when ${commentVotes.vote} = 1 then 1 else 0 end)::int`,
+      dislikes: sql<number>`sum(case when ${commentVotes.vote} = -1 then 1 else 0 end)::int`,
+    })
+    .from(commentVotes)
+    .innerJoin(comments, eq(comments.id, commentVotes.commentId))
+    .where(eq(comments.animeId, animeId))
+    .groupBy(commentVotes.commentId);
+
+  const voteMap = new Map(voteAgg.map((v) => [v.commentId, v]));
+
+  let myVotes: { commentId: string; vote: number }[] = [];
+  if (payload) {
+    myVotes = await db
+      .select({ commentId: commentVotes.commentId, vote: commentVotes.vote })
+      .from(commentVotes)
+      .innerJoin(comments, eq(comments.id, commentVotes.commentId))
+      .where(and(eq(comments.animeId, animeId), eq(commentVotes.userId, payload.userId)));
+  }
+  const myVoteMap = new Map(myVotes.map((v) => [v.commentId, v.vote]));
+
+  const enriched = rows.map((c) => ({
+    ...c,
+    likes: voteMap.get(c.id)?.likes ?? 0,
+    dislikes: voteMap.get(c.id)?.dislikes ?? 0,
+    myVote: (myVoteMap.get(c.id) ?? 0) as 0 | 1 | -1,
+  }));
+
+  return Response.json({ comments: enriched, total: total[0]?.count ?? 0 });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ animeId: string }> }) {
@@ -61,5 +95,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ animeId
     .where(eq(users.id, payload.userId))
     .limit(1);
 
-  return Response.json({ ...row, username: user?.username, avatarUrl: user?.avatarUrl, role: user?.role, roleColor: user?.roleColor }, { status: 201 });
+  return Response.json({
+    ...row,
+    username: user?.username,
+    avatarUrl: user?.avatarUrl,
+    role: user?.role,
+    roleColor: user?.roleColor,
+    likes: 0,
+    dislikes: 0,
+    myVote: 0,
+  }, { status: 201 });
 }

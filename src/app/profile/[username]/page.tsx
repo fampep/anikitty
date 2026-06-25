@@ -14,7 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import { anisurgeWatchlist, anisurgeAuth } from "@/lib/anisurge";
+import { anisurgeWatchlist, anisurgeAuth, getAnisurgeToken } from "@/lib/anisurge";
 import AnimeLists from "./components/anime-lists";
 import AnimeHeatmap from "./components/anime-heatmap";
 import Loading from "@/app/loading";
@@ -31,7 +31,10 @@ import {
   Loader2,
   ImageIcon,
   Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
+  MessageSquare,
 } from "lucide-react";
+import Link from "next/link";
+import { ROUTES } from "@/constants/routes";
 import { RoleBadge } from "@/components/role-badge";
 import { useUserLevel } from "@/hooks/use-user-level";
 import type { LevelTier } from "@/lib/user-level";
@@ -210,6 +213,88 @@ const TIER_ICONS: Record<string, React.ElementType> = {
 function TierIcon({ tier, className }: { tier: LevelTier; className?: string }) {
   const Icon = TIER_ICONS[tier.icon] ?? Star;
   return <Icon className={className} style={{ color: tier.color }} />;
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+interface UserComment {
+  id: string;
+  animeId: string;
+  body: string;
+  gifUrl?: string | null;
+  createdAt: string;
+}
+
+function UserComments() {
+  const [items, setItems] = useState<UserComment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = getAnisurgeToken();
+    if (!token) { setLoading(false); return; }
+    fetch("/api/account/user-comments", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setItems(d.comments ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="animate-pulse rounded-xl bg-white/[0.03] border border-white/6 px-4 py-3 h-16" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!items.length) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-10 text-center">
+        <MessageSquare className="w-8 h-8 text-white/8" />
+        <p className="text-sm text-white/20 font-mono">No comments yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col divide-y divide-white/[0.04]">
+      {items.map((c) => (
+        <div key={c.id} className="py-4">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Link
+              href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
+              className="text-[11px] font-mono text-white/40 hover:text-white/70 transition-colors truncate max-w-[200px]"
+            >
+              {c.animeId}
+            </Link>
+            <span className="text-[10px] font-mono text-white/20 shrink-0">{relativeTime(c.createdAt)}</span>
+          </div>
+          {c.body && (
+            <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words">{c.body}</p>
+          )}
+          {c.gifUrl && (
+            <div className={c.body ? "mt-2" : ""}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.gifUrl} alt="GIF" loading="lazy" className="rounded-xl max-h-40 w-auto max-w-full block ring-1 ring-white/8" />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function ProfilePage() {
@@ -398,6 +483,13 @@ function ProfilePage() {
             <SectionLabel icon={<Activity className="w-4 h-4" />} title="Watch Activity" />
             <div className="rounded-xl border border-white/10 bg-white/3 p-5">
               <AnimeHeatmap />
+            </div>
+          </section>
+
+          <section>
+            <SectionLabel icon={<MessageSquare className="w-4 h-4" />} title="Comments" />
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2">
+              <UserComments />
             </div>
           </section>
         </div>

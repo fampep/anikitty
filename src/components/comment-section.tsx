@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
 import { getAnisurgeToken } from "@/lib/anisurge";
-import { MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus } from "lucide-react";
+import { MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus, ThumbsUp, ThumbsDown } from "lucide-react";
 import { toast } from "sonner";
 import { RoleBadge } from "@/components/role-badge";
 
@@ -18,6 +18,9 @@ interface Comment {
   avatarUrl?: string | null;
   role?: string | null;
   roleColor?: string | null;
+  likes: number;
+  dislikes: number;
+  myVote: 0 | 1 | -1;
 }
 
 function relativeTime(iso: string): string {
@@ -190,6 +193,36 @@ export default function CommentSection({ animeId }: { animeId: string }) {
     } catch { toast.error("Failed to delete comment"); }
   };
 
+  const handleVote = async (commentId: string, vote: 1 | -1) => {
+    const token = getAnisurgeToken();
+    if (!token) return;
+
+    // Optimistic update
+    setComments((prev) =>
+      prev.map((c) => {
+        if (c.id !== commentId) return c;
+        const prev = c.myVote;
+        const next = prev === vote ? 0 : vote;
+        return {
+          ...c,
+          likes: c.likes + (next === 1 ? 1 : 0) - (prev === 1 ? 1 : 0),
+          dislikes: c.dislikes + (next === -1 ? 1 : 0) - (prev === -1 ? 1 : 0),
+          myVote: next as 0 | 1 | -1,
+        };
+      }),
+    );
+
+    try {
+      await fetch(`/api/account/comments/${encodeURIComponent(animeId)}/${commentId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ vote }),
+      });
+    } catch {
+      fetchComments();
+    }
+  };
+
   const canSubmit = (draft.trim().length > 0 || !!selectedGif) && !submitting;
   const showToolbar = focused || !!draft || !!selectedGif;
 
@@ -343,6 +376,33 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                     />
                   </div>
                 )}
+
+                <div className="flex items-center gap-1 mt-2.5">
+                  <button
+                    onClick={() => auth && handleVote(c.id, 1)}
+                    disabled={!auth}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ${
+                      c.myVote === 1
+                        ? "text-emerald-400 bg-emerald-500/10"
+                        : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default"
+                    }`}
+                  >
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                    {c.likes > 0 && <span className="font-mono tabular-nums">{c.likes}</span>}
+                  </button>
+                  <button
+                    onClick={() => auth && handleVote(c.id, -1)}
+                    disabled={!auth}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ${
+                      c.myVote === -1
+                        ? "text-rose-400 bg-rose-500/10"
+                        : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default"
+                    }`}
+                  >
+                    <ThumbsDown className="w-3.5 h-3.5" />
+                    {c.dislikes > 0 && <span className="font-mono tabular-nums">{c.dislikes}</span>}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
