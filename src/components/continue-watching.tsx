@@ -24,6 +24,7 @@ type Props = { loading: boolean };
 const ContinueWatching = ({ loading }: Props) => {
   const { auth } = useAuthStore();
   const lastSaved = useProgressStore((s) => s.lastSaved);
+  const getProgress = useProgressStore((s) => s.getProgress);
   const [items, setItems] = useState<ContinueItem[]>([]);
   const [fetched, setFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,7 @@ const ContinueWatching = ({ loading }: Props) => {
 
             const episodeNumber = parseInt((r.episodeId ?? "ep-0").replace("ep-", ""), 10) || 0;
 
+            const cached = getProgress(r.animeId, r.episodeId ?? "");
             return {
               id: r.animeId,
               name: title,
@@ -67,8 +69,8 @@ const ContinueWatching = ({ loading }: Props) => {
               episodeId: r.episodeId,
               watchDetail: {
                 id: r.animeId,
-                current: r.currentTime ?? 0,
-                timestamp: r.duration ?? 0,
+                current: cached?.current ?? r.currentTime ?? 0,
+                timestamp: cached?.duration ?? r.duration ?? 0,
                 episodeId: r.episodeId ?? "",
                 episodeNumber,
                 created: r.lastUpdated ?? "",

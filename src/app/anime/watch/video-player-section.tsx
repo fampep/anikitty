@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
+import { useProgressStore } from "@/store/progress-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { anisurgeContinue } from "@/lib/anisurge";
 import dynamic from "next/dynamic";
@@ -146,7 +147,10 @@ const VideoPlayerSection = () => {
   const handleLiveTime = useCallback((t: number, dur: number) => {
     liveTimeRef.current = t;
     liveDurationRef.current = dur;
-  }, []);
+    if (animeSlug && episodeId && t > 5 && dur > 0) {
+      useProgressStore.getState().setProgress(animeSlug, episodeId, t, dur);
+    }
+  }, [animeSlug, episodeId]);
 
   // Save on pauses as well as on the 10s interval
   const handleProgress = useCallback((current: number, duration: number) => {
