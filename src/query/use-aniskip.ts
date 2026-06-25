@@ -11,7 +11,7 @@ export interface SkipTimes {
   outro?: SkipInterval;
 }
 
-// ── Chapter VTT parsing ───────────────────────────────────────────────
+// ── 1. Chapter VTT from stream tracks ────────────────────────────────
 
 function vttTimeToSeconds(ts: string): number {
   const parts = ts.trim().split(":").map(Number);
@@ -47,7 +47,16 @@ async function parseChapterVtt(url: string): Promise<SkipTimes> {
   return out;
 }
 
-// ── M3U8 manifest parsing ─────────────────────────────────────────────
+// ── 2. anime-skip.com via server-side cached route ────────────────────
+
+async function fetchAnimeSkipTimes(title: string, episode: number): Promise<SkipTimes> {
+  const url = `/api/kitty/skip-times?title=${encodeURIComponent(title)}&episode=${episode}`;
+  const res = await fetch(url);
+  if (!res.ok) return {};
+  return res.json() as Promise<SkipTimes>;
+}
+
+// ── 3. M3U8 #EXT-X-DATERANGE parsing (last resort) ───────────────────
 
 function parseHlsAttrs(attrStr: string): Record<string, string> {
   const attrs: Record<string, string> = {};
@@ -69,19 +78,15 @@ function parseMediaPlaylistText(text: string): SkipTimes {
       programDateTimeMs = new Date(line.slice(25).trim()).getTime();
       continue;
     }
-
     if (line.startsWith("#EXT-X-DATERANGE:")) {
       if (programDateTimeMs === null) continue;
       const attrs = parseHlsAttrs(line.slice(17));
       const id    = (attrs.ID ?? "").toLowerCase();
       const startDate = attrs["START-DATE"];
       const dur   = parseFloat(attrs.DURATION ?? "0");
-
       if (!startDate || isNaN(dur) || dur <= 0) continue;
-
       const offsetSec = (new Date(startDate).getTime() - programDateTimeMs) / 1000;
       if (offsetSec < 0) continue;
-
       const interval: SkipInterval = { start: offsetSec, end: offsetSec + dur };
       if (INTRO_RE.test(id)) out.intro = interval;
       if (OUTRO_RE.test(id)) out.outro = interval;
@@ -100,19 +105,16 @@ async function parseM3u8SkipTimes(src: string, referer: string): Promise<SkipTim
     if (!masterRes.ok) return {};
     const masterText = await masterRes.text();
 
-    // If this is already a media playlist, parse it directly
     if (!masterText.includes("#EXT-X-STREAM-INF:")) {
       return parseMediaPlaylistText(masterText);
     }
 
-    // Master playlist — find the first variant stream URL (already rewritten by proxy)
     const lines = masterText.split("\n");
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].trim().startsWith("#EXT-X-STREAM-INF:")) {
         for (let j = i + 1; j < lines.length; j++) {
           const next = lines[j].trim();
           if (next && !next.startsWith("#")) {
-            // The URL is already proxied (relative path like /api/kitty/hls?url=...)
             const mediaRes = await fetch(next);
             if (!mediaRes.ok) return {};
             return parseMediaPlaylistText(await mediaRes.text());
@@ -121,7 +123,7 @@ async function parseM3u8SkipTimes(src: string, referer: string): Promise<SkipTim
       }
     }
   } catch {
-    // silently fail — skip times are a nice-to-have
+    // silently fail
   }
 
   return {};
@@ -133,6 +135,8 @@ export function useSkipTimes(
   tracks: KittyTrack[] | undefined,
   m3u8Src?: string,
   referer?: string,
+  animeName?: string,
+  episodeNumber?: number,
 ) {
   const chapterTrack = tracks?.find(
     (t) =>
@@ -143,7 +147,7 @@ export function useSkipTimes(
       t.label?.toLowerCase().includes("intro"),
   );
 
-  // Primary: chapter VTT from stream tracks
+  // 1 — Chapter VTT from the stream (best source)
   const vttQuery = useQuery<SkipTimes>({
     queryKey: ["chapters", chapterTrack?.file],
     queryFn: () => parseChapterVtt(chapterTrack!.file),
@@ -151,20 +155,37 @@ export function useSkipTimes(
     staleTime: Infinity,
     retry: false,
   });
-
   const vttHasData = !!(vttQuery.data?.intro || vttQuery.data?.outro);
 
-  // Fallback: parse the m3u8 manifest for #EXT-X-DATERANGE markers
+  // 2 — anime-skip.com API with server-side DB cache
+  const animeSkipQuery = useQuery<SkipTimes>({
+    queryKey: ["anime-skip", animeName, episodeNumber],
+    queryFn: () => fetchAnimeSkipTimes(animeName!, episodeNumber!),
+    enabled: !!animeName && !!episodeNumber && vttQuery.isFetched && !vttHasData,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const animeSkipHasData = !!(animeSkipQuery.data?.intro || animeSkipQuery.data?.outro);
+
+  // 3 — m3u8 DATERANGE markers (last resort)
   const m3u8Query = useQuery<SkipTimes>({
     queryKey: ["m3u8-chapters", m3u8Src],
     queryFn: () => parseM3u8SkipTimes(m3u8Src!, referer ?? ""),
-    enabled: !!m3u8Src && vttQuery.isFetched && !vttHasData,
+    enabled: !!m3u8Src && animeSkipQuery.isFetched && !animeSkipHasData && !vttHasData,
     staleTime: Infinity,
     retry: false,
   });
 
-  const data = vttHasData ? vttQuery.data : (m3u8Query.data ?? vttQuery.data);
-  const isLoading = vttQuery.isLoading || (!vttHasData && m3u8Query.isLoading);
+  const data = vttHasData
+    ? vttQuery.data
+    : animeSkipHasData
+      ? animeSkipQuery.data
+      : (m3u8Query.data ?? vttQuery.data);
+
+  const isLoading =
+    vttQuery.isLoading ||
+    (!vttHasData && animeSkipQuery.isLoading) ||
+    (!vttHasData && !animeSkipHasData && m3u8Query.isLoading);
 
   return { data, isLoading };
 }
