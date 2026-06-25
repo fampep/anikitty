@@ -45,85 +45,19 @@ async function parseChapterVtt(url: string): Promise<SkipTimes> {
   return out;
 }
 
-// ── 2. AniSkip API ────────────────────────────────────────────────────
-
-// Resolve AniList ID → MAL ID via AniList GraphQL when malId is unavailable
-async function resolveMalId(anilistId: number): Promise<number | null> {
-  try {
-    const res = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: "query ($id:Int!){Media(id:$id,type:ANIME){idMal}}",
-        variables: { id: anilistId },
-      }),
-    });
-    const json = await res.json();
-    return json?.data?.Media?.idMal ?? null;
-  } catch {
-    return null;
-  }
-}
-
-// Apply split-cour relation rules: may remap malId + episode to a different entry
-async function applyRelationRules(
-  malId: number,
-  episode: number,
-): Promise<{ malId: number; episode: number }> {
-  try {
-    const res = await fetch(`https://api.aniskip.com/v2/relation-rules/${malId}`);
-    if (!res.ok) return { malId, episode };
-    const json = await res.json();
-    if (!json.found) return { malId, episode };
-
-    // Rules are ordered; pick the first one where our episode is >= fromEpisode
-    for (const rule of json.results ?? []) {
-      if (episode >= rule.fromEpisode) {
-        return {
-          malId:   rule.toMalId,
-          episode: episode - rule.fromEpisode + rule.toEpisode,
-        };
-      }
-    }
-  } catch {
-    // fall through
-  }
-  return { malId, episode };
-}
+// ── 2. AniSkip via server-side proxy (avoids CORS) ───────────────────
 
 async function fetchAniSkipTimes(
   malId: number,
   episode: number,
   anilistId?: number,
 ): Promise<SkipTimes> {
-  // Resolve MAL ID from AniList if not provided
-  let resolvedMalId = malId > 0 ? malId : null;
-  if (!resolvedMalId && anilistId) {
-    resolvedMalId = await resolveMalId(anilistId);
-  }
-  if (!resolvedMalId) return {};
-
-  // Apply split-cour remapping
-  const mapped = await applyRelationRules(resolvedMalId, episode);
-
-  // Fetch skip times
-  const url =
-    `https://api.aniskip.com/v2/skip-times/${mapped.malId}/${mapped.episode}` +
-    `?types[]=op&types[]=ed&episodeLength=0`;
-
-  const res = await fetch(url);
+  const params = new URLSearchParams({ episode: String(episode) });
+  if (malId > 0) params.set("malId", String(malId));
+  if (anilistId) params.set("anilistId", String(anilistId));
+  const res = await fetch(`/api/kitty/aniskip?${params}`);
   if (!res.ok) return {};
-  const json = await res.json();
-  if (!json.found) return {};
-
-  const out: SkipTimes = {};
-  for (const result of json.results ?? []) {
-    const { startTime, endTime } = result.interval ?? {};
-    if (startTime == null || endTime == null) continue;
-    if (result.skipType === "op") out.intro = { start: startTime, end: endTime };
-    if (result.skipType === "ed") out.outro = { start: startTime, end: endTime };
-  }
-  return out;
+  return res.json() as Promise<SkipTimes>;
 }
 
 // ── 3. M3U8 manifest parsing (#EXT-X-DATERANGE + #EXTINF titles) ─────
@@ -230,23 +164,26 @@ export function useSkipTimes(
     retry: false,
   });
   const vttHasData = !!(vttQuery.data?.intro || vttQuery.data?.outro);
+  // A disabled query never sets isFetched; treat "no chapter track" as done
+  const vttDone = !chapterTrack?.file || vttQuery.isFetched;
 
   // 2 — AniSkip (with MAL resolution + split-cour rules)
   const canUseAniSkip = (!!malId || !!anilistId) && !!episodeNumber;
   const aniSkipQuery = useQuery<SkipTimes>({
     queryKey: ["aniskip", malId, anilistId, episodeNumber],
     queryFn: () => fetchAniSkipTimes(malId ?? 0, episodeNumber!, anilistId),
-    enabled: canUseAniSkip && vttQuery.isFetched && !vttHasData,
+    enabled: canUseAniSkip && vttDone && !vttHasData,
     staleTime: Infinity,
     retry: false,
   });
   const aniSkipHasData = !!(aniSkipQuery.data?.intro || aniSkipQuery.data?.outro);
+  const aniSkipDone = !canUseAniSkip || aniSkipQuery.isFetched;
 
   // 3 — m3u8 DATERANGE / named EXTINF segments (last resort)
   const m3u8Query = useQuery<SkipTimes>({
     queryKey: ["m3u8-chapters", m3u8Src],
     queryFn: () => parseM3u8SkipTimes(m3u8Src!, referer ?? ""),
-    enabled: !!m3u8Src && aniSkipQuery.isFetched && !aniSkipHasData && !vttHasData,
+    enabled: !!m3u8Src && vttDone && aniSkipDone && !aniSkipHasData && !vttHasData,
     staleTime: Infinity,
     retry: false,
   });
