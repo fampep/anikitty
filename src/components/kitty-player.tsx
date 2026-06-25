@@ -89,6 +89,13 @@ export default function KittyPlayer({
     ? `/api/kitty/hls?url=${encodeURIComponent(thumbnailTrack.file)}`
     : undefined;
 
+  // If no chapter track came from the stream, derive one from the m3u8 on the server
+  const m3u8ChaptersUrl =
+    !chapterTrack && src
+      ? `/api/kitty/chapters?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}`
+      : undefined;
+  const effectiveChapterUrl = chapterTrack?.file ?? m3u8ChaptersUrl;
+
   useEffect(() => {
     startFiredRef.current = false;
     lastProgressTs.current = 0;
@@ -189,10 +196,10 @@ export default function KittyPlayer({
       >
         <MediaProvider>
           {poster && <Poster className="vds-poster" src={poster} alt="" />}
-          {/* Chapters track — makes vidstack show intro/outro markers on the progress bar */}
-          {chapterTrack && (
+          {/* Chapters track — from stream or derived from the m3u8 manifest */}
+          {effectiveChapterUrl && (
             <Track
-              src={chapterTrack.file}
+              src={effectiveChapterUrl}
               kind="chapters"
               default
             />
