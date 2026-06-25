@@ -23,7 +23,7 @@ const FeaturedCollectionCard = ({ title, anime, index = 0 }: Props) => {
           src={bgPoster}
           alt=""
           fill
-          className="object-cover object-center opacity-[0.10] scale-110 group-hover:opacity-[0.16] group-hover:scale-105 transition-all duration-700"
+          className="object-cover object-center opacity-[0.12] scale-110 group-hover:opacity-[0.18] group-hover:scale-105 transition-all duration-700"
           unoptimized
           aria-hidden
         />
@@ -38,24 +38,26 @@ const FeaturedCollectionCard = ({ title, anime, index = 0 }: Props) => {
         {ghostNum}
       </span>
 
-      {/* Fanned poster cards — right background */}
+      {/* Fanned poster cards — centered in right half */}
       <div className="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none">
+        {anime[2] && (
+          <div className="absolute top-1/2 -translate-y-1/2 right-[2%] rotate-[10deg] w-[6.5rem] shadow-xl transition-all duration-500 group-hover:rotate-[14deg] group-hover:-translate-y-[calc(50%+8px)] overflow-hidden rounded-lg ring-1 ring-white/8">
+            <Image src={anime[2].poster} alt={anime[2].name} width={104} height={148} className="object-cover w-full h-[148px]" unoptimized />
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+        )}
         {anime[0] && (
-          <div className="absolute bottom-[-4rem] right-[40%] rotate-[-14deg] w-[7rem] shadow-2xl transition-all duration-500 group-hover:rotate-[-18deg] group-hover:-translate-y-2 overflow-hidden rounded-lg ring-1 ring-white/8">
-            <Image src={anime[0].poster} alt={anime[0].name} width={112} height={160} className="object-cover w-full h-[160px]" unoptimized />
+          <div className="absolute top-1/2 -translate-y-1/2 right-[36%] rotate-[-12deg] w-[6.5rem] shadow-2xl transition-all duration-500 group-hover:rotate-[-16deg] group-hover:-translate-y-[calc(50%+6px)] overflow-hidden rounded-lg ring-1 ring-white/10">
+            <Image src={anime[0].poster} alt={anime[0].name} width={104} height={148} className="object-cover w-full h-[148px]" unoptimized />
+            <div className="absolute inset-0 bg-black/10" />
           </div>
         )}
         {anime[1] && (
-          <div className="absolute bottom-[-3rem] right-[18%] rotate-[-2deg] w-[7rem] shadow-2xl z-10 transition-all duration-500 group-hover:-translate-y-3 overflow-hidden rounded-lg ring-1 ring-white/8">
-            <Image src={anime[1].poster} alt={anime[1].name} width={112} height={160} className="object-cover w-full h-[160px]" unoptimized />
+          <div className="absolute top-1/2 -translate-y-1/2 right-[18%] rotate-[-1deg] w-[6.5rem] shadow-2xl z-10 transition-all duration-500 group-hover:-translate-y-[calc(50%+10px)] overflow-hidden rounded-lg ring-1 ring-white/12">
+            <Image src={anime[1].poster} alt={anime[1].name} width={104} height={148} className="object-cover w-full h-[148px]" unoptimized />
           </div>
         )}
-        {anime[2] && (
-          <div className="absolute bottom-[-4rem] right-[0%] rotate-[10deg] w-[7rem] shadow-xl transition-all duration-500 group-hover:rotate-[14deg] group-hover:-translate-y-2 overflow-hidden rounded-lg ring-1 ring-white/8">
-            <Image src={anime[2].poster} alt={anime[2].name} width={112} height={160} className="object-cover w-full h-[160px]" unoptimized />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#070707] via-[#070707]/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#070707] via-[#070707]/70 to-transparent" />
       </div>
 
       {/* Left content */}
@@ -67,7 +69,7 @@ const FeaturedCollectionCard = ({ title, anime, index = 0 }: Props) => {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {anime.slice(0, 5).map((item, i) => (
             <Link
               key={(item as any).id ?? i}

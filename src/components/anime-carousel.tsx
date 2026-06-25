@@ -70,10 +70,10 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex gap-2 overflow-x-auto pb-1 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex gap-4 overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {anime.map((ani, idx) => (
-            <div key={idx} className="shrink-0 w-[130px]">
+            <div key={idx} className="shrink-0 w-[144px]">
               <AnimeCard
                 title={ani.name}
                 subTitle={ani.type}

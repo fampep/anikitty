@@ -14,7 +14,7 @@ type Props = {
   loading: boolean;
 };
 
-const CARD_W = 130;
+const CARD_W = 144;
 
 const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -44,7 +44,7 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
   if (!latestEpisodes?.length) return null;
 
   return (
-    <Container className="flex flex-col gap-4 py-8 items-start lg:mt-[-10.125rem] z-20">
+    <Container className="flex flex-col gap-4 py-8 items-start lg:mt-[-5rem] z-20">
       <div className="flex items-center gap-3 w-full">
         <SectionHeading icon={<Tv2 className="w-4 h-4" />} title="Recent Releases" href={ROUTES.SEARCH} />
         <div className="flex items-center gap-1">
@@ -74,7 +74,7 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
         )}
         <div
           ref={scrollRef}
-          className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide"
+          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
         >
           {latestEpisodes.map((anime, idx) => (
             <BlurFade key={anime.id ?? idx} delay={idx * 0.02} inView>
@@ -103,12 +103,12 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
 };
 
 const LoadingSkeleton = () => (
-  <Container className="flex flex-col gap-4 py-8 items-start lg:mt-[-10.125rem] z-20">
+  <Container className="flex flex-col gap-4 py-8 items-start lg:mt-[-5rem] z-20">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
       <div className="h-6 w-44 animate-pulse bg-white/8 rounded" />
     </div>
-    <div className="flex gap-2.5 overflow-hidden w-full">
+    <div className="flex gap-4 overflow-hidden w-full">
       {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} style={{ width: CARD_W }} className="shrink-0 rounded-xl aspect-[2/3] animate-pulse bg-white/5" />
       ))}
