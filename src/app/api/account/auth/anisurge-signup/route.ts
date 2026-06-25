@@ -5,8 +5,6 @@ import { signToken } from "@/lib/auth-jwt";
 import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
-const ANISURGE_BFF = "https://db.anisurge.qzz.io/v1";
-
 export async function POST(req: Request) {
   try {
     const { username, email, password } = await req.json();
@@ -14,69 +12,57 @@ export async function POST(req: Request) {
     if (!username?.trim() || !email?.trim() || !password)
       return NextResponse.json({ error: "Username, email and password are required" }, { status: 400 });
 
-    if (!/^[a-zA-Z0-9]{3,10}$/.test(username.trim()))
-      return NextResponse.json({ error: "Username must be 3–10 alphanumeric characters" }, { status: 400 });
+    if (!/^[a-zA-Z0-9_]{3,25}$/.test(username.trim()))
+      return NextResponse.json({ error: "Username must be 3–25 characters (letters, numbers, underscore)" }, { status: 400 });
 
-    const bffRes = await fetch(`${ANISURGE_BFF}/auth/signup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: username.trim(), email: email.trim(), password }),
-    });
-
-    if (!bffRes.ok) {
-      const body = await bffRes.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: body?.error ?? "Signup failed" },
-        { status: bffRes.status === 409 ? 409 : 400 },
-      );
-    }
-
-    const bffData = await bffRes.json();
-    const anisurgeUser = bffData.user ?? {};
-    const anisurgeId: string = bffData.anisurgeUserId ?? anisurgeUser.externalUserId ?? "";
-    const anisurgeUsername: string = anisurgeUser.username ?? username.trim();
-    const anisurgeEmail: string = (anisurgeUser.email ?? email.trim()).toLowerCase();
-    const avatarUrl: string | null = anisurgeUser.customPfpUrl ?? anisurgeUser.avatarUrl ?? null;
+    if (password.length < 8)
+      return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
 
     const db = getDb();
-
-    let [existing] = await db
-      .select()
+    const [conflict] = await db
+      .select({ id: users.id })
       .from(users)
-      .where(or(eq(users.email, anisurgeEmail), eq(users.username, anisurgeUsername)))
+      .where(or(
+        eq(users.email, email.trim().toLowerCase()),
+        eq(users.username, username.trim()),
+      ))
       .limit(1);
 
-    if (!existing) {
-      const passwordHash = await bcrypt.hash(
-        `anisurge_sso:${anisurgeId}:${Date.now()}`,
-        10,
-      );
-      [existing] = await db
-        .insert(users)
-        .values({ username: anisurgeUsername, email: anisurgeEmail, passwordHash, avatarUrl })
-        .returning();
-    }
+    if (conflict)
+      return NextResponse.json({ error: "Username or email already taken" }, { status: 409 });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const [user] = await db
+      .insert(users)
+      .values({
+        username: username.trim(),
+        email: email.trim().toLowerCase(),
+        passwordHash,
+      })
+      .returning();
 
     const token = await signToken({
-      userId: existing.id,
-      username: existing.username,
-      role: existing.role ?? "user",
+      userId: user.id,
+      username: user.username,
+      role: user.role ?? "user",
     });
 
     return NextResponse.json({
+      token,
       anisurgeToken: token,
-      anisurgeUserId: existing.id,
+      anisurgeUserId: user.id,
       user: {
-        username: existing.username,
-        email: existing.email,
-        avatarUrl: existing.avatarUrl ?? null,
-        bannerUrl: existing.bannerUrl ?? null,
-        bio: existing.bio ?? null,
-        role: existing.role ?? "user",
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatarUrl: user.avatarUrl ?? null,
+        bannerUrl: user.bannerUrl ?? null,
+        bio: user.bio ?? null,
+        role: user.role ?? "user",
       },
     });
-  } catch (e: any) {
-    console.error("[anisurge-signup]", e);
+  } catch (e) {
+    console.error("[signup]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, Tv2, Zap, Shield, MessageSquare, Users } from "lucide-react";
+import { ArrowRight, Tv2, Shield, MessageSquare, Users, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { nightTokyo } from "@/utils/fonts";
 import { useOnlineCount } from "@/hooks/use-online-count";
@@ -155,8 +155,8 @@ export default function LandingPage() {
             <LoginPopoverButton
               customTrigger={
                 <button className="flex items-center gap-2 px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm min-w-[170px] justify-center">
-                  <Zap className="w-4 h-4 text-violet-400" />
-                  Sign in with Anisurge
+                  <LogIn className="w-4 h-4" />
+                  Sign in
                 </button>
               }
             />

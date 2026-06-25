@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     anisurgeUserId: user.id,
-    user: { username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null, role: user.role ?? "user" },
+    user: { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null, role: user.role ?? "user" },
   });
 }
 

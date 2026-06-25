@@ -83,14 +83,7 @@ const Footer = () => {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">Account</p>
             <NavLink href="/settings" label="Settings" />
-            <a
-              href="https://anisurge.me"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-white/35 hover:text-white/65 transition-colors"
-            >
-              Anisurge ↗
-            </a>
+            <NavLink href="/profile" label="Profile" />
           </div>
 
           {/* Links */}

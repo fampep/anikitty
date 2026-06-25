@@ -44,10 +44,10 @@ const NavBar = () => {
         const me = await anisurgeAuth.me();
         const user = me?.user ?? me;
         auth.setAuth({
-          id: me.anisurgeUserId ?? user.externalUserId ?? "",
+          id: user.id ?? me.anisurgeUserId ?? "",
           username: user.username ?? "",
           email: user.email ?? "",
-          avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
+          avatar: user.avatarUrl ?? "",
           bannerUrl: user.bannerUrl ?? null,
           bio: user.bio ?? null,
           role: user.role ?? "user",
