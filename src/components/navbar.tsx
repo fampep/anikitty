@@ -34,9 +34,7 @@ const NavBar = () => {
   const { y } = useScrollPosition();
   const pathname = usePathname();
   const isScrolled = y > 20;
-
-  // Landing page has its own nav
-  if (pathname === "/") return null;
+  const isLanding = pathname === "/";
 
   useEffect(() => {
     const refreshAuth = async () => {
@@ -65,6 +63,8 @@ const NavBar = () => {
     refreshAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (isLanding) return null;
 
   return (
     <header
