@@ -57,48 +57,47 @@ export async function updateAniListProgress(
 }
 
 export async function getAniListMediaLists(accessToken: string) {
+  const viewer = await getAniListViewer(accessToken);
+  if (!viewer) return [];
+
   const data = await gql<{
-    Viewer: {
-      mediaListCollection: {
-        lists: Array<{
-          name: string;
-          status: string;
-          entries: Array<{
-            media: {
-              id: number;
-              idMal?: number | null;
-              bannerImage?: string | null;
-              coverImage?: { large?: string | null } | null;
-              title: { english?: string | null; romaji?: string | null };
-            };
-          }>;
+    MediaListCollection: {
+      lists: Array<{
+        name: string;
+        status: string;
+        entries: Array<{
+          media: {
+            id: number;
+            idMal?: number | null;
+            bannerImage?: string | null;
+            coverImage?: { large?: string | null } | null;
+            title: { english?: string | null; romaji?: string | null };
+          };
         }>;
-      } | null;
-    };
+      }>;
+    } | null;
   }>(
-    `query {
-      Viewer {
-        mediaListCollection(type: ANIME) {
-          lists {
-            name
-            status
-            entries {
-              media {
-                id
-                idMal
-                bannerImage
-                coverImage { large }
-                title { english romaji }
-              }
+    `query ($userId: Int, $type: MediaType) {
+      MediaListCollection(userId: $userId, type: $type) {
+        lists {
+          name
+          status
+          entries {
+            media {
+              id
+              idMal
+              bannerImage
+              coverImage { large }
+              title { english romaji }
             }
           }
         }
       }
     }`,
-    {},
+    { userId: viewer.id, type: "ANIME" },
     accessToken,
   );
-  return data.Viewer?.mediaListCollection?.lists ?? [];
+  return data.MediaListCollection?.lists ?? [];
 }
 
 export function parseEpisodeNumber(episodeId: string): number | null {

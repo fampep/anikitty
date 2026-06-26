@@ -45,7 +45,7 @@ export async function migrateDb() {
         user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         anime_id         VARCHAR(255) NOT NULL,
         episode_id       VARCHAR(100) NOT NULL,
-        current_time     INTEGER NOT NULL DEFAULT 0,
+        "current_time"   INTEGER NOT NULL DEFAULT 0,
         duration         INTEGER NOT NULL DEFAULT 0,
         language         VARCHAR(10) DEFAULT 'sub',
         server           VARCHAR(100),

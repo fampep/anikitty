@@ -2,6 +2,9 @@
 
 import ContinueWatching from "@/components/continue-watching";
 import FeaturedCollection from "@/components/featured-collection";
+import HomeGenreBar from "@/components/home-genre-bar";
+import HomeScheduleStrip from "@/components/home-schedule-strip";
+import HomeWelcomeBar from "@/components/home-welcome-bar";
 import { useGetHomePageData } from "@/query/get-home-page-data";
 import { IAnime, LatestCompletedAnime, SpotlightAnime } from "@/types/anime";
 import dynamic from "next/dynamic";
@@ -14,22 +17,56 @@ import {
   Sparkles,
   Clock,
   Compass,
+  MessagesSquare,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import Container from "@/components/container";
+import { useQueryClient } from "react-query";
+import { GET_HOME_PAGE_DATA } from "@/constants/query-keys";
 
 const HeroSection = dynamic(() => import("@/components/hero-section"));
 const LatestEpisodesAnime = dynamic(() => import("@/components/latest-episodes-section"));
 const AnimeSections = dynamic(() => import("@/components/anime-sections"));
 const LatestComments = dynamic(() => import("@/components/latest-comments"));
 
+function HomeSectionDivider() {
+  return (
+    <Container>
+      <div className="h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+    </Container>
+  );
+}
+
 export default function Home() {
-  const { data, isLoading } = useGetHomePageData();
+  const { data, isLoading, isError, refetch, isFetching } = useGetHomePageData();
+  const queryClient = useQueryClient();
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries([GET_HOME_PAGE_DATA]);
+    refetch();
+  };
+
+  if (isError && !data) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6 bg-black">
+        <p className="text-sm text-white/40 font-mono">Couldn&apos;t load home feed</p>
+        <button
+          onClick={handleRetry}
+          disabled={isFetching}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col bg-black">
-      {/* ── Act 1: Discovery ── */}
+    <div className="flex flex-col bg-black pb-16">
+      {/* ── Hero & discovery ── */}
       <HeroSection
         spotlightAnime={data?.spotlightAnimes as SpotlightAnime[]}
         isDataLoading={isLoading}
@@ -40,9 +77,14 @@ export default function Home() {
         latestEpisodes={data?.latestEpisodeAnimes as LatestCompletedAnime[]}
       />
 
+      <HomeWelcomeBar />
       <ContinueWatching loading={isLoading} />
+      <HomeScheduleStrip />
+      <HomeGenreBar />
 
-      {/* ── Act 2: Browse ── */}
+      <HomeSectionDivider />
+
+      {/* ── Curated lists ── */}
       <FeaturedCollection
         loading={isLoading}
         featuredAnime={[
@@ -62,15 +104,24 @@ export default function Home() {
         seeAllHref={ROUTES.TRENDING}
       />
 
-      {/* ── Act 3: Community & Explore ── */}
+      <AnimeSections
+        title="Coming Soon"
+        icon={<CalendarClock className="w-4 h-4" />}
+        trendingAnime={data?.topUpcomingAnimes as IAnime[]}
+        loading={isLoading}
+        layout="row"
+        seeAllHref={`${ROUTES.TRENDING}#upcoming`}
+      />
+
+      <HomeSectionDivider />
+
+      {/* ── Community & explore ── */}
       <Container className="py-12">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
-          {/* Left: Latest Comments */}
           <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5 sm:p-6">
             <LatestComments bare />
           </div>
 
-          {/* Right: Explore */}
           <div className="flex flex-col gap-3 lg:sticky lg:top-24">
             <div className="flex items-center gap-2 px-1">
               <Compass className="w-3.5 h-3.5 text-white/30" />
@@ -102,6 +153,13 @@ export default function Home() {
                 color="amber"
               />
               <ExploreCard
+                href={ROUTES.FORUM}
+                icon={<MessagesSquare className="w-4 h-4" />}
+                title="Forum"
+                description="Discuss anime with the community"
+                color="rose"
+              />
+              <ExploreCard
                 href={ROUTES.SEARCH}
                 icon={<Clock className="w-4 h-4" />}
                 title="Browse All"
@@ -121,6 +179,7 @@ const COLOR_MAP: Record<string, { icon: string; bg: string; border: string }> = 
   violet:  { icon: "text-violet-400",  bg: "group-hover:bg-violet-500/[0.07]",  border: "group-hover:border-violet-500/25" },
   amber:   { icon: "text-amber-400",   bg: "group-hover:bg-amber-500/[0.07]",   border: "group-hover:border-amber-500/25" },
   emerald: { icon: "text-emerald-400", bg: "group-hover:bg-emerald-500/[0.07]", border: "group-hover:border-emerald-500/25" },
+  rose:    { icon: "text-rose-400",    bg: "group-hover:bg-rose-500/[0.07]",    border: "group-hover:border-rose-500/25" },
 };
 
 function ExploreCard({

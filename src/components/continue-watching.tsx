@@ -11,6 +11,7 @@ import { useProgressStore } from "@/store/progress-store";
 import Image from "next/image";
 import Link from "next/link";
 import { cn, formatSecondsToMMSS } from "@/lib/utils";
+import LoginPopoverButton from "./login-popover-button";
 
 interface ContinueItem {
   id: string;
@@ -157,7 +158,37 @@ const ContinueWatching = ({ loading }: Props) => {
   const scroll = (dir: "left" | "right") =>
     scrollRef.current?.scrollBy({ left: dir === "left" ? -440 : 440, behavior: "smooth" });
 
-  if (loading || !fetched) return <LoadingSkeleton />;
+  if (loading) return <LoadingSkeleton />;
+
+  if (!auth) {
+    return (
+      <Container className="py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 rounded-2xl border border-white/8 bg-white/[0.02]">
+          <div className="flex items-start gap-3">
+            <History className="w-5 h-5 text-white/25 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-white/70">Continue where you left off</p>
+              <p className="text-[11px] text-white/30 font-mono mt-0.5">
+                Sign in to sync your watch progress across devices
+              </p>
+            </div>
+          </div>
+          <LoginPopoverButton
+            customTrigger={
+              <button
+                type="button"
+                className="shrink-0 px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors"
+              >
+                Sign in to continue
+              </button>
+            }
+          />
+        </div>
+      </Container>
+    );
+  }
+
+  if (!fetched) return <LoadingSkeleton />;
   if (!items.length) return null;
 
   return (
