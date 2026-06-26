@@ -29,7 +29,7 @@ function ContinueCard({ item }: { item: ContinueItem }) {
   const href = `${ROUTES.WATCH}?anime=${item.id}&episode=${item.episodeId}${current > 10 ? `&t=${Math.floor(current)}` : ""}`;
 
   return (
-    <Link href={href} className="block shrink-0 w-[200px] group">
+    <Link href={href} className="block shrink-0 w-[160px] sm:w-[200px] group">
       {/* Thumbnail area */}
       <div className="relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
         <Image
@@ -191,7 +191,7 @@ const ContinueWatching = ({ loading }: Props) => {
         {canScrollRight && (
           <div className="absolute right-0 top-0 bottom-6 w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
         )}
-        <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide scroll-momentum">
           {items.map((item) => (
             <ContinueCard key={item.id + item.episodeId} item={item} />
           ))}
@@ -209,7 +209,7 @@ const LoadingSkeleton = () => (
     </div>
     <div className="flex gap-3 overflow-hidden w-full">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="shrink-0 w-[200px] flex flex-col gap-2">
+        <div key={i} className="shrink-0 w-[160px] sm:w-[200px] flex flex-col gap-2">
           <div className="w-full rounded-xl animate-pulse bg-white/8" style={{ aspectRatio: "16/9" }} />
           <div className="h-3 w-3/4 rounded animate-pulse bg-white/6" />
         </div>

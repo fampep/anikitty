@@ -14,7 +14,7 @@ type Props = {
   loading: boolean;
 };
 
-const CARD_W = 144;
+const CARD_W = 160;
 
 const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -74,7 +74,7 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
         )}
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-momentum"
         >
           {latestEpisodes.map((anime, idx) => (
             <BlurFade key={anime.id ?? idx} delay={idx * 0.02} inView>

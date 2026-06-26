@@ -4,6 +4,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Prevent font scaling on orientation change in iOS */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -11,6 +14,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Remove iOS tap highlight flash on interactive elements */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* All interactive elements: remove tap highlight and use pointer cursor */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 ::selection {
@@ -49,6 +60,18 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  /* Safe-area padding for notched / bottom-bar devices */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .pt-safe {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+  /* Momentum scrolling on iOS */
+  .scroll-momentum {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
   }
 }
 

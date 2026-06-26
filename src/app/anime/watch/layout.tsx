@@ -36,6 +36,7 @@ import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useGetAnimeMappings } from "@/query/get-anime-mappings";
+import { ChevronDown } from "lucide-react";
 
 const DB_LINKS = [
   { key: "anilist",   label: "AniList",     url: (id: string | number) => `https://anilist.co/anime/${id}`,                   color: "text-teal-400/80 border-teal-500/20 bg-teal-500/8"       },
@@ -92,6 +93,7 @@ const Layout = (props: Props) => {
     per_page: 1,
   });
   const [selected, setSelected] = useState("");
+  const [playlistOpen, setPlaylistOpen] = useState(false);
 
   const handleSelect = async (value: string) => {
     const prev = selected;
@@ -174,12 +176,12 @@ const Layout = (props: Props) => {
     currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.number}`;
 
   return (
-    <Container className="mt-[5.5rem] pb-20">
+    <Container className="mt-16 sm:mt-20 pb-16 pb-safe">
       {/* Breadcrumb + list selector */}
       <div className="flex items-center gap-1.5 mb-3 min-w-0">
         <Link
           href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-          className="text-[12px] font-mono text-white/35 hover:text-white/65 transition-colors truncate max-w-[260px]"
+          className="text-[12px] font-mono text-white/35 hover:text-white/65 transition-colors truncate max-w-[160px] sm:max-w-[260px]"
         >
           {info.name}
         </Link>
@@ -215,7 +217,7 @@ const Layout = (props: Props) => {
                 disabled={!prevEpisode}
                 title={prevEpisode ? `EP ${prevEpisode.number}` : undefined}
                 className={cn(
-                  "flex items-center justify-center w-7 h-7 rounded-lg border transition-all shrink-0",
+                  "flex items-center justify-center w-8 h-8 rounded-lg border transition-all shrink-0",
                   prevEpisode
                     ? "border-white/12 text-white/50 hover:text-white hover:border-white/25 hover:bg-white/6"
                     : "border-white/6 text-white/15 cursor-not-allowed",
@@ -237,7 +239,7 @@ const Layout = (props: Props) => {
                       </span>
                     )}
                   </p>
-                  <p className="text-[13px] font-semibold text-white leading-tight truncate">
+                  <p className="text-xs sm:text-[13px] font-semibold text-white leading-tight truncate">
                     {hasMeaningfulTitle
                       ? currentEpisode.title
                       : `${info.name} — Episode ${currentEpisode.number}`}
@@ -245,12 +247,23 @@ const Layout = (props: Props) => {
                 </div>
               </div>
 
+              {/* Mobile: episode list toggle */}
+              {episodes && (
+                <button
+                  onClick={() => setPlaylistOpen((o) => !o)}
+                  className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/12 text-white/40 hover:text-white/70 hover:border-white/25 transition-all shrink-0 text-[11px] font-mono"
+                >
+                  Episodes
+                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", playlistOpen && "rotate-180")} />
+                </button>
+              )}
+
               <button
                 onClick={handleNext}
                 disabled={!nextEpisode}
                 title={nextEpisode ? `EP ${nextEpisode.number}` : undefined}
                 className={cn(
-                  "flex items-center justify-center w-7 h-7 rounded-lg border transition-all shrink-0",
+                  "flex items-center justify-center w-8 h-8 rounded-lg border transition-all shrink-0",
                   nextEpisode
                     ? "border-white/12 text-white/50 hover:text-white hover:border-white/25 hover:bg-white/6"
                     : "border-white/6 text-white/15 cursor-not-allowed",
@@ -258,6 +271,19 @@ const Layout = (props: Props) => {
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
+            </div>
+          )}
+
+          {/* Mobile: collapsible episode playlist */}
+          {episodes && playlistOpen && (
+            <div className="lg:hidden">
+              <EpisodePlaylist
+                animeId={animeId as string}
+                title={info.name ?? (moreInfo?.japanese as string)}
+                subOrDub={stats?.episodes}
+                episodes={episodes}
+                isLoading={episodeLoading}
+              />
             </div>
           )}
 
@@ -380,15 +406,17 @@ const Layout = (props: Props) => {
           </Tabs>
         </div>
 
-        {/* Right: episode playlist */}
+        {/* Right: episode playlist (desktop only) */}
         {episodes && (
-          <EpisodePlaylist
-            animeId={animeId as string}
-            title={info.name ?? (moreInfo?.japanese as string)}
-            subOrDub={stats?.episodes}
-            episodes={episodes}
-            isLoading={episodeLoading}
-          />
+          <div className="hidden lg:block">
+            <EpisodePlaylist
+              animeId={animeId as string}
+              title={info.name ?? (moreInfo?.japanese as string)}
+              subOrDub={stats?.episodes}
+              episodes={episodes}
+              isLoading={episodeLoading}
+            />
+          </div>
         )}
       </div>
     </Container>

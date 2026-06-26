@@ -10,10 +10,10 @@ import Container from "./container";
 
 import { nightTokyo } from "@/utils/fonts";
 import { ROUTES } from "@/constants/routes";
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useRef, useState } from "react";
 
 import SearchBar from "./search-bar";
-import { CalendarDays, Flame, Home, MenuIcon, X } from "lucide-react";
+import { CalendarDays, Flame, Home, MenuIcon, X, SearchIcon } from "lucide-react";
 import useScrollPosition from "@/hooks/use-scroll-position";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
 import LoginPopoverButton from "./login-popover-button";
@@ -35,6 +35,8 @@ const NavBar = () => {
   const pathname = usePathname();
   const isScrolled = y > 20;
   const isLanding = pathname === "/";
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const refreshAuth = async () => {
@@ -126,7 +128,26 @@ const NavBar = () => {
         </div>
 
         {/* Mobile */}
-        <div className="lg:hidden flex items-center gap-2.5">
+        <div className="lg:hidden flex items-center gap-1.5">
+          {/* Inline search bar expands when open */}
+          {mobileSearchOpen && (
+            <div ref={mobileSearchRef} className="absolute left-0 right-0 top-0 h-14 px-4 flex items-center gap-2 bg-black/95 backdrop-blur-xl z-10">
+              <SearchBar className="flex-1" onAnimeClick={() => setMobileSearchOpen(false)} />
+              <button
+                onClick={() => setMobileSearchOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/8 transition-colors text-white/50 hover:text-white shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => setMobileSearchOpen(true)}
+            className="p-1.5 rounded-lg hover:bg-white/8 transition-colors"
+            aria-label="Search"
+          >
+            <SearchIcon className="h-5 w-5 text-white/60" />
+          </button>
           <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/60" suppressHydrationWarning />} />
           {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
         </div>

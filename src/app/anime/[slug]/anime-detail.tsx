@@ -125,7 +125,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   return (
     <div className="w-full min-h-screen">
       {/* ── Banner ── */}
-      <div className="h-[42vh] md:h-[58vh] w-full relative">
+      <div className="h-[35vh] sm:h-[42vh] md:h-[58vh] w-full relative">
         <Image
           src={bannerSrc}
           alt={info.name}
@@ -142,15 +142,16 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
       <Container className="pb-28">
         {/* ── Hero ── */}
-        <div className="flex md:mt-[-14rem] mt-[-5rem] md:flex-row flex-col md:items-end gap-6 md:gap-8">
-          <div className="shrink-0 relative">
+        <div className="flex md:mt-[-14rem] mt-[-3rem] sm:mt-[-4rem] md:flex-row flex-col md:items-end gap-4 sm:gap-6 md:gap-8">
+          {/* Poster: smaller on mobile, full-size on md+ */}
+          <div className="shrink-0 relative self-center md:self-auto">
             <AnimeCard
               title={info.name}
               poster={info.poster}
               href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
               displayDetails={false}
               variant="lg"
-              className="shadow-[0_32px_80px_rgba(0,0,0,0.9)] ring-1 ring-white/8"
+              className="shadow-[0_32px_80px_rgba(0,0,0,0.9)] ring-1 ring-white/8 w-[130px] sm:w-[160px] md:w-auto"
             />
             {isAiring && (
               <div className="absolute -top-2 -right-2 flex items-center gap-1 bg-emerald-500 text-black text-[9px] font-black px-2 py-1 rounded-full shadow-lg shadow-emerald-500/30">
@@ -160,17 +161,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             )}
           </div>
 
-          <div className="flex flex-col gap-3 pb-4 md:pb-10 min-w-0 flex-1">
+          <div className="flex flex-col gap-2.5 sm:gap-3 pb-4 md:pb-10 min-w-0 flex-1">
             <div>
-              <h1 className="md:text-4xl text-2xl font-black text-white leading-tight tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white leading-tight tracking-tight">
                 {info.name}
               </h1>
               {moreInfo.japanese && (
-                <p className="text-sm text-white/30 mt-1 font-mono">{moreInfo.japanese}</p>
+                <p className="text-xs sm:text-sm text-white/30 mt-1 font-mono">{moreInfo.japanese}</p>
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {stats?.rating && (
                 <StatPill icon={<Star className="w-3 h-3 fill-current" />} label={stats.rating} gold />
               )}
@@ -187,11 +188,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             </div>
 
             {moreInfo?.genres && (moreInfo.genres as string[]).length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1 sm:gap-1.5">
                 {(moreInfo.genres as string[]).map((g) => (
                   <span
                     key={g}
-                    className="px-3 py-1 text-[11px] rounded-full border border-white/10 text-white/40 bg-white/4 hover:bg-white/8 hover:text-white/60 transition-colors cursor-default"
+                    className="px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-full border border-white/10 text-white/40 bg-white/4 hover:bg-white/8 hover:text-white/60 transition-colors cursor-default"
                   >
                     {g}
                   </span>
@@ -200,12 +201,12 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             )}
 
             {info.description && (
-              <p className="text-[13px] text-white/45 leading-relaxed line-clamp-3 md:line-clamp-4 max-w-2xl">
+              <p className="text-[12px] sm:text-[13px] text-white/45 leading-relaxed line-clamp-3 md:line-clamp-4 max-w-2xl">
                 {info.description}
               </p>
             )}
 
-            <div className="flex items-center gap-3 flex-wrap mt-1">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap mt-1">
               <WatchButton />
               {auth && (
                 <Select
@@ -221,8 +222,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </div>
 
         {/* ── Tabs ── */}
-        <Tabs defaultValue="overview" className="w-full mt-10">
-          <TabsList className="flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto">
+        <Tabs defaultValue="overview" className="w-full mt-6 sm:mt-10">
+          <TabsList className="flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">
             {[
               { value: "overview",   label: "Overview"   },
               { value: "episodes",   label: "Episodes"   },

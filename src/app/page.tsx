@@ -80,12 +80,12 @@ export default function LandingPage() {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
 
       {/* ── Navigation ── */}
-      <nav className="relative z-20 flex items-center justify-between px-6 md:px-12 py-5">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-white/15 group-hover:ring-white/40 transition-all duration-200">
+      <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5">
+        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
+          <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden ring-1 ring-white/15 group-hover:ring-white/40 transition-all duration-200">
             <Image src="/jiji.jpg" alt="AniKitty" fill className="object-cover object-top" unoptimized />
           </div>
-          <span className={cn(nightTokyo.className, "text-lg font-bold tracking-widest text-white/90 group-hover:text-white transition-colors")}>
+          <span className={cn(nightTokyo.className, "text-base sm:text-lg font-bold tracking-widest text-white/90 group-hover:text-white transition-colors")}>
             AniKitty
           </span>
         </Link>
@@ -94,7 +94,7 @@ export default function LandingPage() {
           {!isLoggedIn && <LoginPopoverButton />}
           <Link
             href="/home"
-            className="flex items-center gap-1.5 px-4 py-2 bg-white text-black text-sm font-bold rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-xl shadow-black/30"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white text-black text-sm font-bold rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-xl shadow-black/30"
           >
             Browse
             <ArrowRight className="w-3.5 h-3.5" />
@@ -103,12 +103,12 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-20">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 py-12 sm:py-20">
 
         {/* Online pill */}
         <div
           className={cn(
-            "inline-flex items-center gap-2 px-3.5 py-1.5 mb-10 rounded-full border text-[11px] font-mono transition-all duration-500",
+            "inline-flex items-center gap-2 px-3.5 py-1.5 mb-8 sm:mb-10 rounded-full border text-[11px] font-mono transition-all duration-500",
             count !== null
               ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300/80 opacity-100"
               : "opacity-0 pointer-events-none",
@@ -124,7 +124,7 @@ export default function LandingPage() {
         <h1
           className={cn(
             nightTokyo.className,
-            "text-[4rem] sm:text-[5.5rem] md:text-[7rem] lg:text-[9rem] font-black tracking-widest leading-none mb-5 select-none",
+            "text-[3.5rem] sm:text-[5.5rem] md:text-[7rem] lg:text-[9rem] font-black tracking-widest leading-none mb-4 sm:mb-5 select-none",
           )}
         >
           <span className="text-white">Ani</span>
@@ -135,18 +135,18 @@ export default function LandingPage() {
           </span>
         </h1>
 
-        <p className="text-white/55 text-lg md:text-xl font-light mb-3 leading-relaxed tracking-wide">
+        <p className="text-white/55 text-base sm:text-lg md:text-xl font-light mb-2 sm:mb-3 leading-relaxed tracking-wide">
           Stream anime, completely free.
         </p>
-        <p className="text-white/22 text-sm md:text-base font-mono mb-12">
+        <p className="text-white/22 text-xs sm:text-sm md:text-base font-mono mb-10 sm:mb-12">
           No ads &middot; No subscriptions &middot; Sub &amp; Dub
         </p>
 
         {/* CTA buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
           <Link
             href="/home"
-            className="flex items-center gap-2 px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 min-w-[170px] justify-center"
+            className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 w-full sm:w-auto sm:min-w-[170px] justify-center"
           >
             <Tv2 className="w-4 h-4" />
             Start Watching
@@ -154,7 +154,7 @@ export default function LandingPage() {
           {!isLoggedIn ? (
             <LoginPopoverButton
               customTrigger={
-                <button className="flex items-center gap-2 px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm min-w-[170px] justify-center">
+                <button className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center">
                   <LogIn className="w-4 h-4" />
                   Sign in
                 </button>
@@ -163,7 +163,7 @@ export default function LandingPage() {
           ) : (
             <Link
               href="/home"
-              className="flex items-center gap-2 px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm min-w-[170px] justify-center"
+              className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center"
             >
               Continue as {auth.auth?.username}
               <ArrowRight className="w-3.5 h-3.5" />
@@ -172,7 +172,7 @@ export default function LandingPage() {
         </div>
 
         {/* Feature pills */}
-        <div className="mt-16 flex flex-wrap justify-center gap-3">
+        <div className="mt-12 sm:mt-16 flex flex-wrap justify-center gap-2 sm:gap-3">
           <FeaturePill icon={<Shield className="w-3.5 h-3.5" />} label="Zero Ads" />
           <FeaturePill icon={<Zap className="w-3.5 h-3.5" />} label="Fast Streams" />
           <FeaturePill icon={<Tv2 className="w-3.5 h-3.5" />} label="Sub & Dub" />
@@ -183,18 +183,18 @@ export default function LandingPage() {
 
       {/* ── Online counter strip ── */}
       {count !== null && (
-        <div className="relative z-10 mx-6 mb-8 md:mx-auto md:max-w-2xl">
-          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-sm px-6 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
+        <div className="relative z-10 mx-4 sm:mx-6 mb-6 sm:mb-8 md:mx-auto md:max-w-2xl">
+          <div className="rounded-2xl border border-white/8 bg-white/[0.025] backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="relative shrink-0">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-50" />
               </div>
-              <div>
-                <p className="text-white/70 text-sm font-semibold">
+              <div className="min-w-0">
+                <p className="text-white/70 text-sm font-semibold truncate">
                   {count.toLocaleString()} <span className="text-white/35">online</span>
                 </p>
-                <p className="text-white/20 text-[10px] font-mono">people watching anime right now</p>
+                <p className="text-white/20 text-[10px] font-mono hidden sm:block">people watching anime right now</p>
               </div>
             </div>
             <Link
@@ -209,7 +209,7 @@ export default function LandingPage() {
       )}
 
       {/* ── Bottom bar ── */}
-      <div className="relative z-10 border-t border-white/6 px-6 md:px-12 py-4 flex items-center justify-between gap-4">
+      <div className="relative z-10 border-t border-white/6 px-4 sm:px-6 md:px-12 py-4 flex items-center justify-between gap-4 pb-safe">
         <p className="text-white/15 text-[11px] font-mono">
           © {new Date().getFullYear()} anikitty.moe
         </p>

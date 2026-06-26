@@ -13,10 +13,15 @@ export async function GET(req: Request) {
 
   const url = `${BASE}/provider/${encodeURIComponent(provider)}/stream-direct?anilistId=${anilistId}&episode=${episode}&audio=${audio}`;
 
+  const headers: HeadersInit = {};
+  const apiKey = process.env.KITTY_API_KEY;
+  if (apiKey) headers["x-api-key"] = apiKey;
+
   try {
     const res = await fetch(url, {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
+      headers,
     });
 
     const data = await res.json();

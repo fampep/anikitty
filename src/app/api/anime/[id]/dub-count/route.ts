@@ -10,10 +10,14 @@ export async function GET(
   const numId = parseInt(id, 10);
   if (isNaN(numId)) return Response.json({ hasDub: false });
 
+  const headers: HeadersInit = {};
+  const apiKey = process.env.KITTY_API_KEY;
+  if (apiKey) headers["x-api-key"] = apiKey;
+
   try {
     const res = await fetch(
       `${KITTY_BASE}/provider/Miruro/stream-direct?anilistId=${numId}&episode=1&audio=dub`,
-      { signal: AbortSignal.timeout(6000) },
+      { signal: AbortSignal.timeout(6000), headers },
     );
     const data = await res.json();
     return Response.json({ hasDub: !!(data?.file) });

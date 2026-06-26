@@ -60,7 +60,7 @@ const AnimeCard = ({
           "transition-all duration-300",
           "hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_16px_48px_rgba(0,0,0,0.8)]",
           !compact && variant === "sm" &&
-            "h-[12rem] min-[320px]:h-[16.625rem] sm:h-[18rem] w-full max-w-[12.625rem]",
+            "h-[14rem] min-[380px]:h-[17rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           !compact && variant === "lg" &&
             "max-w-[12.625rem] md:max-w-[18.75rem] h-auto md:h-[25rem] shrink-0 lg:w-[18.75rem]",
           compact && "aspect-[2/3] w-full",

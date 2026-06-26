@@ -117,7 +117,7 @@ const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading }: Props) => {
   const hasMultipleGroups = ranges.length > 1;
 
   return (
-    <div className="col-span-1 flex flex-col w-full rounded-xl border border-white/10 bg-[#080808] overflow-hidden min-h-[200px] max-h-[720px]">
+    <div className="col-span-1 flex flex-col w-full rounded-xl border border-white/10 bg-[#080808] overflow-hidden min-h-[200px] max-h-[60vh] lg:max-h-[720px]">
       {/* Header */}
       <div className="shrink-0 px-4 pt-3.5 pb-3 border-b border-white/8 space-y-2.5">
         <div className="flex items-start justify-between gap-2">
@@ -181,7 +181,7 @@ const EpisodePlaylist = ({ animeId, subOrDub, episodes, isLoading }: Props) => {
       </div>
 
       {/* Episode list */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto py-1.5">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto py-1.5 scroll-momentum">
         {isLoading ? (
           <PlaylistSkeleton />
         ) : filteredEpisodes.length === 0 ? (

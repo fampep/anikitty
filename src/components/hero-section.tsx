@@ -53,7 +53,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   if (isDataLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="h-[90vh] w-full relative overflow-hidden">
+    <div className="h-[75vh] sm:h-[82vh] md:h-[90vh] w-full relative overflow-hidden">
       <Carousel className="w-full h-full" setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="h-full">
           {spotlightAnime?.map((anime, index) => (
@@ -65,7 +65,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
       </Carousel>
 
       {/* Bottom controls row */}
-      <div className="absolute bottom-8 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12">
+      <div className="absolute bottom-6 sm:bottom-8 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 md:px-12">
         {/* Slide counter */}
         <span className="text-white/30 text-xs font-mono tracking-widest hidden md:block">
           <span className="text-white/70">{String(current + 1).padStart(2, "0")}</span>
@@ -120,7 +120,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
 
 const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
   <div
-    className="w-full h-[90vh] bg-cover bg-no-repeat bg-center relative"
+    className="w-full h-[75vh] sm:h-[82vh] md:h-[90vh] bg-cover bg-no-repeat bg-center relative"
     style={{ backgroundImage: `url(${anime?.poster})` }}
   >
     {/* Layered cinematic gradients */}
@@ -138,9 +138,9 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
     />
 
     {/* Content */}
-    <div className="absolute inset-0 z-20 flex items-end md:items-center pb-28 md:pb-0">
+    <div className="absolute inset-0 z-20 flex items-end md:items-center pb-20 sm:pb-24 md:pb-0">
       <Container className="w-full">
-        <div className="max-w-lg space-y-4">
+        <div className="max-w-lg space-y-3 sm:space-y-4">
           {/* Rank + type */}
           <div className="flex items-center gap-2.5">
             {anime.rank && (
@@ -156,7 +156,7 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-black leading-[1.05] text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black leading-[1.05] text-white">
             {anime.name}
           </h1>
 
@@ -175,14 +175,14 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
               </span>
             )}
             {anime.otherInfo?.slice(0, 3).map((info, i) => (
-              <span key={i} className="text-xs text-white/40 font-mono">
+              <span key={i} className="text-xs text-white/40 font-mono hidden sm:inline">
                 {info}
               </span>
             ))}
           </div>
 
           {/* Description */}
-          <p className="text-sm md:text-[15px] text-white/55 line-clamp-3 leading-relaxed">
+          <p className="text-sm md:text-[15px] text-white/55 line-clamp-2 sm:line-clamp-3 leading-relaxed hidden xs:block">
             {parse(anime?.description ?? "")}
           </p>
 
@@ -190,17 +190,17 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
           <div className="w-12 h-px bg-white/20" />
 
           {/* CTA buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <ButtonLink
               href={`${ROUTES.WATCH}?anime=${anime.id}`}
-              className="flex items-center gap-2 h-11 bg-white text-black font-bold px-6 rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-lg shadow-white/10"
+              className="flex items-center gap-2 h-10 sm:h-11 bg-white text-black font-bold px-4 sm:px-6 rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-lg shadow-white/10 text-sm"
             >
               <Play className="h-4 w-4 fill-current" />
               Watch Now
             </ButtonLink>
             <ButtonLink
               href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-              className="flex items-center gap-2 h-11 bg-white/5 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/35 px-5 rounded-xl backdrop-blur-sm transition-all"
+              className="flex items-center gap-2 h-10 sm:h-11 bg-white/5 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/35 px-4 sm:px-5 rounded-xl backdrop-blur-sm transition-all text-sm"
             >
               <Info className="h-4 w-4" />
               Details
@@ -213,8 +213,8 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
 );
 
 const LoadingSkeleton = () => (
-  <div className="h-[90vh] w-full relative bg-black">
-    <div className="absolute inset-0 flex items-end md:items-center pb-28 md:pb-0">
+  <div className="h-[75vh] sm:h-[82vh] md:h-[90vh] w-full relative bg-black">
+    <div className="absolute inset-0 flex items-end md:items-center pb-20 sm:pb-24 md:pb-0">
       <Container className="w-full">
         <div className="max-w-lg space-y-4">
           <div className="h-4 w-20 animate-pulse bg-white/10 rounded-md" />

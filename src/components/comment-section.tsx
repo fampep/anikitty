@@ -42,7 +42,7 @@ function EmojiPickerPanel({
   return (
     <div
       ref={ref}
-      className="absolute bottom-full mb-2 left-0 z-50 w-72 rounded-xl border border-white/10 bg-[#0d0d0d] shadow-2xl shadow-black/80 overflow-hidden"
+      className="absolute bottom-full mb-2 left-0 sm:left-0 right-0 sm:right-auto sm:w-72 z-50 rounded-xl border border-white/10 bg-[#0d0d0d] shadow-2xl shadow-black/80 overflow-hidden"
     >
       <div className="flex border-b border-white/6 px-2 pt-2 gap-0.5">
         {EMOJI_GROUPS.map((g, i) => (
@@ -799,12 +799,12 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                       )}
                     >
                       <EyeOff className="w-3.5 h-3.5" />
-                      Spoiler
+                      <span className="hidden sm:inline">Spoiler</span>
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-mono text-white/15 tabular-nums">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="hidden sm:block text-[10px] font-mono text-white/15 tabular-nums">
                       {draft.length}/1000
                     </span>
                     <button
@@ -824,7 +824,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
               )}
             </div>
             {focused && (
-              <p className="text-[10px] text-white/15 font-mono mt-1.5 pl-1">
+              <p className="hidden sm:block text-[10px] text-white/15 font-mono mt-1.5 pl-1">
                 Ctrl+Enter to post
               </p>
             )}
@@ -881,7 +881,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                     </span>
 
                     {isOwn && !isEditing && (
-                      <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="ml-auto flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
                           className="p-1.5 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"

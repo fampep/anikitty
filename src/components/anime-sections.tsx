@@ -9,7 +9,7 @@ import { ROUTES } from "@/constants/routes";
 import { SectionHeading } from "./section-heading";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const CARD_W = 144;
+const CARD_W = 160;
 
 type Props = {
   trendingAnime: IAnime[];
@@ -123,7 +123,7 @@ function RowLayout({
         )}
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-momentum"
         >
           {trendingAnime.map((anime, idx) => (
             <BlurFade key={anime.id ?? idx} delay={idx * 0.02} inView>
