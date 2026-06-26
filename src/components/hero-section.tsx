@@ -40,6 +40,16 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
     return () => clearInterval(timer);
   }, [api, count]);
 
+  useEffect(() => {
+    if (!api) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") api.scrollPrev();
+      if (e.key === "ArrowRight") api.scrollNext();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [api]);
+
   if (isDataLoading) return <LoadingSkeleton />;
 
   return (

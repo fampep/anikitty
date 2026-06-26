@@ -76,6 +76,10 @@ const VideoPlayerSection = () => {
 
   // Episode list for next-episode navigation
   const { data: allEpisodes } = useGetAllEpisodes(animeSlug ?? "");
+  const currentEpisodeInfo = React.useMemo(() => {
+    if (!allEpisodes?.episodes || !episodeId) return undefined;
+    return allEpisodes.episodes.find((e) => e.episodeId === episodeId);
+  }, [allEpisodes, episodeId]);
   const nextEpisode = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
     const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
@@ -160,6 +164,12 @@ const VideoPlayerSection = () => {
   // Credits started → mark episode as fully watched
   const handleOutroStart = useCallback((duration: number) => {
     saveProgress(duration, duration);
+  }, [saveProgress]);
+
+  // Video ended → also mark as fully watched (covers episodes with no AniSkip data)
+  const handleEnded = useCallback(() => {
+    const dur = liveDurationRef.current;
+    if (dur > 0) saveProgress(dur, dur);
   }, [saveProgress]);
 
   // Save progress on tab close / navigation away
@@ -278,6 +288,7 @@ const VideoPlayerSection = () => {
         onLiveTime={handleLiveTime}
         onNextEpisode={handleNextEpisode}
         onOutroStart={handleOutroStart}
+        onEnded={handleEnded}
       />
 
       {/* Controls bar */}
@@ -290,14 +301,17 @@ const VideoPlayerSection = () => {
               EP {episodeNo}
             </span>
           )}
+          {currentEpisodeInfo?.title &&
+            currentEpisodeInfo.title.toLowerCase() !== `episode ${episodeNo}` && (
+              <span className="text-[12px] font-medium text-white/55 truncate hidden sm:block">
+                {currentEpisodeInfo.title}
+              </span>
+            )}
           {(skipTimes?.intro || skipTimes?.outro) && (
-            <span className="text-[10px] font-mono text-white/25 hidden sm:inline shrink-0">
+            <span className="text-[10px] font-mono text-white/20 hidden lg:inline shrink-0">
               · chapters
             </span>
           )}
-          <span className="text-[10px] font-mono text-white/15 hidden sm:inline truncate">
-            kittyapi.buzz
-          </span>
         </div>
 
         {/* Provider selector */}

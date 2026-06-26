@@ -2,14 +2,15 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Container from "./container";
-import AnimeCard from "./anime-card";
 import { ROUTES } from "@/constants/routes";
-import BlurFade from "./ui/blur-fade";
-import { ChevronLeft, ChevronRight, History } from "lucide-react";
+import { ChevronLeft, ChevronRight, History, Play } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { anisurgeContinue } from "@/lib/anisurge";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { useProgressStore } from "@/store/progress-store";
+import Image from "next/image";
+import Link from "next/link";
+import { cn, formatSecondsToMMSS } from "@/lib/utils";
 
 interface ContinueItem {
   id: string;
@@ -21,28 +22,85 @@ interface ContinueItem {
 
 type Props = { loading: boolean };
 
+function ContinueCard({ item }: { item: ContinueItem }) {
+  const { current, timestamp: duration, episodeNumber } = item.watchDetail;
+  const pct = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
+  const remaining = duration > current ? duration - current : 0;
+  const href = `${ROUTES.WATCH}?anime=${item.id}&episode=${item.episodeId}${current > 10 ? `&t=${Math.floor(current)}` : ""}`;
+
+  return (
+    <Link href={href} className="block shrink-0 w-[200px] group">
+      {/* Thumbnail area */}
+      <div className="relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
+        <Image
+          src={item.poster}
+          alt={item.name}
+          fill
+          unoptimized
+          className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
+          sizes="200px"
+        />
+        {/* Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+        {/* Play button on hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="bg-white/90 backdrop-blur-sm rounded-full p-2.5 shadow-xl">
+            <Play className="w-4 h-4 text-black fill-black" />
+          </div>
+        </div>
+
+        {/* Episode badge */}
+        <div className="absolute bottom-2 left-2">
+          <span className="text-[10px] font-mono font-bold bg-black/70 text-white/90 px-1.5 py-0.5 rounded backdrop-blur-sm">
+            EP {episodeNumber}
+          </span>
+        </div>
+
+        {/* Time remaining */}
+        {remaining > 30 && (
+          <div className="absolute bottom-2 right-2">
+            <span className="text-[9px] font-mono text-white/55 bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm">
+              {formatSecondsToMMSS(remaining)} left
+            </span>
+          </div>
+        )}
+
+        {/* Progress bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10">
+          <div
+            className="h-full bg-white/70 transition-none"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Title */}
+      <p className={cn(
+        "mt-2 text-[12px] font-semibold leading-tight line-clamp-1 transition-colors",
+        "text-white/60 group-hover:text-white/90",
+      )}>
+        {item.name}
+      </p>
+    </Link>
+  );
+}
+
 const ContinueWatching = ({ loading }: Props) => {
   const { auth } = useAuthStore();
   const lastSaved = useProgressStore((s) => s.lastSaved);
   const getProgress = useProgressStore((s) => s.getProgress);
   const [items, setItems] = useState<ContinueItem[]>([]);
   const [fetched, setFetched] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
-    if (!auth) {
-      setItems([]);
-      setFetched(true);
-      return;
-    }
+    if (!auth) { setItems([]); setFetched(true); return; }
 
-    setError(null);
     anisurgeContinue
       .get(true, 14)
-      // lastSaved in deps so we re-fetch whenever progress is saved
       .then((res) => {
         const data: any[] = res?.data ?? [];
         setItems(
@@ -58,9 +116,7 @@ const ContinueWatching = ({ loading }: Props) => {
               animeData?.cover_image?.extra_large ??
               animeData?.poster ??
               "";
-
             const episodeNumber = parseInt((r.episodeId ?? "ep-0").replace("ep-", ""), 10) || 0;
-
             const cached = getProgress(r.animeId, r.episodeId ?? "");
             return {
               id: r.animeId,
@@ -79,11 +135,7 @@ const ContinueWatching = ({ loading }: Props) => {
           }),
         );
       })
-      .catch((e: any) => {
-        console.error("[ContinueWatching]", e);
-        setError(e?.message ?? "Failed to load watch history");
-        setItems([]);
-      })
+      .catch(() => setItems([]))
       .finally(() => setFetched(true));
   }, [auth, lastSaved]);
 
@@ -102,18 +154,10 @@ const ContinueWatching = ({ loading }: Props) => {
     return () => el.removeEventListener("scroll", updateScrollState);
   }, [items]);
 
-  const scroll = (dir: "left" | "right") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir === "left" ? -320 : 320, behavior: "smooth" });
-  };
+  const scroll = (dir: "left" | "right") =>
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -440 : 440, behavior: "smooth" });
 
   if (loading || !fetched) return <LoadingSkeleton />;
-  if (error) return (
-    <Container className="py-4">
-      <p className="text-white/30 text-xs font-mono">Watch history unavailable</p>
-    </Container>
-  );
   if (!items.length) return null;
 
   return (
@@ -121,11 +165,7 @@ const ContinueWatching = ({ loading }: Props) => {
       <div className="flex items-center gap-3 w-full">
         <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-white/70 to-white/20 shrink-0" />
         <History className="text-white/45 w-4 h-4" />
-        <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-          Continue Watching
-        </h5>
-
-        {/* Arrow controls */}
+        <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight">Continue Watching</h5>
         <div className="ml-auto flex items-center gap-1">
           <button
             onClick={() => scroll("left")}
@@ -145,32 +185,15 @@ const ContinueWatching = ({ loading }: Props) => {
       </div>
 
       <div className="relative w-full">
-        {/* Left fade */}
         {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-2 w-12 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-6 w-12 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
         )}
-        {/* Right fade */}
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-2 w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-6 w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
         )}
-
-        <div
-          ref={scrollRef}
-          className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide"
-        >
-          {items.map((item, idx) => (
-            <BlurFade key={item.id} delay={idx * 0.04} inView>
-              <div className="w-[130px] shrink-0">
-                <AnimeCard
-                  compact
-                  title={item.name}
-                  poster={item.poster}
-                  className="w-full max-w-none"
-                  href={`${ROUTES.WATCH}?anime=${item.id}&episode=${item.episodeId}${item.watchDetail.current > 10 ? `&t=${Math.floor(item.watchDetail.current)}` : ""}`}
-                  watchDetail={item.watchDetail}
-                />
-              </div>
-            </BlurFade>
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+          {items.map((item) => (
+            <ContinueCard key={item.id + item.episodeId} item={item} />
           ))}
         </div>
       </div>
@@ -185,8 +208,11 @@ const LoadingSkeleton = () => (
       <div className="h-6 w-44 animate-pulse bg-white/8 rounded" />
     </div>
     <div className="flex gap-3 overflow-hidden w-full">
-      {Array.from({ length: 7 }).map((_, i) => (
-        <div key={i} className="w-[130px] shrink-0 rounded-xl aspect-[2/3] animate-pulse bg-white/8" />
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="shrink-0 w-[200px] flex flex-col gap-2">
+          <div className="w-full rounded-xl animate-pulse bg-white/8" style={{ aspectRatio: "16/9" }} />
+          <div className="h-3 w-3/4 rounded animate-pulse bg-white/6" />
+        </div>
       ))}
     </div>
   </Container>

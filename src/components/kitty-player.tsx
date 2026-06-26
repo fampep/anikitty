@@ -34,6 +34,7 @@ interface KittyPlayerProps {
   onLiveTime?: (current: number, duration: number) => void;
   onNextEpisode?: () => void;
   onOutroStart?: (duration: number) => void;
+  onEnded?: () => void;
 }
 
 function formatVttTime(s: number): string {
@@ -58,6 +59,7 @@ export default function KittyPlayer({
   onLiveTime,
   onNextEpisode,
   onOutroStart,
+  onEnded: onEndedProp,
 }: KittyPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -349,7 +351,11 @@ export default function KittyPlayer({
     if (t > 5 && dur > 0) onProgressRef.current?.(t, dur);
   }, []);
 
+  const onEndedRef = useRef(onEndedProp);
+  useEffect(() => { onEndedRef.current = onEndedProp; }, [onEndedProp]);
+
   const handleEnded = useCallback(() => {
+    onEndedRef.current?.();
     if (nextEpisode) setCountdown(5);
   }, [nextEpisode]);
 
