@@ -233,7 +233,7 @@ const Page = () => {
             {[
               { value: "overview",   label: "Overview"   },
               { value: "episodes",   label: "Episodes"   },
-              ...(mapImages && Object.values(mapImages).some(Boolean)
+              ...(mapImages
                 ? [{ value: "art", label: "Art" }]
                 : []),
               ...(info.charactersVoiceActors.length > 0
@@ -390,16 +390,59 @@ const Page = () => {
           {/* ── Art ── */}
           {mapImages && Object.values(mapImages).some(Boolean) && (
             <TabsContent value="art" className="mt-6">
-              <div className="space-y-8">
-                {mapImages.fanart && (
-                  <ArtSection label="Fanart" images={[mapImages.fanart]} wide />
+              <div className="space-y-10">
+                {(mapImages.artworks?.backgrounds?.length ?? 0) > 0 && (
+                  <ArtSection
+                    label="Backgrounds"
+                    items={mapImages.artworks!.backgrounds}
+                    wide
+                  />
                 )}
-                {mapImages.banner && (
-                  <ArtSection label="Banners" images={[mapImages.banner]} wide />
+                {(mapImages.artworks?.posters?.length ?? 0) > 0 && (
+                  <ArtSection
+                    label="Posters"
+                    items={mapImages.artworks!.posters}
+                  />
                 )}
-                {mapImages.poster && (
-                  <ArtSection label="Posters" images={[mapImages.poster]} />
+                {(mapImages.artworks?.banners?.length ?? 0) > 0 && (
+                  <ArtSection
+                    label="Banners"
+                    items={mapImages.artworks!.banners}
+                    wide
+                  />
                 )}
+                {(mapImages.artworks?.clearArt?.length ?? 0) > 0 && (
+                  <ArtSection
+                    label="Clear Art"
+                    items={mapImages.artworks!.clearArt}
+                    wide
+                    transparent
+                  />
+                )}
+                {(mapImages.artworks?.clearLogo?.length ?? 0) > 0 && (
+                  <ArtSection
+                    label="Clear Logo"
+                    items={mapImages.artworks!.clearLogo}
+                    wide
+                    transparent
+                  />
+                )}
+                {/* Fallback to ani.zip images if TVDB returned nothing */}
+                {!(mapImages.artworks?.backgrounds?.length) &&
+                  !(mapImages.artworks?.posters?.length) &&
+                  !(mapImages.artworks?.banners?.length) && (
+                    <div className="space-y-8">
+                      {mapImages.fanart && (
+                        <ArtSection label="Fanart" items={[{ image: mapImages.fanart }]} wide />
+                      )}
+                      {mapImages.banner && (
+                        <ArtSection label="Banner" items={[{ image: mapImages.banner }]} wide />
+                      )}
+                      {mapImages.poster && (
+                        <ArtSection label="Poster" items={[{ image: mapImages.poster }]} />
+                      )}
+                    </div>
+                  )}
               </div>
             </TabsContent>
           )}
@@ -468,43 +511,52 @@ const Page = () => {
 
 const ArtSection = ({
   label,
-  images,
+  items,
   wide = false,
+  transparent = false,
 }: {
   label: string;
-  images: string[];
+  items: { image: string; thumbnail?: string }[];
   wide?: boolean;
+  transparent?: boolean;
 }) => (
   <div>
-    <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
-      {label}
-    </h3>
+    <div className="flex items-center gap-3 mb-4">
+      <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+        {label}
+      </h3>
+      <span className="text-[10px] font-mono text-white/15">{items.length}</span>
+    </div>
     <div className={cn(
       "grid gap-3",
       wide
-        ? "grid-cols-1 sm:grid-cols-2"
-        : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4",
+        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
     )}>
-      {images.map((src, i) => (
+      {items.map((item, i) => (
         <a
           key={i}
-          href={src}
+          href={item.image}
           target="_blank"
           rel="noopener noreferrer"
-          className="group relative rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/25 transition-all block"
+          className={cn(
+            "group relative rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/25 transition-all block",
+            transparent && "bg-white/5",
+          )}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={src}
+            src={item.thumbnail ?? item.image}
             alt={`${label} ${i + 1}`}
             className={cn(
               "w-full object-cover transition-transform duration-300 group-hover:scale-105",
               wide ? "aspect-[16/9]" : "aspect-[2/3]",
+              transparent && "object-contain p-4",
             )}
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <span className="text-xs font-mono text-white/80 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
-              View full size
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
+            <span className="text-[11px] font-mono text-white/80 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
+              Full size
             </span>
           </div>
         </a>

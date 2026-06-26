@@ -15,10 +15,24 @@ export interface AnimeMappings {
   notifymoe_id?: string;
 }
 
+export interface TvdbArtworkItem {
+  image: string;
+  thumbnail?: string;
+}
+
+export interface ArtworkGroups {
+  backgrounds: TvdbArtworkItem[];
+  posters: TvdbArtworkItem[];
+  banners: TvdbArtworkItem[];
+  clearArt: TvdbArtworkItem[];
+  clearLogo: TvdbArtworkItem[];
+}
+
 export interface AnimeImages {
   banner?: string;
   fanart?: string;
   poster?: string;
+  artworks?: ArtworkGroups;
 }
 
 export interface AnimeMappingsResponse {
