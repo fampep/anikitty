@@ -165,6 +165,13 @@ const Layout = (props: Props) => {
     currentEpisode?.title &&
     currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.number}`;
 
+  // Update browser title instantly when episode changes (no server round-trip)
+  useEffect(() => {
+    if (!info?.name) return;
+    const epLabel = currentEpisode ? ` — Episode ${currentEpisode.number}` : "";
+    document.title = `${info.name}${epLabel} | AniKitty`;
+  }, [info?.name, currentEpisode?.number]);
+
   return (
     <Container className="mt-[5.5rem] pb-20">
       {/* Breadcrumb + list selector */}
