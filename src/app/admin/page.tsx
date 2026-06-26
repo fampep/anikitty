@@ -358,12 +358,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       <Container className="py-8">
         {/* ── Stats bar ──────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-          {([
+          {((): { label: string; value: number | undefined; Icon: React.ElementType; color: string }[] => [
             { label: "Total Users",    value: stats?.totalUsers,    Icon: Users,    color: "#4d9fff" },
             { label: "Watch Sessions", value: stats?.totalSessions, Icon: Activity, color: "#a855f7" },
             { label: "Unique Anime",   value: stats?.uniqueAnime,   Icon: Film,     color: "#22c55e" },
             { label: "Active Today",   value: stats?.activeToday,   Icon: Zap,      color: "#f59e0b" },
-          ] as const).map(({ label, value, Icon, color }) => (
+          ])().map(({ label, value, Icon, color }) => (
             <div key={label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
               <div className="flex items-center gap-2 mb-3">
                 <Icon className="w-3.5 h-3.5 shrink-0 opacity-60" style={{ color }} />
