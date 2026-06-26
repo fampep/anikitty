@@ -233,6 +233,9 @@ const Page = () => {
             {[
               { value: "overview",   label: "Overview"   },
               { value: "episodes",   label: "Episodes"   },
+              ...(mapImages && Object.values(mapImages).some(Boolean)
+                ? [{ value: "art", label: "Art" }]
+                : []),
               ...(info.charactersVoiceActors.length > 0
                 ? [{ value: "characters", label: "Characters" }]
                 : []),
@@ -253,35 +256,6 @@ const Page = () => {
 
           {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-8 space-y-8">
-
-            {/* TVDB art strip — shown when we have a fanart different from the banner */}
-            {mapImages?.fanart && mapImages.fanart !== mapImages.banner && (
-              <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
-                  Art
-                </h3>
-                <div className="flex gap-3 overflow-x-auto pb-1">
-                  {[mapImages.fanart, mapImages.banner, mapImages.poster]
-                    .filter(Boolean)
-                    .map((src, i) => (
-                      <a
-                        key={i}
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/20 transition-all"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={src}
-                          alt="art"
-                          className="h-28 w-auto object-cover"
-                        />
-                      </a>
-                    ))}
-                </div>
-              </div>
-            )}
 
             {/* Synopsis */}
             <div>
@@ -413,6 +387,23 @@ const Page = () => {
             <AnimeEpisodes animeId={info.id} />
           </TabsContent>
 
+          {/* ── Art ── */}
+          {mapImages && Object.values(mapImages).some(Boolean) && (
+            <TabsContent value="art" className="mt-6">
+              <div className="space-y-8">
+                {mapImages.fanart && (
+                  <ArtSection label="Fanart" images={[mapImages.fanart]} wide />
+                )}
+                {mapImages.banner && (
+                  <ArtSection label="Banners" images={[mapImages.banner]} wide />
+                )}
+                {mapImages.poster && (
+                  <ArtSection label="Posters" images={[mapImages.poster]} />
+                )}
+              </div>
+            </TabsContent>
+          )}
+
           {/* ── Characters ── */}
           {info.charactersVoiceActors.length > 0 && (
             <TabsContent value="characters" className="mt-6">
@@ -474,6 +465,53 @@ const Page = () => {
     </div>
   );
 };
+
+const ArtSection = ({
+  label,
+  images,
+  wide = false,
+}: {
+  label: string;
+  images: string[];
+  wide?: boolean;
+}) => (
+  <div>
+    <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
+      {label}
+    </h3>
+    <div className={cn(
+      "grid gap-3",
+      wide
+        ? "grid-cols-1 sm:grid-cols-2"
+        : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4",
+    )}>
+      {images.map((src, i) => (
+        <a
+          key={i}
+          href={src}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group relative rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/25 transition-all block"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={`${label} ${i + 1}`}
+            className={cn(
+              "w-full object-cover transition-transform duration-300 group-hover:scale-105",
+              wide ? "aspect-[16/9]" : "aspect-[2/3]",
+            )}
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="text-xs font-mono text-white/80 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
+              View full size
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+);
 
 const StatPill = ({
   icon,
