@@ -68,7 +68,7 @@ export async function getUsersXpStats(
   const result = new Map<string, UserXpStats>();
   if (unique.length === 0) return result;
 
-  const [watchRows, commentRows] = await Promise.all([
+  const [watchResult, commentResult] = await Promise.all([
     db.execute(sql`
       SELECT
         user_id,
@@ -80,20 +80,26 @@ export async function getUsersXpStats(
       FROM watch_progress
       WHERE user_id = ANY(${unique}::uuid[])
       GROUP BY user_id
-    `) as { user_id: string; started: number; completed: number }[],
+    `),
     db.execute(sql`
       SELECT user_id, COUNT(*)::int AS comments
       FROM comments
       WHERE user_id = ANY(${unique}::uuid[])
       GROUP BY user_id
-    `) as { user_id: string; comments: number }[],
+    `),
   ]);
 
+  const watchRows = watchResult as Record<string, unknown>[];
+  const commentRows = commentResult as Record<string, unknown>[];
+
   const watchMap = new Map(
-    watchRows.map((r) => [r.user_id, { started: Number(r.started), completed: Number(r.completed) }]),
+    watchRows.map((r) => [
+      String(r.user_id),
+      { started: Number(r.started), completed: Number(r.completed) },
+    ]),
   );
   const commentMap = new Map(
-    commentRows.map((r) => [r.user_id, Number(r.comments)]),
+    commentRows.map((r) => [String(r.user_id), Number(r.comments)]),
   );
 
   for (const id of unique) {
