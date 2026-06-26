@@ -31,10 +31,11 @@ export async function GET(req: Request) {
     const lastActiveMap = new Map<string, string>();
 
     if (ids.length > 0) {
+      const idParams = sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `);
       const activity = await db.execute(sql`
         SELECT user_id, MAX(updated_at) AS last_active
         FROM watch_progress
-        WHERE user_id = ANY(${ids}::uuid[])
+        WHERE user_id IN (${idParams})
         GROUP BY user_id
       `) as { user_id: string; last_active: Date | string }[];
 

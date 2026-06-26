@@ -68,6 +68,8 @@ export async function getUsersXpStats(
   const result = new Map<string, UserXpStats>();
   if (unique.length === 0) return result;
 
+  const idParams = sql.join(unique.map((id) => sql`${id}::uuid`), sql`, `);
+
   const [watchResult, commentResult] = await Promise.all([
     db.execute(sql`
       SELECT
@@ -78,13 +80,13 @@ export async function getUsersXpStats(
           THEN episode_id
         END)::int AS completed
       FROM watch_progress
-      WHERE user_id = ANY(${unique}::uuid[])
+      WHERE user_id IN (${idParams})
       GROUP BY user_id
     `),
     db.execute(sql`
       SELECT user_id, COUNT(*)::int AS comments
       FROM comments
-      WHERE user_id = ANY(${unique}::uuid[])
+      WHERE user_id IN (${idParams})
       GROUP BY user_id
     `),
   ]);
