@@ -7,7 +7,7 @@ import { RoleBadge } from "@/components/role-badge";
 import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
-  TrendingUp, Zap, Film, BarChart2, Megaphone, Info, AlertTriangle,
+  TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send,
 } from "lucide-react";
 import { toast } from "sonner";

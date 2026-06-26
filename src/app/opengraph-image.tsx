@@ -82,6 +82,7 @@ export default async function Image() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://anikitty.moe/jiji.jpg"
+            alt=""
             style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
           />
         </div>
