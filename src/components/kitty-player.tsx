@@ -241,13 +241,10 @@ export default function KittyPlayer({
   // Stream-provided thumbnails take priority; fall back to our generated ones
   const effectiveThumbnails = thumbnailsUrl ?? generatedThumbsUrl;
 
-  // Re-enter fullscreen when autoFullscreen is requested (next-episode transition)
+  // Track that fullscreen should be re-entered when the player is ready
+  const autoFsRef = useRef(false);
   useEffect(() => {
-    if (!autoFullscreen) return;
-    const timer = setTimeout(() => {
-      playerRef.current?.enterFullscreen().catch(() => {});
-    }, 300);
-    return () => clearTimeout(timer);
+    if (autoFullscreen) autoFsRef.current = true;
   }, [autoFullscreen]);
 
   // Countdown tick → fire next episode at 0
@@ -334,6 +331,17 @@ export default function KittyPlayer({
   const handleCanPlay = useCallback(() => {
     const t = startTimeRef.current;
     if (t > 10 && playerRef.current) playerRef.current.currentTime = t;
+
+    // Re-enter fullscreen once the player is ready (binge-watch next-episode transition).
+    // The wrapper div in VideoPlayerSection already holds fullscreen; calling
+    // enterFullscreen here hands it over to Vidstack so its controls work correctly.
+    if (autoFsRef.current) {
+      autoFsRef.current = false;
+      playerRef.current?.enterFullscreen().catch(() => {
+        // Fallback: native fullscreen on the player container element
+        containerRef.current?.requestFullscreen().catch(() => {});
+      });
+    }
   }, []);
 
   const handlePlay = useCallback(() => {

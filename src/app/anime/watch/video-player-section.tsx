@@ -89,11 +89,17 @@ const VideoPlayerSection = () => {
   }, [allEpisodes, episodeId]);
 
   const [autoFullscreen, setAutoFullscreen] = useState(false);
+  const playerWrapperRef = useRef<HTMLDivElement>(null);
 
   const handleNextEpisode = useCallback(() => {
     if (!nextEpisode || !animeSlug) return;
-    // Preserve fullscreen across episode change
     const isFs = !!document.fullscreenElement;
+    if (isFs && playerWrapperRef.current) {
+      // Synchronously transfer fullscreen to the persistent wrapper before
+      // KittyPlayer (the current fullscreen element) unmounts. This keeps
+      // the user in fullscreen through the episode transition.
+      playerWrapperRef.current.requestFullscreen().catch(() => {});
+    }
     setAutoFullscreen(isFs);
     setSelectedEpisode(nextEpisode.episodeId);
     router.push(`/anime/watch?anime=${animeSlug}&episode=${nextEpisode.episodeId}`);
@@ -273,6 +279,8 @@ const VideoPlayerSection = () => {
 
   return (
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10">
+      {/* Persistent wrapper — fullscreen is held here during episode transitions */}
+      <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
         key={`${anilistId}-${episodeNo}-${audio}-${provider}`}
         src={streamData.file}
@@ -290,6 +298,7 @@ const VideoPlayerSection = () => {
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
       />
+      </div>
 
       {/* Controls bar */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 bg-[#0a0a0a] border-t border-white/8">
