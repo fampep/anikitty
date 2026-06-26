@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { chatMessages, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/comment-helpers";
+import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/comment-helpers";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 import { eq, desc, gt, asc } from "drizzle-orm";
 
@@ -11,6 +11,7 @@ const CHAT_RATE = { windowMs: 30_000, max: 15 } as const;
 const MESSAGE_SELECT = {
   id: chatMessages.id,
   body: chatMessages.body,
+  gifUrl: chatMessages.gifUrl,
   createdAt: chatMessages.createdAt,
   userId: chatMessages.userId,
   username: users.username,
@@ -23,6 +24,7 @@ async function enrichMessages(
   rows: {
     id: string;
     body: string;
+    gifUrl: string | null;
     createdAt: Date | null;
     userId: string;
     username: string;
@@ -96,16 +98,20 @@ export async function POST(req: Request) {
 
   const raw = await req.json();
   const body = sanitizeBody(raw.body);
-  if (!body) return Response.json({ error: "Message cannot be empty" }, { status: 400 });
+  const gifUrl = sanitizeGifUrl(raw.gifUrl);
+  if (!body && !gifUrl) {
+    return Response.json({ error: "Message cannot be empty" }, { status: 400 });
+  }
 
   const db = getDb();
 
   const [row] = await db
     .insert(chatMessages)
-    .values({ userId: payload.userId, body })
+    .values({ userId: payload.userId, body: body || "", gifUrl })
     .returning({
       id: chatMessages.id,
       body: chatMessages.body,
+      gifUrl: chatMessages.gifUrl,
       createdAt: chatMessages.createdAt,
       userId: chatMessages.userId,
     });

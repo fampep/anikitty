@@ -1,6 +1,14 @@
 "use client";
 
+import type { ElementType } from "react";
+import {
+  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles, Zap,
+} from "lucide-react";
 import { RoleBadge } from "./role-badge";
+
+const TIER_ICONS: Record<string, ElementType> = {
+  Eye, Play, Tv, Star, Heart, Zap, Flame, Award, Shield, Crown, Sparkles,
+};
 
 type Props = {
   role?: string | null;
@@ -8,6 +16,7 @@ type Props = {
   level?: number | null;
   levelRole?: string | null;
   levelRoleColor?: string | null;
+  levelTierIcon?: string | null;
   size?: "xs" | "sm";
 };
 
@@ -15,11 +24,13 @@ function LevelRoleBadge({
   level,
   levelRole,
   levelRoleColor,
+  levelTierIcon,
   size = "xs",
 }: {
   level?: number | null;
   levelRole?: string | null;
   levelRoleColor?: string | null;
+  levelTierIcon?: string | null;
   size?: "xs" | "sm";
 }) {
   if (!levelRole) return null;
@@ -29,6 +40,8 @@ function LevelRoleBadge({
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   const textSize = size === "sm" ? "text-[11px]" : "text-[10px]";
+  const Icon = TIER_ICONS[levelTierIcon ?? ""] ?? Star;
+  const iconSize = size === "sm" ? "w-3 h-3" : "w-2.5 h-2.5";
 
   return (
     <span
@@ -40,6 +53,7 @@ function LevelRoleBadge({
       }}
       title={`Level ${level ?? "?"} · ${levelRole}`}
     >
+      <Icon className={iconSize} style={{ color: hex }} />
       {level != null && <span className="opacity-80">Lv.{level}</span>}
       <span>{levelRole}</span>
     </span>
@@ -53,6 +67,7 @@ export function UserBadges({
   level,
   levelRole,
   levelRoleColor,
+  levelTierIcon,
   size = "xs",
 }: Props) {
   const showStaff = role && role !== "user";
@@ -63,6 +78,7 @@ export function UserBadges({
         level={level}
         levelRole={levelRole}
         levelRoleColor={levelRoleColor}
+        levelTierIcon={levelTierIcon}
         size={size}
       />
       {showStaff && <RoleBadge role={role!} color={roleColor} size={size} />}

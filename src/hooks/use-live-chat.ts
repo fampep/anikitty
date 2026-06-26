@@ -64,10 +64,10 @@ export function useLiveChat() {
   }, [pollNew]);
 
   const sendMessage = useCallback(
-    async (body: string) => {
+    async (opts: { body?: string; gifUrl?: string | null }) => {
       setSending(true);
       try {
-        const { message } = await chatApi.sendMessage(body);
+        const { message } = await chatApi.sendMessage(opts);
         setMessages((prev) => {
           const merged = mergeMessages(prev, [message]);
           syncLatest(merged);

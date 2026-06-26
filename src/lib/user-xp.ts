@@ -27,6 +27,7 @@ export type LevelRoleFields = {
   level: number;
   levelRole: string;
   levelRoleColor: string;
+  levelTierIcon: string;
 };
 
 function statsToLevelRole(
@@ -119,6 +120,7 @@ export function levelRoleFields(stats: UserXpStats): LevelRoleFields {
     level: stats.level,
     levelRole: stats.levelRole,
     levelRoleColor: stats.levelRoleColor,
+    levelTierIcon: stats.tier.icon,
   };
 }
 
@@ -128,7 +130,13 @@ export function attachLevelRole<T extends { userId: string }>(
 ): T & LevelRoleFields {
   const stats = statsMap.get(row.userId);
   if (!stats) {
-    return { ...row, level: 1, levelRole: "Newcomer", levelRoleColor: "#94a3b8" };
+    return {
+      ...row,
+      level: 1,
+      levelRole: "Newcomer",
+      levelRoleColor: "#94a3b8",
+      levelTierIcon: "Eye",
+    };
   }
   return { ...row, ...levelRoleFields(stats) };
 }

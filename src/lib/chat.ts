@@ -3,6 +3,7 @@ import { getAnisurgeToken } from "@/lib/anisurge";
 export type ChatMessage = {
   id: string;
   body: string;
+  gifUrl: string | null;
   createdAt: string;
   userId: string;
   username: string;
@@ -12,6 +13,7 @@ export type ChatMessage = {
   level: number;
   levelRole: string;
   levelRoleColor: string;
+  levelTierIcon: string;
 };
 
 async function chatFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -43,10 +45,10 @@ export const chatApi = {
     );
   },
 
-  sendMessage: (body: string) =>
+  sendMessage: (opts: { body?: string; gifUrl?: string | null }) =>
     chatFetch<{ message: ChatMessage }>("/messages", {
       method: "POST",
-      body: JSON.stringify({ body }),
+      body: JSON.stringify(opts),
     }),
 
   deleteMessage: (messageId: string) =>

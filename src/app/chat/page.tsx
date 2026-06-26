@@ -11,10 +11,13 @@ import {
   Trash2,
   Users,
   Wifi,
+  ImagePlay,
+  X,
 } from "lucide-react";
 import Container from "@/components/container";
 import Avatar from "@/components/common/avatar";
 import { UserBadges } from "@/components/user-badges";
+import { GifUrlPanel } from "@/components/gif-url-panel";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { useLiveChat } from "@/hooks/use-live-chat";
 import { useOnlineCount } from "@/hooks/use-online-count";
@@ -40,34 +43,42 @@ function ChatBubble({
         isOwn ? "ml-auto flex-row-reverse" : "mr-auto",
       )}
     >
-      {!isOwn && (
-        <Link href={`/profile/${message.username}`} className="shrink-0 mt-0.5">
-          <Avatar
-            url={message.avatarUrl ?? undefined}
-            username={message.username}
-            className="h-8 w-8 ring-1 ring-white/10"
-          />
-        </Link>
-      )}
+      <Link
+        href={`/profile/${message.username}`}
+        className="shrink-0 mt-0.5"
+      >
+        <Avatar
+          url={message.avatarUrl ?? undefined}
+          username={message.username}
+          className="h-8 w-8 ring-1 ring-white/10"
+        />
+      </Link>
 
       <div className={cn("flex flex-col gap-0.5 min-w-0", isOwn && "items-end")}>
-        {!isOwn && (
-          <div className="flex items-center gap-1.5 flex-wrap px-1">
-            <Link
-              href={`/profile/${message.username}`}
-              className="text-xs font-semibold text-white/80 hover:text-white transition-colors"
-            >
-              {message.username}
-            </Link>
-            <UserBadges
-              role={message.role}
-              roleColor={message.roleColor}
-              level={message.level}
-              levelRole={message.levelRole}
-              levelRoleColor={message.levelRoleColor}
-            />
-          </div>
-        )}
+        <div
+          className={cn(
+            "flex items-center gap-1.5 flex-wrap px-1",
+            isOwn && "justify-end",
+          )}
+        >
+          <Link
+            href={`/profile/${message.username}`}
+            className={cn(
+              "text-xs font-semibold transition-colors",
+              isOwn ? "text-violet-300 hover:text-violet-200" : "text-white/80 hover:text-white",
+            )}
+          >
+            {message.username}
+          </Link>
+          <UserBadges
+            role={message.role}
+            roleColor={message.roleColor}
+            level={message.level}
+            levelRole={message.levelRole}
+            levelRoleColor={message.levelRoleColor}
+            levelTierIcon={message.levelTierIcon}
+          />
+        </div>
 
         <div
           className={cn(
@@ -77,7 +88,20 @@ function ChatBubble({
               : "bg-white/8 text-white/90 border border-white/8 rounded-bl-md",
           )}
         >
-          <p className="whitespace-pre-wrap">{message.body}</p>
+          {message.body ? (
+            <p className="whitespace-pre-wrap">{message.body}</p>
+          ) : null}
+          {message.gifUrl ? (
+            <div className={cn(message.body ? "mt-2" : "")}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={message.gifUrl}
+                alt="GIF"
+                loading="lazy"
+                className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/10"
+              />
+            </div>
+          ) : null}
           {canDelete && (
             <button
               type="button"
@@ -111,12 +135,15 @@ export default function ChatPage() {
   const { messages, loading, sending, error, sendMessage, deleteMessage } =
     useLiveChat();
   const [draft, setDraft] = useState("");
+  const [selectedGif, setSelectedGif] = useState<string | null>(null);
+  const [showGifPanel, setShowGifPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
 
   const isLoggedIn = !!auth;
   const isStaff = auth?.role === "admin" || auth?.role === "moderator";
+  const canSend = (draft.trim().length > 0 || !!selectedGif) && !sending;
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -137,11 +164,13 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    const text = draft.trim();
-    if (!text || sending) return;
+    const body = draft.trim();
+    if ((!body && !selectedGif) || sending) return;
     try {
-      await sendMessage(text);
+      await sendMessage({ body, gifUrl: selectedGif });
       setDraft("");
+      setSelectedGif(null);
+      setShowGifPanel(false);
       wasAtBottom.current = true;
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to send");
@@ -226,40 +255,79 @@ export default function ChatPage() {
           {/* Input */}
           <div className="border-t border-white/8 p-3 shrink-0">
             {isLoggedIn ? (
-              <form onSubmit={handleSend} className="flex items-end gap-2">
-                <textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend(e);
-                    }
-                  }}
-                  placeholder="Type a message…"
-                  rows={1}
-                  maxLength={1000}
-                  className={cn(
-                    "flex-1 resize-none rounded-xl px-4 py-2.5 text-sm",
-                    "bg-white/6 border border-white/10 text-white placeholder:text-white/30",
-                    "focus:outline-none focus:ring-1 focus:ring-white/20",
-                    "max-h-32",
-                  )}
-                />
-                <button
-                  type="submit"
-                  disabled={!draft.trim() || sending}
-                  className={cn(
-                    "shrink-0 flex items-center justify-center h-10 w-10 rounded-xl transition-all",
-                    "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed",
-                  )}
-                >
-                  {sending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
+              <form onSubmit={handleSend} className="flex flex-col gap-2">
+                {selectedGif && (
+                  <div className="relative inline-block self-start rounded-lg overflow-hidden ring-1 ring-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedGif} alt="GIF" className="max-h-28 w-auto block" />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGif(null)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 flex items-center justify-center hover:bg-black transition-colors"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-end gap-2">
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowGifPanel((v) => !v)}
+                      className={cn(
+                        "flex items-center justify-center h-10 w-10 rounded-xl transition-all border",
+                        showGifPanel || selectedGif
+                          ? "bg-white/12 text-white border-white/20"
+                          : "text-white/40 border-white/10 hover:text-white/70 hover:bg-white/5",
+                      )}
+                      title="Attach GIF"
+                    >
+                      <ImagePlay className="h-4 w-4" />
+                    </button>
+                    {showGifPanel && (
+                      <GifUrlPanel
+                        onAttach={(url) => {
+                          setSelectedGif(url);
+                          setShowGifPanel(false);
+                        }}
+                        onClose={() => setShowGifPanel(false)}
+                      />
+                    )}
+                  </div>
+                  <textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend(e);
+                      }
+                    }}
+                    placeholder="Type a message…"
+                    rows={1}
+                    maxLength={1000}
+                    className={cn(
+                      "flex-1 resize-none rounded-xl px-4 py-2.5 text-sm",
+                      "bg-white/6 border border-white/10 text-white placeholder:text-white/30",
+                      "focus:outline-none focus:ring-1 focus:ring-white/20",
+                      "max-h-32",
+                    )}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!canSend}
+                    className={cn(
+                      "shrink-0 flex items-center justify-center h-10 w-10 rounded-xl transition-all",
+                      "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed",
+                    )}
+                  >
+                    {sending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </form>
             ) : (
               <div className="flex items-center justify-between gap-3 px-2 py-1">

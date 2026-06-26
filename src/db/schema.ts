@@ -232,6 +232,7 @@ export const chatMessages = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
+    gifUrl: text("gif_url"),
     createdAt: timestamp("created_at").defaultNow(),
   },
   (t) => ({
