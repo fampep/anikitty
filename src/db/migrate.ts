@@ -98,6 +98,8 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`,
       `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS episode_number INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_spoiler BOOLEAN NOT NULL DEFAULT FALSE`,
+      `ALTER TABLE comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

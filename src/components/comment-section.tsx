@@ -4,15 +4,21 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
 import { getAnisurgeToken } from "@/lib/anisurge";
-import { MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
+  ThumbsUp, ThumbsDown, EyeOff, Pencil, Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { RoleBadge } from "@/components/role-badge";
+import { cn } from "@/lib/utils";
 
 interface Comment {
   id: string;
   body: string;
   gifUrl?: string | null;
+  isSpoiler: boolean;
   createdAt: string;
+  updatedAt?: string | null;
   userId: string;
   username: string;
   avatarUrl?: string | null;
@@ -139,14 +145,22 @@ export default function CommentSection({ animeId }: { animeId: string }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [draft, setDraft] = useState("");
+  const [isSpoiler, setIsSpoiler] = useState(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showGifPanel, setShowGifPanel] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchComments = useCallback(async () => {
     try {
-      const res = await fetch(`/api/account/comments/${encodeURIComponent(animeId)}`);
+      const token = getAnisurgeToken();
+      const res = await fetch(`/api/account/comments/${encodeURIComponent(animeId)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setComments(data.comments ?? []);
       setTotal(data.total ?? 0);
@@ -167,7 +181,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
       const res = await fetch(`/api/account/comments/${encodeURIComponent(animeId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ body, gifUrl: selectedGif }),
+        body: JSON.stringify({ body, gifUrl: selectedGif, isSpoiler }),
       });
       if (!res.ok) throw new Error();
       const newComment: Comment = await res.json();
@@ -175,6 +189,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
       setTotal((t) => t + 1);
       setDraft("");
       setSelectedGif(null);
+      setIsSpoiler(false);
       setFocused(false);
     } catch { toast.error("Failed to post comment"); }
     finally { setSubmitting(false); }
@@ -193,11 +208,45 @@ export default function CommentSection({ animeId }: { animeId: string }) {
     } catch { toast.error("Failed to delete comment"); }
   };
 
+  const startEdit = (c: Comment) => {
+    setEditingId(c.id);
+    setEditDraft(c.body);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditDraft("");
+  };
+
+  const saveEdit = async (commentId: string) => {
+    const body = editDraft.trim();
+    if (!body || savingEdit) return;
+    const token = getAnisurgeToken();
+    if (!token) return;
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/account/comments/${encodeURIComponent(animeId)}/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ body }),
+      });
+      if (!res.ok) throw new Error();
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId ? { ...c, body, updatedAt: new Date().toISOString() } : c,
+        ),
+      );
+      setEditingId(null);
+      setEditDraft("");
+    } catch { toast.error("Failed to save edit"); }
+    finally { setSavingEdit(false); }
+  };
+
   const handleVote = async (commentId: string, vote: 1 | -1) => {
     const token = getAnisurgeToken();
     if (!token) return;
 
-    // Optimistic update
     setComments((prev) =>
       prev.map((c) => {
         if (c.id !== commentId) return c;
@@ -285,11 +334,12 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                   <div className="flex items-center gap-1 relative">
                     <button
                       onClick={() => setShowGifPanel((v) => !v)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                         showGifPanel || selectedGif
-                          ? "bg-white/12 text-white border border-white/20"
-                          : "text-white/30 hover:text-white/60 hover:bg-white/5 border border-transparent"
-                      }`}
+                          ? "bg-white/12 text-white border-white/20"
+                          : "text-white/30 hover:text-white/60 hover:bg-white/5 border-transparent",
+                      )}
                     >
                       <ImagePlay className="w-3.5 h-3.5" />
                       GIF
@@ -300,6 +350,19 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                         onClose={() => setShowGifPanel(false)}
                       />
                     )}
+                    <button
+                      onClick={() => setIsSpoiler((v) => !v)}
+                      title="Mark as spoiler"
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
+                        isSpoiler
+                          ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                          : "text-white/30 hover:text-white/60 hover:bg-white/5 border-transparent",
+                      )}
+                    >
+                      <EyeOff className="w-3.5 h-3.5" />
+                      Spoiler
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -344,68 +407,170 @@ export default function CommentSection({ animeId }: { animeId: string }) {
         </div>
       ) : (
         <div className="flex flex-col divide-y divide-white/[0.04]">
-          {comments.map((c) => (
-            <div key={c.id} className="flex gap-3 py-4 group">
-              <CommentAvatar username={c.username} avatarUrl={c.avatarUrl} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span className="text-[13px] font-semibold text-white/90 leading-none">{c.username}</span>
-                  {c.role && c.role !== "user" && <RoleBadge role={c.role} color={c.roleColor} />}
-                  <span className="text-[11px] font-mono text-white/18 leading-none">{relativeTime(c.createdAt)}</span>
-                  {auth?.id === c.userId && (
-                    <button
-                      onClick={() => handleDelete(c.id)}
-                      className="ml-auto opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400/70 transition-all"
-                      title="Delete comment"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+          {comments.map((c) => {
+            const isOwn = auth?.id === c.userId;
+            const isEditing = editingId === c.id;
+            const isSpoilerRevealed = revealed.has(c.id);
+
+            return (
+              <div key={c.id} className="flex gap-3 py-4 group">
+                <CommentAvatar username={c.username} avatarUrl={c.avatarUrl} />
+                <div className="flex-1 min-w-0">
+                  {/* Header row */}
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="text-[13px] font-semibold text-white/90 leading-none">{c.username}</span>
+                    {c.role && c.role !== "user" && <RoleBadge role={c.role} color={c.roleColor} />}
+                    {c.isSpoiler && (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-400/70">
+                        <EyeOff className="w-2.5 h-2.5" />
+                        spoiler
+                      </span>
+                    )}
+                    <span className="text-[11px] font-mono text-white/18 leading-none">
+                      {relativeTime(c.createdAt)}
+                      {c.updatedAt && <span className="ml-1 text-white/15">(edited)</span>}
+                    </span>
+
+                    {/* Action buttons — show on hover for own comments */}
+                    {isOwn && !isEditing && (
+                      <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => startEdit(c)}
+                          className="p-1.5 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"
+                          title="Edit comment"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400/70 transition-all"
+                          title="Delete comment"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Body / edit form */}
+                  {isEditing ? (
+                    <div className="mt-1">
+                      <textarea
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) saveEdit(c.id);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        autoFocus
+                        rows={3}
+                        maxLength={1000}
+                        className="w-full bg-white/[0.04] border border-white/15 rounded-lg px-3 py-2 text-sm text-white/85 placeholder:text-white/20 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
+                      />
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] font-mono text-white/15">{editDraft.length}/1000</span>
+                        <div className="ml-auto flex items-center gap-1.5">
+                          <button
+                            onClick={cancelEdit}
+                            className="px-2.5 py-1 rounded-lg text-xs text-white/35 hover:text-white/65 hover:bg-white/5 transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => saveEdit(c.id)}
+                            disabled={!editDraft.trim() || savingEdit}
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                          >
+                            {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {c.body && (
+                        c.isSpoiler && !isSpoilerRevealed ? (
+                          <div
+                            className="relative cursor-pointer select-none mt-0.5"
+                            onClick={() => setRevealed((prev) => new Set([...prev, c.id]))}
+                          >
+                            <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words blur-sm pointer-events-none">
+                              {c.body}
+                            </p>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="flex items-center gap-1.5 text-xs text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
+                                <EyeOff className="w-3 h-3" />
+                                Spoiler — click to reveal
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
+                            {c.body}
+                          </p>
+                        )
+                      )}
+                      {c.gifUrl && (
+                        <div className={cn(c.body ? "mt-2.5" : "mt-0.5")}>
+                          {c.isSpoiler && !isSpoilerRevealed ? (
+                            <div
+                              className="relative inline-block cursor-pointer"
+                              onClick={() => setRevealed((prev) => new Set([...prev, c.id]))}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={c.gifUrl} alt="GIF" loading="lazy" className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8 blur-md pointer-events-none" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="flex items-center gap-1.5 text-xs text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
+                                  <EyeOff className="w-3 h-3" />
+                                  Spoiler — click to reveal
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={c.gifUrl} alt="GIF" loading="lazy" className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8" />
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Vote buttons */}
+                  {!isEditing && (
+                    <div className="flex items-center gap-1 mt-2.5">
+                      <button
+                        onClick={() => auth && handleVote(c.id, 1)}
+                        disabled={!auth}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
+                          c.myVote === 1
+                            ? "text-emerald-400 bg-emerald-500/10"
+                            : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
+                        )}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        {c.likes > 0 && <span className="font-mono tabular-nums">{c.likes}</span>}
+                      </button>
+                      <button
+                        onClick={() => auth && handleVote(c.id, -1)}
+                        disabled={!auth}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
+                          c.myVote === -1
+                            ? "text-rose-400 bg-rose-500/10"
+                            : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
+                        )}
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                        {c.dislikes > 0 && <span className="font-mono tabular-nums">{c.dislikes}</span>}
+                      </button>
+                    </div>
                   )}
                 </div>
-                {c.body && (
-                  <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words">{c.body}</p>
-                )}
-                {c.gifUrl && (
-                  <div className={c.body ? "mt-2.5" : ""}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={c.gifUrl}
-                      alt="GIF"
-                      loading="lazy"
-                      className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8"
-                    />
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1 mt-2.5">
-                  <button
-                    onClick={() => auth && handleVote(c.id, 1)}
-                    disabled={!auth}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ${
-                      c.myVote === 1
-                        ? "text-emerald-400 bg-emerald-500/10"
-                        : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default"
-                    }`}
-                  >
-                    <ThumbsUp className="w-3.5 h-3.5" />
-                    {c.likes > 0 && <span className="font-mono tabular-nums">{c.likes}</span>}
-                  </button>
-                  <button
-                    onClick={() => auth && handleVote(c.id, -1)}
-                    disabled={!auth}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ${
-                      c.myVote === -1
-                        ? "text-rose-400 bg-rose-500/10"
-                        : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default"
-                    }`}
-                  >
-                    <ThumbsDown className="w-3.5 h-3.5" />
-                    {c.dislikes > 0 && <span className="font-mono tabular-nums">{c.dislikes}</span>}
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

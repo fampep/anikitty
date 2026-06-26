@@ -4,6 +4,7 @@ import {
   varchar,
   text,
   integer,
+  boolean,
   timestamp,
   unique,
   index,
@@ -84,7 +85,9 @@ export const comments = pgTable(
     animeId: varchar("anime_id", { length: 255 }).notNull(),
     body: text("body").notNull().default(""),
     gifUrl: text("gif_url"),
+    isSpoiler: boolean("is_spoiler").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
   },
   (t) => ({
     animeIdx: index("comments_anime_id_idx").on(t.animeId),

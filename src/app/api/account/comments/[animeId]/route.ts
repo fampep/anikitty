@@ -15,7 +15,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ animeId:
       id: comments.id,
       body: comments.body,
       gifUrl: comments.gifUrl,
+      isSpoiler: comments.isSpoiler,
       createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
       userId: comments.userId,
       username: users.username,
       avatarUrl: users.avatarUrl,
@@ -77,7 +79,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ animeId
   const payload = token ? await verifyToken(token) : null;
   if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { body, gifUrl } = await req.json();
+  const { body, gifUrl, isSpoiler } = await req.json();
   const trimmedBody = typeof body === "string" ? body.trim().slice(0, 1000) : "";
   const trimmedGif = typeof gifUrl === "string" ? gifUrl.trim().slice(0, 2000) : null;
 
@@ -88,8 +90,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ animeId
   const db = getDb();
   const [row] = await db
     .insert(comments)
-    .values({ userId: payload.userId, animeId, body: trimmedBody, gifUrl: trimmedGif })
-    .returning({ id: comments.id, body: comments.body, gifUrl: comments.gifUrl, createdAt: comments.createdAt, userId: comments.userId });
+    .values({ userId: payload.userId, animeId, body: trimmedBody, gifUrl: trimmedGif, isSpoiler: !!isSpoiler })
+    .returning({ id: comments.id, body: comments.body, gifUrl: comments.gifUrl, isSpoiler: comments.isSpoiler, createdAt: comments.createdAt, updatedAt: comments.updatedAt, userId: comments.userId });
 
   const [user] = await db
     .select({ username: users.username, avatarUrl: users.avatarUrl, role: users.role, roleColor: roles.color })
