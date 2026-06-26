@@ -25,9 +25,11 @@ const geistSans = localFont({
 
 const APP_NAME = "AniKitty";
 const APP_DEFAULT_TITLE = "AniKitty | Anime Streaming";
-const APP_DESCRIPTION = "Stream your favourite anime with ease and no ads ~ nya~";
+const APP_DESCRIPTION = "Stream your favourite anime for free with no ads ~ nya~";
+const APP_URL = "https://anikitty.moe";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   applicationName: APP_NAME,
   title: APP_DEFAULT_TITLE,
   description: APP_DESCRIPTION,
@@ -47,11 +49,12 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: APP_NAME,
+    url: APP_URL,
     title: APP_DEFAULT_TITLE,
     description: APP_DESCRIPTION,
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: APP_DEFAULT_TITLE,
     description: APP_DESCRIPTION,
   },
