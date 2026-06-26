@@ -20,7 +20,7 @@ import LoginPopoverButton from "./login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import { toast } from "sonner";
-import { anisurgeAuth, clearAnisurgeToken, getAnisurgeToken } from "@/lib/anisurge";
+import { anisurgeAuth, clearAnisurgeToken, getAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 import { usePathname } from "next/navigation";
 
 const menuItems = [
@@ -45,16 +45,7 @@ const NavBar = () => {
       if (!token) return;
       try {
         const me = await anisurgeAuth.me();
-        const user = me?.user ?? me;
-        auth.setAuth({
-          id: me.anisurgeUserId ?? user.externalUserId ?? "",
-          username: user.username ?? "",
-          email: user.email ?? "",
-          avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
-          bannerUrl: user.bannerUrl ?? null,
-          bio: user.bio ?? null,
-          role: user.role ?? "user",
-        });
+        auth.setAuth(authFromMeResponse(me));
       } catch (e: any) {
         if (e?.status === 401) {
           clearAnisurgeToken();
@@ -108,7 +99,7 @@ const NavBar = () => {
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-150",
                   isActive
-                    ? "text-white font-semibold bg-white/8 border border-white/12"
+                    ? "user-accent-nav-active text-white font-semibold bg-white/8 border border-white/12"
                     : "text-white/45 font-medium hover:text-white/85 hover:bg-white/5",
                 )}
               >
@@ -192,7 +183,7 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
                     isActive
-                      ? "bg-white/10 text-white border border-white/12"
+                      ? "user-accent-nav-active bg-white/10 text-white border border-white/12"
                       : "text-white/50 hover:text-white hover:bg-white/6",
                   )}
                 >

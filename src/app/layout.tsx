@@ -10,6 +10,7 @@ import QueryProvider from "@/providers/query-provider";
 import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import UserThemeSync from "@/components/user-theme-sync";
 
 import { Toaster } from "@/components/ui/sonner";
 
@@ -99,6 +100,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <UserThemeSync />
             <NavBar />
             <SiteAnnouncementBanner />
             {children}

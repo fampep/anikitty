@@ -8,6 +8,7 @@ export type IAuth = {
   avatar: string;
   bannerUrl?: string | null;
   bio?: string | null;
+  themeColor?: string | null;
   role?: string | null;
 };
 
@@ -27,7 +28,7 @@ export const useAuthStore = create<IAuthStore>()(
     {
       name: "auth",
       partialize: (state) => ({ auth: state.auth }),
-      version: 1,
+      version: 2,
     },
   ),
 );

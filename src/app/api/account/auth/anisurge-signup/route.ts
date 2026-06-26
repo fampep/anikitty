@@ -82,6 +82,7 @@ export async function POST(req: Request) {
         avatarUrl: existing.avatarUrl ?? null,
         bannerUrl: existing.bannerUrl ?? null,
         bio: existing.bio ?? null,
+        themeColor: existing.themeColor ?? null,
         role: existing.role ?? "user",
       },
     });

@@ -18,11 +18,17 @@ import {
   CheckCircle2,
   User,
   Shield,
+  Palette,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import AnilistConnect from "@/app/profile/[username]/components/anilist-connect";
 import Image from "next/image";
+import ProfileCustomizationForm, {
+  type ProfileCustomizationValues,
+} from "@/components/profile-customization-form";
+import { applyUserThemeColor } from "@/lib/theme-color";
+import { getAnisurgeToken } from "@/lib/anisurge";
 
 // ── Episode layout options ────────────────────────────────────────────────────
 
@@ -299,6 +305,78 @@ function ToggleRow({
   );
 }
 
+function AppearanceSection() {
+  const { auth, setAuth } = useAuthStore();
+  const [loaded, setLoaded] = useState(false);
+  const [initial, setInitial] = useState<ProfileCustomizationValues>({
+    avatarUrl: "",
+    bannerUrl: "",
+    bio: "",
+    themeColor: null,
+  });
+
+  useEffect(() => {
+    if (!auth) return;
+    fetch("/api/account/me", {
+      headers: { Authorization: `Bearer ${getAnisurgeToken() ?? ""}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        const u = d.user ?? {};
+        setInitial({
+          avatarUrl: u.avatarUrl ?? auth.avatar ?? "",
+          bannerUrl: u.bannerUrl ?? auth.bannerUrl ?? "",
+          bio: u.bio ?? auth.bio ?? "",
+          themeColor: u.themeColor ?? auth.themeColor ?? null,
+        });
+      })
+      .catch(() => {
+        setInitial({
+          avatarUrl: auth.avatar ?? "",
+          bannerUrl: auth.bannerUrl ?? "",
+          bio: auth.bio ?? "",
+          themeColor: auth.themeColor ?? null,
+        });
+      })
+      .finally(() => setLoaded(true));
+  }, [auth]);
+
+  if (!auth) return null;
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<Palette className="w-4 h-4" />}
+        title="Appearance"
+        description="Theme color, anime banners, GIF avatars, and bio"
+      />
+      <SectionBody>
+        {loaded ? (
+          <ProfileCustomizationForm
+            initial={initial}
+            onSaved={(values) => {
+              setAuth({
+                ...auth,
+                avatar: values.avatarUrl || auth.avatar,
+                bannerUrl: values.bannerUrl || null,
+                bio: values.bio || null,
+                themeColor: values.themeColor,
+              });
+              applyUserThemeColor(values.themeColor);
+              setInitial(values);
+            }}
+          />
+        ) : (
+          <div className="flex items-center gap-2 text-white/30 text-sm font-mono py-4">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading…
+          </div>
+        )}
+      </SectionBody>
+    </SectionCard>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -331,6 +409,8 @@ export default function SettingsPage() {
               </SectionBody>
             </SectionCard>
           )}
+
+          {auth && <AppearanceSection />}
 
           {/* Connected Accounts */}
           {auth && (

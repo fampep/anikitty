@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   bannerUrl: text("banner_url"),
   bio: text("bio"),
+  themeColor: varchar("theme_color", { length: 7 }),
   role: varchar("role", { length: 20 }).notNull().default("user"),
   anisurgeToken: text("anisurge_token"),
   anisurgeUsername: varchar("anisurge_username", { length: 100 }),

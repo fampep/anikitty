@@ -205,3 +205,29 @@ button, a, [role="button"] {
   height: 100%;
   object-fit: cover;
 }
+
+/* User-selected accent theme */
+html[data-user-theme] .user-accent-nav-active {
+  color: rgb(var(--user-accent-rgb) / 1) !important;
+  background-color: rgb(var(--user-accent-rgb) / 0.12) !important;
+  border-color: rgb(var(--user-accent-rgb) / 0.35) !important;
+}
+
+html[data-user-theme] .user-accent-ring {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--user-accent-rgb) / 0.55),
+    rgb(var(--user-accent-rgb) / 0.2)
+  ) !important;
+}
+
+html[data-user-theme] .user-accent-btn {
+  background-color: rgb(var(--user-accent-rgb) / 0.15) !important;
+  border-color: rgb(var(--user-accent-rgb) / 0.35) !important;
+  color: rgb(var(--user-accent-rgb) / 1) !important;
+}
+
+html[data-user-theme] .user-accent-btn:hover {
+  background-color: rgb(var(--user-accent-rgb) / 0.22) !important;
+}
+

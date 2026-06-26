@@ -1,5 +1,7 @@
 const BFF = "/api/account";
 
+import { IAuth } from "@/store/auth-store";
+
 // ── Token management ────────────────────────────────────────────────
 export function getAnisurgeToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -10,6 +12,20 @@ export function setAnisurgeToken(token: string) {
 }
 export function clearAnisurgeToken() {
   localStorage.removeItem("anisurgeToken");
+}
+
+export function authFromMeResponse(data: Record<string, unknown>): IAuth {
+  const user = (data.user ?? data) as Record<string, unknown>;
+  return {
+    id: String(data.anisurgeUserId ?? user.id ?? ""),
+    username: String(user.username ?? ""),
+    email: String(user.email ?? ""),
+    avatar: String(user.customPfpUrl ?? user.avatarUrl ?? ""),
+    bannerUrl: (user.bannerUrl as string | null) ?? null,
+    bio: (user.bio as string | null) ?? null,
+    themeColor: (user.themeColor as string | null) ?? null,
+    role: (user.role as string | null) ?? "user",
+  };
 }
 
 // ── Fetch wrapper ────────────────────────────────────────────────────
@@ -69,8 +85,12 @@ export const anisurgeAuth = {
 
   me: () => bff("/me"),
 
-  updateProfile: (data: { avatarUrl?: string | null; bannerUrl?: string | null; bio?: string | null }) =>
-    bff("/me", { method: "PUT", body: JSON.stringify(data) }),
+  updateProfile: (data: {
+    avatarUrl?: string | null;
+    bannerUrl?: string | null;
+    bio?: string | null;
+    themeColor?: string | null;
+  }) => bff("/me", { method: "PUT", body: JSON.stringify(data) }),
 };
 
 // ── Watchlist ────────────────────────────────────────────────────────

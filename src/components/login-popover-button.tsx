@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
 import { Loader2, LogIn, UserPlus, Zap } from "lucide-react";
-import { anisurgeAuth, setAnisurgeToken } from "@/lib/anisurge";
+import { anisurgeAuth, setAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 
 type Tab = "login" | "signup";
 
@@ -30,18 +30,9 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     setLoading(false);
   };
 
-  const syncAuth = (data: any) => {
-    setAnisurgeToken(data.anisurgeToken);
-    const user = data.user ?? {};
-    setAuth({
-      id: data.anisurgeUserId ?? user.externalUserId ?? "",
-      username: user.username ?? "",
-      email: user.email ?? "",
-      avatar: user.customPfpUrl ?? user.avatarUrl ?? "",
-      bannerUrl: user.bannerUrl ?? null,
-      bio: user.bio ?? null,
-      role: user.role ?? "user",
-    });
+  const syncAuth = (data: Record<string, unknown>) => {
+    setAnisurgeToken(data.anisurgeToken as string);
+    setAuth(authFromMeResponse(data));
   };
 
   const handleLogin = async () => {
