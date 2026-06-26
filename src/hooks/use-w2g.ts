@@ -23,7 +23,6 @@ type UseW2gOptions = {
 
 export function useW2g({
   code,
-  animeId: _animeId,
   episodeId,
   provider,
   audio,
