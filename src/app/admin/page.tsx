@@ -6,7 +6,7 @@ import Container from "@/components/container";
 import { RoleBadge } from "@/components/role-badge";
 import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
-  Check, X, Pencil, LogOut, Lock, Eye, EyeOff,
+  Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -126,6 +126,37 @@ interface Role {
   color: string;
 }
 
+interface ActivityEntry {
+  progressId: string;
+  animeId: string;
+  episodeId: string;
+  currentTime: number;
+  duration: number;
+  language: string | null;
+  server: string | null;
+  animeTitle: string | null;
+  animeThumbnail: string | null;
+  updatedAt: string | null;
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  userRole: string;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function fmtSecs(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
 const BUILTIN_ROLES = [
   { id: "__admin", name: "admin", color: "#ff4d6d" },
   { id: "__mod", name: "moderator", color: "#4d9fff" },
@@ -136,7 +167,7 @@ const BUILTIN_ROLES = [
 // Admin panel
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<"users" | "roles">("users");
+  const [tab, setTab] = useState<"users" | "roles" | "activity">("users");
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
@@ -151,6 +182,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [creatingRole, setCreatingRole] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<string | null>(null);
+
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   const fetchUsers = useCallback(async (q?: string) => {
     setUsersLoading(true);
@@ -174,7 +208,18 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setRolesLoading(false); }
   }, [onLogout]);
 
-  useEffect(() => { fetchUsers(); fetchRoles(); }, [fetchUsers, fetchRoles]);
+  const fetchActivity = useCallback(async () => {
+    setActivityLoading(true);
+    try {
+      const res = await fetch("/api/admin/activity?limit=100", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      const data = await res.json();
+      setActivity(data.activity ?? []);
+    } catch { toast.error("Failed to load activity"); }
+    finally { setActivityLoading(false); }
+  }, [onLogout]);
+
+  useEffect(() => { fetchUsers(); fetchRoles(); fetchActivity(); }, [fetchUsers, fetchRoles, fetchActivity]);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = (v: string) => {
@@ -276,18 +321,22 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       <Container className="py-8">
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-8 border-b border-white/8 pb-4">
-          {(["users", "roles"] as const).map((t) => (
+          {([
+            { value: "users" as const,    label: "Users",    icon: <Users className="w-4 h-4" />    },
+            { value: "roles" as const,    label: "Roles",    icon: <Tag className="w-4 h-4" />      },
+            { value: "activity" as const, label: "Activity", icon: <Activity className="w-4 h-4" /> },
+          ]).map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={t.value}
+              onClick={() => setTab(t.value)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                tab === t
+                tab === t.value
                   ? "bg-white/10 text-white border border-white/15"
                   : "text-white/40 hover:text-white/70"
               }`}
             >
-              {t === "users" ? <Users className="w-4 h-4" /> : <Tag className="w-4 h-4" />}
-              {t === "users" ? "Users" : "Roles"}
+              {t.icon}
+              {t.label}
             </button>
           ))}
         </div>
@@ -491,6 +540,115 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+        {/* ── ACTIVITY ──────────────────────────────────────── */}
+        {tab === "activity" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-mono text-white/30">
+                {activity.length} recent session{activity.length !== 1 ? "s" : ""} · sorted by most recent
+              </p>
+              <button
+                onClick={fetchActivity}
+                disabled={activityLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all disabled:opacity-30"
+              >
+                <RefreshCw className={`w-3 h-3 ${activityLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </button>
+            </div>
+
+            {activityLoading ? (
+              <div className="flex items-center gap-2 py-8 text-white/25">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm font-mono">Loading activity…</span>
+              </div>
+            ) : activity.length === 0 ? (
+              <p className="text-center text-white/20 text-sm font-mono py-8">No watch activity yet</p>
+            ) : (
+              <div className="rounded-xl border border-white/10 overflow-x-auto">
+                <table className="w-full text-sm min-w-[640px]">
+                  <thead>
+                    <tr className="border-b border-white/8 bg-white/[0.02]">
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Anime</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Progress</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">When</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.05]">
+                    {activity.map((entry) => {
+                      const pct = entry.duration > 0
+                        ? Math.min(100, Math.round((entry.currentTime / entry.duration) * 100))
+                        : 0;
+                      return (
+                        <tr key={entry.progressId} className="hover:bg-white/[0.02] transition-colors">
+                          {/* User */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              {entry.avatarUrl ? (
+                                <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10 shrink-0">
+                                  <Image src={entry.avatarUrl} alt={entry.username} fill className="object-cover" unoptimized />
+                                </div>
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-white/8 flex items-center justify-center text-[12px] font-bold text-white/60 shrink-0">
+                                  {entry.username[0]?.toUpperCase()}
+                                </div>
+                              )}
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[12px] font-medium text-white/80 truncate">@{entry.username}</span>
+                                {entry.userRole !== "user" && <RoleBadge role={entry.userRole} size="xs" />}
+                              </div>
+                            </div>
+                          </td>
+                          {/* Anime */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              {entry.animeThumbnail && (
+                                <div className="relative w-10 h-7 rounded overflow-hidden ring-1 ring-white/8 shrink-0">
+                                  <Image src={entry.animeThumbnail} alt="" fill className="object-cover" unoptimized />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-[12px] font-medium text-white/75 truncate max-w-[180px]">
+                                  {entry.animeTitle ?? entry.animeId}
+                                </p>
+                                <p className="text-[10px] font-mono text-white/30">
+                                  {entry.episodeId.replace("ep-", "EP ")} · {entry.language ?? "sub"}
+                                  {entry.server && <span className="ml-1 text-white/20">· {entry.server}</span>}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          {/* Progress */}
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <div className="flex flex-col gap-1.5 min-w-[110px]">
+                              <div className="w-full h-1 rounded-full bg-white/8 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-white/40"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-mono text-white/25">
+                                {pct}% · {fmtSecs(entry.currentTime)}
+                                {entry.duration > 0 && <span> / {fmtSecs(entry.duration)}</span>}
+                              </span>
+                            </div>
+                          </td>
+                          {/* When */}
+                          <td className="px-4 py-3 hidden sm:table-cell">
+                            <span className="text-[11px] font-mono text-white/30">
+                              {entry.updatedAt ? timeAgo(entry.updatedAt) : "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </Container>

@@ -154,6 +154,14 @@ const Layout = (props: Props) => {
     router.push(`${ROUTES.WATCH}?anime=${animeId}&episode=${nextEpisode.episodeId}`);
   };
 
+  // Update browser title instantly when episode changes (no server round-trip)
+  useEffect(() => {
+    const name = anime?.anime.info?.name;
+    if (!name) return;
+    const epLabel = currentEpisode ? ` — Episode ${currentEpisode.number}` : "";
+    document.title = `${name}${epLabel} | AniKitty`;
+  }, [anime?.anime.info?.name, currentEpisode?.number]);
+
   if (isLoading) return <Loading />;
 
   const info = anime?.anime.info;
@@ -164,13 +172,6 @@ const Layout = (props: Props) => {
   const hasMeaningfulTitle =
     currentEpisode?.title &&
     currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.number}`;
-
-  // Update browser title instantly when episode changes (no server round-trip)
-  useEffect(() => {
-    if (!info?.name) return;
-    const epLabel = currentEpisode ? ` — Episode ${currentEpisode.number}` : "";
-    document.title = `${info.name}${epLabel} | AniKitty`;
-  }, [info?.name, currentEpisode?.number]);
 
   return (
     <Container className="mt-[5.5rem] pb-20">
