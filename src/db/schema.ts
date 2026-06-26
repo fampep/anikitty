@@ -134,3 +134,83 @@ export const commentVotes = pgTable(
     commentUser: unique("comment_votes_comment_user").on(t.commentId, t.userId),
   }),
 );
+
+// ── Forum ──────────────────────────────────────────────────────────────────
+// Top-level discussion threads. `category` groups threads (general, recs, etc).
+export const forumThreads = pgTable(
+  "forum_threads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 200 }).notNull(),
+    body: text("body").notNull().default(""),
+    category: varchar("category", { length: 30 }).notNull().default("general"),
+    isPinned: boolean("is_pinned").notNull().default(false),
+    isLocked: boolean("is_locked").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
+    lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  },
+  (t) => ({
+    categoryIdx: index("forum_threads_category_idx").on(t.category),
+    activityIdx: index("forum_threads_activity_idx").on(t.lastActivityAt),
+  }),
+);
+
+// Replies/posts inside a thread.
+export const forumPosts = pgTable(
+  "forum_posts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => forumThreads.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull().default(""),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
+  },
+  (t) => ({
+    threadIdx: index("forum_posts_thread_id_idx").on(t.threadId),
+  }),
+);
+
+export const forumThreadVotes = pgTable(
+  "forum_thread_votes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => forumThreads.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    vote: integer("vote").notNull(), // 1 = upvote, -1 = downvote
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    threadUser: unique("forum_thread_votes_thread_user").on(t.threadId, t.userId),
+  }),
+);
+
+export const forumPostVotes = pgTable(
+  "forum_post_votes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => forumPosts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    vote: integer("vote").notNull(), // 1 = upvote, -1 = downvote
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    postUser: unique("forum_post_votes_post_user").on(t.postId, t.userId),
+  }),
+);

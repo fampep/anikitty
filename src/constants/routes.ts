@@ -5,5 +5,6 @@ export const ROUTES = {
   SEARCH: "/search",
   SCHEDULE: "/schedule",
   TRENDING: "/trending",
+  FORUM: "/forum",
   SETTINGS: "/settings",
 };
