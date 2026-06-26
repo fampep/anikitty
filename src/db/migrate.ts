@@ -121,6 +121,7 @@ export async function migrateDb() {
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS episode_number INTEGER`,
       `CREATE INDEX IF NOT EXISTS comments_anime_episode_idx ON comments (anime_id, episode_id)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_color VARCHAR(7)`,
+      `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS anilist_synced_at TIMESTAMP`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

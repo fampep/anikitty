@@ -65,6 +65,7 @@ export const watchProgress = pgTable(
     animeTitle: text("anime_title"),
     animeThumbnail: text("anime_thumbnail"),
     anilistId: integer("anilist_id"),
+    anilistSyncedAt: timestamp("anilist_synced_at"),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (t) => ({

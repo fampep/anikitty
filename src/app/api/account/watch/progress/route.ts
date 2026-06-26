@@ -3,7 +3,12 @@ import { getDb } from "@/db";
 import { users, watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { parseEpisodeNumber, updateAniListProgress } from "@/lib/anilist-sync";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
+
+function isWatchedEnough(current: number, duration: number): boolean {
+  if (duration <= 0) return false;
+  return current >= Math.max(Math.floor(duration * 0.9), 30);
+}
 
 export async function POST(req: Request) {
   const token = extractToken(req);
@@ -14,12 +19,25 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { animeId, episodeId, currentTime, duration, language, server, anilistId, animeTitle, animeThumbnail, episodeNumber } = body;
+    const {
+      animeId,
+      episodeId,
+      currentTime,
+      duration,
+      language,
+      server,
+      anilistId,
+      animeTitle,
+      animeThumbnail,
+      episodeNumber,
+    } = body;
 
     if (!animeId || !episodeId)
       return NextResponse.json({ error: "animeId and episodeId are required" }, { status: 400 });
 
     const db = getDb();
+    const roundedCurrent = Math.round(currentTime ?? 0);
+    const roundedDuration = Math.round(duration ?? 0);
 
     await db
       .insert(watchProgress)
@@ -27,8 +45,8 @@ export async function POST(req: Request) {
         userId: payload.userId,
         animeId,
         episodeId,
-        currentTime: Math.round(currentTime ?? 0),
-        duration: Math.round(duration ?? 0),
+        currentTime: roundedCurrent,
+        duration: roundedDuration,
         language: language ?? "sub",
         server: server ?? null,
         anilistId: anilistId ?? null,
@@ -39,51 +57,82 @@ export async function POST(req: Request) {
       .onConflictDoUpdate({
         target: [watchProgress.userId, watchProgress.animeId, watchProgress.episodeId],
         set: {
-          currentTime: Math.round(currentTime ?? 0),
-          duration: Math.round(duration ?? 0),
+          currentTime: roundedCurrent,
+          duration: roundedDuration,
           language: language ?? "sub",
           server: server ?? null,
+          ...(anilistId ? { anilistId } : {}),
           ...(animeTitle ? { animeTitle } : {}),
           ...(animeThumbnail ? { animeThumbnail } : {}),
           updatedAt: new Date(),
         },
       });
 
-    // Fire-and-forget AniList progress sync when the user has linked OAuth
-    if (anilistId) {
-      const roundedCurrent = Math.round(currentTime ?? 0);
-      const roundedDuration = Math.round(duration ?? 0);
-      const watchedEnough =
-        roundedDuration > 0 && roundedCurrent / roundedDuration >= 0.9;
+    // Sync to AniList once per episode — not on every progress tick past 90%.
+    if (anilistId && isWatchedEnough(roundedCurrent, roundedDuration)) {
+      const episodeNum =
+        (typeof episodeNumber === "number" && episodeNumber > 0
+          ? episodeNumber
+          : parseEpisodeNumber(episodeId)) ?? null;
 
-      if (watchedEnough) {
-        const episodeNum =
-          (typeof episodeNumber === "number" && episodeNumber > 0
-            ? episodeNumber
-            : parseEpisodeNumber(episodeId)) ?? null;
-        if (episodeNum) {
-          void (async () => {
-            try {
-              const db2 = getDb();
-              const [user] = await db2
-                .select({ anilistAccessToken: users.anilistAccessToken })
-                .from(users)
-                .where(eq(users.id, payload.userId))
-                .limit(1);
+      if (episodeNum) {
+        void (async () => {
+          let claimedId: string | null = null;
+          try {
+            const [claimed] = await db
+              .update(watchProgress)
+              .set({ anilistSyncedAt: new Date() })
+              .where(
+                and(
+                  eq(watchProgress.userId, payload.userId),
+                  eq(watchProgress.animeId, animeId),
+                  eq(watchProgress.episodeId, episodeId),
+                  isNull(watchProgress.anilistSyncedAt),
+                ),
+              )
+              .returning({ id: watchProgress.id });
 
-              if (user?.anilistAccessToken) {
-                await updateAniListProgress(
-                  user.anilistAccessToken,
-                  anilistId,
-                  episodeNum,
-                  "CURRENT",
-                );
-              }
-            } catch (e) {
-              console.error("[progress POST] AniList sync failed:", e);
+            if (!claimed) return;
+            claimedId = claimed.id;
+
+            const [user] = await db
+              .select({ anilistAccessToken: users.anilistAccessToken })
+              .from(users)
+              .where(eq(users.id, payload.userId))
+              .limit(1);
+
+            if (!user?.anilistAccessToken) {
+              await db
+                .update(watchProgress)
+                .set({ anilistSyncedAt: null })
+                .where(eq(watchProgress.id, claimed.id));
+              return;
             }
-          })();
-        }
+
+            const ok = await updateAniListProgress(
+              user.anilistAccessToken,
+              anilistId,
+              episodeNum,
+              "CURRENT",
+            );
+
+            if (!ok && claimedId) {
+              await db
+                .update(watchProgress)
+                .set({ anilistSyncedAt: null })
+                .where(eq(watchProgress.id, claimedId));
+            }
+          } catch (e) {
+            console.error("[progress POST] AniList sync failed:", e);
+            if (claimedId) {
+              await db
+                .update(watchProgress)
+                .set({ anilistSyncedAt: null })
+                .where(eq(watchProgress.id, claimedId))
+                .catch(() => {});
+            }
+          }
+        })();
       }
     }
 
