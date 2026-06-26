@@ -13,7 +13,7 @@ const ALLOWED_EMOJIS = new Set([
 
 export async function POST(
   req: Request,
-  { params }: { params: { animeId: string; commentId: string } },
+  { params }: { params: Promise<{ animeId: string; commentId: string }> },
 ) {
   const token = extractToken(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,7 +25,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid emoji" }, { status: 400 });
 
   const db = getDb();
-  const commentId = params.commentId;
+  const { commentId } = await params;
 
   // Verify comment exists
   const [comment] = await db.select({ id: comments.id }).from(comments).where(eq(comments.id, commentId)).limit(1);
