@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { users, watchProgress } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-auth";
-import { eq, desc, ilike, or, sql } from "drizzle-orm";
+import { eq, desc, ilike, or, sql, inArray, max } from "drizzle-orm";
 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -31,17 +31,20 @@ export async function GET(req: Request) {
     const lastActiveMap = new Map<string, string>();
 
     if (ids.length > 0) {
-      const idParams = sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `);
-      const activity = await db.execute(sql`
-        SELECT user_id, MAX(updated_at) AS last_active
-        FROM watch_progress
-        WHERE user_id IN (${idParams})
-        GROUP BY user_id
-      `) as { user_id: string; last_active: Date | string }[];
+      const activity = await db
+        .select({
+          userId: watchProgress.userId,
+          lastActive: max(watchProgress.updatedAt).as("last_active"),
+        })
+        .from(watchProgress)
+        .where(inArray(watchProgress.userId, ids))
+        .groupBy(watchProgress.userId);
 
       for (const row of activity) {
-        const ts = row.last_active instanceof Date ? row.last_active.toISOString() : String(row.last_active);
-        lastActiveMap.set(row.user_id, ts);
+        const ts = row.lastActive instanceof Date
+          ? row.lastActive.toISOString()
+          : String(row.lastActive ?? "");
+        lastActiveMap.set(row.userId, ts);
       }
     }
 

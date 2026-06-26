@@ -1,5 +1,6 @@
 import type { getDb } from "@/db";
-import { sql } from "drizzle-orm";
+import { comments, watchProgress } from "@/db/schema";
+import { inArray, sql } from "drizzle-orm";
 import {
   computeTotalXp,
   getLevelProgress,
@@ -68,46 +69,46 @@ export async function getUsersXpStats(
   const result = new Map<string, UserXpStats>();
   if (unique.length === 0) return result;
 
-  const idParams = sql.join(unique.map((id) => sql`${id}::uuid`), sql`, `);
-
-  const [watchResult, commentResult] = await Promise.all([
-    db.execute(sql`
-      SELECT
-        user_id,
-        COUNT(DISTINCT episode_id)::int AS started,
-        COUNT(DISTINCT CASE
-          WHEN duration > 0 AND "current_time" >= GREATEST((duration * 0.9)::int, 30)
-          THEN episode_id
-        END)::int AS completed
-      FROM watch_progress
-      WHERE user_id IN (${idParams})
-      GROUP BY user_id
-    `),
-    db.execute(sql`
-      SELECT user_id, COUNT(*)::int AS comments
-      FROM comments
-      WHERE user_id IN (${idParams})
-      GROUP BY user_id
-    `),
+  const [watchRows, commentRows] = await Promise.all([
+    db
+      .select({
+        userId: watchProgress.userId,
+        started: sql<number>`count(distinct ${watchProgress.episodeId})::int`.as(
+          "started",
+        ),
+        completed: sql<number>`count(distinct case
+          when ${watchProgress.duration} > 0
+            and ${watchProgress.currentTime} >= greatest((${watchProgress.duration} * 0.9)::int, 30)
+          then ${watchProgress.episodeId}
+        end)::int`.as("completed"),
+      })
+      .from(watchProgress)
+      .where(inArray(watchProgress.userId, unique))
+      .groupBy(watchProgress.userId),
+    db
+      .select({
+        userId: comments.userId,
+        commentCount: sql<number>`count(*)::int`.as("comments"),
+      })
+      .from(comments)
+      .where(inArray(comments.userId, unique))
+      .groupBy(comments.userId),
   ]);
-
-  const watchRows = watchResult as Record<string, unknown>[];
-  const commentRows = commentResult as Record<string, unknown>[];
 
   const watchMap = new Map(
     watchRows.map((r) => [
-      String(r.user_id),
-      { started: Number(r.started), completed: Number(r.completed) },
+      r.userId,
+      { started: r.started, completed: r.completed },
     ]),
   );
   const commentMap = new Map(
-    commentRows.map((r) => [String(r.user_id), Number(r.comments)]),
+    commentRows.map((r) => [r.userId, r.commentCount]),
   );
 
   for (const id of unique) {
     const watch = watchMap.get(id) ?? { started: 0, completed: 0 };
-    const comments = commentMap.get(id) ?? 0;
-    result.set(id, statsToLevelRole(watch.started, watch.completed, comments));
+    const commentCount = commentMap.get(id) ?? 0;
+    result.set(id, statsToLevelRole(watch.started, watch.completed, commentCount));
   }
 
   return result;
