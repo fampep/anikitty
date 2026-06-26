@@ -12,6 +12,59 @@ import { toast } from "sonner";
 import { RoleBadge } from "@/components/role-badge";
 import { cn } from "@/lib/utils";
 
+const EMOJI_GROUPS = [
+  { label: "Popular", emojis: ["😂","😭","🥺","😍","🤣","😩","😅","😤","💀","😳","🥰","🤔","😏","😱","🫠","😢"] },
+  { label: "Reactions", emojis: ["❤️","🔥","💯","✨","👍","👎","💔","🙌","🤌","⭐","💫","👏","🫶","💪","🤦","🤷"] },
+  { label: "Anime", emojis: ["🌸","🗡️","⚔️","🐉","🌙","🎌","🧠","👁️","✊","🩸","🌊","⚡","🏹","👊","🫡","🤯"] },
+  { label: "Faces", emojis: ["😎","🤓","🥱","😡","🤩","🫢","😬","🙃","😴","🤧","🥴","😫","🤑","😒","🙄","😈"] },
+];
+
+function EmojiPickerPanel({ onSelect, onClose }: { onSelect: (e: string) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState(0);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute bottom-full mb-2 left-0 z-50 w-72 rounded-xl border border-white/10 bg-[#0d0d0d] shadow-2xl shadow-black/80 overflow-hidden"
+    >
+      {/* Tabs */}
+      <div className="flex border-b border-white/6 px-2 pt-2 gap-0.5">
+        {EMOJI_GROUPS.map((g, i) => (
+          <button
+            key={g.label}
+            onClick={() => setTab(i)}
+            className={`px-2.5 py-1.5 rounded-t-lg text-[10px] font-semibold transition-colors ${
+              tab === i ? "bg-white/8 text-white/80" : "text-white/30 hover:text-white/55"
+            }`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+      {/* Grid */}
+      <div className="grid grid-cols-8 gap-0.5 p-2.5">
+        {EMOJI_GROUPS[tab].emojis.map((emoji) => (
+          <button
+            key={emoji}
+            onClick={() => onSelect(emoji)}
+            className="flex items-center justify-center text-xl p-1.5 rounded-lg hover:bg-white/10 transition-colors leading-none"
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 interface Comment {
   id: string;
   body: string;
@@ -27,6 +80,8 @@ interface Comment {
   likes: number;
   dislikes: number;
   myVote: 0 | 1 | -1;
+  reactions: Record<string, number>;
+  myReactions: string[];
 }
 
 function relativeTime(iso: string): string {
@@ -148,6 +203,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showGifPanel, setShowGifPanel] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -272,6 +328,58 @@ export default function CommentSection({ animeId }: { animeId: string }) {
     }
   };
 
+  const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null);
+
+  const handleReact = async (commentId: string, emoji: string) => {
+    const token = getAnisurgeToken();
+    if (!token) return;
+
+    // Optimistic update
+    setComments((prev) =>
+      prev.map((c) => {
+        if (c.id !== commentId) return c;
+        const already = c.myReactions.includes(emoji);
+        const newReactions = { ...c.reactions };
+        if (already) {
+          newReactions[emoji] = Math.max(0, (newReactions[emoji] ?? 1) - 1);
+          if (newReactions[emoji] === 0) delete newReactions[emoji];
+        } else {
+          newReactions[emoji] = (newReactions[emoji] ?? 0) + 1;
+        }
+        return {
+          ...c,
+          reactions: newReactions,
+          myReactions: already ? c.myReactions.filter((e: string) => e !== emoji) : [...c.myReactions, emoji],
+        };
+      }),
+    );
+    setReactionPickerFor(null);
+
+    try {
+      await fetch(`/api/account/comments/${encodeURIComponent(animeId)}/${commentId}/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ emoji }),
+      });
+    } catch {
+      fetchComments(); // revert on error
+    }
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const el = textareaRef.current;
+    if (!el) { setDraft((d) => d + emoji); return; }
+    const start = el.selectionStart ?? draft.length;
+    const end = el.selectionEnd ?? draft.length;
+    const next = draft.slice(0, start) + emoji + draft.slice(end);
+    setDraft(next);
+    setShowEmojiPicker(false);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  };
+
   const canSubmit = (draft.trim().length > 0 || !!selectedGif) && !submitting;
   const showToolbar = focused || !!draft || !!selectedGif;
 
@@ -332,8 +440,27 @@ export default function CommentSection({ animeId }: { animeId: string }) {
               {showToolbar && (
                 <div className="flex items-center justify-between px-3 pb-2.5 pt-1 border-t border-white/6">
                   <div className="flex items-center gap-1 relative">
+                    {/* Emoji picker */}
                     <button
-                      onClick={() => setShowGifPanel((v) => !v)}
+                      onClick={() => { setShowEmojiPicker((v) => !v); setShowGifPanel(false); }}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
+                        showEmojiPicker
+                          ? "bg-white/12 text-white border-white/20"
+                          : "text-white/30 hover:text-white/60 hover:bg-white/5 border-transparent",
+                      )}
+                    >
+                      <SmilePlus className="w-3.5 h-3.5" />
+                    </button>
+                    {showEmojiPicker && (
+                      <EmojiPickerPanel
+                        onSelect={insertEmoji}
+                        onClose={() => setShowEmojiPicker(false)}
+                      />
+                    )}
+
+                    <button
+                      onClick={() => { setShowGifPanel((v) => !v); setShowEmojiPicker(false); }}
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                         showGifPanel || selectedGif
@@ -536,35 +663,82 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                     </>
                   )}
 
-                  {/* Vote buttons */}
+                  {/* Vote + Reaction row */}
                   {!isEditing && (
-                    <div className="flex items-center gap-1 mt-2.5">
-                      <button
-                        onClick={() => auth && handleVote(c.id, 1)}
-                        disabled={!auth}
-                        className={cn(
-                          "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
-                          c.myVote === 1
-                            ? "text-emerald-400 bg-emerald-500/10"
-                            : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
+                    <div className="flex flex-col gap-2 mt-2.5">
+                      {/* Votes */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => auth && handleVote(c.id, 1)}
+                          disabled={!auth}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
+                            c.myVote === 1
+                              ? "text-emerald-400 bg-emerald-500/10"
+                              : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
+                          )}
+                        >
+                          <ThumbsUp className="w-3.5 h-3.5" />
+                          {c.likes > 0 && <span className="font-mono tabular-nums">{c.likes}</span>}
+                        </button>
+                        <button
+                          onClick={() => auth && handleVote(c.id, -1)}
+                          disabled={!auth}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
+                            c.myVote === -1
+                              ? "text-rose-400 bg-rose-500/10"
+                              : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
+                          )}
+                        >
+                          <ThumbsDown className="w-3.5 h-3.5" />
+                          {c.dislikes > 0 && <span className="font-mono tabular-nums">{c.dislikes}</span>}
+                        </button>
+
+                        {/* Reaction picker trigger */}
+                        {auth && (
+                          <div className="relative ml-1">
+                            <button
+                              onClick={() => setReactionPickerFor(reactionPickerFor === c.id ? null : c.id)}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-white/20 hover:text-white/55 hover:bg-white/5 transition-all"
+                              title="Add reaction"
+                            >
+                              <SmilePlus className="w-3.5 h-3.5" />
+                            </button>
+                            {reactionPickerFor === c.id && (
+                              <EmojiPickerPanel
+                                onSelect={(emoji) => handleReact(c.id, emoji)}
+                                onClose={() => setReactionPickerFor(null)}
+                              />
+                            )}
+                          </div>
                         )}
-                      >
-                        <ThumbsUp className="w-3.5 h-3.5" />
-                        {c.likes > 0 && <span className="font-mono tabular-nums">{c.likes}</span>}
-                      </button>
-                      <button
-                        onClick={() => auth && handleVote(c.id, -1)}
-                        disabled={!auth}
-                        className={cn(
-                          "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
-                          c.myVote === -1
-                            ? "text-rose-400 bg-rose-500/10"
-                            : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
-                        )}
-                      >
-                        <ThumbsDown className="w-3.5 h-3.5" />
-                        {c.dislikes > 0 && <span className="font-mono tabular-nums">{c.dislikes}</span>}
-                      </button>
+                      </div>
+
+                      {/* Reaction pills */}
+                      {Object.keys(c.reactions).length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {(Object.entries(c.reactions) as [string, number][])
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([emoji, count]) => (
+                              <button
+                                key={emoji}
+                                onClick={() => auth && handleReact(c.id, emoji)}
+                                disabled={!auth}
+                                title={auth ? (c.myReactions.includes(emoji) ? "Remove reaction" : "React") : "Log in to react"}
+                                className={cn(
+                                  "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all",
+                                  c.myReactions.includes(emoji)
+                                    ? "bg-white/10 border-white/25 text-white/80"
+                                    : "bg-white/[0.03] border-white/8 text-white/50 hover:border-white/20 hover:bg-white/7 disabled:cursor-default",
+                                )}
+                              >
+                                <span className="leading-none">{emoji}</span>
+                                <span className="font-mono tabular-nums text-[10px]">{count}</span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

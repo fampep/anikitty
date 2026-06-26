@@ -82,6 +82,17 @@ export async function migrateDb() {
     `;
 
     await client`
+      CREATE TABLE IF NOT EXISTS comment_reactions (
+        id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        comment_id  UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+        user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        emoji       VARCHAR(16) NOT NULL,
+        created_at  TIMESTAMP DEFAULT NOW(),
+        UNIQUE(comment_id, user_id, emoji)
+      )
+    `;
+
+    await client`
       CREATE TABLE IF NOT EXISTS comment_votes (
         id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         comment_id  UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,

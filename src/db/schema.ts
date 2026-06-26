@@ -94,6 +94,24 @@ export const comments = pgTable(
   }),
 );
 
+export const commentReactions = pgTable(
+  "comment_reactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: varchar("emoji", { length: 16 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    commentUserEmoji: unique("comment_reactions_comment_user_emoji").on(t.commentId, t.userId, t.emoji),
+  }),
+);
+
 export const commentVotes = pgTable(
   "comment_votes",
   {

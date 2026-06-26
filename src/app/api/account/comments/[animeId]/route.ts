@@ -1,5 +1,5 @@
 import { getDb } from "@/db";
-import { comments, users, roles, commentVotes } from "@/db/schema";
+import { comments, users, roles, commentVotes, commentReactions } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { and, eq, desc, sql } from "drizzle-orm";
 
@@ -63,11 +63,51 @@ export async function GET(req: Request, { params }: { params: Promise<{ animeId:
   const voteMap = new Map(voteAgg.map((v) => [v.commentId, v]));
   const myVoteMap = new Map(myVotes.map((v) => [v.commentId, v.vote]));
 
+  // Reaction aggregates
+  let reactionRows: { commentId: string; emoji: string; count: number }[] = [];
+  let myReactionRows: { commentId: string; emoji: string }[] = [];
+  try {
+    reactionRows = await db
+      .select({
+        commentId: commentReactions.commentId,
+        emoji: commentReactions.emoji,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(commentReactions)
+      .innerJoin(comments, eq(comments.id, commentReactions.commentId))
+      .where(eq(comments.animeId, animeId))
+      .groupBy(commentReactions.commentId, commentReactions.emoji);
+
+    if (payload) {
+      myReactionRows = await db
+        .select({ commentId: commentReactions.commentId, emoji: commentReactions.emoji })
+        .from(commentReactions)
+        .innerJoin(comments, eq(comments.id, commentReactions.commentId))
+        .where(and(eq(comments.animeId, animeId), eq(commentReactions.userId, payload.userId)));
+    }
+  } catch { /* reactions table not yet migrated */ }
+
+  // Build reaction maps: commentId → { emoji → count }
+  const reactionMap = new Map<string, Record<string, number>>();
+  for (const r of reactionRows) {
+    const m = reactionMap.get(r.commentId) ?? {};
+    m[r.emoji] = r.count;
+    reactionMap.set(r.commentId, m);
+  }
+  const myReactionMap = new Map<string, string[]>();
+  for (const r of myReactionRows) {
+    const arr = myReactionMap.get(r.commentId) ?? [];
+    arr.push(r.emoji);
+    myReactionMap.set(r.commentId, arr);
+  }
+
   const enriched = rows.map((c) => ({
     ...c,
     likes: voteMap.get(c.id)?.likes ?? 0,
     dislikes: voteMap.get(c.id)?.dislikes ?? 0,
     myVote: (myVoteMap.get(c.id) ?? 0) as 0 | 1 | -1,
+    reactions: reactionMap.get(c.id) ?? {},
+    myReactions: myReactionMap.get(c.id) ?? [],
   }));
 
   return Response.json({ comments: enriched, total: total[0]?.count ?? 0 });
@@ -109,5 +149,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ animeId
     likes: 0,
     dislikes: 0,
     myVote: 0,
+    reactions: {},
+    myReactions: [],
   }, { status: 201 });
 }
