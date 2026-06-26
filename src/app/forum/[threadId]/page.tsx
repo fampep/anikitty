@@ -17,14 +17,18 @@ import {
   X,
   MoreHorizontal,
   LogIn,
+  Share2,
+  Quote,
+  ChevronDown,
 } from "lucide-react";
 import Container from "@/components/container";
 import Avatar from "@/components/common/avatar";
-import { RoleBadge } from "@/components/role-badge";
+import { UserBadges } from "@/components/user-badges";
 import { CategoryBadge, VoteButtons } from "@/components/forum/forum-ui";
+import { FormattedBody } from "@/components/forum/formatted-body";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { ROUTES } from "@/constants/routes";
-import { forumApi, forumTimeAgo, ForumThread, ForumPost } from "@/lib/forum";
+import { forumApi, forumTimeAgo, buildQuote, copyThreadLink, ForumThread, ForumPost } from "@/lib/forum";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 
@@ -44,34 +48,43 @@ export default function ThreadPage() {
   const [editingThread, setEditingThread] = useState(false);
   const [editThreadTitle, setEditThreadTitle] = useState("");
   const [editThreadBody, setEditThreadBody] = useState("");
+  const replyRef = React.useRef<HTMLTextAreaElement>(null);
+  const bottomRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadThread = React.useCallback(async (silent = false) => {
     if (!threadId) return;
-    let cancelled = false;
-    setLoading(true);
-    forumApi
-      .getThread(threadId)
-      .then((res) => {
-        if (cancelled) return;
-        setThread(res.thread);
-        setPosts(res.posts);
-      })
-      .catch((e) => {
-        if (cancelled) return;
+    if (!silent) setLoading(true);
+    try {
+      const res = await forumApi.getThread(threadId);
+      setThread(res.thread);
+      setPosts((prev) => {
+        if (prev.length === 0) return res.posts;
+        const seen = new Set(prev.map((p) => p.id));
+        const added = res.posts.filter((p) => !seen.has(p.id));
+        return added.length ? [...prev, ...added] : prev;
+      });
+    } catch (e: any) {
+      if (!silent) {
         if (e?.status === 404) {
           toast.error("Thread not found");
           router.replace(ROUTES.FORUM);
         } else {
           toast.error(e?.message ?? "Failed to load thread");
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      }
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, [threadId, router]);
+
+  useEffect(() => {
+    loadThread();
+  }, [loadThread]);
+
+  useEffect(() => {
+    const id = setInterval(() => loadThread(true), 15_000);
+    return () => clearInterval(id);
+  }, [loadThread]);
 
   const handleThreadVote = async (vote: 1 | -1) => {
     if (!thread) return;
@@ -195,6 +208,22 @@ export default function ThreadPage() {
     }
   };
 
+  const shareThread = async () => {
+    if (!thread) return;
+    const ok = await copyThreadLink(thread.id);
+    toast[ok ? "success" : "error"](ok ? "Link copied!" : "Could not copy link");
+  };
+
+  const quotePost = (post: ForumPost) => {
+    setReply(buildQuote(post.username, post.body));
+    replyRef.current?.focus();
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToReplies = () => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   const deletePost = async (post: ForumPost) => {
     if (!thread) return;
     if (!confirm("Delete this reply?")) return;
@@ -294,9 +323,9 @@ export default function ThreadPage() {
                 <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight tracking-tight">
                   {thread.title}
                 </h1>
-                <p className="text-[13.5px] sm:text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
-                  {thread.body}
-                </p>
+                <div className="text-[13.5px] sm:text-sm text-white/70 leading-relaxed">
+                  <FormattedBody text={thread.body} />
+                </div>
               </>
             )}
 
@@ -314,9 +343,13 @@ export default function ThreadPage() {
                 >
                   {thread.username}
                 </Link>
-                {thread.role && thread.role !== "user" && (
-                  <RoleBadge role={thread.role} color={thread.roleColor} size="xs" />
-                )}
+                <UserBadges
+                  role={thread.role}
+                  roleColor={thread.roleColor}
+                  level={thread.level}
+                  levelRole={thread.levelRole}
+                  levelRoleColor={thread.levelRoleColor}
+                />
                 <span className="text-[10.5px] font-mono text-white/30">
                   {forumTimeAgo(thread.createdAt)}
                 </span>
@@ -326,6 +359,11 @@ export default function ThreadPage() {
               </div>
 
               <div className="flex items-center gap-1">
+                <ActionButton
+                  onClick={shareThread}
+                  icon={<Share2 className="w-3.5 h-3.5" />}
+                  label="Share"
+                />
                 {canEditThread && !editingThread && (
                   <ActionButton onClick={startEditThread} icon={<Pencil className="w-3.5 h-3.5" />} label="Edit" />
                 )}
@@ -359,11 +397,22 @@ export default function ThreadPage() {
         </div>
 
         {/* ── Replies header ── */}
-        <div className="flex items-center gap-2 pt-2">
-          <MessageCircle className="w-4 h-4 text-white/40" />
-          <h2 className="text-sm font-bold text-white/80">
-            {posts.length} {posts.length === 1 ? "Reply" : "Replies"}
-          </h2>
+        <div className="flex items-center justify-between gap-2 pt-2">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-white/40" />
+            <h2 className="text-sm font-bold text-white/80">
+              {posts.length} {posts.length === 1 ? "Reply" : "Replies"}
+            </h2>
+          </div>
+          {posts.length > 0 && (
+            <button
+              onClick={scrollToReplies}
+              className="flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-white/70 transition-colors"
+            >
+              Jump to latest
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         {/* ── Posts list ── */}
@@ -381,9 +430,11 @@ export default function ThreadPage() {
                 key={post.id}
                 post={post}
                 threadId={thread.id}
+                isLoggedIn={isLoggedIn}
                 isOwnerOrMod={auth?.id === post.userId || isMod}
                 onVote={handlePostVote}
                 onDelete={() => deletePost(post)}
+                onQuote={() => quotePost(post)}
                 onUpdate={(updated) =>
                   setPosts((arr) => arr.map((p) => (p.id === updated.id ? updated : p)))
                 }
@@ -399,8 +450,9 @@ export default function ThreadPage() {
             <p className="text-[13px] text-white/45 font-mono">This thread is locked.</p>
           </div>
         ) : isLoggedIn ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3 sticky bottom-4 backdrop-blur-md">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3 sticky bottom-4 backdrop-blur-md" ref={bottomRef}>
             <textarea
+              ref={replyRef}
               value={reply}
               onChange={(e) => setReply(e.target.value)}
               maxLength={1000}
@@ -482,16 +534,20 @@ function ActionButton({
 function PostRow({
   post,
   threadId,
+  isLoggedIn,
   isOwnerOrMod,
   onVote,
   onDelete,
+  onQuote,
   onUpdate,
 }: {
   post: ForumPost;
   threadId: string;
+  isLoggedIn: boolean;
   isOwnerOrMod: boolean;
   onVote: (p: ForumPost, vote: 1 | -1) => void;
   onDelete: () => void;
+  onQuote: () => void;
   onUpdate: (p: ForumPost) => void;
 }) {
   const { auth } = useAuthStore();
@@ -538,9 +594,13 @@ function PostRow({
             >
               {post.username}
             </Link>
-            {post.role && post.role !== "user" && (
-              <RoleBadge role={post.role} color={post.roleColor} size="xs" />
-            )}
+            <UserBadges
+              role={post.role}
+              roleColor={post.roleColor}
+              level={post.level}
+              levelRole={post.levelRole}
+              levelRoleColor={post.levelRoleColor}
+            />
             <span className="text-[10.5px] font-mono text-white/30">
               {forumTimeAgo(post.createdAt)}
             </span>
@@ -549,7 +609,18 @@ function PostRow({
             )}
           </div>
 
-          {isOwnerOrMod && !editing && (
+          <div className="flex items-center gap-1">
+            {isLoggedIn && !editing && (
+              <button
+                onClick={onQuote}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-white/35 hover:text-white/70 hover:bg-white/6 transition-colors"
+                title="Quote reply"
+              >
+                <Quote className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Quote</span>
+              </button>
+            )}
+            {isOwnerOrMod && !editing && (
             <div className="relative">
               <button
                 onClick={() => setMenuOpen((v) => !v)}
@@ -586,7 +657,8 @@ function PostRow({
                 </div>
               )}
             </div>
-          )}
+            )}
+          </div>
         </div>
 
         {editing ? (
@@ -617,9 +689,9 @@ function PostRow({
             </div>
           </div>
         ) : (
-          <p className="text-[13.5px] text-white/75 whitespace-pre-wrap leading-relaxed">
-            {post.body}
-          </p>
+          <div className="text-[13.5px] text-white/75 leading-relaxed">
+            <FormattedBody text={post.body} />
+          </div>
         )}
       </div>
     </div>

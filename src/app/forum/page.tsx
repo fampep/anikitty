@@ -13,16 +13,19 @@ import {
   MessageCircle,
   Loader2,
   LogIn,
+  User,
+  Flame,
+  HelpCircle,
 } from "lucide-react";
 import Container from "@/components/container";
 import Avatar from "@/components/common/avatar";
-import { RoleBadge } from "@/components/role-badge";
+import { UserBadges } from "@/components/user-badges";
 import { CategoryBadge, VoteButtons } from "@/components/forum/forum-ui";
 import NewThreadComposer from "@/components/forum/new-thread-composer";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { ROUTES } from "@/constants/routes";
 import { FORUM_CATEGORIES } from "@/constants/forum";
-import { forumApi, forumTimeAgo, ForumThread } from "@/lib/forum";
+import { forumApi, forumTimeAgo, ForumThread, ForumStats } from "@/lib/forum";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +33,7 @@ const SORTS = [
   { id: "active", label: "Active" },
   { id: "new", label: "New" },
   { id: "top", label: "Top" },
+  { id: "unanswered", label: "Unanswered" },
 ] as const;
 
 export default function ForumPage() {
@@ -40,13 +44,16 @@ export default function ForumPage() {
 
   const sort = params.get("sort") ?? "active";
   const category = params.get("category") ?? "all";
+  const mine = params.get("mine") === "true";
   const initialQ = params.get("q") ?? "";
 
   const [q, setQ] = useState(initialQ);
   const [debouncedQ, setDebouncedQ] = useState(initialQ);
   const [composing, setComposing] = useState(false);
   const [threads, setThreads] = useState<ForumThread[]>([]);
+  const [stats, setStats] = useState<ForumStats | null>(null);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -59,19 +66,25 @@ export default function ForumPage() {
 
   // Sync URL when filters change
   const updateUrl = useCallback(
-    (next: { sort?: string; category?: string; q?: string }) => {
+    (next: { sort?: string; category?: string; q?: string; mine?: boolean }) => {
       const p = new URLSearchParams();
       const s = next.sort ?? sort;
       const c = next.category ?? category;
       const query = next.q ?? debouncedQ;
+      const showMine = next.mine ?? mine;
       if (s !== "active") p.set("sort", s);
       if (c !== "all") p.set("category", c);
       if (query) p.set("q", query);
+      if (showMine) p.set("mine", "true");
       const qs = p.toString();
       router.replace(`${ROUTES.FORUM}${qs ? `?${qs}` : ""}`, { scroll: false });
     },
-    [sort, category, debouncedQ, router],
+    [sort, category, debouncedQ, mine, router],
   );
+
+  useEffect(() => {
+    forumApi.getStats().then(setStats).catch(() => {});
+  }, []);
 
   // Fetch threads when filters change
   useEffect(() => {
@@ -84,10 +97,12 @@ export default function ForumPage() {
         category: category === "all" ? undefined : category,
         q: debouncedQ || undefined,
         page: 1,
+        mine: mine && isLoggedIn,
       })
       .then((res) => {
         if (cancelled) return;
         setThreads(res.threads);
+        setTotal(res.total);
         setHasMore(res.hasMore);
       })
       .catch((e) => {
@@ -99,7 +114,7 @@ export default function ForumPage() {
     return () => {
       cancelled = true;
     };
-  }, [sort, category, debouncedQ]);
+  }, [sort, category, debouncedQ, mine, isLoggedIn]);
 
   // Push search query into URL after debounce
   useEffect(() => {
@@ -117,9 +132,11 @@ export default function ForumPage() {
         category: category === "all" ? undefined : category,
         q: debouncedQ || undefined,
         page: next,
+        mine: mine && isLoggedIn,
       });
       setThreads((prev) => [...prev, ...res.threads]);
       setHasMore(res.hasMore);
+      setTotal(res.total);
       setPage(next);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to load more");
@@ -155,24 +172,38 @@ export default function ForumPage() {
     }
   };
 
-  const stats = useMemo(() => {
-    const totalReplies = threads.reduce((acc, t) => acc + t.replyCount, 0);
-    return { threads: threads.length, replies: totalReplies };
-  }, [threads]);
+  const statsMemo = useMemo(() => stats, [stats]);
 
   return (
     <div className="min-h-screen bg-black pt-20 pb-24">
       <Container className="flex flex-col gap-8">
         {/* ── Header ── */}
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-0.5 h-6 bg-white/35 shrink-0" />
-            <MessagesSquare className="w-5 h-5 text-white/50" />
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Forum</h1>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-0.5 h-6 bg-white/35 shrink-0" />
+              <MessagesSquare className="w-5 h-5 text-white/50" />
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Forum</h1>
+            </div>
+            <p className="text-sm text-white/35 font-mono pl-[3.25rem]">
+              Discuss anime, share recommendations, meet the community.
+            </p>
           </div>
-          <p className="text-sm text-white/35 font-mono pl-[3.25rem]">
-            Discuss anime, share recommendations, meet the community.
-          </p>
+
+          {statsMemo && (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 pl-[3.25rem] sm:pl-0">
+              <StatPill icon={<MessagesSquare className="w-3 h-3" />} label={`${statsMemo.totalThreads} threads`} />
+              <StatPill icon={<MessageCircle className="w-3 h-3" />} label={`${statsMemo.totalReplies} replies`} />
+              <StatPill icon={<Flame className="w-3 h-3" />} label={`${statsMemo.activeToday} active today`} />
+              <Link
+                href={ROUTES.CHAT}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 transition-colors"
+              >
+                <MessageCircle className="w-3 h-3" />
+                Live Chat
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* ── Controls row ── */}
@@ -188,22 +219,38 @@ export default function ForumPage() {
             />
           </div>
 
-          {/* Sort */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/8 shrink-0">
-            {SORTS.map((s) => (
+          {/* Sort + filters */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {isLoggedIn && (
               <button
-                key={s.id}
-                onClick={() => updateUrl({ sort: s.id })}
+                onClick={() => updateUrl({ mine: !mine })}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors",
-                  sort === s.id
-                    ? "bg-white/10 text-white"
-                    : "text-white/45 hover:text-white/75",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors",
+                  mine
+                    ? "bg-white/10 text-white border-white/15"
+                    : "bg-white/[0.03] text-white/45 border-white/8 hover:text-white/75",
                 )}
               >
-                {s.label}
+                <User className="w-3.5 h-3.5" />
+                My threads
               </button>
-            ))}
+            )}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/8">
+              {SORTS.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => updateUrl({ sort: s.id })}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors",
+                    sort === s.id
+                      ? "bg-white/10 text-white"
+                      : "text-white/45 hover:text-white/75",
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* New thread CTA */}
@@ -241,28 +288,48 @@ export default function ForumPage() {
 
         {/* ── Layout: categories sidebar + thread list ── */}
         <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 items-start">
-          {/* Categories */}
+          {/* Categories + guidelines */}
           <aside className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 lg:sticky lg:top-24">
             <CategoryFilter
-              active={category === "all"}
+              active={category === "all" && !mine}
               label="All Threads"
-              count={stats.threads}
-              onClick={() => updateUrl({ category: "all" })}
+              count={statsMemo?.totalThreads}
+              onClick={() => updateUrl({ category: "all", mine: false })}
             />
             {FORUM_CATEGORIES.map((c) => (
               <CategoryFilter
                 key={c.id}
-                active={category === c.id}
+                active={category === c.id && !mine}
                 label={c.label}
                 description={c.description}
                 color={c.color}
-                onClick={() => updateUrl({ category: c.id })}
+                count={statsMemo?.categoryCounts[c.id]}
+                onClick={() => updateUrl({ category: c.id, mine: false })}
               />
             ))}
+
+            <div className="hidden lg:flex flex-col gap-2 mt-4 p-3.5 rounded-xl bg-white/[0.02] border border-white/8">
+              <div className="flex items-center gap-2 text-[12px] font-semibold text-white/70">
+                <HelpCircle className="w-3.5 h-3.5" />
+                Community tips
+              </div>
+              <ul className="text-[10.5px] text-white/35 font-mono space-y-1.5 leading-relaxed">
+                <li>· Use Recommendations for &quot;what should I watch?&quot;</li>
+                <li>· Search before posting — your question may exist</li>
+                <li>· Upvote helpful threads and replies</li>
+                <li>· Quote replies to keep context clear</li>
+              </ul>
+            </div>
           </aside>
 
           {/* Thread list */}
           <div className="flex flex-col gap-2 min-w-0">
+            {!loading && total > 0 && (
+              <p className="text-[11px] font-mono text-white/30 px-1">
+                Showing {threads.length} of {total} thread{total !== 1 ? "s" : ""}
+                {mine ? " you started" : ""}
+              </p>
+            )}
             {loading ? (
               <ThreadSkeleton count={5} />
             ) : threads.length === 0 ? (
@@ -291,6 +358,15 @@ export default function ForumPage() {
   );
 }
 
+function StatPill({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/8 text-[11px] font-mono text-white/45">
+      {icon}
+      {label}
+    </span>
+  );
+}
+
 function CategoryFilter({
   active,
   label,
@@ -316,11 +392,11 @@ function CategoryFilter({
           : "bg-white/[0.02] border-white/8 text-white/55 hover:text-white/85 hover:bg-white/[0.04]",
       )}
     >
-      <span className="text-[13px] font-semibold leading-tight flex items-center gap-2">
+      <span className="text-[13px] font-semibold leading-tight flex items-center gap-2 w-full">
         {color && (
           <span
             className={cn(
-              "w-1.5 h-1.5 rounded-full",
+              "w-1.5 h-1.5 rounded-full shrink-0",
               color === "sky" && "bg-sky-400",
               color === "violet" && "bg-violet-400",
               color === "amber" && "bg-amber-400",
@@ -329,9 +405,9 @@ function CategoryFilter({
             )}
           />
         )}
-        {label}
-        {typeof count === "number" && (
-          <span className="text-[10px] font-mono text-white/30">{count}</span>
+        <span className="truncate">{label}</span>
+        {typeof count === "number" && count > 0 && (
+          <span className="text-[10px] font-mono text-white/30 ml-auto shrink-0">{count}</span>
         )}
       </span>
       {description && (
@@ -351,10 +427,7 @@ function ThreadRow({
   onVote: (t: ForumThread, vote: 1 | -1) => void;
 }) {
   return (
-    <Link
-      href={`${ROUTES.FORUM}/${thread.id}`}
-      className="group flex gap-3 sm:gap-4 p-4 rounded-xl bg-white/[0.025] border border-white/8 hover:border-white/15 hover:bg-white/[0.04] transition-colors"
-    >
+    <div className="group flex gap-3 sm:gap-4 p-4 rounded-xl bg-white/[0.025] border border-white/8 hover:border-white/15 hover:bg-white/[0.04] transition-colors">
       <VoteButtons
         score={thread.score}
         myVote={thread.myVote}
@@ -374,29 +447,52 @@ function ThreadRow({
               <Lock className="w-2.5 h-2.5" /> Locked
             </span>
           )}
+          {thread.replyCount === 0 && (
+            <span className="text-[10px] font-bold text-sky-300/80 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-md">
+              Needs replies
+            </span>
+          )}
         </div>
 
-        <h2 className="text-[15px] sm:text-base font-bold text-white/90 group-hover:text-white leading-snug line-clamp-2">
-          {thread.title}
-        </h2>
+        <Link href={`${ROUTES.FORUM}/${thread.id}`} className="block">
+          <h2 className="text-[15px] sm:text-base font-bold text-white/90 group-hover:text-white leading-snug line-clamp-2">
+            {thread.title}
+          </h2>
+        </Link>
 
         <p className="text-[12.5px] text-white/45 line-clamp-2 leading-relaxed">
           {thread.body}
         </p>
 
         <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <Avatar
-            username={thread.username}
-            url={thread.avatarUrl ?? undefined}
-            className="w-5 h-5 shrink-0"
+          <Link href={`/profile/${thread.username}`} className="flex items-center gap-2">
+            <Avatar
+              username={thread.username}
+              url={thread.avatarUrl ?? undefined}
+              className="w-5 h-5 shrink-0"
+            />
+            <span className="text-[11.5px] font-semibold text-white/65 hover:text-white transition-colors">
+              {thread.username}
+            </span>
+          </Link>
+          <UserBadges
+            role={thread.role}
+            roleColor={thread.roleColor}
+            level={thread.level}
+            levelRole={thread.levelRole}
+            levelRoleColor={thread.levelRoleColor}
           />
-          <span className="text-[11.5px] font-semibold text-white/65">{thread.username}</span>
-          {thread.role && thread.role !== "user" && (
-            <RoleBadge role={thread.role} color={thread.roleColor} size="xs" />
-          )}
           <span className="text-[10px] font-mono text-white/30">
             {forumTimeAgo(thread.createdAt)}
           </span>
+          {thread.lastActivityAt && (
+            <>
+              <span className="text-[10px] font-mono text-white/15">·</span>
+              <span className="text-[10px] font-mono text-white/30">
+                active {forumTimeAgo(thread.lastActivityAt)}
+              </span>
+            </>
+          )}
           <span className="text-[10px] font-mono text-white/15">·</span>
           <span className="inline-flex items-center gap-1 text-[10.5px] font-mono text-white/35">
             <MessageCircle className="w-3 h-3" />
@@ -410,7 +506,7 @@ function ThreadRow({
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

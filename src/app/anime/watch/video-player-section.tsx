@@ -22,10 +22,15 @@ import {
   AlertCircle,
   Cat,
   Server,
+  Users,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "sonner";
+import { useW2g } from "@/hooks/use-w2g";
+import W2gPanel from "@/components/w2g/w2g-panel";
+import LoginPopoverButton from "@/components/login-popover-button";
 
 const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
   ssr: false,
@@ -38,6 +43,7 @@ const VideoPlayerSection = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const episodeId = searchParams.get("episode");
+  const w2gCode = searchParams.get("w2g");
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
   const { preferDub, setPreferDub } = useSettingsStore();
@@ -74,6 +80,58 @@ const VideoPlayerSection = () => {
 
   const animeSlug = anime?.anime?.info?.id ?? null;
 
+  const w2g = useW2g({
+    code: w2gCode,
+    animeId: animeSlug,
+    episodeId,
+    provider,
+    audio,
+    enabled: !!w2gCode && !!auth,
+    onEpisodeChange: (epId) => {
+      if (!animeSlug || !w2gCode) return;
+      setSelectedEpisode(epId);
+      router.push(
+        `/anime/watch?anime=${encodeURIComponent(animeSlug)}&episode=${encodeURIComponent(epId)}&w2g=${w2gCode}`,
+      );
+    },
+  });
+
+  const [creatingW2g, setCreatingW2g] = useState(false);
+
+  const handleCreateW2g = async () => {
+    if (!auth) {
+      toast.error("Sign in to start a watch party");
+      return;
+    }
+    if (!animeSlug || !episodeId) return;
+    setCreatingW2g(true);
+    try {
+      const room = await w2g.createRoom({
+        animeId: animeSlug,
+        animeTitle: anime?.anime?.info?.name,
+        animeThumbnail: anime?.anime?.info?.poster,
+        episodeId,
+        episodeNumber: parseInt(episodeNo) || 0,
+        currentTime: Math.floor(liveTimeRef.current),
+      });
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("w2g", room.code);
+      router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
+      toast.success(`Room ${room.code} created — share the code!`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to create room");
+    } finally {
+      setCreatingW2g(false);
+    }
+  };
+
+  const handleLeaveW2g = async () => {
+    await w2g.leave();
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("w2g");
+    router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
+  };
+
   // Episode list for next-episode navigation
   const { data: allEpisodes } = useGetAllEpisodes(animeSlug ?? "");
   const currentEpisodeInfo = React.useMemo(() => {
@@ -102,8 +160,18 @@ const VideoPlayerSection = () => {
     }
     setAutoFullscreen(isFs);
     setSelectedEpisode(nextEpisode.episodeId);
-    router.push(`/anime/watch?anime=${animeSlug}&episode=${nextEpisode.episodeId}`);
-  }, [nextEpisode, animeSlug, setSelectedEpisode, router]);
+    if (w2g.isHost && w2gCode) {
+      w2g.syncEpisode(
+        nextEpisode.episodeId,
+        nextEpisode.number,
+        Math.floor(liveTimeRef.current),
+        true,
+      );
+    }
+    router.push(
+      `/anime/watch?anime=${animeSlug}&episode=${nextEpisode.episodeId}${w2gCode ? `&w2g=${w2gCode}` : ""}`,
+    );
+  }, [nextEpisode, animeSlug, setSelectedEpisode, router, w2g, w2gCode]);
 
   // Reset refs when episode changes so we don't cross-contaminate
   useEffect(() => {
@@ -278,6 +346,7 @@ const VideoPlayerSection = () => {
   }
 
   return (
+    <div className="flex flex-col gap-3">
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
@@ -288,7 +357,11 @@ const VideoPlayerSection = () => {
         tracks={streamData.tracks ?? []}
         headers={streamData.headers ?? {}}
         skipTimes={skipTimes}
-        startTime={startTime}
+        startTime={
+          w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
+            ? w2g.syncState.currentTime
+            : startTime
+        }
         autoFullscreen={autoFullscreen}
         nextEpisode={nextEpisode ? { id: nextEpisode.episodeId, number: nextEpisode.number, title: nextEpisode.title } : undefined}
         onStart={handleStart}
@@ -297,6 +370,15 @@ const VideoPlayerSection = () => {
         onNextEpisode={handleNextEpisode}
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
+        w2g={
+          w2gCode && w2g.isMember
+            ? {
+                isHost: w2g.isHost,
+                syncState: w2g.syncState,
+                onPlaybackSync: w2g.onPlaybackSync,
+              }
+            : undefined
+        }
       />
       </div>
 
@@ -361,7 +443,52 @@ const VideoPlayerSection = () => {
             <Mic className="w-3 h-3" /> DUB
           </button>
         </div>
+
+        {/* Watch Together */}
+        {w2gCode && w2g.isMember ? (
+          <span className="text-[10px] font-mono text-violet-300/70 hidden sm:inline">
+            Room {w2gCode}
+          </span>
+        ) : auth ? (
+          <button
+            type="button"
+            onClick={handleCreateW2g}
+            disabled={creatingW2g}
+            className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 transition-colors disabled:opacity-50"
+          >
+            {creatingW2g ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Users className="w-3 h-3" />
+            )}
+            Watch Together
+          </button>
+        ) : (
+          <LoginPopoverButton
+            customTrigger={
+              <button
+                type="button"
+                className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-white/12 text-white/45 hover:text-white/70 transition-colors"
+              >
+                <Users className="w-3 h-3" /> Watch Together
+              </button>
+            }
+          />
+        )}
       </div>
+    </div>
+
+    {w2gCode && w2g.isMember && (
+      <W2gPanel
+        code={w2gCode}
+        isHost={w2g.isHost}
+        members={w2g.members}
+        messages={w2g.messages}
+        loading={w2g.loading}
+        onSendMessage={w2g.sendMessage}
+        onLeave={handleLeaveW2g}
+      />
+    )}
     </div>
   );
 };

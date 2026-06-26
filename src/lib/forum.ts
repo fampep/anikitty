@@ -35,6 +35,9 @@ export interface ForumThread {
   avatarUrl: string | null;
   role: string | null;
   roleColor: string | null;
+  level?: number;
+  levelRole?: string;
+  levelRoleColor?: string;
   score: number;
   myVote: 0 | 1 | -1;
   replyCount: number;
@@ -50,17 +53,36 @@ export interface ForumPost {
   avatarUrl: string | null;
   role: string | null;
   roleColor: string | null;
+  level?: number;
+  levelRole?: string;
+  levelRoleColor?: string;
   score: number;
   myVote: 0 | 1 | -1;
 }
 
+export type ForumStats = {
+  totalThreads: number;
+  totalReplies: number;
+  activeToday: number;
+  categoryCounts: Record<string, number>;
+};
+
 export const forumApi = {
-  listThreads: (opts: { sort?: string; category?: string; q?: string; page?: number } = {}) => {
+  getStats: () => api<ForumStats>("/stats"),
+
+  listThreads: (opts: {
+    sort?: string;
+    category?: string;
+    q?: string;
+    page?: number;
+    mine?: boolean;
+  } = {}) => {
     const p = new URLSearchParams();
     if (opts.sort) p.set("sort", opts.sort);
     if (opts.category) p.set("category", opts.category);
     if (opts.q) p.set("q", opts.q);
     if (opts.page) p.set("page", String(opts.page));
+    if (opts.mine) p.set("mine", "true");
     return api<{ threads: ForumThread[]; total: number; page: number; hasMore: boolean }>(
       `/threads?${p.toString()}`,
     );
@@ -107,4 +129,20 @@ export function forumTimeAgo(dateStr: string | null) {
   const d = Math.floor(h / 24);
   if (d < 30) return `${d}d ago`;
   return `${Math.floor(d / 30)}mo ago`;
+}
+
+export function buildQuote(username: string, body: string): string {
+  const excerpt = body.trim().split("\n").slice(0, 3).join("\n").slice(0, 240);
+  const suffix = body.trim().length > excerpt.length ? "…" : "";
+  return `> @${username}: ${excerpt}${suffix}\n\n`;
+}
+
+export async function copyThreadLink(threadId: string): Promise<boolean> {
+  const url = `${window.location.origin}/forum/${threadId}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    return true;
+  } catch {
+    return false;
+  }
 }

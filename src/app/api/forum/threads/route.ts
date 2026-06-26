@@ -4,6 +4,7 @@ import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { and, eq, desc, sql, inArray, ilike, or } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/comment-helpers";
 import { isValidCategory } from "@/constants/forum";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 
 const PAGE_SIZE = 20;
 const MAX_TITLE = 200;
@@ -27,8 +28,9 @@ const BASE_SELECT = {
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const sort = url.searchParams.get("sort") ?? "active"; // active | new | top
+  const sort = url.searchParams.get("sort") ?? "active"; // active | new | top | unanswered
   const category = url.searchParams.get("category");
+  const mine = url.searchParams.get("mine") === "true";
   const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
   const offset = (page - 1) * PAGE_SIZE;
@@ -40,6 +42,15 @@ export async function GET(req: Request) {
   const filters = [];
   if (category && isValidCategory(category)) filters.push(eq(forumThreads.category, category));
   if (q) filters.push(or(ilike(forumThreads.title, `%${q}%`), ilike(forumThreads.body, `%${q}%`)));
+  if (mine) {
+    if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    filters.push(eq(forumThreads.userId, payload.userId));
+  }
+  if (sort === "unanswered") {
+    filters.push(
+      sql`NOT EXISTS (SELECT 1 FROM forum_posts fp WHERE fp.thread_id = ${forumThreads.id})`,
+    );
+  }
   const where = filters.length ? and(...filters) : undefined;
 
   const [countRow] = await db
@@ -71,6 +82,11 @@ export async function GET(req: Request) {
           ),
           desc(forumThreads.createdAt),
         )
+        .limit(PAGE_SIZE)
+        .offset(offset);
+    if (sort === "unanswered")
+      return base
+        .orderBy(desc(forumThreads.isPinned), desc(forumThreads.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset);
     // active (default)
@@ -120,12 +136,22 @@ export async function GET(req: Request) {
   const myVoteMap = new Map(myVotes.map((v) => [v.threadId, v.vote]));
   const replyMap = new Map(replyCounts.map((r) => [r.threadId, r.count]));
 
-  const threads = rows.map((r) => ({
-    ...r,
-    score: scoreMap.get(r.id) ?? 0,
-    myVote: (myVoteMap.get(r.id) ?? 0) as 0 | 1 | -1,
-    replyCount: replyMap.get(r.id) ?? 0,
-  }));
+  const xpStatsMap = await getUsersXpStats(db, rows.map((r) => r.userId));
+
+  const threads = rows.map((r) =>
+    attachLevelRole(
+      {
+        ...r,
+        createdAt: r.createdAt?.toISOString() ?? null,
+        updatedAt: r.updatedAt?.toISOString() ?? null,
+        lastActivityAt: r.lastActivityAt?.toISOString() ?? null,
+        score: scoreMap.get(r.id) ?? 0,
+        myVote: (myVoteMap.get(r.id) ?? 0) as 0 | 1 | -1,
+        replyCount: replyMap.get(r.id) ?? 0,
+      },
+      xpStatsMap,
+    ),
+  );
 
   return Response.json({ threads, total, page, hasMore: page * PAGE_SIZE < total });
 }
@@ -179,17 +205,23 @@ export async function POST(req: Request) {
     .where(eq(users.id, payload.userId))
     .limit(1);
 
-  return Response.json(
+  const xpStats = await getUsersXpStats(db, [payload.userId]);
+  const enriched = attachLevelRole(
     {
       ...row,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      updatedAt: row.updatedAt?.toISOString() ?? null,
+      lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
       username: user?.username,
-      avatarUrl: user?.avatarUrl,
-      role: user?.role,
-      roleColor: user?.roleColor,
+      avatarUrl: user?.avatarUrl ?? null,
+      role: user?.role ?? "user",
+      roleColor: user?.roleColor ?? null,
       score: 0,
-      myVote: 0,
+      myVote: 0 as const,
       replyCount: 0,
     },
-    { status: 201 },
+    xpStats,
   );
+
+  return Response.json(enriched, { status: 201 });
 }

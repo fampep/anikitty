@@ -1,0 +1,71 @@
+import { getAnisurgeToken } from "@/lib/anisurge";
+
+export type ChatMessage = {
+  id: string;
+  body: string;
+  createdAt: string;
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  role: string;
+  roleColor: string | null;
+  level: number;
+  levelRole: string;
+  levelRoleColor: string;
+};
+
+async function chatFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getAnisurgeToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init.headers as Record<string, string>),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`/api/chat${path}`, { ...init, headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body?.error ?? res.statusText) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+export const chatApi = {
+  getMessages: (opts?: { after?: string; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.after) params.set("after", opts.after);
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    return chatFetch<{ messages: ChatMessage[] }>(
+      `/messages${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  sendMessage: (body: string) =>
+    chatFetch<{ message: ChatMessage }>("/messages", {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    }),
+
+  deleteMessage: (messageId: string) =>
+    chatFetch<{ ok: boolean }>(`/messages/${messageId}`, { method: "DELETE" }),
+};
+
+export function chatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  return `${day}d ago`;
+}
+
+export function formatChatTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}

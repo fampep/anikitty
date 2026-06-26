@@ -4,6 +4,7 @@ import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { and, eq, asc, sql, inArray } from "drizzle-orm";
 import { sanitizeBody } from "@/lib/comment-helpers";
 import { isValidCategory } from "@/constants/forum";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 
 const THREAD_SELECT = {
   id: forumThreads.id,
@@ -112,17 +113,28 @@ export async function GET(
 
   const enrichedPosts = posts.map((p) => ({
     ...p,
+    createdAt: p.createdAt?.toISOString() ?? null,
+    updatedAt: p.updatedAt?.toISOString() ?? null,
     score: postScoreMap.get(p.id) ?? 0,
     myVote: (myPostVoteMap.get(p.id) ?? 0) as 0 | 1 | -1,
   }));
 
+  const allUserIds = [thread.userId, ...posts.map((p) => p.userId)];
+  const xpStatsMap = await getUsersXpStats(db, allUserIds);
+
   return Response.json({
-    thread: {
-      ...thread,
-      score: threadScoreRow?.score ?? 0,
-      myVote: (myThreadVote ?? 0) as 0 | 1 | -1,
-    },
-    posts: enrichedPosts,
+    thread: attachLevelRole(
+      {
+        ...thread,
+        createdAt: thread.createdAt?.toISOString() ?? null,
+        updatedAt: thread.updatedAt?.toISOString() ?? null,
+        lastActivityAt: thread.lastActivityAt?.toISOString() ?? null,
+        score: threadScoreRow?.score ?? 0,
+        myVote: (myThreadVote ?? 0) as 0 | 1 | -1,
+      },
+      xpStatsMap,
+    ),
+    posts: enrichedPosts.map((p) => attachLevelRole(p, xpStatsMap)),
   });
 }
 

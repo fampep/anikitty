@@ -3,6 +3,7 @@ import { forumThreads, forumPosts, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { eq } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/comment-helpers";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 
 export async function POST(
   req: Request,
@@ -60,16 +61,21 @@ export async function POST(
     .where(eq(users.id, payload.userId))
     .limit(1);
 
-  return Response.json(
+  const xpStats = await getUsersXpStats(db, [payload.userId]);
+  const message = attachLevelRole(
     {
       ...row,
-      username: user?.username,
-      avatarUrl: user?.avatarUrl,
-      role: user?.role,
-      roleColor: user?.roleColor,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      updatedAt: row.updatedAt?.toISOString() ?? null,
+      username: user?.username ?? "",
+      avatarUrl: user?.avatarUrl ?? null,
+      role: user?.role ?? "user",
+      roleColor: user?.roleColor ?? null,
       score: 0,
-      myVote: 0,
+      myVote: 0 as const,
     },
-    { status: 201 },
+    xpStats,
   );
+
+  return Response.json(message, { status: 201 });
 }

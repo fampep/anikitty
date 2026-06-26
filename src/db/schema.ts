@@ -223,6 +223,86 @@ export const forumPostVotes = pgTable(
   }),
 );
 
+// ── Live chat ──────────────────────────────────────────────────────────────
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    createdIdx: index("chat_messages_created_at_idx").on(t.createdAt),
+  }),
+);
+
+// ── Watch Together (W2G) ───────────────────────────────────────────────────
+export const w2gRooms = pgTable(
+  "w2g_rooms",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: varchar("code", { length: 8 }).notNull().unique(),
+    hostUserId: uuid("host_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    animeId: varchar("anime_id", { length: 255 }).notNull(),
+    animeTitle: text("anime_title"),
+    animeThumbnail: text("anime_thumbnail"),
+    episodeId: varchar("episode_id", { length: 100 }).notNull(),
+    episodeNumber: integer("episode_number").notNull().default(0),
+    provider: varchar("provider", { length: 50 }).notNull().default("Miruro"),
+    audio: varchar("audio", { length: 10 }).notNull().default("sub"),
+    isPlaying: boolean("is_playing").notNull().default(false),
+    currentTime: integer("current_time").notNull().default(0),
+    stateVersion: integer("state_version").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    codeIdx: index("w2g_rooms_code_idx").on(t.code),
+  }),
+);
+
+export const w2gMembers = pgTable(
+  "w2g_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => w2gRooms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lastSeenAt: timestamp("last_seen_at").defaultNow(),
+    joinedAt: timestamp("joined_at").defaultNow(),
+  },
+  (t) => ({
+    roomUser: unique("w2g_members_room_user").on(t.roomId, t.userId),
+    roomIdx: index("w2g_members_room_id_idx").on(t.roomId),
+  }),
+);
+
+export const w2gMessages = pgTable(
+  "w2g_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => w2gRooms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    roomIdx: index("w2g_messages_room_id_idx").on(t.roomId),
+  }),
+);
+
 // ── Announcements ──────────────────────────────────────────────────────────
 // Site-wide banner messages managed by admins. Optional cross-post to forum.
 export const announcements = pgTable(

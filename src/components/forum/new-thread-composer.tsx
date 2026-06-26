@@ -87,15 +87,17 @@ export default function NewThreadComposer({
         onChange={(e) => setBody(e.target.value)}
         maxLength={1000}
         rows={4}
-        placeholder="What's on your mind?"
+        placeholder="Share your thoughts, ask a question, or recommend a series…"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit();
         }}
         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white/90 placeholder:text-white/25 focus:outline-none focus:border-white/25 transition-colors resize-none leading-relaxed"
       />
 
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-mono text-white/25">{body.length}/1000</span>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-[11px] font-mono text-white/25">
+          {body.length}/1000 · Ctrl+Enter to post · Links are auto-linked
+        </span>
         <button
           onClick={submit}
           disabled={!canSubmit}

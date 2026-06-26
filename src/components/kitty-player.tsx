@@ -20,6 +20,12 @@ const THUMB_W = 192;
 const THUMB_H = 108;
 const MAX_FRAMES = 30; // max background-generated frames regardless of episode length
 
+interface W2gSyncState {
+  version: number;
+  isPlaying: boolean;
+  currentTime: number;
+}
+
 interface KittyPlayerProps {
   src: string;
   poster?: string;
@@ -35,6 +41,11 @@ interface KittyPlayerProps {
   onNextEpisode?: () => void;
   onOutroStart?: (duration: number) => void;
   onEnded?: () => void;
+  w2g?: {
+    isHost: boolean;
+    syncState?: W2gSyncState | null;
+    onPlaybackSync?: (state: { isPlaying: boolean; currentTime: number }) => void;
+  };
 }
 
 function formatVttTime(s: number): string {
@@ -60,16 +71,22 @@ export default function KittyPlayer({
   onNextEpisode,
   onOutroStart,
   onEnded: onEndedProp,
+  w2g,
 }: KittyPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
   const onLiveTimeRef = useRef(onLiveTime);
+  const w2gRef = useRef(w2g);
   const skipRef = useRef(skipTimes);
   const lastProgressTs = useRef(0);
   const startFiredRef = useRef(false);
+  const lastW2gReportRef = useRef(0);
+  const lastAppliedW2gVersion = useRef(0);
+  const applyingW2gRef = useRef(false);
 
+  useEffect(() => { w2gRef.current = w2g; }, [w2g]);
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
   useEffect(() => { onLiveTimeRef.current = onLiveTime; }, [onLiveTime]);
@@ -296,6 +313,37 @@ export default function KittyPlayer({
     };
   }, [duration, skipTimes]);
 
+  const reportW2g = useCallback((isPlaying: boolean, currentTime: number) => {
+    const cfg = w2gRef.current;
+    if (!cfg?.isHost || applyingW2gRef.current) return;
+    cfg.onPlaybackSync?.({ isPlaying, currentTime });
+    lastW2gReportRef.current = currentTime;
+  }, []);
+
+  useEffect(() => {
+    const cfg = w2gRef.current;
+    if (!cfg || cfg.isHost || !cfg.syncState) return;
+    const player = playerRef.current;
+    if (!player) return;
+    const { version, isPlaying, currentTime } = cfg.syncState;
+    if (version === lastAppliedW2gVersion.current) return;
+    lastAppliedW2gVersion.current = version;
+    applyingW2gRef.current = true;
+
+    if (Math.abs(player.currentTime - currentTime) > 2.5) {
+      player.currentTime = currentTime;
+    }
+    if (isPlaying && player.paused) {
+      player.play().catch(() => {});
+    } else if (!isPlaying && !player.paused) {
+      player.pause();
+    }
+
+    window.setTimeout(() => {
+      applyingW2gRef.current = false;
+    }, 600);
+  }, [w2g?.syncState]);
+
   const handleTimeUpdate = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
@@ -326,7 +374,12 @@ export default function KittyPlayer({
         onProgressRef.current?.(t, dur);
       }
     }
-  }, []);
+
+    const cfg = w2gRef.current;
+    if (cfg?.isHost && !applyingW2gRef.current && Math.abs(t - lastW2gReportRef.current) > 2.5) {
+      reportW2g(!player.paused, t);
+    }
+  }, [reportW2g]);
 
   const handleCanPlay = useCallback(() => {
     const t = startTimeRef.current;
@@ -349,7 +402,9 @@ export default function KittyPlayer({
       startFiredRef.current = true;
       onStartRef.current?.();
     }
-  }, []);
+    const player = playerRef.current;
+    if (player) reportW2g(true, player.currentTime);
+  }, [reportW2g]);
 
   const handlePause = useCallback(() => {
     const player = playerRef.current;
@@ -357,7 +412,8 @@ export default function KittyPlayer({
     const t   = player.currentTime;
     const dur = player.duration;
     if (t > 5 && dur > 0) onProgressRef.current?.(t, dur);
-  }, []);
+    reportW2g(false, t);
+  }, [reportW2g]);
 
   const onEndedRef = useRef(onEndedProp);
   useEffect(() => { onEndedRef.current = onEndedProp; }, [onEndedProp]);
