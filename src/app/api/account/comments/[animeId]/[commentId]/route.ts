@@ -1,5 +1,5 @@
 import { getDb } from "@/db";
-import { comments } from "@/db/schema";
+import { comments, users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { and, eq } from "drizzle-orm";
 
@@ -35,9 +35,21 @@ export async function DELETE(
   if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = getDb();
-  await db
-    .delete(comments)
-    .where(and(eq(comments.id, commentId), eq(comments.userId, payload.userId)));
+
+  // Admins and moderators can delete any comment; regular users only their own
+  const [caller] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, payload.userId))
+    .limit(1);
+
+  const isMod = caller?.role === "admin" || caller?.role === "moderator";
+
+  const condition = isMod
+    ? eq(comments.id, commentId)
+    : and(eq(comments.id, commentId), eq(comments.userId, payload.userId));
+
+  await db.delete(comments).where(condition);
 
   return Response.json({ ok: true });
 }

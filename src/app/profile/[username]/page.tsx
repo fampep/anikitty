@@ -304,8 +304,18 @@ function ProfilePage() {
   const hasHydrated = useAuthHydrated();
   const [activeTab, setActiveTab] = useState<string>("watching");
   const [editOpen, setEditOpen] = useState(false);
+  const [joinedAt, setJoinedAt] = useState<string | null>(null);
   const counts = useBookmarkCounts(auth);
   const levelData = useUserLevel();
+
+  useEffect(() => {
+    const token = getAnisurgeToken();
+    if (!token) return;
+    fetch("/api/account/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => { if (d.user?.createdAt) setJoinedAt(d.user.createdAt); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (hasHydrated && !auth) router.replace("/");
@@ -396,6 +406,12 @@ function ProfilePage() {
 
             {auth.bio && (
               <p className="text-sm text-white/45 mt-2 max-w-md">{auth.bio}</p>
+            )}
+
+            {joinedAt && (
+              <p className="text-[11px] font-mono text-white/25 mt-1.5">
+                Joined {new Date(joinedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </p>
             )}
 
             {/* Stats row */}

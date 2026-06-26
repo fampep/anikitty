@@ -7,6 +7,7 @@ import { RoleBadge } from "@/components/role-badge";
 import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
+  TrendingUp, Zap, Film, BarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,10 +43,7 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      if (!res.ok) {
-        setError("Incorrect password.");
-        return;
-      }
+      if (!res.ok) { setError("Incorrect password."); return; }
       const { token } = await res.json();
       sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
       onSuccess();
@@ -66,7 +64,6 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
           <h1 className="text-xl font-bold text-white tracking-tight">Admin Access</h1>
           <p className="text-sm text-white/35 text-center">This area is restricted. Enter the admin passphrase to continue.</p>
         </div>
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="relative">
             <input
@@ -85,11 +82,7 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
               {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-
-          {error && (
-            <p className="text-xs text-red-400/80 font-mono px-1">{error}</p>
-          )}
-
+          {error && <p className="text-xs text-red-400/80 font-mono px-1">{error}</p>}
           <button
             type="submit"
             disabled={!password.trim() || loading}
@@ -99,10 +92,7 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
             Enter
           </button>
         </form>
-
-        <p className="text-center text-[10px] font-mono text-white/15 mt-6">
-          Session expires when tab is closed
-        </p>
+        <p className="text-center text-[10px] font-mono text-white/15 mt-6">Session expires when tab is closed</p>
       </div>
     </div>
   );
@@ -143,6 +133,25 @@ interface ActivityEntry {
   userRole: string;
 }
 
+interface StatsData {
+  totalUsers: number;
+  totalSessions: number;
+  uniqueAnime: number;
+  activeToday: number;
+  activeWeek: number;
+  newUsersWeek: number;
+  topAnime: {
+    animeId: string;
+    animeTitle: string | null;
+    animeThumbnail: string | null;
+    sessionCount: number;
+    uniqueUsers: number;
+  }[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 function timeAgo(dateStr: string): string {
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
   if (diff < 60) return "just now";
@@ -158,34 +167,43 @@ function fmtSecs(s: number): string {
 }
 
 const BUILTIN_ROLES = [
-  { id: "__admin", name: "admin", color: "#ff4d6d" },
-  { id: "__mod", name: "moderator", color: "#4d9fff" },
-  { id: "__user", name: "user", color: "#888888" },
+  { id: "__admin", name: "admin",     color: "#ff4d6d" },
+  { id: "__mod",   name: "moderator", color: "#4d9fff" },
+  { id: "__user",  name: "user",      color: "#888888" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin panel
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<"users" | "roles" | "activity">("users");
+  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity">("overview");
 
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  // Users
+  const [users, setUsers]           = useState<AdminUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch]         = useState("");
   const [pendingRole, setPendingRole] = useState<Record<string, string>>({});
-  const [savingRole, setSavingRole] = useState<string | null>(null);
+  const [savingRole, setSavingRole]  = useState<string | null>(null);
 
-  const [roles, setRoles] = useState<Role[]>([]);
+  // Roles
+  const [roles, setRoles]             = useState<Role[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
-  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleName, setNewRoleName]  = useState("");
   const [newRoleColor, setNewRoleColor] = useState("#a855f7");
   const [creatingRole, setCreatingRole] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [editingRole, setEditingRole]  = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<string | null>(null);
 
-  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  // Activity
+  const [activity, setActivity]         = useState<ActivityEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityView, setActivityView] = useState<"feed" | "live">("feed");
 
+  // Stats
+  const [stats, setStats]           = useState<StatsData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // ── Fetch helpers ────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async (q?: string) => {
     setUsersLoading(true);
     try {
@@ -208,10 +226,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setRolesLoading(false); }
   }, [onLogout]);
 
-  const fetchActivity = useCallback(async () => {
+  const fetchActivity = useCallback(async (view: "feed" | "live" = "feed") => {
     setActivityLoading(true);
     try {
-      const res = await fetch("/api/admin/activity?limit=100", { headers: adminHeaders() });
+      const res = await fetch(`/api/admin/activity?limit=100&view=${view}`, { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
       const data = await res.json();
       setActivity(data.activity ?? []);
@@ -219,8 +237,25 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setActivityLoading(false); }
   }, [onLogout]);
 
-  useEffect(() => { fetchUsers(); fetchRoles(); fetchActivity(); }, [fetchUsers, fetchRoles, fetchActivity]);
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/admin/stats", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      const data = await res.json();
+      setStats(data);
+    } catch { toast.error("Failed to load stats"); }
+    finally { setStatsLoading(false); }
+  }, [onLogout]);
 
+  useEffect(() => {
+    fetchUsers();
+    fetchRoles();
+    fetchActivity();
+    fetchStats();
+  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats]);
+
+  // ── Search ───────────────────────────────────────────────────────────────
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = (v: string) => {
     setSearch(v);
@@ -233,6 +268,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     ...roles.filter((r) => !["admin", "moderator", "user"].includes(r.name)),
   ];
 
+  // ── Role handlers ────────────────────────────────────────────────────────
   const handleRoleChange = async (userId: string, role: string) => {
     setSavingRole(userId);
     try {
@@ -301,6 +337,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   const customRoles = roles.filter((r) => !["admin", "moderator", "user"].includes(r.name));
 
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen pb-24">
       {/* Sticky header */}
@@ -319,17 +356,38 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       </div>
 
       <Container className="py-8">
-        {/* Tabs */}
-        <div className="flex items-center gap-1 mb-8 border-b border-white/8 pb-4">
+        {/* ── Stats bar ──────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
           {([
-            { value: "users" as const,    label: "Users",    icon: <Users className="w-4 h-4" />    },
-            { value: "roles" as const,    label: "Roles",    icon: <Tag className="w-4 h-4" />      },
-            { value: "activity" as const, label: "Activity", icon: <Activity className="w-4 h-4" /> },
+            { label: "Total Users",    value: stats?.totalUsers,    Icon: Users,    color: "#4d9fff" },
+            { label: "Watch Sessions", value: stats?.totalSessions, Icon: Activity, color: "#a855f7" },
+            { label: "Unique Anime",   value: stats?.uniqueAnime,   Icon: Film,     color: "#22c55e" },
+            { label: "Active Today",   value: stats?.activeToday,   Icon: Zap,      color: "#f59e0b" },
+          ] as const).map(({ label, value, Icon, color }) => (
+            <div key={label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Icon className="w-3.5 h-3.5 shrink-0 opacity-60" style={{ color }} />
+                <span className="text-[10px] font-mono text-white/30 uppercase tracking-wider truncate">{label}</span>
+              </div>
+              <span className="text-2xl font-bold text-white tabular-nums">
+                {statsLoading ? "…" : (value ?? 0).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Tabs ───────────────────────────────────────────────── */}
+        <div className="flex items-center gap-1 mb-8 border-b border-white/8 pb-4 overflow-x-auto">
+          {([
+            { value: "overview"  as const, label: "Overview",  icon: <BarChart2 className="w-4 h-4" /> },
+            { value: "users"     as const, label: "Users",     icon: <Users     className="w-4 h-4" /> },
+            { value: "roles"     as const, label: "Roles",     icon: <Tag       className="w-4 h-4" /> },
+            { value: "activity"  as const, label: "Activity",  icon: <Activity  className="w-4 h-4" /> },
           ]).map((t) => (
             <button
               key={t.value}
               onClick={() => setTab(t.value)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 tab === t.value
                   ? "bg-white/10 text-white border border-white/15"
                   : "text-white/40 hover:text-white/70"
@@ -341,17 +399,107 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           ))}
         </div>
 
-        {/* ── USERS ─────────────────────────────────────────── */}
+        {/* ── OVERVIEW ───────────────────────────────────────────── */}
+        {tab === "overview" && (
+          <div className="flex flex-col gap-8">
+            {/* Week summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: "Active this week",      value: stats?.activeWeek   ?? 0, sub: "unique viewers"  },
+                { label: "New signups this week",  value: stats?.newUsersWeek ?? 0, sub: "new accounts"    },
+                { label: "Anime ever streamed",    value: stats?.uniqueAnime  ?? 0, sub: "unique titles"   },
+              ].map((c) => (
+                <div key={c.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-5">
+                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
+                  <p className="text-3xl font-bold text-white tabular-nums">
+                    {statsLoading ? "…" : c.value.toLocaleString()}
+                  </p>
+                  <p className="text-[10px] font-mono text-white/20 mt-1">{c.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Top anime */}
+            <div>
+              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5" /> Most Watched Anime
+              </p>
+              {statsLoading ? (
+                <div className="flex items-center gap-2 py-8 text-white/25">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm font-mono">Loading…</span>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/10 overflow-x-auto">
+                  <table className="w-full text-sm min-w-[480px]">
+                    <thead>
+                      <tr className="border-b border-white/8 bg-white/[0.02]">
+                        <th className="w-10 px-4 py-3 text-left text-[11px] font-mono text-white/25">#</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-mono text-white/30 uppercase tracking-wider">Anime</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Sessions</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Viewers</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.05]">
+                      {(stats?.topAnime ?? []).map((anime, i) => {
+                        const maxSessions = stats?.topAnime[0]?.sessionCount ?? 1;
+                        const pct = Math.round((anime.sessionCount / maxSessions) * 100);
+                        return (
+                          <tr key={anime.animeId} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="px-4 py-3 text-[12px] font-mono text-white/20">#{i + 1}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2.5">
+                                {anime.animeThumbnail && (
+                                  <div className="relative w-10 h-7 rounded overflow-hidden ring-1 ring-white/8 shrink-0">
+                                    <Image src={anime.animeThumbnail} alt="" fill className="object-cover" unoptimized />
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-[12px] font-medium text-white/80 truncate max-w-[220px]">
+                                    {anime.animeTitle ?? anime.animeId}
+                                  </p>
+                                  <div className="mt-1 w-32 h-0.5 rounded-full bg-white/6 overflow-hidden">
+                                    <div className="h-full rounded-full bg-white/25" style={{ width: `${pct}%` }} />
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <span className="text-[12px] font-mono text-white/50">{anime.sessionCount.toLocaleString()}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden md:table-cell">
+                              <span className="text-[12px] font-mono text-white/30">{anime.uniqueUsers.toLocaleString()}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {(stats?.topAnime ?? []).length === 0 && (
+                    <p className="text-center text-white/20 text-sm font-mono py-8">No watch data yet</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── USERS ──────────────────────────────────────────────── */}
         {tab === "users" && (
           <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 max-w-sm">
-              <Search className="w-4 h-4 text-white/30 shrink-0" />
-              <input
-                value={search}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search by username or email…"
-                className="bg-transparent text-sm text-white placeholder:text-white/25 outline-none flex-1"
-              />
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 max-w-sm flex-1">
+                <Search className="w-4 h-4 text-white/30 shrink-0" />
+                <input
+                  value={search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search by username or email…"
+                  className="bg-transparent text-sm text-white placeholder:text-white/25 outline-none flex-1"
+                />
+              </div>
+              {!usersLoading && (
+                <span className="text-[11px] font-mono text-white/25">{users.length} user{users.length !== 1 ? "s" : ""}</span>
+              )}
             </div>
 
             {usersLoading ? (
@@ -434,10 +582,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           </div>
         )}
 
-        {/* ── ROLES ─────────────────────────────────────────── */}
+        {/* ── ROLES ──────────────────────────────────────────────── */}
         {tab === "roles" && (
           <div className="flex flex-col gap-8 max-w-lg">
-            {/* Built-ins */}
             <div>
               <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Built-in</p>
               <div className="flex flex-col gap-2">
@@ -451,10 +598,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               </div>
             </div>
 
-            {/* Custom */}
             <div>
               <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Custom</p>
-
               {rolesLoading ? (
                 <div className="flex items-center gap-2 py-4 text-white/25"><Loader2 className="w-4 h-4 animate-spin" /></div>
               ) : (
@@ -477,9 +622,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
                             className="flex-1 bg-white/5 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-white/30"
                           />
-                          <div className="shrink-0">
-                            <RoleBadge role={editingRole.name} color={editingRole.color} size="sm" />
-                          </div>
+                          <div className="shrink-0"><RoleBadge role={editingRole.name} color={editingRole.color} size="sm" /></div>
                           <button onClick={handleSaveRole} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/18 text-white/60 hover:text-white transition-all">
                             <Check className="w-3.5 h-3.5" />
                           </button>
@@ -542,15 +685,36 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
         )}
-        {/* ── ACTIVITY ──────────────────────────────────────── */}
+
+        {/* ── ACTIVITY ───────────────────────────────────────────── */}
         {tab === "activity" && (
           <div className="flex flex-col gap-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-mono text-white/30">
-                {activity.length} recent session{activity.length !== 1 ? "s" : ""} · sorted by most recent
-              </p>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                {/* Feed / Live toggle */}
+                <div className="flex rounded-lg border border-white/10 overflow-hidden">
+                  {(["feed", "live"] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => { setActivityView(v); fetchActivity(v); }}
+                      className={`px-3.5 py-1.5 text-[11px] font-mono capitalize transition-all ${
+                        activityView === v
+                          ? "bg-white/12 text-white"
+                          : "text-white/35 hover:text-white/65"
+                      }`}
+                    >
+                      {v === "live" ? "⚡ Live" : "Feed"}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] font-mono text-white/25">
+                  {activityView === "live"
+                    ? `${activity.length} active user${activity.length !== 1 ? "s" : ""}`
+                    : `${activity.length} session${activity.length !== 1 ? "s" : ""}`}
+                </span>
+              </div>
               <button
-                onClick={fetchActivity}
+                onClick={() => fetchActivity(activityView)}
                 disabled={activityLoading}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all disabled:opacity-30"
               >
@@ -562,7 +726,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             {activityLoading ? (
               <div className="flex items-center gap-2 py-8 text-white/25">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm font-mono">Loading activity…</span>
+                <span className="text-sm font-mono">Loading…</span>
               </div>
             ) : activity.length === 0 ? (
               <p className="text-center text-white/20 text-sm font-mono py-8">No watch activity yet</p>
@@ -582,9 +746,11 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       const pct = entry.duration > 0
                         ? Math.min(100, Math.round((entry.currentTime / entry.duration) * 100))
                         : 0;
+                      const updatedAt = entry.updatedAt
+                        ? (typeof entry.updatedAt === "string" ? entry.updatedAt : String(entry.updatedAt))
+                        : null;
                       return (
                         <tr key={entry.progressId} className="hover:bg-white/[0.02] transition-colors">
-                          {/* User */}
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
                               {entry.avatarUrl ? (
@@ -602,7 +768,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                               </div>
                             </div>
                           </td>
-                          {/* Anime */}
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
                               {entry.animeThumbnail && (
@@ -621,14 +786,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                               </div>
                             </div>
                           </td>
-                          {/* Progress */}
                           <td className="px-4 py-3 hidden md:table-cell">
                             <div className="flex flex-col gap-1.5 min-w-[110px]">
                               <div className="w-full h-1 rounded-full bg-white/8 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-white/40"
-                                  style={{ width: `${pct}%` }}
-                                />
+                                <div className="h-full rounded-full bg-white/40" style={{ width: `${pct}%` }} />
                               </div>
                               <span className="text-[10px] font-mono text-white/25">
                                 {pct}% · {fmtSecs(entry.currentTime)}
@@ -636,10 +797,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                               </span>
                             </div>
                           </td>
-                          {/* When */}
                           <td className="px-4 py-3 hidden sm:table-cell">
                             <span className="text-[11px] font-mono text-white/30">
-                              {entry.updatedAt ? timeAgo(entry.updatedAt) : "—"}
+                              {updatedAt ? timeAgo(updatedAt) : "—"}
                             </span>
                           </td>
                         </tr>
@@ -672,9 +832,7 @@ export default function AdminPage() {
     setAuthed(false);
   };
 
-  if (authed === null) return null; // hydrating
-
+  if (authed === null) return null;
   if (!authed) return <AdminLogin onSuccess={() => setAuthed(true)} />;
-
   return <AdminPanel onLogout={handleLogout} />;
 }

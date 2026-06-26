@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
   const db = getDb();
   const [user] = await db
-    .select({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl, bio: users.bio, role: users.role, anisurgeUsername: users.anisurgeUsername })
+    .select({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl, bio: users.bio, role: users.role, anisurgeUsername: users.anisurgeUsername, createdAt: users.createdAt })
     .from(users)
     .where(eq(users.id, payload.userId))
     .limit(1);
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     anisurgeUserId: user.id,
     anisurgeLinked: !!user.anisurgeUsername,
     anisurgeUsername: user.anisurgeUsername ?? null,
-    user: { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null, role: user.role ?? "user" },
+    user: { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null, role: user.role ?? "user", createdAt: user.createdAt?.toISOString() ?? null },
   });
 }
 
