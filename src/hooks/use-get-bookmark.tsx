@@ -170,6 +170,7 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
         ...(anilistId ? { anilistId } : {}),
         ...(malId ? { malId } : {}),
         episodeId: episodeData.episodeId,
+        episodeNumber: episodeData.episodeNumber,
         currentTime: Math.round(episodeData.current),
         duration: Math.round(episodeData.duration),
         language: episodeData.language ?? "sub",

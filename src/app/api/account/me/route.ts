@@ -13,7 +13,19 @@ export async function GET(req: Request) {
 
   const db = getDb();
   const [user] = await db
-    .select({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl, bio: users.bio, role: users.role, anisurgeUsername: users.anisurgeUsername, createdAt: users.createdAt })
+    .select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      avatarUrl: users.avatarUrl,
+      bannerUrl: users.bannerUrl,
+      bio: users.bio,
+      role: users.role,
+      anisurgeUsername: users.anisurgeUsername,
+      anilistUsername: users.anilistUsername,
+      anilistAccessToken: users.anilistAccessToken,
+      createdAt: users.createdAt,
+    })
     .from(users)
     .where(eq(users.id, payload.userId))
     .limit(1);
@@ -24,6 +36,8 @@ export async function GET(req: Request) {
     anisurgeUserId: user.id,
     anisurgeLinked: !!user.anisurgeUsername,
     anisurgeUsername: user.anisurgeUsername ?? null,
+    anilistLinked: !!user.anilistAccessToken,
+    anilistUsername: user.anilistUsername ?? null,
     user: { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null, role: user.role ?? "user", createdAt: user.createdAt?.toISOString() ?? null },
   });
 }

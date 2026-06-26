@@ -108,6 +108,9 @@ export async function migrateDb() {
     const alters = [
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_access_token TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_user_id INTEGER`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_username VARCHAR(100)`,
       `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS episode_number INTEGER NOT NULL DEFAULT 0`,
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_spoiler BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP`,

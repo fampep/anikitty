@@ -11,6 +11,24 @@ export async function signToken(payload: { userId: string; username: string; rol
     .sign(await secret());
 }
 
+export async function signOAuthState(userId: string): Promise<string> {
+  return new SignJWT({ userId, purpose: "anilist_oauth" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(await secret());
+}
+
+export async function verifyOAuthState(state: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(state, await secret());
+    if (payload.purpose !== "anilist_oauth") return null;
+    return payload.userId as string;
+  } catch {
+    return null;
+  }
+}
+
 export async function verifyToken(
   token: string,
 ): Promise<{ userId: string; username: string; role: string } | null> {

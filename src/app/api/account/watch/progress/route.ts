@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { watchProgress } from "@/db/schema";
+import { users, watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { parseEpisodeNumber, updateAniListProgress } from "@/lib/anilist-sync";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {
   const token = extractToken(req);
@@ -12,7 +14,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { animeId, episodeId, currentTime, duration, language, server, anilistId, animeTitle, animeThumbnail } = body;
+    const { animeId, episodeId, currentTime, duration, language, server, anilistId, animeTitle, animeThumbnail, episodeNumber } = body;
 
     if (!animeId || !episodeId)
       return NextResponse.json({ error: "animeId and episodeId are required" }, { status: 400 });
@@ -46,6 +48,44 @@ export async function POST(req: Request) {
           updatedAt: new Date(),
         },
       });
+
+    // Fire-and-forget AniList progress sync when the user has linked OAuth
+    if (anilistId) {
+      const roundedCurrent = Math.round(currentTime ?? 0);
+      const roundedDuration = Math.round(duration ?? 0);
+      const watchedEnough =
+        roundedDuration > 0 && roundedCurrent / roundedDuration >= 0.9;
+
+      if (watchedEnough) {
+        const episodeNum =
+          (typeof episodeNumber === "number" && episodeNumber > 0
+            ? episodeNumber
+            : parseEpisodeNumber(episodeId)) ?? null;
+        if (episodeNum) {
+          void (async () => {
+            try {
+              const db2 = getDb();
+              const [user] = await db2
+                .select({ anilistAccessToken: users.anilistAccessToken })
+                .from(users)
+                .where(eq(users.id, payload.userId))
+                .limit(1);
+
+              if (user?.anilistAccessToken) {
+                await updateAniListProgress(
+                  user.anilistAccessToken,
+                  anilistId,
+                  episodeNum,
+                  "CURRENT",
+                );
+              }
+            } catch (e) {
+              console.error("[progress POST] AniList sync failed:", e);
+            }
+          })();
+        }
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {

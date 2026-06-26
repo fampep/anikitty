@@ -21,6 +21,9 @@ export const users = pgTable("users", {
   role: varchar("role", { length: 20 }).notNull().default("user"),
   anisurgeToken: text("anisurge_token"),
   anisurgeUsername: varchar("anisurge_username", { length: 100 }),
+  anilistAccessToken: text("anilist_access_token"),
+  anilistUserId: integer("anilist_user_id"),
+  anilistUsername: varchar("anilist_username", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
