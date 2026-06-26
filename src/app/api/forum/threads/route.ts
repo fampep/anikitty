@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { forumThreads, forumPosts, forumThreadVotes, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { and, eq, desc, asc, sql, inArray, ilike, or } from "drizzle-orm";
+import { and, eq, desc, sql, inArray, ilike, or } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/comment-helpers";
 import { isValidCategory } from "@/constants/forum";
 
