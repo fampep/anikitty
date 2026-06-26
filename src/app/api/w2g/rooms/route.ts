@@ -3,8 +3,7 @@ import { getDb } from "@/db";
 import { w2gRooms, w2gMembers } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { generateW2gCode } from "@/lib/w2g-code";
-import { getRoomPayload, serializeRoom } from "@/lib/w2g-server";
-import { eq } from "drizzle-orm";
+import { serializeRoom } from "@/lib/w2g-server";
 
 const MAX_CREATE_ATTEMPTS = 5;
 

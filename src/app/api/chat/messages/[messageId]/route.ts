@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { chatMessages } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function DELETE(
   req: Request,

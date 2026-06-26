@@ -4,7 +4,6 @@ import { w2gMembers } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { normalizeW2gCode } from "@/lib/w2g-code";
 import { getRoomByCode, getRoomPayload } from "@/lib/w2g-server";
-import { eq } from "drizzle-orm";
 
 export async function POST(
   req: Request,

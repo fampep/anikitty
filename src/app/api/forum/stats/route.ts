@@ -1,5 +1,4 @@
 import { getDb } from "@/db";
-import { forumThreads, forumPosts } from "@/db/schema";
 import { sql } from "drizzle-orm";
 
 export async function GET() {

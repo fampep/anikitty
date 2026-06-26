@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   Users,
   Copy,
-  X,
   Send,
   Crown,
   Loader2,

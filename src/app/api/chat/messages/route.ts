@@ -122,7 +122,6 @@ export async function POST(req: Request) {
     .where(eq(users.id, payload.userId))
     .limit(1);
 
-  const xpStats = await getUsersXpStats(db, [payload.userId]);
   const [message] = await enrichMessages([
     {
       ...row,
