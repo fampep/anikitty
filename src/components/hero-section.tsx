@@ -53,7 +53,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   if (isDataLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="h-[75vh] sm:h-[82vh] md:h-[90vh] w-full relative overflow-hidden">
+    <div className="h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] w-full relative overflow-hidden">
       <Carousel className="w-full h-full" setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="h-full">
           {spotlightAnime?.map((anime, index) => (
@@ -120,7 +120,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
 
 const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
   <div
-    className="w-full h-[75vh] sm:h-[82vh] md:h-[90vh] bg-cover bg-no-repeat bg-center relative"
+    className="w-full h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] bg-cover bg-no-repeat bg-center relative"
     style={{ backgroundImage: `url(${anime?.poster})` }}
   >
     {/* Layered cinematic gradients */}
@@ -138,7 +138,7 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
     />
 
     {/* Content */}
-    <div className="absolute inset-0 z-20 flex items-end md:items-center pb-20 sm:pb-24 md:pb-0">
+    <div className="absolute inset-0 z-20 flex items-end md:items-center pb-14 sm:pb-16 md:pb-0">
       <Container className="w-full">
         <div className="max-w-lg space-y-3 sm:space-y-4">
           {/* Rank + type */}
@@ -156,7 +156,7 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black leading-[1.05] text-white">
+          <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-black leading-[1.05] text-white">
             {anime.name}
           </h1>
 
@@ -213,8 +213,8 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
 );
 
 const LoadingSkeleton = () => (
-  <div className="h-[75vh] sm:h-[82vh] md:h-[90vh] w-full relative bg-black">
-    <div className="absolute inset-0 flex items-end md:items-center pb-20 sm:pb-24 md:pb-0">
+  <div className="h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] w-full relative bg-black">
+    <div className="absolute inset-0 flex items-end md:items-center pb-14 sm:pb-16 md:pb-0">
       <Container className="w-full">
         <div className="max-w-lg space-y-4">
           <div className="h-4 w-20 animate-pulse bg-white/10 rounded-md" />

@@ -9,6 +9,7 @@ import {
   maybeSweep,
   COMMENT_RATE,
 } from "@/lib/comment-helpers";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 
 const PAGE_SIZE = 20;
 
@@ -44,6 +45,9 @@ type RawRow = {
   avatarUrl: string | null;
   role: string | null;
   roleColor: string | null;
+  level?: number;
+  levelRole?: string;
+  levelRoleColor?: string;
 };
 
 export type EnrichedComment = RawRow & {
@@ -120,6 +124,8 @@ export async function GET(
       : [];
 
   const allIds = [...topLevelIds, ...replyRows.map((r) => r.id)];
+  const allUserIds = [...new Set([...topLevel, ...replyRows].map((r) => r.userId))];
+  const xpStatsMap = await getUsersXpStats(db, allUserIds);
 
   // Vote + reaction aggregates — parallelized, guarded against missing table
   let voteAgg: { commentId: string; likes: number; dislikes: number }[] = [];
@@ -185,15 +191,18 @@ export async function GET(
     myReactionMap.set(r.commentId, arr);
   }
 
-  const enrich = (row: RawRow): EnrichedComment => ({
-    ...row,
-    likes: voteMap.get(row.id)?.likes ?? 0,
-    dislikes: voteMap.get(row.id)?.dislikes ?? 0,
-    myVote: (myVoteMap.get(row.id) ?? 0) as 0 | 1 | -1,
-    reactions: reactionMap.get(row.id) ?? {},
-    myReactions: myReactionMap.get(row.id) ?? [],
-    replies: [],
-  });
+  const enrich = (row: RawRow): EnrichedComment => {
+    const withLevel = attachLevelRole(row, xpStatsMap);
+    return {
+      ...withLevel,
+      likes: voteMap.get(row.id)?.likes ?? 0,
+      dislikes: voteMap.get(row.id)?.dislikes ?? 0,
+      myVote: (myVoteMap.get(row.id) ?? 0) as 0 | 1 | -1,
+      reactions: reactionMap.get(row.id) ?? {},
+      myReactions: myReactionMap.get(row.id) ?? [],
+      replies: [],
+    };
+  };
 
   // Group replies by parent
   const replyByParent = new Map<string, EnrichedComment[]>();
@@ -299,6 +308,9 @@ export async function POST(
     .where(eq(users.id, payload.userId))
     .limit(1);
 
+  const xpStats = await getUsersXpStats(db, [payload.userId]);
+  const levelFields = attachLevelRole({ userId: payload.userId }, xpStats);
+
   return Response.json(
     {
       ...row,
@@ -306,6 +318,9 @@ export async function POST(
       avatarUrl: user?.avatarUrl,
       role: user?.role,
       roleColor: user?.roleColor,
+      level: levelFields.level,
+      levelRole: levelFields.levelRole,
+      levelRoleColor: levelFields.levelRoleColor,
       likes: 0,
       dislikes: 0,
       myVote: 0,

@@ -91,17 +91,17 @@ export default function SiteAnnouncementBanner() {
           <div
             key={a.id}
             className={cn(
-              "pointer-events-auto mx-auto w-full max-w-[1400px] flex items-start gap-3 px-4 py-2.5 rounded-xl border backdrop-blur-md shadow-lg shadow-black/30",
+              "pointer-events-auto mx-auto w-full max-w-[1400px] flex items-center gap-2.5 px-3 py-1.5 rounded-lg border backdrop-blur-md shadow-lg shadow-black/20",
               style.bg,
               style.border,
             )}
           >
-            <Icon className={cn("w-4 h-4 mt-0.5 shrink-0", style.iconColor)} />
-            <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1">
-              <div className="flex-1 min-w-0">
-                <p className={cn("text-[13px] font-semibold truncate", style.text)}>{a.title}</p>
+            <Icon className={cn("w-3.5 h-3.5 shrink-0", style.iconColor)} />
+            <div className="flex-1 min-w-0 flex items-center gap-x-3 gap-y-0">
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                <p className={cn("text-[12px] font-semibold truncate", style.text)}>{a.title}</p>
                 {a.body && (
-                  <p className="text-[12px] text-white/65 line-clamp-2 leading-snug">{a.body}</p>
+                  <p className="text-[11px] text-white/55 truncate hidden sm:block">{a.body}</p>
                 )}
               </div>
               {href && (

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Container from "./container";
 import Avatar from "./common/avatar";
 import { SectionHeading } from "./section-heading";
-import { RoleBadge } from "./role-badge";
+import { UserBadges } from "./user-badges";
 import { MessageSquare, ArrowRight } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 
@@ -21,6 +21,9 @@ interface LatestComment {
   avatarUrl: string | null;
   role: string | null;
   roleColor: string | null;
+  level?: number;
+  levelRole?: string;
+  levelRoleColor?: string;
 }
 
 function commentLink(c: LatestComment) {
@@ -64,9 +67,14 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1">
               <span className="text-[12.5px] font-semibold text-white/85">{c.username}</span>
-              {c.role && c.role !== "user" && (
-                <RoleBadge role={c.role} color={c.roleColor} size="xs" />
-              )}
+              <UserBadges
+                role={c.role}
+                roleColor={c.roleColor}
+                level={c.level}
+                levelRole={c.levelRole}
+                levelRoleColor={c.levelRoleColor}
+                size="xs"
+              />
               <span className="text-[10px] text-white/25 font-mono">{timeAgo(c.createdAt)}</span>
             </div>
             {c.body && (

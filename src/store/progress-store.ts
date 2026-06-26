@@ -20,7 +20,12 @@ interface ProgressStore {
 
 export const useProgressStore = create<ProgressStore>((set) => ({
   lastSaved: 0,
-  notify: () => set({ lastSaved: Date.now() }),
+  notify: () => {
+    set({ lastSaved: Date.now() });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("anikitty:level-invalidate"));
+    }
+  },
 
   setProgress: (animeId, episodeId, current, duration) => {
     const cache = loadCache();

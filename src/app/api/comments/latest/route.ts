@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import { comments, users, roles } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 
 export async function GET() {
   const db = getDb();
@@ -14,6 +15,7 @@ export async function GET() {
       episodeId: comments.episodeId,
       episodeNumber: comments.episodeNumber,
       createdAt: comments.createdAt,
+      userId: comments.userId,
       username: users.username,
       avatarUrl: users.avatarUrl,
       role: users.role,
@@ -25,5 +27,8 @@ export async function GET() {
     .orderBy(desc(comments.createdAt))
     .limit(12);
 
-  return Response.json({ comments: rows });
+  const xpStatsMap = await getUsersXpStats(db, rows.map((r) => r.userId));
+  const enriched = rows.map((r) => attachLevelRole(r, xpStatsMap));
+
+  return Response.json({ comments: enriched });
 }

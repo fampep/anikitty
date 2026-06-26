@@ -23,11 +23,12 @@ export default function LandingPage() {
     fetch("/api/home")
       .then((r) => r.json())
       .then((data) => {
+        const feed = data.data ?? data;
         const imgs: string[] = [
-          ...(data.trendingAnimes ?? []),
-          ...(data.mostPopularAnimes ?? []),
-          ...(data.mostFavoriteAnimes ?? []),
-          ...(data.latestCompletedAnimes ?? []),
+          ...(feed.trendingAnimes ?? []),
+          ...(feed.mostPopularAnimes ?? []),
+          ...(feed.mostFavoriteAnimes ?? []),
+          ...(feed.latestCompletedAnimes ?? []),
         ]
           .map((a: any) => a.poster)
           .filter(Boolean);

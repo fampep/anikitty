@@ -9,7 +9,8 @@ import {
   ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { RoleBadge } from "@/components/role-badge";
+import { UserBadges } from "@/components/user-badges";
+import { invalidateUserLevel } from "@/hooks/use-user-level";
 import { cn } from "@/lib/utils";
 
 // ── Emoji picker ──────────────────────────────────────────────────────────────
@@ -95,6 +96,9 @@ interface Comment {
   avatarUrl?: string | null;
   role?: string | null;
   roleColor?: string | null;
+  level?: number;
+  levelRole?: string;
+  levelRoleColor?: string;
   likes: number;
   dislikes: number;
   myVote: 0 | 1 | -1;
@@ -425,6 +429,8 @@ export default function CommentSection({
       setSelectedGif(null);
       setIsSpoiler(false);
       setFocused(false);
+      invalidateUserLevel();
+      window.dispatchEvent(new Event("anikitty:level-invalidate"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to post comment");
     } finally {
@@ -458,6 +464,8 @@ export default function CommentSection({
       setReplyDraft("");
       setReplyingTo(null);
       setExpandedReplies((prev) => new Set([...prev, parentId]));
+      invalidateUserLevel();
+      window.dispatchEvent(new Event("anikitty:level-invalidate"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to post reply");
     } finally {
@@ -1005,9 +1013,13 @@ export default function CommentSection({
                     <span className="text-[13px] font-semibold text-white/90 leading-none">
                       {c.username}
                     </span>
-                    {c.role && c.role !== "user" && (
-                      <RoleBadge role={c.role} color={c.roleColor} />
-                    )}
+                    <UserBadges
+                      role={c.role}
+                      roleColor={c.roleColor}
+                      level={c.level}
+                      levelRole={c.levelRole}
+                      levelRoleColor={c.levelRoleColor}
+                    />
                     {c.isSpoiler && (
                       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-400/70">
                         <EyeOff className="w-2.5 h-2.5" />
@@ -1253,9 +1265,14 @@ export default function CommentSection({
                                     <span className="text-[12px] font-semibold text-white/85 leading-none">
                                       {reply.username}
                                     </span>
-                                    {reply.role && reply.role !== "user" && (
-                                      <RoleBadge role={reply.role} color={reply.roleColor} />
-                                    )}
+                                    <UserBadges
+                                      role={reply.role}
+                                      roleColor={reply.roleColor}
+                                      level={reply.level}
+                                      levelRole={reply.levelRole}
+                                      levelRoleColor={reply.levelRoleColor}
+                                      size="xs"
+                                    />
                                     <span className="text-[10px] font-mono text-white/18 leading-none">
                                       {relativeTime(reply.createdAt)}
                                       {reply.updatedAt && (

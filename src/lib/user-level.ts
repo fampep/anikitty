@@ -19,21 +19,25 @@ export const LEVEL_TIERS: LevelTier[] = [
   { name: "Kage",          minLevel: 100, maxLevel: 100, color: "#fbbf24", icon: "Crown"     },
 ];
 
-export function xpToLevel(xp: number): number {
-  // Smooth sqrt curve: level 10 ≈ 20 eps, level 50 ≈ 500 eps, level 100 ≈ 2000 eps
-  return Math.max(1, Math.min(100, Math.floor(Math.sqrt(xp * 5)) + 1));
-}
+/** Higher levels need cubically more XP — early levels stay approachable, 100 is a grind. */
+const XP_CURVE_DIVISOR = 12;
+const MAX_LEVEL = 100;
 
 export function levelToXpRequired(level: number): number {
-  // Inverse of xpToLevel
   if (level <= 1) return 0;
-  const prev = level - 1;
-  return Math.ceil(((prev * prev) / 5));
+  const n = level - 1;
+  return Math.ceil((n * n * n) / XP_CURVE_DIVISOR);
+}
+
+export function xpToLevel(xp: number): number {
+  if (xp <= 0) return 1;
+  const n = Math.cbrt(xp * XP_CURVE_DIVISOR);
+  return Math.max(1, Math.min(MAX_LEVEL, Math.floor(n) + 1));
 }
 
 export function xpForNextLevel(currentXp: number): { current: number; needed: number; level: number } {
   const level = xpToLevel(currentXp);
-  if (level >= 100) return { current: currentXp, needed: currentXp, level: 100 };
+  if (level >= MAX_LEVEL) return { current: currentXp, needed: currentXp, level: MAX_LEVEL };
   const nextLevelXp = levelToXpRequired(level + 1);
   const thisLevelXp = levelToXpRequired(level);
   return {
@@ -50,15 +54,82 @@ export function getTierForLevel(level: number): LevelTier {
   );
 }
 
+export function getNextTier(level: number): LevelTier | null {
+  const current = getTierForLevel(level);
+  const idx = LEVEL_TIERS.findIndex((t) => t.name === current.name);
+  if (idx < 0 || idx >= LEVEL_TIERS.length - 1) return null;
+  return LEVEL_TIERS[idx + 1];
+}
+
+export function getTierProgress(level: number): number {
+  const tier = getTierForLevel(level);
+  if (tier.maxLevel === tier.minLevel) return 100;
+  const span = tier.maxLevel - tier.minLevel;
+  const into = level - tier.minLevel;
+  return Math.min(100, (into / span) * 100);
+}
+
+/** XP per comment (top-level and replies). */
+export const COMMENT_XP = 3;
+
+/** XP rewards completion more than partial watches. */
+export function computeWatchXp(started: number, completed: number): number {
+  const partial = Math.max(0, started - completed);
+  return completed + Math.floor(partial * 0.25);
+}
+
+export function computeCommentXp(commentCount: number): number {
+  return commentCount * COMMENT_XP;
+}
+
+export function computeTotalXp(
+  started: number,
+  completed: number,
+  commentCount: number,
+): number {
+  return computeWatchXp(started, completed) + computeCommentXp(commentCount);
+}
+
+export function xpToNextLevel(xp: number): number {
+  const level = xpToLevel(xp);
+  if (level >= MAX_LEVEL) return 0;
+  const nextXp = levelToXpRequired(level + 1);
+  return Math.max(0, nextXp - xp);
+}
+
+/** @deprecated Use xpToNextLevel — kept for API compat */
+export function episodesToNextLevel(xp: number): number {
+  return xpToNextLevel(xp);
+}
+
 export function getLevelProgress(xp: number): {
   level: number;
   xp: number;
   tier: LevelTier;
-  progressPct: number;  // 0-100 toward next level
+  nextTier: LevelTier | null;
+  progressPct: number;
+  tierProgressPct: number;
+  xpInLevel: number;
+  xpNeededInLevel: number;
+  xpToNext: number;
+  episodesToNext: number;
 } {
   const level = xpToLevel(xp);
   const tier = getTierForLevel(level);
+  const nextTier = getNextTier(level);
   const { current, needed } = xpForNextLevel(xp);
-  const progressPct = level >= 100 ? 100 : Math.min(100, (current / needed) * 100);
-  return { level, xp, tier, progressPct };
+  const progressPct = level >= MAX_LEVEL ? 100 : Math.min(100, (current / needed) * 100);
+  const xpToNext = xpToNextLevel(xp);
+  return {
+    level,
+    xp,
+    tier,
+    nextTier,
+    progressPct,
+    tierProgressPct: getTierProgress(level),
+    xpInLevel: current,
+    xpNeededInLevel: needed,
+    xpToNext,
+    episodesToNext: xpToNext,
+  };
 }

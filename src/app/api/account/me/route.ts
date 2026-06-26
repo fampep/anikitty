@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { eq } from "drizzle-orm";
+import { isSafeHttpsUrl } from "@/lib/security";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -32,13 +33,24 @@ export async function GET(req: Request) {
 
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  const { anilistAccessToken: _token, ...safeUser } = user;
+
   return NextResponse.json({
-    anisurgeUserId: user.id,
-    anisurgeLinked: !!user.anisurgeUsername,
-    anisurgeUsername: user.anisurgeUsername ?? null,
-    anilistLinked: !!user.anilistAccessToken,
-    anilistUsername: user.anilistUsername ?? null,
-    user: { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl ?? null, bannerUrl: user.bannerUrl ?? null, bio: user.bio ?? null, role: user.role ?? "user", createdAt: user.createdAt?.toISOString() ?? null },
+    anisurgeUserId: safeUser.id,
+    anisurgeLinked: !!safeUser.anisurgeUsername,
+    anisurgeUsername: safeUser.anisurgeUsername ?? null,
+    anilistLinked: !!_token,
+    anilistUsername: safeUser.anilistUsername ?? null,
+    user: {
+      id: safeUser.id,
+      username: safeUser.username,
+      email: safeUser.email,
+      avatarUrl: safeUser.avatarUrl ?? null,
+      bannerUrl: safeUser.bannerUrl ?? null,
+      bio: safeUser.bio ?? null,
+      role: safeUser.role ?? "user",
+      createdAt: safeUser.createdAt?.toISOString() ?? null,
+    },
   });
 }
 
@@ -51,6 +63,11 @@ export async function PUT(req: Request) {
 
   try {
     const { avatarUrl, bannerUrl, bio } = await req.json();
+
+    if (!isSafeHttpsUrl(avatarUrl) || !isSafeHttpsUrl(bannerUrl)) {
+      return NextResponse.json({ error: "Avatar and banner URLs must use HTTPS" }, { status: 400 });
+    }
+
     const db = getDb();
 
     const [user] = await db

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { eq, countDistinct } from "drizzle-orm";
+import { getUserXpStats } from "@/lib/user-xp";
 import { getLevelProgress } from "@/lib/user-level";
 
 export async function GET(req: Request) {
@@ -13,19 +12,26 @@ export async function GET(req: Request) {
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = getDb();
-
-  const [row] = await db
-    .select({ count: countDistinct(watchProgress.episodeId) })
-    .from(watchProgress)
-    .where(eq(watchProgress.userId, payload.userId));
-
-  const xp = Number(row?.count ?? 0);
-  const info = getLevelProgress(xp);
+  const stats = await getUserXpStats(db, payload.userId);
+  const info = getLevelProgress(stats.xp);
 
   return NextResponse.json({
-    xp,
+    xp: stats.xp,
+    watchXp: stats.watchXp,
+    commentXp: stats.commentXp,
     level: info.level,
     tier: info.tier,
+    levelRole: stats.levelRole,
+    levelRoleColor: stats.levelRoleColor,
+    nextTier: info.nextTier,
     progressPct: info.progressPct,
+    tierProgressPct: info.tierProgressPct,
+    xpInLevel: info.xpInLevel,
+    xpNeededInLevel: info.xpNeededInLevel,
+    xpToNext: info.xpToNext,
+    episodesToNext: info.xpToNext,
+    startedEpisodes: stats.startedEpisodes,
+    completedEpisodes: stats.completedEpisodes,
+    commentCount: stats.commentCount,
   });
 }

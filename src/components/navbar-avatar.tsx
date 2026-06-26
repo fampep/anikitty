@@ -131,9 +131,13 @@ function NavbarAvatar({ auth }: Props) {
                 />
               </div>
               <div className="flex justify-between mt-0.5">
-                <span className="text-[9px] font-mono text-white/20">{level.xp} eps</span>
                 <span className="text-[9px] font-mono text-white/20">
-                  {level.level < 100 ? `Lv.${level.level + 1}` : "MAX"}
+                  {level.xp} XP · {level.completedEpisodes} done
+                </span>
+                <span className="text-[9px] font-mono text-white/20">
+                  {level.level < 100 && (level.xpToNext ?? level.episodesToNext) > 0
+                    ? `${level.xpToNext ?? level.episodesToNext} XP to Lv.${level.level + 1}`
+                    : "MAX"}
                 </span>
               </div>
             </div>

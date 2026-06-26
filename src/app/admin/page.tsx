@@ -44,7 +44,11 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      if (!res.ok) { setError("Incorrect password."); return; }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error ?? "Incorrect password.");
+        return;
+      }
       const { token } = await res.json();
       sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
       onSuccess();
@@ -109,6 +113,7 @@ interface AdminUser {
   role: string;
   avatarUrl?: string | null;
   createdAt: string;
+  lastActiveAt?: string | null;
 }
 
 interface Role {
@@ -141,6 +146,16 @@ interface StatsData {
   activeToday: number;
   activeWeek: number;
   newUsersWeek: number;
+  totalComments?: number;
+  totalThreads?: number;
+  anilistLinked?: number;
+  security?: {
+    jwtSecret: boolean;
+    adminPassword: boolean;
+    adminJwtSecret: boolean;
+    databaseUrl: boolean;
+    warnings: string[];
+  };
   topAnime: {
     animeId: string;
     animeTitle: string | null;
@@ -234,6 +249,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [annCreating, setAnnCreating] = useState(false);
   const [annDeleting, setAnnDeleting] = useState<string | null>(null);
   const [annToggling, setAnnToggling] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async (q?: string) => {
@@ -298,6 +314,22 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     fetchStats();
     fetchAnnouncements();
   }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements]);
+
+  const refreshAll = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchUsers(search),
+        fetchRoles(),
+        fetchActivity(activityView),
+        fetchStats(),
+        fetchAnnouncements(),
+      ]);
+      toast.success("Dashboard refreshed");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // ── Search ───────────────────────────────────────────────────────────────
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -448,8 +480,16 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           <span className="text-sm font-bold text-white tracking-tight">Admin Panel</span>
           <span className="text-[11px] font-mono text-white/20 hidden sm:block">· anikitty.moe</span>
           <button
+            onClick={refreshAll}
+            disabled={refreshing}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all disabled:opacity-40"
+          >
+            <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <button
             onClick={onLogout}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all"
           >
             <LogOut className="w-3 h-3" /> Logout
           </button>
@@ -462,8 +502,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           {((): { label: string; value: number | undefined; Icon: React.ElementType; color: string }[] => [
             { label: "Total Users",    value: stats?.totalUsers,    Icon: Users,    color: "#4d9fff" },
             { label: "Watch Sessions", value: stats?.totalSessions, Icon: Activity, color: "#a855f7" },
-            { label: "Unique Anime",   value: stats?.uniqueAnime,   Icon: Film,     color: "#22c55e" },
             { label: "Active Today",   value: stats?.activeToday,   Icon: Zap,      color: "#f59e0b" },
+            { label: "AniList Linked", value: stats?.anilistLinked, Icon: TrendingUp, color: "#22d3ee" },
           ])().map(({ label, value, Icon, color }) => (
             <div key={label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
               <div className="flex items-center gap-2 mb-3">
@@ -509,7 +549,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               {[
                 { label: "Active this week",      value: stats?.activeWeek   ?? 0, sub: "unique viewers"  },
                 { label: "New signups this week",  value: stats?.newUsersWeek ?? 0, sub: "new accounts"    },
-                { label: "Anime ever streamed",    value: stats?.uniqueAnime  ?? 0, sub: "unique titles"   },
+                { label: "Comments & threads",   value: (stats?.totalComments ?? 0) + (stats?.totalThreads ?? 0), sub: `${stats?.totalComments ?? 0} comments · ${stats?.totalThreads ?? 0} threads` },
               ].map((c) => (
                 <div key={c.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-5">
                   <p className="text-[10px] font-mono text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
@@ -520,6 +560,39 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 </div>
               ))}
             </div>
+
+            {/* Security status */}
+            {stats?.security && (
+              <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5">
+                <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Security configuration
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: "JWT secret", ok: stats.security.jwtSecret },
+                    { label: "Admin password", ok: stats.security.adminPassword },
+                    { label: "Admin JWT", ok: stats.security.adminJwtSecret },
+                    { label: "Database", ok: stats.security.databaseUrl },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/8 bg-black/20">
+                      {item.ok ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      ) : (
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      )}
+                      <span className="text-[11px] font-mono text-white/50">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {stats.security.warnings.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {stats.security.warnings.map((w) => (
+                      <li key={w} className="text-[11px] font-mono text-amber-400/80">· {w}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {/* Top anime */}
             <div>
@@ -618,6 +691,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Email</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Role</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Joined</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden lg:table-cell">Last active</th>
                       <th className="px-4 py-3 w-24" />
                     </tr>
                   </thead>
@@ -658,6 +732,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                           </td>
                           <td className="px-4 py-3 text-white/25 text-xs hidden md:table-cell">
                             {new Date(u.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3 text-white/25 text-xs hidden lg:table-cell">
+                            {u.lastActiveAt ? timeAgo(u.lastActiveAt) : "—"}
                           </td>
                           <td className="px-4 py-3 text-right">
                             {dirty && (

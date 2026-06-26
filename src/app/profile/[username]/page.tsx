@@ -32,14 +32,14 @@ import {
   Pencil,
   Loader2,
   ImageIcon,
-  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
   MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { RoleBadge } from "@/components/role-badge";
+import { LevelRoleBadge } from "@/components/user-badges";
 import { useUserLevel } from "@/hooks/use-user-level";
-import type { LevelTier } from "@/lib/user-level";
+import LevelProgressCard from "@/components/level-progress-card";
 import { toast } from "sonner";
 
 function useBookmarkCounts(auth: any) {
@@ -207,15 +207,6 @@ function EditProfileDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-const TIER_ICONS: Record<string, React.ElementType> = {
-  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
-};
-
-function TierIcon({ tier, className }: { tier: LevelTier; className?: string }) {
-  const Icon = TIER_ICONS[tier.icon] ?? Star;
-  return <Icon className={className} style={{ color: tier.color }} />;
 }
 
 function relativeTime(iso: string): string {
@@ -413,6 +404,14 @@ function ProfilePage() {
                 <ShieldCheck className="w-3 h-3" />
                 passphrase account
               </span>
+              {levelData && (
+                <LevelRoleBadge
+                  level={levelData.level}
+                  levelRole={levelData.levelRole ?? levelData.tier.name}
+                  levelRoleColor={levelData.levelRoleColor ?? levelData.tier.color}
+                  size="sm"
+                />
+              )}
               {auth.role && auth.role !== "user" && (
                 <RoleBadge role={auth.role} size="sm" />
               )}
@@ -447,37 +446,7 @@ function ProfilePage() {
 
             {/* Level card */}
             {levelData && (
-              <div className="mt-4 flex items-center gap-3 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 max-w-xs w-full">
-                <TierIcon tier={levelData.tier} className="w-6 h-6 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className="text-sm font-bold leading-tight"
-                      style={{ color: levelData.tier.color }}
-                    >
-                      {levelData.tier.name}
-                    </span>
-                    <span
-                      className="text-xs font-mono font-bold shrink-0"
-                      style={{ color: levelData.tier.color }}
-                    >
-                      Lv.{levelData.level}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-none"
-                      style={{
-                        width: `${levelData.progressPct}%`,
-                        backgroundColor: levelData.tier.color,
-                      }}
-                    />
-                  </div>
-                  <p className="text-[10px] font-mono text-white/25 mt-1">
-                    {levelData.xp} episodes watched
-                  </p>
-                </div>
-              </div>
+              <LevelProgressCard level={levelData} className="mt-4 max-w-sm w-full" />
             )}
           </div>
         </div>

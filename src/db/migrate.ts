@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { LEVEL_TIERS } from "@/lib/user-level";
 
 export async function migrateDb() {
   const url = process.env.DATABASE_URL;
@@ -123,6 +124,17 @@ export async function migrateDb() {
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>
         console.error("[migrate] alter failed:", sql, e),
+      );
+    }
+
+    // Level tier names as display roles (computed from XP — not auto-assigned to users)
+    for (const tier of LEVEL_TIERS) {
+      await client`
+        INSERT INTO roles (name, color)
+        VALUES (${tier.name}, ${tier.color})
+        ON CONFLICT (name) DO NOTHING
+      `.catch((e: unknown) =>
+        console.error("[migrate] level role seed failed:", tier.name, e),
       );
     }
 

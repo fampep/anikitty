@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Container from "./container";
 import { ROUTES } from "@/constants/routes";
-import { ChevronLeft, ChevronRight, History, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, History, Play, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { anisurgeContinue } from "@/lib/anisurge";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
@@ -93,6 +93,8 @@ const ContinueWatching = ({ loading }: Props) => {
   const getProgress = useProgressStore((s) => s.getProgress);
   const [items, setItems] = useState<ContinueItem[]>([]);
   const [fetched, setFetched] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -100,6 +102,7 @@ const ContinueWatching = ({ loading }: Props) => {
   useEffect(() => {
     if (!auth) { setItems([]); setFetched(true); return; }
 
+    setLoadError(false);
     anisurgeContinue
       .get(true, 14)
       .then((res) => {
@@ -136,9 +139,12 @@ const ContinueWatching = ({ loading }: Props) => {
           }),
         );
       })
-      .catch(() => setItems([]))
+      .catch(() => {
+        setItems([]);
+        setLoadError(true);
+      })
       .finally(() => setFetched(true));
-  }, [auth, lastSaved]);
+  }, [auth, lastSaved, retryTick, getProgress]);
 
   const updateScrollState = () => {
     const el = scrollRef.current;
@@ -189,6 +195,25 @@ const ContinueWatching = ({ loading }: Props) => {
   }
 
   if (!fetched) return <LoadingSkeleton />;
+
+  if (loadError) {
+    return (
+      <Container className="py-6">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
+          <p className="text-xs text-white/40 font-mono">Couldn&apos;t load continue watching</p>
+          <button
+            type="button"
+            onClick={() => setRetryTick((t) => t + 1)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/60 text-xs font-semibold hover:bg-white/5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry
+          </button>
+        </div>
+      </Container>
+    );
+  }
+
   if (!items.length) return null;
 
   return (

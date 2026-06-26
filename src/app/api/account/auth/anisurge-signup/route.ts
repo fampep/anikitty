@@ -4,10 +4,20 @@ import { users } from "@/db/schema";
 import { signToken } from "@/lib/auth-jwt";
 import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 const ANISURGE_BFF = "https://db.anisurge.qzz.io/v1";
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const limited = rateLimit(`signup:${ip}`, 10, 60 * 60 * 1000);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: `Too many signups from this IP. Try again in ${limited.retryAfterSec}s.` },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    );
+  }
+
   try {
     const { username, email, password } = await req.json();
 

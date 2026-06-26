@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Container from "./container";
 import { ROUTES } from "@/constants/routes";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, RefreshCw } from "lucide-react";
 import { SectionHeading } from "./section-heading";
 import { cn } from "@/lib/utils";
 
@@ -32,17 +32,24 @@ function airingLabel(item: ScheduleItem) {
 export default function HomeScheduleStrip() {
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError(false);
     fetch("/api/schedule")
       .then((r) => r.json())
       .then((d) => setItems((d.data?.scheduledAnimes ?? []).slice(0, 16)))
-      .catch(() => setItems([]))
+      .catch(() => {
+        setItems([]);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryTick]);
 
   const updateScroll = () => {
     const el = scrollRef.current;
@@ -66,6 +73,24 @@ export default function HomeScheduleStrip() {
     return (
       <Container className="py-6">
         <div className="h-24 rounded-2xl border border-white/8 bg-white/[0.02] animate-pulse" />
+      </Container>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Container className="py-4">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-white/8 bg-white/[0.02]">
+          <p className="text-xs text-white/40 font-mono">Couldn&apos;t load today&apos;s schedule</p>
+          <button
+            type="button"
+            onClick={() => setRetryTick((t) => t + 1)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/60 text-xs font-semibold hover:bg-white/5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry
+          </button>
+        </div>
       </Container>
     );
   }

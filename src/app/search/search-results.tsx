@@ -19,7 +19,7 @@ import {
 import { SearchAnimeParams } from "@/types/anime";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import { SlidersHorizontal, RotateCcw, Search } from "lucide-react";
+import { SlidersHorizontal, RotateCcw, Search, RefreshCw } from "lucide-react";
 
 const SearchResults = () => {
   const params = useAnimeSearchParams();
@@ -27,7 +27,7 @@ const SearchResults = () => {
   const searchParams = useSearchParams();
   const displayPhrase = params.q.replace(/^"+|"+$/g, "").trim();
 
-  const { data: searchResults, isLoading } = useGetSearchAnimeResults(params);
+  const { data: searchResults, isLoading, isError, refetch, isFetching } = useGetSearchAnimeResults(params);
 
   const [filters, setFilters] = React.useState<SearchAnimeParams>({
     q: params.q,
@@ -40,6 +40,20 @@ const SearchResults = () => {
     sort: params.sort,
     genres: params.genres,
   });
+
+  React.useEffect(() => {
+    setFilters({
+      q: params.q,
+      page: params.page,
+      type: params.type,
+      status: params.status,
+      rated: params.rated,
+      season: params.season,
+      language: params.language,
+      sort: params.sort,
+      genres: params.genres,
+    });
+  }, [params.q, params.page, params.type, params.status, params.rated, params.season, params.language, params.sort, params.genres]);
 
   const handleNextPage = () => {
     if (searchResults?.hasNextPage) handlePageChange((params.page || 1) + 1);
@@ -169,7 +183,19 @@ const SearchResults = () => {
       </div>
 
       {/* Grid */}
-      {isLoading ? (
+      {isError && !searchResults ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <p className="text-sm text-white/40 font-mono">Search failed to load</p>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+            Try again
+          </button>
+        </div>
+      ) : isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
           {Array.from({ length: 14 }).map((_, idx) => (
             <div
