@@ -157,6 +157,11 @@ const VideoPlayerSection = () => {
     saveProgress(current, duration);
   }, [saveProgress]);
 
+  // Credits started → mark episode as fully watched
+  const handleOutroStart = useCallback((duration: number) => {
+    saveProgress(duration, duration);
+  }, [saveProgress]);
+
   // Save progress on tab close / navigation away
   useEffect(() => {
     const onUnload = () => {
@@ -272,6 +277,7 @@ const VideoPlayerSection = () => {
         onProgress={handleProgress}
         onLiveTime={handleLiveTime}
         onNextEpisode={handleNextEpisode}
+        onOutroStart={handleOutroStart}
       />
 
       {/* Controls bar */}

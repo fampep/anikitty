@@ -33,6 +33,7 @@ interface KittyPlayerProps {
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;
   onNextEpisode?: () => void;
+  onOutroStart?: (duration: number) => void;
 }
 
 function formatVttTime(s: number): string {
@@ -56,6 +57,7 @@ export default function KittyPlayer({
   onProgress,
   onLiveTime,
   onNextEpisode,
+  onOutroStart,
 }: KittyPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -77,6 +79,9 @@ export default function KittyPlayer({
   const [countdown, setCountdown] = useState<number | null>(null);
   const onNextEpisodeRef = useRef(onNextEpisode);
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
+  const onOutroStartRef = useRef(onOutroStart);
+  useEffect(() => { onOutroStartRef.current = onOutroStart; }, [onOutroStart]);
+  const outroFiredRef = useRef(false);
 
   const startTimeRef = useRef(startTime);
   useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
@@ -142,6 +147,7 @@ export default function KittyPlayer({
     if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
     setGeneratedThumbsUrl(undefined);
     startFiredRef.current = false;
+    outroFiredRef.current = false;
     lastProgressTs.current = 0;
     setActiveSkip(null);
     setCurrentTime(0);
@@ -306,6 +312,10 @@ export default function KittyPlayer({
       setActiveSkip("intro");
     } else if (st?.outro && t >= st.outro.start && t < st.outro.end) {
       setActiveSkip("outro");
+      if (!outroFiredRef.current && dur > 0) {
+        outroFiredRef.current = true;
+        onOutroStartRef.current?.(dur);
+      }
     } else {
       setActiveSkip((prev) => (prev ? null : prev));
     }
