@@ -1,63 +1,120 @@
-![logo.png](logo.png)
+![logo](logo.png)
 
-Watch your favourite anime anywhere, anytime. No Ads.
+# Anikitty
 
-Kitsune is a free, open-source anime streaming website. It is built using the [Next Js](https://nextjs.org/) framework, [Shadcn/ui](https://ui.shadcn.com), and [Tailwind CSS](https://tailwindcss.com/).
+Watch your favourite anime — anywhere, anytime. No ads.
 
-_Kitsune is still under development and may encounter many bugs. Feel free to open any issue regarding bugs or features_
+Anikitty is a free, open-source anime streaming site built with **Next.js 14 App Router**, **TypeScript**, **Tailwind CSS**, and **PostgreSQL**. It pulls anime data from AniList and streams via KittyAPI.
+
+---
 
 ## Features
 
-- **No Ads** - No ads, no popups, no redirects, no bullshit.
-- **PWA Support** - Kitsune is a PWA, which means you can install it on your phone.
+- **No ads** — no popups, no redirects, no tracking
+- **Spotlight hero** — auto-advancing carousel with keyboard navigation
+- **Video player** — Vidstack-powered with:
+  - Seekbar thumbnail previews (generated from the full episode in the background)
+  - Skip Intro / Skip Credits buttons (AniSkip timestamps)
+  - Auto-advance to next episode with 5-second countdown
+  - Episode marked as watched when credits begin
+  - Resume from where you left off across sessions
+  - Sub / Dub toggle, multiple server providers
+- **Episode playlist sidebar** — list, compact grid, and thumbnail views with watch progress bars
+- **Continue Watching** — landscape thumbnail row with progress bars and time remaining
+- **Anime detail pages** — banner hero, Alternative Titles, Studios, character roster, relations, season tabs
+- **Comments** — per-anime discussion with:
+  - Like / dislike (toggle off to remove)
+  - Spoiler tags (blurred until clicked)
+  - Edit your own comments
+  - GIF attachments
+- **User profiles** — watch activity, comment history, bookmarks
+- **Schedule** — weekly airing calendar
+- **Search** — full-text search across thousands of titles
+- **PWA** — installable on mobile and desktop
 
-## Contributing
+---
 
-```
-fork the repo
+## Tech Stack
 
-git clone <forked-repo>
-git checkout -b <new-feature>
-git add <changed-file>
-git commit -m "New feature"
-git push origin <new-feature>
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS + shadcn/ui |
+| Database | PostgreSQL via Drizzle ORM |
+| State | Zustand + React Query |
+| Player | Vidstack + HLS.js |
+| Anime data | AniList GraphQL API |
+| Streaming | KittyAPI |
+| Skip times | AniSkip API |
+| Deployment | Coolify (Docker / Railpack) |
 
-then submit a pull request
-```
+---
 
 ## Local Development
 
-### Prerequisite
+### Prerequisites
 
-- Node js
-- Golang (if you wish to use my proxy server)
-- [Pocketbase](https://pocketbase.io)
+- Node.js 18+
+- PostgreSQL 14+ (or a Neon serverless connection string)
 
-### Proxy Server
+### Setup
 
-Head over to [Proxy-M3U8](https://github.com/Dovakiin0/proxy-m3u8) and follow the instruction to setup. or if you wish to use your own proxy server, feel free.
-
-### Pocketbase
-
-Follow the instruction from the official website. Setup initial superadmin credentials. Once inside dashboard, go to settings > Import Collections and paste the content from [collection-JSON](https://github.com/Dovakiin0/Kitsune/blob/master/docs/pb.json) and click import.
-
-You will need discord client secret if you wish to use login from discord feature.
-
-### Frontend
-
-Clone the repo and `cd Kitsune/`.  
-Open `.env` file and change the port. if you are using the above proxy and pocketbase then you are good to go. Then,
-
-```
+```bash
+git clone https://github.com/fampep/anikitty.git
+cd anikitty
 npm install
+```
+
+Copy the example env file and fill in your values:
+
+```bash
+cp .env.example .env.local
+```
+
+Required environment variables:
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/anikitty
+JWT_SECRET=your-secret-here
+ANISURGE_API_URL=https://...
+```
+
+The database schema is created automatically on first startup via the instrumentation hook — no manual migrations needed.
+
+```bash
 npm run dev
 ```
 
-### Using Docker
+Open [http://localhost:3000](http://localhost:3000).
 
-There is a `docker-compose.yaml` file which you can use to run the both frontend and server.  
-Simply run `docker compose up -d`.
+### Database
 
-## Support
+Tables are auto-created on server startup (`src/instrumentation.ts` → `migrateDb()`). To manually run the SQL against an existing database:
 
-Join the Discord server: <https://discord.gg/6yAJ3XDHTt>
+```sql
+-- See src/db/migrate.ts for the full schema
+CREATE TABLE IF NOT EXISTS users ( ... );
+CREATE TABLE IF NOT EXISTS comments ( ... );
+CREATE TABLE IF NOT EXISTS comment_votes ( ... );
+-- etc.
+```
+
+---
+
+## Contributing
+
+```bash
+# Fork the repo, then:
+git clone <your-fork>
+git checkout -b feat/your-feature
+git commit -m "feat: describe your change"
+git push origin feat/your-feature
+# Open a pull request against master
+```
+
+---
+
+## License
+
+MIT
