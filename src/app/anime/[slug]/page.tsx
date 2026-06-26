@@ -19,6 +19,7 @@ import {
   Ban,
   BookmarkCheck,
   CheckCheck,
+  ExternalLink,
   Film,
   Hand,
   Heart,
@@ -33,16 +34,29 @@ import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { useGetAnimeBanner } from "@/query/get-banner-anime";
+import { useGetAnimeMappings } from "@/query/get-anime-mappings";
 import { cn } from "@/lib/utils";
 import CommentSection from "@/components/comment-section";
 
 const SelectOptions: ISelectOptions[] = [
   { value: "plan to watch", label: "Plan to Watch", icon: BookmarkCheck },
-  { value: "watching", label: "Watching", icon: TvMinimalPlay },
-  { value: "completed", label: "Completed", icon: CheckCheck },
-  { value: "on hold", label: "On Hold", icon: Hand },
-  { value: "dropped", label: "Dropped", icon: Ban },
+  { value: "watching",      label: "Watching",      icon: TvMinimalPlay  },
+  { value: "completed",     label: "Completed",     icon: CheckCheck     },
+  { value: "on hold",       label: "On Hold",       icon: Hand           },
+  { value: "dropped",       label: "Dropped",       icon: Ban            },
 ];
+
+// External database link definitions
+const DB_LINKS = [
+  { key: "anilist",   label: "AniList",      url: (id: string | number) => `https://anilist.co/anime/${id}`,                    color: "text-teal-400/80 border-teal-500/20 bg-teal-500/8"      },
+  { key: "mal",       label: "MyAnimeList",  url: (id: string | number) => `https://myanimelist.net/anime/${id}`,               color: "text-blue-400/80 border-blue-500/20 bg-blue-500/8"      },
+  { key: "anidb",     label: "AniDB",        url: (id: string | number) => `https://anidb.net/anime/${id}`,                     color: "text-orange-400/80 border-orange-500/20 bg-orange-500/8" },
+  { key: "tvdb",      label: "TVDB",         url: (id: string | number) => `https://www.thetvdb.com/?id=${id}&tab=series`,      color: "text-green-400/80 border-green-500/20 bg-green-500/8"   },
+  { key: "tmdb",      label: "TMDB",         url: (id: string | number) => `https://www.themoviedb.org/tv/${id}`,               color: "text-sky-400/80 border-sky-500/20 bg-sky-500/8"         },
+  { key: "kitsu",     label: "Kitsu",        url: (id: string | number) => `https://kitsu.app/anime/${id}`,                     color: "text-pink-400/80 border-pink-500/20 bg-pink-500/8"      },
+  { key: "ap",        label: "AnimePlanet",  url: (id: string | number) => `https://www.anime-planet.com/anime/${id}`,          color: "text-purple-400/80 border-purple-500/20 bg-purple-500/8" },
+  { key: "imdb",      label: "IMDb",         url: (id: string | number) => `https://www.imdb.com/title/${id}`,                  color: "text-amber-400/80 border-amber-500/20 bg-amber-500/8"   },
+] as const;
 
 const Page = () => {
   const { slug } = useParams();
@@ -56,9 +70,10 @@ const Page = () => {
   });
   const [selected, setSelected] = useState(bookmarks?.[0]?.status || "");
 
-  const { data: banner, isLoading: bannerLoading } = useGetAnimeBanner(
-    anime?.anime.info.anilistId!,
-  );
+  const anilistId = anime?.anime.info.anilistId;
+
+  const { data: banner } = useGetAnimeBanner(anilistId!);
+  const { data: mappingData } = useGetAnimeMappings(anilistId);
 
   useEffect(() => {
     if (!slug) return;
@@ -87,27 +102,43 @@ const Page = () => {
 
   if (isLoading || !anime) return <Loading />;
 
-  const info = anime.anime.info;
+  const info     = anime.anime.info;
   const moreInfo = anime.anime.moreInfo;
-  const stats = info.stats;
+  const stats    = info.stats;
   const isAiring = moreInfo.status === "Currently Airing";
+
+  const mappings = mappingData?.mappings;
+  const mapImages = mappingData?.images;
+
+  // Banner priority: TVDB fanart → AniList banner → anime poster
+  const bannerSrc =
+    mapImages?.fanart ||
+    (banner?.Media.bannerImage as string | undefined) ||
+    info.poster;
+
+  // Build external links from available IDs
+  const externalLinks: { label: string; url: string; color: string }[] = [];
+  if (info.anilistId)           externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(info.anilistId) });
+  if (mappings?.mal_id)         externalLinks.push({ ...DB_LINKS[1], url: DB_LINKS[1].url(mappings.mal_id) });
+  if (mappings?.anidb_id)       externalLinks.push({ ...DB_LINKS[2], url: DB_LINKS[2].url(mappings.anidb_id) });
+  if (mappings?.thetvdb_id)     externalLinks.push({ ...DB_LINKS[3], url: DB_LINKS[3].url(mappings.thetvdb_id) });
+  if (mappings?.themoviedb_id)  externalLinks.push({ ...DB_LINKS[4], url: DB_LINKS[4].url(mappings.themoviedb_id) });
+  if (mappings?.kitsu_id)       externalLinks.push({ ...DB_LINKS[5], url: DB_LINKS[5].url(mappings.kitsu_id) });
+  if (mappings?.animeplanet_id) externalLinks.push({ ...DB_LINKS[6], url: DB_LINKS[6].url(mappings.animeplanet_id) });
+  if (mappings?.imdb_id)        externalLinks.push({ ...DB_LINKS[7], url: DB_LINKS[7].url(mappings.imdb_id) });
 
   return (
     <div className="w-full min-h-screen">
       {/* ── Banner ── */}
       <div className="h-[42vh] md:h-[58vh] w-full relative">
-        {bannerLoading ? (
-          <div className="absolute inset-0 bg-[#0a0a0a] animate-pulse" />
-        ) : (
-          <Image
-            src={(banner?.Media.bannerImage as string) || info.poster}
-            alt={info.name}
-            fill
-            className="object-cover object-top"
-            unoptimized
-            priority
-          />
-        )}
+        <Image
+          src={bannerSrc}
+          alt={info.name}
+          fill
+          className="object-cover object-top"
+          unoptimized
+          priority
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent" />
@@ -150,24 +181,16 @@ const Page = () => {
               {stats?.rating && (
                 <StatPill icon={<Star className="w-3 h-3 fill-current" />} label={stats.rating} gold />
               )}
-              {stats?.type && (
-                <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />
-              )}
+              {stats?.type && <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />}
               {stats?.episodes?.sub !== undefined && (
                 <StatPill label={`${stats.episodes.sub} episodes`} />
               )}
               {(moreInfo as any)?.duration && (
                 <StatPill label={(moreInfo as any).duration} />
               )}
-              {moreInfo?.status && !isAiring && (
-                <StatPill label={moreInfo.status} />
-              )}
-              {moreInfo?.premiered && (
-                <StatPill label={moreInfo.premiered} />
-              )}
-              {hasDub && (
-                <StatPill label="DUB" purple />
-              )}
+              {moreInfo?.status && !isAiring && <StatPill label={moreInfo.status} />}
+              {moreInfo?.premiered && <StatPill label={moreInfo.premiered} />}
+              {hasDub && <StatPill label="DUB" purple />}
             </div>
 
             {moreInfo?.genres && (moreInfo.genres as string[]).length > 0 && (
@@ -206,10 +229,10 @@ const Page = () => {
 
         {/* ── Tabs ── */}
         <Tabs defaultValue="overview" className="w-full mt-10">
-          <TabsList className="flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0">
+          <TabsList className="flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto">
             {[
-              { value: "overview", label: "Overview" },
-              { value: "episodes", label: "Episodes" },
+              { value: "overview",   label: "Overview"   },
+              { value: "episodes",   label: "Episodes"   },
               ...(info.charactersVoiceActors.length > 0
                 ? [{ value: "characters", label: "Characters" }]
                 : []),
@@ -221,14 +244,45 @@ const Page = () => {
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:text-white data-[state=active]:bg-transparent text-white/35 hover:text-white/65 transition-all bg-transparent"
+                className="text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:text-white data-[state=active]:bg-transparent text-white/35 hover:text-white/65 transition-all bg-transparent whitespace-nowrap"
               >
                 {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>
 
+          {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-8 space-y-8">
+
+            {/* TVDB art strip — shown when we have a fanart different from the banner */}
+            {mapImages?.fanart && mapImages.fanart !== mapImages.banner && (
+              <div>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
+                  Art
+                </h3>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {[mapImages.fanart, mapImages.banner, mapImages.poster]
+                    .filter(Boolean)
+                    .map((src, i) => (
+                      <a
+                        key={i}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/20 transition-all"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={src}
+                          alt="art"
+                          className="h-28 w-auto object-cover"
+                        />
+                      </a>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* Synopsis */}
             <div>
               <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
@@ -303,18 +357,21 @@ const Page = () => {
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Type", value: stats?.type },
-                  { label: "Episodes", value: stats?.episodes?.sub },
-                  { label: "Duration", value: (moreInfo as any).duration },
-                  { label: "Status", value: moreInfo.status },
-                  { label: "Aired", value: moreInfo.aired },
-                  { label: "Premiered", value: moreInfo.premiered },
-                  { label: "Score", value: moreInfo.malscore },
-                  { label: "Rating", value: stats?.rating },
+                  { label: "Type",       value: stats?.type                  },
+                  { label: "Episodes",   value: stats?.episodes?.sub         },
+                  { label: "Duration",   value: (moreInfo as any).duration   },
+                  { label: "Status",     value: moreInfo.status              },
+                  { label: "Aired",      value: moreInfo.aired               },
+                  { label: "Premiered",  value: moreInfo.premiered           },
+                  { label: "Score",      value: moreInfo.malscore            },
+                  { label: "Rating",     value: stats?.rating                },
                 ]
                   .filter((r) => r.value)
                   .map((row) => (
-                    <div key={row.label} className="rounded-xl bg-white/3 border border-white/6 px-4 py-3">
+                    <div
+                      key={row.label}
+                      className="rounded-xl bg-white/3 border border-white/6 px-4 py-3"
+                    >
                       <span className="text-[10px] font-mono text-white/25 uppercase tracking-wider block mb-1">
                         {row.label}
                       </span>
@@ -323,12 +380,40 @@ const Page = () => {
                   ))}
               </div>
             </div>
+
+            {/* External links */}
+            {externalLinks.length > 0 && (
+              <div>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
+                  External Links
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {externalLinks.map((link) => (
+                    <a
+                      key={link.label}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all hover:opacity-80",
+                        link.color,
+                      )}
+                    >
+                      {link.label}
+                      <ExternalLink className="w-3 h-3 opacity-60" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
 
+          {/* ── Episodes ── */}
           <TabsContent value="episodes" className="mt-6">
             <AnimeEpisodes animeId={info.id} />
           </TabsContent>
 
+          {/* ── Characters ── */}
           {info.charactersVoiceActors.length > 0 && (
             <TabsContent value="characters" className="mt-6">
               <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-5">
@@ -346,6 +431,7 @@ const Page = () => {
             </TabsContent>
           )}
 
+          {/* ── Relations ── */}
           {anime.seasons.length > 0 && (
             <TabsContent value="relations" className="mt-6">
               <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-5">
@@ -369,6 +455,7 @@ const Page = () => {
             </TabsContent>
           )}
 
+          {/* ── Comments ── */}
           <TabsContent value="comments" className="mt-6">
             <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
               <CommentSection animeId={info.id} />

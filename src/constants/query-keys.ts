@@ -10,3 +10,4 @@ export const GET_ANIME_BANNER = "get-anime-banner";
 export const GET_ANIME_SCHEDULE = "get-anime-schedule";
 
 export const GET_HOME_PAGE_DATA = "get-home-page-data";
+export const GET_ANIME_MAPPINGS = "get-anime-mappings";
