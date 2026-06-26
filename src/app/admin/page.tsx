@@ -8,7 +8,7 @@ import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, Film, BarChart2, Megaphone, Info, AlertTriangle,
-  AlertOctagon, CheckCircle2, ExternalLink, MessageSquare, Send,
+  AlertOctagon, CheckCircle2, ExternalLink, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
