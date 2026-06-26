@@ -111,6 +111,8 @@ export async function migrateDb() {
       `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS episode_number INTEGER NOT NULL DEFAULT 0`,
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_spoiler BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP`,
+      `ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES comments(id) ON DELETE CASCADE`,
+      `CREATE INDEX IF NOT EXISTS comments_parent_id_idx ON comments (parent_id)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

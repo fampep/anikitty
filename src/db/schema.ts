@@ -83,6 +83,10 @@ export const comments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     animeId: varchar("anime_id", { length: 255 }).notNull(),
+    // Self-referential FK for replies. Top-level comments have parentId = null.
+    parentId: uuid("parent_id").references((): any => comments.id, {
+      onDelete: "cascade",
+    }),
     body: text("body").notNull().default(""),
     gifUrl: text("gif_url"),
     isSpoiler: boolean("is_spoiler").notNull().default(false),
@@ -91,6 +95,7 @@ export const comments = pgTable(
   },
   (t) => ({
     animeIdx: index("comments_anime_id_idx").on(t.animeId),
+    parentIdx: index("comments_parent_id_idx").on(t.parentId),
   }),
 );
 
