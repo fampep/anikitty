@@ -28,5 +28,6 @@ export interface Media {
 }
 
 export interface Title {
-  english: string;
+  english: string | null;
+  romaji?: string | null;
 }
