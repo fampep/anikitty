@@ -214,3 +214,29 @@ export const forumPostVotes = pgTable(
     postUser: unique("forum_post_votes_post_user").on(t.postId, t.userId),
   }),
 );
+
+// ── Announcements ──────────────────────────────────────────────────────────
+// Site-wide banner messages managed by admins. Optional cross-post to forum.
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: varchar("title", { length: 200 }).notNull(),
+    body: text("body").notNull().default(""),
+    severity: varchar("severity", { length: 20 }).notNull().default("info"), // info | warn | critical | success
+    isActive: boolean("is_active").notNull().default(true),
+    dismissible: boolean("dismissible").notNull().default(true),
+    linkUrl: text("link_url"),
+    linkLabel: varchar("link_label", { length: 60 }),
+    forumThreadId: uuid("forum_thread_id").references(() => forumThreads.id, {
+      onDelete: "set null",
+    }),
+    startsAt: timestamp("starts_at"),
+    endsAt: timestamp("ends_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
+  },
+  (t) => ({
+    activeIdx: index("announcements_active_idx").on(t.isActive),
+  }),
+);

@@ -7,7 +7,8 @@ import { RoleBadge } from "@/components/role-badge";
 import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
-  TrendingUp, Zap, Film, BarChart2,
+  TrendingUp, Zap, Film, BarChart2, Megaphone, Info, AlertTriangle,
+  AlertOctagon, CheckCircle2, ExternalLink, MessageSquare, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -149,6 +150,29 @@ interface StatsData {
   }[];
 }
 
+interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  severity: "info" | "warn" | "critical" | "success" | string;
+  isActive: boolean;
+  dismissible: boolean;
+  linkUrl: string | null;
+  linkLabel: string | null;
+  forumThreadId: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+const SEVERITY_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  info:     { label: "Info",     color: "#38bdf8", icon: Info },
+  success:  { label: "Success",  color: "#22c55e", icon: CheckCircle2 },
+  warn:     { label: "Warning",  color: "#f59e0b", icon: AlertTriangle },
+  critical: { label: "Critical", color: "#ef4444", icon: AlertOctagon },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -176,7 +200,7 @@ const BUILTIN_ROLES = [
 // Admin panel
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements">("overview");
 
   // Users
   const [users, setUsers]           = useState<AdminUser[]>([]);
@@ -202,6 +226,14 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   // Stats
   const [stats, setStats]           = useState<StatsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+
+  // Announcements
+  const [anns, setAnns]             = useState<Announcement[]>([]);
+  const [annsLoading, setAnnsLoading] = useState(false);
+  const [annForm, setAnnForm]       = useState({ title: "", body: "", severity: "info" as Announcement["severity"], dismissible: true, linkUrl: "", linkLabel: "" });
+  const [annCreating, setAnnCreating] = useState(false);
+  const [annDeleting, setAnnDeleting] = useState<string | null>(null);
+  const [annToggling, setAnnToggling] = useState<string | null>(null);
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async (q?: string) => {
@@ -248,12 +280,24 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setStatsLoading(false); }
   }, [onLogout]);
 
+  const fetchAnnouncements = useCallback(async () => {
+    setAnnsLoading(true);
+    try {
+      const res = await fetch("/api/admin/announcements", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      const data = await res.json();
+      setAnns(data.announcements ?? []);
+    } catch { toast.error("Failed to load announcements"); }
+    finally { setAnnsLoading(false); }
+  }, [onLogout]);
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
     fetchActivity();
     fetchStats();
-  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats]);
+    fetchAnnouncements();
+  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements]);
 
   // ── Search ───────────────────────────────────────────────────────────────
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -337,6 +381,63 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   const customRoles = roles.filter((r) => !["admin", "moderator", "user"].includes(r.name));
 
+  // ── Announcement handlers ────────────────────────────────────────────────
+  const handleCreateAnn = async () => {
+    if (!annForm.title.trim()) return;
+    setAnnCreating(true);
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          title: annForm.title,
+          body: annForm.body,
+          severity: annForm.severity,
+          dismissible: annForm.dismissible,
+          linkUrl: annForm.linkUrl || null,
+          linkLabel: annForm.linkLabel || null,
+          isActive: true,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+      const row = await res.json();
+      setAnns((prev) => [row, ...prev]);
+      setAnnForm({ title: "", body: "", severity: "info", dismissible: true, linkUrl: "", linkLabel: "" });
+      toast.success("Announcement created");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed to create"); }
+    finally { setAnnCreating(false); }
+  };
+
+  const handleToggleAnn = async (id: string, current: boolean) => {
+    setAnnToggling(id);
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ id, isActive: !current }),
+      });
+      if (!res.ok) throw new Error();
+      const row = await res.json();
+      setAnns((prev) => prev.map((a) => (a.id === id ? row : a)));
+    } catch { toast.error("Failed to update"); }
+    finally { setAnnToggling(null); }
+  };
+
+  const handleDeleteAnn = async (id: string) => {
+    setAnnDeleting(id);
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        method: "DELETE",
+        headers: adminHeaders(),
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error();
+      setAnns((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Announcement deleted");
+    } catch { toast.error("Failed to delete"); }
+    finally { setAnnDeleting(null); }
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen pb-24">
@@ -379,10 +480,11 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         {/* ── Tabs ───────────────────────────────────────────────── */}
         <div className="flex items-center gap-1 mb-8 border-b border-white/8 pb-4 overflow-x-auto">
           {([
-            { value: "overview"  as const, label: "Overview",  icon: <BarChart2 className="w-4 h-4" /> },
-            { value: "users"     as const, label: "Users",     icon: <Users     className="w-4 h-4" /> },
-            { value: "roles"     as const, label: "Roles",     icon: <Tag       className="w-4 h-4" /> },
-            { value: "activity"  as const, label: "Activity",  icon: <Activity  className="w-4 h-4" /> },
+            { value: "overview"       as const, label: "Overview",      icon: <BarChart2  className="w-4 h-4" /> },
+            { value: "users"          as const, label: "Users",         icon: <Users      className="w-4 h-4" /> },
+            { value: "roles"          as const, label: "Roles",         icon: <Tag        className="w-4 h-4" /> },
+            { value: "activity"       as const, label: "Activity",      icon: <Activity   className="w-4 h-4" /> },
+            { value: "announcements"  as const, label: "Announcements", icon: <Megaphone  className="w-4 h-4" /> },
           ]).map((t) => (
             <button
               key={t.value}
@@ -811,6 +913,160 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
           </div>
         )}
+        {/* ── ANNOUNCEMENTS ──────────────────────────────────────── */}
+        {tab === "announcements" && (
+          <div className="flex flex-col gap-8 max-w-2xl">
+            {/* Create form */}
+            <div className="rounded-xl border border-dashed border-white/12 p-5 flex flex-col gap-4">
+              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest">New Announcement</p>
+
+              {/* Severity + Title */}
+              <div className="flex gap-2">
+                <select
+                  value={annForm.severity}
+                  onChange={(e) => setAnnForm((f) => ({ ...f, severity: e.target.value as Announcement["severity"] }))}
+                  className="shrink-0 bg-black border border-white/15 text-white/70 text-[11px] font-mono rounded-lg px-2 py-2 focus:outline-none focus:border-white/30"
+                >
+                  {Object.entries(SEVERITY_META).map(([k, v]) => (
+                    <option key={k} value={k} className="bg-black">{v.label}</option>
+                  ))}
+                </select>
+                <input
+                  value={annForm.title}
+                  onChange={(e) => setAnnForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="Title (required)"
+                  className="flex-1 bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                />
+              </div>
+
+              {/* Body */}
+              <textarea
+                value={annForm.body}
+                onChange={(e) => setAnnForm((f) => ({ ...f, body: e.target.value }))}
+                placeholder="Body text (optional)"
+                rows={2}
+                className="bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors resize-none"
+              />
+
+              {/* Link */}
+              <div className="flex gap-2">
+                <input
+                  value={annForm.linkUrl}
+                  onChange={(e) => setAnnForm((f) => ({ ...f, linkUrl: e.target.value }))}
+                  placeholder="Link URL (optional)"
+                  className="flex-1 bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                />
+                <input
+                  value={annForm.linkLabel}
+                  onChange={(e) => setAnnForm((f) => ({ ...f, linkLabel: e.target.value }))}
+                  placeholder="Button label"
+                  className="w-36 bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                />
+              </div>
+
+              {/* Dismissible + Submit */}
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={annForm.dismissible}
+                    onChange={(e) => setAnnForm((f) => ({ ...f, dismissible: e.target.checked }))}
+                    className="accent-white/60 w-3.5 h-3.5"
+                  />
+                  <span className="text-[12px] text-white/45 font-mono">Dismissible</span>
+                </label>
+                <button
+                  onClick={handleCreateAnn}
+                  disabled={!annForm.title.trim() || annCreating}
+                  className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/10 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/18 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+                >
+                  {annCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Publish
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            {annsLoading ? (
+              <div className="flex items-center gap-2 py-4 text-white/25">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm font-mono">Loading…</span>
+              </div>
+            ) : anns.length === 0 ? (
+              <p className="text-sm font-mono text-white/20 py-4">No announcements yet.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {anns.map((a) => {
+                  const meta = SEVERITY_META[a.severity] ?? SEVERITY_META.info;
+                  const SevIcon = meta.icon;
+                  return (
+                    <div
+                      key={a.id}
+                      className={`rounded-xl border px-4 py-4 flex flex-col gap-2 transition-opacity ${a.isActive ? "border-white/12 bg-white/[0.02]" : "border-white/6 bg-white/[0.01] opacity-50"}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <SevIcon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: meta.color }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[13px] font-semibold text-white/85 truncate">{a.title}</span>
+                            <span
+                              className="text-[10px] font-mono px-1.5 py-0.5 rounded-md border"
+                              style={{ color: meta.color, borderColor: `${meta.color}40`, backgroundColor: `${meta.color}10` }}
+                            >
+                              {meta.label}
+                            </span>
+                            {!a.dismissible && (
+                              <span className="text-[10px] font-mono text-white/25 border border-white/10 px-1.5 py-0.5 rounded-md">pinned</span>
+                            )}
+                            {!a.isActive && (
+                              <span className="text-[10px] font-mono text-white/20 border border-white/8 px-1.5 py-0.5 rounded-md">inactive</span>
+                            )}
+                          </div>
+                          {a.body && <p className="text-[12px] text-white/45 mt-1 line-clamp-2">{a.body}</p>}
+                          {a.linkUrl && (
+                            <a
+                              href={a.linkUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-white/35 hover:text-white/60 mt-1 transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              {a.linkLabel ?? a.linkUrl}
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleToggleAnn(a.id, a.isActive)}
+                            disabled={annToggling === a.id}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono border transition-all disabled:opacity-40 ${
+                              a.isActive
+                                ? "border-white/15 text-white/40 hover:text-white/70 hover:border-white/25"
+                                : "border-emerald-500/25 text-emerald-400/60 hover:text-emerald-300 hover:border-emerald-400/40"
+                            }`}
+                          >
+                            {annToggling === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : (a.isActive ? "Deactivate" : "Activate")}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAnn(a.id)}
+                            disabled={annDeleting === a.id}
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
+                          >
+                            {annDeleting === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                      {a.createdAt && (
+                        <p className="text-[10px] font-mono text-white/15 pl-7">{timeAgo(a.createdAt)}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </Container>
     </div>
   );

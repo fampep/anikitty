@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
+import SiteAnnouncementBanner from "@/components/site-announcement-banner";
 import Script from "next/script";
 import QueryProvider from "@/providers/query-provider";
 import { PublicEnvScript } from "next-runtime-env";
@@ -99,6 +100,7 @@ export default function RootLayout({
         >
           <QueryProvider>
             <NavBar />
+            <SiteAnnouncementBanner />
             {children}
             <Footer />
           </QueryProvider>

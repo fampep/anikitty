@@ -1,5 +1,6 @@
 // Shared forum category definitions used by both the API (validation) and UI.
 export const FORUM_CATEGORIES = [
+  { id: "announcements",   label: "Announcements",   description: "Official site updates",          color: "rose" },
   { id: "general",         label: "General",         description: "Anything anime-related",        color: "sky" },
   { id: "recommendations", label: "Recommendations", description: "What should I watch next?",      color: "violet" },
   { id: "discussion",      label: "Discussion",      description: "Episode & series discussion",    color: "amber" },
