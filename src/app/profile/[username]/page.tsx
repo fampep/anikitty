@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { anisurgeWatchlist, anisurgeAuth, getAnisurgeToken } from "@/lib/anisurge";
+import { useWatchlistStore } from "@/store/watchlist-store";
 import AnimeLists from "./components/anime-lists";
 import AnimeHeatmap from "./components/anime-heatmap";
 import ContinueWatching from "@/components/continue-watching";
@@ -43,6 +44,7 @@ import { toast } from "sonner";
 
 function useBookmarkCounts(auth: any) {
   const [counts, setCounts] = useState({ watching: 0, completed: 0, plan: 0, onHold: 0, dropped: 0 });
+  const watchlistVersion = useWatchlistStore((s) => s.version);
   useEffect(() => {
     if (!auth) return;
     const folders = [
@@ -69,7 +71,7 @@ function useBookmarkCounts(auth: any) {
         dropped:   map.dropped   ?? 0,
       });
     });
-  }, [auth]);
+  }, [auth, watchlistVersion]);
   return counts;
 }
 
@@ -232,9 +234,27 @@ function relativeTime(iso: string): string {
 interface UserComment {
   id: string;
   animeId: string;
+  episodeId?: string | null;
+  episodeNumber?: number | null;
   body: string;
   gifUrl?: string | null;
   createdAt: string;
+}
+
+function formatAnimeLabel(id: string) {
+  if (/^\d+$/.test(id)) return `Anime #${id}`;
+  return id
+    .replace(/-\d+$/, "")
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function userCommentHref(c: UserComment) {
+  if (c.episodeId) {
+    return `${ROUTES.WATCH}?anime=${encodeURIComponent(c.animeId)}&episode=${encodeURIComponent(c.episodeId)}`;
+  }
+  return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
 }
 
 function UserComments() {
@@ -274,12 +294,13 @@ function UserComments() {
     <div className="flex flex-col divide-y divide-white/[0.04]">
       {items.map((c) => (
         <div key={c.id} className="py-4">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <Link
-              href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
+              href={userCommentHref(c)}
               className="text-[11px] font-mono text-white/40 hover:text-white/70 transition-colors truncate max-w-[200px]"
             >
-              {c.animeId}
+              {formatAnimeLabel(c.animeId)}
+              {c.episodeNumber ? ` · Ep ${c.episodeNumber}` : ""}
             </Link>
             <span className="text-[10px] font-mono text-white/20 shrink-0">{relativeTime(c.createdAt)}</span>
           </div>
@@ -467,7 +488,7 @@ function ProfilePage() {
             <ContinueWatching loading={false} />
           </section>
 
-          <section>
+          <section id="watchlist">
             <SectionLabel icon={<List className="w-4 h-4" />} title="Watchlist" />
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="flex flex-wrap gap-1.5 h-auto bg-transparent p-0 mb-6 border-b border-white/10 pb-3">

@@ -21,6 +21,8 @@ const BASE_SELECT = {
   updatedAt: comments.updatedAt,
   userId: comments.userId,
   parentId: comments.parentId,
+  episodeId: comments.episodeId,
+  episodeNumber: comments.episodeNumber,
   username: users.username,
   avatarUrl: users.avatarUrl,
   role: users.role,
@@ -36,6 +38,8 @@ type RawRow = {
   updatedAt: Date | null;
   userId: string;
   parentId: string | null;
+  episodeId: string | null;
+  episodeNumber: number | null;
   username: string;
   avatarUrl: string | null;
   role: string | null;
@@ -59,16 +63,22 @@ export async function GET(
   const url = new URL(req.url);
   const sort = url.searchParams.get("sort") ?? "new";
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
+  const episodeFilter = url.searchParams.get("episodeId");
   const offset = (page - 1) * PAGE_SIZE;
 
   const db = getDb();
   const token = extractToken(req);
   const payload = token ? await verifyToken(token) : null;
 
+  const topLevelWhere =
+    episodeFilter && episodeFilter !== "all"
+      ? and(eq(comments.animeId, animeId), isNull(comments.parentId), eq(comments.episodeId, episodeFilter))
+      : and(eq(comments.animeId, animeId), isNull(comments.parentId));
+
   const [countRow] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(comments)
-    .where(and(eq(comments.animeId, animeId), isNull(comments.parentId)));
+    .where(topLevelWhere);
   const total = countRow?.count ?? 0;
 
   // Top-level comments — sort via IIFE to keep types consistent
@@ -78,7 +88,7 @@ export async function GET(
       .from(comments)
       .innerJoin(users, eq(users.id, comments.userId))
       .leftJoin(roles, eq(roles.name, users.role))
-      .where(and(eq(comments.animeId, animeId), isNull(comments.parentId)));
+      .where(topLevelWhere);
 
     if (sort === "old")
       return base.orderBy(asc(comments.createdAt)).limit(PAGE_SIZE).offset(offset);
@@ -221,26 +231,49 @@ export async function POST(
   const gifUrl = sanitizeGifUrl(raw.gifUrl);
   const isSpoiler = !!raw.isSpoiler;
   const parentId: string | null = typeof raw.parentId === "string" ? raw.parentId : null;
+  const episodeId: string | null =
+    typeof raw.episodeId === "string" && raw.episodeId.trim() ? raw.episodeId.trim() : null;
+  const episodeNumber: number | null =
+    typeof raw.episodeNumber === "number" && raw.episodeNumber > 0 ? raw.episodeNumber : null;
 
   if (!body && !gifUrl)
     return Response.json({ error: "Comment cannot be empty" }, { status: 400 });
 
   const db = getDb();
 
+  let resolvedEpisodeId = episodeId;
+  let resolvedEpisodeNumber = episodeNumber;
+
   // parentId must be a top-level comment in this anime (no deep nesting)
   if (parentId) {
     const [parent] = await db
-      .select({ id: comments.id, parentId: comments.parentId })
+      .select({
+        id: comments.id,
+        parentId: comments.parentId,
+        episodeId: comments.episodeId,
+        episodeNumber: comments.episodeNumber,
+      })
       .from(comments)
       .where(and(eq(comments.id, parentId), eq(comments.animeId, animeId)))
       .limit(1);
     if (!parent || parent.parentId !== null)
       return Response.json({ error: "Invalid parent comment" }, { status: 400 });
+    resolvedEpisodeId = parent.episodeId;
+    resolvedEpisodeNumber = parent.episodeNumber;
   }
 
   const [row] = await db
     .insert(comments)
-    .values({ userId: payload.userId, animeId, body, gifUrl, isSpoiler, parentId })
+    .values({
+      userId: payload.userId,
+      animeId,
+      body,
+      gifUrl,
+      isSpoiler,
+      parentId,
+      episodeId: resolvedEpisodeId,
+      episodeNumber: resolvedEpisodeNumber,
+    })
     .returning({
       id: comments.id,
       body: comments.body,
@@ -250,6 +283,8 @@ export async function POST(
       updatedAt: comments.updatedAt,
       userId: comments.userId,
       parentId: comments.parentId,
+      episodeId: comments.episodeId,
+      episodeNumber: comments.episodeNumber,
     });
 
   const [user] = await db

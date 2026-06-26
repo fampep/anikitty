@@ -13,6 +13,8 @@ export async function GET(req: Request) {
     .select({
       id: comments.id,
       animeId: comments.animeId,
+      episodeId: comments.episodeId,
+      episodeNumber: comments.episodeNumber,
       body: comments.body,
       gifUrl: comments.gifUrl,
       createdAt: comments.createdAt,

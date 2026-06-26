@@ -11,6 +11,8 @@ export async function GET() {
       body: comments.body,
       gifUrl: comments.gifUrl,
       animeId: comments.animeId,
+      episodeId: comments.episodeId,
+      episodeNumber: comments.episodeNumber,
       createdAt: comments.createdAt,
       username: users.username,
       avatarUrl: users.avatarUrl,

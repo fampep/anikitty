@@ -56,6 +56,51 @@ export async function updateAniListProgress(
   }
 }
 
+export async function getAniListMediaLists(accessToken: string) {
+  const data = await gql<{
+    Viewer: {
+      mediaListCollection: {
+        lists: Array<{
+          name: string;
+          status: string;
+          entries: Array<{
+            media: {
+              id: number;
+              idMal?: number | null;
+              bannerImage?: string | null;
+              coverImage?: { large?: string | null } | null;
+              title: { english?: string | null; romaji?: string | null };
+            };
+          }>;
+        }>;
+      } | null;
+    };
+  }>(
+    `query {
+      Viewer {
+        mediaListCollection(type: ANIME) {
+          lists {
+            name
+            status
+            entries {
+              media {
+                id
+                idMal
+                bannerImage
+                coverImage { large }
+                title { english romaji }
+              }
+            }
+          }
+        }
+      }
+    }`,
+    {},
+    accessToken,
+  );
+  return data.Viewer?.mediaListCollection?.lists ?? [];
+}
+
 export function parseEpisodeNumber(episodeId: string): number | null {
   // Tries "episode-5", "ep-5", "ep5", trailing number
   const patterns = [

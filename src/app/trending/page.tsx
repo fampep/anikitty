@@ -34,12 +34,14 @@ export default function TrendingPage() {
         showRanks
       />
 
-      <AnimeSections
-        title="Upcoming Anime"
-        icon={<CalendarClock className="w-4 h-4" />}
-        trendingAnime={data?.topUpcomingAnimes as IAnime[]}
-        loading={isLoading}
-      />
+      <div id="upcoming">
+        <AnimeSections
+          title="Upcoming Anime"
+          icon={<CalendarClock className="w-4 h-4" />}
+          trendingAnime={data?.topUpcomingAnimes as IAnime[]}
+          loading={isLoading}
+        />
+      </div>
     </div>
   );
 }

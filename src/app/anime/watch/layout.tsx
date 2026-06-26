@@ -31,6 +31,7 @@ import { useGetAnimeDetails } from "@/query/get-anime-details";
 import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import { IAnime } from "@/types/anime";
 import useBookMarks from "@/hooks/use-get-bookmark";
+import { anisurgeContinue, getAnisurgeToken } from "@/lib/anisurge";
 import { toast } from "sonner";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import Link from "next/link";
@@ -112,6 +113,33 @@ const Layout = (props: Props) => {
   };
 
   const { data: episodes, isLoading: episodeLoading } = useGetAllEpisodes(animeId as string);
+
+  // Auto-pick episode when URL has anime but no episode (continue watching → ep 1)
+  useEffect(() => {
+    if (episodeId || episodeLoading || !episodes?.episodes?.length || !animeId) return;
+
+    let cancelled = false;
+    (async () => {
+      let target = episodes.episodes[0].episodeId;
+      const token = getAnisurgeToken();
+      if (token) {
+        try {
+          const res = await anisurgeContinue.getByAnime(animeId, 1);
+          const latest = res?.data?.[0];
+          if (latest?.episodeId) target = latest.episodeId;
+        } catch {
+          /* use first episode */
+        }
+      }
+      if (cancelled) return;
+      setSelectedEpisode(target);
+      router.replace(`${ROUTES.WATCH}?anime=${animeId}&episode=${target}`, { scroll: false });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [episodeId, episodeLoading, episodes, animeId, router, setSelectedEpisode]);
 
   const anilistId = anime?.anime?.info?.anilistId;
   const { data: mappingData } = useGetAnimeMappings(anilistId);
@@ -309,7 +337,14 @@ const Layout = (props: Props) => {
             <TabsContent value="comments" className="mt-4">
               {currentAnimeId && (
                 <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
-                  <CommentSection animeId={currentAnimeId} />
+                  <CommentSection
+                    animeId={currentAnimeId}
+                    episodeId={episodeId}
+                    episodeNumber={currentEpisode?.number}
+                    episodeLabel={
+                      currentEpisode ? `Episode ${currentEpisode.number}` : undefined
+                    }
+                  />
                 </div>
               )}
             </TabsContent>

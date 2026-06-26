@@ -82,6 +82,7 @@ function AnilistImport() {
           anime.thumbnail,
           anime.status,
           false,
+          { anilistId: anime.anilistId, malId: anime.malId },
         );
       }
 

@@ -9,6 +9,7 @@ import {
   folderToStatus,
 } from "@/lib/anisurge";
 import { useProgressStore } from "@/store/progress-store";
+import { useWatchlistStore } from "@/store/watchlist-store";
 
 type Props = {
   animeID?: string;
@@ -69,6 +70,7 @@ function mapItem(item: any): Bookmark {
 function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = true }: Props) {
   const { auth } = useAuthStore();
   const { anime: animeData } = useAnimeStore();
+  const watchlistVersion = useWatchlistStore((s) => s.version);
 
   const [bookmarks, setBookmarks] = useState<Bookmark[] | null>(null);
   const [totalPages, setTotalPages] = useState<number>(0);
@@ -111,7 +113,7 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
     };
 
     fetch();
-  }, [animeID, status, page, per_page, auth, populate]);
+  }, [animeID, status, page, per_page, auth, populate, watchlistVersion]);
 
   const createOrUpdateBookMark = async (
     animeId: string,
@@ -119,12 +121,13 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
     animeThumbnail: string,
     status: string,
     showToast = true,
+    meta?: { anilistId?: number; malId?: number },
   ): Promise<string | null> => {
     if (!auth) return null;
     try {
       const folder = statusToFolder(status);
-      const anilistId = animeData?.anime?.info?.anilistId;
-      const malId = animeData?.anime?.info?.malId;
+      const anilistId = meta?.anilistId ?? animeData?.anime?.info?.anilistId;
+      const malId = meta?.malId ?? animeData?.anime?.info?.malId;
 
       await anisurgeWatchlist.add({
         animeId,
@@ -136,7 +139,8 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
       });
 
       if (showToast) toast.success("List updated");
-      return animeId; // return animeId — used as the "bookmark id" for progress tracking
+      useWatchlistStore.getState().bump();
+      return animeId;
     } catch (e: any) {
       if (showToast) toast.error(e?.body?.error ?? "Failed to update list");
       return null;

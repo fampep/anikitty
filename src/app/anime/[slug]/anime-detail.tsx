@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { useGetAnimeBanner } from "@/query/get-banner-anime";
 import { useGetAnimeMappings } from "@/query/get-anime-mappings";
+import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import { cn } from "@/lib/utils";
 import CommentSection from "@/components/comment-section";
 
@@ -71,6 +72,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const { data: banner } = useGetAnimeBanner(anilistId!);
   const { data: mappingData } = useGetAnimeMappings(anilistId);
+  const { data: episodesData } = useGetAllEpisodes(slug);
 
   useEffect(() => {
     if (!slug) return;
@@ -398,7 +400,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Comments ── */}
           <TabsContent value="comments" className="mt-6">
             <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
-              <CommentSection animeId={info.id} />
+              <CommentSection
+                animeId={info.id}
+                episodes={episodesData?.episodes.map((ep) => ({
+                  episodeId: ep.episodeId,
+                  number: ep.number,
+                  title: ep.title,
+                }))}
+              />
             </div>
           </TabsContent>
         </Tabs>

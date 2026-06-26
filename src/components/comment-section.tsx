@@ -74,6 +74,12 @@ function EmojiPickerPanel({
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface CommentEpisode {
+  episodeId: string;
+  number: number;
+  title?: string;
+}
+
 interface Comment {
   id: string;
   body: string;
@@ -83,6 +89,8 @@ interface Comment {
   updatedAt?: string | null;
   userId: string;
   parentId: string | null;
+  episodeId?: string | null;
+  episodeNumber?: number | null;
   username: string;
   avatarUrl?: string | null;
   role?: string | null;
@@ -94,6 +102,16 @@ interface Comment {
   myReactions: string[];
   replies: Comment[];
 }
+
+type CommentSectionProps = {
+  animeId: string;
+  /** Lock comments to a single episode (watch page). */
+  episodeId?: string | null;
+  episodeNumber?: number | null;
+  episodeLabel?: string;
+  /** Show episode picker — pass episode list from anime detail page. */
+  episodes?: CommentEpisode[];
+};
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
@@ -253,8 +271,38 @@ function removeById(list: Comment[], id: string): Comment[] {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function CommentSection({ animeId }: { animeId: string }) {
+export default function CommentSection({
+  animeId,
+  episodeId: lockedEpisodeId,
+  episodeNumber: lockedEpisodeNumber,
+  episodeLabel,
+  episodes,
+}: CommentSectionProps) {
   const { auth } = useAuthStore();
+
+  const hasEpisodePicker = !!episodes?.length;
+  const [pickedEpisodeId, setPickedEpisodeId] = useState<string | "all">("all");
+
+  useEffect(() => {
+    if (!hasEpisodePicker || !episodes?.length) return;
+    setPickedEpisodeId(episodes[0].episodeId);
+  }, [hasEpisodePicker, episodes]);
+
+  const activeEpisodeId = lockedEpisodeId ?? (pickedEpisodeId === "all" ? null : pickedEpisodeId);
+  const activeEpisodeNumber =
+    lockedEpisodeNumber ??
+    (activeEpisodeId
+      ? episodes?.find((ep) => ep.episodeId === activeEpisodeId)?.number ?? null
+      : null);
+  const activeEpisodeQuery = lockedEpisodeId ?? (pickedEpisodeId === "all" ? "all" : pickedEpisodeId);
+  const headerLabel =
+    episodeLabel ??
+    (activeEpisodeId && activeEpisodeNumber
+      ? `Episode ${activeEpisodeNumber}`
+      : hasEpisodePicker && pickedEpisodeId === "all"
+        ? "All episodes"
+        : null);
+  const requiresEpisode = lockedEpisodeId !== undefined && !lockedEpisodeId;
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [total, setTotal] = useState(0);
@@ -263,6 +311,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
   const [sort, setSort] = useState<"new" | "top" | "old">("new");
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -291,15 +340,33 @@ export default function CommentSection({ animeId }: { animeId: string }) {
 
   const fetchComments = useCallback(
     async (p: number, s: "new" | "top" | "old", append: boolean) => {
+      if (requiresEpisode) {
+        setComments([]);
+        setTotal(0);
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+
       try {
         if (append) setLoadingMore(true);
-        else setLoading(true);
+        else {
+          setLoading(true);
+          setLoadError(null);
+        }
         const token = getAnisurgeToken();
+        const episodeParam =
+          activeEpisodeQuery && activeEpisodeQuery !== "all"
+            ? `&episodeId=${encodeURIComponent(activeEpisodeQuery)}`
+            : activeEpisodeQuery === "all" || hasEpisodePicker
+              ? "&episodeId=all"
+              : "";
         const res = await fetch(
-          `/api/account/comments/${encodeURIComponent(animeId)}?sort=${s}&page=${p}`,
+          `/api/account/comments/${encodeURIComponent(animeId)}?sort=${s}&page=${p}${episodeParam}`,
           { headers: token ? { Authorization: `Bearer ${token}` } : {} },
         );
         const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "Failed to load comments");
         if (append) {
           setComments((prev) => [...prev, ...(data.comments ?? [])]);
         } else {
@@ -308,14 +375,14 @@ export default function CommentSection({ animeId }: { animeId: string }) {
         setTotal(data.total ?? 0);
         setHasMore(data.hasMore ?? false);
         setPage(p);
-      } catch {
-        /* silent */
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : "Failed to load comments");
       } finally {
         setLoading(false);
         setLoadingMore(false);
       }
     },
-    [animeId],
+    [animeId, activeEpisodeQuery, requiresEpisode, hasEpisodePicker],
   );
 
   useEffect(() => {
@@ -323,7 +390,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
     setPage(1);
     setHasMore(false);
     fetchComments(1, sort, false);
-  }, [sort, animeId, fetchComments]);
+  }, [sort, animeId, activeEpisodeQuery, fetchComments]);
 
   const loadMore = () => fetchComments(page + 1, sort, true);
 
@@ -340,7 +407,12 @@ export default function CommentSection({ animeId }: { animeId: string }) {
       const res = await fetch(`/api/account/comments/${encodeURIComponent(animeId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ body, gifUrl: selectedGif, isSpoiler }),
+        body: JSON.stringify({
+          body,
+          gifUrl: selectedGif,
+          isSpoiler,
+          ...(activeEpisodeId ? { episodeId: activeEpisodeId, episodeNumber: activeEpisodeNumber } : {}),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -675,16 +747,62 @@ export default function CommentSection({ animeId }: { animeId: string }) {
   return (
     <div className="flex flex-col gap-5">
 
+      {/* Episode picker (anime detail page) */}
+      {hasEpisodePicker && (
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">
+            Episode comments
+          </p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+            <button
+              onClick={() => setPickedEpisodeId("all")}
+              className={cn(
+                "shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all",
+                pickedEpisodeId === "all"
+                  ? "bg-white/10 text-white border-white/20"
+                  : "bg-white/[0.02] text-white/35 border-white/8 hover:border-white/15 hover:text-white/60",
+              )}
+            >
+              All
+            </button>
+            {episodes!.map((ep) => (
+              <button
+                key={ep.episodeId}
+                onClick={() => setPickedEpisodeId(ep.episodeId)}
+                title={ep.title}
+                className={cn(
+                  "shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all max-w-[140px] truncate",
+                  pickedEpisodeId === ep.episodeId
+                    ? "bg-white/10 text-white border-white/20"
+                    : "bg-white/[0.02] text-white/35 border-white/8 hover:border-white/15 hover:text-white/60",
+                )}
+              >
+                Ep {ep.number}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Header + sort */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <MessageSquare className="w-4 h-4 text-white/40" />
-          <span className="text-base font-bold text-white tracking-tight">Comments</span>
-          {total > 0 && (
-            <span className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[11px] font-mono text-white/35">
-              {total}
-            </span>
-          )}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <MessageSquare className="w-4 h-4 text-white/40 shrink-0" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-base font-bold text-white tracking-tight">Comments</span>
+              {headerLabel && (
+                <span className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-[10px] font-mono text-sky-300/80">
+                  {headerLabel}
+                </span>
+              )}
+              {total > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[11px] font-mono text-white/35">
+                  {total}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         {!loading && (
           <div className="flex items-center gap-0.5 rounded-lg border border-white/8 p-0.5">
@@ -707,7 +825,7 @@ export default function CommentSection({ animeId }: { animeId: string }) {
       </div>
 
       {/* Composer */}
-      {auth ? (
+      {auth && !requiresEpisode ? (
         <div className="flex gap-3">
           <CommentAvatar username={auth.username} avatarUrl={auth.avatar} />
           <div className="flex-1">
@@ -727,7 +845,11 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit();
                 }}
-                placeholder="Share your thoughts…"
+                placeholder={
+                  activeEpisodeNumber
+                    ? `Share your thoughts on Episode ${activeEpisodeNumber}…`
+                    : "Share your thoughts…"
+                }
                 rows={focused ? 3 : 2}
                 maxLength={1000}
                 className="w-full bg-transparent px-4 pt-3 pb-2 text-sm text-white/85 placeholder:text-white/20 resize-none focus:outline-none transition-all duration-200 leading-relaxed"
@@ -830,22 +952,41 @@ export default function CommentSection({ animeId }: { animeId: string }) {
             )}
           </div>
         </div>
-      ) : (
+      ) : !auth ? (
         <div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-white/[0.02] border border-white/6">
           <SmilePlus className="w-4 h-4 text-white/20 shrink-0" />
           <p className="text-sm text-white/30">Log in to join the discussion.</p>
         </div>
-      )}
+      ) : null}
 
       {/* Comment list */}
-      {loading ? (
+      {requiresEpisode ? (
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <MessageSquare className="w-8 h-8 text-white/8" />
+          <p className="text-sm text-white/25 font-mono">Select an episode to view comments</p>
+          <p className="text-xs text-white/15">Comments are scoped to each episode</p>
+        </div>
+      ) : loadError ? (
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <MessageSquare className="w-8 h-8 text-white/8" />
+          <p className="text-sm text-red-400/80 font-mono">{loadError}</p>
+          <button
+            onClick={() => fetchComments(1, sort, false)}
+            className="px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/8 text-white/60 text-xs font-semibold transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      ) : loading ? (
         <div className="divide-y divide-white/[0.04]">
           {[...Array(4)].map((_, i) => <CommentSkeleton key={i} />)}
         </div>
       ) : comments.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <MessageSquare className="w-8 h-8 text-white/8" />
-          <p className="text-sm text-white/20 font-mono">No comments yet</p>
+          <p className="text-sm text-white/20 font-mono">
+            {activeEpisodeId ? "No comments for this episode yet" : "No comments yet"}
+          </p>
           <p className="text-xs text-white/12">Be the first to share your thoughts</p>
         </div>
       ) : (
@@ -871,6 +1012,11 @@ export default function CommentSection({ animeId }: { animeId: string }) {
                       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-400/70">
                         <EyeOff className="w-2.5 h-2.5" />
                         spoiler
+                      </span>
+                    )}
+                    {hasEpisodePicker && pickedEpisodeId === "all" && c.episodeNumber && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-white/5 border border-white/10 text-white/35">
+                        Ep {c.episodeNumber}
                       </span>
                     )}
                     <span className="text-[11px] font-mono text-white/18 leading-none">

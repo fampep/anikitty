@@ -88,7 +88,7 @@ export default function Home() {
                 color="sky"
               />
               <ExploreCard
-                href={ROUTES.TRENDING}
+                href={`${ROUTES.TRENDING}#upcoming`}
                 icon={<CalendarClock className="w-4 h-4" />}
                 title="Upcoming"
                 description="Coming soon"

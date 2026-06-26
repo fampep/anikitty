@@ -4,46 +4,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
-import { anisurgeAuth, getAnisurgeToken } from "@/lib/anisurge";
-import useBookMarks from "@/hooks/use-get-bookmark";
+import { anisurgeAuth, anilistSync, getAnisurgeToken } from "@/lib/anisurge";
+import { useWatchlistStore } from "@/store/watchlist-store";
 import { Check, Link2, Link2Off, Loader2, RefreshCw } from "lucide-react";
 import AnilistIcon from "@/icons/anilist";
-
-const ANILIST_STATUS_MAP: Record<string, string> = {
-  CURRENT: "watching",
-  COMPLETED: "completed",
-  PLANNING: "plan to watch",
-  DROPPED: "dropped",
-  PAUSED: "on hold",
-  REPEATING: "watching",
-};
-
-async function fetchAniListList(username: string) {
-  const res = await fetch("https://graphql.anilist.co", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      query: `query ($username: String) {
-        MediaListCollection(type: ANIME, userName: $username) {
-          lists { name status entries { media { id title { english romaji } bannerImage } } }
-        }
-      }`,
-      variables: { username },
-    }),
-  });
-  const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0].message);
-  return json.data.MediaListCollection.lists as Array<{
-    name: string;
-    status: string;
-    entries: Array<{ media: { id: number; title: { english?: string; romaji?: string } } }>;
-  }>;
-}
+import { cn } from "@/lib/utils";
 
 function AnilistConnect() {
   const { auth } = useAuthStore();
-  const { createOrUpdateBookMark } = useBookMarks({ populate: false });
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -53,7 +21,12 @@ function AnilistConnect() {
   const [connecting, setConnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [overrideWatchlist, setOverrideWatchlist] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    imported: number;
+    removed: number;
+    skipped: number;
+  } | null>(null);
 
   const loadAccount = useCallback(async () => {
     if (!auth) {
@@ -90,32 +63,6 @@ function AnilistConnect() {
     router.replace("/settings", { scroll: false });
   }, [searchParams, router, loadAccount]);
 
-  const runSync = async (anilistUsername: string) => {
-    const lists = await fetchAniListList(anilistUsername);
-    const entries = lists.flatMap((list) =>
-      list.entries.map((e) => ({
-        media: e.media,
-        status: ANILIST_STATUS_MAP[list.status] ?? "watching",
-      })),
-    );
-
-    const { data } = await api.post("/api/import/anilist", { animes: lists });
-    if (!data?.animes?.length) return { imported: 0, skipped: entries.length };
-
-    let imported = 0;
-    for (const anime of data.animes) {
-      const status =
-        entries.find(
-          (e) =>
-            e.media.title.english === anime.title ||
-            e.media.title.romaji === anime.title,
-        )?.status ?? "watching";
-      await createOrUpdateBookMark(anime.id, anime.title, anime.thumbnail, status, false);
-      imported++;
-    }
-    return { imported, skipped: entries.length - imported };
-  };
-
   const handleConnect = async () => {
     const token = getAnisurgeToken();
     if (!token) {
@@ -139,14 +86,25 @@ function AnilistConnect() {
   };
 
   const handleSync = async () => {
-    if (!username) return;
+    if (!linked) return;
     setSyncing(true);
     try {
-      const result = await runSync(username);
-      setSyncResult(result);
-      toast.success(`Synced! ${result.imported} anime updated.`);
-    } catch {
-      toast.error("Sync failed. Try again.");
+      const result = await anilistSync.importWatchlist(overrideWatchlist);
+      setSyncResult({
+        imported: result.imported,
+        removed: result.removed ?? 0,
+        skipped: result.skipped ?? 0,
+      });
+      useWatchlistStore.getState().bump();
+      if (overrideWatchlist) {
+        toast.success(
+          `Watchlist replaced with AniList — ${result.imported} anime${result.removed ? `, ${result.removed} removed` : ""}.`,
+        );
+      } else {
+        toast.success(`Synced ${result.imported} anime from AniList.`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sync failed. Try again.");
     } finally {
       setSyncing(false);
     }
@@ -206,12 +164,35 @@ function AnilistConnect() {
           </div>
 
           <p className="text-[11px] text-white/35 leading-relaxed">
-            Watch progress syncs automatically when you finish episodes.
+            Watch progress syncs automatically when you finish episodes. Import pulls your full AniList — nothing is skipped.
           </p>
+
+          <label
+            className={cn(
+              "flex items-start gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
+              overrideWatchlist
+                ? "border-amber-500/30 bg-amber-500/8"
+                : "border-white/8 bg-white/[0.02] hover:border-white/14",
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={overrideWatchlist}
+              onChange={(e) => setOverrideWatchlist(e.target.checked)}
+              className="mt-0.5 accent-amber-400"
+            />
+            <span className="text-[11px] text-white/45 leading-relaxed">
+              <span className="font-semibold text-white/65">Replace my watchlist</span>
+              {" — "}
+              AniList becomes the source of truth. Removes local entries not on your AniList and overwrites statuses.
+            </span>
+          </label>
 
           {syncResult && (
             <p className="text-[10px] text-white/30 font-mono">
-              Last sync: {syncResult.imported} imported, {syncResult.skipped} skipped
+              Last sync: {syncResult.imported} imported
+              {syncResult.removed > 0 ? `, ${syncResult.removed} removed` : ""}
+              {syncResult.skipped > 0 ? `, ${syncResult.skipped} skipped` : ""}
             </p>
           )}
 
@@ -222,7 +203,7 @@ function AnilistConnect() {
               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/8 text-white/55 text-xs font-semibold transition-colors disabled:opacity-50"
             >
               {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              {syncing ? "Syncing…" : "Import watchlist"}
+              {syncing ? "Syncing…" : overrideWatchlist ? "Replace from AniList" : "Import watchlist"}
             </button>
             <button
               onClick={handleDisconnect}

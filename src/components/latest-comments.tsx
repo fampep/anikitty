@@ -14,11 +14,20 @@ interface LatestComment {
   body: string;
   gifUrl: string | null;
   animeId: string;
+  episodeId?: string | null;
+  episodeNumber?: number | null;
   createdAt: string;
   username: string;
   avatarUrl: string | null;
   role: string | null;
   roleColor: string | null;
+}
+
+function commentLink(c: LatestComment) {
+  if (c.episodeId) {
+    return `${ROUTES.WATCH}?anime=${encodeURIComponent(c.animeId)}&episode=${encodeURIComponent(c.episodeId)}`;
+  }
+  return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
 }
 
 function timeAgo(dateStr: string) {
@@ -69,10 +78,15 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
               <p className="text-[11px] text-white/30 font-mono italic">shared a GIF</p>
             )}
             <Link
-              href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
-              className="inline-flex items-center gap-1 mt-1.5 text-[10px] text-white/30 hover:text-white/65 font-mono transition-colors max-w-full"
+              href={commentLink(c)}
+              className="inline-flex items-center gap-1.5 mt-1.5 text-[10px] text-white/30 hover:text-white/65 font-mono transition-colors max-w-full flex-wrap"
             >
               <span className="truncate">{formatAnimeId(c.animeId)}</span>
+              {c.episodeNumber && (
+                <span className="shrink-0 px-1.5 py-px rounded bg-sky-500/10 border border-sky-500/20 text-sky-300/70">
+                  Ep {c.episodeNumber}
+                </span>
+              )}
               <ArrowRight className="w-3 h-3 shrink-0 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>

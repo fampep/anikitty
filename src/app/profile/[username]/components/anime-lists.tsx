@@ -6,6 +6,7 @@ import { ROUTES } from "@/constants/routes";
 import useBookMarks, { WatchHistory } from "@/hooks/use-get-bookmark";
 import { anisurgeContinue } from "@/lib/anisurge";
 import { useAuthStore } from "@/store/auth-store";
+import { useWatchlistStore } from "@/store/watchlist-store";
 import { ChevronLeft, ChevronRight, Tv2 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -17,6 +18,7 @@ type Props = {
 
 function AnimeLists({ status }: Props) {
   const { auth } = useAuthStore();
+  const watchlistVersion = useWatchlistStore((s) => s.version);
   const [currentPage, setPage] = React.useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -48,7 +50,7 @@ function AnimeLists({ status }: Props) {
       });
       setProgressMap(map);
     }).catch(() => {});
-  }, [auth]);
+  }, [auth, watchlistVersion]);
 
   const updateScroll = () => {
     const el = scrollRef.current;

@@ -91,6 +91,27 @@ export const anisurgeWatchlist = {
     bff(`/watchlist/${encodeURIComponent(animeId)}`, { method: "DELETE" }),
 };
 
+// ── AniList sync ─────────────────────────────────────────────────────
+export const anilistSync = {
+  importWatchlist: (override = false) =>
+    fetch("/api/anilist/sync", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(getAnisurgeToken() ? { Authorization: `Bearer ${getAnisurgeToken()}` } : {}),
+      },
+      body: JSON.stringify({ override }),
+    }).then(async (res) => {
+      const body = await res.json();
+      if (!res.ok) {
+        const err = new Error(body?.error ?? res.statusText) as Error & { status?: number };
+        (err as any).status = res.status;
+        throw err;
+      }
+      return body as { imported: number; removed: number; skipped: number; override: boolean };
+    }),
+};
+
 // ── Progress ─────────────────────────────────────────────────────────
 export const anisurgeProgress = {
   save: (body: {
