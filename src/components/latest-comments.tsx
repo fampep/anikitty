@@ -41,44 +41,41 @@ function formatAnimeId(id: string) {
 
 function CommentsFeed({ comments }: { comments: LatestComment[] }) {
   return (
-    <div className="w-full flex flex-col divide-y divide-white/5">
+    <div className="w-full flex flex-col gap-1.5">
       {comments.map((c) => (
-        <div key={c.id} className="flex items-start gap-3 py-3 group">
+        <div
+          key={c.id}
+          className="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-white/8 hover:bg-white/[0.025] transition-colors group"
+        >
           <Avatar
             username={c.username}
             url={c.avatarUrl ?? undefined}
-            className="w-8 h-8 shrink-0 mt-0.5"
+            className="w-9 h-9 shrink-0 mt-0.5"
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1">
-              <span className="text-[12px] font-semibold text-white/80">{c.username}</span>
+              <span className="text-[12.5px] font-semibold text-white/85">{c.username}</span>
               {c.role && c.role !== "user" && (
                 <RoleBadge role={c.role} color={c.roleColor} size="xs" />
               )}
               <span className="text-[10px] text-white/25 font-mono">{timeAgo(c.createdAt)}</span>
-              <span className="text-[10px] text-white/20 font-mono">·</span>
-              <Link
-                href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
-                className="text-[10px] text-white/30 hover:text-white/60 font-mono transition-colors truncate max-w-[120px]"
-              >
-                {formatAnimeId(c.animeId)}
-              </Link>
             </div>
             {c.body && (
-              <p className="text-[12px] text-white/50 line-clamp-2 leading-relaxed group-hover:text-white/65 transition-colors">
+              <p className="text-[12.5px] text-white/55 line-clamp-2 leading-relaxed group-hover:text-white/70 transition-colors">
                 {c.body}
               </p>
             )}
             {c.gifUrl && !c.body && (
               <p className="text-[11px] text-white/30 font-mono italic">shared a GIF</p>
             )}
+            <Link
+              href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
+              className="inline-flex items-center gap-1 mt-1.5 text-[10px] text-white/30 hover:text-white/65 font-mono transition-colors max-w-full"
+            >
+              <span className="truncate">{formatAnimeId(c.animeId)}</span>
+              <ArrowRight className="w-3 h-3 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
-          <Link
-            href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
-            className="shrink-0 p-1.5 rounded-lg text-white/15 hover:text-white/50 hover:bg-white/5 transition-all"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
       ))}
     </div>
@@ -102,7 +99,13 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
     if (!comments.length) return null;
     return (
       <div className="flex flex-col gap-4">
-        <SectionHeading icon={<MessageSquare className="w-4 h-4" />} title="Latest Comments" />
+        <div className="flex items-center justify-between gap-3">
+          <SectionHeading icon={<MessageSquare className="w-4 h-4" />} title="Latest Comments" />
+          <span className="hidden sm:inline-flex items-center gap-1.5 shrink-0 text-[10px] font-mono text-emerald-300/70 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Live
+          </span>
+        </div>
         <CommentsFeed comments={comments} />
       </div>
     );
@@ -125,10 +128,10 @@ const BareLoadingSkeleton = () => (
       <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
       <div className="h-5 w-40 animate-pulse bg-white/8 rounded" />
     </div>
-    <div className="flex flex-col divide-y divide-white/5">
+    <div className="flex flex-col gap-1.5">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-start gap-3 py-3">
-          <div className="w-8 h-8 rounded-full bg-white/8 animate-pulse shrink-0" />
+        <div key={i} className="flex items-start gap-3 p-3 rounded-xl">
+          <div className="w-9 h-9 rounded-full bg-white/8 animate-pulse shrink-0" />
           <div className="flex-1 flex flex-col gap-1.5">
             <div className="h-3 w-32 rounded bg-white/8 animate-pulse" />
             <div className="h-3 w-full rounded bg-white/5 animate-pulse" />

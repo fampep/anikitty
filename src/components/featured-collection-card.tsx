@@ -16,14 +16,14 @@ const FeaturedCollectionCard = ({ title, anime, index = 0 }: Props) => {
   const ghostNum = String(index + 1).padStart(2, "0");
 
   return (
-    <div className="relative h-[18rem] flex rounded-2xl overflow-hidden bg-[#070707] border border-white/8 w-full group hover:border-white/15 transition-all duration-500">
+    <div className="relative h-[13rem] flex rounded-2xl overflow-hidden bg-[#070707] border border-white/8 w-full group hover:border-white/15 transition-[border-color] duration-200">
       {/* Blurred poster background */}
       {bgPoster && (
         <Image
           src={bgPoster}
           alt=""
           fill
-          className="object-cover object-center opacity-[0.12] scale-110 group-hover:opacity-[0.18] group-hover:scale-105 transition-all duration-700"
+          className="object-cover object-center opacity-[0.12] scale-110 group-hover:opacity-[0.18] group-hover:scale-105 transition-[opacity,transform] duration-500"
           unoptimized
           aria-hidden
         />
@@ -34,34 +34,34 @@ const FeaturedCollectionCard = ({ title, anime, index = 0 }: Props) => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
 
       {/* Ghost number watermark */}
-      <span className="absolute -bottom-4 right-2 text-[7rem] font-black text-white/[0.025] leading-none select-none pointer-events-none font-mono tracking-tighter group-hover:text-white/[0.04] transition-colors duration-500">
+      <span className="absolute -bottom-4 right-2 text-[7rem] font-black text-white/[0.025] leading-none select-none pointer-events-none font-mono tracking-tighter group-hover:text-white/[0.04] transition-colors duration-200">
         {ghostNum}
       </span>
 
-      {/* Fanned poster cards — centered in right half */}
-      <div className="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none">
+      {/* Fanned poster cards */}
+      <div className="absolute right-0 top-0 bottom-0 w-[45%] sm:w-[55%] pointer-events-none">
         {anime[2] && (
-          <div className="absolute top-1/2 -translate-y-1/2 right-[2%] rotate-[10deg] w-[6.5rem] shadow-xl transition-all duration-500 group-hover:rotate-[14deg] group-hover:-translate-y-[calc(50%+8px)] overflow-hidden rounded-lg ring-1 ring-white/8">
-            <Image src={anime[2].poster} alt={anime[2].name} width={104} height={148} className="object-cover w-full h-[148px]" unoptimized />
+          <div className="absolute top-1/2 -translate-y-1/2 right-[2%] rotate-[10deg] w-[4rem] sm:w-[6.5rem] shadow-xl will-change-transform transition-transform duration-300 group-hover:rotate-[14deg] group-hover:-translate-y-[calc(50%+8px)] overflow-hidden rounded-lg ring-1 ring-white/8">
+            <Image src={anime[2].poster} alt={anime[2].name} width={64} height={91} className="object-cover w-full h-[91px] sm:h-[148px]" unoptimized />
             <div className="absolute inset-0 bg-black/20" />
           </div>
         )}
         {anime[0] && (
-          <div className="absolute top-1/2 -translate-y-1/2 right-[36%] rotate-[-12deg] w-[6.5rem] shadow-2xl transition-all duration-500 group-hover:rotate-[-16deg] group-hover:-translate-y-[calc(50%+6px)] overflow-hidden rounded-lg ring-1 ring-white/10">
-            <Image src={anime[0].poster} alt={anime[0].name} width={104} height={148} className="object-cover w-full h-[148px]" unoptimized />
+          <div className="absolute top-1/2 -translate-y-1/2 right-[36%] rotate-[-12deg] w-[4rem] sm:w-[6.5rem] shadow-2xl will-change-transform transition-transform duration-300 group-hover:rotate-[-16deg] group-hover:-translate-y-[calc(50%+6px)] overflow-hidden rounded-lg ring-1 ring-white/10">
+            <Image src={anime[0].poster} alt={anime[0].name} width={64} height={91} className="object-cover w-full h-[91px] sm:h-[148px]" unoptimized />
             <div className="absolute inset-0 bg-black/10" />
           </div>
         )}
         {anime[1] && (
-          <div className="absolute top-1/2 -translate-y-1/2 right-[18%] rotate-[-1deg] w-[6.5rem] shadow-2xl z-10 transition-all duration-500 group-hover:-translate-y-[calc(50%+10px)] overflow-hidden rounded-lg ring-1 ring-white/12">
-            <Image src={anime[1].poster} alt={anime[1].name} width={104} height={148} className="object-cover w-full h-[148px]" unoptimized />
+          <div className="absolute top-1/2 -translate-y-1/2 right-[18%] rotate-[-1deg] w-[4rem] sm:w-[6.5rem] shadow-2xl z-10 will-change-transform transition-transform duration-300 group-hover:-translate-y-[calc(50%+10px)] overflow-hidden rounded-lg ring-1 ring-white/12">
+            <Image src={anime[1].poster} alt={anime[1].name} width={64} height={91} className="object-cover w-full h-[91px] sm:h-[148px]" unoptimized />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-[#070707] via-[#070707]/70 to-transparent" />
       </div>
 
       {/* Left content */}
-      <div className="relative z-10 flex flex-col justify-between p-5 w-[60%]">
+      <div className="relative z-10 flex flex-col justify-between p-5 w-[55%] sm:w-[60%]">
         <div className="flex items-center gap-2">
           <div className="w-1 h-3 rounded-full bg-white/20" />
           <p className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em]">

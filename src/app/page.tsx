@@ -48,22 +48,22 @@ export default function LandingPage() {
           postersLoaded && posters.length > 0 ? "opacity-100" : "opacity-0",
         )}
       >
-        <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-10 h-full gap-0 scale-105">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10 h-full gap-1 sm:gap-1.5 scale-110">
           {Array.from({ length: 40 }).map((_, i) => {
             const src = posters[i % posters.length];
             return src ? (
-              <div key={i} className="relative overflow-hidden">
+              <div key={i} className="relative overflow-hidden rounded-md">
                 <Image
                   src={src}
                   alt=""
                   fill
-                  className="object-cover blur-[1px] saturate-50 brightness-75"
+                  className="object-cover blur-[1px] saturate-[0.6] brightness-[0.7]"
                   unoptimized
-                  sizes="10vw"
+                  sizes="12vw"
                 />
               </div>
             ) : (
-              <div key={i} className="bg-white/[0.02]" />
+              <div key={i} className="bg-white/[0.02] rounded-md" />
             );
           })}
         </div>
@@ -71,9 +71,9 @@ export default function LandingPage() {
 
       {/* ── Gradient vignettes ── */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/70 to-black" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/75 to-black" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/80" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_65%_55%_at_50%_45%,rgba(109,40,217,0.12),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_42%,rgba(124,58,237,0.16),transparent)]" />
       </div>
 
       {/* ── Grid lines ── */}
@@ -124,22 +124,24 @@ export default function LandingPage() {
         <h1
           className={cn(
             nightTokyo.className,
-            "text-[3.5rem] sm:text-[5.5rem] md:text-[7rem] lg:text-[9rem] font-black tracking-widest leading-none mb-4 sm:mb-5 select-none",
+            "text-[3.5rem] sm:text-[5.5rem] md:text-[7rem] lg:text-[9rem] font-black tracking-widest leading-none mb-5 sm:mb-6 select-none drop-shadow-2xl",
           )}
         >
           <span className="text-white">Ani</span>
-          <span
-            className="bg-gradient-to-r from-white/60 to-white/20 bg-clip-text text-transparent"
-          >
+          <span className="bg-gradient-to-br from-violet-300 via-white/70 to-white/25 bg-clip-text text-transparent">
             Kitty
           </span>
         </h1>
 
-        <p className="text-white/55 text-base sm:text-lg md:text-xl font-light mb-2 sm:mb-3 leading-relaxed tracking-wide">
-          Stream anime, completely free.
+        <p className="text-white/65 text-base sm:text-lg md:text-xl font-light mb-2 sm:mb-3 leading-relaxed tracking-wide max-w-md">
+          Stream thousands of anime, completely free.
         </p>
-        <p className="text-white/22 text-xs sm:text-sm md:text-base font-mono mb-10 sm:mb-12">
-          No ads &middot; No subscriptions &middot; Sub &amp; Dub
+        <p className="text-white/25 text-xs sm:text-sm md:text-base font-mono mb-10 sm:mb-12 flex items-center gap-2 flex-wrap justify-center">
+          <span>No ads</span>
+          <span className="w-1 h-1 rounded-full bg-white/15" />
+          <span>No subscriptions</span>
+          <span className="w-1 h-1 rounded-full bg-white/15" />
+          <span>Sub &amp; Dub</span>
         </p>
 
         {/* CTA buttons */}
@@ -240,8 +242,8 @@ export default function LandingPage() {
 
 function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/8 text-white/35 text-[12px] font-medium">
-      <span className="text-white/20">{icon}</span>
+    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/8 text-white/40 text-[12px] font-medium hover:bg-white/[0.07] hover:text-white/60 hover:border-white/15 transition-colors duration-200">
+      <span className="text-white/30">{icon}</span>
       {label}
     </div>
   );
