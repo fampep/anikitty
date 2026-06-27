@@ -271,9 +271,9 @@ const NavBar = () => {
           </div>
         )}
 
-        <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4">
+        <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-4">
           {/* Brand */}
-          <Link href={ROUTES.HOME} className="group z-20 flex shrink-0 items-center gap-2.5">
+          <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center gap-2.5 lg:min-w-0">
             <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full shadow-[0_0_12px_rgba(124,58,237,0.15)] ring-1 ring-violet-400/20 transition-all duration-200 group-hover:ring-violet-400/45">
               <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
             </div>
@@ -288,12 +288,12 @@ const NavBar = () => {
           </Link>
 
           {/* Centered desktop navigation */}
-          <div className="absolute left-1/2 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 lg:block">
+          <div className="relative z-10 hidden min-w-0 justify-center lg:flex">
             <DesktopNav pathname={pathname} />
           </div>
 
           {/* Right actions */}
-          <div className="z-20 ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="relative z-20 ml-auto flex shrink-0 items-center justify-end gap-1 sm:gap-2 lg:ml-0">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
