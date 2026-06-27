@@ -57,8 +57,8 @@ const AnimeCard = ({
       <div
         className={cn(
           "rounded-xl overflow-hidden relative cursor-pointer group ring-1 ring-white/[0.06]",
-          "transition-all duration-300",
-          "hover:scale-[1.03] hover:ring-violet-400/25 hover:shadow-[0_0_0_1px_rgba(167,139,250,0.2),0_20px_50px_rgba(0,0,0,0.65)]",
+          "transition-[transform,box-shadow] duration-300",
+          "[@media(hover:hover)]:hover:scale-[1.03] [@media(hover:hover)]:hover:ring-violet-400/25 [@media(hover:hover)]:hover:shadow-[0_0_0_1px_rgba(167,139,250,0.2),0_20px_50px_rgba(0,0,0,0.65)]",
           !compact && variant === "sm" &&
             "h-[14rem] min-[380px]:h-[17rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           !compact && variant === "lg" &&
@@ -73,15 +73,14 @@ const AnimeCard = ({
           alt={props.title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.08]"
-          unoptimized
+          className="object-cover [@media(hover:hover)]:group-hover:scale-[1.08] transition-transform duration-500"
         />
 
         {/* Base vignette */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10 opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
 
-        {/* Shimmer sweep on hover */}
-        <div className="absolute inset-0 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        {/* Shimmer sweep on hover (desktop only) */}
+        <div className="absolute inset-0 overflow-hidden opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none hidden [@media(hover:hover)]:block">
           <div
             className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12"
             style={{ animation: "shimmer 1.2s ease forwards" }}

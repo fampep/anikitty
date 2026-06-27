@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   chatApi,
+  chatMessageActivityAt,
   filterActiveChatMessages,
   type ChatMessage,
 } from "@/lib/chat";
@@ -13,10 +14,21 @@ const PRUNE_MS = 30_000;
 
 function mergeMessages(prev: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
   if (incoming.length === 0) return prev;
-  const seen = new Set(prev.map((m) => m.id));
-  const added = incoming.filter((m) => !seen.has(m.id));
-  if (added.length === 0) return prev;
-  return [...prev, ...added];
+  const map = new Map(prev.map((m) => [m.id, m]));
+  for (const m of incoming) {
+    map.set(m.id, m);
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+}
+
+function latestActivityAt(list: ChatMessage[]): string | null {
+  if (list.length === 0) return null;
+  return list.reduce((latest, m) => {
+    const ts = chatMessageActivityAt(m);
+    return ts > latest ? ts : latest;
+  }, chatMessageActivityAt(list[0]));
 }
 
 export function useLiveChat() {
@@ -29,8 +41,7 @@ export function useLiveChat() {
   const ttlRef = useRef(CHAT_MESSAGE_TTL_MS);
 
   const syncLatest = useCallback((list: ChatMessage[]) => {
-    const last = list[list.length - 1];
-    latestRef.current = last?.createdAt ?? null;
+    latestRef.current = latestActivityAt(list);
   }, []);
 
   const applyTtl = useCallback(
@@ -110,6 +121,25 @@ export function useLiveChat() {
     [applyTtl],
   );
 
+  const editMessage = useCallback(
+    async (messageId: string, body: string) => {
+      setSending(true);
+      try {
+        const { message } = await chatApi.editMessage(messageId, body);
+        setMessages((prev) => applyTtl(mergeMessages(prev, [message])));
+        setError(null);
+        return message;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Failed to edit";
+        setError(msg);
+        throw e;
+      } finally {
+        setSending(false);
+      }
+    },
+    [applyTtl],
+  );
+
   const deleteMessage = useCallback(
     async (messageId: string) => {
       await chatApi.deleteMessage(messageId);
@@ -129,6 +159,7 @@ export function useLiveChat() {
     sending,
     error,
     sendMessage,
+    editMessage,
     deleteMessage,
     refresh: loadInitial,
   };

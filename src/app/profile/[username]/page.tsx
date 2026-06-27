@@ -12,15 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useRouter } from "next/navigation";
-import { getAnisurgeToken, anisurgeWatchlist } from "@/lib/anisurge";
+import { useParams } from "next/navigation";
 import { applyUserThemeColor } from "@/lib/theme-color";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile-customization-form";
 import ProfileMediaPreview from "@/components/profile-media-preview";
 import { useWatchlistStore } from "@/store/watchlist-store";
-import AnimeLists from "./components/anime-lists";
 import AnimeHeatmap from "./components/anime-heatmap";
 import ContinueWatching from "@/components/continue-watching";
 import Loading from "@/app/loading";
@@ -42,39 +40,28 @@ import { RoleBadge } from "@/components/role-badge";
 import { LevelRoleBadge } from "@/components/user-badges";
 import { useUserLevel } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/level-progress-card";
+import AnimeLists from "./components/anime-lists";
+import type { UserLevelData } from "@/hooks/use-user-level";
 
-function useBookmarkCounts(auth: any) {
-  const [counts, setCounts] = useState({ watching: 0, completed: 0, plan: 0, onHold: 0, dropped: 0 });
-  const watchlistVersion = useWatchlistStore((s) => s.version);
-  useEffect(() => {
-    if (!auth) return;
-    const folders = [
-      ["watching",  "WATCHING"],
-      ["completed", "COMPLETED"],
-      ["plan",      "PLANNING"],
-      ["onHold",    "PAUSED"],
-      ["dropped",   "DROPPED"],
-    ] as const;
-    Promise.all(
-      folders.map(([key, folder]) =>
-        anisurgeWatchlist.get(folder, 1, 0)
-          .then((r: any) => ({ key, count: r?.total ?? 0 }))
-          .catch(() => ({ key, count: 0 })),
-      ),
-    ).then((results) => {
-      const map: Record<string, number> = {};
-      results.forEach(({ key, count }) => { map[key] = count; });
-      setCounts({
-        watching:  map.watching  ?? 0,
-        completed: map.completed ?? 0,
-        plan:      map.plan      ?? 0,
-        onHold:    map.onHold    ?? 0,
-        dropped:   map.dropped   ?? 0,
-      });
-    });
-  }, [auth, watchlistVersion]);
-  return counts;
-}
+type ProfileCounts = {
+  watching: number;
+  completed: number;
+  plan: number;
+  onHold: number;
+  dropped: number;
+};
+
+type ProfileData = {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  bio: string | null;
+  themeColor: string | null;
+  role: string;
+  roleColor: string | null;
+  createdAt: string | null;
+};
 
 const STATUS_TABS = [
   { value: "watching",      label: "Watching",      key: "watching",  icon: Clock        },
@@ -155,19 +142,17 @@ function userCommentHref(c: UserComment) {
   return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
 }
 
-function UserComments() {
+function UserComments({ username }: { username: string }) {
   const [items, setItems] = useState<UserComment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getAnisurgeToken();
-    if (!token) { setLoading(false); return; }
-    fetch("/api/account/user-comments", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/users/${encodeURIComponent(username)}/comments`)
       .then((r) => r.json())
       .then((d) => setItems(d.comments ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [username]);
 
   if (loading) {
     return (
@@ -218,38 +203,93 @@ function UserComments() {
 }
 
 function ProfilePage() {
+  const params = useParams();
+  const profileUsername = decodeURIComponent((params.username as string) ?? "");
   const { auth, setAuth } = useAuthStore();
-  const router = useRouter();
   const hasHydrated = useAuthHydrated();
+  const watchlistVersion = useWatchlistStore((s) => s.version);
   const [activeTab, setActiveTab] = useState<string>("watching");
   const [editOpen, setEditOpen] = useState(false);
-  const [joinedAt, setJoinedAt] = useState<string | null>(null);
-  const counts = useBookmarkCounts(auth);
-  const levelData = useUserLevel();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [counts, setCounts] = useState<ProfileCounts>({
+    watching: 0,
+    completed: 0,
+    plan: 0,
+    onHold: 0,
+    dropped: 0,
+  });
+  const [levelData, setLevelData] = useState<UserLevelData | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const ownLevelData = useUserLevel();
+
+  const isOwn = !!auth && auth.username === profileUsername;
 
   useEffect(() => {
-    const token = getAnisurgeToken();
-    if (!token) return;
-    fetch("/api/account/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((d) => { if (d.user?.createdAt) setJoinedAt(d.user.createdAt); })
-      .catch(() => {});
-  }, []);
+    if (!profileUsername) {
+      setNotFound(true);
+      setProfileLoading(false);
+      return;
+    }
 
-  useEffect(() => {
-    if (hasHydrated && !auth) router.replace("/");
-  }, [auth, hasHydrated, router]);
+    setProfileLoading(true);
+    setNotFound(false);
+    fetch(`/api/users/${encodeURIComponent(profileUsername)}`)
+      .then((r) => {
+        if (r.status === 404) {
+          setNotFound(true);
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
+      .then((data) => {
+        if (!data?.user) return;
+        setProfile(data.user);
+        setCounts(
+          data.counts ?? {
+            watching: 0,
+            completed: 0,
+            plan: 0,
+            onHold: 0,
+            dropped: 0,
+          },
+        );
+        setLevelData(data.level ?? null);
+      })
+      .catch(() => setNotFound(true))
+      .finally(() => setProfileLoading(false));
+  }, [profileUsername, watchlistVersion]);
 
-  if (!hasHydrated) return <Loading />;
-  if (!auth) return null;
+  if (!hasHydrated || profileLoading) return <Loading />;
 
+  if (notFound || !profile) {
+    return (
+      <div className="min-h-screen pt-24 flex flex-col items-center gap-3 text-center px-4">
+        <p className="text-xl font-bold text-white">User not found</p>
+        <p className="text-sm text-white/40">@{profileUsername} does not exist.</p>
+        <Link href="/" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+          Go home
+        </Link>
+      </div>
+    );
+  }
+
+  const displayLevel = isOwn && ownLevelData ? ownLevelData : levelData;
   const totalAnime = counts.watching + counts.completed + counts.plan + counts.onHold + counts.dropped;
-  const bannerUrl = auth.bannerUrl ?? null;
+  const bannerUrl = profile.bannerUrl ?? null;
 
   const handleProfileSaved = (data: ProfileCustomizationValues) => {
+    if (!auth || !isOwn) return;
     setAuth({
       ...auth,
       avatar: data.avatarUrl || auth.avatar,
+      bannerUrl: data.bannerUrl || null,
+      bio: data.bio || null,
+      themeColor: data.themeColor,
+    });
+    setProfile({
+      ...profile,
+      avatarUrl: data.avatarUrl || profile.avatarUrl,
       bannerUrl: data.bannerUrl || null,
       bio: data.bio || null,
       themeColor: data.themeColor,
@@ -287,12 +327,12 @@ function ProfilePage() {
         <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 mb-8">
           {/* Avatar */}
           <div className="shrink-0">
-            <div className={cn("rounded-full p-[3px] shadow-2xl", auth.themeColor ? "user-accent-ring" : "bg-gradient-to-br from-white/30 via-white/20 to-white/10")}>
+            <div className={cn("rounded-full p-[3px] shadow-2xl", profile.themeColor ? "user-accent-ring" : "bg-gradient-to-br from-white/30 via-white/20 to-white/10")}>
               <div className="rounded-full p-[2px] bg-black">
                 <Avatar
                   className="w-28 h-28 md:w-32 md:h-32"
-                  username={auth.username}
-                  url={auth.avatar}
+                  username={profile.username}
+                  url={profile.avatarUrl ?? undefined}
                 />
               </div>
             </div>
@@ -302,39 +342,43 @@ function ProfilePage() {
           <div className="flex-1 text-center sm:text-left pb-1">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
               <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-                @{auth.username}
+                @{profile.username}
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/15 bg-white/5 text-white/40 text-[11px] font-mono self-center sm:self-auto">
-                <ShieldCheck className="w-3 h-3" />
-                passphrase account
-              </span>
-              {levelData && (
+              {isOwn && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/15 bg-white/5 text-white/40 text-[11px] font-mono self-center sm:self-auto">
+                  <ShieldCheck className="w-3 h-3" />
+                  passphrase account
+                </span>
+              )}
+              {displayLevel && (
                 <LevelRoleBadge
-                  level={levelData.level}
-                  levelRole={levelData.levelRole ?? levelData.tier.name}
-                  levelRoleColor={levelData.levelRoleColor ?? levelData.tier.color}
+                  level={displayLevel.level}
+                  levelRole={displayLevel.levelRole ?? displayLevel.tier.name}
+                  levelRoleColor={displayLevel.levelRoleColor ?? displayLevel.tier.color}
                   size="sm"
                 />
               )}
-              {auth.role && auth.role !== "user" && (
-                <RoleBadge role={auth.role} size="sm" />
+              {profile.role && profile.role !== "user" && (
+                <RoleBadge role={profile.role} size="sm" />
               )}
-              <button
-                onClick={() => setEditOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto sm:ml-auto"
-              >
-                <Pencil className="w-3 h-3" />
-                Edit profile
-              </button>
+              {isOwn && (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto sm:ml-auto"
+                >
+                  <Pencil className="w-3 h-3" />
+                  Edit profile
+                </button>
+              )}
             </div>
 
-            {auth.bio && (
-              <p className="text-sm text-white/45 mt-2 max-w-md">{auth.bio}</p>
+            {profile.bio && (
+              <p className="text-sm text-white/45 mt-2 max-w-md">{profile.bio}</p>
             )}
 
-            {joinedAt && (
+            {profile.createdAt && (
               <p className="text-[11px] font-mono text-white/25 mt-1.5">
-                Joined {new Date(joinedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </p>
             )}
 
@@ -349,17 +393,19 @@ function ProfilePage() {
             </div>
 
             {/* Level card */}
-            {levelData && (
-              <LevelProgressCard level={levelData} className="mt-4 max-w-sm w-full" />
+            {displayLevel && (
+              <LevelProgressCard level={displayLevel} className="mt-4 max-w-sm w-full" />
             )}
           </div>
         </div>
 
         {/* ── Main content ────────────────────────────────────────── */}
         <div className="flex flex-col gap-10">
-          <section className="-mx-4 md:-mx-6 lg:-mx-8">
-            <ContinueWatching loading={false} />
-          </section>
+          {isOwn && (
+            <section className="-mx-4 md:-mx-6 lg:-mx-8">
+              <ContinueWatching loading={false} />
+            </section>
+          )}
 
           <section id="watchlist">
             <SectionLabel icon={<List className="w-4 h-4" />} title="Watchlist" />
@@ -388,7 +434,11 @@ function ProfilePage() {
 
               {STATUS_TABS.map((t) => (
                 <TabsContent key={t.value} value={t.value}>
-                  <AnimeLists status={t.value} />
+                  <AnimeLists
+                    status={t.value}
+                    username={profile.username}
+                    isOwn={isOwn}
+                  />
                 </TabsContent>
               ))}
             </Tabs>
@@ -397,30 +447,32 @@ function ProfilePage() {
           <section>
             <SectionLabel icon={<Activity className="w-4 h-4" />} title="Watch Activity" />
             <div className="rounded-xl border border-white/10 bg-white/3 p-5">
-              <AnimeHeatmap />
+              <AnimeHeatmap username={profile.username} />
             </div>
           </section>
 
           <section>
             <SectionLabel icon={<MessageSquare className="w-4 h-4" />} title="Comments" />
             <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2">
-              <UserComments />
+              <UserComments username={profile.username} />
             </div>
           </section>
         </div>
       </Container>
 
-      <EditProfileDialog
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        onSaved={handleProfileSaved}
-        initial={{
-          avatarUrl: auth.avatar ?? "",
-          bannerUrl: auth.bannerUrl ?? "",
-          bio: auth.bio ?? "",
-          themeColor: auth.themeColor ?? null,
-        }}
-      />
+      {isOwn && auth && (
+        <EditProfileDialog
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          onSaved={handleProfileSaved}
+          initial={{
+            avatarUrl: auth.avatar ?? "",
+            bannerUrl: auth.bannerUrl ?? "",
+            bio: auth.bio ?? "",
+            themeColor: auth.themeColor ?? null,
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import Container from "./container";
 import AnimeCard from "./anime-card";
 import { ROUTES } from "@/constants/routes";
-import BlurFade from "./ui/blur-fade";
 import { LatestCompletedAnime } from "@/types/anime";
 import { SectionHeading } from "./section-heading";
 import { Tv2, ChevronLeft, ChevronRight } from "lucide-react";
@@ -77,24 +76,22 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
           className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-momentum"
         >
           {latestEpisodes.map((anime, idx) => (
-            <BlurFade key={anime.id ?? idx} delay={idx * 0.02} inView>
-              <div style={{ width: CARD_W }} className="shrink-0">
-                <AnimeCard
-                  compact
-                  title={anime.name}
-                  subTitle={anime.type}
-                  poster={anime.poster}
-                  className="w-full max-w-none"
-                  href={`${ROUTES.WATCH}?anime=${anime.id}&type=latest`}
-                  episodeCard
-                  sub={anime.episodes.sub}
-                  dub={anime.episodes.dub}
-                  score={(anime as any).score}
-                  year={(anime as any).year}
-                  status={(anime as any).status}
-                />
-              </div>
-            </BlurFade>
+            <div key={anime.id ?? idx} style={{ width: CARD_W }} className="shrink-0">
+              <AnimeCard
+                compact
+                title={anime.name}
+                subTitle={anime.type}
+                poster={anime.poster}
+                className="w-full max-w-none"
+                href={`${ROUTES.WATCH}?anime=${anime.id}&type=latest`}
+                episodeCard
+                sub={anime.episodes.sub}
+                dub={anime.episodes.dub}
+                score={(anime as any).score}
+                year={(anime as any).year}
+                status={(anime as any).status}
+              />
+            </div>
           ))}
         </div>
       </div>

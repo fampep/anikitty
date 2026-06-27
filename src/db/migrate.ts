@@ -122,6 +122,10 @@ export async function migrateDb() {
     `;
 
     await client`
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP
+    `;
+
+    await client`
       CREATE TABLE IF NOT EXISTS w2g_rooms (
         id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         code             VARCHAR(8) NOT NULL UNIQUE,

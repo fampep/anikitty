@@ -3,8 +3,8 @@
 import AnimeCard from "@/components/anime-card";
 import Pagination from "@/components/common/pagination";
 import { ROUTES } from "@/constants/routes";
-import useBookMarks, { WatchHistory } from "@/hooks/use-get-bookmark";
-import { anisurgeContinue } from "@/lib/anisurge";
+import useBookMarks, { type Bookmark, type WatchHistory } from "@/hooks/use-get-bookmark";
+import { anisurgeContinue, folderToStatus, statusToFolder } from "@/lib/anisurge";
 import { useAuthStore } from "@/store/auth-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { ChevronLeft, ChevronRight, Tv2 } from "lucide-react";
@@ -14,9 +14,42 @@ const CARD_W = 130;
 
 type Props = {
   status: string;
+  username: string;
+  isOwn: boolean;
 };
 
-function AnimeLists({ status }: Props) {
+function mapPublicItem(item: {
+  animeId: string;
+  folder: string;
+  addedAt?: string;
+  anime?: {
+    title?: { english?: string; romaji?: string };
+    cover_image?: { large?: string; extra_large?: string };
+  } | null;
+}): Bookmark {
+  const animeData = item.anime ?? {};
+  const title =
+    animeData?.title?.english ??
+    animeData?.title?.romaji ??
+    item.animeId;
+  const poster =
+    animeData?.cover_image?.large ??
+    animeData?.cover_image?.extra_large ??
+    "";
+
+  return {
+    id: item.animeId,
+    user: "",
+    animeId: item.animeId,
+    thumbnail: poster,
+    animeTitle: title,
+    status: folderToStatus(item.folder ?? "WATCHING"),
+    created: item.addedAt ?? "",
+    expand: { watchHistory: [] },
+  };
+}
+
+function AnimeLists({ status, username, isOwn }: Props) {
   const { auth } = useAuthStore();
   const watchlistVersion = useWatchlistStore((s) => s.version);
   const [currentPage, setPage] = React.useState(1);
@@ -24,16 +57,43 @@ function AnimeLists({ status }: Props) {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const { bookmarks, totalPages, isLoading } = useBookMarks({
+  const ownBookmarks = useBookMarks({
     status,
     page: currentPage,
     per_page: 20,
+    populate: isOwn,
   });
 
-  // Fetch watch progress to show episode + timestamp on cards
+  const [publicBookmarks, setPublicBookmarks] = useState<Bookmark[] | null>(null);
+  const [publicTotalPages, setPublicTotalPages] = useState(0);
+  const [publicLoading, setPublicLoading] = useState(!isOwn);
+
+  useEffect(() => {
+    if (isOwn) return;
+    const folder = statusToFolder(status);
+    const offset = (currentPage - 1) * 20;
+    setPublicLoading(true);
+    fetch(
+      `/api/users/${encodeURIComponent(username)}/watchlist?folder=${encodeURIComponent(folder)}&limit=20&offset=${offset}`,
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((res) => {
+        const results = res?.results ?? [];
+        setPublicBookmarks(results.length ? results.map(mapPublicItem) : null);
+        const total = res?.total ?? results.length;
+        setPublicTotalPages(Math.ceil(total / 20));
+      })
+      .catch(() => setPublicBookmarks(null))
+      .finally(() => setPublicLoading(false));
+  }, [isOwn, username, status, currentPage]);
+
+  const bookmarks = isOwn ? ownBookmarks.bookmarks : publicBookmarks;
+  const totalPages = isOwn ? ownBookmarks.totalPages : publicTotalPages;
+  const isLoading = isOwn ? ownBookmarks.isLoading : publicLoading;
+
   const [progressMap, setProgressMap] = useState<Record<string, WatchHistory>>({});
   useEffect(() => {
-    if (!auth) return;
+    if (!isOwn || !auth) return;
     anisurgeContinue.get(true, 100).then((res: any) => {
       const data: any[] = res?.data ?? [];
       const map: Record<string, WatchHistory> = {};
@@ -50,7 +110,7 @@ function AnimeLists({ status }: Props) {
       });
       setProgressMap(map);
     }).catch(() => {});
-  }, [auth, watchlistVersion]);
+  }, [isOwn, auth, watchlistVersion]);
 
   const updateScroll = () => {
     const el = scrollRef.current;
@@ -86,7 +146,9 @@ function AnimeLists({ status }: Props) {
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
         <Tv2 className="w-10 h-10 text-white/15" />
         <p className="text-white/30 text-sm font-mono">Nothing here yet</p>
-        <p className="text-white/20 text-xs">Start watching anime to fill this list</p>
+        <p className="text-white/20 text-xs">
+          {isOwn ? "Start watching anime to fill this list" : "This list is empty"}
+        </p>
       </div>
     );
   }

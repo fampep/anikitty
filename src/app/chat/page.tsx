@@ -22,19 +22,23 @@ import LoginPopoverButton from "@/components/login-popover-button";
 import { useLiveChat } from "@/hooks/use-live-chat";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
-import { chatTimeAgo, formatChatTime, formatChatTtlLabel, type ChatMessage } from "@/lib/chat";
+import { chatTimeAgo, formatChatTime, formatChatTtlLabel, isChatMessageEdited, type ChatMessage } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 
 function ChatBubble({
   message,
   isOwn,
   canDelete,
+  canEdit,
   onDelete,
+  onEdit,
 }: {
   message: ChatMessage;
   isOwn: boolean;
   canDelete: boolean;
+  canEdit: boolean;
   onDelete: () => void;
+  onEdit: () => void;
 }) {
   return (
     <div
@@ -89,7 +93,13 @@ function ChatBubble({
           )}
         >
           {message.body ? (
-            <p className="whitespace-pre-wrap">{message.body}</p>
+            <p
+              className={cn("whitespace-pre-wrap", canEdit && "cursor-text")}
+              onDoubleClick={canEdit ? onEdit : undefined}
+              title={canEdit ? "Double-click to edit" : undefined}
+            >
+              {message.body}
+            </p>
           ) : null}
           {message.gifUrl ? (
             <div className={cn(message.body ? "mt-2" : "")}>
@@ -123,6 +133,7 @@ function ChatBubble({
           title={new Date(message.createdAt).toLocaleString()}
         >
           {formatChatTime(message.createdAt)} · {chatTimeAgo(message.createdAt)}
+          {isChatMessageEdited(message) ? " · edited" : ""}
         </span>
       </div>
     </div>
@@ -132,9 +143,10 @@ function ChatBubble({
 export default function ChatPage() {
   const { auth } = useAuthStore();
   const onlineCount = useOnlineCount();
-  const { messages, messageTtlMs, loading, sending, error, sendMessage, deleteMessage } =
+  const { messages, messageTtlMs, loading, sending, error, sendMessage, editMessage, deleteMessage } =
     useLiveChat();
   const [draft, setDraft] = useState("");
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showGifPanel, setShowGifPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -143,7 +155,22 @@ export default function ChatPage() {
 
   const isLoggedIn = !!auth;
   const isStaff = auth?.role === "admin" || auth?.role === "moderator";
-  const canSend = (draft.trim().length > 0 || !!selectedGif) && !sending;
+  const isEditing = !!editingMessageId;
+  const canSend =
+    (draft.trim().length > 0 || (!isEditing && !!selectedGif)) && !sending;
+
+  const startEditing = (message: ChatMessage) => {
+    if (!message.body) return;
+    setEditingMessageId(message.id);
+    setDraft(message.body);
+    setSelectedGif(null);
+    setShowGifPanel(false);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setDraft("");
+  };
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -165,6 +192,17 @@ export default function ChatPage() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = draft.trim();
+    if (editingMessageId) {
+      if (!body || sending) return;
+      try {
+        await editMessage(editingMessageId, body);
+        cancelEditing();
+        wasAtBottom.current = true;
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Failed to edit");
+      }
+      return;
+    }
     if ((!body && !selectedGif) || sending) return;
     try {
       await sendMessage({ body, gifUrl: selectedGif });
@@ -180,6 +218,7 @@ export default function ChatPage() {
   const handleDelete = async (message: ChatMessage) => {
     try {
       await deleteMessage(message.id);
+      if (editingMessageId === message.id) cancelEditing();
       toast.success("Message deleted");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
@@ -238,7 +277,9 @@ export default function ChatPage() {
                     message={msg}
                     isOwn={isOwn}
                     canDelete={!!auth && (isOwn || isStaff)}
+                    canEdit={isOwn && !!msg.body}
                     onDelete={() => handleDelete(msg)}
+                    onEdit={() => startEditing(msg)}
                   />
                 );
               })
@@ -257,7 +298,19 @@ export default function ChatPage() {
           <div className="border-t border-white/8 p-3 shrink-0">
             {isLoggedIn ? (
               <form onSubmit={handleSend} className="flex flex-col gap-2">
-                {selectedGif && (
+                {isEditing && (
+                  <div className="flex items-center justify-between gap-2 px-1 text-xs text-violet-300/80">
+                    <span>Editing message — press Esc to cancel</span>
+                    <button
+                      type="button"
+                      onClick={cancelEditing}
+                      className="text-white/40 hover:text-white/70 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                {selectedGif && !isEditing && (
                   <div className="relative inline-block self-start rounded-lg overflow-hidden ring-1 ring-white/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={selectedGif} alt="GIF" className="max-h-28 w-auto block" />
@@ -274,6 +327,7 @@ export default function ChatPage() {
                   <div className="relative shrink-0">
                     <button
                       type="button"
+                      disabled={isEditing}
                       onClick={() => setShowGifPanel((v) => !v)}
                       className={cn(
                         "flex items-center justify-center h-10 w-10 rounded-xl transition-all border",
@@ -299,12 +353,25 @@ export default function ChatPage() {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
+                      if (e.key === "Escape" && isEditing) {
+                        e.preventDefault();
+                        cancelEditing();
+                        return;
+                      }
+                      if (e.key === "ArrowUp" && !draft && !selectedGif && !isEditing) {
+                        const lastOwn = [...messages].reverse().find((m) => m.userId === auth?.id);
+                        if (lastOwn?.body) {
+                          e.preventDefault();
+                          startEditing(lastOwn);
+                        }
+                        return;
+                      }
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSend(e);
                       }
                     }}
-                    placeholder="Type a message…"
+                    placeholder={isEditing ? "Edit message…" : "Type a message…"}
                     rows={1}
                     maxLength={1000}
                     className={cn(

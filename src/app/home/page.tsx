@@ -25,6 +25,8 @@ import { ROUTES } from "@/constants/routes";
 import Container from "@/components/container";
 import { useQueryClient } from "react-query";
 import { GET_HOME_PAGE_DATA } from "@/constants/query-keys";
+import LazyMount from "@/components/lazy-mount";
+import { useAuthStore } from "@/store/auth-store";
 
 const HeroSection = dynamic(() => import("@/components/hero-section"));
 const LatestEpisodesAnime = dynamic(() => import("@/components/latest-episodes-section"));
@@ -42,6 +44,7 @@ function HomeSectionDivider() {
 export default function Home() {
   const { data, isLoading, isError, refetch, isFetching } = useGetHomePageData();
   const queryClient = useQueryClient();
+  const auth = useAuthStore((s) => s.auth);
 
   const handleRetry = () => {
     queryClient.invalidateQueries([GET_HOME_PAGE_DATA]);
@@ -77,46 +80,49 @@ export default function Home() {
         latestEpisodes={data?.latestEpisodeAnimes as LatestCompletedAnime[]}
       />
 
-      <HomeWelcomeBar />
-      <ContinueWatching loading={isLoading} />
-      <HomeScheduleStrip />
-      <HomeGenreBar />
+      <LazyMount minHeight={120}>
+        <HomeWelcomeBar />
+        <ContinueWatching loading={isLoading && !!auth} />
+        <HomeScheduleStrip />
+        <HomeGenreBar />
+      </LazyMount>
 
       <HomeSectionDivider />
 
-      {/* ── Curated lists ── */}
-      <FeaturedCollection
-        loading={isLoading}
-        featuredAnime={[
-          { title: "Most Favorite", anime: data?.mostFavoriteAnimes as IAnime[] },
-          { title: "Most Popular", anime: data?.mostPopularAnimes as IAnime[] },
-          { title: "Latest Completed", anime: data?.latestCompletedAnimes as LatestCompletedAnime[] },
-        ]}
-      />
+      <LazyMount minHeight={320}>
+        <FeaturedCollection
+          loading={isLoading}
+          featuredAnime={[
+            { title: "Most Favorite", anime: data?.mostFavoriteAnimes as IAnime[] },
+            { title: "Most Popular", anime: data?.mostPopularAnimes as IAnime[] },
+            { title: "Latest Completed", anime: data?.latestCompletedAnimes as LatestCompletedAnime[] },
+          ]}
+        />
 
-      <AnimeSections
-        title="Trending Now"
-        icon={<Flame className="w-4 h-4" />}
-        trendingAnime={data?.trendingAnimes as IAnime[]}
-        loading={isLoading}
-        showRanks
-        layout="row"
-        seeAllHref={ROUTES.TRENDING}
-      />
+        <AnimeSections
+          title="Trending Now"
+          icon={<Flame className="w-4 h-4" />}
+          trendingAnime={data?.trendingAnimes as IAnime[]}
+          loading={isLoading}
+          showRanks
+          layout="row"
+          seeAllHref={ROUTES.TRENDING}
+        />
 
-      <AnimeSections
-        title="Coming Soon"
-        icon={<CalendarClock className="w-4 h-4" />}
-        trendingAnime={data?.topUpcomingAnimes as IAnime[]}
-        loading={isLoading}
-        layout="row"
-        seeAllHref={`${ROUTES.TRENDING}#upcoming`}
-      />
+        <AnimeSections
+          title="Coming Soon"
+          icon={<CalendarClock className="w-4 h-4" />}
+          trendingAnime={data?.topUpcomingAnimes as IAnime[]}
+          loading={isLoading}
+          layout="row"
+          seeAllHref={`${ROUTES.TRENDING}#upcoming`}
+        />
+      </LazyMount>
 
       <HomeSectionDivider />
 
-      {/* ── Community & explore ── */}
-      <Container className="py-12">
+      <LazyMount minHeight={400}>
+        <Container className="py-12">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
           <div className="site-panel p-5 sm:p-6">
             <LatestComments bare />
@@ -168,6 +174,7 @@ export default function Home() {
           </div>
         </div>
       </Container>
+      </LazyMount>
     </div>
   );
 }

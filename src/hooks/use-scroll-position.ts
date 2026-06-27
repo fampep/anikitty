@@ -1,32 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 type ScrollPosition = {
-    x: number;
-    y: number;
+  x: number;
+  y: number;
 };
 
 const useScrollPosition = (): ScrollPosition => {
-    const [scrollPosition, setScrollPosition] = useState<ScrollPosition>({
-        x: 0,
-        y: 0,
-    });
+  const [scrollPosition, setScrollPosition] = useState<ScrollPosition>({
+    x: 0,
+    y: 0,
+  });
 
-    useEffect(() => {
-        const handleScroll = () => {
-            setScrollPosition({
-                x: window?.scrollX,
-                y: window?.scrollY,
-            });
-        };
+  useEffect(() => {
+    let ticking = false;
 
-        window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setScrollPosition({
+          x: window.scrollX,
+          y: window.scrollY,
+        });
+        ticking = false;
+      });
+    };
 
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-        };
-    }, []);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    return scrollPosition;
+  return scrollPosition;
 };
 
 export default useScrollPosition;

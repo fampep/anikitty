@@ -9,13 +9,23 @@ import {
 
 import Container from "./container";
 import { Button } from "./ui/button";
-import parse from "html-react-parser";
+import Image from "next/image";
 
 import React, { useEffect } from "react";
 import { ArrowLeft, ArrowRight, Captions, Mic, Play, Info } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { ButtonLink } from "./common/button-link";
 import { SpotlightAnime } from "@/types/anime";
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function isNearSlide(index: number, current: number, total: number): boolean {
+  if (total <= 1) return true;
+  const diff = Math.abs(index - current);
+  return diff <= 1 || diff === total - 1;
+}
 
 type IHeroSectionProps = {
   spotlightAnime: SpotlightAnime[];
@@ -36,7 +46,9 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
 
   useEffect(() => {
     if (!api || !count) return;
-    const timer = setInterval(() => api.scrollNext(), 7000);
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") api.scrollNext();
+    }, 7000);
     return () => clearInterval(timer);
   }, [api, count]);
 
@@ -57,8 +69,12 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
       <Carousel className="w-full h-full" setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="h-full">
           {spotlightAnime?.map((anime, index) => (
-            <CarouselItem key={index} className="h-full">
-              <HeroCarouselItem anime={anime} />
+            <CarouselItem key={anime.id ?? index} className="h-full">
+              <HeroCarouselItem
+                anime={anime}
+                isNearActive={isNearSlide(index, current, spotlightAnime.length)}
+                priority={index === 0}
+              />
             </CarouselItem>
           ))}
         </CarouselContent>
@@ -118,33 +134,38 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   );
 };
 
-const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
-  <div
-    className="w-full h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] bg-cover bg-no-repeat bg-center relative"
-    style={{ backgroundImage: `url(${anime?.poster})` }}
-  >
+const HeroCarouselItem = ({
+  anime,
+  isNearActive,
+  priority = false,
+}: {
+  anime: SpotlightAnime;
+  isNearActive: boolean;
+  priority?: boolean;
+}) => (
+  <div className="w-full h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] relative overflow-hidden bg-black">
+    {isNearActive && anime?.poster ? (
+      <Image
+        src={anime.poster}
+        alt=""
+        fill
+        priority={priority}
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+    ) : null}
     {/* Layered cinematic gradients */}
     <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent z-10" />
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/40 z-10" />
-    {/* Vignette right edge */}
     <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-black/60 to-transparent z-10" />
-    {/* Film grain texture */}
-    <div
-      className="absolute inset-0 z-[11] pointer-events-none opacity-[0.035]"
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        backgroundSize: "256px 256px",
-      }}
-    />
 
     {/* Content */}
     <div className="absolute inset-0 z-20 flex items-end md:items-center pb-14 sm:pb-16 md:pb-0">
       <Container className="w-full">
         <div className="max-w-lg space-y-3 sm:space-y-4">
-          {/* Rank + type */}
           <div className="flex items-center gap-2.5">
             {anime.rank && (
-              <span className="text-[11px] font-mono font-bold text-white/80 bg-white/8 border border-white/15 px-2 py-0.5 rounded-md backdrop-blur-sm">
+              <span className="text-[11px] font-mono font-bold text-white/80 bg-white/8 border border-white/15 px-2 py-0.5 rounded-md">
                 #{anime.rank}
               </span>
             )}
@@ -155,21 +176,19 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
             )}
           </div>
 
-          {/* Title */}
           <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-black leading-[1.05] text-white">
             {anime.name}
           </h1>
 
-          {/* Episode + info badges */}
           <div className="flex flex-wrap items-center gap-2">
             {anime.episodes?.sub != null && anime.episodes.sub > 0 && (
-              <span className="inline-flex items-center gap-1 bg-white/10 text-white/90 border border-white/15 text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1 bg-white/10 text-white/90 border border-white/15 text-xs font-bold px-2.5 py-1 rounded-full">
                 <Captions className="h-3 w-3" />
                 SUB {anime.episodes.sub}
               </span>
             )}
             {anime.episodes?.dub != null && anime.episodes.dub > 0 && (
-              <span className="inline-flex items-center gap-1 bg-white/10 text-white/90 border border-white/15 text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1 bg-white/10 text-white/90 border border-white/15 text-xs font-bold px-2.5 py-1 rounded-full">
                 <Mic className="h-3 w-3" />
                 DUB {anime.episodes.dub}
               </span>
@@ -181,15 +200,12 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
             ))}
           </div>
 
-          {/* Description */}
           <p className="text-sm md:text-[15px] text-white/55 line-clamp-2 sm:line-clamp-3 leading-relaxed hidden xs:block">
-            {parse(anime?.description ?? "")}
+            {stripHtml(anime?.description ?? "")}
           </p>
 
-          {/* Divider */}
           <div className="w-12 h-px bg-white/20" />
 
-          {/* CTA buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
             <ButtonLink
               href={`${ROUTES.WATCH}?anime=${anime.id}`}
@@ -200,7 +216,7 @@ const HeroCarouselItem = ({ anime }: { anime: SpotlightAnime }) => (
             </ButtonLink>
             <ButtonLink
               href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-              className="flex items-center gap-2 h-10 sm:h-11 bg-white/5 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/35 px-4 sm:px-5 rounded-xl backdrop-blur-sm transition-all text-sm"
+              className="flex items-center gap-2 h-10 sm:h-11 bg-white/5 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/35 px-4 sm:px-5 rounded-xl transition-all text-sm"
             >
               <Info className="h-4 w-4" />
               Details

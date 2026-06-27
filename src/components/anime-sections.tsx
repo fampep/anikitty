@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Container from "./container";
 import AnimeCard from "./anime-card";
-import BlurFade from "./ui/blur-fade";
 import { IAnime } from "@/types/anime";
 import { ROUTES } from "@/constants/routes";
 import { SectionHeading } from "./section-heading";
@@ -34,22 +33,21 @@ const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout 
       <SectionHeading icon={icon} title={title} href={seeAllHref} />
       <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-3 md:gap-4">
         {trendingAnime.map((anime, idx) => (
-          <BlurFade key={anime.id ?? idx} delay={idx * 0.03} inView>
-            <AnimeCard
-              title={anime.name}
-              subTitle={anime.type}
-              poster={anime.poster}
-              className="w-full"
-              href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-              episodeCard
-              sub={anime?.episodes?.sub}
-              dub={anime?.episodes?.dub}
-              rank={showRanks ? idx + 1 : undefined}
-              score={anime.score}
-              year={anime.year}
-              status={anime.status}
-            />
-          </BlurFade>
+          <AnimeCard
+            key={anime.id ?? idx}
+            title={anime.name}
+            subTitle={anime.type}
+            poster={anime.poster}
+            className="w-full"
+            href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+            episodeCard
+            sub={anime?.episodes?.sub}
+            dub={anime?.episodes?.dub}
+            rank={showRanks ? idx + 1 : undefined}
+            score={anime.score}
+            year={anime.year}
+            status={anime.status}
+          />
         ))}
       </div>
     </Container>
@@ -126,25 +124,23 @@ function RowLayout({
           className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-momentum"
         >
           {trendingAnime.map((anime, idx) => (
-            <BlurFade key={anime.id ?? idx} delay={idx * 0.02} inView>
-              <div style={{ width: CARD_W }} className="shrink-0">
-                <AnimeCard
-                  compact
-                  title={anime.name}
-                  subTitle={anime.type}
-                  poster={anime.poster}
-                  className="w-full max-w-none"
-                  href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-                  episodeCard
-                  sub={anime?.episodes?.sub}
-                  dub={anime?.episodes?.dub}
-                  rank={showRanks ? idx + 1 : undefined}
-                  score={anime.score}
-                  year={anime.year}
-                  status={anime.status}
-                />
-              </div>
-            </BlurFade>
+            <div key={anime.id ?? idx} style={{ width: CARD_W }} className="shrink-0">
+              <AnimeCard
+                compact
+                title={anime.name}
+                subTitle={anime.type}
+                poster={anime.poster}
+                className="w-full max-w-none"
+                href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                episodeCard
+                sub={anime?.episodes?.sub}
+                dub={anime?.episodes?.dub}
+                rank={showRanks ? idx + 1 : undefined}
+                score={anime.score}
+                year={anime.year}
+                status={anime.status}
+              />
+            </div>
           ))}
         </div>
       </div>

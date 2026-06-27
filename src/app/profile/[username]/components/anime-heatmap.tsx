@@ -3,17 +3,18 @@
 import React, { useEffect, useState } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import styles from "../heatmap.module.css";
-import { useAuthStore } from "@/store/auth-store";
 import { Tooltip } from "react-tooltip";
-import { anisurgeContinue } from "@/lib/anisurge";
 
 type HeatmapValue = {
   date: string;
   count: number;
 };
 
-function AnimeHeatmap() {
-  const { auth } = useAuthStore();
+type Props = {
+  username: string;
+};
+
+function AnimeHeatmap({ username }: Props) {
   const [heatmapData, setHeatmapData] = useState<HeatmapValue[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -21,29 +22,19 @@ function AnimeHeatmap() {
   const endDate = new Date(new Date().setMonth(11, 31));
 
   useEffect(() => {
-    if (!auth) return;
-
     (async () => {
       try {
-        const res = await anisurgeContinue.get(false, 100, 0);
-        const items: any[] = res?.data ?? [];
-
-        const daily: Record<string, number> = {};
-        for (const item of items) {
-          const ts = item.lastUpdated ?? item.updatedAt ?? item.created_at;
-          if (!ts) continue;
-          const date = ts.substring(0, 10);
-          daily[date] = (daily[date] ?? 0) + 1;
-        }
-
-        setHeatmapData(Object.entries(daily).map(([date, count]) => ({ date, count })));
-        setTotalCount(items.length);
+        const res = await fetch(`/api/users/${encodeURIComponent(username)}/activity`);
+        if (!res.ok) throw new Error("failed");
+        const data = await res.json();
+        setHeatmapData(data.activity ?? []);
+        setTotalCount(data.totalCount ?? 0);
       } catch {
         setHeatmapData([]);
         setTotalCount(0);
       }
     })();
-  }, [auth]);
+  }, [username]);
 
   const getClass = (value: HeatmapValue | null) => {
     if (!value || value.count === 0) return styles.colorEmpty;

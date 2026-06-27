@@ -255,6 +255,7 @@ export const chatMessages = pgTable(
     body: text("body").notNull(),
     gifUrl: text("gif_url"),
     createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
   },
   (t) => ({
     createdIdx: index("chat_messages_created_at_idx").on(t.createdAt),

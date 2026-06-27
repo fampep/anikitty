@@ -6,6 +6,7 @@ export type ChatMessage = {
   body: string;
   gifUrl: string | null;
   createdAt: string;
+  updatedAt: string | null;
   userId: string;
   username: string;
   avatarUrl: string | null;
@@ -54,6 +55,12 @@ export const chatApi = {
 
   deleteMessage: (messageId: string) =>
     chatFetch<{ ok: boolean }>(`/messages/${messageId}`, { method: "DELETE" }),
+
+  editMessage: (messageId: string, body: string) =>
+    chatFetch<{ message: ChatMessage }>(`/messages/${messageId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ body }),
+    }),
 };
 
 export function chatTimeAgo(iso: string): string {
@@ -71,6 +78,17 @@ export function chatTimeAgo(iso: string): string {
 export function formatChatTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+export function chatMessageActivityAt(message: ChatMessage): string {
+  if (message.updatedAt && message.updatedAt > message.createdAt) {
+    return message.updatedAt;
+  }
+  return message.createdAt;
+}
+
+export function isChatMessageEdited(message: ChatMessage): boolean {
+  return !!message.updatedAt && message.updatedAt > message.createdAt;
 }
 
 export function filterActiveChatMessages(

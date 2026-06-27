@@ -5,7 +5,7 @@ import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/comme
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 import { CHAT_MESSAGE_TTL_MS, getChatCutoffDate } from "@/lib/chat-config";
 import { maybeSweepChatMessages } from "@/lib/chat-sweep";
-import { eq, desc, gt, asc, and } from "drizzle-orm";
+import { eq, desc, gt, asc, and, or, isNotNull } from "drizzle-orm";
 
 const PAGE_LIMIT = 100;
 const CHAT_RATE = { windowMs: 30_000, max: 15 } as const;
@@ -15,6 +15,7 @@ const MESSAGE_SELECT = {
   body: chatMessages.body,
   gifUrl: chatMessages.gifUrl,
   createdAt: chatMessages.createdAt,
+  updatedAt: chatMessages.updatedAt,
   userId: chatMessages.userId,
   username: users.username,
   avatarUrl: users.avatarUrl,
@@ -28,6 +29,7 @@ async function enrichMessages(
     body: string;
     gifUrl: string | null;
     createdAt: Date | null;
+    updatedAt: Date | null;
     userId: string;
     username: string;
     avatarUrl: string | null;
@@ -42,6 +44,7 @@ async function enrichMessages(
     return {
       ...enriched,
       createdAt: r.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: r.updatedAt?.toISOString() ?? null,
     };
   });
 }
@@ -71,8 +74,14 @@ export async function GET(req: Request) {
       .leftJoin(roles, eq(roles.name, users.role))
       .where(
         and(
-          gt(chatMessages.createdAt, afterDate),
           gt(chatMessages.createdAt, cutoff),
+          or(
+            gt(chatMessages.createdAt, afterDate),
+            and(
+              isNotNull(chatMessages.updatedAt),
+              gt(chatMessages.updatedAt, afterDate),
+            ),
+          ),
         ),
       )
       .orderBy(asc(chatMessages.createdAt))
@@ -124,6 +133,7 @@ export async function POST(req: Request) {
       body: chatMessages.body,
       gifUrl: chatMessages.gifUrl,
       createdAt: chatMessages.createdAt,
+      updatedAt: chatMessages.updatedAt,
       userId: chatMessages.userId,
     });
 
