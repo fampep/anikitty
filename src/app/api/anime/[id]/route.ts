@@ -1,5 +1,5 @@
 import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/anilist";
-import { getAudioAvailability } from "@/lib/anikoto-availability";
+import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/anikoto-availability";
 
 const DETAIL_QUERY = `
   query ($id: Int) {
@@ -165,7 +165,32 @@ export async function GET(
         .map((n: any) => mapAnime(n.mediaRecommendation)),
     };
 
-    return Response.json({ data });
+    const [mostPopularAnimes, relatedAnimes, recommendedAnimes] = await (async () => {
+      const combined = [
+        ...data.mostPopularAnimes,
+        ...data.relatedAnimes,
+        ...data.recommendedAnimes,
+      ];
+      const uniqueById = new Map(combined.map((a) => [a.id, a]));
+      const enriched = await enrichAnimeListWithAudio([...uniqueById.values()]);
+      const byId = new Map(enriched.map((a) => [a.id, a]));
+      const pick = (list: typeof data.mostPopularAnimes) =>
+        list.map((a: (typeof list)[number]) => byId.get(a.id) ?? a);
+      return [
+        pick(data.mostPopularAnimes),
+        pick(data.relatedAnimes),
+        pick(data.recommendedAnimes),
+      ];
+    })();
+
+    return Response.json({
+      data: {
+        ...data,
+        mostPopularAnimes,
+        relatedAnimes,
+        recommendedAnimes,
+      },
+    });
   } catch (err) {
     console.error("AniList details error:", err);
     return Response.json({ error: "Failed to fetch anime details" }, { status: 500 });

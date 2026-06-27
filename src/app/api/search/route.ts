@@ -1,4 +1,5 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/anilist";
+import { enrichAnimeListWithAudio } from "@/lib/anikoto-availability";
 
 const QUERY = `
   query (
@@ -124,9 +125,11 @@ export async function GET(request: Request) {
       status: m.status ?? null,
     }));
 
+    const enrichedAnimes = await enrichAnimeListWithAudio(animes);
+
     return Response.json({
       data: {
-        animes,
+        animes: enrichedAnimes,
         totalPages: pageInfo.lastPage ?? 1,
         hasNextPage: pageInfo.hasNextPage ?? false,
         currentPage: pageInfo.currentPage ?? page,

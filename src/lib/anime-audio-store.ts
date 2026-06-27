@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { animeAudioAvailability } from "@/db/schema";
 import type { AudioAvailability } from "@/lib/anikoto-availability";
@@ -61,6 +61,39 @@ export function isAudioCacheStale(
   }
 
   return false;
+}
+
+export type StoredAudioBatchRow = {
+  anilistId: number;
+  subCount: number;
+  dubCount: number;
+  catalogId: number | null;
+  fetchedAt: Date | null;
+};
+
+export async function getBatchStoredAudioAvailability(
+  anilistIds: number[],
+): Promise<Map<number, StoredAudioBatchRow>> {
+  const unique = [...new Set(anilistIds.filter((id) => id > 0))];
+  if (!dbAvailable() || unique.length === 0) return new Map();
+
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({
+        anilistId: animeAudioAvailability.anilistId,
+        subCount: animeAudioAvailability.subCount,
+        dubCount: animeAudioAvailability.dubCount,
+        catalogId: animeAudioAvailability.catalogId,
+        fetchedAt: animeAudioAvailability.fetchedAt,
+      })
+      .from(animeAudioAvailability)
+      .where(inArray(animeAudioAvailability.anilistId, unique));
+
+    return new Map(rows.map((row) => [row.anilistId, row]));
+  } catch {
+    return new Map();
+  }
 }
 
 export async function getStoredAudioAvailability(

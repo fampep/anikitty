@@ -1,4 +1,5 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/anilist";
+import { enrichAnimeListWithAudio } from "@/lib/anikoto-availability";
 
 const QUERY = `
   query ($search: String) {
@@ -49,7 +50,9 @@ export async function GET(request: Request) {
       ].filter(Boolean) as string[],
     }));
 
-    return Response.json({ data: { suggestions } });
+    const enrichedSuggestions = await enrichAnimeListWithAudio(suggestions);
+
+    return Response.json({ data: { suggestions: enrichedSuggestions } });
   } catch (err) {
     console.error("Suggestion search error:", err);
     return Response.json({ data: { suggestions: [] } });

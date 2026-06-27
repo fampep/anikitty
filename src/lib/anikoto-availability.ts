@@ -4,6 +4,7 @@
  */
 
 import {
+  getBatchStoredAudioAvailability,
   getStoredAudioAvailability,
   isAudioCacheStale,
   storeAudioAvailability,
@@ -262,6 +263,78 @@ async function fetchAndStore(
   });
 
   return fetched;
+}
+
+export type AnimeListAudioItem = {
+  id: string;
+  name?: string;
+  jname?: string;
+  episodes: { sub: number | null; dub: number | null };
+  status?: string | null;
+};
+
+const LIST_REFRESH_BUDGET = 5;
+
+/** Merge cached sub/dub counts into list items (home, search, carousels). */
+export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
+  items: T[],
+): Promise<T[]> {
+  if (items.length === 0) return items;
+
+  const ids = items
+    .map((item) => parseInt(item.id, 10))
+    .filter((id) => !Number.isNaN(id) && id > 0);
+
+  const stored = await getBatchStoredAudioAvailability(ids);
+  const refreshQueue: AudioAvailabilityOpts[] = [];
+
+  const enriched = items.map((item) => {
+    const anilistId = parseInt(item.id, 10);
+    if (Number.isNaN(anilistId) || anilistId <= 0) return item;
+
+    const fallbackSub = item.episodes.sub ?? 0;
+    const ctx: AudioCacheContext = {
+      anilistEpisodeCount: fallbackSub,
+      isAiring: item.status === "RELEASING",
+    };
+
+    const row = stored.get(anilistId);
+    if (!row) {
+      if (refreshQueue.length < LIST_REFRESH_BUDGET) {
+        refreshQueue.push({
+          anilistId,
+          titles: [item.name, item.jname],
+          fallbackSub,
+          status: item.status,
+        });
+      }
+      return item;
+    }
+
+    const stale = isAudioCacheStale(row, ctx);
+    if (stale && refreshQueue.length < LIST_REFRESH_BUDGET) {
+      refreshQueue.push({
+        anilistId,
+        titles: [item.name, item.jname],
+        fallbackSub,
+        status: item.status,
+      });
+    }
+
+    return {
+      ...item,
+      episodes: {
+        sub: row.subCount || fallbackSub,
+        dub: row.dubCount,
+      },
+    };
+  });
+
+  for (const opts of refreshQueue) {
+    void getAudioAvailability(opts).catch(() => {});
+  }
+
+  return enriched;
 }
 
 export async function getAudioAvailability(

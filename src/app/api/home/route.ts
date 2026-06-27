@@ -1,4 +1,5 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/anilist";
+import { enrichAnimeListWithAudio } from "@/lib/anikoto-availability";
 
 const QUERY = `
   query {
@@ -92,7 +93,43 @@ export async function GET() {
       genres: [],
     };
 
-    return Response.json({ data });
+    const allLists = [
+      data.spotlightAnimes,
+      data.trendingAnimes,
+      data.latestEpisodeAnimes,
+      data.mostFavoriteAnimes,
+      data.mostPopularAnimes,
+      data.latestCompletedAnimes,
+      data.topUpcomingAnimes,
+    ];
+    const uniqueById = new Map<string, (typeof data.trendingAnimes)[number]>();
+    for (const list of allLists) {
+      for (const anime of list) {
+        if (!uniqueById.has(anime.id)) uniqueById.set(anime.id, anime);
+      }
+    }
+    const enriched = await enrichAnimeListWithAudio([...uniqueById.values()]);
+    const episodesById = new Map(enriched.map((a) => [a.id, a.episodes]));
+    const withAudio = <T extends { id: string; episodes: { sub: number | null; dub: number | null } }>(
+      list: T[],
+    ) =>
+      list.map((anime) => ({
+        ...anime,
+        episodes: episodesById.get(anime.id) ?? anime.episodes,
+      }));
+
+    const enrichedData = {
+      ...data,
+      spotlightAnimes: withAudio(data.spotlightAnimes),
+      trendingAnimes: withAudio(data.trendingAnimes),
+      latestEpisodeAnimes: withAudio(data.latestEpisodeAnimes),
+      mostFavoriteAnimes: withAudio(data.mostFavoriteAnimes),
+      mostPopularAnimes: withAudio(data.mostPopularAnimes),
+      latestCompletedAnimes: withAudio(data.latestCompletedAnimes),
+      topUpcomingAnimes: withAudio(data.topUpcomingAnimes),
+    };
+
+    return Response.json({ data: enrichedData });
   } catch (err) {
     console.error("AniList home error:", err);
     return Response.json({ error: "Failed to fetch home data" }, { status: 500 });
