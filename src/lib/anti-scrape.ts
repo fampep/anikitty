@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 export const CLIENT_HEADER = "x-anikitty-client";
 export const CLIENT_HEADER_VALUE = "1";
 
-const PROTECTED_PREFIXES = ["/api/anime", "/api/kitty", "/api/episode"] as const;
+const PROTECTED_PREFIXES = ["/api/anime", "/api/kitty", "/api/episode", "/api/miruro"] as const;
 
 /** HLS/chapters/subtitles are loaded by the video engine without custom headers. */
 const MEDIA_PROXY_PREFIXES = [

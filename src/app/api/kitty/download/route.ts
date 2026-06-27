@@ -16,6 +16,7 @@ export async function GET(req: Request) {
   const episode = searchParams.get("episode");
   const audio = searchParams.get("audio") || "sub";
   const provider = searchParams.get("provider") || "Miruro";
+  const miruroPipe = searchParams.get("miruroPipe");
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
     return new Response("anilistId and episode are required", { status: 400 });
@@ -34,6 +35,7 @@ export async function GET(req: Request) {
     parseInt(anilistId, 10),
     parseInt(episode, 10),
     audio as "sub" | "dub",
+    miruroPipe,
   );
 
   if (!stream?.file) {

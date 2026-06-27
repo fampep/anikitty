@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
@@ -13,6 +13,11 @@ import {
   KITTY_PROVIDERS,
   KittyProvider,
 } from "@/query/get-kitty-stream";
+import {
+  DEFAULT_MIRURO_PIPE_PROVIDER,
+  MIRURO_PIPE_PROVIDERS,
+  type MiruroPipeProviderId,
+} from "@/lib/miruro-api";
 import { isSubtitleTrack } from "@/lib/subtitle-track-utils";
 import { useSkipTimes } from "@/query/use-aniskip";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
@@ -66,6 +71,16 @@ const VideoPlayerSection = () => {
         return saved as KittyProvider;
     }
     return DEFAULT_PROVIDER;
+  });
+
+  const [miruroPipe, setMiruroPipe] = useState<MiruroPipeProviderId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("miruroPipe");
+      if (saved && MIRURO_PIPE_PROVIDERS.some((p) => p.id === saved)) {
+        return saved as MiruroPipeProviderId;
+      }
+    }
+    return DEFAULT_MIRURO_PIPE_PROVIDER;
   });
 
   const audio: "sub" | "dub" = preferDub ? "dub" : "sub";
@@ -276,12 +291,18 @@ const VideoPlayerSection = () => {
     isLoading,
     error: streamError,
     refetch: retryStream,
-  } = useGetKittyStream(anilistId, episodeNo || undefined, audio, provider);
+  } = useGetKittyStream(
+    anilistId,
+    episodeNo || undefined,
+    audio,
+    provider,
+    provider === "Miruro" ? miruroPipe : null,
+  );
 
   const loadingThumbnail =
     currentEpisodeInfo?.image ?? anime?.anime?.info?.poster ?? null;
 
-  const { data: skipTimes } = useSkipTimes(
+  const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
     streamData?.file,
     streamData?.headers?.Referer ?? streamData?.headers?.referer ?? "",
@@ -290,12 +311,30 @@ const VideoPlayerSection = () => {
     parseInt(episodeNo) || undefined,
   );
 
+  const skipTimes = useMemo(() => {
+    const fromMiruro = streamData?.skipTimes;
+    if (fromMiruro?.intro || fromMiruro?.outro) {
+      return {
+        intro: fromMiruro.intro ?? aniSkipTimes?.intro,
+        outro: fromMiruro.outro ?? aniSkipTimes?.outro,
+      };
+    }
+    return aniSkipTimes;
+  }, [streamData?.skipTimes, aniSkipTimes]);
+
   // Change provider but resume from current position, not original start
   const handleProviderChange = (p: KittyProvider) => {
     const t = liveTimeRef.current;
     if (t > 5) setStartTime(t);
     setProvider(p);
     localStorage.setItem("kittyProvider", p);
+  };
+
+  const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
+    const t = liveTimeRef.current;
+    if (t > 5) setStartTime(t);
+    setMiruroPipe(pipe);
+    localStorage.setItem("miruroPipe", pipe);
   };
 
   // Change audio track and resume from current position
@@ -375,7 +414,7 @@ const VideoPlayerSection = () => {
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
-        key={`${anilistId}-${episodeNo}-${audio}-${provider}`}
+        key={`${anilistId}-${episodeNo}-${audio}-${provider}-${miruroPipe}`}
         src={streamData.file}
         poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
         tracks={streamData.tracks ?? []}
@@ -423,6 +462,11 @@ const VideoPlayerSection = () => {
                 {currentEpisodeInfo.title}
               </span>
             )}
+          {streamData?.miruroPipe && provider === "Miruro" && (
+            <span className="text-[10px] font-mono text-violet-400/50 hidden md:inline shrink-0">
+              · {streamData.miruroPipe}
+            </span>
+          )}
           {(skipTimes?.intro || skipTimes?.outro) && (
             <span className="text-[10px] font-mono text-white/20 hidden lg:inline shrink-0">
               · {t("watch.chapters")}
@@ -451,6 +495,25 @@ const VideoPlayerSection = () => {
             ))}
           </select>
         </div>
+
+        {provider === "Miruro" && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-mono text-white/25 shrink-0 hidden sm:inline">
+              {t("watch.miruroPipe")}
+            </span>
+            <select
+              value={miruroPipe}
+              onChange={(e) => handleMiruroPipeChange(e.target.value as MiruroPipeProviderId)}
+              className="bg-[#111] border border-violet-500/20 text-violet-300/70 text-[11px] font-mono rounded-lg px-2 py-1 cursor-pointer hover:border-violet-500/35 hover:text-violet-200 focus:outline-none focus:border-violet-500/40 transition-all appearance-none"
+            >
+              {MIRURO_PIPE_PROVIDERS.map((p) => (
+                <option key={p.id} value={p.id} className="bg-[#111]">
+                  {p.label}{p.native ? "" : " (embed)"}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Sub / Dub toggle */}
         <div className="flex items-center rounded-lg overflow-hidden border border-white/12 bg-white/[0.03]">

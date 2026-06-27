@@ -7,6 +7,61 @@ const MIRURO_API_BASE = `${KITTY_API_BASE.replace(/\/$/, "")}/miruro`;
 /** External VTT providers — bonk first (best subtitle support per Miruro pipe). */
 export const MIRURO_SUB_PROVIDERS = ["bonk", "ally", "kiwi", "moo", "pewe"] as const;
 
+/** Native Miruro pipe providers for video (iframe mirrors last). */
+export const MIRURO_PIPE_PROVIDERS = [
+  { id: "bonk", label: "Bonk", native: true },
+  { id: "kiwi", label: "Kiwi", native: true },
+  { id: "ally", label: "Ally", native: true },
+  { id: "moo", label: "Moo", native: true },
+  { id: "pewe", label: "Pewe", native: true },
+  { id: "bee", label: "Bee", native: true },
+  { id: "hop", label: "Hop", native: true },
+  { id: "nun", label: "Nun", native: false },
+  { id: "bun", label: "Bun", native: false },
+  { id: "twin", label: "Twin", native: false },
+  { id: "cog", label: "Cog", native: false },
+] as const;
+
+export type MiruroPipeProviderId = (typeof MIRURO_PIPE_PROVIDERS)[number]["id"];
+
+export const DEFAULT_MIRURO_PIPE_PROVIDER: MiruroPipeProviderId = "bonk";
+
+/** Auto-fallback order when no pipe provider is selected. */
+export const MIRURO_VIDEO_PROVIDER_ORDER: MiruroPipeProviderId[] = [
+  "bonk",
+  "kiwi",
+  "ally",
+  "moo",
+  "pewe",
+  "bee",
+  "hop",
+];
+
+export type MiruroSkipTimes = {
+  intro?: { start: number; end: number };
+  outro?: { start: number; end: number };
+};
+
+export type MiruroVideoStreamResult = {
+  file: string;
+  headers: Record<string, string>;
+  tracks: StreamTrack[];
+  skipTimes?: MiruroSkipTimes;
+  animeTitle: string | null;
+  provider: string;
+  slug: string;
+  category: "sub" | "ssub" | "dub";
+  download?: string | null;
+};
+
+export type MiruroProviderInfo = {
+  id: string;
+  name?: string;
+  visible?: boolean;
+  player?: string;
+  capabilities?: Record<string, boolean>;
+};
+
 /** Providers with soft-sub / embedded subtitle streams (`ssub` capability). */
 export const MIRURO_SSUB_PROVIDERS = ["bonk", "bee", "hop"] as const;
 
@@ -327,6 +382,228 @@ export async function fetchMiruroSubtitleStream(opts: {
   }
 
   return null;
+}
+
+function resolveEpisodeRow(
+  providerData: MiruroProviderEpisodes | undefined,
+  episode: number,
+  audio: "sub" | "dub",
+): { row: MiruroEpisodeRow; category: "sub" | "ssub" | "dub" } | null {
+  const episodes = providerData?.episodes;
+  if (!episodes) return null;
+
+  if (audio === "dub") {
+    const dubRow = episodes.dub?.find((row) => row.number === episode);
+    if (dubRow) return { row: dubRow, category: "dub" };
+  }
+
+  for (const category of audio === "dub" ? (["ssub", "sub"] as const) : (["sub", "ssub"] as const)) {
+    const rows = episodeRowsForCategory(providerData, category);
+    const found = rows.find((r) => r.number === episode);
+    if (found) return { row: found, category };
+  }
+
+  if (audio === "sub") {
+    const dubRow = episodes.dub?.find((row) => row.number === episode);
+    if (dubRow) return { row: dubRow, category: "dub" };
+  }
+
+  return null;
+}
+
+function parseMiruroSkipTimes(raw: unknown): MiruroSkipTimes | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+
+  const parseInterval = (value: unknown): { start: number; end: number } | null => {
+    if (!value || typeof value !== "object") return null;
+    const row = value as Record<string, unknown>;
+    const startRaw = row.startTime ?? row.start ?? row.startMs;
+    const endRaw = row.endTime ?? row.end ?? row.endMs;
+    let start = Number(startRaw);
+    let end = Number(endRaw);
+    if (typeof startRaw === "number" && startRaw > 5000) start = startRaw / 1000;
+    if (typeof endRaw === "number" && endRaw > 5000) end = endRaw / 5000;
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+    return { start, end };
+  };
+
+  const obj = raw as Record<string, unknown>;
+  const intro = parseInterval(obj.intro ?? obj.op ?? obj.opening);
+  const outro = parseInterval(obj.outro ?? obj.ed ?? obj.ending);
+  if (!intro && !outro) return undefined;
+  return { ...(intro ? { intro } : {}), ...(outro ? { outro } : {}) };
+}
+
+function extractVideoUrl(data: Record<string, unknown>): { file: string; referer?: string } | null {
+  const best = data.bestStream;
+  if (best && typeof best === "object") {
+    const row = best as Record<string, unknown>;
+    const file =
+      (typeof row.file === "string" && row.file) ||
+      (typeof row.url === "string" && row.url) ||
+      (typeof row.src === "string" && row.src) ||
+      null;
+    if (file?.trim()) {
+      return {
+        file: file.trim(),
+        referer: typeof row.referer === "string" ? row.referer : undefined,
+      };
+    }
+  }
+
+  if (Array.isArray(data.streams)) {
+    for (const item of data.streams) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as Record<string, unknown>;
+      const file =
+        (typeof row.file === "string" && row.file) ||
+        (typeof row.url === "string" && row.url) ||
+        (typeof row.src === "string" && row.src) ||
+        null;
+      if (file?.trim()) {
+        return {
+          file: file.trim(),
+          referer: typeof row.referer === "string" ? row.referer : undefined,
+        };
+      }
+    }
+  }
+
+  if (typeof data.file === "string" && data.file.trim()) {
+    return { file: data.file.trim() };
+  }
+
+  return null;
+}
+
+export function isMiruroPipeProviderId(value: string): value is MiruroPipeProviderId {
+  return MIRURO_PIPE_PROVIDERS.some((p) => p.id === value);
+}
+
+/** Video + subtitles + skip times via GET /miruro/stream. */
+export async function fetchMiruroVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  pipeProvider?: string | null;
+  quality?: string;
+}): Promise<MiruroVideoStreamResult | null> {
+  const payload = await getMiruroEpisodesPayload(opts.anilistId);
+  const providersToTry: string[] = opts.pipeProvider
+    ? [opts.pipeProvider]
+    : [...MIRURO_VIDEO_PROVIDER_ORDER];
+
+  for (const provider of providersToTry) {
+    if (!isMiruroPipeProviderId(provider)) continue;
+
+    const providerData = payload?.providers?.[provider];
+    const resolved = resolveEpisodeRow(providerData, opts.episode, opts.audio);
+    if (!resolved) continue;
+
+    const slug = slugFromWatchId(resolved.row.id);
+    if (!slug) continue;
+
+    const data = await miruroFetch<Record<string, unknown>>("/stream", {
+      provider,
+      anilistId: opts.anilistId,
+      category: resolved.category,
+      slug,
+      quality: opts.quality ?? "1080p",
+    });
+
+    if (!data) continue;
+
+    const video = extractVideoUrl(data);
+    if (!video?.file) continue;
+
+    const headers =
+      data.headers && typeof data.headers === "object"
+        ? (data.headers as Record<string, string>)
+        : {};
+
+    if (video.referer && !headers.Referer) {
+      headers.Referer = video.referer;
+    }
+
+    const rawSubs = data.subtitles ?? data.tracks ?? data.subtitleTracks;
+    const tracks = normalizeSubtitleTracks(rawSubs, headers);
+
+    const animeTitle =
+      (typeof data.title === "string" && data.title) ||
+      (typeof data.animeTitle === "string" && data.animeTitle) ||
+      (typeof data.matchedTitle === "string" && data.matchedTitle) ||
+      providerData?.meta?.title ||
+      payload?.mappings?.title ||
+      resolved.row.title ||
+      null;
+
+    const download =
+      typeof data.download === "string"
+        ? data.download
+        : data.download && typeof data.download === "object"
+          ? ((data.download as Record<string, unknown>).url as string | undefined) ?? null
+          : null;
+
+    return {
+      file: video.file,
+      headers,
+      tracks,
+      skipTimes: parseMiruroSkipTimes(data.skipTimes ?? data.skip_times),
+      animeTitle: animeTitle ?? null,
+      provider,
+      slug,
+      category: resolved.category,
+      download: download ?? null,
+    };
+  }
+
+  return null;
+}
+
+/** List Miruro streaming providers from GET /miruro/providers. */
+export async function getMiruroProviders(): Promise<MiruroProviderInfo[]> {
+  const data = await miruroFetch<MiruroProviderInfo[] | { providers?: MiruroProviderInfo[] }>(
+    "/providers",
+  );
+  if (!data) return [...MIRURO_PIPE_PROVIDERS.map((p) => ({ id: p.id, name: p.label }))];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.providers)) return data.providers;
+  return [...MIRURO_PIPE_PROVIDERS.map((p) => ({ id: p.id, name: p.label }))];
+}
+
+/** Proxy GET /miruro/* to Kitty API (server-side). */
+export async function proxyMiruroRequest(
+  pathSegments: string[],
+  searchParams: URLSearchParams,
+): Promise<Response> {
+  const path = pathSegments.filter(Boolean).join("/");
+  const params: Record<string, string> = {};
+  searchParams.forEach((value, key) => {
+    params[key] = value;
+  });
+
+  const url = new URL(`${MIRURO_API_BASE}/${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) url.searchParams.set(key, value);
+  }
+
+  try {
+    const res = await fetch(url.toString(), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(25_000),
+      headers: miruroHeaders(),
+    });
+    const body = await res.text();
+    return new Response(body, {
+      status: res.status,
+      headers: {
+        "Content-Type": res.headers.get("Content-Type") ?? "application/json",
+        "Cache-Control": "private, max-age=60",
+      },
+    });
+  } catch {
+    return Response.json({ success: false, error: "Miruro API unreachable" }, { status: 502 });
+  }
 }
 
 export function clearMiruroEpisodeCache(anilistId?: number): void {
