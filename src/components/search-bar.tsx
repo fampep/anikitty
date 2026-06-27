@@ -96,7 +96,7 @@ const SearchBar = ({
       </div>
 
       {showDropdown && (
-        <div className="absolute top-[calc(100%+8px)] left-0 w-full z-50 site-panel backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.55)] overflow-hidden">
+        <div className="absolute top-[calc(100%+8px)] left-0 z-50 w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0a10] shadow-[0_16px_48px_rgba(0,0,0,0.7)]">
           {isLoading && (
             <div className="flex flex-col gap-0 p-2">
               {[1, 2, 3, 4].map((i) => (
