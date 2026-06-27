@@ -212,12 +212,14 @@ export async function needsSubtitleLibraryMetaRefresh(anilistId: number): Promis
       .select({
         metaFetchedAt: subtitleLibraryAnime.metaFetchedAt,
         totalEpisodes: subtitleLibraryAnime.totalEpisodes,
+        poster: subtitleLibraryAnime.poster,
       })
       .from(subtitleLibraryAnime)
       .where(eq(subtitleLibraryAnime.anilistId, anilistId))
       .limit(1);
 
     if (!row?.metaFetchedAt || row.totalEpisodes == null) return true;
+    if (!row.poster?.includes("anilist.co")) return true;
     return Date.now() - row.metaFetchedAt.getTime() > META_STALE_MS;
   } catch {
     return true;

@@ -38,7 +38,7 @@ export default function SubtitleFeedCard({
   const busy = downloading || fetching;
   const title =
     item.animeTitle?.trim() || t("subsLibrary.unknownAnime", { id: item.anilistId });
-  const poster = item.poster || "/jiji.jpg";
+  const poster = item.poster?.trim();
   const statusLabel = formatStatus(item.status, t);
   const epLine = item.totalEpisodes
     ? t("subsLibrary.episodeLine", {
@@ -57,14 +57,20 @@ export default function SubtitleFeedCard({
         className="flex min-w-0 flex-1 items-stretch gap-3"
       >
         <span className="relative block h-[4.75rem] w-12 shrink-0 overflow-hidden rounded-md bg-violet-500/10 ring-1 ring-white/10">
-          <Image
-            src={poster}
-            alt=""
-            fill
-            className="object-cover"
-            unoptimized
-            sizes="48px"
-          />
+          {poster ? (
+            <Image
+              src={poster}
+              alt=""
+              fill
+              className="object-cover"
+              unoptimized
+              sizes="48px"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-white/[0.04] text-[9px] font-mono text-white/20">
+              …
+            </span>
+          )}
         </span>
 
         <span className="flex min-w-0 flex-1 flex-col justify-center py-0.5">

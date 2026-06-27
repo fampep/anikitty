@@ -23,7 +23,7 @@ const META_QUERY = `
       media(id_in: $ids, type: ANIME) {
         id
         title { english romaji }
-        coverImage { extraLarge }
+        coverImage { medium large extraLarge }
         episodes
         status
         averageScore
@@ -32,6 +32,18 @@ const META_QUERY = `
     }
   }
 `;
+
+function anilistCoverUrl(cover?: {
+  extraLarge?: string | null;
+  large?: string | null;
+  medium?: string | null;
+}): string | null {
+  return cover?.extraLarge ?? cover?.large ?? cover?.medium ?? null;
+}
+
+export function hasAnilistPoster(poster: string | null | undefined): boolean {
+  return Boolean(poster?.includes("anilist.co"));
+}
 
 export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<number, AnilistMeta>> {
   if (anilistIds.length === 0) return new Map();
@@ -42,15 +54,19 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
 
   const dbMap = await getStoredSubtitleLibraryMeta(unique);
   for (const [id, meta] of dbMap) {
-    map.set(id, meta);
-    metaCache.set(id, { meta, at: now });
+    if (hasAnilistPoster(meta.poster)) {
+      map.set(id, meta);
+      metaCache.set(id, { meta, at: now });
+    }
   }
 
   const stillMissing: number[] = [];
   for (const id of unique) {
-    if (map.has(id)) continue;
+    const existing = map.get(id);
+    if (existing && hasAnilistPoster(existing.poster)) continue;
+
     const cached = metaCache.get(id);
-    if (cached && now - cached.at < META_CACHE_TTL_MS) {
+    if (cached && now - cached.at < META_CACHE_TTL_MS && hasAnilistPoster(cached.meta.poster)) {
       map.set(id, cached.meta);
     } else {
       stillMissing.push(id);
@@ -69,7 +85,7 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
           media: Array<{
             id: number;
             title: { english?: string | null; romaji?: string | null };
-            coverImage?: { extraLarge?: string | null };
+            coverImage?: { medium?: string | null; large?: string | null; extraLarge?: string | null };
             episodes?: number | null;
             status?: string | null;
             averageScore?: number | null;
@@ -82,7 +98,7 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
         const meta: AnilistMeta = {
           anilistId: m.id,
           title: toTitle(m.title),
-          poster: m.coverImage?.extraLarge ?? null,
+          poster: anilistCoverUrl(m.coverImage),
           status: m.status ?? null,
           episodes: m.episodes ?? null,
           score: m.averageScore ?? null,
@@ -128,7 +144,11 @@ export function applyAnilistMeta(
   return {
     ...item,
     animeTitle: item.animeTitle?.trim() || meta?.title || item.animeTitle,
-    poster: meta?.poster ?? item.poster ?? null,
+    poster: hasAnilistPoster(meta?.poster)
+      ? meta!.poster
+      : hasAnilistPoster(item.poster)
+        ? item.poster
+        : meta?.poster ?? item.poster ?? null,
     status: meta?.status ?? item.status ?? null,
     totalEpisodes,
     isComplete,
@@ -171,7 +191,8 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   if (filter === "completed") {
     const dbResult = await searchCompletedSubtitleLibrary({ q: opts.q, page, limit });
     if (dbResult.total > 0 || dbResult.items.length > 0) {
-      return dbResult;
+      const items = await enrichWithTimeout(dbResult.items, 12_000);
+      return { ...dbResult, items };
     }
 
     const scanSize = Math.min(300, Math.max(limit * page * 4, 96));
@@ -205,7 +226,10 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   }
 
   const needsMeta = result.items.some(
-    (item) => !item.poster || item.totalEpisodes == null || !item.animeTitle?.trim(),
+    (item) =>
+      !hasAnilistPoster(item.poster) ||
+      item.totalEpisodes == null ||
+      !item.animeTitle?.trim(),
   );
 
   if (!needsMeta) {
@@ -213,7 +237,7 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   }
 
   try {
-    const items = await enrichWithTimeout(result.items, 8_000);
+    const items = await enrichWithTimeout(result.items, 12_000);
     return { ...result, items };
   } catch {
     return result;
