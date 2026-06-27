@@ -45,7 +45,9 @@
     "faqPrivacy": "FAQ e privacidade",
     "disclaimer": "O AniKitty não armazena arquivos em seus servidores. Todo o conteúdo é fornecido por serviços de terceiros.",
     "github": "GitHub",
-    "discord": "Discord"
+    "discord": "Discord",
+    "kittyApi": "KittyAPI ↗",
+    "anisurgeExternal": "Anisurge ↗"
   },
   "landing": {
     "browse": "Explorar",
@@ -102,7 +104,10 @@
     "episode": "Episódio {n}",
     "aired": "Exibido",
     "justNow": "agora mesmo",
-    "sharedGif": "compartilhou um GIF"
+    "sharedGif": "compartilhou um GIF",
+    "browseByGenre": "Explorar por gênero",
+    "allGenres": "Todos os gêneros →",
+    "inMinutes": "em {m} min"
   },
   "search": {
     "title": "Buscar",
@@ -373,6 +378,132 @@
     "alsoWatch": "Assista também",
     "tryAgain": "Tentar novamente",
     "retry": "Tentar novamente",
-    "ep": "EP"
+    "ep": "EP",
+    "timeAgoMinutes": "há {m} min",
+    "timeAgoHours": "há {h} h",
+    "timeAgoDays": "há {d} d",
+    "live": "Ao vivo"
+  },
+  "navAvatar": {
+    "xpSummary": "{xp} XP · {count} concluídos",
+    "xpToNext": "{xp} XP para Nv.{level}",
+    "max": "MÁX"
+  },
+  "anime": {
+    "airing": "NO AR",
+    "addToList": "Adicionar à lista",
+    "listError": "Erro ao adicionar à lista",
+    "watchTrailer": "Assistir ao trailer",
+    "tabs": {
+      "overview": "Visão geral",
+      "episodes": "Episódios",
+      "art": "Arte",
+      "characters": "Personagens",
+      "relations": "Relacionamentos",
+      "comments": "Comentários"
+    },
+    "synopsis": "Sinopse",
+    "alternativeTitles": "Títulos alternativos",
+    "studios": "Estúdios",
+    "details": "Detalhes",
+    "externalLinks": "Links externos",
+    "charactersAndVa": "Personagens e dubladores",
+    "relatedSeries": "Séries relacionadas",
+    "fullSize": "Tamanho completo",
+    "artSections": {
+      "backgrounds": "Fundos",
+      "posters": "Pôsteres",
+      "banners": "Banners",
+      "clearArt": "Clear Art",
+      "clearLogo": "Clear Logo",
+      "fanart": "Fanart",
+      "banner": "Banner",
+      "poster": "Pôster"
+    },
+    "detailFields": {
+      "type": "Tipo",
+      "episodes": "Episódios",
+      "duration": "Duração",
+      "status": "Status",
+      "aired": "Exibido",
+      "premiered": "Estreia",
+      "score": "Nota",
+      "rating": "Classificação"
+    },
+    "bookmark": {
+      "planToWatch": "Planejo assistir",
+      "watching": "Assistindo",
+      "completed": "Concluído",
+      "onHold": "Em pausa",
+      "dropped": "Abandonado"
+    },
+    "episodes": {
+      "title": "Episódios",
+      "count": "{count} episódios",
+      "thumbnailView": "Visualização em miniatura",
+      "listView": "Visualização em lista",
+      "range": "Intervalo",
+      "searchPlaceholder": "Buscar episódio…",
+      "noEpisodes": "Nenhum episódio encontrado"
+    }
+  },
+  "watch": {
+    "episode": "Episódio {n}",
+    "episodeShort": "EP {n}",
+    "episodeTitle": "{name} — Episódio {n}",
+    "filler": "filler",
+    "tabs": {
+      "comments": "Comentários",
+      "info": "Info",
+      "related": "Relacionados"
+    },
+    "fullAnimePage": "Página completa do anime",
+    "databaseIds": "IDs do banco de dados",
+    "selectEpisode": "Selecione um episódio para começar a assistir",
+    "loadingStream": "Carregando stream",
+    "streamUnavailable": "Stream indisponível em {provider}",
+    "streamNotFound": "Este provedor não encontrou o stream. Tente outro abaixo.",
+    "retryWith": "Tentar novamente com {provider}",
+    "chapters": "capítulos",
+    "room": "Sala {code}",
+    "watchTogether": "Assistir juntos",
+    "w2gSignIn": "Entre para iniciar uma watch party",
+    "w2gRoomCreated": "Sala {code} criada — compartilhe o código!",
+    "w2gCreateFailed": "Falha ao criar sala",
+    "skipIntro": "Pular intro",
+    "skipCredits": "Pular créditos",
+    "nextEpisode": "Próximo episódio",
+    "upNext": "A seguir",
+    "playNow": "Reproduzir agora",
+    "cancel": "Cancelar",
+    "playlist": {
+      "title": "Episódios",
+      "episode": "episódio",
+      "episodes": "episódios",
+      "searchPlaceholder": "Buscar por título ou número…",
+      "noEpisodes": "Nenhum episódio encontrado"
+    },
+    "w2g": {
+      "title": "Assistir juntos",
+      "host": "Anfitrião",
+      "code": "Código",
+      "inviteLink": "Link de convite",
+      "leave": "Sair",
+      "leaveConfirm": "Sair desta watch party?",
+      "inviteCopied": "Link de convite copiado!",
+      "copyLinkFailed": "Não foi possível copiar o link",
+      "codeCopied": "Código da sala copiado!",
+      "copyCodeFailed": "Não foi possível copiar o código",
+      "sendFailed": "Falha ao enviar",
+      "leftRoom": "Saiu da sala",
+      "leaveFailed": "Falha ao sair",
+      "watchingCount": "{count} assistindo",
+      "youControl": "Você controla a reprodução",
+      "syncedToHost": "Sincronizado com o anfitrião",
+      "online": "Online",
+      "away": "Ausente",
+      "sayHi": "Diga olá à sala…",
+      "chatPlaceholder": "Chat da sala…"
+    }
   }
 }

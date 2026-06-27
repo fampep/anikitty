@@ -45,7 +45,9 @@
     "faqPrivacy": "FAQとプライバシー",
     "disclaimer": "AniKittyはサーバーにファイルを保存しません。すべてのコンテンツは第三者サービスから提供されています。",
     "github": "GitHub",
-    "discord": "Discord"
+    "discord": "Discord",
+    "kittyApi": "KittyAPI ↗",
+    "anisurgeExternal": "Anisurge ↗"
   },
   "landing": {
     "browse": "閲覧",
@@ -102,7 +104,10 @@
     "episode": "第{n}話",
     "aired": "放送済み",
     "justNow": "たった今",
-    "sharedGif": "GIFを共有しました"
+    "sharedGif": "GIFを共有しました",
+    "browseByGenre": "ジャンルで探す",
+    "allGenres": "すべてのジャンル →",
+    "inMinutes": "あと{m}分"
   },
   "search": {
     "title": "検索",
@@ -373,6 +378,132 @@
     "alsoWatch": "こちらも視聴",
     "tryAgain": "再試行",
     "retry": "再試行",
-    "ep": "話"
+    "ep": "話",
+    "timeAgoMinutes": "{m}分前",
+    "timeAgoHours": "{h}時間前",
+    "timeAgoDays": "{d}日前",
+    "live": "ライブ"
+  },
+  "navAvatar": {
+    "xpSummary": "{xp} XP · {count} 完了",
+    "xpToNext": "Lv.{level}まで {xp} XP",
+    "max": "MAX"
+  },
+  "anime": {
+    "airing": "放送中",
+    "addToList": "リストに追加",
+    "listError": "リストへの追加に失敗しました",
+    "watchTrailer": "トレーラーを見る",
+    "tabs": {
+      "overview": "概要",
+      "episodes": "エピソード",
+      "art": "アート",
+      "characters": "キャラクター",
+      "relations": "関連作品",
+      "comments": "コメント"
+    },
+    "synopsis": "あらすじ",
+    "alternativeTitles": "別タイトル",
+    "studios": "制作スタジオ",
+    "details": "詳細",
+    "externalLinks": "外部リンク",
+    "charactersAndVa": "キャラクターと声優",
+    "relatedSeries": "関連シリーズ",
+    "fullSize": "フルサイズ",
+    "artSections": {
+      "backgrounds": "背景",
+      "posters": "ポスター",
+      "banners": "バナー",
+      "clearArt": "クリアアート",
+      "clearLogo": "クリアロゴ",
+      "fanart": "ファンアート",
+      "banner": "バナー",
+      "poster": "ポスター"
+    },
+    "detailFields": {
+      "type": "種類",
+      "episodes": "話数",
+      "duration": "尺",
+      "status": "放送状況",
+      "aired": "放送日",
+      "premiered": "初放送",
+      "score": "スコア",
+      "rating": "レーティング"
+    },
+    "bookmark": {
+      "planToWatch": "見たい",
+      "watching": "見てる",
+      "completed": "見た",
+      "onHold": "一時中断",
+      "dropped": "ドロップ"
+    },
+    "episodes": {
+      "title": "エピソード",
+      "count": "{count} 話",
+      "thumbnailView": "サムネイル表示",
+      "listView": "リスト表示",
+      "range": "範囲",
+      "searchPlaceholder": "エピソードを検索…",
+      "noEpisodes": "エピソードが見つかりません"
+    }
+  },
+  "watch": {
+    "episode": "第{n}話",
+    "episodeShort": "第{n}話",
+    "episodeTitle": "{name} — 第{n}話",
+    "filler": "フィラー",
+    "tabs": {
+      "comments": "コメント",
+      "info": "情報",
+      "related": "関連"
+    },
+    "fullAnimePage": "アニメ詳細ページ",
+    "databaseIds": "データベースID",
+    "selectEpisode": "視聴するエピソードを選択",
+    "loadingStream": "ストリームを読み込み中",
+    "streamUnavailable": "{provider}でストリームを利用できません",
+    "streamNotFound": "このプロバイダーではストリームが見つかりませんでした。下から別のものをお試しください。",
+    "retryWith": "{provider}で再試行",
+    "chapters": "チャプター",
+    "room": "ルーム {code}",
+    "watchTogether": "一緒に視聴",
+    "w2gSignIn": "ウォッチパーティを開始するにはサインインしてください",
+    "w2gRoomCreated": "ルーム {code} を作成しました — コードを共有しましょう！",
+    "w2gCreateFailed": "ルームの作成に失敗しました",
+    "skipIntro": "イントロをスキップ",
+    "skipCredits": "エンドクレジットをスキップ",
+    "nextEpisode": "次の話",
+    "upNext": "次に再生",
+    "playNow": "今すぐ再生",
+    "cancel": "キャンセル",
+    "playlist": {
+      "title": "エピソード",
+      "episode": "話",
+      "episodes": "話",
+      "searchPlaceholder": "タイトルまたは話数で検索…",
+      "noEpisodes": "エピソードが見つかりません"
+    },
+    "w2g": {
+      "title": "一緒に視聴",
+      "host": "ホスト",
+      "code": "コード",
+      "inviteLink": "招待リンク",
+      "leave": "退出",
+      "leaveConfirm": "このウォッチパーティを退出しますか？",
+      "inviteCopied": "招待リンクをコピーしました！",
+      "copyLinkFailed": "リンクをコピーできませんでした",
+      "codeCopied": "ルームコードをコピーしました！",
+      "copyCodeFailed": "コードをコピーできませんでした",
+      "sendFailed": "送信に失敗しました",
+      "leftRoom": "ルームを退出しました",
+      "leaveFailed": "退出に失敗しました",
+      "watchingCount": "{count}人が視聴中",
+      "youControl": "再生を操作できます",
+      "syncedToHost": "ホストと同期中",
+      "online": "オンライン",
+      "away": "離席中",
+      "sayHi": "ルームに挨拶しましょう…",
+      "chatPlaceholder": "ルームチャット…"
+    }
   }
 }

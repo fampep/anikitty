@@ -14,18 +14,13 @@ import AnimeEpisodes from "@/components/anime-episodes";
 import CharacterCard from "@/components/common/character-card";
 import { ROUTES } from "@/constants/routes";
 import WatchTrailer from "@/components/watch-trailer";
-import Select, { ISelectOptions } from "@/components/common/select";
+import Select from "@/components/common/select";
 import {
-  Ban,
-  BookmarkCheck,
-  CheckCheck,
   ExternalLink,
   Film,
-  Hand,
   Heart,
   Radio,
   Star,
-  TvMinimalPlay,
 } from "lucide-react";
 import { useGetAnimeDetails } from "@/query/get-anime-details";
 import Loading from "@/app/loading";
@@ -37,14 +32,8 @@ import { useGetAnimeMappings } from "@/query/get-anime-mappings";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import { cn } from "@/lib/utils";
 import CommentSection from "@/components/comment-section";
-
-const SelectOptions: ISelectOptions[] = [
-  { value: "plan to watch", label: "Plan to Watch", icon: BookmarkCheck },
-  { value: "watching",      label: "Watching",      icon: TvMinimalPlay  },
-  { value: "completed",     label: "Completed",     icon: CheckCheck     },
-  { value: "on hold",       label: "On Hold",       icon: Hand           },
-  { value: "dropped",       label: "Dropped",       icon: Ban            },
-];
+import { useT } from "@/providers/i18n-provider";
+import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 
 const DB_LINKS = [
   { key: "anilist",   label: "AniList",      url: (id: string | number) => `https://anilist.co/anime/${id}`,                    color: "text-teal-400/80 border-teal-500/20 bg-teal-500/8"      },
@@ -58,6 +47,8 @@ const DB_LINKS = [
 ] as const;
 
 export default function AnimeDetail({ slug }: { slug: string }) {
+  const t = useT();
+  const bookmarkOptions = useBookmarkLabels();
   const { data: anime, isLoading } = useGetAnimeDetails(slug);
   const { auth } = useAuthStore();
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
@@ -86,7 +77,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       );
     } catch {
       setSelected(prev);
-      toast.error("Error adding to list", { style: { background: "red" } });
+      toast.error(t("anime.listError"), { style: { background: "red" } });
     }
   };
 
@@ -150,7 +141,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             {isAiring && (
               <div className="absolute -top-2 -right-2 flex items-center gap-1 bg-emerald-500 text-black text-[9px] font-black px-2 py-1 rounded-full shadow-lg shadow-emerald-500/30">
                 <Radio className="w-2.5 h-2.5" />
-                AIRING
+                {t("anime.airing")}
               </div>
             )}
           </div>
@@ -171,10 +162,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               )}
               {stats?.type && <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />}
               {stats?.episodes?.sub !== undefined && (
-                <StatPill label={`${stats.episodes.sub} SUB`} />
+                <StatPill label={`${stats.episodes.sub} ${t("card.sub")}`} />
               )}
               {hasDub && (
-                <StatPill label={`${stats!.episodes!.dub} DUB`} purple />
+                <StatPill label={`${stats!.episodes!.dub} ${t("card.dub")}`} purple />
               )}
               {(moreInfo as any)?.duration && (
                 <StatPill label={(moreInfo as any).duration} />
@@ -206,9 +197,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               <WatchButton />
               {auth && (
                 <Select
-                  placeholder="Add to list"
+                  placeholder={t("anime.addToList")}
                   value={bookmarks?.[0]?.status || selected}
-                  options={SelectOptions}
+                  options={bookmarkOptions}
                   onChange={handleSelect}
                   placeholderIcon={Heart}
                 />
@@ -221,16 +212,16 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <Tabs defaultValue="overview" className="w-full mt-6 sm:mt-10">
           <TabsList className="flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">
             {[
-              { value: "overview",   label: "Overview"   },
-              { value: "episodes",   label: "Episodes"   },
-              ...(mapImages ? [{ value: "art", label: "Art" }] : []),
+              { value: "overview", label: t("anime.tabs.overview") },
+              { value: "episodes", label: t("anime.tabs.episodes") },
+              ...(mapImages ? [{ value: "art", label: t("anime.tabs.art") }] : []),
               ...(info.charactersVoiceActors.length > 0
-                ? [{ value: "characters", label: "Characters" }]
+                ? [{ value: "characters", label: t("anime.tabs.characters") }]
                 : []),
               ...(anime.seasons.length > 0
-                ? [{ value: "relations", label: "Relations" }]
+                ? [{ value: "relations", label: t("anime.tabs.relations") }]
                 : []),
-              { value: "comments", label: "Comments" },
+              { value: "comments", label: t("anime.tabs.comments") },
             ].map((tab) => (
               <TabsTrigger
                 key={tab.value}
@@ -245,13 +236,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-8 space-y-8">
             <div>
-              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">Synopsis</h3>
+              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">{t("anime.synopsis")}</h3>
               <p className="text-sm text-white/60 leading-8">{info.description}</p>
             </div>
 
             {moreInfo.synonyms && (
               <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">Alternative Titles</h3>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.alternativeTitles")}</h3>
                 <div className="flex flex-wrap gap-2">
                   {moreInfo.japanese && (
                     <span className="px-3 py-1.5 text-[12px] rounded-lg border border-white/10 text-white/55 bg-white/4">
@@ -267,7 +258,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             {moreInfo.studios && (
               <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">Studios</h3>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.studios")}</h3>
                 <div className="flex flex-wrap gap-2">
                   {String(moreInfo.studios).split(",").map((s) => s.trim()).filter(Boolean).map((s) => (
                     <span key={s} className="px-3 py-1.5 text-[12px] rounded-lg border border-white/12 text-white/65 bg-white/5 font-medium">{s}</span>
@@ -280,17 +271,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             )}
 
             <div>
-              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">Details</h3>
+              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.details")}</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Type",      value: stats?.type                },
-                  { label: "Episodes",  value: stats?.episodes?.sub       },
-                  { label: "Duration",  value: (moreInfo as any).duration },
-                  { label: "Status",    value: moreInfo.status            },
-                  { label: "Aired",     value: moreInfo.aired             },
-                  { label: "Premiered", value: moreInfo.premiered         },
-                  { label: "Score",     value: moreInfo.malscore          },
-                  { label: "Rating",    value: stats?.rating              },
+                  { label: t("anime.detailFields.type"), value: stats?.type },
+                  { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
+                  { label: t("anime.detailFields.duration"), value: (moreInfo as any).duration },
+                  { label: t("anime.detailFields.status"), value: moreInfo.status },
+                  { label: t("anime.detailFields.aired"), value: moreInfo.aired },
+                  { label: t("anime.detailFields.premiered"), value: moreInfo.premiered },
+                  { label: t("anime.detailFields.score"), value: moreInfo.malscore },
+                  { label: t("anime.detailFields.rating"), value: stats?.rating },
                 ].filter((r) => r.value).map((row) => (
                   <div key={row.label} className="rounded-xl bg-white/3 border border-white/6 px-4 py-3">
                     <span className="text-[10px] font-mono text-white/25 uppercase tracking-wider block mb-1">{row.label}</span>
@@ -302,7 +293,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             {externalLinks.length > 0 && (
               <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">External Links</h3>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</h3>
                 <div className="flex flex-wrap gap-2">
                   {externalLinks.map((link) => (
                     <a
@@ -331,27 +322,27 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             <TabsContent value="art" className="mt-6">
               <div className="space-y-10">
                 {(mapImages.artworks?.backgrounds?.length ?? 0) > 0 && (
-                  <ArtSection label="Backgrounds" items={mapImages.artworks!.backgrounds} wide />
+                  <ArtSection label={t("anime.artSections.backgrounds")} items={mapImages.artworks!.backgrounds} wide />
                 )}
                 {(mapImages.artworks?.posters?.length ?? 0) > 0 && (
-                  <ArtSection label="Posters" items={mapImages.artworks!.posters} />
+                  <ArtSection label={t("anime.artSections.posters")} items={mapImages.artworks!.posters} />
                 )}
                 {(mapImages.artworks?.banners?.length ?? 0) > 0 && (
-                  <ArtSection label="Banners" items={mapImages.artworks!.banners} wide />
+                  <ArtSection label={t("anime.artSections.banners")} items={mapImages.artworks!.banners} wide />
                 )}
                 {(mapImages.artworks?.clearArt?.length ?? 0) > 0 && (
-                  <ArtSection label="Clear Art" items={mapImages.artworks!.clearArt} wide transparent />
+                  <ArtSection label={t("anime.artSections.clearArt")} items={mapImages.artworks!.clearArt} wide transparent />
                 )}
                 {(mapImages.artworks?.clearLogo?.length ?? 0) > 0 && (
-                  <ArtSection label="Clear Logo" items={mapImages.artworks!.clearLogo} wide transparent />
+                  <ArtSection label={t("anime.artSections.clearLogo")} items={mapImages.artworks!.clearLogo} wide transparent />
                 )}
                 {!(mapImages.artworks?.backgrounds?.length) &&
                   !(mapImages.artworks?.posters?.length) &&
                   !(mapImages.artworks?.banners?.length) && (
                     <div className="space-y-8">
-                      {mapImages.fanart && <ArtSection label="Fanart" items={[{ image: mapImages.fanart }]} wide />}
-                      {mapImages.banner && <ArtSection label="Banner" items={[{ image: mapImages.banner }]} wide />}
-                      {mapImages.poster && <ArtSection label="Poster" items={[{ image: mapImages.poster }]} />}
+                      {mapImages.fanart && <ArtSection label={t("anime.artSections.fanart")} items={[{ image: mapImages.fanart }]} wide />}
+                      {mapImages.banner && <ArtSection label={t("anime.artSections.banner")} items={[{ image: mapImages.banner }]} wide />}
+                      {mapImages.poster && <ArtSection label={t("anime.artSections.poster")} items={[{ image: mapImages.poster }]} />}
                     </div>
                   )}
               </div>
@@ -361,7 +352,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Characters ── */}
           {info.charactersVoiceActors.length > 0 && (
             <TabsContent value="characters" className="mt-6">
-              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-5">Characters &amp; Voice Actors</h3>
+              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-5">{t("anime.charactersAndVa")}</h3>
               <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
                 {info.charactersVoiceActors.map((character, idx) => (
                   <CharacterCard key={idx} character={character} className="self-center justify-self-center" />
@@ -373,7 +364,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Relations ── */}
           {anime.seasons.length > 0 && (
             <TabsContent value="relations" className="mt-6">
-              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-5">Related Series</h3>
+              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-5">{t("anime.relatedSeries")}</h3>
               <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-5">
                 {anime.seasons.map((relation, idx) =>
                   !relation.isCurrent && (
@@ -407,7 +398,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </Tabs>
 
         {anime.recommendedAnimes.length > 0 && (
-          <AnimeCarousel anime={anime.recommendedAnimes as IAnime[]} title="Recommended" className="mt-16" />
+          <AnimeCarousel anime={anime.recommendedAnimes as IAnime[]} title={t("common.recommended")} className="mt-16" />
         )}
       </Container>
     </div>
@@ -421,7 +412,9 @@ const ArtSection = ({
   items: { image: string; thumbnail?: string }[];
   wide?: boolean;
   transparent?: boolean;
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div>
     <div className="flex items-center gap-3 mb-4">
       <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest">{label}</h3>
@@ -443,13 +436,14 @@ const ArtSection = ({
             className={cn("w-full object-cover transition-transform duration-300 group-hover:scale-105", wide ? "aspect-[16/9]" : "aspect-[2/3]", transparent && "object-contain p-4")}
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
-            <span className="text-[11px] font-mono text-white/80 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">Full size</span>
+            <span className="text-[11px] font-mono text-white/80 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">{t("anime.fullSize")}</span>
           </div>
         </a>
       ))}
     </div>
   </div>
-);
+  );
+};
 
 const StatPill = ({
   icon, label, gold, teal, purple,

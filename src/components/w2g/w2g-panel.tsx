@@ -15,6 +15,7 @@ import {
 import Avatar from "@/components/common/avatar";
 import { cn } from "@/lib/utils";
 import { formatW2gTime, w2gInviteUrl, type W2gMember, type W2gMessage } from "@/lib/w2g";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   code: string;
@@ -35,6 +36,7 @@ export default function W2gPanel({
   onSendMessage,
   onLeave,
 }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(true);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -44,18 +46,18 @@ export default function W2gPanel({
     const url = w2gInviteUrl(code);
     try {
       await navigator.clipboard.writeText(url);
-      toast.success("Invite link copied!");
+      toast.success(t("watch.w2g.inviteCopied"));
     } catch {
-      toast.error("Could not copy link");
+      toast.error(t("watch.w2g.copyLinkFailed"));
     }
   };
 
   const copyCode = async () => {
     try {
       await navigator.clipboard.writeText(code);
-      toast.success("Room code copied!");
+      toast.success(t("watch.w2g.codeCopied"));
     } catch {
-      toast.error("Could not copy code");
+      toast.error(t("watch.w2g.copyCodeFailed"));
     }
   };
 
@@ -69,21 +71,23 @@ export default function W2gPanel({
       setDraft("");
       chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send");
+      toast.error(err instanceof Error ? err.message : t("watch.w2g.sendFailed"));
     } finally {
       setSending(false);
     }
   };
 
   const handleLeave = async () => {
-    if (!confirm("Leave this watch party?")) return;
+    if (!confirm(t("watch.w2g.leaveConfirm"))) return;
     try {
       await onLeave();
-      toast.success("Left room");
+      toast.success(t("watch.w2g.leftRoom"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to leave");
+      toast.error(err instanceof Error ? err.message : t("watch.w2g.leaveFailed"));
     }
   };
+
+  const syncLabel = isHost ? t("watch.w2g.youControl") : t("watch.w2g.syncedToHost");
 
   return (
     <div className="rounded-xl border border-violet-500/25 bg-black/80 backdrop-blur-md overflow-hidden">
@@ -94,13 +98,13 @@ export default function W2gPanel({
       >
         <div className="flex items-center gap-2 min-w-0">
           <Users className="h-4 w-4 text-violet-400 shrink-0" />
-          <span className="text-xs font-bold text-white truncate">Watch Together</span>
+          <span className="text-xs font-bold text-white truncate">{t("watch.w2g.title")}</span>
           <span className="text-[10px] font-mono text-violet-300/80 bg-violet-500/15 px-1.5 py-0.5 rounded">
             {code}
           </span>
           {isHost && (
             <span className="text-[10px] font-bold text-amber-300 flex items-center gap-0.5">
-              <Crown className="h-3 w-3" /> Host
+              <Crown className="h-3 w-3" /> {t("watch.w2g.host")}
             </span>
           )}
         </div>
@@ -119,27 +123,27 @@ export default function W2gPanel({
               onClick={copyCode}
               className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-white/55 bg-white/5 hover:bg-white/10 transition-colors"
             >
-              <Copy className="h-3 w-3" /> Code
+              <Copy className="h-3 w-3" /> {t("watch.w2g.code")}
             </button>
             <button
               type="button"
               onClick={copyInvite}
               className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-white/55 bg-white/5 hover:bg-white/10 transition-colors"
             >
-              <Copy className="h-3 w-3" /> Invite link
+              <Copy className="h-3 w-3" /> {t("watch.w2g.inviteLink")}
             </button>
             <button
               type="button"
               onClick={handleLeave}
               className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-rose-300/80 hover:bg-rose-500/10 transition-colors"
             >
-              <LogOut className="h-3 w-3" /> Leave
+              <LogOut className="h-3 w-3" /> {t("watch.w2g.leave")}
             </button>
           </div>
 
           <div className="px-3 py-2 border-b border-white/8">
             <p className="text-[10px] font-mono text-white/35 mb-1.5">
-              {members.length} watching · {isHost ? "You control playback" : "Synced to host"}
+              {t("watch.w2g.watchingCount", { count: members.length })} · {syncLabel}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {members.map((m) => (
@@ -151,7 +155,7 @@ export default function W2gPanel({
                       ? "border-amber-500/25 bg-amber-500/10 text-amber-200"
                       : "border-white/10 bg-white/5 text-white/60",
                   )}
-                  title={m.isOnline ? "Online" : "Away"}
+                  title={m.isOnline ? t("watch.w2g.online") : t("watch.w2g.away")}
                 >
                   <span
                     className={cn(
@@ -172,7 +176,7 @@ export default function W2gPanel({
                 <Loader2 className="h-5 w-5 animate-spin text-white/30" />
               </div>
             ) : messages.length === 0 ? (
-              <p className="text-[11px] text-white/30 text-center py-4">Say hi to the room…</p>
+              <p className="text-[11px] text-white/30 text-center py-4">{t("watch.w2g.sayHi")}</p>
             ) : (
               messages.map((msg) => (
                 <div key={msg.id} className="flex gap-2">
@@ -199,7 +203,7 @@ export default function W2gPanel({
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Room chat…"
+              placeholder={t("watch.w2g.chatPlaceholder")}
               maxLength={500}
               className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/40"
             />

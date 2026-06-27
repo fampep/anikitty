@@ -45,7 +45,9 @@
     "faqPrivacy": "FAQ & privatliv",
     "disclaimer": "AniKitty gemmer ingen filer på egne servere. Alt indhold leveres af tredjepartstjenester.",
     "github": "GitHub",
-    "discord": "Discord"
+    "discord": "Discord",
+    "kittyApi": "KittyAPI ↗",
+    "anisurgeExternal": "Anisurge ↗"
   },
   "landing": {
     "browse": "Udforsk",
@@ -102,7 +104,10 @@
     "episode": "Afsnit {n}",
     "aired": "Sendt",
     "justNow": "lige nu",
-    "sharedGif": "delte en GIF"
+    "sharedGif": "delte en GIF",
+    "browseByGenre": "Gennemse efter genre",
+    "allGenres": "Alle genrer →",
+    "inMinutes": "om {m} min."
   },
   "search": {
     "title": "Søg",
@@ -373,6 +378,132 @@
     "alsoWatch": "Se også",
     "tryAgain": "Prøv igen",
     "retry": "Prøv igen",
-    "ep": "EP"
+    "ep": "EP",
+    "timeAgoMinutes": "for {m} min. siden",
+    "timeAgoHours": "for {h} t. siden",
+    "timeAgoDays": "for {d} d. siden",
+    "live": "Live"
+  },
+  "navAvatar": {
+    "xpSummary": "{xp} XP · {count} færdige",
+    "xpToNext": "{xp} XP til Lv.{level}",
+    "max": "MAX"
+  },
+  "anime": {
+    "airing": "SENDES NU",
+    "addToList": "Tilføj til liste",
+    "listError": "Fejl ved tilføjelse til liste",
+    "watchTrailer": "Se trailer",
+    "tabs": {
+      "overview": "Oversigt",
+      "episodes": "Afsnit",
+      "art": "Kunst",
+      "characters": "Karakterer",
+      "relations": "Relationer",
+      "comments": "Kommentarer"
+    },
+    "synopsis": "Synopsis",
+    "alternativeTitles": "Alternative titler",
+    "studios": "Studier",
+    "details": "Detaljer",
+    "externalLinks": "Eksterne links",
+    "charactersAndVa": "Karakterer & stemmeskuespillere",
+    "relatedSeries": "Relaterede serier",
+    "fullSize": "Fuld størrelse",
+    "artSections": {
+      "backgrounds": "Baggrunde",
+      "posters": "Plakater",
+      "banners": "Bannere",
+      "clearArt": "Clear Art",
+      "clearLogo": "Clear Logo",
+      "fanart": "Fanart",
+      "banner": "Banner",
+      "poster": "Plakat"
+    },
+    "detailFields": {
+      "type": "Type",
+      "episodes": "Afsnit",
+      "duration": "Varighed",
+      "status": "Status",
+      "aired": "Sendt",
+      "premiered": "Premiere",
+      "score": "Score",
+      "rating": "Bedømmelse"
+    },
+    "bookmark": {
+      "planToWatch": "Planlagt",
+      "watching": "Ser",
+      "completed": "Fuldført",
+      "onHold": "På hold",
+      "dropped": "Droppet"
+    },
+    "episodes": {
+      "title": "Afsnit",
+      "count": "{count} afsnit",
+      "thumbnailView": "Miniaturevisning",
+      "listView": "Listevisning",
+      "range": "Interval",
+      "searchPlaceholder": "Søg efter afsnit…",
+      "noEpisodes": "Ingen afsnit fundet"
+    }
+  },
+  "watch": {
+    "episode": "Afsnit {n}",
+    "episodeShort": "EP {n}",
+    "episodeTitle": "{name} — Afsnit {n}",
+    "filler": "filler",
+    "tabs": {
+      "comments": "Kommentarer",
+      "info": "Info",
+      "related": "Relationer"
+    },
+    "fullAnimePage": "Fuld anime-side",
+    "databaseIds": "Database-ID'er",
+    "selectEpisode": "Vælg et afsnit for at begynde at se",
+    "loadingStream": "Indlæser stream",
+    "streamUnavailable": "Stream utilgængelig på {provider}",
+    "streamNotFound": "Denne udbyder kunne ikke finde streamen. Prøv en anden nedenfor.",
+    "retryWith": "Prøv igen med {provider}",
+    "chapters": "kapitler",
+    "room": "Rum {code}",
+    "watchTogether": "Se sammen",
+    "w2gSignIn": "Log ind for at starte en watch party",
+    "w2gRoomCreated": "Rum {code} oprettet — del koden!",
+    "w2gCreateFailed": "Kunne ikke oprette rum",
+    "skipIntro": "Spring intro over",
+    "skipCredits": "Spring rulletekster over",
+    "nextEpisode": "Næste afsnit",
+    "upNext": "Næste",
+    "playNow": "Afspil nu",
+    "cancel": "Annuller",
+    "playlist": {
+      "title": "Afsnit",
+      "episode": "afsnit",
+      "episodes": "afsnit",
+      "searchPlaceholder": "Søg efter titel eller nummer…",
+      "noEpisodes": "Ingen afsnit fundet"
+    },
+    "w2g": {
+      "title": "Se sammen",
+      "host": "Vært",
+      "code": "Kode",
+      "inviteLink": "Invitationslink",
+      "leave": "Forlad",
+      "leaveConfirm": "Forlad denne watch party?",
+      "inviteCopied": "Invitationslink kopieret!",
+      "copyLinkFailed": "Kunne ikke kopiere link",
+      "codeCopied": "Rumkode kopieret!",
+      "copyCodeFailed": "Kunne ikke kopiere kode",
+      "sendFailed": "Kunne ikke sende",
+      "leftRoom": "Forlod rummet",
+      "leaveFailed": "Kunne ikke forlade",
+      "watchingCount": "{count} ser med",
+      "youControl": "Du styrer afspilningen",
+      "syncedToHost": "Synkroniseret med vært",
+      "online": "Online",
+      "away": "Væk",
+      "sayHi": "Sig hej til rummet…",
+      "chatPlaceholder": "Rumchat…"
+    }
   }
 }

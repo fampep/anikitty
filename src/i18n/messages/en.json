@@ -388,5 +388,122 @@
     "xpSummary": "{xp} XP · {count} done",
     "xpToNext": "{xp} XP to Lv.{level}",
     "max": "MAX"
+  },
+  "anime": {
+    "airing": "AIRING",
+    "addToList": "Add to list",
+    "listError": "Error adding to list",
+    "watchTrailer": "Watch Trailer",
+    "tabs": {
+      "overview": "Overview",
+      "episodes": "Episodes",
+      "art": "Art",
+      "characters": "Characters",
+      "relations": "Relations",
+      "comments": "Comments"
+    },
+    "synopsis": "Synopsis",
+    "alternativeTitles": "Alternative Titles",
+    "studios": "Studios",
+    "details": "Details",
+    "externalLinks": "External Links",
+    "charactersAndVa": "Characters & Voice Actors",
+    "relatedSeries": "Related Series",
+    "fullSize": "Full size",
+    "artSections": {
+      "backgrounds": "Backgrounds",
+      "posters": "Posters",
+      "banners": "Banners",
+      "clearArt": "Clear Art",
+      "clearLogo": "Clear Logo",
+      "fanart": "Fanart",
+      "banner": "Banner",
+      "poster": "Poster"
+    },
+    "detailFields": {
+      "type": "Type",
+      "episodes": "Episodes",
+      "duration": "Duration",
+      "status": "Status",
+      "aired": "Aired",
+      "premiered": "Premiered",
+      "score": "Score",
+      "rating": "Rating"
+    },
+    "bookmark": {
+      "planToWatch": "Plan to Watch",
+      "watching": "Watching",
+      "completed": "Completed",
+      "onHold": "On Hold",
+      "dropped": "Dropped"
+    },
+    "episodes": {
+      "title": "Episodes",
+      "count": "{count} Episodes",
+      "thumbnailView": "Thumbnail view",
+      "listView": "List view",
+      "range": "Range",
+      "searchPlaceholder": "Search episode…",
+      "noEpisodes": "No episodes found"
+    }
+  },
+  "watch": {
+    "episode": "Episode {n}",
+    "episodeShort": "EP {n}",
+    "episodeTitle": "{name} — Episode {n}",
+    "filler": "filler",
+    "tabs": {
+      "comments": "Comments",
+      "info": "Info",
+      "related": "Related"
+    },
+    "fullAnimePage": "Full anime page",
+    "databaseIds": "Database IDs",
+    "selectEpisode": "Select an episode to start watching",
+    "loadingStream": "Loading stream",
+    "streamUnavailable": "Stream unavailable on {provider}",
+    "streamNotFound": "This provider couldn't find the stream. Try a different one below.",
+    "retryWith": "Retry with {provider}",
+    "chapters": "chapters",
+    "room": "Room {code}",
+    "watchTogether": "Watch Together",
+    "w2gSignIn": "Sign in to start a watch party",
+    "w2gRoomCreated": "Room {code} created — share the code!",
+    "w2gCreateFailed": "Failed to create room",
+    "skipIntro": "Skip Intro",
+    "skipCredits": "Skip Credits",
+    "nextEpisode": "Next episode",
+    "upNext": "Up next",
+    "playNow": "Play now",
+    "cancel": "Cancel",
+    "playlist": {
+      "title": "Episodes",
+      "episode": "episode",
+      "episodes": "episodes",
+      "searchPlaceholder": "Search by title or number…",
+      "noEpisodes": "No episodes found"
+    },
+    "w2g": {
+      "title": "Watch Together",
+      "host": "Host",
+      "code": "Code",
+      "inviteLink": "Invite link",
+      "leave": "Leave",
+      "leaveConfirm": "Leave this watch party?",
+      "inviteCopied": "Invite link copied!",
+      "copyLinkFailed": "Could not copy link",
+      "codeCopied": "Room code copied!",
+      "copyCodeFailed": "Could not copy code",
+      "sendFailed": "Failed to send",
+      "leftRoom": "Left room",
+      "leaveFailed": "Failed to leave",
+      "watchingCount": "{count} watching",
+      "youControl": "You control playback",
+      "syncedToHost": "Synced to host",
+      "online": "Online",
+      "away": "Away",
+      "sayHi": "Say hi to the room…",
+      "chatPlaceholder": "Room chat…"
+    }
   }
 }

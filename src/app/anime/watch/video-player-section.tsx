@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/w2g/w2g-panel";
 import LoginPopoverButton from "@/components/login-popover-button";
+import { useT } from "@/providers/i18n-provider";
 
 const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
   ssr: false,
@@ -40,6 +41,7 @@ const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
 const DEFAULT_PROVIDER: KittyProvider = "Miruro";
 
 const VideoPlayerSection = () => {
+  const t = useT();
   const searchParams = useSearchParams();
   const router = useRouter();
   const episodeId = searchParams.get("episode");
@@ -100,7 +102,7 @@ const VideoPlayerSection = () => {
 
   const handleCreateW2g = async () => {
     if (!auth) {
-      toast.error("Sign in to start a watch party");
+      toast.error(t("watch.w2gSignIn"));
       return;
     }
     if (!animeSlug || !episodeId) return;
@@ -117,9 +119,9 @@ const VideoPlayerSection = () => {
       const params = new URLSearchParams(searchParams.toString());
       params.set("w2g", room.code);
       router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
-      toast.success(`Room ${room.code} created — share the code!`);
+      toast.success(t("watch.w2gRoomCreated", { code: room.code }));
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to create room");
+      toast.error(e instanceof Error ? e.message : t("watch.w2gCreateFailed"));
     } finally {
       setCreatingW2g(false);
     }
@@ -294,26 +296,26 @@ const VideoPlayerSection = () => {
     return (
       <div className="w-full aspect-video bg-black flex flex-col items-center justify-center gap-3 rounded-xl border border-white/10">
         <Cat className="text-white/20 w-12 h-12" />
-        <p className="text-white/30 text-sm font-mono">select an episode to start watching</p>
+        <p className="text-white/30 text-sm font-mono">{t("watch.selectEpisode")}</p>
       </div>
     );
   }
 
-  if (isLoading) return <PlayerSkeleton />;
+  if (isLoading) return <PlayerSkeleton label={t("watch.loadingStream")} />;
 
   const upstreamError = (streamError as any)?.response?.data?.error as string | undefined;
 
   if (streamError || !streamData?.file) {
     return (
       <div className="flex flex-col gap-3">
-        <PlayerSkeleton dim />
+        <PlayerSkeleton dim label={t("watch.loadingStream")} />
         <Alert className="border-white/10 bg-white/5 rounded-xl">
           <AlertCircle className="h-4 w-4 text-white/60" />
           <AlertTitle className="text-white/80 font-semibold">
-            Stream unavailable on {provider}
+            {t("watch.streamUnavailable", { provider })}
           </AlertTitle>
           <AlertDescription className="text-white/40 text-xs mt-1">
-            {upstreamError ?? streamData?.error ?? "This provider couldn't find the stream. Try a different one below."}
+            {upstreamError ?? streamData?.error ?? t("watch.streamNotFound")}
           </AlertDescription>
         </Alert>
 
@@ -339,7 +341,7 @@ const VideoPlayerSection = () => {
           className="border-white/15 text-white/60 hover:bg-white/10 w-fit text-xs"
           onClick={() => retryStream()}
         >
-          Retry with {provider}
+          {t("watch.retryWith", { provider })}
         </Button>
       </div>
     );
@@ -389,7 +391,7 @@ const VideoPlayerSection = () => {
         <div className="flex items-center gap-2 mr-auto min-w-0">
           {episodeNo && (
             <span className="text-[11px] font-bold font-mono text-white/50 bg-white/6 border border-white/10 px-2 py-0.5 rounded-md shrink-0">
-              EP {episodeNo}
+              {t("watch.episodeShort", { n: episodeNo })}
             </span>
           )}
           {currentEpisodeInfo?.title &&
@@ -400,7 +402,7 @@ const VideoPlayerSection = () => {
             )}
           {(skipTimes?.intro || skipTimes?.outro) && (
             <span className="text-[10px] font-mono text-white/20 hidden lg:inline shrink-0">
-              · chapters
+              · {t("watch.chapters")}
             </span>
           )}
         </div>
@@ -429,7 +431,7 @@ const VideoPlayerSection = () => {
             }`}
             onClick={() => handleAudioChange(false)}
           >
-            <Captions className="w-3 h-3" /> SUB
+            <Captions className="w-3 h-3" /> {t("card.sub")}
           </button>
           <div className="w-px h-4 bg-white/12" />
           <button
@@ -440,14 +442,14 @@ const VideoPlayerSection = () => {
             }`}
             onClick={() => handleAudioChange(true)}
           >
-            <Mic className="w-3 h-3" /> DUB
+            <Mic className="w-3 h-3" /> {t("card.dub")}
           </button>
         </div>
 
         {/* Watch Together */}
         {w2gCode && w2g.isMember ? (
           <span className="text-[10px] font-mono text-violet-300/70 hidden sm:inline">
-            Room {w2gCode}
+            {t("watch.room", { code: w2gCode })}
           </span>
         ) : auth ? (
           <button
@@ -461,7 +463,7 @@ const VideoPlayerSection = () => {
             ) : (
               <Users className="w-3 h-3" />
             )}
-            Watch Together
+            {t("watch.watchTogether")}
           </button>
         ) : (
           <LoginPopoverButton
@@ -470,7 +472,7 @@ const VideoPlayerSection = () => {
                 type="button"
                 className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-white/12 text-white/45 hover:text-white/70 transition-colors"
               >
-                <Users className="w-3 h-3" /> Watch Together
+                <Users className="w-3 h-3" /> {t("watch.watchTogether")}
               </button>
             }
           />
@@ -493,7 +495,7 @@ const VideoPlayerSection = () => {
   );
 };
 
-const PlayerSkeleton = ({ dim = false }: { dim?: boolean }) => (
+const PlayerSkeleton = ({ dim = false, label = "Loading stream" }: { dim?: boolean; label?: string }) => (
   <div
     className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
@@ -509,7 +511,7 @@ const PlayerSkeleton = ({ dim = false }: { dim?: boolean }) => (
       </div>
     </div>
     <Loader2 className="w-7 h-7 text-violet-400/50 animate-spin relative z-10" />
-    <p className="text-white/30 text-[11px] font-medium tracking-widest uppercase animate-pulse relative z-10">Loading stream</p>
+    <p className="text-white/30 text-[11px] font-medium tracking-widest uppercase animate-pulse relative z-10">{label}</p>
   </div>
 );
 

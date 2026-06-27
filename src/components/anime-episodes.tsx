@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { useT } from "@/providers/i18n-provider";
 
 type ViewMode = "thumbnail" | "list";
 
@@ -22,6 +23,7 @@ type Props = {
 };
 
 const AnimeEpisodes = ({ animeId }: Props) => {
+  const t = useT();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
   const [ranges, setRanges] = useState<string[]>([]);
@@ -81,7 +83,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
       {/* Controls */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
-          {allEpisodes.length > 0 ? `${allEpisodes.length} Episodes` : "Episodes"}
+          {allEpisodes.length > 0 ? t("anime.episodes.count", { count: allEpisodes.length }) : t("anime.episodes.title")}
         </h3>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -95,7 +97,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
                   ? "bg-white/10 text-white/80"
                   : "text-white/30 hover:text-white/55",
               )}
-              title="Thumbnail view"
+              title={t("anime.episodes.thumbnailView")}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
@@ -107,7 +109,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
                   ? "bg-white/10 text-white/80"
                   : "text-white/30 hover:text-white/55",
               )}
-              title="List view"
+              title={t("anime.episodes.listView")}
             >
               <List className="w-3.5 h-3.5" />
             </button>
@@ -116,7 +118,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
           {ranges.length > 0 && (
             <Select onValueChange={handleRangeChange} value={selectedRange}>
               <SelectTrigger className="h-8 text-xs w-[130px] bg-white/4 border-white/10 text-white/65 hover:bg-white/7 transition-colors">
-                <SelectValue placeholder="Range" />
+                <SelectValue placeholder={t("anime.episodes.range")} />
               </SelectTrigger>
               <SelectContent className="bg-[#0e0e0e] border-white/10">
                 <SelectGroup>
@@ -134,7 +136,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
             <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
             <input
               value={query}
-              placeholder="Search episode…"
+              placeholder={t("anime.episodes.searchPlaceholder")}
               onChange={handleSearch}
               className="h-8 pl-8 pr-3 text-xs rounded-lg bg-white/4 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-white/25 focus:bg-white/7 transition-all w-44"
             />
@@ -153,7 +155,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
               variant="thumbnail"
             />
           ))}
-          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-2 sm:col-span-3 md:col-span-4 xl:col-span-5" />}
+          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-2 sm:col-span-3 md:col-span-4 xl:col-span-5" message={t("anime.episodes.noEpisodes")} />}
           {isLoading && <ThumbnailSkeletons />}
         </div>
       ) : (
@@ -166,7 +168,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
               variant="list"
             />
           ))}
-          {!episodes.length && !isLoading && <EmptyState colSpan="" />}
+          {!episodes.length && !isLoading && <EmptyState colSpan="" message={t("anime.episodes.noEpisodes")} />}
           {isLoading && <ListSkeletons />}
         </div>
       )}
@@ -174,7 +176,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
   );
 };
 
-function EmptyState({ colSpan }: { colSpan: string }) {
+function EmptyState({ colSpan, message }: { colSpan: string; message: string }) {
   return (
     <div
       className={cn(
@@ -182,7 +184,7 @@ function EmptyState({ colSpan }: { colSpan: string }) {
         "flex items-center justify-center py-16 rounded-xl bg-white/3 border border-white/6",
       )}
     >
-      <p className="text-white/25 text-sm font-mono">No episodes found</p>
+      <p className="text-white/25 text-sm font-mono">{message}</p>
     </div>
   );
 }

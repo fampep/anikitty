@@ -5,8 +5,10 @@ import { CirclePlay } from "lucide-react";
 import Button from "./common/custom-button";
 import { AnimatePresence, motion } from "framer-motion";
 import { XIcon } from "lucide-react";
+import { useT } from "@/providers/i18n-provider";
 
 const WatchTrailer = ({ videoHref }: { videoHref: string }) => {
+  const t = useT();
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   if (!videoHref) return <></>;
@@ -18,7 +20,7 @@ const WatchTrailer = ({ videoHref }: { videoHref: string }) => {
         LeftIcon={CirclePlay}
         onClick={() => setIsVideoOpen((prev) => !prev)}
       >
-        Watch Trailer
+        {t("anime.watchTrailer")}
       </Button>
       <AnimatePresence>
         {isVideoOpen && (

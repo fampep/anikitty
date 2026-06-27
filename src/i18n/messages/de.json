@@ -45,7 +45,9 @@
     "faqPrivacy": "FAQ & Datenschutz",
     "disclaimer": "AniKitty speichert keine Dateien auf eigenen Servern. Alle Inhalte werden von Drittanbietern bereitgestellt.",
     "github": "GitHub",
-    "discord": "Discord"
+    "discord": "Discord",
+    "kittyApi": "KittyAPI ↗",
+    "anisurgeExternal": "Anisurge ↗"
   },
   "landing": {
     "browse": "Entdecken",
@@ -102,7 +104,10 @@
     "episode": "Folge {n}",
     "aired": "Ausgestrahlt",
     "justNow": "gerade eben",
-    "sharedGif": "hat ein GIF geteilt"
+    "sharedGif": "hat ein GIF geteilt",
+    "browseByGenre": "Nach Genre entdecken",
+    "allGenres": "Alle Genres →",
+    "inMinutes": "in {m} Min."
   },
   "search": {
     "title": "Suche",
@@ -373,6 +378,132 @@
     "alsoWatch": "Auch ansehen",
     "tryAgain": "Erneut versuchen",
     "retry": "Erneut versuchen",
-    "ep": "EP"
+    "ep": "EP",
+    "timeAgoMinutes": "vor {m} Min.",
+    "timeAgoHours": "vor {h} Std.",
+    "timeAgoDays": "vor {d} T.",
+    "live": "Live"
+  },
+  "navAvatar": {
+    "xpSummary": "{xp} XP · {count} erledigt",
+    "xpToNext": "{xp} XP bis Lv.{level}",
+    "max": "MAX"
+  },
+  "anime": {
+    "airing": "LÄUFT",
+    "addToList": "Zur Liste hinzufügen",
+    "listError": "Fehler beim Hinzufügen zur Liste",
+    "watchTrailer": "Trailer ansehen",
+    "tabs": {
+      "overview": "Übersicht",
+      "episodes": "Episoden",
+      "art": "Artwork",
+      "characters": "Charaktere",
+      "relations": "Verwandte",
+      "comments": "Kommentare"
+    },
+    "synopsis": "Synopsis",
+    "alternativeTitles": "Alternative Titel",
+    "studios": "Studios",
+    "details": "Details",
+    "externalLinks": "Externe Links",
+    "charactersAndVa": "Charaktere & Synchronsprecher",
+    "relatedSeries": "Verwandte Serien",
+    "fullSize": "Originalgröße",
+    "artSections": {
+      "backgrounds": "Hintergründe",
+      "posters": "Poster",
+      "banners": "Banner",
+      "clearArt": "Clear Art",
+      "clearLogo": "Clear Logo",
+      "fanart": "Fanart",
+      "banner": "Banner",
+      "poster": "Poster"
+    },
+    "detailFields": {
+      "type": "Typ",
+      "episodes": "Episoden",
+      "duration": "Dauer",
+      "status": "Status",
+      "aired": "Ausgestrahlt",
+      "premiered": "Premiere",
+      "score": "Bewertung",
+      "rating": "Altersfreigabe"
+    },
+    "bookmark": {
+      "planToWatch": "Geplant",
+      "watching": "Am Schauen",
+      "completed": "Abgeschlossen",
+      "onHold": "Pausiert",
+      "dropped": "Abgebrochen"
+    },
+    "episodes": {
+      "title": "Episoden",
+      "count": "{count} Episoden",
+      "thumbnailView": "Miniaturansicht",
+      "listView": "Listenansicht",
+      "range": "Bereich",
+      "searchPlaceholder": "Episode suchen…",
+      "noEpisodes": "Keine Episoden gefunden"
+    }
+  },
+  "watch": {
+    "episode": "Folge {n}",
+    "episodeShort": "EP {n}",
+    "episodeTitle": "{name} — Folge {n}",
+    "filler": "Filler",
+    "tabs": {
+      "comments": "Kommentare",
+      "info": "Info",
+      "related": "Verwandte"
+    },
+    "fullAnimePage": "Vollständige Anime-Seite",
+    "databaseIds": "Datenbank-IDs",
+    "selectEpisode": "Wähle eine Folge zum Starten",
+    "loadingStream": "Stream wird geladen",
+    "streamUnavailable": "Stream auf {provider} nicht verfügbar",
+    "streamNotFound": "Dieser Anbieter konnte den Stream nicht finden. Probiere unten einen anderen.",
+    "retryWith": "Erneut mit {provider}",
+    "chapters": "Kapitel",
+    "room": "Raum {code}",
+    "watchTogether": "Gemeinsam schauen",
+    "w2gSignIn": "Anmelden, um eine Watch-Party zu starten",
+    "w2gRoomCreated": "Raum {code} erstellt — Code teilen!",
+    "w2gCreateFailed": "Raum konnte nicht erstellt werden",
+    "skipIntro": "Intro überspringen",
+    "skipCredits": "Abspann überspringen",
+    "nextEpisode": "Nächste Folge",
+    "upNext": "Als Nächstes",
+    "playNow": "Jetzt abspielen",
+    "cancel": "Abbrechen",
+    "playlist": {
+      "title": "Episoden",
+      "episode": "Folge",
+      "episodes": "Folgen",
+      "searchPlaceholder": "Nach Titel oder Nummer suchen…",
+      "noEpisodes": "Keine Episoden gefunden"
+    },
+    "w2g": {
+      "title": "Gemeinsam schauen",
+      "host": "Host",
+      "code": "Code",
+      "inviteLink": "Einladungslink",
+      "leave": "Verlassen",
+      "leaveConfirm": "Diese Watch-Party verlassen?",
+      "inviteCopied": "Einladungslink kopiert!",
+      "copyLinkFailed": "Link konnte nicht kopiert werden",
+      "codeCopied": "Raumcode kopiert!",
+      "copyCodeFailed": "Code konnte nicht kopiert werden",
+      "sendFailed": "Senden fehlgeschlagen",
+      "leftRoom": "Raum verlassen",
+      "leaveFailed": "Verlassen fehlgeschlagen",
+      "watchingCount": "{count} schauen zu",
+      "youControl": "Du steuerst die Wiedergabe",
+      "syncedToHost": "Mit Host synchronisiert",
+      "online": "Online",
+      "away": "Abwesend",
+      "sayHi": "Sag Hallo zum Raum…",
+      "chatPlaceholder": "Raum-Chat…"
+    }
   }
 }

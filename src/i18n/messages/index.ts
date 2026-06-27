@@ -13,8 +13,8 @@ import zh from "./zh.json";
 
 const catalogs: Record<Locale, Partial<Messages>> = {
   en,
-  es: es as unknown as Partial<Messages>,
-  fr: fr as unknown as Partial<Messages>,
+  es: es as Partial<Messages>,
+  fr: fr as Partial<Messages>,
   de: de as Partial<Messages>,
   da: da as Partial<Messages>,
   pt: pt as Partial<Messages>,

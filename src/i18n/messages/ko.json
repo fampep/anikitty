@@ -45,7 +45,9 @@
     "faqPrivacy": "FAQ 및 개인정보",
     "disclaimer": "AniKitty는 서버에 파일을 저장하지 않습니다. 모든 콘텐츠는 제3자 서비스에서 제공됩니다.",
     "github": "GitHub",
-    "discord": "Discord"
+    "discord": "Discord",
+    "kittyApi": "KittyAPI ↗",
+    "anisurgeExternal": "Anisurge ↗"
   },
   "landing": {
     "browse": "둘러보기",
@@ -102,7 +104,10 @@
     "episode": "{n}화",
     "aired": "방영됨",
     "justNow": "방금",
-    "sharedGif": "GIF를 공유함"
+    "sharedGif": "GIF를 공유함",
+    "browseByGenre": "장르별 탐색",
+    "allGenres": "모든 장르 →",
+    "inMinutes": "{m}분 후"
   },
   "search": {
     "title": "검색",
@@ -373,6 +378,132 @@
     "alsoWatch": "이것도 보기",
     "tryAgain": "다시 시도",
     "retry": "다시 시도",
-    "ep": "화"
+    "ep": "화",
+    "timeAgoMinutes": "{m}분 전",
+    "timeAgoHours": "{h}시간 전",
+    "timeAgoDays": "{d}일 전",
+    "live": "라이브"
+  },
+  "navAvatar": {
+    "xpSummary": "{xp} XP · {count}개 완료",
+    "xpToNext": "Lv.{level}까지 {xp} XP",
+    "max": "MAX"
+  },
+  "anime": {
+    "airing": "방영 중",
+    "addToList": "리스트에 추가",
+    "listError": "리스트 추가 오류",
+    "watchTrailer": "예고편 보기",
+    "tabs": {
+      "overview": "개요",
+      "episodes": "에피소드",
+      "art": "아트",
+      "characters": "캐릭터",
+      "relations": "관련 작품",
+      "comments": "댓글"
+    },
+    "synopsis": "줄거리",
+    "alternativeTitles": "다른 제목",
+    "studios": "제작사",
+    "details": "상세 정보",
+    "externalLinks": "외부 링크",
+    "charactersAndVa": "캐릭터 및 성우",
+    "relatedSeries": "관련 시리즈",
+    "fullSize": "원본 크기",
+    "artSections": {
+      "backgrounds": "배경",
+      "posters": "포스터",
+      "banners": "배너",
+      "clearArt": "클리어 아트",
+      "clearLogo": "클리어 로고",
+      "fanart": "팬아트",
+      "banner": "배너",
+      "poster": "포스터"
+    },
+    "detailFields": {
+      "type": "유형",
+      "episodes": "화수",
+      "duration": "길이",
+      "status": "상태",
+      "aired": "방영",
+      "premiered": "첫 방영",
+      "score": "점수",
+      "rating": "등급"
+    },
+    "bookmark": {
+      "planToWatch": "보고 싶음",
+      "watching": "보는 중",
+      "completed": "완료",
+      "onHold": "보류",
+      "dropped": "포기"
+    },
+    "episodes": {
+      "title": "에피소드",
+      "count": "{count}화",
+      "thumbnailView": "썸네일 보기",
+      "listView": "목록 보기",
+      "range": "범위",
+      "searchPlaceholder": "에피소드 검색…",
+      "noEpisodes": "에피소드를 찾을 수 없습니다"
+    }
+  },
+  "watch": {
+    "episode": "{n}화",
+    "episodeShort": "{n}화",
+    "episodeTitle": "{name} — {n}화",
+    "filler": "필러",
+    "tabs": {
+      "comments": "댓글",
+      "info": "정보",
+      "related": "관련"
+    },
+    "fullAnimePage": "애니메이션 상세 페이지",
+    "databaseIds": "데이터베이스 ID",
+    "selectEpisode": "시청할 에피소드를 선택하세요",
+    "loadingStream": "스트림 불러오는 중",
+    "streamUnavailable": "{provider}에서 스트림을 이용할 수 없습니다",
+    "streamNotFound": "이 제공자에서 스트림을 찾을 수 없습니다. 아래에서 다른 제공자를 시도해 보세요.",
+    "retryWith": "{provider}(으)로 다시 시도",
+    "chapters": "챕터",
+    "room": "방 {code}",
+    "watchTogether": "함께 보기",
+    "w2gSignIn": "시청 파티를 시작하려면 로그인하세요",
+    "w2gRoomCreated": "방 {code} 생성됨 — 코드를 공유하세요!",
+    "w2gCreateFailed": "방 생성에 실패했습니다",
+    "skipIntro": "인트로 건너뛰기",
+    "skipCredits": "엔딩 크레딧 건너뛰기",
+    "nextEpisode": "다음 화",
+    "upNext": "다음 재생",
+    "playNow": "지금 재생",
+    "cancel": "취소",
+    "playlist": {
+      "title": "에피소드",
+      "episode": "화",
+      "episodes": "화",
+      "searchPlaceholder": "제목 또는 화수로 검색…",
+      "noEpisodes": "에피소드를 찾을 수 없습니다"
+    },
+    "w2g": {
+      "title": "함께 보기",
+      "host": "호스트",
+      "code": "코드",
+      "inviteLink": "초대 링크",
+      "leave": "나가기",
+      "leaveConfirm": "이 시청 파티를 나가시겠습니까?",
+      "inviteCopied": "초대 링크가 복사되었습니다!",
+      "copyLinkFailed": "링크를 복사할 수 없습니다",
+      "codeCopied": "방 코드가 복사되었습니다!",
+      "copyCodeFailed": "코드를 복사할 수 없습니다",
+      "sendFailed": "전송에 실패했습니다",
+      "leftRoom": "방을 나갔습니다",
+      "leaveFailed": "나가기에 실패했습니다",
+      "watchingCount": "{count}명 시청 중",
+      "youControl": "재생을 제어합니다",
+      "syncedToHost": "호스트와 동기화됨",
+      "online": "온라인",
+      "away": "자리 비움",
+      "sayHi": "방에 인사하세요…",
+      "chatPlaceholder": "방 채팅…"
+    }
   }
 }

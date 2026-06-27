@@ -19,6 +19,7 @@ import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
 import { createHlsConfig } from "@/lib/hls-config";
 import { isHLSProvider, type MediaProviderAdapter } from "@vidstack/react";
 import Hls from "hls.js";
+import { useT } from "@/providers/i18n-provider";
 
 interface W2gSyncState {
   version: number;
@@ -400,7 +401,8 @@ function SkipButton({
   bottomClass?: string;
   onSkip: () => void;
 }) {
-  const label     = type === "intro" ? "Skip Intro" : "Skip Credits";
+  const t = useT();
+  const label = type === "intro" ? t("watch.skipIntro") : t("watch.skipCredits");
   const elapsed   = Math.max(0, currentTime - interval.start);
   const total     = interval.end - interval.start;
   const remaining = Math.max(0, Math.ceil(interval.end - currentTime));
@@ -440,10 +442,11 @@ function NextEpisodeButton({
   episode: { number: number; title: string };
   onClick: () => void;
 }) {
+  const t = useT();
   const title =
     episode.title && episode.title.toLowerCase() !== `episode ${episode.number}`
       ? episode.title
-      : `Episode ${episode.number}`;
+      : t("watch.episode", { n: episode.number });
 
   return (
     <button
@@ -456,7 +459,7 @@ function NextEpisodeButton({
       </span>
       <div className="flex flex-col items-start min-w-0">
         <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300/60 group-hover:text-violet-200/80 transition-colors leading-none mb-1">
-          Next episode
+          {t("watch.nextEpisode")}
         </span>
         <span className="text-sm font-semibold text-white leading-tight truncate w-full">
           {title}
@@ -479,10 +482,11 @@ function CountdownOverlay({
   onSkip: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const title =
     episode.title && episode.title.toLowerCase() !== `episode ${episode.number}`
       ? episode.title
-      : `Episode ${episode.number}`;
+      : t("watch.episode", { n: episode.number });
 
   const circumference = 2 * Math.PI * 20;
   const dashOffset = circumference * (1 - countdown / 5);
@@ -513,7 +517,7 @@ function CountdownOverlay({
           </span>
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300/60 leading-none mb-1">Up next</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300/60 leading-none mb-1">{t("watch.upNext")}</span>
           <span className="text-sm font-semibold text-white leading-tight truncate max-w-[180px]">
             {title}
           </span>
@@ -523,13 +527,13 @@ function CountdownOverlay({
             onClick={onSkip}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 text-white text-xs font-bold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-900/40"
           >
-            Play now <ChevronRight className="w-3 h-3" />
+            {t("watch.playNow")} <ChevronRight className="w-3 h-3" />
           </button>
           <button
             onClick={onCancel}
             className="flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-xl bg-white/[0.06] text-white/50 text-xs font-medium hover:bg-white/10 hover:text-white/80 transition-colors ring-1 ring-white/10"
           >
-            <X className="w-3 h-3" /> Cancel
+            <X className="w-3 h-3" /> {t("watch.cancel")}
           </button>
         </div>
       </div>

@@ -9,8 +9,10 @@ import { ButtonLink } from "./common/button-link";
 import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
 
 import { useGetLastEpisodeWatched } from "@/hooks/use-get-last-episode-watched";
+import { useT } from "@/providers/i18n-provider";
 
 const WatchButton = () => {
+  const t = useT();
   const pathName = usePathname();
   const animeId = pathName.split("/")[2];
 
@@ -27,7 +29,7 @@ const WatchButton = () => {
       className="max-w-fit text-base"
       LeftIcon={CirclePlay}
     >
-      {hasWatchedAnime ? "Continue Watching" : "Start Watching"}
+      {hasWatchedAnime ? t("home.continueWatching") : t("landing.startWatching")}
     </ButtonLink>
   );
 };

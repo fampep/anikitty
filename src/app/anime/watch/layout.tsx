@@ -9,15 +9,10 @@ import CommentSection from "@/components/comment-section";
 import { useAnimeStore } from "@/store/anime-store";
 
 import EpisodePlaylist from "@/components/episode-playlist";
-import Select, { ISelectOptions } from "@/components/common/select";
+import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime-carousel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Ban,
-  BookmarkCheck,
-  CheckCheck,
-  Hand,
-  TvMinimalPlay,
   Play,
   ChevronRight,
   ChevronLeft,
@@ -39,6 +34,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useGetAnimeMappings } from "@/query/get-anime-mappings";
 import { ChevronDown } from "lucide-react";
+import { useT } from "@/providers/i18n-provider";
+import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 
 const DB_LINKS = [
   { key: "anilist",   label: "AniList",     url: (id: string | number) => `https://anilist.co/anime/${id}`,                   color: "text-teal-400/80 border-teal-500/20 bg-teal-500/8"       },
@@ -55,15 +52,9 @@ type Props = {
   children: ReactNode;
 };
 
-const SelectOptions: ISelectOptions[] = [
-  { value: "plan to watch", label: "Plan to Watch", icon: BookmarkCheck },
-  { value: "watching", label: "Watching", icon: TvMinimalPlay },
-  { value: "completed", label: "Completed", icon: CheckCheck },
-  { value: "on hold", label: "On Hold", icon: Hand },
-  { value: "dropped", label: "Dropped", icon: Ban },
-];
-
 const Layout = (props: Props) => {
+  const t = useT();
+  const bookmarkOptions = useBookmarkLabels();
   const searchParams = useSearchParams();
   const { setAnime, setSelectedEpisode, selectedEpisode } = useAnimeStore();
   const { auth } = useAuthStore();
@@ -110,7 +101,7 @@ const Layout = (props: Props) => {
       );
     } catch {
       setSelected(prev);
-      toast.error("Error adding to list", { style: { background: "red" } });
+      toast.error(t("anime.listError"), { style: { background: "red" } });
     }
   };
 
@@ -189,9 +180,9 @@ const Layout = (props: Props) => {
   useEffect(() => {
     const name = anime?.anime.info?.name;
     if (!name) return;
-    const epLabel = currentEpisode ? ` — Episode ${currentEpisode.number}` : "";
+    const epLabel = currentEpisode ? ` — ${t("watch.episode", { n: currentEpisode.number })}` : "";
     document.title = `${name}${epLabel} | AniKitty`;
-  }, [anime?.anime.info?.name, currentEpisode?.number]);
+  }, [anime?.anime.info?.name, currentEpisode?.number, t]);
 
   if (isLoading) return <Loading />;
 
@@ -218,15 +209,15 @@ const Layout = (props: Props) => {
           <>
             <ChevronRight className="w-3 h-3 text-white/20 shrink-0" />
             <span className="text-[12px] font-mono text-white/20 shrink-0">
-              Episode {currentEpisode.number}
+              {t("watch.episode", { n: currentEpisode.number })}
             </span>
           </>
         )}
         <div className="ml-auto shrink-0">
           <Select
-            placeholder="Add to list"
+            placeholder={t("anime.addToList")}
             value={bookmarks?.[0]?.status || selected}
-            options={SelectOptions}
+            options={bookmarkOptions}
             onChange={handleSelect}
           />
         </div>
@@ -244,7 +235,7 @@ const Layout = (props: Props) => {
               <button
                 onClick={handlePrev}
                 disabled={!prevEpisode}
-                title={prevEpisode ? `EP ${prevEpisode.number}` : undefined}
+                title={prevEpisode ? t("watch.episodeShort", { n: prevEpisode.number }) : undefined}
                 className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-lg border transition-all shrink-0",
                   prevEpisode
@@ -261,17 +252,17 @@ const Layout = (props: Props) => {
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-mono text-white/30 leading-none mb-0.5 flex items-center gap-1.5">
-                    Episode {currentEpisode.number}
+                    {t("watch.episode", { n: currentEpisode.number })}
                     {currentEpisode.isFiller && (
                       <span className="px-1.5 py-px text-[9px] rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/60">
-                        filler
+                        {t("watch.filler")}
                       </span>
                     )}
                   </p>
                   <p className="text-xs sm:text-[13px] font-semibold text-white leading-tight truncate">
                     {hasMeaningfulTitle
                       ? currentEpisode.title
-                      : `${info.name} — Episode ${currentEpisode.number}`}
+                      : t("watch.episodeTitle", { name: info.name, n: currentEpisode.number })}
                   </p>
                 </div>
               </div>
@@ -282,7 +273,7 @@ const Layout = (props: Props) => {
                   onClick={() => setPlaylistOpen((o) => !o)}
                   className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/12 text-white/40 hover:text-white/70 hover:border-white/25 transition-all shrink-0 text-[11px] font-mono"
                 >
-                  Episodes
+                  {t("anime.episodes.title")}
                   <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", playlistOpen && "rotate-180")} />
                 </button>
               )}
@@ -290,7 +281,7 @@ const Layout = (props: Props) => {
               <button
                 onClick={handleNext}
                 disabled={!nextEpisode}
-                title={nextEpisode ? `EP ${nextEpisode.number}` : undefined}
+                title={nextEpisode ? t("watch.episodeShort", { n: nextEpisode.number }) : undefined}
                 className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-lg border transition-all shrink-0",
                   nextEpisode
@@ -320,9 +311,9 @@ const Layout = (props: Props) => {
           <Tabs defaultValue="comments" className="w-full">
             <TabsList className="flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0">
               {[
-                { value: "comments", label: "Comments", icon: <MessageSquare className="w-3.5 h-3.5" /> },
-                { value: "info",     label: "Info",     icon: <Info className="w-3.5 h-3.5" /> },
-                { value: "related",  label: "Related",  icon: <Tv2 className="w-3.5 h-3.5" /> },
+                { value: "comments", label: t("watch.tabs.comments"), icon: <MessageSquare className="w-3.5 h-3.5" /> },
+                { value: "info", label: t("watch.tabs.info"), icon: <Info className="w-3.5 h-3.5" /> },
+                { value: "related", label: t("watch.tabs.related"), icon: <Tv2 className="w-3.5 h-3.5" /> },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -343,7 +334,7 @@ const Layout = (props: Props) => {
                     episodeId={episodeId}
                     episodeNumber={currentEpisode?.number}
                     episodeLabel={
-                      currentEpisode ? `Episode ${currentEpisode.number}` : undefined
+                      currentEpisode ? t("watch.episode", { n: currentEpisode.number }) : undefined
                     }
                   />
                 </div>
@@ -354,7 +345,7 @@ const Layout = (props: Props) => {
               {/* Synopsis */}
               {info.description && (
                 <div>
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">Synopsis</p>
+                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
                   <p className="text-[13px] text-white/55 leading-7">
                     {parse(info.description as string)}
                   </p>
@@ -362,22 +353,22 @@ const Layout = (props: Props) => {
                     href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
                     className="inline-flex items-center gap-1 mt-3 text-[11px] text-white/30 hover:text-white/60 transition-colors font-mono"
                   >
-                    Full anime page <ChevronRight className="w-3 h-3" />
+                    {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
                   </Link>
                 </div>
               )}
 
               {/* Details grid */}
               <div>
-                <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">Details</p>
+                <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.details")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: "Type",      value: stats?.type              },
-                    { label: "Episodes",  value: stats?.episodes?.sub     },
-                    { label: "Status",    value: moreInfo?.status         },
-                    { label: "Premiered", value: moreInfo?.premiered      },
-                    { label: "Score",     value: (moreInfo as any)?.malscore },
-                    { label: "Rating",    value: stats?.rating            },
+                    { label: t("anime.detailFields.type"), value: stats?.type },
+                    { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
+                    { label: t("anime.detailFields.status"), value: moreInfo?.status },
+                    { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
+                    { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
+                    { label: t("anime.detailFields.rating"), value: stats?.rating },
                   ].filter((r) => r.value).map((row) => (
                     <div key={row.label} className="rounded-lg bg-white/3 border border-white/6 px-3 py-2">
                       <span className="text-[9px] font-mono text-white/20 uppercase tracking-wider block mb-0.5">{row.label}</span>
@@ -390,7 +381,7 @@ const Layout = (props: Props) => {
               {/* External links */}
               {externalLinks.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">External Links</p>
+                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</p>
                   <div className="flex flex-wrap gap-2">
                     {externalLinks.map((link) => (
                       <a
@@ -414,7 +405,7 @@ const Layout = (props: Props) => {
               {/* DB IDs (raw) */}
               {mappings && (
                 <div>
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">Database IDs</p>
+                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("watch.databaseIds")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { label: "AniList",    value: anilistId              },
@@ -436,8 +427,8 @@ const Layout = (props: Props) => {
             </TabsContent>
 
             <TabsContent value="related" className="mt-6 space-y-8">
-              <AnimeCarousel title="Also Watch" anime={anime.relatedAnimes as IAnime[]} />
-              <AnimeCarousel title="Recommended" anime={anime.recommendedAnimes as IAnime[]} />
+              <AnimeCarousel title={t("common.alsoWatch")} anime={anime.relatedAnimes as IAnime[]} />
+              <AnimeCarousel title={t("common.recommended")} anime={anime.recommendedAnimes as IAnime[]} />
             </TabsContent>
           </Tabs>
         </div>
