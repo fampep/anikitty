@@ -2,6 +2,7 @@ export interface IAnimeData {
   spotlightAnimes: SpotlightAnime[];
   trendingAnimes: IAnime[];
   latestEpisodeAnimes: LatestCompletedAnime[];
+  recentlyAddedAnimes: IAnime[];
   topUpcomingAnimes: TopUpcomingAnime[];
   top10Animes: Top10Animes;
   topAiringAnimes: LatestCompletedAnime[];

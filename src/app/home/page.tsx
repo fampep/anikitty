@@ -82,6 +82,15 @@ export default function Home() {
         latestEpisodes={data?.latestEpisodeAnimes as LatestCompletedAnime[]}
       />
 
+      <AnimeSections
+        title={t("home.recentlyAdded")}
+        icon={<Sparkles className="w-4 h-4" />}
+        trendingAnime={data?.recentlyAddedAnimes as IAnime[]}
+        loading={isLoading}
+        layout="row"
+        seeAllHref={`${ROUTES.SEARCH}?sort=recently-added&status=currently-airing`}
+      />
+
       <LazyMount minHeight={120}>
         <HomeWelcomeBar />
         <ContinueWatching loading={isLoading && !!auth} />

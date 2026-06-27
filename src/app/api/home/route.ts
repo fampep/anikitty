@@ -35,13 +35,23 @@ const QUERY = `
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
-    upcoming: Page(page: 1, perPage: 20) {
+    upcoming: Page(page: 1, perPage: 30) {
       media(type: ANIME, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
+    recentlyAdded: Page(page: 1, perPage: 30) {
+      media(type: ANIME, sort: START_DATE_DESC, status: RELEASING) {
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+        nextAiringEpisode { episode }
+      }
+    }
   }
 `;
+
+function hasStreamableEpisodes(episodes: { sub: number | null; dub: number | null }) {
+  return (episodes.sub ?? 0) > 0 || (episodes.dub ?? 0) > 0;
+}
 
 function toAnime(m: any) {
   return {
@@ -88,6 +98,7 @@ export async function GET() {
       mostPopularAnimes: (raw.popular?.media ?? []).map(toAnime),
       latestCompletedAnimes: (raw.latest?.media ?? []).map(toAnime),
       topUpcomingAnimes: (raw.upcoming?.media ?? []).map(toAnime),
+      recentlyAddedAnimes: (raw.recentlyAdded?.media ?? []).map(toAnime),
       topAiringAnimes: [],
       top10Animes: { today: [], week: [], month: [] },
       genres: [],
@@ -101,6 +112,7 @@ export async function GET() {
       data.mostPopularAnimes,
       data.latestCompletedAnimes,
       data.topUpcomingAnimes,
+      data.recentlyAddedAnimes,
     ];
     const uniqueById = new Map<string, (typeof data.trendingAnimes)[number]>();
     for (const list of allLists) {
@@ -126,7 +138,12 @@ export async function GET() {
       mostFavoriteAnimes: withAudio(data.mostFavoriteAnimes),
       mostPopularAnimes: withAudio(data.mostPopularAnimes),
       latestCompletedAnimes: withAudio(data.latestCompletedAnimes),
-      topUpcomingAnimes: withAudio(data.topUpcomingAnimes),
+      topUpcomingAnimes: withAudio(data.topUpcomingAnimes).filter(
+        (anime) => !hasStreamableEpisodes(anime.episodes),
+      ),
+      recentlyAddedAnimes: withAudio(data.recentlyAddedAnimes)
+        .filter((anime) => hasStreamableEpisodes(anime.episodes))
+        .slice(0, 20),
     };
 
     return Response.json({ data: enrichedData });
