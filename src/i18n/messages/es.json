@@ -1,0 +1,90 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "schedule": "Horario",
+    "trending": "Tendencias",
+    "forum": "Foro",
+    "chat": "Chat en vivo",
+    "watchTogether": "Ver juntos",
+    "faq": "Preguntas",
+    "more": "Más",
+    "search": "Buscar",
+    "login": "Iniciar sesión",
+    "menu": "Menú"
+  },
+  "footer": {
+    "tagline": "Anime gratis. Sin anuncios. Sin límites.",
+    "online": "{count} en línea",
+    "browse": "Explorar",
+    "account": "Cuenta",
+    "project": "Proyecto",
+    "settings": "Ajustes",
+    "faqPrivacy": "FAQ y privacidad",
+    "disclaimer": "AniKitty no almacena archivos en sus servidores. Todo el contenido lo proporcionan servicios de terceros."
+  },
+  "home": {
+    "loadError": "No se pudo cargar el inicio",
+    "tryAgain": "Reintentar",
+    "recentReleases": "Estrenos recientes",
+    "trendingNow": "Tendencias",
+    "comingSoon": "Próximamente",
+    "explore": "Explorar",
+    "mostFavorite": "Más favoritos",
+    "mostPopular": "Más populares",
+    "latestCompleted": "Recién terminados",
+    "featuredSubtitle": "Listas seleccionadas de todos los tiempos",
+    "latestComments": "Últimos comentarios",
+    "airingToday": "En emisión hoy",
+    "scheduleDesc": "Qué se emite esta semana",
+    "upcoming": "Próximos",
+    "upcomingDesc": "Próximamente",
+    "trendingDesc": "Lo que todos están viendo",
+    "forumDesc": "Habla de anime con la comunidad",
+    "browseAll": "Ver todo",
+    "browseAllDesc": "Busca miles de títulos",
+    "watchNow": "Ver ahora",
+    "details": "Detalles"
+  },
+  "search": {
+    "title": "Buscar",
+    "placeholder": "Buscar anime...",
+    "filters": "Filtros",
+    "reset": "Restablecer",
+    "apply": "Aplicar",
+    "noResults": "No se encontró anime",
+    "noResultsHint": "Prueba otros filtros o términos de búsqueda",
+    "loadError": "Error en la búsqueda",
+    "resultsFor": "Resultados de \"{query}\"",
+    "allAnime": "Todo el anime"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "signup": "Registrarse",
+    "usernameOrEmail": "Usuario o correo",
+    "password": "Contraseña",
+    "username": "Usuario",
+    "email": "Correo",
+    "createAccount": "Crear cuenta",
+    "welcomeBack": "¡Bienvenido de nuevo!",
+    "accountCreated": "¡Cuenta creada!",
+    "twoFactor": "Autenticación en dos pasos",
+    "twoFactorHint": "Introduce el código de 6 dígitos de tu app de autenticación",
+    "verify": "Verificar",
+    "continueWithAnisurge": "Continuar con Anisurge",
+    "or": "o"
+  },
+  "card": {
+    "live": "EN VIVO"
+  },
+  "settings": {
+    "language": "Idioma",
+    "languageDesc": "Elige el idioma de menús y botones. Los títulos del anime se mantienen en su idioma original."
+  },
+  "common": {
+    "seeAll": "Ver todo",
+    "loading": "Cargando...",
+    "error": "Algo salió mal",
+    "recommended": "Recomendado",
+    "alsoWatch": "También ver"
+  }
+}
