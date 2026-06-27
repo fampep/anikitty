@@ -264,6 +264,134 @@ function completedWhere(q?: string) {
   );
 }
 
+export type SubtitleLibrarySummary = {
+  animeTitle: string | null;
+  poster: string | null;
+  status: string | null;
+  totalEpisodes: number | null;
+  isComplete: boolean;
+  score: number | null;
+  year: number | null;
+};
+
+export async function getSubtitleLibrarySummaryMap(
+  anilistIds: number[],
+): Promise<Map<number, SubtitleLibrarySummary>> {
+  const map = new Map<number, SubtitleLibrarySummary>();
+  if (!dbAvailable() || anilistIds.length === 0) return map;
+
+  try {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(subtitleLibraryAnime)
+      .where(inArray(subtitleLibraryAnime.anilistId, anilistIds));
+
+    for (const row of rows) {
+      map.set(row.anilistId, {
+        animeTitle: row.animeTitle,
+        poster: row.poster,
+        status: row.status,
+        totalEpisodes: row.totalEpisodes,
+        isComplete: row.isComplete,
+        score: row.score,
+        year: row.year,
+      });
+    }
+  } catch {
+    /* summary table may not exist yet */
+  }
+
+  return map;
+}
+
+function allLibraryWhere(q?: string) {
+  const trimmed = q?.trim();
+  if (!trimmed) return undefined;
+
+  const pattern = `%${trimmed.replace(/[%_]/g, "")}%`;
+  return or(
+    ilike(subtitleLibraryAnime.animeTitle, pattern),
+    sql`cast(${subtitleLibraryAnime.anilistId} as text) like ${pattern}`,
+  );
+}
+
+export async function searchAllSubtitleLibraryFromDb(opts: {
+  q?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{
+  items: SubtitleLibraryEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
+  cachedAnilistIds: number[];
+}> {
+  const page = Math.max(1, opts.page ?? 1);
+  const limit = Math.min(50, Math.max(1, opts.limit ?? 24));
+  const offset = (page - 1) * limit;
+  const whereClause = allLibraryWhere(opts.q);
+
+  if (!dbAvailable()) {
+    return { items: [], total: 0, page, limit, hasNextPage: false, cachedAnilistIds: [] };
+  }
+
+  try {
+    const db = getDb();
+
+    const [countRow] = await db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(subtitleLibraryAnime)
+      .where(whereClause ?? sql`true`);
+
+    const total = countRow?.total ?? 0;
+
+    let cachedAnilistIds: number[] = [];
+    if (opts.q?.trim()) {
+      const idRows = await db
+        .select({ anilistId: subtitleLibraryAnime.anilistId })
+        .from(subtitleLibraryAnime)
+        .where(whereClause!);
+      cachedAnilistIds = idRows.map((row) => row.anilistId);
+    }
+
+    const rows = await db
+      .select()
+      .from(subtitleLibraryAnime)
+      .where(whereClause ?? sql`true`)
+      .orderBy(desc(subtitleLibraryAnime.lastSubtitleAt))
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      items: rows.map((row) =>
+        rowToEntry({
+          anilistId: row.anilistId,
+          animeTitle: row.animeTitle,
+          trackCount: row.trackCount,
+          episodeCount: row.cachedEpisodeCount,
+          lastFetched: row.lastSubtitleAt,
+          poster: row.poster,
+          status: row.status,
+          totalEpisodes: row.totalEpisodes,
+          isComplete: row.isComplete,
+          score: row.score,
+          year: row.year,
+        }),
+      ),
+      total,
+      page,
+      limit,
+      hasNextPage: page * limit < total,
+      cachedAnilistIds,
+    };
+  } catch (err) {
+    console.error("[subtitle-library-db] searchAll failed:", err);
+    return { items: [], total: 0, page, limit, hasNextPage: false, cachedAnilistIds: [] };
+  }
+}
+
 export async function searchCompletedSubtitleLibrary(opts: {
   q?: string;
   page?: number;
@@ -334,7 +462,8 @@ export async function searchCompletedSubtitleLibrary(opts: {
       hasNextPage: page * limit < total,
       cachedAnilistIds,
     };
-  } catch {
+  } catch (err) {
+    console.error("[subtitle-library-db] searchCompleted failed:", err);
     return { items: [], total: 0, page, limit, hasNextPage: false, cachedAnilistIds: [] };
   }
 }

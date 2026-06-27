@@ -2,10 +2,12 @@ import { queryAniList, toTitle } from "@/lib/anilist";
 import type { SubtitleLibraryEntry } from "@/lib/subtitle-cache-store";
 import { searchSubtitleLibrary } from "@/lib/subtitle-cache-store";
 import {
+  backfillSubtitleLibraryAnime,
   countCompletedSubtitleAnimesFromDb,
   getStoredSubtitleLibraryMeta,
   listIncompleteSubtitleAnimesFromDb,
   persistSubtitleLibraryMeta,
+  searchAllSubtitleLibraryFromDb,
   searchCompletedSubtitleLibrary,
   type AnilistMeta,
 } from "@/lib/subtitle-library-db";
@@ -188,7 +190,19 @@ export async function searchEnrichedSubtitleLibrary(opts: {
     };
   }
 
-  const result = await searchSubtitleLibrary({ q: opts.q, page, limit });
+  let result = await searchSubtitleLibrary({ q: opts.q, page, limit });
+
+  if (result.total === 0 && !opts.q?.trim()) {
+    await backfillSubtitleLibraryAnime(100);
+    result = await searchSubtitleLibrary({ q: opts.q, page, limit });
+  }
+
+  if (result.total === 0) {
+    const fromDb = await searchAllSubtitleLibraryFromDb({ q: opts.q, page, limit });
+    if (fromDb.total > 0) {
+      result = fromDb;
+    }
+  }
 
   const needsMeta = result.items.some(
     (item) => !item.poster || item.totalEpisodes == null || !item.animeTitle?.trim(),

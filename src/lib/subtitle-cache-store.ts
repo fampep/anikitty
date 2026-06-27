@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { episodeSubtitles, subtitleLibraryAnime } from "@/db/schema";
+import { episodeSubtitles } from "@/db/schema";
 import {
   getTrackFile,
   isOurSubtitleUrl,
@@ -647,49 +647,52 @@ export async function searchSubtitleLibrary(opts: {
     const rows = await db
       .select({
         anilistId: episodeSubtitles.anilistId,
-        animeTitle: sql<string | null>`coalesce(max(${subtitleLibraryAnime.animeTitle}), max(${episodeSubtitles.animeTitle}))`,
+        animeTitle: sql<string | null>`max(${episodeSubtitles.animeTitle})`,
         trackCount: sql<number>`count(*)::int`,
         episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
         lastFetched: sql<Date | null>`max(${episodeSubtitles.fetchedAt})`,
-        poster: sql<string | null>`max(${subtitleLibraryAnime.poster})`,
-        status: sql<string | null>`max(${subtitleLibraryAnime.status})`,
-        totalEpisodes: sql<number | null>`max(${subtitleLibraryAnime.totalEpisodes})`,
-        isComplete: sql<boolean>`coalesce(bool_or(${subtitleLibraryAnime.isComplete}), false)`,
-        score: sql<number | null>`max(${subtitleLibraryAnime.score})`,
-        year: sql<number | null>`max(${subtitleLibraryAnime.year})`,
       })
       .from(episodeSubtitles)
-      .leftJoin(
-        subtitleLibraryAnime,
-        eq(episodeSubtitles.anilistId, subtitleLibraryAnime.anilistId),
-      )
       .where(whereClause)
       .groupBy(episodeSubtitles.anilistId)
       .orderBy(desc(sql`max(${episodeSubtitles.fetchedAt})`))
       .limit(limit)
       .offset(offset);
 
+    const { getSubtitleLibrarySummaryMap } = await import("@/lib/subtitle-library-db");
+    const summaryMap = await getSubtitleLibrarySummaryMap(rows.map((row) => row.anilistId));
+
     return {
-      items: rows.map((row) => ({
-        anilistId: row.anilistId,
-        animeTitle: row.animeTitle,
-        trackCount: row.trackCount,
-        episodeCount: row.episodeCount,
-        lastFetched: row.lastFetched?.toISOString() ?? null,
-        poster: row.poster,
-        status: row.status,
-        totalEpisodes: row.totalEpisodes,
-        isComplete: row.isComplete,
-        score: row.score,
-        year: row.year,
-      })),
+      items: rows.map((row) => {
+        const summary = summaryMap.get(row.anilistId);
+        const totalEpisodes = summary?.totalEpisodes ?? null;
+        const episodeCount = row.episodeCount;
+        const isComplete =
+          summary?.isComplete ??
+          (totalEpisodes != null && totalEpisodes > 0 && episodeCount >= totalEpisodes);
+
+        return {
+          anilistId: row.anilistId,
+          animeTitle: summary?.animeTitle ?? row.animeTitle,
+          trackCount: row.trackCount,
+          episodeCount,
+          lastFetched: row.lastFetched?.toISOString() ?? null,
+          poster: summary?.poster ?? null,
+          status: summary?.status ?? null,
+          totalEpisodes,
+          isComplete,
+          score: summary?.score ?? null,
+          year: summary?.year ?? null,
+        };
+      }),
       total,
       page,
       limit,
       hasNextPage: page * limit < total,
       cachedAnilistIds,
     };
-  } catch {
+  } catch (err) {
+    console.error("[subtitle-cache] searchSubtitleLibrary failed:", err);
     return { items: [], total: 0, page, limit, hasNextPage: false, cachedAnilistIds: [] };
   }
 }

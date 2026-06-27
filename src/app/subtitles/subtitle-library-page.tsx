@@ -57,6 +57,7 @@ export default function SubtitleLibraryPage() {
     pageParam,
     filterParam,
   );
+  const backfillAttempted = useRef(false);
   const { data: animeSearch, isLoading: animeSearchLoading } = useDiscoverAnimeSearch(qParam);
 
   const cachedIdSet = useMemo(
@@ -122,6 +123,14 @@ export default function SubtitleLibraryPage() {
 
     void runAutoSync();
   }, [queryClient]);
+
+  useEffect(() => {
+    if (backfillAttempted.current || statsLoading || isLoading || qParam.trim()) return;
+    if ((stats?.totalAnimes ?? 0) > 0 && (library?.total ?? 0) === 0) {
+      backfillAttempted.current = true;
+      void refetch();
+    }
+  }, [stats, library, statsLoading, isLoading, qParam, refetch]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
