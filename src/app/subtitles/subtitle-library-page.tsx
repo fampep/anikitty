@@ -4,9 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "react-query";
 import Container from "@/components/container";
-import Pagination from "@/components/common/pagination";
-import SubtitleAnimeCard from "@/components/subtitle-anime-card";
-import DiscoverSubtitleCard from "@/components/discover-subtitle-card";
+import SubtitleFeedCard, {
+  SubtitleFeedCardSkeleton,
+  SubtitleFeedPager,
+} from "@/components/subtitles/subtitle-feed-card";
+import {
+  SubtitleCacheSidebar,
+  SubtitleForumSidebar,
+} from "@/components/subtitles/subtitle-library-sidebar";
 import { ROUTES } from "@/constants/routes";
 import {
   syncSubtitleLibrary,
@@ -19,17 +24,11 @@ import {
   downloadSubtitleEpisodesZip,
   fetchAllAnimeSubtitles,
 } from "@/query/get-anime-subtitles";
+import type { SubtitleLibraryEntry } from "@/lib/subtitle-cache-store";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import {
-  Captions,
-  CheckCircle2,
-  Film,
-  Loader2,
-  Search,
-  Subtitles,
-} from "lucide-react";
+import { Captions, Loader2, Search } from "lucide-react";
 
 export default function SubtitleLibraryPage() {
   const t = useT();
@@ -162,186 +161,160 @@ export default function SubtitleLibraryPage() {
   };
 
   return (
-    <div className="min-h-screen pt-8 pb-24">
-      <Container className="pb-2">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-0.5 h-6 bg-white/35 shrink-0" />
-          <Subtitles className="w-5 h-5 text-white/50" />
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            {t("subsLibrary.title")}
-          </h1>
-        </div>
-        <p className="text-sm text-white/35 font-mono pl-[3.25rem] max-w-2xl leading-relaxed">
-          {t("subsLibrary.subtitle")}
-        </p>
-        {autoSyncing && (
-          <p className="text-[11px] font-mono text-teal-400/70 pl-[3.25rem] mt-2 flex items-center gap-2">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            {t("subsLibrary.autoSyncing")}
-          </p>
-        )}
-      </Container>
+    <div className="min-h-screen pb-20 pt-4">
+      <Container>
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+          <aside className="order-2 flex w-full shrink-0 flex-col gap-4 lg:order-1 lg:w-[272px]">
+            <SubtitleForumSidebar />
+            <SubtitleCacheSidebar stats={stats} loading={statsLoading} />
+          </aside>
 
-      <Container className="mt-8 space-y-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard
-            label={t("subsLibrary.stats.animes")}
-            value={stats?.totalAnimes}
-            loading={statsLoading}
-            icon={<Film className="w-4 h-4 text-violet-400/80" />}
-          />
-          <StatCard
-            label={t("subsLibrary.stats.completed")}
-            value={stats?.completedAnimes}
-            loading={statsLoading}
-            icon={<CheckCircle2 className="w-4 h-4 text-emerald-400/80" />}
-          />
-          <StatCard
-            label={t("subsLibrary.stats.tracks")}
-            value={stats?.totalTracks}
-            loading={statsLoading}
-            icon={<Captions className="w-4 h-4 text-teal-400/80" />}
-          />
-        </div>
-
-        <form onSubmit={handleSearch} className="relative max-w-xl">
-          <Search className="absolute inset-y-0 left-3.5 m-auto h-4 w-4 text-white/30 pointer-events-none" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("subsLibrary.searchPlaceholder")}
-            className="w-full h-11 pl-10 pr-24 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white/80 placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
-          />
-          <button
-            type="submit"
-            className="absolute inset-y-0 right-1.5 my-auto h-8 px-3.5 rounded-lg text-[11px] font-semibold bg-white text-black hover:bg-white/90 transition-colors"
-          >
-            {t("subsLibrary.search")}
-          </button>
-        </form>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {(["all", "completed"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => pushParams(qParam, 1, tab)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors",
-                filterParam === tab
-                  ? "bg-white text-black border-white"
-                  : "bg-white/[0.03] text-white/45 border-white/10 hover:text-white/70",
+          <section className="order-1 min-w-0 flex-1 lg:order-2">
+            <div className="mb-5">
+              <h1 className="text-xl font-bold tracking-tight text-white md:text-2xl">
+                {t("subsLibrary.title")}
+              </h1>
+              <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-white/35">
+                {t("subsLibrary.subtitle")}
+              </p>
+              {autoSyncing && (
+                <p className="mt-2 flex items-center gap-2 text-[11px] font-mono text-teal-400/70">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {t("subsLibrary.autoSyncing")}
+                </p>
               )}
-            >
-              {tab === "all" ? t("subsLibrary.tabAll") : t("subsLibrary.tabCompleted")}
-            </button>
-          ))}
-        </div>
+            </div>
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="text-[11px] font-mono text-white/30 uppercase tracking-widest">
-              {filterParam === "completed"
-                ? t("subsLibrary.completedSection", { count: library?.total ?? 0 })
-                : qParam
-                  ? t("subsLibrary.cachedSection", { count: library?.total ?? 0 })
-                  : t("subsLibrary.cachedBrowse")}
-            </h2>
-            {isFetching && !isLoading && (
-              <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
-            )}
-          </div>
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 sm:p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-black/20 p-0.5">
+                  {(["all", "completed"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => pushParams(qParam, 1, tab)}
+                      className={cn(
+                        "rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                        filterParam === tab
+                          ? "bg-white text-black"
+                          : "text-white/45 hover:text-white/70",
+                      )}
+                    >
+                      {tab === "all" ? t("subsLibrary.tabAll") : t("subsLibrary.tabCompleted")}
+                    </button>
+                  ))}
+                </div>
 
-          {isLoading ? (
-            <CardGridSkeleton />
-          ) : isError ? (
-            <LibraryError onRetry={() => refetch()} />
-          ) : library && library.items.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {library.items.map((item) => (
-                  <SubtitleAnimeCard
-                    key={item.anilistId}
-                    item={item}
-                    downloading={downloadingId === item.anilistId}
-                    fetching={fetchingId === item.anilistId}
-                    onDownload={() => handleDownloadAll(item.anilistId)}
-                    onFetch={() => handleFetchSubs(item.anilistId)}
+                <form
+                  onSubmit={handleSearch}
+                  role="search"
+                  className="relative min-w-0 flex-1 sm:min-w-[200px]"
+                >
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={t("subsLibrary.searchPlaceholder")}
+                    aria-label={t("subsLibrary.searchPlaceholder")}
+                    maxLength={80}
+                    className="h-9 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] pl-3 pr-9 text-[13px] text-white/80 outline-none transition-colors placeholder:text-white/25 focus:border-violet-500/30"
                   />
-                ))}
+                  <button
+                    type="submit"
+                    aria-label={t("subsLibrary.search")}
+                    className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-white/35 hover:text-white/60"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </button>
+                </form>
+
+                {isFetching && !isLoading && (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/30" />
+                )}
               </div>
 
-              {totalPages > 1 && (
-                <Pagination
-                  currentPage={pageParam}
+              <div className="subs-feed-grid mt-4 space-y-2">
+                {isLoading ? (
+                  Array.from({ length: 12 }).map((_, i) => (
+                    <SubtitleFeedCardSkeleton key={i} index={i} />
+                  ))
+                ) : isError ? (
+                  <LibraryError onRetry={() => refetch()} />
+                ) : library && library.items.length > 0 ? (
+                  library.items.map((item, i) => (
+                    <SubtitleFeedCard
+                      key={item.anilistId}
+                      item={item}
+                      index={i}
+                      downloading={downloadingId === item.anilistId}
+                      fetching={fetchingId === item.anilistId}
+                      onDownload={() => handleDownloadAll(item.anilistId)}
+                      onFetch={() => handleFetchSubs(item.anilistId)}
+                    />
+                  ))
+                ) : (
+                  <EmptyLibrary hasQuery={!!qParam} filter={filterParam} />
+                )}
+              </div>
+
+              {!isLoading && !isError && library && library.items.length > 0 && (
+                <SubtitleFeedPager
+                  page={pageParam}
                   totalPages={totalPages}
-                  handlePreviousPage={() => pushParams(qParam, pageParam - 1, filterParam)}
-                  handleNextPage={() => pushParams(qParam, pageParam + 1, filterParam)}
-                  handlePageChange={(p) => pushParams(qParam, p, filterParam)}
+                  onPage={(p) => pushParams(qParam, p, filterParam)}
                 />
               )}
-            </>
-          ) : (
-            <EmptyLibrary hasQuery={!!qParam} filter={filterParam} />
-          )}
-        </section>
+            </div>
 
-        {showDiscover && (
-          <section className="space-y-4">
-            <h2 className="text-[11px] font-mono text-white/30 uppercase tracking-widest">
-              {t("subsLibrary.discoverSection")}
-            </h2>
-            <p className="text-xs text-white/35 max-w-2xl leading-relaxed">
-              {t("subsLibrary.discoverHint")}
-            </p>
+            {showDiscover && (
+              <div className="mt-6 rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 sm:p-4">
+                <h2 className="text-[11px] font-mono uppercase tracking-widest text-white/30">
+                  {t("subsLibrary.discoverSection")}
+                </h2>
+                <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-white/35">
+                  {t("subsLibrary.discoverHint")}
+                </p>
 
-            {animeSearchLoading ? (
-              <CardGridSkeleton count={6} />
-            ) : discoverAnimes.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {discoverAnimes.map((anime) => (
-                  <DiscoverSubtitleCard
-                    key={anime.id}
-                    anime={anime}
-                    fetching={fetchingId === parseInt(anime.id, 10)}
-                    onFetch={() => handleFetchSubs(parseInt(anime.id, 10))}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-8 text-center">
-                <p className="text-sm text-white/40">{t("subsLibrary.discoverEmpty")}</p>
+                <div className="mt-4 space-y-2">
+                  {animeSearchLoading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <SubtitleFeedCardSkeleton key={i} index={i} />
+                    ))
+                  ) : discoverAnimes.length > 0 ? (
+                    discoverAnimes.map((anime, i) => {
+                      const anilistId = parseInt(anime.id, 10);
+                      const entry: SubtitleLibraryEntry = {
+                        anilistId,
+                        animeTitle: anime.name ?? null,
+                        trackCount: 0,
+                        episodeCount: anime.episodes?.sub ?? 0,
+                        lastFetched: null,
+                        poster: anime.poster ?? null,
+                        status: anime.status ?? null,
+                        totalEpisodes: anime.episodes?.sub ?? null,
+                        year: anime.year ?? null,
+                      };
+                      return (
+                        <SubtitleFeedCard
+                          key={anime.id}
+                          item={entry}
+                          index={i}
+                          discover
+                          fetching={fetchingId === anilistId}
+                          onFetch={() => handleFetchSubs(anilistId)}
+                        />
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-lg border border-white/8 bg-white/[0.02] px-5 py-8 text-center">
+                      <p className="text-sm text-white/40">{t("subsLibrary.discoverEmpty")}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </section>
-        )}
+        </div>
       </Container>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  loading,
-  icon,
-}: {
-  label: string;
-  value?: number;
-  loading: boolean;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.03] px-5 py-4 flex items-center gap-4">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.04] border border-white/8 shrink-0">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest">{label}</p>
-        <p className="text-2xl font-bold text-white tabular-nums mt-0.5">
-          {loading ? "—" : (value ?? 0).toLocaleString()}
-        </p>
-      </div>
     </div>
   );
 }
@@ -354,7 +327,7 @@ function LibraryError({ onRetry }: { onRetry: () => void }) {
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 h-8 px-4 rounded-lg text-[11px] font-semibold bg-white/10 border border-white/15 text-white/70 hover:text-white transition-colors"
+        className="mt-4 h-8 rounded-lg border border-white/15 bg-white/10 px-4 text-[11px] font-semibold text-white/70 transition-colors hover:text-white"
       >
         {t("subsLibrary.retry")}
       </button>
@@ -372,7 +345,7 @@ function EmptyLibrary({
   const t = useT();
   return (
     <div className="rounded-xl border border-white/8 bg-white/[0.02] px-6 py-12 text-center">
-      <Captions className="w-10 h-10 text-white/15 mx-auto mb-4" />
+      <Captions className="mx-auto mb-4 h-10 w-10 text-white/15" />
       <p className="text-sm text-white/45">
         {filter === "completed"
           ? t("subsLibrary.emptyCompleted")
@@ -381,21 +354,8 @@ function EmptyLibrary({
             : t("subsLibrary.empty")}
       </p>
       {hasQuery && filter === "all" && (
-        <p className="text-xs text-white/30 mt-2">{t("subsLibrary.emptySearchHint")}</p>
+        <p className="mt-2 text-xs text-white/30">{t("subsLibrary.emptySearchHint")}</p>
       )}
-    </div>
-  );
-}
-
-function CardGridSkeleton({ count = 12 }: { count?: number }) {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex flex-col gap-2 max-w-[12.625rem] mx-auto w-full">
-          <div className="aspect-[2/3] rounded-xl border border-white/8 bg-white/[0.02] animate-pulse" />
-          <div className="h-7 rounded-lg bg-white/[0.04] animate-pulse" />
-        </div>
-      ))}
     </div>
   );
 }

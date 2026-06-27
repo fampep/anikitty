@@ -444,3 +444,17 @@ html[data-user-theme] .user-accent-btn:hover {
   background-color: rgb(var(--user-accent-rgb) / 0.22) !important;
 }
 
+/* Subtitle library feed (ryuo-style layout, Anikitty theme) */
+.subs-chip {
+  @apply inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide;
+  @apply border border-white/[0.08] bg-white/[0.04] text-white/45;
+}
+
+.subs-chip-complete {
+  @apply border-emerald-500/25 bg-emerald-500/10 text-emerald-400/90;
+}
+
+.subs-feed-grid > * {
+  animation: fadeInUp 0.35s ease both;
+}
+
