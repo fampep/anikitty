@@ -207,7 +207,10 @@ export async function resolveMiruroEpisodeSlug(
   return null;
 }
 
-function normalizeSubtitleTracks(raw: unknown): StreamTrack[] {
+function normalizeSubtitleTracks(
+  raw: unknown,
+  headers?: Record<string, string>,
+): StreamTrack[] {
   if (!Array.isArray(raw)) return [];
 
   const tracks: StreamTrack[] = [];
@@ -224,6 +227,9 @@ function normalizeSubtitleTracks(raw: unknown): StreamTrack[] {
     if (!rawFile?.trim()) continue;
 
     const unwrapped = unwrapKittyProxyUrl(rawFile.trim());
+    if (unwrapped.referer && headers && !headers.Referer) {
+      headers.Referer = unwrapped.referer;
+    }
 
     tracks.push({
       file: unwrapped.url,
@@ -234,7 +240,6 @@ function normalizeSubtitleTracks(raw: unknown): StreamTrack[] {
         "Unknown",
       kind: (typeof row.kind === "string" && row.kind) || "subtitles",
       default: Boolean(row.default ?? row.isDefault),
-      ...(unwrapped.referer ? { referer: unwrapped.referer } : {}),
     });
   }
 
@@ -285,8 +290,13 @@ export async function fetchMiruroSubtitleStream(opts: {
 
       if (!data) continue;
 
+      const headers =
+        data.headers && typeof data.headers === "object"
+          ? (data.headers as Record<string, string>)
+          : {};
+
       const rawSubs = data.subtitles ?? data.tracks ?? data.subtitleTracks;
-      const tracks = normalizeSubtitleTracks(rawSubs);
+      const tracks = normalizeSubtitleTracks(rawSubs, headers);
       if (tracks.length === 0) continue;
 
       const animeTitle =
@@ -298,18 +308,6 @@ export async function fetchMiruroSubtitleStream(opts: {
         row?.title ||
         null;
 
-      const headers =
-        data.headers && typeof data.headers === "object"
-          ? (data.headers as Record<string, string>)
-          : {};
-
-      for (const track of tracks) {
-        const trackReferer = (track as StreamTrack & { referer?: string }).referer;
-        if (trackReferer && !headers.Referer) {
-          headers.Referer = trackReferer;
-        }
-      }
-
       const bestStream =
         data.bestStream && typeof data.bestStream === "object"
           ? (data.bestStream as { referer?: string })
@@ -318,9 +316,8 @@ export async function fetchMiruroSubtitleStream(opts: {
         headers.Referer = bestStream.referer;
       }
 
-      const cleanTracks = tracks.map(({ referer: _r, ...track }) => track as StreamTrack);
       return {
-        tracks: cleanTracks,
+        tracks,
         headers,
         animeTitle: animeTitle ?? null,
         provider,
@@ -363,7 +360,8 @@ export async function fetchAnitakuSubtitleStreamFallback(opts: {
       }
     }
 
-    const tracks = normalizeSubtitleTracks(data.tracks);
+    const headers = (data.headers ?? {}) as Record<string, string>;
+    const tracks = normalizeSubtitleTracks(data.tracks, headers);
     if (tracks.length === 0 && opts.audio === "dub") {
       return fetchAnitakuSubtitleStreamFallback({ ...opts, audio: "sub" });
     }
@@ -376,7 +374,7 @@ export async function fetchAnitakuSubtitleStreamFallback(opts: {
 
     return {
       tracks,
-      headers: (data.headers ?? {}) as Record<string, string>,
+      headers,
       animeTitle,
       provider: ANITAKU_FALLBACK_PROVIDER,
       slug: String(opts.episode),
