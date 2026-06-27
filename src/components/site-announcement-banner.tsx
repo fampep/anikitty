@@ -80,7 +80,7 @@ export default function SiteAnnouncementBanner() {
   if (visible.length === 0) return null;
 
   return (
-    <div className="fixed top-14 left-0 right-0 z-[90] flex flex-col gap-1 px-2 sm:px-4 pt-2 pointer-events-none">
+    <div className="pointer-events-none fixed left-0 right-0 top-[var(--nav-height)] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4">
       {visible.map((a) => {
         const style = STYLES[a.severity] ?? STYLES.info;
         const Icon = style.icon;

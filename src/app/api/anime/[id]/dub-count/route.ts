@@ -1,29 +1,57 @@
-const KITTY_BASE = "https://kittyapi.buzz";
+import { queryAniList, toTitle } from "@/lib/anilist";
+import { getAudioAvailability } from "@/lib/anikoto-availability";
 
-// Check dub availability by probing kittyapi directly with the anilist ID.
-// No AniList or HiAnime dependency — kittyapi resolves the anime itself.
+const TITLE_QUERY = `
+  query ($id: Int) {
+    Media(id: $id, type: ANIME) {
+      id
+      idMal
+      title { english romaji }
+      episodes
+      status
+      nextAiringEpisode { episode }
+    }
+  }
+`;
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const numId = parseInt(id, 10);
-  if (isNaN(numId)) return Response.json({ hasDub: false });
-
-  const headers: HeadersInit = {};
-  const apiKey = process.env.KITTY_API_KEY;
-  if (apiKey) headers["x-api-key"] = apiKey;
+  if (isNaN(numId)) {
+    return Response.json({ sub: 0, dub: 0, hasSub: false, hasDub: false });
+  }
 
   try {
-    const res = await fetch(
-      `${KITTY_BASE}/provider/Miruro/stream-direct?anilistId=${numId}&episode=1&audio=dub`,
-      { signal: AbortSignal.timeout(6000), headers },
-    );
-    const data = await res.json();
-    return Response.json({ hasDub: !!(data?.file) });
+    const raw = await queryAniList(TITLE_QUERY, { id: numId });
+    const m = raw.Media;
+    if (!m) {
+      return Response.json({ sub: 0, dub: 0, hasSub: false, hasDub: false });
+    }
+
+    const fallbackSub = m.nextAiringEpisode
+      ? m.nextAiringEpisode.episode - 1
+      : (m.episodes ?? 0);
+
+    const availability = await getAudioAvailability({
+      anilistId: numId,
+      malId: m.idMal,
+      titles: [toTitle(m.title), m.title?.romaji, m.title?.english],
+      fallbackSub,
+      status: m.status,
+    });
+
+    return Response.json({
+      sub: availability.sub,
+      dub: availability.dub,
+      hasSub: availability.hasSub,
+      hasDub: availability.hasDub,
+    });
   } catch {
-    return Response.json({ hasDub: false });
+    return Response.json({ sub: 0, dub: 0, hasSub: false, hasDub: false });
   }
 }
 
-export const maxDuration = 10;
+export const maxDuration = 15;

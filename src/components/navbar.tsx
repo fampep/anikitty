@@ -2,35 +2,175 @@
 
 import Link from "next/link";
 import Image from "next/image";
-
-const KITTY_ICON = "/jiji.jpg";
 import { cn } from "@/lib/utils";
-
 import Container from "./container";
-
 import { nightTokyo } from "@/utils/fonts";
 import { ROUTES } from "@/constants/routes";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
-
 import SearchBar from "./search-bar";
-import { CalendarDays, Flame, Home, MenuIcon, X, SearchIcon, MessagesSquare, MessageCircle, Users, HelpCircle } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  Flame,
+  HelpCircle,
+  Home,
+  MenuIcon,
+  MessageCircle,
+  MessagesSquare,
+  MoreHorizontal,
+  SearchIcon,
+  Users,
+  X,
+} from "lucide-react";
 import useScrollPosition from "@/hooks/use-scroll-position";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import LoginPopoverButton from "./login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 import { usePathname } from "next/navigation";
 
+const KITTY_ICON = "/jiji.jpg";
+
 const menuItems = [
-  { title: "Home",     href: ROUTES.HOME,     icon: Home },
-  { title: "Schedule", href: ROUTES.SCHEDULE, icon: CalendarDays },
-  { title: "Trending", href: ROUTES.TRENDING, icon: Flame },
-  { title: "Forum",    href: ROUTES.FORUM,    icon: MessagesSquare },
-  { title: "Live Chat", href: ROUTES.CHAT,    icon: MessageCircle },
-  { title: "Watch Together", href: ROUTES.WATCH_TOGETHER, icon: Users },
-  { title: "FAQ", href: ROUTES.FAQ, icon: HelpCircle },
-];
+  { title: "Home", short: "Home", href: ROUTES.HOME, icon: Home },
+  { title: "Schedule", short: "Schedule", href: ROUTES.SCHEDULE, icon: CalendarDays },
+  { title: "Trending", short: "Trending", href: ROUTES.TRENDING, icon: Flame },
+  { title: "Forum", short: "Forum", href: ROUTES.FORUM, icon: MessagesSquare },
+  { title: "Live Chat", short: "Chat", href: ROUTES.CHAT, icon: MessageCircle },
+  { title: "Watch Together", short: "Together", href: ROUTES.WATCH_TOGETHER, icon: Users },
+  { title: "FAQ", short: "FAQ", href: ROUTES.FAQ, icon: HelpCircle },
+] as const;
+
+const PRIMARY_NAV_COUNT = 4;
+
+type MenuItem = (typeof menuItems)[number];
+
+function navLinkClass(isActive: boolean, compact = false) {
+  return cn(
+    "flex items-center gap-1.5 rounded-xl border border-transparent font-medium transition-all duration-150",
+    compact ? "px-2.5 py-1.5 text-[13px]" : "px-3 py-1.5 text-sm",
+    isActive
+      ? "nav-link-active user-accent-nav-active font-semibold"
+      : "text-white/50 hover:bg-white/[0.06] hover:border-white/[0.06] hover:text-white/90",
+  );
+}
+
+function NavLink({
+  item,
+  pathname,
+  compact,
+  onClick,
+}: {
+  item: MenuItem;
+  pathname: string;
+  compact?: boolean;
+  onClick?: () => void;
+}) {
+  const isActive = pathname === item.href;
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      title={item.title}
+      onClick={onClick}
+      className={navLinkClass(isActive, compact)}
+    >
+      <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5 shrink-0")} />
+      <span className="whitespace-nowrap xl:hidden">{item.short}</span>
+      <span className="hidden whitespace-nowrap xl:inline">{item.title}</span>
+    </Link>
+  );
+}
+
+function DesktopNav({ pathname }: { pathname: string }) {
+  const primary = menuItems.slice(0, PRIMARY_NAV_COUNT);
+  const secondary = menuItems.slice(PRIMARY_NAV_COUNT);
+  const secondaryActive = secondary.some((item) => pathname === item.href);
+
+  return (
+    <>
+      <nav
+        className="hidden min-w-0 items-center justify-center gap-0.5 lg:flex 2xl:hidden"
+        aria-label="Main navigation"
+      >
+        {primary.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} compact />
+        ))}
+        <MoreNavMenu items={secondary} pathname={pathname} isActive={secondaryActive} compact />
+      </nav>
+
+      <nav
+        className="hidden min-w-0 items-center justify-center gap-0.5 2xl:flex"
+        aria-label="Main navigation"
+      >
+        {menuItems.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} />
+        ))}
+      </nav>
+    </>
+  );
+}
+
+function MoreNavMenu({
+  items,
+  pathname,
+  isActive,
+  compact,
+}: {
+  items: readonly MenuItem[];
+  pathname: string;
+  isActive: boolean;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(navLinkClass(isActive, compact), "cursor-pointer")}
+          aria-label="More pages"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+          <span>More</span>
+          <ChevronDown className={cn("h-3 w-3 opacity-60 transition-transform", open && "rotate-180")} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="center"
+        sideOffset={10}
+        className="w-52 border-white/[0.08] bg-[#0a0a10]/95 p-1.5 backdrop-blur-xl"
+      >
+        <div className="flex flex-col gap-0.5">
+          {items.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                  active
+                    ? "nav-link-active user-accent-nav-active font-semibold"
+                    : "text-white/60 hover:bg-white/[0.06] hover:text-white",
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.title}
+              </Link>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const NavBar = () => {
   const auth = useAuthStore();
@@ -62,85 +202,78 @@ const NavBar = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-[100] transition-all duration-300",
+        "fixed left-0 right-0 top-0 z-[100] transition-all duration-300",
         isScrolled
-          ? "bg-[#050508]/85 backdrop-blur-md md:backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
-          : "bg-gradient-to-b from-black/70 via-black/30 to-transparent",
+          ? "bg-[#050508]/88 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md md:backdrop-blur-2xl"
+          : "bg-gradient-to-b from-black/75 via-black/35 to-transparent",
       )}
     >
-      {/* Bottom border that fades in on scroll */}
-      <div className={cn(
-        "absolute bottom-0 left-0 right-0 h-px transition-opacity duration-300",
-        isScrolled ? "opacity-100" : "opacity-40",
-        "bg-gradient-to-r from-transparent via-violet-400/20 to-transparent",
-      )} />
+      <div
+        className={cn(
+          "absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/20 to-transparent transition-opacity duration-300",
+          isScrolled ? "opacity-100" : "opacity-40",
+        )}
+      />
 
-      <Container className="flex items-center h-14 gap-6">
-        {/* Logo */}
-        <Link href={ROUTES.HOME} className="flex items-center gap-2.5 shrink-0 group">
-          <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-violet-400/20 group-hover:ring-violet-400/45 transition-all duration-200 shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.15)]">
-            <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
-          </div>
-          <span className={cn(nightTokyo.className, "text-[1.1rem] font-bold text-white/90 tracking-widest hidden sm:block group-hover:text-white transition-colors")}>
-            AniKitty
-          </span>
-        </Link>
-
-        {/* Desktop nav links */}
-        <nav className="hidden lg:flex items-center gap-0.5">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm transition-all duration-150 border border-transparent",
-                  isActive
-                    ? "nav-link-active user-accent-nav-active font-semibold"
-                    : "text-white/50 font-medium hover:text-white/90 hover:bg-white/[0.06] hover:border-white/[0.06]",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {item.title}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Search + auth */}
-        <div className="hidden lg:flex items-center gap-2.5">
-          <SearchBar />
-          {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
-        </div>
-
-        {/* Mobile */}
-        <div className="lg:hidden flex items-center gap-1.5">
-          {/* Inline search bar expands when open */}
-          {mobileSearchOpen && (
-            <div ref={mobileSearchRef} className="absolute left-0 right-0 top-0 h-14 px-4 flex items-center gap-2 bg-[#050508]/95 backdrop-blur-2xl z-10 border-b border-white/[0.06]">
-              <SearchBar className="flex-1" onAnimeClick={() => setMobileSearchOpen(false)} />
-              <button
-                onClick={() => setMobileSearchOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-white/8 transition-colors text-white/50 hover:text-white shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </button>
+      <Container className="relative">
+        <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4">
+          {/* Brand */}
+          <Link href={ROUTES.HOME} className="group z-20 flex shrink-0 items-center gap-2.5">
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full shadow-[0_0_12px_rgba(124,58,237,0.15)] ring-1 ring-violet-400/20 transition-all duration-200 group-hover:ring-violet-400/45">
+              <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
             </div>
-          )}
-          <button
-            onClick={() => setMobileSearchOpen(true)}
-            className="p-1.5 rounded-lg hover:bg-white/8 transition-colors"
-            aria-label="Search"
-          >
-            <SearchIcon className="h-5 w-5 text-white/60" />
-          </button>
-          <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/60" suppressHydrationWarning />} />
-          {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
+            <span
+              className={cn(
+                nightTokyo.className,
+                "hidden text-[1.05rem] font-bold tracking-[0.22em] text-white/90 transition-colors group-hover:text-white sm:block",
+              )}
+            >
+              AniKitty
+            </span>
+          </Link>
+
+          {/* Centered desktop navigation */}
+          <div className="absolute left-1/2 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 lg:block">
+            <DesktopNav pathname={pathname} />
+          </div>
+
+          {/* Right actions */}
+          <div className="z-20 ml-auto flex items-center gap-2 sm:gap-2.5">
+            <div className="hidden lg:block">
+              <SearchBar className="w-[min(18rem,28vw)]" />
+            </div>
+            <div className="hidden lg:flex">{auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}</div>
+
+            {/* Mobile */}
+            <div className="flex items-center gap-1 lg:hidden">
+              {mobileSearchOpen && (
+                <div
+                  ref={mobileSearchRef}
+                  className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-2 border-b border-white/[0.06] bg-[#050508]/95 px-4 backdrop-blur-2xl"
+                >
+                  <SearchBar className="flex-1" onAnimeClick={() => setMobileSearchOpen(false)} />
+                  <button
+                    type="button"
+                    onClick={() => setMobileSearchOpen(false)}
+                    className="shrink-0 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white"
+                    aria-label="Close search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(true)}
+                className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white"
+                aria-label="Search"
+              >
+                <SearchIcon className="h-5 w-5" />
+              </button>
+              <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />} />
+              {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
+            </div>
+          </div>
         </div>
       </Container>
     </header>
@@ -149,28 +282,36 @@ const NavBar = () => {
 
 const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: string }) => {
   const [open, setOpen] = useState(false);
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button className="p-1.5 rounded-lg hover:bg-white/8 transition-colors">{trigger}</button>
+        <button type="button" className="rounded-lg p-2 transition-colors hover:bg-white/8" aria-label="Open menu">
+          {trigger}
+        </button>
       </SheetTrigger>
       <SheetContent
-        className="flex flex-col w-[75vw] max-w-xs z-[150] bg-[#050508]/98 backdrop-blur-2xl border-white/[0.08]"
+        className="z-[150] flex w-[min(85vw,20rem)] flex-col border-white/[0.08] bg-[#050508]/98 backdrop-blur-2xl"
         hideCloseButton
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-5 border-b border-white/8">
-            <span className={cn(nightTokyo.className, "text-lg font-bold text-white tracking-widest")}>
-              AniKitty
-            </span>
-            <SheetClose className="p-1 rounded-lg hover:bg-white/8 transition-colors text-white/50 hover:text-white">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="relative h-8 w-8 overflow-hidden rounded-full ring-1 ring-violet-400/25">
+                <Image src={KITTY_ICON} alt="" fill className="object-cover object-top" unoptimized />
+              </div>
+              <span className={cn(nightTokyo.className, "text-lg font-bold tracking-[0.18em] text-white")}>
+                AniKitty
+              </span>
+            </div>
+            <SheetClose className="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white">
               <X className="h-4 w-4" />
             </SheetClose>
           </div>
 
-          <nav className="flex flex-col gap-1 p-4">
+          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label="Mobile navigation">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -180,20 +321,20 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all border border-transparent",
+                    "flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-medium transition-all",
                     isActive
                       ? "nav-link-active user-accent-nav-active"
-                      : "text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.06]",
+                      : "text-white/55 hover:border-white/[0.06] hover:bg-white/[0.06] hover:text-white",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   {item.title}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="px-4 pb-4 mt-2">
+          <div className="border-t border-white/[0.06] p-4">
             <SearchBar onAnimeClick={() => setOpen(false)} />
           </div>
         </div>

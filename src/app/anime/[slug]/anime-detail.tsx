@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 
 import Container from "@/components/container";
@@ -37,7 +37,6 @@ import { useGetAnimeMappings } from "@/query/get-anime-mappings";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import { cn } from "@/lib/utils";
 import CommentSection from "@/components/comment-section";
-import { clientApiHeaders } from "@/lib/anti-scrape";
 
 const SelectOptions: ISelectOptions[] = [
   { value: "plan to watch", label: "Plan to Watch", icon: BookmarkCheck },
@@ -61,7 +60,8 @@ const DB_LINKS = [
 export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: anime, isLoading } = useGetAnimeDetails(slug);
   const { auth } = useAuthStore();
-  const [hasDub, setHasDub] = useState(false);
+  const stats = anime?.anime?.info?.stats;
+  const hasDub = (stats?.episodes?.dub ?? 0) > 0;
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
     animeID: slug,
     page: 1,
@@ -74,14 +74,6 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: banner } = useGetAnimeBanner(anilistId!);
   const { data: mappingData } = useGetAnimeMappings(anilistId);
   const { data: episodesData } = useGetAllEpisodes(slug);
-
-  useEffect(() => {
-    if (!slug) return;
-    fetch(`/api/anime/${slug}/dub-count`, { headers: clientApiHeaders() })
-      .then((r) => r.json())
-      .then((d) => { if (d.hasDub) setHasDub(true); })
-      .catch(() => {});
-  }, [slug]);
 
   const handleSelect = async (value: string) => {
     if (!auth) return;
@@ -180,14 +172,16 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               )}
               {stats?.type && <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />}
               {stats?.episodes?.sub !== undefined && (
-                <StatPill label={`${stats.episodes.sub} episodes`} />
+                <StatPill label={`${stats.episodes.sub} SUB`} />
+              )}
+              {hasDub && (
+                <StatPill label={`${stats!.episodes!.dub} DUB`} purple />
               )}
               {(moreInfo as any)?.duration && (
                 <StatPill label={(moreInfo as any).duration} />
               )}
               {moreInfo?.status && !isAiring && <StatPill label={moreInfo.status} />}
               {moreInfo?.premiered && <StatPill label={moreInfo.premiered} />}
-              {hasDub && <StatPill label="DUB" purple />}
             </div>
 
             {moreInfo?.genres && (moreInfo.genres as string[]).length > 0 && (

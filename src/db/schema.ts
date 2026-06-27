@@ -368,3 +368,14 @@ export const accountDeletionRequests = pgTable(
     userUnique: unique("account_deletion_requests_user_id").on(t.userId),
   }),
 );
+
+// Cached sub/dub episode counts from Anikoto API (keyed by AniList ID).
+export const animeAudioAvailability = pgTable("anime_audio_availability", {
+  anilistId: integer("anilist_id").primaryKey(),
+  malId: integer("mal_id"),
+  catalogId: integer("catalog_id"),
+  subCount: integer("sub_count").notNull().default(0),
+  dubCount: integer("dub_count").notNull().default(0),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

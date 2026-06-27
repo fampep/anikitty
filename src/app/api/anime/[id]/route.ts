@@ -1,4 +1,5 @@
 import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/anilist";
+import { getAudioAvailability } from "@/lib/anikoto-availability";
 
 const DETAIL_QUERY = `
   query ($id: Int) {
@@ -83,6 +84,19 @@ export async function GET(
       ? m.nextAiringEpisode.episode - 1
       : (m.episodes ?? 0);
 
+    const audio = await getAudioAvailability({
+      anilistId: numId,
+      malId: m.idMal,
+      titles: [toTitle(m.title), m.title?.romaji, m.title?.english],
+      fallbackSub: episodeCount,
+      status: m.status,
+    }).catch(() => ({
+      sub: episodeCount,
+      dub: 0,
+      hasSub: episodeCount > 0,
+      hasDub: false,
+    }));
+
     const animationStudios = (m.studios?.nodes ?? [])
       .filter((s: any) => s.isAnimationStudio)
       .map((s: any) => s.name);
@@ -103,7 +117,7 @@ export async function GET(
           stats: {
             rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
             quality: "HD",
-            episodes: { sub: episodeCount, dub: 0 },
+            episodes: { sub: audio.sub || episodeCount, dub: audio.dub },
             type: toFormat(m.format),
             duration: m.duration ? `${m.duration} min` : "N/A",
           },
