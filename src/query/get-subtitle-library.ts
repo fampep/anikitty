@@ -1,5 +1,6 @@
 import { useQuery } from "react-query";
 import { api } from "@/lib/api";
+import type { IAnimeSearch } from "@/types/anime";
 import type {
   SubtitleLibraryEntry,
   SubtitleLibraryStats,
@@ -11,6 +12,7 @@ export type SubtitleLibraryResult = {
   page: number;
   limit: number;
   hasNextPage: boolean;
+  cachedAnilistIds: number[];
 };
 
 const getSubtitleLibraryStats = async (): Promise<SubtitleLibraryStats> => {
@@ -41,4 +43,15 @@ export const useSubtitleLibrary = (q: string, page: number) =>
     queryFn: () => getSubtitleLibrary(q, page),
     keepPreviousData: true,
     staleTime: 30_000,
+  });
+
+export const useDiscoverAnimeSearch = (q: string) =>
+  useQuery({
+    queryKey: ["subs-discover-anime", q],
+    queryFn: async () => {
+      const res = await api.get("/api/search", { params: { q, page: 1 } });
+      return res.data.data as IAnimeSearch;
+    },
+    enabled: q.trim().length >= 2,
+    staleTime: 60_000,
   });

@@ -1,22 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "react-query";
 import Container from "@/components/container";
 import Pagination from "@/components/common/pagination";
 import { ROUTES } from "@/constants/routes";
-import { useSubtitleLibrary, useSubtitleLibraryStats } from "@/query/get-subtitle-library";
-import { downloadSubtitleEpisodesZip } from "@/query/get-anime-subtitles";
+import {
+  useDiscoverAnimeSearch,
+  useSubtitleLibrary,
+  useSubtitleLibraryStats,
+} from "@/query/get-subtitle-library";
+import {
+  downloadSubtitleEpisodesZip,
+  fetchAllAnimeSubtitles,
+} from "@/query/get-anime-subtitles";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { IAnime } from "@/types/anime";
 import {
   Captions,
   Download,
   ExternalLink,
   Film,
   Loader2,
+  Plus,
+  RefreshCw,
   Search,
   Subtitles,
 } from "lucide-react";
@@ -25,12 +37,14 @@ export default function SubtitleLibraryPage() {
   const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const qParam = searchParams.get("q") ?? "";
   const pageParam = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
 
   const [query, setQuery] = useState(qParam);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [fetchingId, setFetchingId] = useState<number | null>(null);
 
   useEffect(() => {
     setQuery(qParam);
@@ -38,8 +52,23 @@ export default function SubtitleLibraryPage() {
 
   const { data: stats, isLoading: statsLoading } = useSubtitleLibraryStats();
   const { data: library, isLoading, isFetching } = useSubtitleLibrary(qParam, pageParam);
+  const { data: animeSearch, isLoading: animeSearchLoading } = useDiscoverAnimeSearch(qParam);
+
+  const cachedIdSet = useMemo(
+    () => new Set(library?.cachedAnilistIds ?? []),
+    [library?.cachedAnilistIds],
+  );
+
+  const discoverAnimes = useMemo(() => {
+    if (!animeSearch?.animes?.length) return [];
+    return animeSearch.animes.filter((a) => {
+      const id = parseInt(a.id, 10);
+      return !Number.isNaN(id) && !cachedIdSet.has(id);
+    });
+  }, [animeSearch, cachedIdSet]);
 
   const totalPages = Math.max(1, Math.ceil((library?.total ?? 0) / (library?.limit ?? 24)));
+  const showDiscover = qParam.trim().length >= 2;
 
   const pushParams = (nextQ: string, nextPage: number) => {
     const p = new URLSearchParams();
@@ -54,6 +83,11 @@ export default function SubtitleLibraryPage() {
     pushParams(query, 1);
   };
 
+  const invalidateLibrary = () => {
+    queryClient.invalidateQueries(["subtitle-library-stats"]);
+    queryClient.invalidateQueries(["subtitle-library"]);
+  };
+
   const handleDownloadAll = async (anilistId: number) => {
     setDownloadingId(anilistId);
     try {
@@ -63,6 +97,26 @@ export default function SubtitleLibraryPage() {
       toast.error(t("subsLibrary.downloadError"));
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleFetchSubs = async (anilistId: number) => {
+    setFetchingId(anilistId);
+    toast.loading(t("subsLibrary.fetching"), { id: `fetch-subs-${anilistId}` });
+    try {
+      const tracks = await fetchAllAnimeSubtitles(anilistId);
+      toast.dismiss(`fetch-subs-${anilistId}`);
+      if (tracks.length > 0) {
+        toast.success(t("subsLibrary.fetchSuccess", { count: tracks.length }));
+      } else {
+        toast.info(t("subsLibrary.fetchEmpty"));
+      }
+      invalidateLibrary();
+    } catch {
+      toast.dismiss(`fetch-subs-${anilistId}`);
+      toast.error(t("subsLibrary.fetchError"));
+    } finally {
+      setFetchingId(null);
     }
   };
 
@@ -81,7 +135,7 @@ export default function SubtitleLibraryPage() {
         </p>
       </Container>
 
-      <Container className="mt-8 space-y-8">
+      <Container className="mt-8 space-y-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <StatCard
             label={t("subsLibrary.stats.animes")}
@@ -113,56 +167,80 @@ export default function SubtitleLibraryPage() {
           </button>
         </form>
 
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-[11px] font-mono text-white/30 uppercase tracking-widest">
-            {library
-              ? t("subsLibrary.resultsCount", { count: library.total })
-              : t("subsLibrary.loading")}
-          </p>
-          {isFetching && !isLoading && (
-            <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
-          )}
-        </div>
-
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-36 rounded-xl border border-white/8 bg-white/[0.02] animate-pulse"
-              />
-            ))}
-          </div>
-        ) : library && library.items.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {library.items.map((item) => (
-                <AnimeSubCard
-                  key={item.anilistId}
-                  item={item}
-                  downloading={downloadingId === item.anilistId}
-                  onDownload={() => handleDownloadAll(item.anilistId)}
-                />
-              ))}
-            </div>
-
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={pageParam}
-                totalPages={totalPages}
-                handlePreviousPage={() => pushParams(qParam, pageParam - 1)}
-                handleNextPage={() => pushParams(qParam, pageParam + 1)}
-                handlePageChange={(p) => pushParams(qParam, p)}
-              />
+        {/* Cached library */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-[11px] font-mono text-white/30 uppercase tracking-widest">
+              {qParam
+                ? t("subsLibrary.cachedSection", { count: library?.total ?? 0 })
+                : t("subsLibrary.cachedBrowse")}
+            </h2>
+            {isFetching && !isLoading && (
+              <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
             )}
-          </>
-        ) : (
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] px-6 py-16 text-center">
-            <Captions className="w-10 h-10 text-white/15 mx-auto mb-4" />
-            <p className="text-sm text-white/45">
-              {qParam ? t("subsLibrary.emptySearch") : t("subsLibrary.empty")}
-            </p>
           </div>
+
+          {isLoading ? (
+            <LibrarySkeletons />
+          ) : library && library.items.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {library.items.map((item) => (
+                  <CachedAnimeCard
+                    key={item.anilistId}
+                    item={item}
+                    downloading={downloadingId === item.anilistId}
+                    fetching={fetchingId === item.anilistId}
+                    onDownload={() => handleDownloadAll(item.anilistId)}
+                    onFetch={() => handleFetchSubs(item.anilistId)}
+                  />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={pageParam}
+                  totalPages={totalPages}
+                  handlePreviousPage={() => pushParams(qParam, pageParam - 1)}
+                  handleNextPage={() => pushParams(qParam, pageParam + 1)}
+                  handlePageChange={(p) => pushParams(qParam, p)}
+                />
+              )}
+            </>
+          ) : (
+            <EmptyLibrary hasQuery={!!qParam} />
+          )}
+        </section>
+
+        {/* AniList discover */}
+        {showDiscover && (
+          <section className="space-y-4">
+            <h2 className="text-[11px] font-mono text-white/30 uppercase tracking-widest">
+              {t("subsLibrary.discoverSection")}
+            </h2>
+            <p className="text-xs text-white/35 max-w-2xl leading-relaxed">
+              {t("subsLibrary.discoverHint")}
+            </p>
+
+            {animeSearchLoading ? (
+              <DiscoverSkeletons />
+            ) : discoverAnimes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {discoverAnimes.map((anime) => (
+                  <DiscoverAnimeCard
+                    key={anime.id}
+                    anime={anime}
+                    fetching={fetchingId === parseInt(anime.id, 10)}
+                    onFetch={() => handleFetchSubs(parseInt(anime.id, 10))}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-8 text-center">
+                <p className="text-sm text-white/40">{t("subsLibrary.discoverEmpty")}</p>
+              </div>
+            )}
+          </section>
         )}
       </Container>
     </div>
@@ -195,22 +273,26 @@ function StatCard({
   );
 }
 
-function AnimeSubCard({
+function CachedAnimeCard({
   item,
   downloading,
+  fetching,
   onDownload,
+  onFetch,
 }: {
   item: {
     anilistId: number;
     animeTitle: string | null;
     trackCount: number;
     episodeCount: number;
-    lastFetched: string | null;
   };
   downloading: boolean;
+  fetching: boolean;
   onDownload: () => void;
+  onFetch: () => void;
 }) {
   const t = useT();
+  const busy = downloading || fetching;
   const title = item.animeTitle?.trim() || t("subsLibrary.unknownAnime", { id: item.anilistId });
 
   return (
@@ -222,9 +304,7 @@ function AnimeSubCard({
         >
           {title}
         </Link>
-        <p className="text-[10px] font-mono text-white/25 mt-1">
-          AniList #{item.anilistId}
-        </p>
+        <p className="text-[10px] font-mono text-white/25 mt-1">AniList #{item.anilistId}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -240,7 +320,7 @@ function AnimeSubCard({
         <button
           type="button"
           onClick={onDownload}
-          disabled={downloading}
+          disabled={busy}
           className={cn(
             "inline-flex items-center justify-center gap-1.5 flex-1 h-8 rounded-lg text-[11px] font-semibold",
             "bg-violet-500/15 border border-violet-500/25 text-violet-300 hover:bg-violet-500/25 transition-colors disabled:opacity-50",
@@ -253,6 +333,19 @@ function AnimeSubCard({
           )}
           {t("subsLibrary.downloadAll")}
         </button>
+        <button
+          type="button"
+          onClick={onFetch}
+          disabled={busy}
+          title={t("subsLibrary.fetchMore")}
+          className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg text-[11px] font-semibold border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+        >
+          {fetching ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3.5 h-3.5" />
+          )}
+        </button>
         <Link
           href={`${ROUTES.ANIME_DETAILS}/${item.anilistId}?tab=subtitles`}
           className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg text-[11px] font-semibold border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/[0.04] transition-colors"
@@ -261,6 +354,113 @@ function AnimeSubCard({
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
       </div>
+    </div>
+  );
+}
+
+function DiscoverAnimeCard({
+  anime,
+  fetching,
+  onFetch,
+}: {
+  anime: IAnime;
+  fetching: boolean;
+  onFetch: () => void;
+}) {
+  const t = useT();
+  const anilistId = parseInt(anime.id, 10);
+
+  return (
+    <div className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden flex gap-0 hover:border-violet-500/25 transition-colors">
+      <div className="relative w-20 sm:w-24 shrink-0 bg-[#0d0d0d]">
+        {anime.poster ? (
+          <Image
+            src={anime.poster}
+            alt={anime.name}
+            fill
+            className="object-cover"
+            unoptimized
+            sizes="96px"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Film className="w-6 h-6 text-white/10" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 p-3 flex flex-col justify-between gap-2">
+        <div className="min-w-0">
+          <Link
+            href={`${ROUTES.ANIME_DETAILS}/${anime.id}?tab=subtitles`}
+            className="text-sm font-semibold text-white/85 hover:text-white line-clamp-2 transition-colors"
+          >
+            {anime.name}
+          </Link>
+          <p className="text-[10px] font-mono text-white/25 mt-0.5">
+            #{anime.id}
+            {anime.episodes?.sub ? ` · ${anime.episodes.sub} eps` : ""}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onFetch}
+          disabled={fetching || Number.isNaN(anilistId)}
+          className={cn(
+            "inline-flex items-center justify-center gap-1.5 w-full h-8 rounded-lg text-[11px] font-semibold",
+            "bg-teal-500/12 border border-teal-500/25 text-teal-300 hover:bg-teal-500/20 transition-colors disabled:opacity-50",
+          )}
+        >
+          {fetching ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Plus className="w-3.5 h-3.5" />
+          )}
+          {t("subsLibrary.fetchSubs")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyLibrary({ hasQuery }: { hasQuery: boolean }) {
+  const t = useT();
+  return (
+    <div className="rounded-xl border border-white/8 bg-white/[0.02] px-6 py-12 text-center">
+      <Captions className="w-10 h-10 text-white/15 mx-auto mb-4" />
+      <p className="text-sm text-white/45">
+        {hasQuery ? t("subsLibrary.emptySearch") : t("subsLibrary.empty")}
+      </p>
+      {hasQuery && (
+        <p className="text-xs text-white/30 mt-2">{t("subsLibrary.emptySearchHint")}</p>
+      )}
+    </div>
+  );
+}
+
+function LibrarySkeletons() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-36 rounded-xl border border-white/8 bg-white/[0.02] animate-pulse"
+        />
+      ))}
+    </div>
+  );
+}
+
+function DiscoverSkeletons() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-24 rounded-xl border border-white/8 bg-white/[0.02] animate-pulse"
+        />
+      ))}
     </div>
   );
 }

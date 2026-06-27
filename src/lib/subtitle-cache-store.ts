@@ -593,6 +593,7 @@ export async function searchSubtitleLibrary(opts: {
   page: number;
   limit: number;
   hasNextPage: boolean;
+  cachedAnilistIds: number[];
 }> {
   const page = Math.max(1, opts.page ?? 1);
   const limit = Math.min(50, Math.max(1, opts.limit ?? 24));
@@ -600,7 +601,7 @@ export async function searchSubtitleLibrary(opts: {
   const whereClause = subtitleLibraryWhere(opts.q);
 
   if (!dbAvailable()) {
-    return { items: [], total: 0, page, limit, hasNextPage: false };
+    return { items: [], total: 0, page, limit, hasNextPage: false, cachedAnilistIds: [] };
   }
 
   try {
@@ -614,6 +615,15 @@ export async function searchSubtitleLibrary(opts: {
       .where(whereClause);
 
     const total = countRow?.total ?? 0;
+
+    let cachedAnilistIds: number[] = [];
+    if (opts.q?.trim()) {
+      const idRows = await db
+        .selectDistinct({ anilistId: episodeSubtitles.anilistId })
+        .from(episodeSubtitles)
+        .where(whereClause);
+      cachedAnilistIds = idRows.map((row) => row.anilistId);
+    }
 
     const rows = await db
       .select({
@@ -642,8 +652,9 @@ export async function searchSubtitleLibrary(opts: {
       page,
       limit,
       hasNextPage: page * limit < total,
+      cachedAnilistIds,
     };
   } catch {
-    return { items: [], total: 0, page, limit, hasNextPage: false };
+    return { items: [], total: 0, page, limit, hasNextPage: false, cachedAnilistIds: [] };
   }
 }
