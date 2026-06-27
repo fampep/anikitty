@@ -185,25 +185,83 @@ button, a, [role="button"] {
 .react-calendar-heatmap .color-scale-4 { fill: #666; }
 .react-calendar-heatmap .color-scale-5 { fill: #999; }
 
-/* Vidstack player overrides — black theme */
+/* Vidstack player overrides — cinematic black theme */
 .vds-kitty media-player,
 .vds-kitty .vds-video-layout {
-  --media-brand: #ffffff;
-  --media-focus-ring-color: rgba(255,255,255,0.35);
-  --media-controls-bg: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
-  --media-menu-bg: #0a0a0a;
-  --media-menu-border: rgba(255,255,255,0.1);
-  --media-tooltip-bg: #0a0a0a;
-  --media-slider-track-bg: rgba(255,255,255,0.2);
-  --media-slider-track-fill-bg: #ffffff;
+  --media-brand: #c084fc;
+  --media-focus-ring-color: rgba(192, 132, 252, 0.45);
+  --media-controls-bg: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.35) 55%, transparent 100%);
+  --media-menu-bg: rgba(8, 8, 8, 0.96);
+  --media-menu-border: rgba(255, 255, 255, 0.1);
+  --media-tooltip-bg: rgba(8, 8, 8, 0.96);
+  --media-slider-track-bg: rgba(255, 255, 255, 0.18);
+  --media-slider-track-fill-bg: linear-gradient(90deg, #a855f7, #c084fc);
   --media-slider-thumb-bg: #ffffff;
+  --media-slider-thumb-size: 14px;
+  --media-time-slider-height: 32px;
+  --media-time-slider-track-height: 5px;
+  --media-time-slider-track-fill-border-radius: 999px;
+  --media-time-slider-track-border-radius: 999px;
   border-radius: 0;
+}
+
+.vds-kitty .vds-video-layout {
+  backdrop-filter: blur(0);
+}
+
+.vds-kitty .vds-time-slider {
+  cursor: pointer;
+}
+
+.vds-kitty .vds-time-slider:hover {
+  --media-time-slider-track-height: 7px;
+}
+
+.vds-kitty .vds-slider-track-fill {
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.45);
+}
+
+.vds-kitty .vds-time,
+.vds-kitty .vds-duration {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.vds-kitty .vds-button {
+  border-radius: 10px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.vds-kitty .vds-button:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.vds-kitty .vds-controls-group {
+  gap: 4px;
+}
+
+/* Use custom scrub preview when sprite thumbnails are generated */
+.vds-kitty[data-custom-thumbs] .vds-slider-preview {
+  display: none !important;
+}
+
+.vds-kitty .vds-slider-preview {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
 }
 
 .vds-kitty .vds-poster {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.vds-kitty .kitty-skip-marker {
+  border-radius: 999px;
 }
 
 /* User-selected accent theme */

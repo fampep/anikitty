@@ -2,15 +2,17 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Container from "@/components/container";
 import { RoleBadge } from "@/components/role-badge";
 import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
-  AlertOctagon, CheckCircle2, ExternalLink, Send,
+  AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/chat-config";
 
 const ADMIN_TOKEN_KEY = "adminToken";
 
@@ -149,6 +151,9 @@ interface StatsData {
   totalComments?: number;
   totalThreads?: number;
   anilistLinked?: number;
+  totalChatMessages?: number;
+  chatMessagesToday?: number;
+  chatMessagesLive?: number;
   security?: {
     jwtSecret: boolean;
     adminPassword: boolean;
@@ -179,6 +184,26 @@ interface Announcement {
   endsAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+}
+
+interface AdminChatMessage {
+  id: string;
+  body: string;
+  gifUrl: string | null;
+  createdAt: string;
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  role: string;
+  active: boolean;
+}
+
+interface ChatModerationData {
+  messageTtlMs: number;
+  totalCount: number;
+  activeCount: number;
+  expiredCount: number;
+  messages: AdminChatMessage[];
 }
 
 const SEVERITY_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -215,12 +240,13 @@ const BUILTIN_ROLES = [
 // Admin panel
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat">("overview");
 
   // Users
   const [users, setUsers]           = useState<AdminUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [search, setSearch]         = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
   const [pendingRole, setPendingRole] = useState<Record<string, string>>({});
   const [savingRole, setSavingRole]  = useState<string | null>(null);
 
@@ -250,6 +276,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [annDeleting, setAnnDeleting] = useState<string | null>(null);
   const [annToggling, setAnnToggling] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Live chat moderation
+  const [chatData, setChatData]         = useState<ChatModerationData | null>(null);
+  const [chatLoading, setChatLoading]   = useState(false);
+  const [chatDeleting, setChatDeleting] = useState<string | null>(null);
+  const [chatPurging, setChatPurging]   = useState<"expired" | "all" | null>(null);
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async (q?: string) => {
@@ -307,13 +339,25 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setAnnsLoading(false); }
   }, [onLogout]);
 
+  const fetchChat = useCallback(async () => {
+    setChatLoading(true);
+    try {
+      const res = await fetch("/api/admin/chat?limit=100", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      const data = await res.json();
+      setChatData(data);
+    } catch { toast.error("Failed to load chat"); }
+    finally { setChatLoading(false); }
+  }, [onLogout]);
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
     fetchActivity();
     fetchStats();
     fetchAnnouncements();
-  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements]);
+    fetchChat();
+  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements, fetchChat]);
 
   const refreshAll = async () => {
     setRefreshing(true);
@@ -324,6 +368,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         fetchActivity(activityView),
         fetchStats(),
         fetchAnnouncements(),
+        fetchChat(),
       ]);
       toast.success("Dashboard refreshed");
     } finally {
@@ -343,6 +388,63 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     ...BUILTIN_ROLES,
     ...roles.filter((r) => !["admin", "moderator", "user"].includes(r.name)),
   ];
+
+  const filteredUsers = roleFilter === "all"
+    ? users
+    : users.filter((u) => u.role === roleFilter);
+
+  const handleDeleteChatMessage = async (messageId: string) => {
+    setChatDeleting(messageId);
+    try {
+      const res = await fetch("/api/admin/chat", {
+        method: "DELETE",
+        headers: adminHeaders(),
+        body: JSON.stringify({ messageId }),
+      });
+      if (!res.ok) throw new Error();
+      setChatData((prev) =>
+        prev
+          ? {
+              ...prev,
+              messages: prev.messages.filter((m) => m.id !== messageId),
+              totalCount: Math.max(0, prev.totalCount - 1),
+              activeCount: Math.max(
+                0,
+                prev.activeCount -
+                  (prev.messages.find((m) => m.id === messageId)?.active ? 1 : 0),
+              ),
+            }
+          : prev,
+      );
+      toast.success("Message deleted");
+    } catch { toast.error("Failed to delete message"); }
+    finally { setChatDeleting(null); }
+  };
+
+  const handlePurgeChat = async (kind: "expired" | "all") => {
+    if (kind === "all" && !confirm("Delete ALL chat messages? This cannot be undone.")) return;
+    setChatPurging(kind);
+    try {
+      const res = await fetch("/api/admin/chat", {
+        method: "DELETE",
+        headers: adminHeaders(),
+        body: JSON.stringify(kind === "all" ? { purgeAll: true } : { purgeExpired: true }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      toast.success(`Removed ${data.deleted ?? 0} message${data.deleted === 1 ? "" : "s"}`);
+      await fetchChat();
+      await fetchStats();
+    } catch { toast.error("Purge failed"); }
+    finally { setChatPurging(null); }
+  };
+
+  useEffect(() => {
+    if (tab !== "chat") return;
+    fetchChat();
+    const id = setInterval(fetchChat, 10_000);
+    return () => clearInterval(id);
+  }, [tab, fetchChat]);
 
   // ── Role handlers ────────────────────────────────────────────────────────
   const handleRoleChange = async (userId: string, role: string) => {
@@ -487,6 +589,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </button>
+          <Link
+            href="/chat"
+            target="_blank"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-500/25 text-violet-300/80 text-[11px] font-mono hover:bg-violet-500/10 transition-all"
+          >
+            <MessageCircle className="w-3 h-3" /> Live Chat
+          </Link>
           <button
             onClick={onLogout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all"
@@ -498,12 +607,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
       <Container className="py-8">
         {/* ── Stats bar ──────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
           {((): { label: string; value: number | undefined; Icon: React.ElementType; color: string }[] => [
-            { label: "Total Users",    value: stats?.totalUsers,    Icon: Users,    color: "#4d9fff" },
-            { label: "Watch Sessions", value: stats?.totalSessions, Icon: Activity, color: "#a855f7" },
-            { label: "Active Today",   value: stats?.activeToday,   Icon: Zap,      color: "#f59e0b" },
-            { label: "AniList Linked", value: stats?.anilistLinked, Icon: TrendingUp, color: "#22d3ee" },
+            { label: "Total Users",    value: stats?.totalUsers,         Icon: Users,         color: "#4d9fff" },
+            { label: "Watch Sessions", value: stats?.totalSessions,      Icon: Activity,      color: "#a855f7" },
+            { label: "Active Today",   value: stats?.activeToday,          Icon: Zap,           color: "#f59e0b" },
+            { label: "Live Chat",      value: stats?.chatMessagesLive,     Icon: MessageCircle, color: "#c084fc" },
+            { label: "AniList Linked", value: stats?.anilistLinked,      Icon: TrendingUp,    color: "#22d3ee" },
           ])().map(({ label, value, Icon, color }) => (
             <div key={label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
               <div className="flex items-center gap-2 mb-3">
@@ -524,6 +634,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             { value: "users"          as const, label: "Users",         icon: <Users      className="w-4 h-4" /> },
             { value: "roles"          as const, label: "Roles",         icon: <Tag        className="w-4 h-4" /> },
             { value: "activity"       as const, label: "Activity",      icon: <Activity   className="w-4 h-4" /> },
+            { value: "chat"           as const, label: "Live Chat",     icon: <MessageCircle className="w-4 h-4" /> },
             { value: "announcements"  as const, label: "Announcements", icon: <Megaphone  className="w-4 h-4" /> },
           ]).map((t) => (
             <button
@@ -545,11 +656,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         {tab === "overview" && (
           <div className="flex flex-col gap-8">
             {/* Week summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 { label: "Active this week",      value: stats?.activeWeek   ?? 0, sub: "unique viewers"  },
                 { label: "New signups this week",  value: stats?.newUsersWeek ?? 0, sub: "new accounts"    },
                 { label: "Comments & threads",   value: (stats?.totalComments ?? 0) + (stats?.totalThreads ?? 0), sub: `${stats?.totalComments ?? 0} comments · ${stats?.totalThreads ?? 0} threads` },
+                { label: "Chat messages today",  value: stats?.chatMessagesToday ?? 0, sub: `${stats?.chatMessagesLive ?? 0} visible in live window` },
               ].map((c) => (
                 <div key={c.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-5">
                   <p className="text-[10px] font-mono text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
@@ -673,8 +785,21 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 />
               </div>
               {!usersLoading && (
-                <span className="text-[11px] font-mono text-white/25">{users.length} user{users.length !== 1 ? "s" : ""}</span>
+                <span className="text-[11px] font-mono text-white/25">
+                  {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}
+                  {roleFilter !== "all" ? ` · ${roleFilter}` : ""}
+                </span>
               )}
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="bg-black border border-white/15 text-white/70 text-[11px] font-mono rounded-lg px-2.5 py-2 cursor-pointer hover:border-white/30 focus:outline-none"
+              >
+                <option value="all" className="bg-black">All roles</option>
+                {allRoleOptions.map((r) => (
+                  <option key={r.id} value={r.name} className="bg-black">{r.name}</option>
+                ))}
+              </select>
             </div>
 
             {usersLoading ? (
@@ -696,7 +821,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.05]">
-                    {users.map((u) => {
+                    {filteredUsers.map((u) => {
                       const selected = pendingRole[u.id] ?? u.role;
                       const dirty = pendingRole[u.id] !== undefined && pendingRole[u.id] !== u.role;
                       return (
@@ -753,7 +878,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     })}
                   </tbody>
                 </table>
-                {users.length === 0 && (
+                {filteredUsers.length === 0 && (
                   <p className="text-center text-white/20 text-sm font-mono py-8">No users found</p>
                 )}
               </div>
@@ -984,6 +1109,148 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                         </tr>
                       );
                     })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        {/* ── LIVE CHAT ──────────────────────────────────────────── */}
+        {tab === "chat" && (
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-semibold text-white/80">Live chat moderation</p>
+                <p className="text-[11px] font-mono text-white/30">
+                  Messages auto-expire after{" "}
+                  {formatChatTtlLabel(chatData?.messageTtlMs ?? 2 * 60 * 60 * 1000)} · refreshes every 10s
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => fetchChat()}
+                  disabled={chatLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all disabled:opacity-30"
+                >
+                  <RefreshCw className={`w-3 h-3 ${chatLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => handlePurgeChat("expired")}
+                  disabled={!!chatPurging || (chatData?.expiredCount ?? 0) === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/25 text-amber-300/80 text-[11px] font-mono hover:bg-amber-500/10 transition-all disabled:opacity-30"
+                >
+                  {chatPurging === "expired" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                  Purge expired ({chatData?.expiredCount ?? 0})
+                </button>
+                <button
+                  onClick={() => handlePurgeChat("all")}
+                  disabled={!!chatPurging || (chatData?.totalCount ?? 0) === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/25 text-red-300/80 text-[11px] font-mono hover:bg-red-500/10 transition-all disabled:opacity-30"
+                >
+                  {chatPurging === "all" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                  Clear all
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: "Visible now", value: chatData?.activeCount ?? 0, color: "#c084fc" },
+                { label: "Expired in DB", value: chatData?.expiredCount ?? 0, color: "#f59e0b" },
+                { label: "Total stored", value: chatData?.totalCount ?? 0, color: "#94a3b8" },
+              ].map((c) => (
+                <div key={c.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
+                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
+                  <p className="text-2xl font-bold tabular-nums" style={{ color: c.color }}>
+                    {chatLoading ? "…" : c.value.toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {chatLoading && !chatData ? (
+              <div className="flex items-center gap-2 py-8 text-white/25">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm font-mono">Loading chat…</span>
+              </div>
+            ) : (chatData?.messages ?? []).length === 0 ? (
+              <p className="text-center text-white/20 text-sm font-mono py-8">No chat messages</p>
+            ) : (
+              <div className="rounded-xl border border-white/10 overflow-x-auto">
+                <table className="w-full text-sm min-w-[720px]">
+                  <thead>
+                    <tr className="border-b border-white/8 bg-white/[0.02]">
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Message</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Sent</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Expires</th>
+                      <th className="px-4 py-3 w-16" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.05]">
+                    {(chatData?.messages ?? []).map((m) => (
+                      <tr
+                        key={m.id}
+                        className={`hover:bg-white/[0.02] transition-colors ${!m.active ? "opacity-50" : ""}`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            {m.avatarUrl ? (
+                              <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10 shrink-0">
+                                <Image src={m.avatarUrl} alt={m.username} fill className="object-cover" unoptimized />
+                              </div>
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-white/8 flex items-center justify-center text-[12px] font-bold text-white/60 shrink-0">
+                                {m.username[0]?.toUpperCase()}
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[12px] font-medium text-white/80 truncate">@{m.username}</span>
+                              {m.role !== "user" && <RoleBadge role={m.role} size="xs" />}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 max-w-md">
+                          {m.body ? (
+                            <p className="text-[12px] text-white/65 whitespace-pre-wrap break-words line-clamp-3">{m.body}</p>
+                          ) : null}
+                          {m.gifUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={m.gifUrl}
+                              alt="GIF"
+                              className="mt-1.5 rounded-lg max-h-16 w-auto ring-1 ring-white/10"
+                            />
+                          ) : null}
+                          {!m.body && !m.gifUrl && (
+                            <span className="text-[11px] font-mono text-white/25">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className="text-[11px] font-mono text-white/30">{timeAgo(m.createdAt)}</span>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <span className={`text-[11px] font-mono ${m.active ? "text-emerald-400/70" : "text-amber-400/70"}`}>
+                            {chatExpiresInLabel(m.createdAt, chatData?.messageTtlMs)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleDeleteChatMessage(m.id)}
+                            disabled={chatDeleting === m.id}
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
+                            title="Delete message"
+                          >
+                            {chatDeleting === m.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

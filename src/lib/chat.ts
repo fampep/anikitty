@@ -1,4 +1,5 @@
 import { getAnisurgeToken } from "@/lib/anisurge";
+import { formatChatTtlLabel, isChatMessageActive } from "@/lib/chat-config";
 
 export type ChatMessage = {
   id: string;
@@ -40,7 +41,7 @@ export const chatApi = {
     if (opts?.after) params.set("after", opts.after);
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
-    return chatFetch<{ messages: ChatMessage[] }>(
+    return chatFetch<{ messages: ChatMessage[]; messageTtlMs: number }>(
       `/messages${qs ? `?${qs}` : ""}`,
     );
   },
@@ -71,3 +72,17 @@ export function formatChatTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+export function filterActiveChatMessages(
+  messages: ChatMessage[],
+  ttlMs: number,
+  now = Date.now(),
+): ChatMessage[] {
+  const cutoff = now - ttlMs;
+  return messages.filter((m) => {
+    const ts = new Date(m.createdAt).getTime();
+    return !Number.isNaN(ts) && ts >= cutoff;
+  });
+}
+
+export { formatChatTtlLabel, isChatMessageActive };

@@ -347,7 +347,7 @@ const VideoPlayerSection = () => {
 
   return (
     <div className="flex flex-col gap-3">
-    <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10">
+    <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
@@ -495,10 +495,12 @@ const VideoPlayerSection = () => {
 
 const PlayerSkeleton = ({ dim = false }: { dim?: boolean }) => (
   <div
-    className={`w-full aspect-video rounded-xl bg-black border border-white/10 flex flex-col items-center justify-center gap-3 ${dim ? "opacity-40" : ""}`}
+    className={`relative w-full aspect-video rounded-xl bg-[#050505] border border-white/10 flex flex-col items-center justify-center gap-3 overflow-hidden shadow-2xl shadow-black/60 ${dim ? "opacity-40" : ""}`}
   >
-    <Loader2 className="w-7 h-7 text-white/30 animate-spin" />
-    <p className="text-white/20 text-[11px] font-mono tracking-widest animate-pulse">fetching stream...</p>
+    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-transparent pointer-events-none" />
+    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+    <Loader2 className="w-7 h-7 text-violet-300/40 animate-spin relative z-10" />
+    <p className="text-white/25 text-[11px] font-mono tracking-widest animate-pulse relative z-10">fetching stream...</p>
   </div>
 );
 

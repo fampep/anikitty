@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getSecurityConfigStatus } from "@/lib/security";
+import { getChatCutoffDate } from "@/lib/chat-config";
 import { sql } from "drizzle-orm";
 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const db = getDb();
+  const chatCutoff = getChatCutoffDate();
 
-  const [totalsResult, topAnimeResult] = await Promise.all([
+  const [totalsResult, topAnimeResult, chatLiveResult] = await Promise.all([
     db.execute(sql`
       SELECT
         (SELECT COUNT(*) FROM users)::int                                                                          AS total_users,
@@ -20,7 +22,9 @@ export async function GET(req: Request) {
         (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '7 days')::int                           AS new_users_week,
         (SELECT COUNT(*) FROM comments)::int                                                                      AS total_comments,
         (SELECT COUNT(*) FROM forum_threads)::int                                                                 AS total_threads,
-        (SELECT COUNT(*) FROM users WHERE anilist_access_token IS NOT NULL)::int                                  AS anilist_linked
+        (SELECT COUNT(*) FROM users WHERE anilist_access_token IS NOT NULL)::int                                  AS anilist_linked,
+        (SELECT COUNT(*) FROM chat_messages)::int                                                                   AS total_chat_messages,
+        (SELECT COUNT(*) FROM chat_messages WHERE created_at > NOW() - INTERVAL '24 hours')::int                  AS chat_messages_today
     `),
     db.execute(sql`
       SELECT
@@ -35,9 +39,15 @@ export async function GET(req: Request) {
       ORDER BY COUNT(*) DESC
       LIMIT 15
     `),
+    db.execute(sql`
+      SELECT COUNT(*)::int AS chat_messages_live
+      FROM chat_messages
+      WHERE created_at >= ${chatCutoff}
+    `),
   ]);
 
   const t = (totalsResult as Record<string, unknown>[])[0] ?? {};
+  const chatLive = (chatLiveResult as Record<string, unknown>[])[0] ?? {};
   const security = getSecurityConfigStatus();
 
   return NextResponse.json({
@@ -50,6 +60,9 @@ export async function GET(req: Request) {
     totalComments: Number(t.total_comments ?? 0),
     totalThreads:  Number(t.total_threads  ?? 0),
     anilistLinked: Number(t.anilist_linked ?? 0),
+    totalChatMessages: Number(t.total_chat_messages ?? 0),
+    chatMessagesToday: Number(t.chat_messages_today ?? 0),
+    chatMessagesLive: Number(chatLive.chat_messages_live ?? 0),
     security,
     topAnime: (topAnimeResult as Record<string, unknown>[]).map((r) => ({
       animeId:        r.anime_id,

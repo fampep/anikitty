@@ -15,10 +15,18 @@ import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { SkipForward, ChevronRight, X } from "lucide-react";
+import { KittyScrubPreview } from "@/components/kitty-scrub-preview";
+import {
+  THUMB_W,
+  THUMB_H,
+  SPRITE_COLS,
+  MAX_FRAMES,
+  buildThumbnailSprites,
+  type KittyThumbnail,
+} from "@/lib/kitty-thumbnails";
 
-const THUMB_W = 192;
-const THUMB_H = 108;
-const MAX_FRAMES = 30; // max background-generated frames regardless of episode length
+const THUMB_CAPTURE_W = THUMB_W;
+const THUMB_CAPTURE_H = THUMB_H;
 
 interface W2gSyncState {
   version: number;
@@ -46,14 +54,6 @@ interface KittyPlayerProps {
     syncState?: W2gSyncState | null;
     onPlaybackSync?: (state: { isPlaying: boolean; currentTime: number }) => void;
   };
-}
-
-function formatVttTime(s: number): string {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = Math.floor(s % 60);
-  const ms = Math.round((s % 1) * 1000);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
 }
 
 export default function KittyPlayer({
@@ -134,37 +134,31 @@ export default function KittyPlayer({
       : undefined;
   const effectiveChapterUrl = chapterTrack?.file ?? m3u8ChaptersUrl;
 
-  // ── Thumbnail generation ──────────────────────────────────────────
-  const thumbnailFrames = useRef<Map<number, string>>(new Map());
-  const thumbCanvas     = useRef<HTMLCanvasElement | null>(null);
-  const blobUrlRef      = useRef<string | null>(null);
+  // ── Thumbnail generation (sprite storyboard for scrub previews) ──
+  const captureFrames = useRef<Map<number, HTMLCanvasElement>>(new Map());
+  const spriteCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const bgStarted       = useRef(false);
-  const [generatedThumbsUrl, setGeneratedThumbsUrl] = useState<string | undefined>(undefined);
+  const [generatedThumbs, setGeneratedThumbs] = useState<KittyThumbnail[]>([]);
+  const [thumbsLoading, setThumbsLoading] = useState(false);
 
-  const rebuildVtt = useCallback(() => {
-    const keys = Array.from(thumbnailFrames.current.keys()).sort((a, b) => a - b);
-    if (keys.length === 0) return;
-    const interval = keys.length > 1 ? keys[1] - keys[0] : 10;
-    const lines = ["WEBVTT", ""];
-    for (let i = 0; i < keys.length; i++) {
-      const start = keys[i];
-      const end   = i + 1 < keys.length ? keys[i + 1] : start + interval;
-      lines.push(`${formatVttTime(start)} --> ${formatVttTime(end)}`);
-      lines.push(thumbnailFrames.current.get(start)!);
-      lines.push("");
+  const publishThumbnails = useCallback((interval: number) => {
+    if (!spriteCanvasRef.current) {
+      spriteCanvasRef.current = document.createElement("canvas");
     }
-    const blob = new Blob([lines.join("\n")], { type: "text/vtt" });
-    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-    blobUrlRef.current = URL.createObjectURL(blob);
-    setGeneratedThumbsUrl(blobUrlRef.current);
+    const built = buildThumbnailSprites(
+      captureFrames.current,
+      interval,
+      spriteCanvasRef.current,
+    );
+    if (built.length > 0) setGeneratedThumbs(built);
   }, []);
 
   // Reset on source change
   useEffect(() => {
-    thumbnailFrames.current.clear();
+    captureFrames.current.clear();
     bgStarted.current = false;
-    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
-    setGeneratedThumbsUrl(undefined);
+    setGeneratedThumbs([]);
+    setThumbsLoading(false);
     startFiredRef.current = false;
     outroFiredRef.current = false;
     lastProgressTs.current = 0;
@@ -173,53 +167,57 @@ export default function KittyPlayer({
     setCountdown(null);
   }, [src]);
 
-  useEffect(() => () => {
-    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-  }, []);
-
-  // Background: seek the hidden HLS video through the whole episode
+  // Background: seek hidden HLS video and capture frames into a sprite sheet
   useEffect(() => {
     if (!duration || duration < 10) return;
     if (bgStarted.current) return;
     bgStarted.current = true;
+    setThumbsLoading(true);
 
-    // Space frames evenly: at most MAX_FRAMES, at least every 10s
-    const interval  = Math.max(10, duration / MAX_FRAMES);
+    const interval = Math.max(8, duration / MAX_FRAMES);
     const timestamps: number[] = [];
     for (let t = 0; t < duration; t += interval) timestamps.push(t);
 
     let destroyed = false;
     let hlsInst: { destroy: () => void } | null = null;
     const vid = document.createElement("video");
-    vid.muted    = true;
-    vid.preload  = "none";
+    vid.muted = true;
+    vid.preload = "auto";
+    vid.crossOrigin = "anonymous";
+    vid.playsInline = true;
     vid.style.cssText = "position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:-9999px";
 
-    if (!thumbCanvas.current) {
-      thumbCanvas.current = document.createElement("canvas");
-      thumbCanvas.current.width  = THUMB_W;
-      thumbCanvas.current.height = THUMB_H;
-    }
-    const canvas = thumbCanvas.current;
+    const frameCanvas = document.createElement("canvas");
+    frameCanvas.width = THUMB_CAPTURE_W;
+    frameCanvas.height = THUMB_CAPTURE_H;
+
     let idx = 0;
     let captured = 0;
 
     const captureAndNext = () => {
-      const ctx = canvas.getContext("2d");
+      const ctx = frameCanvas.getContext("2d");
       if (ctx) {
         try {
-          ctx.drawImage(vid, 0, 0, THUMB_W, THUMB_H);
+          ctx.drawImage(vid, 0, 0, THUMB_CAPTURE_W, THUMB_CAPTURE_H);
           const key = Math.round(vid.currentTime);
-          thumbnailFrames.current.set(key, canvas.toDataURL("image/jpeg", 0.72));
+          const copy = document.createElement("canvas");
+          copy.width = THUMB_CAPTURE_W;
+          copy.height = THUMB_CAPTURE_H;
+          copy.getContext("2d")?.drawImage(frameCanvas, 0, 0);
+          captureFrames.current.set(key, copy);
           captured++;
-          // Publish partial VTT every 5 frames so preview appears quickly
-          if (captured % 5 === 0) rebuildVtt();
-        } catch { /* CORS-tainted canvas — thumbnail feature unavailable */ }
+          if (captured % 4 === 0 || captured === timestamps.length) {
+            publishThumbnails(interval);
+          }
+        } catch {
+          /* CORS-tainted canvas */
+        }
       }
       if (!destroyed && idx < timestamps.length) {
         vid.currentTime = timestamps[idx++];
       } else if (!destroyed) {
-        rebuildVtt();
+        publishThumbnails(interval);
+        setThumbsLoading(false);
       }
     };
 
@@ -240,11 +238,12 @@ export default function KittyPlayer({
         h.attachMedia(vid);
         h.on(Hls.Events.MANIFEST_PARSED, startSeeking);
       } else if (vid.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari: native HLS support
         vid.src = proxiedSrc;
         vid.addEventListener("loadedmetadata", startSeeking, { once: true });
+      } else {
+        setThumbsLoading(false);
       }
-    }).catch(() => { /* hls.js unavailable */ });
+    }).catch(() => setThumbsLoading(false));
 
     return () => {
       destroyed = true;
@@ -253,10 +252,10 @@ export default function KittyPlayer({
       vid.src = "";
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duration, proxiedSrc, rebuildVtt]);
+  }, [duration, proxiedSrc, publishThumbnails]);
 
-  // Stream-provided thumbnails take priority; fall back to our generated ones
-  const effectiveThumbnails = thumbnailsUrl ?? generatedThumbsUrl;
+  const effectiveThumbnails = thumbnailsUrl ?? generatedThumbs;
+  const spriteWidth = SPRITE_COLS * THUMB_W;
 
   // Track that fullscreen should be re-entered when the player is ready
   const autoFsRef = useRef(false);
@@ -439,7 +438,12 @@ export default function KittyPlayer({
   const skipOffset = showNext ? "bottom-[8.5rem]" : "bottom-[4.5rem]";
 
   return (
-    <div ref={containerRef} className="vds-kitty relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
+    <div
+      ref={containerRef}
+      className="vds-kitty relative w-full bg-black overflow-hidden"
+      data-custom-thumbs={Array.isArray(effectiveThumbnails) && effectiveThumbnails.length > 0 ? "" : undefined}
+      style={{ aspectRatio: "16/9" }}
+    >
       <MediaPlayer
         ref={playerRef}
         src={{ src: proxiedSrc, type: "application/x-mpegurl" }}
@@ -470,8 +474,12 @@ export default function KittyPlayer({
             />
           ))}
         </MediaProvider>
-        {/* thumbnails prop activates Vidstack's built-in seekbar preview with timestamp */}
-        <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={effectiveThumbnails} />
+        <DefaultVideoLayout
+          icons={defaultLayoutIcons}
+          thumbnails={
+            typeof effectiveThumbnails === "string" ? effectiveThumbnails : undefined
+          }
+        />
 
         {showNext && nextEpisode && (
           <NextEpisodeButton episode={nextEpisode} onClick={() => onNextEpisodeRef.current?.()} />
@@ -496,6 +504,25 @@ export default function KittyPlayer({
           />
         )}
       </MediaPlayer>
+
+      {Array.isArray(effectiveThumbnails) && effectiveThumbnails.length > 0 && duration > 0 && (
+        <KittyScrubPreview
+          containerRef={containerRef}
+          thumbnails={effectiveThumbnails}
+          duration={duration}
+          spriteWidth={spriteWidth}
+        />
+      )}
+
+      {thumbsLoading && (
+        <div className="absolute bottom-[3.35rem] left-4 z-[55] pointer-events-none flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/70 border border-white/10 backdrop-blur-sm">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+          </span>
+          <span className="text-[10px] font-mono text-white/50">Loading previews…</span>
+        </div>
+      )}
     </div>
   );
 }

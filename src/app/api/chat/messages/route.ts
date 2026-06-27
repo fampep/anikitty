@@ -3,7 +3,9 @@ import { chatMessages, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/comment-helpers";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
-import { eq, desc, gt, asc } from "drizzle-orm";
+import { CHAT_MESSAGE_TTL_MS, getChatCutoffDate } from "@/lib/chat-config";
+import { maybeSweepChatMessages } from "@/lib/chat-sweep";
+import { eq, desc, gt, asc, and } from "drizzle-orm";
 
 const PAGE_LIMIT = 100;
 const CHAT_RATE = { windowMs: 30_000, max: 15 } as const;
@@ -53,6 +55,8 @@ export async function GET(req: Request) {
   );
 
   const db = getDb();
+  const cutoff = getChatCutoffDate();
+  await maybeSweepChatMessages(db);
 
   if (after) {
     const afterDate = new Date(after);
@@ -65,12 +69,17 @@ export async function GET(req: Request) {
       .from(chatMessages)
       .innerJoin(users, eq(users.id, chatMessages.userId))
       .leftJoin(roles, eq(roles.name, users.role))
-      .where(gt(chatMessages.createdAt, afterDate))
+      .where(
+        and(
+          gt(chatMessages.createdAt, afterDate),
+          gt(chatMessages.createdAt, cutoff),
+        ),
+      )
       .orderBy(asc(chatMessages.createdAt))
       .limit(limit);
 
     const messages = await enrichMessages(rows);
-    return Response.json({ messages });
+    return Response.json({ messages, messageTtlMs: CHAT_MESSAGE_TTL_MS });
   }
 
   const rows = await db
@@ -78,12 +87,13 @@ export async function GET(req: Request) {
     .from(chatMessages)
     .innerJoin(users, eq(users.id, chatMessages.userId))
     .leftJoin(roles, eq(roles.name, users.role))
+    .where(gt(chatMessages.createdAt, cutoff))
     .orderBy(desc(chatMessages.createdAt))
     .limit(limit);
 
   rows.reverse();
   const messages = await enrichMessages(rows);
-  return Response.json({ messages });
+  return Response.json({ messages, messageTtlMs: CHAT_MESSAGE_TTL_MS });
 }
 
 export async function POST(req: Request) {
@@ -104,6 +114,7 @@ export async function POST(req: Request) {
   }
 
   const db = getDb();
+  await maybeSweepChatMessages(db);
 
   const [row] = await db
     .insert(chatMessages)

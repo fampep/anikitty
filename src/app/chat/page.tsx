@@ -22,7 +22,7 @@ import LoginPopoverButton from "@/components/login-popover-button";
 import { useLiveChat } from "@/hooks/use-live-chat";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
-import { chatTimeAgo, formatChatTime, type ChatMessage } from "@/lib/chat";
+import { chatTimeAgo, formatChatTime, formatChatTtlLabel, type ChatMessage } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 
 function ChatBubble({
@@ -132,7 +132,7 @@ function ChatBubble({
 export default function ChatPage() {
   const { auth } = useAuthStore();
   const onlineCount = useOnlineCount();
-  const { messages, loading, sending, error, sendMessage, deleteMessage } =
+  const { messages, messageTtlMs, loading, sending, error, sendMessage, deleteMessage } =
     useLiveChat();
   const [draft, setDraft] = useState("");
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
@@ -198,7 +198,8 @@ export default function ChatPage() {
             <div>
               <h1 className="text-xl font-bold text-white">Live Chat</h1>
               <p className="text-xs text-white/40">
-                Chat with other AniKitty users in real time
+                Chat with other AniKitty users in real time · messages disappear after{" "}
+                {formatChatTtlLabel(messageTtlMs)}
               </p>
             </div>
           </div>
