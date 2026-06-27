@@ -7,7 +7,11 @@ export async function migrateDb() {
 
   const ssl =
     url.includes("sslmode=require") || url.includes("neon.tech") ? "require" : false;
-  const client = postgres(url, { ssl, max: 1 });
+  const client = postgres(url, {
+    ssl,
+    max: 1,
+    onnotice: () => {},
+  });
 
   try {
     await client`
