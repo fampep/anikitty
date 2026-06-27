@@ -10,5 +10,4 @@ export const ROUTES = {
   WATCH_TOGETHER: "/watch-together",
   SETTINGS: "/settings",
   FAQ: "/faq",
-  SUBTITLES: "/subtitles",
 };
