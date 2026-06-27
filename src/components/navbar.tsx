@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Container from "./container";
 import { nightTokyo } from "@/utils/fonts";
 import { ROUTES } from "@/constants/routes";
-import React, { ReactNode, useEffect, useRef, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import SearchBar from "./search-bar";
 import {
   CalendarDays,
@@ -200,8 +200,7 @@ const NavBar = () => {
   const pathname = usePathname();
   const isScrolled = useScrolledPast(20);
   const isLanding = pathname === "/";
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const authBag = React.useMemo(
     () => ({ auth: user, setAuth, clearAuth }),
     [user, setAuth, clearAuth],
@@ -228,6 +227,17 @@ const NavBar = () => {
     };
   }, [user, setAuth, clearAuth]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   if (isLanding) return null;
 
   return (
@@ -247,6 +257,20 @@ const NavBar = () => {
       />
 
       <Container className="relative">
+        {searchOpen && (
+          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-2 border-b border-white/[0.06] bg-[#050508]/95 px-4 backdrop-blur-2xl">
+            <SearchBar className="flex-1" autoFocus onAnimeClick={() => setSearchOpen(false)} />
+            <button
+              type="button"
+              onClick={() => setSearchOpen(false)}
+              className="shrink-0 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white"
+              aria-label={t("nav.aria.closeSearch")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4">
           {/* Brand */}
           <Link href={ROUTES.HOME} className="group z-20 flex shrink-0 items-center gap-2.5">
@@ -269,41 +293,22 @@ const NavBar = () => {
           </div>
 
           {/* Right actions */}
-          <div className="z-20 ml-auto flex items-center gap-2 sm:gap-2.5">
-            <div className="hidden lg:block">
-              <SearchBar className="w-[min(18rem,28vw)]" />
-            </div>
-            <div className="hidden lg:flex items-center gap-2">
+          <div className="z-20 ml-auto flex items-center gap-1 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white"
+              aria-label={t("nav.aria.openSearch")}
+            >
+              <SearchIcon className="h-5 w-5" />
+            </button>
+
+            <div className="hidden items-center gap-2 lg:flex">
               <LanguageSwitcher compact />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
 
-            {/* Mobile */}
             <div className="flex items-center gap-1 lg:hidden">
-              {mobileSearchOpen && (
-                <div
-                  ref={mobileSearchRef}
-                  className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-2 border-b border-white/[0.06] bg-[#050508]/95 px-4 backdrop-blur-2xl"
-                >
-                  <SearchBar className="flex-1" onAnimeClick={() => setMobileSearchOpen(false)} />
-                  <button
-                    type="button"
-                    onClick={() => setMobileSearchOpen(false)}
-                    className="shrink-0 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white"
-                    aria-label={t("nav.aria.closeSearch")}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => setMobileSearchOpen(true)}
-                className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white"
-                aria-label={t("nav.aria.openSearch")}
-              >
-                <SearchIcon className="h-5 w-5" />
-              </button>
               <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />} />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
@@ -370,9 +375,8 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
             })}
           </nav>
 
-          <div className="border-t border-white/[0.06] p-4 space-y-3">
+          <div className="border-t border-white/[0.06] p-4">
             <LanguageSwitcher className="w-full justify-between" />
-            <SearchBar onAnimeClick={() => setOpen(false)} />
           </div>
         </div>
       </SheetContent>

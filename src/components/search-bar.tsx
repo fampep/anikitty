@@ -14,9 +14,11 @@ import { useT } from "@/providers/i18n-provider";
 const SearchBar = ({
   className,
   onAnimeClick,
+  autoFocus,
 }: {
   className?: string;
   onAnimeClick?: () => void;
+  autoFocus?: boolean;
 }) => {
   const t = useT();
   const [searchValue, setSearchValue] = useState("");
@@ -37,6 +39,12 @@ const SearchBar = ({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    const id = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [autoFocus]);
 
   const handleClear = () => {
     setSearchValue("");
