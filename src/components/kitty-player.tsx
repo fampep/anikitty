@@ -111,7 +111,6 @@ export default function KittyPlayer({
 
   // Derived early so effects can reference them
   const referer = headers?.Referer ?? headers?.referer ?? "";
-  const origin  = headers?.Origin  ?? headers?.origin  ?? "";
   const proxiedSrc = buildKittyHlsUrl(src, headers);
 
   const subTracks = tracks.filter(
