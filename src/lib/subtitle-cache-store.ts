@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { episodeSubtitles } from "@/db/schema";
+import { episodeSubtitles, subtitleLibraryAnime } from "@/db/schema";
 import {
   getTrackFile,
   isOurSubtitleUrl,
@@ -280,6 +280,10 @@ async function upsertSubtitle(
   } catch (err) {
     console.error("[subtitle-cache-store] save failed:", err);
     return null;
+  } finally {
+    void import("@/lib/subtitle-library-db").then((m) =>
+      m.syncSubtitleLibraryAnime(ctx.anilistId),
+    );
   }
 }
 
@@ -360,6 +364,10 @@ export async function ensureFullShowSubtitleCache(
       }
       if (batch.length > 0) await Promise.allSettled(batch);
     }
+
+    await import("@/lib/subtitle-library-db").then((m) =>
+      m.syncSubtitleLibraryAnime(anilistId),
+    );
   } finally {
     fullShowPrefetchInProgress.delete(anilistId);
   }
@@ -581,10 +589,13 @@ export async function getSubtitleLibraryStats(): Promise<SubtitleLibraryStats> {
       .from(episodeSubtitles)
       .where(eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER));
 
+    const { countCompletedSubtitleAnimesFromDb } = await import("@/lib/subtitle-library-db");
+    const completedAnimes = await countCompletedSubtitleAnimesFromDb();
+
     return {
       totalAnimes: row?.totalAnimes ?? 0,
       totalTracks: row?.totalTracks ?? 0,
-      completedAnimes: 0,
+      completedAnimes,
     };
   } catch {
     return { totalAnimes: 0, totalTracks: 0, completedAnimes: 0 };
@@ -636,12 +647,22 @@ export async function searchSubtitleLibrary(opts: {
     const rows = await db
       .select({
         anilistId: episodeSubtitles.anilistId,
-        animeTitle: sql<string | null>`max(${episodeSubtitles.animeTitle})`,
+        animeTitle: sql<string | null>`coalesce(max(${subtitleLibraryAnime.animeTitle}), max(${episodeSubtitles.animeTitle}))`,
         trackCount: sql<number>`count(*)::int`,
         episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
         lastFetched: sql<Date | null>`max(${episodeSubtitles.fetchedAt})`,
+        poster: sql<string | null>`max(${subtitleLibraryAnime.poster})`,
+        status: sql<string | null>`max(${subtitleLibraryAnime.status})`,
+        totalEpisodes: sql<number | null>`max(${subtitleLibraryAnime.totalEpisodes})`,
+        isComplete: sql<boolean>`coalesce(bool_or(${subtitleLibraryAnime.isComplete}), false)`,
+        score: sql<number | null>`max(${subtitleLibraryAnime.score})`,
+        year: sql<number | null>`max(${subtitleLibraryAnime.year})`,
       })
       .from(episodeSubtitles)
+      .leftJoin(
+        subtitleLibraryAnime,
+        eq(episodeSubtitles.anilistId, subtitleLibraryAnime.anilistId),
+      )
       .where(whereClause)
       .groupBy(episodeSubtitles.anilistId)
       .orderBy(desc(sql`max(${episodeSubtitles.fetchedAt})`))
@@ -655,6 +676,12 @@ export async function searchSubtitleLibrary(opts: {
         trackCount: row.trackCount,
         episodeCount: row.episodeCount,
         lastFetched: row.lastFetched?.toISOString() ?? null,
+        poster: row.poster,
+        status: row.status,
+        totalEpisodes: row.totalEpisodes,
+        isComplete: row.isComplete,
+        score: row.score,
+        year: row.year,
       })),
       total,
       page,

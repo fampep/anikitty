@@ -414,3 +414,30 @@ export const episodeSubtitles = pgTable(
     ),
   }),
 );
+
+/** Per-anime summary for the subtitle library (posters, completion, counts). */
+export const subtitleLibraryAnime = pgTable(
+  "subtitle_library_anime",
+  {
+    anilistId: integer("anilist_id").primaryKey(),
+    animeTitle: text("anime_title"),
+    poster: text("poster"),
+    status: varchar("status", { length: 30 }),
+    totalEpisodes: integer("total_episodes"),
+    cachedEpisodeCount: integer("cached_episode_count").notNull().default(0),
+    trackCount: integer("track_count").notNull().default(0),
+    isComplete: boolean("is_complete").notNull().default(false),
+    score: integer("score"),
+    year: integer("year"),
+    lastSubtitleAt: timestamp("last_subtitle_at"),
+    metaFetchedAt: timestamp("meta_fetched_at"),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    completeIdx: index("subtitle_library_anime_complete_idx").on(
+      t.isComplete,
+      t.lastSubtitleAt,
+    ),
+    titleIdx: index("subtitle_library_anime_title_idx").on(t.animeTitle),
+  }),
+);
