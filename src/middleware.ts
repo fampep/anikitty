@@ -1,30 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { checkAntiScrape, isProtectedContentApi } from "@/lib/anti-scrape";
-import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 const BLOCKED_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 const isProd = process.env.NODE_ENV === "production";
 
 const PRIVATE_API_PREFIXES = ["/api/account", "/api/admin", "/api/chat", "/api/anilist"];
-
-const CONTENT_RATE_WINDOW_MS = 10 * 60 * 1000;
-const CONTENT_RATE_LIMIT = 120;
-const STREAM_RATE_LIMIT = 45;
-
-function contentRateLimitKey(req: NextRequest): string {
-  const ip = getClientIp(req);
-  if (req.nextUrl.pathname.startsWith("/api/kitty/stream")) {
-    return `content-stream:${ip}`;
-  }
-  return `content-api:${ip}`;
-}
-
-function contentRateLimitMax(req: NextRequest): number {
-  return req.nextUrl.pathname.startsWith("/api/kitty/stream")
-    ? STREAM_RATE_LIMIT
-    : CONTENT_RATE_LIMIT;
-}
 
 export function middleware(req: NextRequest) {
   if (BLOCKED_METHODS.has(req.method)) {
@@ -44,18 +25,6 @@ export function middleware(req: NextRequest) {
     const scrape = checkAntiScrape(req);
     if (!scrape.ok) {
       return NextResponse.json({ error: scrape.message }, { status: scrape.status });
-    }
-
-    const limited = rateLimit(
-      contentRateLimitKey(req),
-      contentRateLimitMax(req),
-      CONTENT_RATE_WINDOW_MS,
-    );
-    if (!limited.ok) {
-      return NextResponse.json(
-        { error: "Too many requests" },
-        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
-      );
     }
   }
 

@@ -156,6 +156,19 @@ const Layout = (props: Props) => {
     return episodes.episodes.find((ep) => ep.episodeId === selectedEpisode) ?? null;
   }, [episodes, selectedEpisode]);
 
+  const watchTab = useMemo(() => {
+    const tab = searchParams.get("tab");
+    const valid = new Set(["comments", "info", "related"]);
+    return tab && valid.has(tab) ? tab : "comments";
+  }, [searchParams]);
+
+  const handleWatchTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "comments") params.delete("tab");
+    else params.set("tab", value);
+    router.replace(`${ROUTES.WATCH}?${params.toString()}`, { scroll: false });
+  };
+
   const prevEpisode = useMemo(() => {
     if (!episodes || !currentEpisode) return null;
     const idx = episodes.episodes.findIndex((ep) => ep.episodeId === currentEpisode.episodeId);
@@ -235,7 +248,7 @@ const Layout = (props: Props) => {
 
           {/* Episode info bar with prev/next navigation */}
           {currentEpisode && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/8">
+            <div className="flex items-center gap-2 px-3 py-3 rounded-xl bg-gradient-to-r from-white/[0.05] to-white/[0.02] border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <button
                 onClick={handlePrev}
                 disabled={!prevEpisode}
@@ -312,7 +325,7 @@ const Layout = (props: Props) => {
           )}
 
           {/* Tabs: Comments | Info | Related */}
-          <Tabs defaultValue="comments" className="w-full">
+          <Tabs value={watchTab} onValueChange={handleWatchTabChange} className="w-full">
             <TabsList className="flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0">
               {[
                 { value: "comments", label: t("watch.tabs.comments"), icon: <MessageSquare className="w-3.5 h-3.5" /> },

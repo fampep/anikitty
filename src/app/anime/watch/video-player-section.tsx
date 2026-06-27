@@ -40,6 +40,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import SubtitleSettingsPanel from "@/components/subtitle-settings-panel";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
@@ -447,164 +455,169 @@ const VideoPlayerSection = () => {
       </div>
 
       {/* Controls bar */}
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 bg-[#0a0a0a] border-t border-white/8">
+      <div className="px-3 py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-white/8 space-y-2.5">
+        {/* Row 1 — stream source */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 mr-auto min-w-0">
+            <Server className="w-3.5 h-3.5 text-violet-400/50 shrink-0" />
+            <Select value={provider} onValueChange={(v) => handleProviderChange(v as KittyProvider)}>
+              <SelectTrigger className="h-8 w-[min(100%,130px)] text-[11px] font-mono bg-white/[0.04] border-white/12 text-white/70 hover:bg-white/[0.07]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0e0e0e] border-white/10">
+                <SelectGroup>
+                  {KITTY_PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p} className="text-xs font-mono text-white/75">
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
 
-        {/* Left — episode info */}
-        <div className="flex items-center gap-2 mr-auto min-w-0">
-          {episodeNo && (
-            <span className="text-[11px] font-bold font-mono text-white/50 bg-white/6 border border-white/10 px-2 py-0.5 rounded-md shrink-0">
-              {t("watch.episodeShort", { n: episodeNo })}
-            </span>
-          )}
-          {currentEpisodeInfo?.title &&
-            currentEpisodeInfo.title.toLowerCase() !== `episode ${episodeNo}` && (
-              <span className="text-[12px] font-medium text-white/55 truncate hidden sm:block">
-                {currentEpisodeInfo.title}
+            {provider === "Miruro" && (
+              <Select value={miruroPipe} onValueChange={(v) => handleMiruroPipeChange(v as MiruroPipeProviderId)}>
+                <SelectTrigger className="h-8 w-[min(100%,120px)] text-[11px] font-mono bg-violet-500/[0.08] border-violet-500/25 text-violet-200/80 hover:bg-violet-500/[0.12]">
+                  <SelectValue placeholder={t("watch.miruroPipe")} />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0e0e0e] border-violet-500/20">
+                  <SelectGroup>
+                    {MIRURO_PIPE_PROVIDERS.map((p) => (
+                      <SelectItem key={p.id} value={p.id} className="text-xs font-mono text-white/75">
+                        {p.label}{p.native ? "" : " (embed)"}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="flex items-center rounded-lg overflow-hidden border border-white/12 bg-white/[0.03] shrink-0">
+            <button
+              className={`flex items-center gap-1 h-8 px-3 text-[11px] font-bold transition-all ${
+                !preferDub
+                  ? "bg-white text-black"
+                  : "text-white/35 hover:text-white/60 hover:bg-white/6"
+              }`}
+              onClick={() => handleAudioChange(false)}
+            >
+              <Captions className="w-3 h-3" /> {t("card.sub")}
+            </button>
+            <div className="w-px h-4 bg-white/12" />
+            <button
+              className={`flex items-center gap-1 h-8 px-3 text-[11px] font-bold transition-all ${
+                preferDub
+                  ? "bg-white text-black"
+                  : "text-white/35 hover:text-white/60 hover:bg-white/6"
+              }`}
+              onClick={() => handleAudioChange(true)}
+            >
+              <Mic className="w-3 h-3" /> {t("card.dub")}
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2 — badges + actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 mr-auto min-w-0">
+            {(skipTimes?.intro || skipTimes?.outro) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-white/[0.04] border border-white/10 text-white/35">
+                {t("watch.chapters")}
               </span>
             )}
-          {streamData?.miruroPipe && provider === "Miruro" && (
-            <span className="text-[10px] font-mono text-violet-400/50 hidden md:inline shrink-0">
-              · {streamData.miruroPipe}
-            </span>
-          )}
-          {(skipTimes?.intro || skipTimes?.outro) && (
-            <span className="text-[10px] font-mono text-white/20 hidden lg:inline shrink-0">
-              · {t("watch.chapters")}
-            </span>
-          )}
-          {subtitleTracks.length > 0 && (
-            <span
-              className="text-[10px] font-mono text-teal-400/60 hidden md:inline shrink-0"
-              title={t("watch.subtitlesAvailable")}
-            >
-              · {t("watch.subtitleTracks", { count: subtitleTracks.length })}
-            </span>
-          )}
-        </div>
-
-        {/* Provider selector */}
-        <div className="flex items-center gap-1.5">
-          <Server className="w-3 h-3 text-white/25 shrink-0" />
-          <select
-            value={provider}
-            onChange={(e) => handleProviderChange(e.target.value as KittyProvider)}
-            className="bg-[#111] border border-white/12 text-white/55 text-[11px] font-mono rounded-lg px-2 py-1 cursor-pointer hover:border-white/25 hover:text-white/75 focus:outline-none focus:border-white/25 transition-all appearance-none"
-          >
-            {KITTY_PROVIDERS.map((p) => (
-              <option key={p} value={p} className="bg-[#111]">{p}</option>
-            ))}
-          </select>
-        </div>
-
-        {provider === "Miruro" && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono text-white/25 shrink-0 hidden sm:inline">
-              {t("watch.miruroPipe")}
-            </span>
-            <select
-              value={miruroPipe}
-              onChange={(e) => handleMiruroPipeChange(e.target.value as MiruroPipeProviderId)}
-              className="bg-[#111] border border-violet-500/20 text-violet-300/70 text-[11px] font-mono rounded-lg px-2 py-1 cursor-pointer hover:border-violet-500/35 hover:text-violet-200 focus:outline-none focus:border-violet-500/40 transition-all appearance-none"
-            >
-              {MIRURO_PIPE_PROVIDERS.map((p) => (
-                <option key={p.id} value={p.id} className="bg-[#111]">
-                  {p.label}{p.native ? "" : " (embed)"}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Sub / Dub toggle */}
-        <div className="flex items-center rounded-lg overflow-hidden border border-white/12 bg-white/[0.03]">
-          <button
-            className={`flex items-center gap-1 h-7 px-2.5 text-[11px] font-bold transition-all ${
-              !preferDub
-                ? "bg-white text-black"
-                : "text-white/35 hover:text-white/60 hover:bg-white/6"
-            }`}
-            onClick={() => handleAudioChange(false)}
-          >
-            <Captions className="w-3 h-3" /> {t("card.sub")}
-          </button>
-          <div className="w-px h-4 bg-white/12" />
-          <button
-            className={`flex items-center gap-1 h-7 px-2.5 text-[11px] font-bold transition-all ${
-              preferDub
-                ? "bg-white text-black"
-                : "text-white/35 hover:text-white/60 hover:bg-white/6"
-            }`}
-            onClick={() => handleAudioChange(true)}
-          >
-            <Mic className="w-3 h-3" /> {t("card.dub")}
-          </button>
-        </div>
-
-        {/* Download — current episode or batch */}
-        {anilistId && episodeNo && allEpisodes?.episodes && (
-          <WatchDownloadPanel
-            anilistId={anilistId}
-            currentEpisodeNumber={parseInt(episodeNo, 10)}
-            episodes={allEpisodes.episodes}
-            audio={audio}
-            provider={provider}
-          />
-        )}
-
-        {/* Subtitle appearance */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-white/12 bg-white/[0.03] text-white/45 hover:text-white/70 hover:bg-white/6 transition-colors"
-              title={t("watch.subtitleSettings")}
-            >
-              <SlidersHorizontal className="w-3 h-3" />
-              <span className="hidden sm:inline">{t("watch.subtitleSettings")}</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            className="w-[min(92vw,360px)] p-4 bg-[#0c0c0c] border-white/10"
-          >
-            <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
-              {t("settings.subtitleAppearance")}
-            </p>
-            <SubtitleSettingsPanel compact />
-          </PopoverContent>
-        </Popover>
-
-        {/* Watch Together */}
-        {w2gCode && w2g.isMember ? (
-          <span className="text-[10px] font-mono text-violet-300/70 hidden sm:inline">
-            {t("watch.room", { code: w2gCode })}
-          </span>
-        ) : auth ? (
-          <button
-            type="button"
-            onClick={handleCreateW2g}
-            disabled={creatingW2g}
-            className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 transition-colors disabled:opacity-50"
-          >
-            {creatingW2g ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Users className="w-3 h-3" />
+            {streamData?.miruroPipe && provider === "Miruro" && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300/70">
+                {streamData.miruroPipe}
+              </span>
             )}
-            {t("watch.watchTogether")}
-          </button>
-        ) : (
-          <LoginPopoverButton
-            customTrigger={
+            {subtitleTracks.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 max-w-full">
+                {subtitleTracks.slice(0, 3).map((track, i) => (
+                  <span
+                    key={`${track.label ?? "sub"}-${i}`}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-teal-500/10 border border-teal-500/20 text-teal-300/80 truncate max-w-[120px]"
+                    title={track.label}
+                  >
+                    <Captions className="w-2.5 h-2.5 shrink-0" />
+                    {track.label}
+                  </span>
+                ))}
+                {subtitleTracks.length > 3 && (
+                  <span className="text-[10px] font-mono text-white/25">
+                    +{subtitleTracks.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            {anilistId && episodeNo && allEpisodes?.episodes && (
+              <WatchDownloadPanel
+                anilistId={anilistId}
+                currentEpisodeNumber={parseInt(episodeNo, 10)}
+                episodes={allEpisodes.episodes}
+                audio={audio}
+                provider={provider}
+              />
+            )}
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-teal-500/20 bg-teal-500/[0.08] text-teal-200/80 hover:bg-teal-500/[0.12] transition-colors"
+                  title={t("watch.subtitleSettings")}
+                >
+                  <SlidersHorizontal className="w-3 h-3" />
+                  <span className="hidden sm:inline">{t("watch.subtitleSettings")}</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                className="w-[min(92vw,360px)] p-4 bg-[#0c0c0c] border-white/10"
+              >
+                <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
+                  {t("settings.subtitleAppearance")}
+                </p>
+                <SubtitleSettingsPanel compact />
+              </PopoverContent>
+            </Popover>
+
+            {w2gCode && w2g.isMember ? (
+              <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
+                {t("watch.room", { code: w2gCode })}
+              </span>
+            ) : auth ? (
               <button
                 type="button"
-                className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-white/12 text-white/45 hover:text-white/70 transition-colors"
+                onClick={handleCreateW2g}
+                disabled={creatingW2g}
+                className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 transition-colors disabled:opacity-50"
               >
-                <Users className="w-3 h-3" /> {t("watch.watchTogether")}
+                {creatingW2g ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Users className="w-3 h-3" />
+                )}
+                <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
               </button>
-            }
-          />
-        )}
+            ) : (
+              <LoginPopoverButton
+                customTrigger={
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-white/12 text-white/45 hover:text-white/70 transition-colors"
+                  >
+                    <Users className="w-3 h-3" />
+                    <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
+                  </button>
+                }
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
 

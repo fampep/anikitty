@@ -24,6 +24,7 @@ import {
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import { SUBTITLE_SOURCE_PROVIDER } from "@/lib/subtitle-track-utils";
+import { parseVttCues, formatCueTime } from "@/lib/vtt-parse";
 import { api } from "@/lib/api";
 
 const EPISODES_PER_PAGE = 10;
@@ -112,6 +113,12 @@ export default function AnimeSubtitles({ anilistId }: Props) {
   const totalEpisodes = allEpisodes.length;
   const cachedEpisodes = tracksByEpisode.size;
   const missingCount = totalEpisodes - cachedEpisodes;
+  const coveragePct =
+    totalEpisodes > 0 ? Math.round((cachedEpisodes / totalEpisodes) * 100) : 0;
+  const uniqueLanguages = useMemo(() => {
+    const langs = new Set(subtitles.map((t) => t.label));
+    return [...langs].sort((a, b) => a.localeCompare(b));
+  }, [subtitles]);
 
   const handleFetchEpisode = async (episode: number) => {
     setFetchingEp(episode);
@@ -178,69 +185,128 @@ export default function AnimeSubtitles({ anilistId }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
-            {t("anime.subtitles.heading")}
-          </h3>
-          <p className="text-xs text-white/40 mt-1.5 max-w-xl leading-relaxed">
-            {t("anime.subtitles.description", { provider: SUBTITLE_SOURCE_PROVIDER })}
-          </p>
-          {totalEpisodes > 0 && (
-            <p className="text-[11px] font-mono text-white/25 mt-2">
-              {t("anime.subtitles.cachedCount", {
-                cached: cachedEpisodes,
-                total: totalEpisodes,
-              })}
-            </p>
-          )}
+      {/* Hero stats */}
+      <div className="rounded-2xl border border-teal-500/15 bg-gradient-to-br from-teal-500/[0.08] via-white/[0.02] to-transparent p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="w-11 h-11 rounded-xl bg-teal-500/15 border border-teal-500/25 flex items-center justify-center shrink-0">
+              <Captions className="w-5 h-5 text-teal-300/90" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold text-white tracking-tight">
+                {t("anime.subtitles.heading")}
+              </h3>
+              <p className="text-xs text-white/45 mt-1 max-w-xl leading-relaxed">
+                {t("anime.subtitles.description", { provider: SUBTITLE_SOURCE_PROVIDER })}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {cachedEpisodes > 0 && (
+              <button
+                type="button"
+                onClick={() => handleDownloadEpisodes()}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold bg-white/8 border border-white/12 text-white/75 hover:bg-white/12 transition-colors disabled:opacity-50"
+              >
+                {downloadingZip ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                {t("anime.subtitles.downloadAllCached")}
+              </button>
+            )}
+
+            {totalEpisodes > 0 && missingCount > 0 && (
+              <button
+                type="button"
+                onClick={handleFetchAll}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold bg-teal-500/20 border border-teal-500/30 text-teal-200 hover:bg-teal-500/30 transition-colors disabled:opacity-50"
+              >
+                {fetchingAll ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                {fetchingAll
+                  ? t("anime.subtitles.fetchAllProgress")
+                  : t("anime.subtitles.fetchAll")}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {cachedEpisodes > 0 && (
-            <button
-              type="button"
-              onClick={() => handleDownloadEpisodes()}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-white/8 border border-white/12 text-white/75 hover:bg-white/12 transition-colors disabled:opacity-50"
-            >
-              {downloadingZip ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5" />
-              )}
-              {t("anime.subtitles.downloadAllCached")}
-            </button>
-          )}
+        {totalEpisodes > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/8 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-white/30">
+                    {t("anime.subtitles.cachedCount", {
+                      cached: cachedEpisodes,
+                      total: totalEpisodes,
+                    })}
+                  </span>
+                  <span className="text-[11px] font-mono text-teal-300/70">{coveragePct}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-teal-600 to-teal-400 transition-all duration-500"
+                    style={{ width: `${coveragePct}%` }}
+                  />
+                </div>
+              </div>
 
-          {totalEpisodes > 0 && missingCount > 0 && (
-            <button
-              type="button"
-              onClick={handleFetchAll}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-teal-500/15 border border-teal-500/25 text-teal-300 hover:bg-teal-500/25 transition-colors disabled:opacity-50"
-            >
-              {fetchingAll ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5" />
-              )}
-              {fetchingAll
-                ? t("anime.subtitles.fetchAllProgress")
-                : t("anime.subtitles.fetchAll")}
-            </button>
-          )}
+              <div className="relative w-full lg:w-56">
+                <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
+                <input
+                  value={query}
+                  placeholder={t("anime.subtitles.searchPlaceholder")}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-black/30 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-teal-500/30 focus:bg-black/40 transition-all"
+                />
+              </div>
+            </div>
 
-          <div className="relative">
+            {(subtitles.length > 0 || uniqueLanguages.length > 0) && (
+              <div className="flex flex-wrap gap-1.5">
+                {subtitles.length > 0 && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-mono bg-white/[0.05] border border-white/10 text-white/40">
+                    {t("anime.subtitles.trackCount", { count: subtitles.length })}
+                  </span>
+                )}
+                {uniqueLanguages.slice(0, 8).map((lang) => (
+                  <span
+                    key={lang}
+                    className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-medium bg-teal-500/10 border border-teal-500/20 text-teal-300/80"
+                  >
+                    {lang}
+                  </span>
+                ))}
+                {uniqueLanguages.length > 8 && (
+                  <span className="text-[10px] font-mono text-white/25 self-center">
+                    +{uniqueLanguages.length - 8}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {totalEpisodes === 0 && (
+          <div className="mt-4 relative max-w-md">
             <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
             <input
               value={query}
               placeholder={t("anime.subtitles.searchPlaceholder")}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-8 pl-8 pr-3 text-xs rounded-lg bg-white/4 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-white/25 focus:bg-white/7 transition-all w-52"
+              className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-black/30 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-teal-500/30 focus:bg-black/40 transition-all"
             />
           </div>
-        </div>
+        )}
       </div>
 
       {(episodesLoading || subtitlesLoading) && allEpisodes.length === 0 ? (
@@ -312,7 +378,7 @@ function BatchDownloadBar({
   const t = useT();
 
   return (
-    <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2.5">
+    <div className="sticky top-16 z-20 flex items-center justify-between gap-3 flex-wrap rounded-xl border border-teal-500/15 bg-[#0a0a0a]/95 backdrop-blur-md px-4 py-2.5 shadow-lg shadow-black/30">
       <div className="flex items-center gap-2 flex-wrap">
         <button
           type="button"
@@ -411,12 +477,12 @@ function EpisodeSubtitleCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-white/[0.02] overflow-hidden transition-colors",
+        "rounded-xl border bg-white/[0.02] overflow-hidden transition-all hover:border-white/12",
         selected ? "border-teal-500/35 ring-1 ring-teal-500/15" : "border-white/8",
       )}
     >
-      <div className="flex gap-0">
-        <div className="relative w-40 sm:w-44 shrink-0 aspect-[16/9] border-r border-white/6 overflow-hidden">
+      <div className="flex flex-col sm:flex-row gap-0">
+        <div className="relative w-full sm:w-44 shrink-0 aspect-[16/9] sm:border-r border-white/6 overflow-hidden">
           {canSelect && (
             <button
               type="button"
@@ -445,8 +511,8 @@ function EpisodeSubtitleCard({
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/6 bg-white/[0.02]">
-            <div className="min-w-0">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/6 bg-white/[0.02] flex-wrap">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white/85 truncate">
                 {t("anime.subtitles.episodeLabel", { n: group.number })}
                 {group.title !== `Episode ${group.number}` && (
@@ -460,8 +526,24 @@ function EpisodeSubtitleCard({
                     ? t("anime.subtitles.trackCount", { count: group.tracks.length })
                     : t("anime.subtitles.noTracks")}
               </p>
+              {group.tracks.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {group.tracks.map((track) => (
+                    <span
+                      key={track.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-teal-500/10 border border-teal-500/15 text-teal-300/75"
+                    >
+                      <Captions className="w-2.5 h-2.5" />
+                      {track.label}
+                      {track.isDefault && (
+                        <span className="text-[8px] uppercase opacity-70">· def</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-end">
               {group.tracks.length > 0 && (
                 <button
                   type="button"
@@ -572,7 +654,8 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
     }
   };
 
-  const cueCount = content ? (content.match(/-->/g) ?? []).length : null;
+  const cues = content ? parseVttCues(content, 16) : [];
+  const totalCues = content ? (content.match(/-->/g) ?? []).length : null;
 
   return (
     <div className="hover:bg-white/[0.02] transition-colors">
@@ -580,16 +663,16 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
         <button
           type="button"
           onClick={toggleExpand}
-          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+          className="flex items-center gap-3 min-w-0 flex-1 text-left group"
         >
-          <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0 group-hover:bg-teal-500/15 transition-colors">
             <Captions className="w-3.5 h-3.5 text-teal-400/80" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-white/75 font-medium truncate flex items-center gap-2">
+            <p className="text-sm text-white/80 font-medium truncate flex items-center gap-2">
               {track.label}
               {track.isDefault && (
-                <span className="text-[10px] font-mono text-teal-400/70 uppercase shrink-0">
+                <span className="text-[9px] font-mono uppercase px-1.5 py-px rounded bg-teal-500/15 text-teal-300/80 shrink-0">
                   {t("anime.subtitles.defaultTrack")}
                 </span>
               )}
@@ -604,6 +687,8 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
               {track.filename}
               {track.fetchedAt &&
                 ` · ${new Date(track.fetchedAt).toLocaleDateString()}`}
+              {totalCues !== null && !expanded &&
+                ` · ${t("anime.subtitles.cueCount", { count: totalCues })}`}
             </p>
           </div>
         </button>
@@ -613,31 +698,47 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
           download={track.filename}
           className={cn(
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold",
-            "bg-white/8 border border-white/12 text-white/80",
-            "hover:bg-white/12 hover:text-white transition-colors shrink-0",
+            "bg-teal-500/10 border border-teal-500/20 text-teal-200/90",
+            "hover:bg-teal-500/20 hover:text-teal-100 transition-colors shrink-0",
           )}
         >
           <Download className="w-3.5 h-3.5" />
-          {t("anime.subtitles.download")}
+          <span className="hidden sm:inline">{t("anime.subtitles.download")}</span>
         </a>
       </div>
 
       {expanded && (
         <div className="px-4 pb-4">
-          <div className="rounded-lg border border-white/8 bg-black/40 overflow-hidden">
+          <div className="rounded-xl border border-white/8 bg-black/50 overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 border-b border-white/6 bg-white/[0.02]">
               <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
                 {t("anime.subtitles.preview")}
               </span>
-              {cueCount !== null && (
+              {totalCues !== null && (
                 <span className="text-[10px] font-mono text-white/25">
-                  {t("anime.subtitles.cueCount", { count: cueCount })}
+                  {t("anime.subtitles.cueCount", { count: totalCues })}
                 </span>
               )}
             </div>
             {loading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="w-5 h-5 text-white/25 animate-spin" />
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-5 h-5 text-teal-400/40 animate-spin" />
+              </div>
+            ) : cues.length > 0 ? (
+              <div className="max-h-72 overflow-auto divide-y divide-white/[0.04]">
+                {cues.map((cue, i) => (
+                  <div key={i} className="px-3 py-2.5 hover:bg-white/[0.02]">
+                    <p className="text-[10px] font-mono text-teal-400/50 mb-1">
+                      {formatCueTime(cue.start)} → {formatCueTime(cue.end)}
+                    </p>
+                    <p className="text-[13px] text-white/75 leading-snug">{cue.text}</p>
+                  </div>
+                ))}
+                {totalCues !== null && totalCues > cues.length && (
+                  <p className="px-3 py-2 text-[10px] font-mono text-white/25 text-center">
+                    … {totalCues - cues.length} more
+                  </p>
+                )}
               </div>
             ) : (
               <pre className="max-h-64 overflow-auto p-3 text-[11px] leading-relaxed font-mono text-white/55 whitespace-pre-wrap break-words">
@@ -663,9 +764,11 @@ function EmptySubtitles({
   const t = useT();
 
   return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.02] px-6 py-12 text-center">
-      <Captions className="w-8 h-8 text-white/15 mx-auto mb-4" />
-      <p className="text-sm text-white/45 max-w-md mx-auto leading-relaxed">
+    <div className="rounded-2xl border border-dashed border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent px-6 py-14 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mx-auto mb-4">
+        <Captions className="w-7 h-7 text-teal-400/50" />
+      </div>
+      <p className="text-sm text-white/50 max-w-md mx-auto leading-relaxed">
         {t("anime.subtitles.empty")}
       </p>
       {totalEpisodes > 0 && (
@@ -673,7 +776,7 @@ function EmptySubtitles({
           type="button"
           onClick={() => onFetchEpisode(1)}
           disabled={fetchingEp !== null}
-          className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-teal-500/15 border border-teal-500/25 text-teal-300 hover:bg-teal-500/25 transition-colors disabled:opacity-50"
+          className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-teal-500/20 border border-teal-500/30 text-teal-200 hover:bg-teal-500/30 transition-colors disabled:opacity-50"
         >
           {fetchingEp === 1 ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
