@@ -26,6 +26,7 @@ import {
   Users,
   SlidersHorizontal,
 } from "lucide-react";
+import WatchDownloadPanel from "@/components/watch-download-panel";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -475,6 +476,17 @@ const VideoPlayerSection = () => {
             <Mic className="w-3 h-3" /> {t("card.dub")}
           </button>
         </div>
+
+        {/* Download — current episode or batch */}
+        {anilistId && episodeNo && allEpisodes?.episodes && (
+          <WatchDownloadPanel
+            anilistId={anilistId}
+            currentEpisodeNumber={parseInt(episodeNo, 10)}
+            episodes={allEpisodes.episodes}
+            audio={audio}
+            provider={provider}
+          />
+        )}
 
         {/* Subtitle appearance */}
         <Popover>

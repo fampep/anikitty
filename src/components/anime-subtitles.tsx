@@ -17,6 +17,7 @@ import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
   fetchAllAnimeSubtitles,
   fetchAnimeEpisodeSubtitles,
+  downloadSubtitleEpisodesZip,
   useGetAnimeSubtitles,
   type AnimeSubtitleItem,
 } from "@/query/get-anime-subtitles";
@@ -44,6 +45,8 @@ export default function AnimeSubtitles({ anilistId }: Props) {
   const [page, setPage] = useState(1);
   const [fetchingEp, setFetchingEp] = useState<number | null>(null);
   const [fetchingAll, setFetchingAll] = useState(false);
+  const [selectedEps, setSelectedEps] = useState<Set<number>>(() => new Set());
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   const { data: episodesData, isLoading: episodesLoading } = useGetAllEpisodes(String(anilistId));
   const { data: subtitles = [], isLoading: subtitlesLoading, refetch } = useGetAnimeSubtitles(anilistId);
@@ -89,6 +92,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
 
   useEffect(() => {
     setPage(1);
+    setSelectedEps(new Set());
   }, [query, anilistId]);
 
   useEffect(() => {
@@ -139,7 +143,38 @@ export default function AnimeSubtitles({ anilistId }: Props) {
     }
   };
 
-  const busy = fetchingEp !== null || fetchingAll;
+  const handleDownloadEpisodes = async (episodes?: number[]) => {
+    if (episodes && episodes.length === 0) return;
+    setDownloadingZip(true);
+    try {
+      await downloadSubtitleEpisodesZip(anilistId, episodes);
+      toast.success(t("anime.subtitles.downloadZipSuccess"));
+    } catch {
+      toast.error(t("anime.subtitles.downloadZipError"));
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
+  const toggleEpisodeSelection = (episode: number) => {
+    setSelectedEps((prev) => {
+      const next = new Set(prev);
+      if (next.has(episode)) next.delete(episode);
+      else next.add(episode);
+      return next;
+    });
+  };
+
+  const selectAllOnPage = () => {
+    const downloadable = pageEpisodes.filter((g) => g.tracks.length > 0).map((g) => g.number);
+    setSelectedEps((prev) => new Set([...prev, ...downloadable]));
+  };
+
+  const clearSelection = () => setSelectedEps(new Set());
+
+  const busy = fetchingEp !== null || fetchingAll || downloadingZip;
+  const selectedList = [...selectedEps].sort((a, b) => a - b);
+  const pageDownloadableCount = pageEpisodes.filter((g) => g.tracks.length > 0).length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -162,6 +197,22 @@ export default function AnimeSubtitles({ anilistId }: Props) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {cachedEpisodes > 0 && (
+            <button
+              type="button"
+              onClick={() => handleDownloadEpisodes()}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-white/8 border border-white/12 text-white/75 hover:bg-white/12 transition-colors disabled:opacity-50"
+            >
+              {downloadingZip ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {t("anime.subtitles.downloadAllCached")}
+            </button>
+          )}
+
           {totalEpisodes > 0 && missingCount > 0 && (
             <button
               type="button"
@@ -196,6 +247,17 @@ export default function AnimeSubtitles({ anilistId }: Props) {
         <EpisodeThumbnailSkeletons />
       ) : pageEpisodes.length > 0 ? (
         <>
+          {pageDownloadableCount > 0 && (
+            <BatchDownloadBar
+              selectedCount={selectedEps.size}
+              pageDownloadableCount={pageDownloadableCount}
+              downloading={downloadingZip}
+              onSelectPage={selectAllOnPage}
+              onClear={clearSelection}
+              onDownloadSelected={() => handleDownloadEpisodes(selectedList)}
+            />
+          )}
+
           <div className="flex flex-col gap-3">
             {pageEpisodes.map((group) => (
               <EpisodeSubtitleCard
@@ -204,7 +266,11 @@ export default function AnimeSubtitles({ anilistId }: Props) {
                 busy={busy}
                 fetchingEp={fetchingEp}
                 fetchingAll={fetchingAll}
+                selected={selectedEps.has(group.number)}
+                canSelect={group.tracks.length > 0}
+                onToggleSelect={() => toggleEpisodeSelection(group.number)}
                 onFetch={() => handleFetchEpisode(group.number)}
+                onDownloadEpisode={() => handleDownloadEpisodes([group.number])}
               />
             ))}
           </div>
@@ -223,6 +289,71 @@ export default function AnimeSubtitles({ anilistId }: Props) {
           fetchingEp={fetchingEp}
           onFetchEpisode={handleFetchEpisode}
         />
+      )}
+    </div>
+  );
+}
+
+function BatchDownloadBar({
+  selectedCount,
+  pageDownloadableCount,
+  downloading,
+  onSelectPage,
+  onClear,
+  onDownloadSelected,
+}: {
+  selectedCount: number;
+  pageDownloadableCount: number;
+  downloading: boolean;
+  onSelectPage: () => void;
+  onClear: () => void;
+  onDownloadSelected: () => void;
+}) {
+  const t = useT();
+
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={onSelectPage}
+          disabled={downloading || pageDownloadableCount === 0}
+          className="text-[11px] font-medium text-white/45 hover:text-white/70 transition-colors disabled:opacity-40"
+        >
+          {t("anime.subtitles.selectAllPage")}
+        </button>
+        {selectedCount > 0 && (
+          <>
+            <span className="text-white/15">·</span>
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={downloading}
+              className="text-[11px] font-medium text-white/45 hover:text-white/70 transition-colors disabled:opacity-40"
+            >
+              {t("anime.subtitles.clearSelection")}
+            </button>
+            <span className="text-[10px] font-mono text-white/25">
+              {t("anime.subtitles.selectedCount", { count: selectedCount })}
+            </span>
+          </>
+        )}
+      </div>
+
+      {selectedCount > 0 && (
+        <button
+          type="button"
+          onClick={onDownloadSelected}
+          disabled={downloading}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-teal-500/15 border border-teal-500/25 text-teal-300 hover:bg-teal-500/25 transition-colors disabled:opacity-50"
+        >
+          {downloading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Download className="w-3.5 h-3.5" />
+          )}
+          {t("anime.subtitles.downloadSelected", { count: selectedCount })}
+        </button>
       )}
     </div>
   );
@@ -257,22 +388,51 @@ function EpisodeSubtitleCard({
   busy,
   fetchingEp,
   fetchingAll,
+  selected,
+  canSelect,
+  onToggleSelect,
   onFetch,
+  onDownloadEpisode,
 }: {
   group: EpisodeRow;
   busy: boolean;
   fetchingEp: number | null;
   fetchingAll: boolean;
+  selected: boolean;
+  canSelect: boolean;
+  onToggleSelect: () => void;
   onFetch: () => void;
+  onDownloadEpisode: () => void;
 }) {
   const t = useT();
   const isFetching =
     fetchingEp === group.number || (fetchingAll && group.tracks.length === 0);
 
   return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden">
+    <div
+      className={cn(
+        "rounded-xl border bg-white/[0.02] overflow-hidden transition-colors",
+        selected ? "border-teal-500/35 ring-1 ring-teal-500/15" : "border-white/8",
+      )}
+    >
       <div className="flex gap-0">
         <div className="relative w-40 sm:w-44 shrink-0 aspect-[16/9] border-r border-white/6 overflow-hidden">
+          {canSelect && (
+            <button
+              type="button"
+              onClick={onToggleSelect}
+              disabled={busy}
+              className={cn(
+                "absolute top-2 left-2 z-20 w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
+                selected
+                  ? "bg-teal-500 border-teal-400 text-white"
+                  : "bg-black/55 border-white/25 text-transparent hover:border-white/45",
+              )}
+              aria-label={`Select episode ${group.number}`}
+            >
+              {selected && <span className="text-[10px] font-bold leading-none">✓</span>}
+            </button>
+          )}
           <EpisodeThumbnail image={group.image} episode={group.number} />
           {isFetching && (
             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 z-10">
@@ -301,21 +461,34 @@ function EpisodeSubtitleCard({
                     : t("anime.subtitles.noTracks")}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onFetch}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/45 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50 shrink-0"
-            >
-              {fetchingEp === group.number ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3 h-3" />
+            <div className="flex items-center gap-1.5 shrink-0">
+              {group.tracks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onDownloadEpisode}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-teal-500/20 text-teal-300/90 hover:bg-teal-500/10 transition-colors disabled:opacity-50"
+                >
+                  <Download className="w-3 h-3" />
+                  {t("anime.subtitles.downloadEpisode")}
+                </button>
               )}
-              {group.tracks.length > 0
-                ? t("anime.subtitles.refresh")
-                : t("anime.subtitles.fetchEpisode", { n: group.number })}
-            </button>
+              <button
+                type="button"
+                onClick={onFetch}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/45 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50"
+              >
+                {fetchingEp === group.number ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                {group.tracks.length > 0
+                  ? t("anime.subtitles.refresh")
+                  : t("anime.subtitles.fetchEpisode", { n: group.number })}
+              </button>
+            </div>
           </div>
 
           {group.tracks.length > 0 ? (

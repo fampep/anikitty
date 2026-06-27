@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { episodeSubtitles } from "@/db/schema";
 import {
@@ -473,6 +473,56 @@ export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubti
         ),
       )
       .orderBy(asc(episodeSubtitles.episode), asc(episodeSubtitles.label));
+  } catch {
+    return [];
+  }
+}
+
+export type SubtitleArchiveRow = {
+  anilistId: number;
+  episode: number;
+  label: string;
+  content: string;
+};
+
+/** Subtitle file contents for ZIP batch downloads. */
+export async function getSubtitleArchiveRows(
+  anilistId: number,
+  episodes?: number[],
+): Promise<SubtitleArchiveRow[]> {
+  if (!dbAvailable()) return [];
+
+  try {
+    const db = getDb();
+    const conditions = [
+      eq(episodeSubtitles.anilistId, anilistId),
+      eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER),
+    ];
+
+    if (episodes && episodes.length > 0) {
+      conditions.push(inArray(episodeSubtitles.episode, episodes));
+    }
+
+    const rows = await db
+      .select({
+        anilistId: episodeSubtitles.anilistId,
+        episode: episodeSubtitles.episode,
+        label: episodeSubtitles.label,
+        content: episodeSubtitles.content,
+        fetchedAt: episodeSubtitles.fetchedAt,
+      })
+      .from(episodeSubtitles)
+      .where(and(...conditions))
+      .orderBy(asc(episodeSubtitles.episode), asc(episodeSubtitles.label));
+
+    return rows
+      .filter((row) => !isStale(row.fetchedAt) && row.content.trim())
+      .map(({ anilistId: aid, episode, label, content }) => ({
+        anilistId: aid,
+        episode,
+        label,
+        content,
+      }));
   } catch {
     return [];
   }

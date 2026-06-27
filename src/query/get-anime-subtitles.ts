@@ -50,3 +50,30 @@ export const fetchAnimeEpisodeSubtitles = async (
 ): Promise<AnimeSubtitleItem[]> => {
   return getAnimeSubtitles(anilistId, { episode, fetch: true, audio });
 };
+
+export async function downloadSubtitleEpisodesZip(
+  anilistId: number,
+  episodes?: number[],
+): Promise<void> {
+  const sorted =
+    episodes && episodes.length > 0 ? [...episodes].sort((a, b) => a - b) : undefined;
+
+  const res = await api.get(`/api/anime/${anilistId}/subtitles/zip`, {
+    params: sorted ? { episodes: sorted.join(",") } : { episodes: "all" },
+    responseType: "blob",
+  });
+
+  const filename = sorted
+    ? sorted.length === 1
+      ? `${anilistId}-ep${sorted[0]}-subtitles.zip`
+      : `${anilistId}-ep${sorted[0]}-ep${sorted[sorted.length - 1]}-subtitles.zip`
+    : `${anilistId}-all-subtitles.zip`;
+
+  const blob = res.data as Blob;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}

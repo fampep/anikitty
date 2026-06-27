@@ -44,6 +44,11 @@ export function subtitleDownloadUrl(id: string): string {
   return `/api/kitty/subtitles?id=${encodeURIComponent(id)}&download=1`;
 }
 
+export function subtitleEpisodeZipUrl(anilistId: number, episodes: number[]): string {
+  const params = new URLSearchParams({ episodes: episodes.join(",") });
+  return `/api/anime/${anilistId}/subtitles/zip?${params.toString()}`;
+}
+
 export function subtitleProxyUrl(sourceUrl: string, headers?: Record<string, string>): string {
   const params = new URLSearchParams({ url: sourceUrl });
   const referer = headers?.Referer ?? headers?.referer;
