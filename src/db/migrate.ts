@@ -262,6 +262,21 @@ export async function migrateDb() {
         meta_fetched_at        TIMESTAMP,
         updated_at             TIMESTAMP NOT NULL DEFAULT NOW()
       )`,
+      // The table may predate later columns; CREATE TABLE IF NOT EXISTS won't add
+      // them. Without these, SELECT * / ORDER BY last_subtitle_at throws and the
+      // library list comes back empty even though counts work.
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS anime_title TEXT`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS poster TEXT`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS status VARCHAR(30)`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS total_episodes INTEGER`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS cached_episode_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS track_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS is_complete BOOLEAN NOT NULL DEFAULT FALSE`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS score INTEGER`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS year INTEGER`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS last_subtitle_at TIMESTAMP`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS meta_fetched_at TIMESTAMP`,
+      `ALTER TABLE subtitle_library_anime ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW()`,
       `CREATE INDEX IF NOT EXISTS subtitle_library_anime_complete_idx
         ON subtitle_library_anime (is_complete, last_subtitle_at DESC)`,
       `CREATE INDEX IF NOT EXISTS subtitle_library_anime_title_idx
