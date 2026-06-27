@@ -68,6 +68,7 @@ export const useSubtitleLibrary = (
     queryFn: () => getSubtitleLibrary(q, page, filter),
     keepPreviousData: true,
     staleTime: 30_000,
+    retry: 2,
   });
 
 export const useDiscoverAnimeSearch = (q: string) =>

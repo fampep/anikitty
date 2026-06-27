@@ -53,7 +53,7 @@ export default function SubtitleLibraryPage() {
   }, [qParam]);
 
   const { data: stats, isLoading: statsLoading } = useSubtitleLibraryStats();
-  const { data: library, isLoading, isFetching } = useSubtitleLibrary(
+  const { data: library, isLoading, isFetching, isError, refetch } = useSubtitleLibrary(
     qParam,
     pageParam,
     filterParam,
@@ -76,13 +76,21 @@ export default function SubtitleLibraryPage() {
   const totalPages = Math.max(1, Math.ceil((library?.total ?? 0) / (library?.limit ?? 24)));
   const showDiscover = qParam.trim().length >= 2;
 
-  const pushParams = (nextQ: string, nextPage: number, filter: SubtitleLibraryFilter) => {
+  const buildSubsUrl = (
+    nextQ: string,
+    nextPage: number,
+    filter: SubtitleLibraryFilter,
+  ) => {
     const p = new URLSearchParams();
     if (nextQ.trim()) p.set("q", nextQ.trim());
     if (nextPage > 1) p.set("page", String(nextPage));
     if (filter === "completed") p.set("filter", "completed");
     const qs = p.toString();
-    router.push(`${ROUTES.SUBTITLES}${qs ? `?${qs}` : ""}`);
+    return `${ROUTES.SUBTITLES}${qs ? `?${qs}` : ""}`;
+  };
+
+  const pushParams = (nextQ: string, nextPage: number, filter: SubtitleLibraryFilter) => {
+    router.replace(buildSubsUrl(nextQ, nextPage, filter), { scroll: false });
   };
 
   const invalidateLibrary = () => {
@@ -95,20 +103,21 @@ export default function SubtitleLibraryPage() {
     autoSyncStarted.current = true;
 
     const runAutoSync = async () => {
+      await new Promise((r) => setTimeout(r, 3000));
       setAutoSyncing(true);
       let rounds = 0;
       try {
-        while (rounds < 20) {
-          const result = await syncSubtitleLibrary(2);
+        while (rounds < 5) {
+          const result = await syncSubtitleLibrary(1);
           if (result.processed === 0) break;
-          invalidateLibrary();
           rounds++;
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 1500));
         }
       } catch {
-        /* silent — user can manually refresh */
+        /* silent */
       } finally {
         setAutoSyncing(false);
+        invalidateLibrary();
       }
     };
 
@@ -245,6 +254,8 @@ export default function SubtitleLibraryPage() {
 
           {isLoading ? (
             <CardGridSkeleton />
+          ) : isError ? (
+            <LibraryError onRetry={() => refetch()} />
           ) : library && library.items.length > 0 ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -331,6 +342,22 @@ function StatCard({
           {loading ? "—" : (value ?? 0).toLocaleString()}
         </p>
       </div>
+    </div>
+  );
+}
+
+function LibraryError({ onRetry }: { onRetry: () => void }) {
+  const t = useT();
+  return (
+    <div className="rounded-xl border border-red-500/20 bg-red-500/[0.04] px-6 py-10 text-center">
+      <p className="text-sm text-red-300/80">{t("subsLibrary.loadError")}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-4 h-8 px-4 rounded-lg text-[11px] font-semibold bg-white/10 border border-white/15 text-white/70 hover:text-white transition-colors"
+      >
+        {t("subsLibrary.retry")}
+      </button>
     </div>
   );
 }

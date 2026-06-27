@@ -2,6 +2,9 @@ import { queryAniList, toTitle } from "@/lib/anilist";
 import type { SubtitleLibraryEntry } from "@/lib/subtitle-cache-store";
 import { searchSubtitleLibrary } from "@/lib/subtitle-cache-store";
 
+const META_CACHE_TTL_MS = 60 * 60 * 1000;
+const metaCache = new Map<number, { meta: AnilistMeta; at: number }>();
+
 export type AnilistMeta = {
   anilistId: number;
   title: string;
@@ -28,15 +31,37 @@ const META_QUERY = `
   }
 `;
 
-export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<number, AnilistMeta>> {
+function readCachedMeta(anilistIds: number[]): {
+  map: Map<number, AnilistMeta>;
+  missing: number[];
+} {
   const map = new Map<number, AnilistMeta>();
-  if (anilistIds.length === 0) return map;
+  const missing: number[] = [];
+  const now = Date.now();
+
+  for (const id of anilistIds) {
+    const cached = metaCache.get(id);
+    if (cached && now - cached.at < META_CACHE_TTL_MS) {
+      map.set(id, cached.meta);
+    } else {
+      missing.push(id);
+    }
+  }
+
+  return { map, missing };
+}
+
+export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<number, AnilistMeta>> {
+  if (anilistIds.length === 0) return new Map();
 
   const unique = [...new Set(anilistIds)];
+  const { map, missing } = readCachedMeta(unique);
+  if (missing.length === 0) return map;
+
   const chunkSize = 50;
 
-  for (let i = 0; i < unique.length; i += chunkSize) {
-    const chunk = unique.slice(i, i + chunkSize);
+  for (let i = 0; i < missing.length; i += chunkSize) {
+    const chunk = missing.slice(i, i + chunkSize);
     try {
       const data = await queryAniList<{
         Page: {
@@ -53,7 +78,7 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
       }>(META_QUERY, { ids: chunk, page: 1, perPage: chunkSize });
 
       for (const m of data.Page?.media ?? []) {
-        map.set(m.id, {
+        const meta: AnilistMeta = {
           anilistId: m.id,
           title: toTitle(m.title),
           poster: m.coverImage?.extraLarge ?? null,
@@ -61,7 +86,9 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
           episodes: m.episodes ?? null,
           score: m.averageScore ?? null,
           year: m.seasonYear ?? null,
-        });
+        };
+        map.set(m.id, meta);
+        metaCache.set(m.id, { meta, at: Date.now() });
       }
     } catch {
       /* skip failed batch */
@@ -69,6 +96,20 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
   }
 
   return map;
+}
+
+async function enrichWithTimeout(
+  items: SubtitleLibraryEntry[],
+  timeoutMs: number,
+): Promise<SubtitleLibraryEntry[]> {
+  if (items.length === 0) return items;
+
+  return Promise.race([
+    enrichSubtitleLibraryEntries(items),
+    new Promise<SubtitleLibraryEntry[]>((resolve) => {
+      setTimeout(() => resolve(items), timeoutMs);
+    }),
+  ]);
 }
 
 export function applyAnilistMeta(
@@ -103,7 +144,9 @@ export async function enrichSubtitleLibraryEntries(
 }
 
 export function isCompletedWithSubs(item: SubtitleLibraryEntry): boolean {
-  return item.status === "FINISHED" && Boolean(item.isComplete);
+  if (!item.isComplete) return false;
+  if (!item.status) return true;
+  return item.status === "FINISHED";
 }
 
 export async function searchEnrichedSubtitleLibrary(opts: {
@@ -126,7 +169,7 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   if (filter === "completed") {
     const scanSize = Math.min(300, Math.max(limit * page * 4, 96));
     const raw = await searchSubtitleLibrary({ q: opts.q, page: 1, limit: scanSize });
-    const enriched = await enrichSubtitleLibraryEntries(raw.items);
+    const enriched = await enrichWithTimeout(raw.items, 12_000);
     const completed = enriched.filter(isCompletedWithSubs);
     const start = (page - 1) * limit;
 
@@ -141,31 +184,30 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   }
 
   const result = await searchSubtitleLibrary({ q: opts.q, page, limit });
-  const items = await enrichSubtitleLibraryEntries(result.items);
-  return { ...result, items };
+
+  try {
+    const items = await enrichWithTimeout(result.items, 8_000);
+    return { ...result, items };
+  } catch {
+    return result;
+  }
 }
 
 export async function countCompletedSubtitleAnimes(maxScan = 300): Promise<number> {
-  const raw = await searchSubtitleLibrary({ page: 1, limit: maxScan });
-  const enriched = await enrichSubtitleLibraryEntries(raw.items);
-  return enriched.filter(isCompletedWithSubs).length;
+  try {
+    const raw = await searchSubtitleLibrary({ page: 1, limit: maxScan });
+    const enriched = await enrichWithTimeout(raw.items, 10_000);
+    return enriched.filter(isCompletedWithSubs).length;
+  } catch {
+    return 0;
+  }
 }
 
 export async function listIncompleteSubtitleAnimes(limit: number): Promise<number[]> {
   const raw = await searchSubtitleLibrary({ page: 1, limit: 100 });
-  const enriched = await enrichSubtitleLibraryEntries(raw.items);
 
-  return enriched
-    .filter((e) => {
-      if (e.isComplete) return false;
-      if (e.totalEpisodes != null && e.totalEpisodes > 0) return e.episodeCount < e.totalEpisodes;
-      return e.episodeCount > 0;
-    })
-    .sort((a, b) => {
-      const ratioA = a.totalEpisodes ? a.episodeCount / a.totalEpisodes : 0;
-      const ratioB = b.totalEpisodes ? b.episodeCount / b.totalEpisodes : 0;
-      return ratioA - ratioB;
-    })
+  return raw.items
+    .sort((a, b) => a.episodeCount - b.episodeCount)
     .slice(0, limit)
     .map((e) => e.anilistId);
 }

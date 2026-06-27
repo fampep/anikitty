@@ -1,3 +1,4 @@
+import { searchSubtitleLibrary } from "@/lib/subtitle-cache-store";
 import { searchEnrichedSubtitleLibrary } from "@/lib/subtitle-library-enrich";
 
 export async function GET(req: Request) {
@@ -8,8 +9,12 @@ export async function GET(req: Request) {
   const filterParam = searchParams.get("filter");
   const filter = filterParam === "completed" ? "completed" : "all";
 
-  const result = await searchEnrichedSubtitleLibrary({ q, page, limit, filter });
-  return Response.json({ data: result });
+  try {
+    const result = await searchEnrichedSubtitleLibrary({ q, page, limit, filter });
+    return Response.json({ data: result });
+  } catch (err) {
+    console.error("[subtitles/library]", err);
+    const fallback = await searchSubtitleLibrary({ q, page, limit });
+    return Response.json({ data: fallback });
+  }
 }
-
-export const maxDuration = 120;

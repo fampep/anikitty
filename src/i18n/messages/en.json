@@ -564,7 +564,9 @@
     "autoSyncing": "Auto-fetching missing subtitles for library anime…",
     "subProgress": "{cached}/{total} eps · {tracks} tracks",
     "tracksOnly": "{tracks} subtitle tracks",
-    "notCached": "Not in library"
+    "notCached": "Not in library",
+    "loadError": "Could not load the subtitle library. Try again.",
+    "retry": "Retry"
   },
   "watch": {
     "episode": "Episode {n}",
