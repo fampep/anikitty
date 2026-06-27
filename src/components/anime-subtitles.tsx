@@ -192,7 +192,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
         </div>
       </div>
 
-      {episodesLoading && allEpisodes.length === 0 ? (
+      {(episodesLoading || subtitlesLoading) && allEpisodes.length === 0 ? (
         <EpisodeThumbnailSkeletons />
       ) : pageEpisodes.length > 0 ? (
         <>
