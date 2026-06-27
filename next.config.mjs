@@ -22,6 +22,10 @@ const csp = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
   images: {
     remotePatterns: [
       {
