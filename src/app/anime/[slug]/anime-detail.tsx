@@ -60,8 +60,6 @@ const DB_LINKS = [
 export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: anime, isLoading } = useGetAnimeDetails(slug);
   const { auth } = useAuthStore();
-  const stats = anime?.anime?.info?.stats;
-  const hasDub = (stats?.episodes?.dub ?? 0) > 0;
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
     animeID: slug,
     page: 1,
@@ -97,6 +95,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const info     = anime.anime.info;
   const moreInfo = anime.anime.moreInfo;
   const stats    = info.stats;
+  const hasDub   = (stats?.episodes?.dub ?? 0) > 0;
   const isAiring = moreInfo.status === "Currently Airing";
 
   const mappings  = mappingData?.mappings;
