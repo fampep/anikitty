@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 import Container from "@/components/container";
 import AnimeCard from "@/components/anime-card";
@@ -58,6 +59,7 @@ const DB_LINKS = [
 
 export default function AnimeDetail({ slug }: { slug: string }) {
   const t = useT();
+  const searchParams = useSearchParams();
   const bookmarkOptions = useBookmarkLabels();
   const { data: anime, isLoading } = useGetAnimeDetails(slug);
   const { auth } = useAuthStore();
@@ -73,6 +75,21 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: banner } = useGetAnimeBanner(anilistId!);
   const { data: mappingData } = useGetAnimeMappings(anilistId);
   const { data: episodesData } = useGetAllEpisodes(slug);
+
+  const defaultTab = useMemo(() => {
+    const tab = searchParams.get("tab");
+    const valid = new Set([
+      "overview",
+      "episodes",
+      "subtitles",
+      "media",
+      "art",
+      "characters",
+      "relations",
+      "comments",
+    ]);
+    return tab && valid.has(tab) ? tab : "overview";
+  }, [searchParams]);
 
   const handleSelect = async (value: string) => {
     if (!auth) return;
@@ -219,7 +236,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </div>
 
         {/* ── Tabs ── */}
-        <Tabs defaultValue="overview" className="w-full mt-6 sm:mt-10">
+        <Tabs defaultValue={defaultTab} className="w-full mt-6 sm:mt-10">
           <TabsList className="flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">
             {[
               { value: "overview", label: t("anime.tabs.overview") },

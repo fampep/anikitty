@@ -10,6 +10,7 @@ import React, { ReactNode, useEffect, useState } from "react";
 import SearchBar from "./search-bar";
 import {
   CalendarDays,
+  Captions,
   ChevronDown,
   Flame,
   HelpCircle,
@@ -39,6 +40,7 @@ const MENU_DEFS = [
   { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home" },
   { href: ROUTES.SCHEDULE, icon: CalendarDays, titleKey: "nav.schedule", shortKey: "nav.short.schedule" },
   { href: ROUTES.TRENDING, icon: Flame, titleKey: "nav.trending", shortKey: "nav.short.trending" },
+  { href: ROUTES.SUBTITLES, icon: Captions, titleKey: "nav.subtitles", shortKey: "nav.short.subtitles" },
   { href: ROUTES.FORUM, icon: MessagesSquare, titleKey: "nav.forum", shortKey: "nav.short.forum" },
   { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat" },
   { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together" },

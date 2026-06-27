@@ -3,6 +3,7 @@
     "home": "Home",
     "schedule": "Schedule",
     "trending": "Trending",
+    "subtitles": "Subtitles",
     "forum": "Forum",
     "chat": "Live Chat",
     "watchTogether": "Watch Together",
@@ -15,6 +16,7 @@
       "home": "Home",
       "schedule": "Schedule",
       "trending": "Trending",
+      "subtitles": "Subs",
       "forum": "Forum",
       "chat": "Chat",
       "together": "Together",
@@ -521,6 +523,27 @@
   },
   "download": {
     "videoTemporarilyDisabled": "Video downloads are temporarily disabled. Please try again later."
+  },
+  "subsLibrary": {
+    "title": "Subtitle Library",
+    "subtitle": "Search anime with cached subtitles on our server and download .vtt files in bulk.",
+    "searchPlaceholder": "Search by anime title or AniList ID…",
+    "search": "Search",
+    "loading": "Loading…",
+    "resultsCount": "{count} anime in library",
+    "empty": "No cached subtitles yet. Subtitles are saved when users watch episodes.",
+    "emptySearch": "No anime matched your search.",
+    "unknownAnime": "Anime #{id}",
+    "episodesCached": "{count} episodes",
+    "tracksCached": "{count} tracks",
+    "downloadAll": "Download all",
+    "downloadStarted": "Download started",
+    "downloadError": "Download failed",
+    "browse": "Browse subtitles",
+    "stats": {
+      "animes": "Anime with subtitles",
+      "tracks": "Total subtitle tracks"
+    }
   },
   "watch": {
     "episode": "Episode {n}",

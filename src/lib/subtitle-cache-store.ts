@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { episodeSubtitles } from "@/db/schema";
 import {
@@ -525,5 +525,125 @@ export async function getSubtitleArchiveRows(
       }));
   } catch {
     return [];
+  }
+}
+
+export type SubtitleLibraryStats = {
+  totalAnimes: number;
+  totalTracks: number;
+};
+
+export type SubtitleLibraryEntry = {
+  anilistId: number;
+  animeTitle: string | null;
+  trackCount: number;
+  episodeCount: number;
+  lastFetched: string | null;
+};
+
+function subtitleLibrarySearchPattern(q: string): string {
+  const safe = q.replace(/[%_]/g, "").trim();
+  return `%${safe}%`;
+}
+
+function subtitleLibraryWhere(q?: string) {
+  const providerFilter = eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER);
+  const trimmed = q?.trim();
+  if (!trimmed) return providerFilter;
+
+  const pattern = subtitleLibrarySearchPattern(trimmed);
+  return and(
+    providerFilter,
+    or(
+      ilike(episodeSubtitles.animeTitle, pattern),
+      sql`cast(${episodeSubtitles.anilistId} as text) like ${pattern}`,
+    ),
+  );
+}
+
+export async function getSubtitleLibraryStats(): Promise<SubtitleLibraryStats> {
+  if (!dbAvailable()) return { totalAnimes: 0, totalTracks: 0 };
+
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({
+        totalTracks: sql<number>`count(*)::int`,
+        totalAnimes: sql<number>`count(distinct ${episodeSubtitles.anilistId})::int`,
+      })
+      .from(episodeSubtitles)
+      .where(eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER));
+
+    return {
+      totalAnimes: row?.totalAnimes ?? 0,
+      totalTracks: row?.totalTracks ?? 0,
+    };
+  } catch {
+    return { totalAnimes: 0, totalTracks: 0 };
+  }
+}
+
+export async function searchSubtitleLibrary(opts: {
+  q?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{
+  items: SubtitleLibraryEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
+}> {
+  const page = Math.max(1, opts.page ?? 1);
+  const limit = Math.min(50, Math.max(1, opts.limit ?? 24));
+  const offset = (page - 1) * limit;
+  const whereClause = subtitleLibraryWhere(opts.q);
+
+  if (!dbAvailable()) {
+    return { items: [], total: 0, page, limit, hasNextPage: false };
+  }
+
+  try {
+    const db = getDb();
+
+    const [countRow] = await db
+      .select({
+        total: sql<number>`count(distinct ${episodeSubtitles.anilistId})::int`,
+      })
+      .from(episodeSubtitles)
+      .where(whereClause);
+
+    const total = countRow?.total ?? 0;
+
+    const rows = await db
+      .select({
+        anilistId: episodeSubtitles.anilistId,
+        animeTitle: sql<string | null>`max(${episodeSubtitles.animeTitle})`,
+        trackCount: sql<number>`count(*)::int`,
+        episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
+        lastFetched: sql<Date | null>`max(${episodeSubtitles.fetchedAt})`,
+      })
+      .from(episodeSubtitles)
+      .where(whereClause)
+      .groupBy(episodeSubtitles.anilistId)
+      .orderBy(desc(sql`max(${episodeSubtitles.fetchedAt})`))
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      items: rows.map((row) => ({
+        anilistId: row.anilistId,
+        animeTitle: row.animeTitle,
+        trackCount: row.trackCount,
+        episodeCount: row.episodeCount,
+        lastFetched: row.lastFetched?.toISOString() ?? null,
+      })),
+      total,
+      page,
+      limit,
+      hasNextPage: page * limit < total,
+    };
+  } catch {
+    return { items: [], total: 0, page, limit, hasNextPage: false };
   }
 }
