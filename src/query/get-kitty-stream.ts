@@ -5,6 +5,7 @@ export interface KittyTrack {
   file: string;
   kind: string;
   label: string;
+  default?: boolean;
 }
 
 // Matches the Kitty API response: { file, headers, tracks }

@@ -1,0 +1,50 @@
+/** Only this provider may download and cache subtitle files. */
+export const SUBTITLE_SOURCE_PROVIDER = "Anitaku";
+
+export type StreamTrack = {
+  file?: string;
+  url?: string;
+  kind?: string;
+  label?: string;
+  default?: boolean;
+};
+
+const NON_SUBTITLE_KINDS = new Set(["thumbnails", "chapters", "metadata"]);
+
+export function getTrackFile(track: StreamTrack): string | null {
+  const file = track.file ?? track.url;
+  return file?.trim() || null;
+}
+
+export function isSubtitleTrack(track: StreamTrack): boolean {
+  const file = getTrackFile(track);
+  if (!file) return false;
+
+  const kind = (track.kind ?? "subtitles").toLowerCase();
+  if (NON_SUBTITLE_KINDS.has(kind)) return false;
+
+  const label = (track.label ?? "").toLowerCase();
+  if (
+    label.includes("chapter") ||
+    label.includes("skip") ||
+    label.includes("intro") ||
+    label.includes("thumbnail")
+  ) {
+    return false;
+  }
+
+  return kind === "subtitles" || kind === "caption" || kind === "captions" || !track.kind;
+}
+
+export function subtitleServeUrl(id: string): string {
+  return `/api/kitty/subtitles?id=${encodeURIComponent(id)}`;
+}
+
+export function subtitleDownloadUrl(id: string): string {
+  return `/api/kitty/subtitles?id=${encodeURIComponent(id)}&download=1`;
+}
+
+export function stripSubtitleTracks(tracks: StreamTrack[] | undefined): StreamTrack[] {
+  if (!Array.isArray(tracks)) return [];
+  return tracks.filter((track) => !isSubtitleTrack(track));
+}

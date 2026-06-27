@@ -379,3 +379,38 @@ export const animeAudioAvailability = pgTable("anime_audio_availability", {
   fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Cached subtitle tracks from KittyAPI stream responses (per provider/episode).
+export const episodeSubtitles = pgTable(
+  "episode_subtitles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    anilistId: integer("anilist_id").notNull(),
+    animeTitle: text("anime_title"),
+    episode: integer("episode").notNull(),
+    audio: varchar("audio", { length: 10 }).notNull().default("sub"),
+    provider: varchar("provider", { length: 50 }).notNull(),
+    label: varchar("label", { length: 100 }).notNull(),
+    kind: varchar("kind", { length: 30 }).notNull().default("subtitles"),
+    isDefault: boolean("is_default").notNull().default(false),
+    sourceUrl: text("source_url").notNull(),
+    content: text("content").notNull(),
+    fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    uniqueTrack: unique("episode_subtitles_unique").on(
+      t.anilistId,
+      t.episode,
+      t.audio,
+      t.provider,
+      t.label,
+    ),
+    lookupIdx: index("episode_subtitles_lookup_idx").on(
+      t.anilistId,
+      t.episode,
+      t.audio,
+      t.provider,
+    ),
+  }),
+);

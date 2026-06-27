@@ -38,6 +38,9 @@ const WatchTrailer = dynamic(() => import("@/components/watch-trailer"), { ssr: 
 const CommentSection = dynamic(() => import("@/components/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
 });
+const AnimeSubtitles = dynamic(() => import("@/components/anime-subtitles"), {
+  loading: () => <div className="h-40 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
+});
 
 const DB_LINKS = [
   { key: "anilist",   label: "AniList",      url: (id: string | number) => `https://anilist.co/anime/${id}`,                    color: "text-teal-400/80 border-teal-500/20 bg-teal-500/8"      },
@@ -218,6 +221,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             {[
               { value: "overview", label: t("anime.tabs.overview") },
               { value: "episodes", label: t("anime.tabs.episodes") },
+              { value: "subtitles", label: t("anime.tabs.subtitles") },
               ...(mapImages ? [{ value: "art", label: t("anime.tabs.art") }] : []),
               ...(info.charactersVoiceActors.length > 0
                 ? [{ value: "characters", label: t("anime.tabs.characters") }]
@@ -319,6 +323,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Episodes ── */}
           <TabsContent value="episodes" className="mt-6">
             <AnimeEpisodes animeId={info.id} />
+          </TabsContent>
+
+          {/* ── Subtitles ── */}
+          <TabsContent value="subtitles" className="mt-6">
+            <AnimeSubtitles anilistId={info.anilistId} />
           </TabsContent>
 
           {/* ── Art ── */}

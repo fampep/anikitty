@@ -368,7 +368,7 @@ export default function KittyPlayer({
               src={track.file}
               kind="subtitles"
               label={track.label || `Track ${i + 1}`}
-              default={i === 0}
+              default={track.default ?? (i === 0 && !subTracks.some((t) => t.default))}
             />
           ))}
         </MediaProvider>

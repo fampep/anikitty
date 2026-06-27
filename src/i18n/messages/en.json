@@ -400,6 +400,7 @@
     "tabs": {
       "overview": "Overview",
       "episodes": "Episodes",
+      "subtitles": "Subtitles",
       "art": "Art",
       "characters": "Characters",
       "relations": "Relations",
@@ -448,6 +449,23 @@
       "range": "Range",
       "searchPlaceholder": "Search episode…",
       "noEpisodes": "No episodes found"
+    },
+    "subtitles": {
+      "heading": "Download Subtitles",
+      "description": "Subtitles are sourced from {provider} and saved on our server. Fetch an episode to cache its tracks, then download the .vtt file you want.",
+      "cachedCount": "{cached} of {total} episodes cached",
+      "searchPlaceholder": "Search episode or language…",
+      "episodeLabel": "Episode {n}",
+      "trackCount": "{count} track(s)",
+      "download": "Download",
+      "refresh": "Refresh",
+      "defaultTrack": "default",
+      "empty": "No subtitles cached yet. Fetch an episode to download its subtitle files from Anitaku.",
+      "fetchEpisode": "Fetch episode {n}",
+      "fetchMore": "Fetch subtitles for more episodes",
+      "fetchSuccess": "Saved {count} subtitle track(s)",
+      "fetchEmpty": "No subtitles found for this episode",
+      "fetchError": "Failed to fetch subtitles"
     }
   },
   "watch": {

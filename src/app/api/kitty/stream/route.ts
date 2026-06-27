@@ -1,3 +1,13 @@
+import {
+  cacheStreamSubtitleTracks,
+  ensureAnitakuSubtitleCache,
+  mergeCachedSubtitleTracks,
+} from "@/lib/subtitle-cache-store";
+import {
+  stripSubtitleTracks,
+  SUBTITLE_SOURCE_PROVIDER,
+} from "@/lib/subtitle-track-utils";
+
 const BASE = "https://kittyapi.buzz";
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ID = /^\d{1,10}$/;
@@ -27,6 +37,12 @@ export async function GET(req: Request) {
   const apiKey = process.env.KITTY_API_KEY;
   if (apiKey) headers["x-api-key"] = apiKey;
 
+  const subtitleCtx = {
+    anilistId: parseInt(anilistId, 10),
+    episode: parseInt(episode, 10),
+    audio: audio as "sub" | "dub",
+  };
+
   try {
     const res = await fetch(url, {
       cache: "no-store",
@@ -50,6 +66,29 @@ export async function GET(req: Request) {
       }
     }
 
+    const animeTitle =
+      typeof data.matchedTitle === "string"
+        ? data.matchedTitle
+        : typeof data.animeTitle === "string"
+          ? data.animeTitle
+          : null;
+
+    // Subtitles are always sourced from Anitaku — other providers must not cache or expose their own tracks.
+    if (provider === SUBTITLE_SOURCE_PROVIDER) {
+      data.tracks = await cacheStreamSubtitleTracks(data.tracks, {
+        ...subtitleCtx,
+        provider: SUBTITLE_SOURCE_PROVIDER,
+        animeTitle,
+        headers: data.headers ?? {},
+      });
+    } else {
+      data.tracks = stripSubtitleTracks(data.tracks);
+      await ensureAnitakuSubtitleCache(subtitleCtx);
+    }
+
+    data.tracks = await mergeCachedSubtitleTracks(data.tracks, subtitleCtx);
+    data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
+
     return Response.json(data);
   } catch (e: any) {
     const timedOut = e?.name === "AbortError" || e?.name === "TimeoutError";
@@ -60,4 +99,4 @@ export async function GET(req: Request) {
   }
 }
 
-export const maxDuration = 20;
+export const maxDuration = 30;
