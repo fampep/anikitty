@@ -1,5 +1,6 @@
 import { useQuery } from "react-query";
 import type { KittyTrack } from "./get-kitty-stream";
+import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
 
 export interface SkipInterval {
   start: number; // seconds
@@ -112,8 +113,7 @@ function parseMediaPlaylistText(text: string): SkipTimes {
 }
 
 async function parseM3u8SkipTimes(src: string, referer: string): Promise<SkipTimes> {
-  const toProxy = (u: string) =>
-    `/api/kitty/hls?url=${encodeURIComponent(u)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`;
+  const toProxy = (u: string) => buildKittyHlsUrl(u, { Referer: referer });
   try {
     const masterRes = await fetch(toProxy(src));
     if (!masterRes.ok) return {};

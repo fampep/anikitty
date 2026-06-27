@@ -24,6 +24,10 @@ import {
   buildThumbnailSprites,
   type KittyThumbnail,
 } from "@/lib/kitty-thumbnails";
+import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
+import { createHlsConfig } from "@/lib/hls-config";
+import { isHLSProvider, type MediaProviderAdapter } from "@vidstack/react";
+import Hls from "hls.js";
 
 const THUMB_CAPTURE_W = THUMB_W;
 const THUMB_CAPTURE_H = THUMB_H;
@@ -108,9 +112,7 @@ export default function KittyPlayer({
   // Derived early so effects can reference them
   const referer = headers?.Referer ?? headers?.referer ?? "";
   const origin  = headers?.Origin  ?? headers?.origin  ?? "";
-  const proxiedSrc = src
-    ? `/api/kitty/hls?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}&origin=${encodeURIComponent(origin)}`
-    : "";
+  const proxiedSrc = buildKittyHlsUrl(src, headers);
 
   const subTracks = tracks.filter(
     (t) => !!t.file && t.kind !== "thumbnails" && t.kind !== "chapters" && t.kind !== "metadata",
@@ -126,7 +128,7 @@ export default function KittyPlayer({
   );
   const thumbnailTrack = tracks.find((t) => !!t.file && t.kind === "thumbnails");
   const thumbnailsUrl = thumbnailTrack?.file
-    ? `/api/kitty/hls?url=${encodeURIComponent(thumbnailTrack.file)}`
+    ? buildKittyHlsUrl(thumbnailTrack.file, headers)
     : undefined;
   const m3u8ChaptersUrl =
     !chapterTrack && src
@@ -428,6 +430,15 @@ export default function KittyPlayer({
     setActiveSkip(null);
   }, []);
 
+  const onProviderChange = useCallback((provider: MediaProviderAdapter | null) => {
+    if (!provider || !isHLSProvider(provider)) return;
+    provider.library = Hls;
+    provider.config = {
+      ...provider.config,
+      ...createHlsConfig(),
+    };
+  }, []);
+
   if (!proxiedSrc) return null;
 
   const activeInterval: SkipInterval | undefined =
@@ -447,11 +458,14 @@ export default function KittyPlayer({
       <MediaPlayer
         ref={playerRef}
         src={{ src: proxiedSrc, type: "application/x-mpegurl" }}
+        streamType="on-demand"
         poster={poster}
         playsInline
-        crossOrigin
+        crossOrigin="anonymous"
+        load="eager"
         autoPlay
         className="w-full h-full"
+        onProviderChange={onProviderChange}
         onCanPlay={handleCanPlay}
         onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}

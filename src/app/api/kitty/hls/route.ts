@@ -6,7 +6,36 @@ function isM3u8ByContentType(ct: string): boolean {
   return ct.includes("mpegurl") || ct.includes("m3u8");
 }
 
-function rewriteManifest(body: string, manifestUrl: string): string {
+function buildProxyUrl(abs: string, referer: string, origin: string): string {
+  const params = new URLSearchParams({ url: abs });
+  if (referer) params.set("referer", referer);
+  if (origin) params.set("origin", origin);
+  return `/api/kitty/hls?${params.toString()}`;
+}
+
+function rewriteUriInTag(line: string, manifestUrl: string, referer: string, origin: string): string {
+  const base = new URL(manifestUrl);
+
+  return line
+    .replace(/URI="([^"]+)"/gi, (_, uri) => {
+      try {
+        const abs = new URL(uri, base).toString();
+        return `URI="${buildProxyUrl(abs, referer, origin)}"`;
+      } catch {
+        return `URI="${uri}"`;
+      }
+    })
+    .replace(/URI='([^']+)'/gi, (_, uri) => {
+      try {
+        const abs = new URL(uri, base).toString();
+        return `URI='${buildProxyUrl(abs, referer, origin)}'`;
+      } catch {
+        return `URI='${uri}'`;
+      }
+    });
+}
+
+function rewriteManifest(body: string, manifestUrl: string, referer: string, origin: string): string {
   const base = new URL(manifestUrl);
 
   return body
@@ -14,21 +43,43 @@ function rewriteManifest(body: string, manifestUrl: string): string {
     .map((line) => {
       const trimmed = line.trim();
 
-      if (!trimmed || trimmed.startsWith("#")) {
-        return line.replace(/URI="([^"]+)"/g, (_, uri) => {
-          const abs = new URL(uri, base).toString();
-          return `URI="${proxyUrl(abs)}"`;
-        });
+      if (!trimmed) return line;
+
+      if (trimmed.startsWith("#")) {
+        return rewriteUriInTag(line, manifestUrl, referer, origin);
       }
 
-      const abs = new URL(trimmed, base).toString();
-      return proxyUrl(abs);
+      try {
+        const abs = new URL(trimmed, base).toString();
+        return buildProxyUrl(abs, referer, origin);
+      } catch {
+        return line;
+      }
     })
     .join("\n");
 }
 
-function proxyUrl(abs: string): string {
-  return `/api/kitty/hls?url=${encodeURIComponent(abs)}`;
+function upstreamHeaders(referer: string, origin: string, range?: string | null): HeadersInit {
+  const headers: Record<string, string> = {
+    Accept: "*/*",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  };
+  if (referer) headers.Referer = referer;
+  if (origin) headers.Origin = origin;
+  if (range) headers.Range = range;
+  return headers;
+}
+
+function corsHeaders(contentType: string): HeadersInit {
+  return {
+    "Content-Type": contentType,
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": "Range, Content-Type",
+    "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
+    "Cache-Control": "no-store",
+  };
 }
 
 export async function GET(req: Request) {
@@ -46,9 +97,22 @@ export async function GET(req: Request) {
     return new Response("invalid url encoding", { status: 400 });
   }
 
-  const upstream = await fetch(decoded, { cache: "no-store" });
+  const referer = searchParams.get("referer") ?? "";
+  const origin = searchParams.get("origin") ?? "";
+  const range = req.headers.get("range");
 
-  if (!upstream.ok) {
+  let upstream: Response;
+  try {
+    upstream = await fetch(decoded, {
+      cache: "no-store",
+      headers: upstreamHeaders(referer, origin, range),
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    return new Response("upstream fetch failed", { status: 502 });
+  }
+
+  if (!upstream.ok && upstream.status !== 206) {
     return new Response(`upstream ${upstream.status}`, { status: upstream.status });
   }
 
@@ -56,14 +120,10 @@ export async function GET(req: Request) {
 
   if (isM3u8ByUrl(decoded) || isM3u8ByContentType(contentType)) {
     const text = await upstream.text();
-    const rewritten = rewriteManifest(text, decoded);
+    const rewritten = rewriteManifest(text, decoded, referer, origin);
     return new Response(rewritten, {
       status: 200,
-      headers: {
-        "Content-Type": "application/vnd.apple.mpegurl",
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-store",
-      },
+      headers: corsHeaders("application/vnd.apple.mpegurl"),
     });
   }
 
@@ -71,23 +131,39 @@ export async function GET(req: Request) {
   const peek = new TextDecoder("utf-8", { fatal: false }).decode(buffer.slice(0, 16)).trimStart();
   if (peek.startsWith("#EXTM3U")) {
     const text = new TextDecoder().decode(buffer);
-    const rewritten = rewriteManifest(text, decoded);
+    const rewritten = rewriteManifest(text, decoded, referer, origin);
     return new Response(rewritten, {
       status: 200,
-      headers: {
-        "Content-Type": "application/vnd.apple.mpegurl",
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-store",
-      },
+      headers: corsHeaders("application/vnd.apple.mpegurl"),
     });
   }
 
+  const segmentType =
+    contentType && !contentType.includes("text")
+      ? contentType
+      : decoded.includes(".mp4")
+        ? "video/mp4"
+        : "video/MP2T";
+
+  const headers = corsHeaders(segmentType);
+  const contentLength = upstream.headers.get("content-length");
+  const contentRange = upstream.headers.get("content-range");
+  const acceptRanges = upstream.headers.get("accept-ranges");
+  if (contentLength) (headers as Record<string, string>)["Content-Length"] = contentLength;
+  if (contentRange) (headers as Record<string, string>)["Content-Range"] = contentRange;
+  if (acceptRanges) (headers as Record<string, string>)["Accept-Ranges"] = acceptRanges;
+
   return new Response(buffer, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType || "video/MP2T",
-      "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "no-store",
-    },
+    status: upstream.status === 206 ? 206 : 200,
+    headers,
   });
 }
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders("text/plain"),
+  });
+}
+
+export const maxDuration = 60;
