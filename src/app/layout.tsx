@@ -30,7 +30,7 @@ const geistSans = localFont({
 
 const APP_NAME = "AniKitty";
 const APP_DEFAULT_TITLE = "AniKitty | Anime Streaming";
-const APP_DESCRIPTION = "Stream your favourite anime for free with no ads ~ nya~";
+const APP_DESCRIPTION = "Stream thousands of anime, completely free. No ads, no subscriptions, sub & dub.";
 const APP_URL = "https://anikitty.moe";
 
 export const metadata: Metadata = {
@@ -57,11 +57,20 @@ export const metadata: Metadata = {
     url: APP_URL,
     title: APP_DEFAULT_TITLE,
     description: APP_DESCRIPTION,
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "AniKitty — Free Anime Streaming",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: APP_DEFAULT_TITLE,
     description: APP_DESCRIPTION,
+    images: ["/opengraph-image"],
   },
 };
 
