@@ -8,6 +8,18 @@ import type {
 
 export type SubtitleLibraryFilter = "all" | "completed";
 
+export type SubtitleSyncMode = "fill" | "discover" | "auto";
+
+export type SubtitleSyncResult = {
+  processed: number;
+  anilistIds: number[];
+  fetchedEpisodes: number;
+  completed: number;
+  remaining: number;
+  mode?: SubtitleSyncMode;
+  nextInMs?: number;
+};
+
 export type SubtitleLibraryResult = {
   items: SubtitleLibraryEntry[];
   total: number;
@@ -39,23 +51,28 @@ const getSubtitleLibrary = async (
   return res.data.data;
 };
 
-export const syncSubtitleLibrary = async (limit = 2) => {
+export const syncSubtitleLibrary = async (opts?: {
+  limit?: number;
+  mode?: SubtitleSyncMode;
+  episodes?: number;
+}): Promise<SubtitleSyncResult> => {
   const res = await api.get("/api/subtitles/sync", {
-    params: { limit },
+    params: {
+      limit: opts?.limit ?? 1,
+      mode: opts?.mode ?? "auto",
+      episodes: opts?.episodes ?? 1,
+    },
     timeout: 300_000,
   });
-  return res.data.data as {
-    processed: number;
-    anilistIds: number[];
-    remaining: number;
-  };
+  return res.data.data;
 };
 
 export const useSubtitleLibraryStats = () =>
   useQuery({
     queryKey: ["subtitle-library-stats"],
     queryFn: getSubtitleLibraryStats,
-    staleTime: 60_000,
+    staleTime: 15_000,
+    refetchInterval: 15_000,
   });
 
 export const useSubtitleLibrary = (

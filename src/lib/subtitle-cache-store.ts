@@ -11,6 +11,10 @@ import {
   type StreamTrack,
 } from "@/lib/subtitle-track-utils";
 import { sanitizeHeaderValue } from "@/lib/security";
+import {
+  SUBTITLE_API_INTERVAL_MS,
+  sleep,
+} from "@/lib/subtitle-sync-config";
 
 const KITTY_API_BASE = "https://kittyapi.buzz";
 
@@ -341,33 +345,95 @@ export async function ensureFullShowSubtitleCache(
   anilistId: number,
   episodeCount?: number,
 ): Promise<void> {
-  if (fullShowPrefetchInProgress.has(anilistId)) return;
+  await ensureIncrementalSubtitleCache(anilistId, {
+    maxEpisodes: Number.MAX_SAFE_INTEGER,
+    delayMs: SUBTITLE_API_INTERVAL_MS,
+    episodeCount,
+  });
+}
+
+export type IncrementalSubtitleCacheResult = {
+  anilistId: number;
+  fetched: number;
+  totalEpisodes: number;
+  cachedEpisodes: number;
+  isComplete: boolean;
+};
+
+/** Fetch the next missing episode(s) for one anime, throttled for Kitty API rate limits. */
+export async function ensureIncrementalSubtitleCache(
+  anilistId: number,
+  opts: {
+    maxEpisodes?: number;
+    delayMs?: number;
+    episodeCount?: number;
+  } = {},
+): Promise<IncrementalSubtitleCacheResult> {
+  const maxEpisodes = Math.max(1, opts.maxEpisodes ?? 1);
+  const delayMs = opts.delayMs ?? SUBTITLE_API_INTERVAL_MS;
+
+  if (fullShowPrefetchInProgress.has(anilistId)) {
+    const existing = await listAnimeSubtitles(anilistId);
+    return {
+      anilistId,
+      fetched: 0,
+      totalEpisodes: opts.episodeCount ?? 0,
+      cachedEpisodes: new Set(existing.map((r) => r.episode)).size,
+      isComplete: false,
+    };
+  }
+
   fullShowPrefetchInProgress.add(anilistId);
 
   try {
-    let count = episodeCount ?? 0;
+    const { fetchAnilistMetaBatch } = await import("@/lib/subtitle-library-enrich");
+    await fetchAnilistMetaBatch([anilistId]);
+
+    let count = opts.episodeCount ?? 0;
     if (count <= 0) {
       count = await fetchAnilistEpisodeCount(anilistId);
     }
-    if (count <= 0) return;
 
     const existing = await listAnimeSubtitles(anilistId);
     const cachedEps = new Set(existing.map((r) => r.episode));
 
-    const CONCURRENCY = 3;
-    for (let start = 1; start <= count; start += CONCURRENCY) {
-      const batch: Promise<void>[] = [];
-      for (let ep = start; ep < Math.min(start + CONCURRENCY, count + 1); ep++) {
-        if (!cachedEps.has(ep)) {
-          batch.push(ensureAnitakuSubtitleCache({ anilistId, episode: ep, audio: "sub" }));
+    let fetched = 0;
+    if (count > 0) {
+      for (let ep = 1; ep <= count && fetched < maxEpisodes; ep++) {
+        if (cachedEps.has(ep)) continue;
+        await ensureAnitakuSubtitleCache({ anilistId, episode: ep, audio: "sub" });
+        cachedEps.add(ep);
+        fetched++;
+        if (fetched < maxEpisodes && ep < count) {
+          await sleep(delayMs);
         }
       }
-      if (batch.length > 0) await Promise.allSettled(batch);
+    } else if (fetched < maxEpisodes) {
+      // Unknown episode count — try next sequential episode after highest cached.
+      const nextEp = cachedEps.size > 0 ? Math.max(...cachedEps) + 1 : 1;
+      await ensureAnitakuSubtitleCache({ anilistId, episode: nextEp, audio: "sub" });
+      cachedEps.add(nextEp);
+      fetched = 1;
     }
 
+    await fetchAnilistMetaBatch([anilistId]);
     await import("@/lib/subtitle-library-db").then((m) =>
       m.syncSubtitleLibraryAnime(anilistId),
     );
+
+    const totalEpisodes =
+      count > 0 ? count : (await fetchAnilistEpisodeCount(anilistId)) || cachedEps.size;
+    const cachedEpisodes = cachedEps.size;
+    const isComplete =
+      totalEpisodes > 0 && cachedEpisodes >= totalEpisodes;
+
+    return {
+      anilistId,
+      fetched,
+      totalEpisodes,
+      cachedEpisodes,
+      isComplete,
+    };
   } finally {
     fullShowPrefetchInProgress.delete(anilistId);
   }

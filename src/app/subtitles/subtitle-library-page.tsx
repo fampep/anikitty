@@ -35,7 +35,6 @@ export default function SubtitleLibraryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const autoSyncStarted = useRef(false);
 
   const qParam = searchParams.get("q") ?? "";
   const pageParam = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
@@ -46,6 +45,9 @@ export default function SubtitleLibraryPage() {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [fetchingId, setFetchingId] = useState<number | null>(null);
   const [autoSyncing, setAutoSyncing] = useState(false);
+  const [autoSyncDetail, setAutoSyncDetail] = useState<string | null>(null);
+
+  const SYNC_INTERVAL_MS = 5_000;
 
   useEffect(() => {
     setQuery(qParam);
@@ -99,30 +101,57 @@ export default function SubtitleLibraryPage() {
   };
 
   useEffect(() => {
-    if (autoSyncStarted.current) return;
-    autoSyncStarted.current = true;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const runAutoSync = async () => {
-      await new Promise((r) => setTimeout(r, 3000));
+    const tick = async () => {
+      if (cancelled) return;
       setAutoSyncing(true);
-      let rounds = 0;
       try {
-        while (rounds < 5) {
-          const result = await syncSubtitleLibrary(1);
-          if (result.processed === 0) break;
-          rounds++;
-          await new Promise((r) => setTimeout(r, 1500));
+        const result = await syncSubtitleLibrary({
+          limit: 1,
+          mode: "auto",
+          episodes: 1,
+        });
+
+        if (result.fetchedEpisodes > 0) {
+          setAutoSyncDetail(
+            t("subsLibrary.autoSyncProgress", {
+              fetched: result.fetchedEpisodes,
+              remaining: result.remaining,
+            }),
+          );
+          invalidateLibrary();
+        } else if (result.processed > 0) {
+          setAutoSyncDetail(
+            result.mode === "discover"
+              ? t("subsLibrary.autoSyncDiscover")
+              : t("subsLibrary.autoSyncFill"),
+          );
+        } else if (result.remaining === 0) {
+          setAutoSyncDetail(t("subsLibrary.autoSyncIdle"));
+        }
+
+        if (result.completed > 0) {
+          invalidateLibrary();
         }
       } catch {
-        /* silent */
+        /* silent — retry on next tick */
       } finally {
         setAutoSyncing(false);
-        invalidateLibrary();
+        if (!cancelled) {
+          timer = setTimeout(tick, SYNC_INTERVAL_MS);
+        }
       }
     };
 
-    void runAutoSync();
-  }, [queryClient]);
+    timer = setTimeout(tick, 3_000);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [queryClient, t]);
 
   useEffect(() => {
     if (backfillAttempted.current || statsLoading || isLoading || qParam.trim()) return;
@@ -189,8 +218,11 @@ export default function SubtitleLibraryPage() {
               {autoSyncing && (
                 <p className="mt-2 flex items-center gap-2 text-[11px] font-mono text-teal-400/70">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {t("subsLibrary.autoSyncing")}
+                  {autoSyncDetail ?? t("subsLibrary.autoSyncing")}
                 </p>
+              )}
+              {!autoSyncing && autoSyncDetail && (
+                <p className="mt-2 text-[11px] font-mono text-white/30">{autoSyncDetail}</p>
               )}
             </div>
 

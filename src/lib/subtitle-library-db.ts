@@ -492,6 +492,63 @@ export async function listIncompleteSubtitleAnimesFromDb(limit: number): Promise
   return [];
 }
 
+export async function refreshStaleCompletionStatuses(limit = 40): Promise<number> {
+  if (!dbAvailable()) return 0;
+
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({ anilistId: subtitleLibraryAnime.anilistId })
+      .from(subtitleLibraryAnime)
+      .where(
+        or(
+          eq(subtitleLibraryAnime.isComplete, false),
+          isNull(subtitleLibraryAnime.totalEpisodes),
+        ),
+      )
+      .orderBy(subtitleLibraryAnime.cachedEpisodeCount)
+      .limit(limit);
+
+    const ids = rows.map((row) => row.anilistId);
+    if (ids.length === 0) return 0;
+
+    const { fetchAnilistMetaBatch } = await import("@/lib/subtitle-library-enrich");
+    await fetchAnilistMetaBatch(ids);
+
+    for (const id of ids) {
+      await syncSubtitleLibraryAnime(id);
+    }
+
+    return ids.length;
+  } catch (err) {
+    console.error("[subtitle-library-db] refresh completion failed:", err);
+    return 0;
+  }
+}
+
+export async function listCachedSubtitleAnilistIds(): Promise<Set<number>> {
+  const ids = new Set<number>();
+  if (!dbAvailable()) return ids;
+
+  try {
+    const db = getDb();
+    const fromSummary = await db
+      .select({ anilistId: subtitleLibraryAnime.anilistId })
+      .from(subtitleLibraryAnime);
+    for (const row of fromSummary) ids.add(row.anilistId);
+
+    const fromTracks = await db
+      .selectDistinct({ anilistId: episodeSubtitles.anilistId })
+      .from(episodeSubtitles)
+      .where(eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER));
+    for (const row of fromTracks) ids.add(row.anilistId);
+  } catch {
+    /* ignore */
+  }
+
+  return ids;
+}
+
 /** Backfill summary rows for anime that have cached tracks but no summary row yet. */
 export async function backfillSubtitleLibraryAnime(limit = 50): Promise<number> {
   if (!dbAvailable()) return 0;

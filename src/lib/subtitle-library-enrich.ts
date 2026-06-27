@@ -116,6 +116,64 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
   return map;
 }
 
+const DISCOVER_QUERY = `
+  query ($page: Int) {
+    trending: Page(page: $page, perPage: 30) {
+      media(type: ANIME, sort: TRENDING_DESC, status_in: [RELEASING, FINISHED]) {
+        id
+      }
+    }
+    popular: Page(page: $page, perPage: 30) {
+      media(type: ANIME, sort: POPULARITY_DESC, status_in: [RELEASING, FINISHED]) {
+        id
+      }
+    }
+    recent: Page(page: $page, perPage: 30) {
+      media(type: ANIME, sort: START_DATE_DESC, status: RELEASING) {
+        id
+      }
+    }
+  }
+`;
+
+let discoverPageCursor = 1;
+
+/** AniList anime not yet in the subtitle library — for background discovery. */
+export async function discoverSubtitleLibraryCandidates(limit: number): Promise<number[]> {
+  if (limit <= 0) return [];
+
+  try {
+    const { listCachedSubtitleAnilistIds } = await import("@/lib/subtitle-library-db");
+    const cached = await listCachedSubtitleAnilistIds();
+
+    const page = discoverPageCursor;
+    discoverPageCursor = discoverPageCursor >= 5 ? 1 : discoverPageCursor + 1;
+
+    const data = await queryAniList<{
+      trending?: { media: Array<{ id: number }> };
+      popular?: { media: Array<{ id: number }> };
+      recent?: { media: Array<{ id: number }> };
+    }>(DISCOVER_QUERY, { page });
+
+    const ordered: number[] = [];
+    const seen = new Set<number>();
+    for (const m of [
+      ...(data.trending?.media ?? []),
+      ...(data.popular?.media ?? []),
+      ...(data.recent?.media ?? []),
+    ]) {
+      if (seen.has(m.id) || cached.has(m.id)) continue;
+      seen.add(m.id);
+      ordered.push(m.id);
+    }
+
+    return ordered.slice(0, limit);
+  } catch (err) {
+    console.error("[subtitle-library-enrich] discover failed:", err);
+    return [];
+  }
+}
+
 async function enrichWithTimeout(
   items: SubtitleLibraryEntry[],
   timeoutMs: number,
