@@ -336,7 +336,6 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
       <SheetContent
         className="z-[150] flex w-[min(85vw,20rem)] flex-col border-white/[0.08] bg-[#050508]/98 backdrop-blur-2xl"
         hideCloseButton
-        onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <div className="flex h-full flex-col">
