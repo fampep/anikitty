@@ -19,7 +19,6 @@ import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
 import LoginPopoverButton from "./login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
-import { toast } from "sonner";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 import { usePathname } from "next/navigation";
 

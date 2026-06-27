@@ -8,7 +8,8 @@ export function getAnisurgeToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("anisurgeToken");
 }
-export function setAnisurgeToken(_token: string) {
+/** Legacy no-op: sessions use HttpOnly cookies; clears old localStorage tokens. */
+export function setAnisurgeToken() {
   localStorage.removeItem("anisurgeToken");
 }
 export function clearAnisurgeToken() {
