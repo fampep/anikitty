@@ -73,3 +73,23 @@ export function labelToLanguage(label: string): string {
   }
   return "en";
 }
+
+function sanitizeFilenamePart(value: string, maxLen: number): string {
+  return (
+    value
+      .replace(/[^\w\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .slice(0, maxLen) || "track"
+  );
+}
+
+/** Download filename keyed by AniList ID: `{anilistId}-ep{n}-{label}.vtt` */
+export function buildSubtitleFilename(row: {
+  anilistId: number;
+  episode: number;
+  label: string;
+}): string {
+  const label = sanitizeFilenamePart(row.label, 30);
+  return `${row.anilistId}-ep${row.episode}-${label}.vtt`;
+}

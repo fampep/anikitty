@@ -35,6 +35,7 @@ import TwoFactorSection from "@/components/two-factor-section";
 import ActiveSessionsSection from "@/components/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile-privacy-section";
 import AccountDeletionSection from "@/components/account-deletion-section";
+import SubtitleSettingsPanel from "@/components/subtitle-settings-panel";
 import { useI18n, useT } from "@/providers/i18n-provider";
 import { locales, localeLabels, type Locale } from "@/i18n/config";
 
@@ -613,7 +614,19 @@ export default function SettingsPage() {
             </SectionBody>
           </SectionCard>
 
-          {/* Audio & Subtitles */}
+          {/* Subtitle appearance */}
+          <SectionCard>
+            <SectionHeader
+              icon={<Captions className="w-4 h-4" />}
+              title={t("settings.subtitleAppearance")}
+              description={t("settings.subtitleAppearanceDesc")}
+            />
+            <SectionBody>
+              <SubtitleSettingsPanel />
+            </SectionBody>
+          </SectionCard>
+
+          {/* Audio & Subtitles indicators */}
           <SectionCard>
             <SectionHeader
               icon={<Captions className="w-4 h-4" />}

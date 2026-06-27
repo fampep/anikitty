@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Captions, Download, Loader2, RefreshCw, Search } from "lucide-react";
+import {
+  Captions,
+  ChevronDown,
+  Download,
+  Loader2,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
@@ -12,6 +19,7 @@ import {
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import { SUBTITLE_SOURCE_PROVIDER } from "@/lib/subtitle-track-utils";
+import { api } from "@/lib/api";
 
 type Props = {
   anilistId: number;
@@ -155,44 +163,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
 
               <div className="divide-y divide-white/5">
                 {group.tracks.map((track) => (
-                  <div
-                    key={track.id}
-                    className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
-                        <Captions className="w-3.5 h-3.5 text-teal-400/80" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm text-white/75 font-medium truncate">
-                          {track.label}
-                          {track.isDefault && (
-                            <span className="ml-2 text-[10px] font-mono text-teal-400/70 uppercase">
-                              {t("anime.subtitles.defaultTrack")}
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-[10px] font-mono text-white/25 mt-0.5">
-                          {track.audio.toUpperCase()}
-                          {track.fetchedAt &&
-                            ` · ${new Date(track.fetchedAt).toLocaleDateString()}`}
-                        </p>
-                      </div>
-                    </div>
-
-                    <a
-                      href={track.downloadUrl}
-                      download
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold",
-                        "bg-white/8 border border-white/12 text-white/80",
-                        "hover:bg-white/12 hover:text-white transition-colors shrink-0",
-                      )}
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      {t("anime.subtitles.download")}
-                    </a>
-                  </div>
+                  <SubtitleTrackRow key={track.id} track={track} />
                 ))}
               </div>
             </div>
@@ -213,6 +184,109 @@ export default function AnimeSubtitles({ anilistId }: Props) {
           fetchingEp={fetchingEp}
           onFetchEpisode={handleFetchEpisode}
         />
+      )}
+    </div>
+  );
+}
+
+function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
+  const t = useT();
+  const [expanded, setExpanded] = useState(false);
+  const [content, setContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const toggleExpand = async () => {
+    const next = !expanded;
+    setExpanded(next);
+
+    if (next && content === null) {
+      setLoading(true);
+      try {
+        const res = await api.get(track.previewUrl, { responseType: "text" });
+        setContent(typeof res.data === "string" ? res.data : String(res.data));
+      } catch {
+        toast.error(t("anime.subtitles.previewError"));
+        setExpanded(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const cueCount = content ? (content.match(/-->/g) ?? []).length : null;
+
+  return (
+    <div className="hover:bg-white/[0.02] transition-colors">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={toggleExpand}
+          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+        >
+          <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+            <Captions className="w-3.5 h-3.5 text-teal-400/80" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm text-white/75 font-medium truncate flex items-center gap-2">
+              {track.label}
+              {track.isDefault && (
+                <span className="text-[10px] font-mono text-teal-400/70 uppercase shrink-0">
+                  {t("anime.subtitles.defaultTrack")}
+                </span>
+              )}
+              <ChevronDown
+                className={cn(
+                  "w-3.5 h-3.5 text-white/30 shrink-0 transition-transform",
+                  expanded && "rotate-180",
+                )}
+              />
+            </p>
+            <p className="text-[10px] font-mono text-white/25 mt-0.5 truncate">
+              {track.filename}
+              {track.fetchedAt &&
+                ` · ${new Date(track.fetchedAt).toLocaleDateString()}`}
+            </p>
+          </div>
+        </button>
+
+        <a
+          href={track.downloadUrl}
+          download={track.filename}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold",
+            "bg-white/8 border border-white/12 text-white/80",
+            "hover:bg-white/12 hover:text-white transition-colors shrink-0",
+          )}
+        >
+          <Download className="w-3.5 h-3.5" />
+          {t("anime.subtitles.download")}
+        </a>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4">
+          <div className="rounded-lg border border-white/8 bg-black/40 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/6 bg-white/[0.02]">
+              <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+                {t("anime.subtitles.preview")}
+              </span>
+              {cueCount !== null && (
+                <span className="text-[10px] font-mono text-white/25">
+                  {t("anime.subtitles.cueCount", { count: cueCount })}
+                </span>
+              )}
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-5 h-5 text-white/25 animate-spin" />
+              </div>
+            ) : (
+              <pre className="max-h-64 overflow-auto p-3 text-[11px] leading-relaxed font-mono text-white/55 whitespace-pre-wrap break-words">
+                {content}
+              </pre>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

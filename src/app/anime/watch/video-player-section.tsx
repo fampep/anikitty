@@ -24,10 +24,17 @@ import {
   Cat,
   Server,
   Users,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import SubtitleSettingsPanel from "@/components/subtitle-settings-panel";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/w2g/w2g-panel";
@@ -458,6 +465,29 @@ const VideoPlayerSection = () => {
             <Mic className="w-3 h-3" /> {t("card.dub")}
           </button>
         </div>
+
+        {/* Subtitle appearance */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-white/12 bg-white/[0.03] text-white/45 hover:text-white/70 hover:bg-white/6 transition-colors"
+              title={t("watch.subtitleSettings")}
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span className="hidden sm:inline">{t("watch.subtitleSettings")}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="w-[min(92vw,360px)] p-4 bg-[#0c0c0c] border-white/10"
+          >
+            <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
+              {t("settings.subtitleAppearance")}
+            </p>
+            <SubtitleSettingsPanel compact />
+          </PopoverContent>
+        </Popover>
 
         {/* Watch Together */}
         {w2gCode && w2g.isMember ? (

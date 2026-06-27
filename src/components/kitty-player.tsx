@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { KittyTrack } from "@/query/get-kitty-stream";
 import type { SkipTimes, SkipInterval } from "@/query/use-aniskip";
 import { isSubtitleTrack, labelToLanguage } from "@/lib/subtitle-track-utils";
+import { subtitleSettingsToCssVars } from "@/lib/subtitle-settings";
+import { useSettingsStore } from "@/store/settings-store";
 import {
   MediaPlayer,
   MediaProvider,
@@ -70,6 +72,11 @@ export default function KittyPlayer({
   w2g,
   preferSubtitles = true,
 }: KittyPlayerProps) {
+  const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
+  const subtitleCssVars = useMemo(
+    () => subtitleSettingsToCssVars(subtitleSettings),
+    [subtitleSettings],
+  );
   const playerRef = useRef<MediaPlayerInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const onStartRef = useRef(onStart);
@@ -391,7 +398,7 @@ export default function KittyPlayer({
     <div
       ref={containerRef}
       className="vds-kitty relative w-full bg-black overflow-hidden ring-1 ring-white/[0.08] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)]"
-      style={{ aspectRatio: "16/9" }}
+      style={{ aspectRatio: "16/9", ...subtitleCssVars } as React.CSSProperties}
     >
       <MediaPlayer
         ref={playerRef}

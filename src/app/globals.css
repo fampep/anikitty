@@ -382,12 +382,12 @@ button, a, [role="button"] {
 
 /* Subtitle / caption display */
 .vds-kitty .vds-captions {
-  --media-captions-font-size: clamp(14px, 2.2vw, 22px);
-  --media-captions-color: #ffffff;
-  --media-captions-bg: rgba(0, 0, 0, 0.78);
+  --media-captions-font-size: var(--kitty-sub-font-size, clamp(14px, 2.2vw, 22px));
+  --media-captions-color: var(--kitty-sub-color, #ffffff);
+  --media-captions-bg: rgba(0, 0, 0, var(--kitty-sub-bg-opacity, 0.78));
   --media-captions-padding: 0.35em 0.65em;
   --media-captions-border-radius: 6px;
-  bottom: 4.5rem;
+  bottom: var(--kitty-sub-bottom, 4.5rem);
   max-width: min(92%, 720px);
   text-align: center;
   line-height: 1.45;
@@ -395,13 +395,13 @@ button, a, [role="button"] {
 }
 
 .vds-kitty .vds-captions [data-part="cue"] {
-  font-weight: 600;
+  font-weight: var(--kitty-sub-font-weight, 600);
   letter-spacing: 0.01em;
 }
 
 .vds-kitty media-player[data-fullscreen] .vds-captions {
-  bottom: 5.5rem;
-  --media-captions-font-size: clamp(16px, 2.8vw, 28px);
+  bottom: calc(var(--kitty-sub-bottom, 4.5rem) + 1rem);
+  --media-captions-font-size: calc(var(--kitty-sub-font-size, 18px) * 1.15);
 }
 
 /* User-selected accent theme */

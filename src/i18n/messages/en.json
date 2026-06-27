@@ -268,7 +268,21 @@
     "linkSuccess": "Anisurge account linked!",
     "linkFailed": "Link failed",
     "unlinkSuccess": "Anisurge account unlinked",
-    "unlinkFailed": "Failed to unlink"
+    "unlinkFailed": "Failed to unlink",
+    "subtitleAppearance": "Subtitle Appearance",
+    "subtitleAppearanceDesc": "Customize how subtitles look in the video player",
+    "subtitleFontSize": "Font size",
+    "subtitleColor": "Text color",
+    "subtitleCustomColor": "Custom",
+    "subtitleBackground": "Background opacity",
+    "subtitlePosition": "Vertical position",
+    "subtitleFontWeight": "Font weight",
+    "subtitleWeightNormal": "Normal",
+    "subtitleWeightSemi": "Semi-bold",
+    "subtitleWeightBold": "Bold",
+    "subtitlePreview": "Preview",
+    "subtitlePreviewText": "Sample subtitle line",
+    "subtitleReset": "Reset to defaults"
   },
   "faq": {
     "title": "FAQ",
@@ -465,7 +479,10 @@
       "fetchMore": "Fetch subtitles for more episodes",
       "fetchSuccess": "Saved {count} subtitle track(s)",
       "fetchEmpty": "No subtitles found for this episode",
-      "fetchError": "Failed to fetch subtitles"
+      "fetchError": "Failed to fetch subtitles",
+      "preview": "Subtitle text",
+      "previewError": "Could not load subtitle preview",
+      "cueCount": "{count} cues"
     }
   },
   "watch": {
@@ -488,6 +505,7 @@
     "chapters": "chapters",
     "subtitlesAvailable": "Subtitles available — use the CC button in the player",
     "subtitleTracks": "{count} subtitle track(s)",
+    "subtitleSettings": "Subtitles",
     "room": "Room {code}",
     "watchTogether": "Watch Together",
     "w2gSignIn": "Sign in to start a watch party",

@@ -1,25 +1,8 @@
 import { getStoredSubtitleById } from "@/lib/subtitle-cache-store";
+import { buildSubtitleFilename } from "@/lib/subtitle-track-utils";
 
 const SAFE_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function buildSubtitleFilename(row: {
-  animeTitle: string | null;
-  episode: number;
-  label: string;
-}): string {
-  const base = (row.animeTitle ?? "subtitle")
-    .replace(/[^\w\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .slice(0, 60) || "subtitle";
-  const label = row.label
-    .replace(/[^\w\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .slice(0, 30) || "track";
-  return `${base}-ep${row.episode}-${label}.vtt`;
-}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -35,14 +18,21 @@ export async function GET(req: Request) {
     return new Response("Subtitle not found", { status: 404 });
   }
 
+  const filename = buildSubtitleFilename({
+    anilistId: row.anilistId,
+    episode: row.episode,
+    label: row.label,
+  });
+
   const headers: Record<string, string> = {
     "Content-Type": "text/vtt; charset=utf-8",
     "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     "Access-Control-Allow-Origin": "*",
+    "X-Subtitle-Filename": filename,
   };
 
   if (download) {
-    headers["Content-Disposition"] = `attachment; filename="${buildSubtitleFilename(row)}"`;
+    headers["Content-Disposition"] = `attachment; filename="${filename}"`;
   }
 
   return new Response(row.content, { status: 200, headers });

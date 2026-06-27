@@ -2,7 +2,11 @@ import {
   ensureAnitakuSubtitleCache,
   listAnimeSubtitles,
 } from "@/lib/subtitle-cache-store";
-import { subtitleDownloadUrl } from "@/lib/subtitle-track-utils";
+import {
+  buildSubtitleFilename,
+  subtitleDownloadUrl,
+  subtitleServeUrl,
+} from "@/lib/subtitle-track-utils";
 
 const SAFE_ID = /^\d{1,10}$/;
 
@@ -41,15 +45,25 @@ export async function GET(
   }
 
   return Response.json({
-    data: rows.map((row) => ({
-      id: row.id,
-      episode: row.episode,
-      audio: row.audio,
-      label: row.label,
-      isDefault: row.isDefault,
-      fetchedAt: row.fetchedAt?.toISOString() ?? null,
-      downloadUrl: subtitleDownloadUrl(row.id),
-    })),
+    data: rows.map((row) => {
+      const filename = buildSubtitleFilename({
+        anilistId: row.anilistId,
+        episode: row.episode,
+        label: row.label,
+      });
+      return {
+        id: row.id,
+        anilistId: row.anilistId,
+        episode: row.episode,
+        audio: row.audio,
+        label: row.label,
+        isDefault: row.isDefault,
+        fetchedAt: row.fetchedAt?.toISOString() ?? null,
+        filename,
+        previewUrl: subtitleServeUrl(row.id),
+        downloadUrl: subtitleDownloadUrl(row.id),
+      };
+    }),
   });
 }
 

@@ -3,11 +3,14 @@ import { api } from "@/lib/api";
 
 export type AnimeSubtitleItem = {
   id: string;
+  anilistId: number;
   episode: number;
   audio: string;
   label: string;
   isDefault: boolean;
   fetchedAt: string | null;
+  filename: string;
+  previewUrl: string;
   downloadUrl: string;
 };
 
