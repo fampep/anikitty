@@ -428,6 +428,78 @@ function allLibraryWhere(q?: string) {
   );
 }
 
+type LiveSubtitleCount = {
+  trackCount: number;
+  episodeCount: number;
+  lastFetched: Date | null;
+};
+
+/** Live per-anime track/episode counts straight from episode_subtitles. */
+export async function getLiveSubtitleCounts(
+  anilistIds: number[],
+): Promise<Map<number, LiveSubtitleCount>> {
+  const map = new Map<number, LiveSubtitleCount>();
+  if (!dbAvailable() || anilistIds.length === 0) return map;
+
+  const unique = [...new Set(anilistIds)];
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({
+        anilistId: episodeSubtitles.anilistId,
+        trackCount: sql<number>`count(*)::int`,
+        episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
+        lastFetched: sql<Date | null>`max(${episodeSubtitles.updatedAt})`,
+      })
+      .from(episodeSubtitles)
+      .where(
+        and(
+          inArray(episodeSubtitles.anilistId, unique),
+          subtitleProviderFilter(),
+        ),
+      )
+      .groupBy(episodeSubtitles.anilistId);
+
+    for (const row of rows) {
+      map.set(row.anilistId, {
+        trackCount: row.trackCount,
+        episodeCount: row.episodeCount,
+        lastFetched: row.lastFetched,
+      });
+    }
+  } catch (err) {
+    console.error("[subtitle-library-db] live counts failed:", err);
+  }
+
+  return map;
+}
+
+/** Overlay live track/episode counts onto summary-derived entries. */
+function applyLiveCounts(
+  entries: SubtitleLibraryEntry[],
+  live: Map<number, LiveSubtitleCount>,
+): SubtitleLibraryEntry[] {
+  return entries.map((entry) => {
+    const counts = live.get(entry.anilistId);
+    if (!counts) return entry;
+
+    const episodeCount = counts.episodeCount;
+    const isComplete = isSubtitleLibraryComplete({
+      trackCount: counts.trackCount,
+      episodeCount,
+      totalEpisodes: entry.totalEpisodes,
+    });
+
+    return {
+      ...entry,
+      trackCount: counts.trackCount,
+      episodeCount,
+      isComplete,
+      lastFetched: counts.lastFetched?.toISOString() ?? entry.lastFetched,
+    };
+  });
+}
+
 /** Most recently synced or subtitle-updated shows first. */
 function orderByLatestLibraryUpdate() {
   return desc(
@@ -494,22 +566,26 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
       .limit(limit)
       .offset(offset);
 
+    const entries = rows.map((row) =>
+      rowToEntry({
+        anilistId: row.anilistId,
+        animeTitle: row.animeTitle,
+        trackCount: row.trackCount,
+        episodeCount: row.cachedEpisodeCount,
+        lastFetched: row.lastSubtitleAt ?? row.updatedAt,
+        poster: row.poster,
+        status: row.status,
+        totalEpisodes: row.totalEpisodes,
+        isComplete: row.isComplete,
+        score: row.score,
+        year: row.year,
+      }),
+    );
+
+    const live = await getLiveSubtitleCounts(entries.map((e) => e.anilistId));
+
     return {
-      items: rows.map((row) =>
-        rowToEntry({
-          anilistId: row.anilistId,
-          animeTitle: row.animeTitle,
-          trackCount: row.trackCount,
-          episodeCount: row.cachedEpisodeCount,
-          lastFetched: row.lastSubtitleAt ?? row.updatedAt,
-          poster: row.poster,
-          status: row.status,
-          totalEpisodes: row.totalEpisodes,
-          isComplete: row.isComplete,
-          score: row.score,
-          year: row.year,
-        }),
-      ),
+      items: applyLiveCounts(entries, live),
       total,
       page,
       limit,
@@ -570,22 +646,26 @@ export async function searchCompletedSubtitleLibrary(opts: {
       .limit(limit)
       .offset(offset);
 
+    const entries = rows.map((row) =>
+      rowToEntry({
+        anilistId: row.anilistId,
+        animeTitle: row.animeTitle,
+        trackCount: row.trackCount,
+        episodeCount: row.cachedEpisodeCount,
+        lastFetched: row.lastSubtitleAt ?? row.updatedAt,
+        poster: row.poster,
+        status: row.status,
+        totalEpisodes: row.totalEpisodes,
+        isComplete: row.isComplete,
+        score: row.score,
+        year: row.year,
+      }),
+    );
+
+    const live = await getLiveSubtitleCounts(entries.map((e) => e.anilistId));
+
     return {
-      items: rows.map((row) =>
-        rowToEntry({
-          anilistId: row.anilistId,
-          animeTitle: row.animeTitle,
-          trackCount: row.trackCount,
-          episodeCount: row.cachedEpisodeCount,
-          lastFetched: row.lastSubtitleAt ?? row.updatedAt,
-          poster: row.poster,
-          status: row.status,
-          totalEpisodes: row.totalEpisodes,
-          isComplete: row.isComplete,
-          score: row.score,
-          year: row.year,
-        }),
-      ),
+      items: applyLiveCounts(entries, live),
       total,
       page,
       limit,

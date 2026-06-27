@@ -87,6 +87,7 @@ export const useSubtitleLibrary = (
     queryFn: () => getSubtitleLibrary(q, page, filter),
     keepPreviousData: true,
     staleTime: 0,
+    refetchInterval: 10_000,
     retry: 2,
   });
 
