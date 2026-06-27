@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useState, useRef, type RefObject } from "react";
+import { onFullscreenChange } from "@/lib/fullscreen";
 import {
+  getAnime4KFrame,
+  getAnime4KHost,
   isAnime4KSupported,
   startAnime4KUpscaler,
   syncAnime4KCanvasSize,
@@ -17,6 +20,20 @@ export function useAnime4KUpscaler(
   videoSrcKey: string,
 ) {
   const sessionRef = useRef(0);
+  const [fullscreenRev, setFullscreenRev] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const handleFullscreenChange = () => {
+      const container = containerRef.current;
+      const canvas = canvasRef.current;
+      if (container && canvas) syncAnime4KCanvasSize(canvas, container);
+      setFullscreenRev((n) => n + 1);
+    };
+
+    return onFullscreenChange(handleFullscreenChange);
+  }, [enabled, containerRef, canvasRef]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -34,10 +51,13 @@ export function useAnime4KUpscaler(
     const bind = async (video: HTMLVideoElement) => {
       if (session !== sessionRef.current) return;
 
+      const frame = getAnime4KFrame(container);
+      const host = getAnime4KHost(container);
       resizeObserver = new ResizeObserver(() => {
         syncAnime4KCanvasSize(canvas, container);
       });
-      resizeObserver.observe(container);
+      resizeObserver.observe(frame);
+      if (host !== frame) resizeObserver.observe(host);
 
       try {
         await startAnime4KUpscaler({ video, canvas, container, mode });
@@ -66,7 +86,7 @@ export function useAnime4KUpscaler(
       if (pollTimer) clearInterval(pollTimer);
       resizeObserver?.disconnect();
     };
-  }, [enabled, mode, videoSrcKey, containerRef, canvasRef]);
+  }, [enabled, mode, videoSrcKey, fullscreenRev, containerRef, canvasRef]);
 }
 
 export { isAnime4KSupported };

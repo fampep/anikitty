@@ -25,6 +25,12 @@ import { isHLSProvider, type MediaProviderAdapter } from "@vidstack/react";
 import Hls from "hls.js";
 import { useT } from "@/providers/i18n-provider";
 import { useAnime4KUpscaler } from "@/hooks/use-anime4k-upscaler";
+import {
+  exitElementFullscreen,
+  getFullscreenElement,
+  isElementFullscreen,
+  requestElementFullscreen,
+} from "@/lib/fullscreen";
 
 interface W2gSyncState {
   version: number;
@@ -127,6 +133,55 @@ export default function KittyPlayer({
     anime4kMode,
     proxiedSrc ?? src,
   );
+
+  // When Anime4K is on, fullscreen must target the stage (not media-player alone) so the
+  // WebGPU canvas stays visible in every browser.
+  useEffect(() => {
+    if (!anime4kEnabled) return;
+
+    const stage = containerRef.current;
+    const player = playerRef.current;
+    if (!stage || !player) return;
+
+    const syncPlayerFullscreenAttr = () => {
+      const el = stage.querySelector("media-player");
+      if (!el) return;
+      if (isElementFullscreen(stage)) el.setAttribute("data-fullscreen", "");
+      else el.removeAttribute("data-fullscreen");
+    };
+
+    const onEnterRequest = (event: Event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (isElementFullscreen(stage)) return;
+      requestElementFullscreen(stage)
+        .then(syncPlayerFullscreenAttr)
+        .catch(() => {});
+    };
+
+    const onExitRequest = (event: Event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!getFullscreenElement()) return;
+      exitElementFullscreen()
+        .then(syncPlayerFullscreenAttr)
+        .catch(() => {});
+    };
+
+    const onFullscreenChange = () => syncPlayerFullscreenAttr();
+
+    player.addEventListener("media-enter-fullscreen-request", onEnterRequest, true);
+    player.addEventListener("media-exit-fullscreen-request", onExitRequest, true);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+
+    return () => {
+      player.removeEventListener("media-enter-fullscreen-request", onEnterRequest, true);
+      player.removeEventListener("media-exit-fullscreen-request", onExitRequest, true);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+    };
+  }, [anime4kEnabled, proxiedSrc]);
 
   const subTracks = useMemo(
     () =>
@@ -372,12 +427,16 @@ export default function KittyPlayer({
     // enterFullscreen here hands it over to Vidstack so its controls work correctly.
     if (autoFsRef.current) {
       autoFsRef.current = false;
-      playerRef.current?.enterFullscreen().catch(() => {
-        // Fallback: native fullscreen on the player container element
-        containerRef.current?.requestFullscreen().catch(() => {});
-      });
+      const stage = containerRef.current;
+      if (anime4kEnabled && stage) {
+        requestElementFullscreen(stage).catch(() => {});
+      } else {
+        playerRef.current?.enterFullscreen().catch(() => {
+          stage?.requestFullscreen().catch(() => {});
+        });
+      }
     }
-  }, []);
+  }, [anime4kEnabled]);
 
   const handlePlay = useCallback(() => {
     if (!startFiredRef.current) {
@@ -474,6 +533,15 @@ export default function KittyPlayer({
             />
           ))}
         </MediaProvider>
+
+        {anime4kEnabled && (
+          <canvas
+            ref={canvasRef}
+            className="anime4k-canvas pointer-events-none"
+            aria-hidden
+          />
+        )}
+
         <DefaultVideoLayout icons={defaultLayoutIcons} />
 
         {showNext && nextEpisode && (
@@ -499,14 +567,6 @@ export default function KittyPlayer({
           />
         )}
       </MediaPlayer>
-
-      {anime4kEnabled && (
-        <canvas
-          ref={canvasRef}
-          className="anime4k-canvas pointer-events-none"
-          aria-hidden
-        />
-      )}
     </div>
   );
 }
