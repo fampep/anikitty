@@ -206,7 +206,7 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   }
 }
 
-export async function countCompletedSubtitleAnimes(_maxScan = 300): Promise<number> {
+export async function countCompletedSubtitleAnimes(): Promise<number> {
   return countCompletedSubtitleAnimesFromDb();
 }
 
