@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import styles from "../heatmap.module.css";
 import { Tooltip } from "react-tooltip";
+import { getAnisurgeToken } from "@/lib/anisurge";
 
 type HeatmapValue = {
   date: string;
@@ -24,7 +25,12 @@ function AnimeHeatmap({ username }: Props) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(username)}/activity`);
+        const headers: Record<string, string> = {};
+        const token = getAnisurgeToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await fetch(`/api/users/${encodeURIComponent(username)}/activity`, {
+          headers,
+        });
         if (!res.ok) throw new Error("failed");
         const data = await res.json();
         setHeatmapData(data.activity ?? []);

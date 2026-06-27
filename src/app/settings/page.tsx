@@ -19,6 +19,7 @@ import {
   User,
   Shield,
   Palette,
+  EyeOff,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ import { applyUserThemeColor } from "@/lib/theme-color";
 import { getAnisurgeToken } from "@/lib/anisurge";
 import TwoFactorSection from "@/components/two-factor-section";
 import ActiveSessionsSection from "@/components/active-sessions-section";
+import ProfilePrivacySection from "@/components/profile-privacy-section";
 
 // ── Episode layout options ────────────────────────────────────────────────────
 
@@ -413,6 +415,19 @@ export default function SettingsPage() {
           )}
 
           {auth && <AppearanceSection />}
+
+          {auth && (
+            <SectionCard>
+              <SectionHeader
+                icon={<EyeOff className="w-4 h-4" />}
+                title="Privacy"
+                description="Control who can see your profile"
+              />
+              <SectionBody>
+                <ProfilePrivacySection />
+              </SectionBody>
+            </SectionCard>
+          )}
 
           {/* Security */}
           {auth && (

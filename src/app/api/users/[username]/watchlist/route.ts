@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchlist } from "@/db/schema";
-import { getUserByUsername } from "@/lib/public-user";
 import {
   mapWatchlistItem,
   WATCHLIST_FOLDERS,
 } from "@/lib/watchlist-response";
+import { requireVisibleProfileUser } from "@/lib/public-profile-access";
 import { and, eq, sql } from "drizzle-orm";
 
 export async function GET(
@@ -13,21 +13,16 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> },
 ) {
   const { username: raw } = await params;
-  const username = decodeURIComponent(raw ?? "").trim();
-  if (!username) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const userOrResponse = await requireVisibleProfileUser(req, raw);
+  if (userOrResponse instanceof NextResponse) return userOrResponse;
 
   const db = getDb();
-  const user = await getUserByUsername(db, username);
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
   const { searchParams } = new URL(req.url);
   const folder = searchParams.get("folder")?.toUpperCase();
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0");
 
-  const conditions = [eq(watchlist.userId, user.id)];
+  const conditions = [eq(watchlist.userId, userOrResponse.id)];
   if (folder && WATCHLIST_FOLDERS.includes(folder as (typeof WATCHLIST_FOLDERS)[number])) {
     conditions.push(eq(watchlist.folder, folder));
   }

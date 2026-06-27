@@ -1,23 +1,18 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { comments } from "@/db/schema";
-import { getUserByUsername } from "@/lib/public-user";
+import { requireVisibleProfileUser } from "@/lib/public-profile-access";
 import { desc, eq } from "drizzle-orm";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ username: string }> },
 ) {
   const { username: raw } = await params;
-  const username = decodeURIComponent(raw ?? "").trim();
-  if (!username) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const userOrResponse = await requireVisibleProfileUser(req, raw);
+  if (userOrResponse instanceof NextResponse) return userOrResponse;
 
   const db = getDb();
-  const user = await getUserByUsername(db, username);
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
   const rows = await db
     .select({
       id: comments.id,
@@ -29,7 +24,7 @@ export async function GET(
       createdAt: comments.createdAt,
     })
     .from(comments)
-    .where(eq(comments.userId, user.id))
+    .where(eq(comments.userId, userOrResponse.id))
     .orderBy(desc(comments.createdAt))
     .limit(50);
 

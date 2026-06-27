@@ -83,6 +83,7 @@ const Footer = () => {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Account</p>
             <NavLink href="/settings" label="Settings" />
+            <NavLink href="/faq" label="FAQ" />
             <a
               href="https://anisurge.me"
               target="_blank"
@@ -96,6 +97,7 @@ const Footer = () => {
           {/* Links */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Project</p>
+            <NavLink href="/faq" label="FAQ & privacy" />
             <a
               href="https://github.com/fampep/anikitty"
               target="_blank"

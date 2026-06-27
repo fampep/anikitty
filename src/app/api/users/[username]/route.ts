@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchlist } from "@/db/schema";
-import { getUserByUsername } from "@/lib/public-user";
 import { getUserXpStats } from "@/lib/user-xp";
 import { getLevelProgress } from "@/lib/user-level";
 import { folderCountsFromRows } from "@/lib/watchlist-response";
+import {
+  publicUserFields,
+  resolveVisibleProfileUser,
+} from "@/lib/public-profile-access";
 import { eq, sql } from "drizzle-orm";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ username: string }> },
 ) {
   const { username: raw } = await params;
-  const username = decodeURIComponent(raw ?? "").trim();
-  if (!username) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const resolved = await resolveVisibleProfileUser(req, raw);
+  if (!resolved.ok) return resolved.response;
 
+  const { user } = resolved;
   const db = getDb();
-  const user = await getUserByUsername(db, username);
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const [countRows, stats] = await Promise.all([
     db
@@ -36,17 +36,7 @@ export async function GET(
   const levelInfo = getLevelProgress(stats.xp);
 
   return NextResponse.json({
-    user: {
-      id: user.id,
-      username: user.username,
-      avatarUrl: user.avatarUrl,
-      bannerUrl: user.bannerUrl,
-      bio: user.bio,
-      themeColor: user.themeColor,
-      role: user.role,
-      roleColor: user.roleColor,
-      createdAt: user.createdAt?.toISOString() ?? null,
-    },
+    user: publicUserFields(user),
     counts: folderCountsFromRows(countRows),
     level: {
       xp: stats.xp,

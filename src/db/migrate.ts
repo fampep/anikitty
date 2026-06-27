@@ -197,6 +197,7 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_color VARCHAR(7)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_private BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS anilist_synced_at TIMESTAMP`,
       `CREATE TABLE IF NOT EXISTS user_sessions (
         id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,

@@ -9,4 +9,5 @@ export const ROUTES = {
   CHAT: "/chat",
   WATCH_TOGETHER: "/watch-together",
   SETTINGS: "/settings",
+  FAQ: "/faq",
 };

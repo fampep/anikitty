@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useParams } from "next/navigation";
 import { applyUserThemeColor } from "@/lib/theme-color";
+import { getAnisurgeToken } from "@/lib/anisurge";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile-customization-form";
@@ -61,6 +62,7 @@ type ProfileData = {
   role: string;
   roleColor: string | null;
   createdAt: string | null;
+  profilePrivate?: boolean;
 };
 
 const STATUS_TABS = [
@@ -142,12 +144,20 @@ function userCommentHref(c: UserComment) {
   return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
 }
 
+function profileAuthHeaders(): Record<string, string> {
+  const token = getAnisurgeToken();
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
 function UserComments({ username }: { username: string }) {
   const [items, setItems] = useState<UserComment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/users/${encodeURIComponent(username)}/comments`)
+    fetch(`/api/users/${encodeURIComponent(username)}/comments`, {
+      headers: profileAuthHeaders(),
+    })
       .then((r) => r.json())
       .then((d) => setItems(d.comments ?? []))
       .catch(() => {})
@@ -221,6 +231,7 @@ function ProfilePage() {
   const [levelData, setLevelData] = useState<UserLevelData | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [profileHidden, setProfileHidden] = useState(false);
   const ownLevelData = useUserLevel();
 
   const isOwn = !!auth && auth.username === profileUsername;
@@ -234,11 +245,21 @@ function ProfilePage() {
 
     setProfileLoading(true);
     setNotFound(false);
-    fetch(`/api/users/${encodeURIComponent(profileUsername)}`)
-      .then((r) => {
+    setProfileHidden(false);
+    fetch(`/api/users/${encodeURIComponent(profileUsername)}`, {
+      headers: profileAuthHeaders(),
+    })
+      .then(async (r) => {
         if (r.status === 404) {
           setNotFound(true);
           return null;
+        }
+        if (r.status === 403) {
+          const data = await r.json().catch(() => ({}));
+          if (data.private) {
+            setProfileHidden(true);
+            return null;
+          }
         }
         return r.ok ? r.json() : null;
       })
@@ -261,6 +282,23 @@ function ProfilePage() {
   }, [profileUsername, watchlistVersion]);
 
   if (!hasHydrated || profileLoading) return <Loading />;
+
+  if (profileHidden) {
+    return (
+      <div className="min-h-screen pt-24 flex flex-col items-center gap-4 text-center px-4">
+        <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-4xl">
+          🥷
+        </div>
+        <p className="text-xl font-bold text-white">Ninja mode</p>
+        <p className="text-sm text-white/40 max-w-sm">
+          @{profileUsername} has hidden their profile. They&apos;re watching from the shadows.
+        </p>
+        <Link href="/home" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+          Back to home
+        </Link>
+      </div>
+    );
+  }
 
   if (notFound || !profile) {
     return (
@@ -348,6 +386,11 @@ function ProfilePage() {
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/15 bg-white/5 text-white/40 text-[11px] font-mono self-center sm:self-auto">
                   <ShieldCheck className="w-3 h-3" />
                   passphrase account
+                </span>
+              )}
+              {isOwn && profile.profilePrivate && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-violet-400/25 bg-violet-500/10 text-violet-200/90 text-[11px] font-mono self-center sm:self-auto">
+                  🥷 ninja mode
                 </span>
               )}
               {displayLevel && (

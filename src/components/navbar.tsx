@@ -13,7 +13,7 @@ import { ROUTES } from "@/constants/routes";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 
 import SearchBar from "./search-bar";
-import { CalendarDays, Flame, Home, MenuIcon, X, SearchIcon, MessagesSquare, MessageCircle, Users } from "lucide-react";
+import { CalendarDays, Flame, Home, MenuIcon, X, SearchIcon, MessagesSquare, MessageCircle, Users, HelpCircle } from "lucide-react";
 import useScrollPosition from "@/hooks/use-scroll-position";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
 import LoginPopoverButton from "./login-popover-button";
@@ -30,6 +30,7 @@ const menuItems = [
   { title: "Forum",    href: ROUTES.FORUM,    icon: MessagesSquare },
   { title: "Live Chat", href: ROUTES.CHAT,    icon: MessageCircle },
   { title: "Watch Together", href: ROUTES.WATCH_TOGETHER, icon: Users },
+  { title: "FAQ", href: ROUTES.FAQ, icon: HelpCircle },
 ];
 
 const NavBar = () => {

@@ -4,7 +4,7 @@ import AnimeCard from "@/components/anime-card";
 import Pagination from "@/components/common/pagination";
 import { ROUTES } from "@/constants/routes";
 import useBookMarks, { type Bookmark, type WatchHistory } from "@/hooks/use-get-bookmark";
-import { anisurgeContinue, folderToStatus, statusToFolder } from "@/lib/anisurge";
+import { anisurgeContinue, folderToStatus, statusToFolder, getAnisurgeToken } from "@/lib/anisurge";
 import { useAuthStore } from "@/store/auth-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { ChevronLeft, ChevronRight, Tv2 } from "lucide-react";
@@ -75,6 +75,14 @@ function AnimeLists({ status, username, isOwn }: Props) {
     setPublicLoading(true);
     fetch(
       `/api/users/${encodeURIComponent(username)}/watchlist?folder=${encodeURIComponent(folder)}&limit=20&offset=${offset}`,
+      {
+        headers: (() => {
+          const token = getAnisurgeToken();
+          const headers: Record<string, string> = {};
+          if (token) headers.Authorization = `Bearer ${token}`;
+          return headers;
+        })(),
+      },
     )
       .then((r) => (r.ok ? r.json() : null))
       .then((res) => {
