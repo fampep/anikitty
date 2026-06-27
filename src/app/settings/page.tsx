@@ -20,6 +20,7 @@ import {
   Shield,
   Palette,
   EyeOff,
+  Languages,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -34,6 +35,8 @@ import TwoFactorSection from "@/components/two-factor-section";
 import ActiveSessionsSection from "@/components/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile-privacy-section";
 import AccountDeletionSection from "@/components/account-deletion-section";
+import { useI18n, useT } from "@/providers/i18n-provider";
+import { locales, localeLabels, type Locale } from "@/i18n/config";
 
 // ── Episode layout options ────────────────────────────────────────────────────
 
@@ -378,9 +381,68 @@ function AppearanceSection() {
   );
 }
 
+function LanguageSection() {
+  const t = useT();
+  const { locale, setLocale } = useI18n();
+  const [saving, setSaving] = useState<Locale | null>(null);
+
+  const handleSelect = async (code: Locale) => {
+    if (code === locale) return;
+    setSaving(code);
+    try {
+      await setLocale(code);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<Languages className="w-4 h-4" />}
+        title={t("settings.language")}
+        description={t("settings.languageDesc")}
+      />
+      <SectionBody>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {locales.map((code) => {
+            const selected = locale === code;
+            const pending = saving === code;
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => void handleSelect(code)}
+                disabled={pending}
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl border px-3.5 py-3 text-left transition-all duration-200",
+                  selected
+                    ? "border-white/40 bg-white/8 ring-1 ring-white/20"
+                    : "border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5",
+                  pending && "opacity-60",
+                )}
+              >
+                <span className={cn("text-sm font-medium", selected ? "text-white" : "text-white/65")}>
+                  {localeLabels[code]}
+                </span>
+                {pending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white/40 shrink-0" />
+                ) : selected ? (
+                  <div className="w-2 h-2 rounded-full bg-white/60 shrink-0" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </SectionBody>
+    </SectionCard>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const t = useT();
   const { auth } = useAuthStore();
   const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay } =
     useSettingsStore();
@@ -392,10 +454,12 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3 mb-8">
           <div className="w-0.5 h-6 bg-white/35 shrink-0" />
           <Settings className="w-5 h-5 text-white/50" />
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Settings</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{t("settings.title")}</h1>
         </div>
 
         <div className="flex flex-col gap-5">
+
+          <LanguageSection />
 
           {/* Account */}
           {auth && (
