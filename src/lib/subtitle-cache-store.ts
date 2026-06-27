@@ -531,6 +531,7 @@ export async function getSubtitleArchiveRows(
 export type SubtitleLibraryStats = {
   totalAnimes: number;
   totalTracks: number;
+  completedAnimes: number;
 };
 
 export type SubtitleLibraryEntry = {
@@ -539,6 +540,12 @@ export type SubtitleLibraryEntry = {
   trackCount: number;
   episodeCount: number;
   lastFetched: string | null;
+  poster?: string | null;
+  status?: string | null;
+  totalEpisodes?: number | null;
+  isComplete?: boolean;
+  score?: number | null;
+  year?: number | null;
 };
 
 function subtitleLibrarySearchPattern(q: string): string {
@@ -562,7 +569,7 @@ function subtitleLibraryWhere(q?: string) {
 }
 
 export async function getSubtitleLibraryStats(): Promise<SubtitleLibraryStats> {
-  if (!dbAvailable()) return { totalAnimes: 0, totalTracks: 0 };
+  if (!dbAvailable()) return { totalAnimes: 0, totalTracks: 0, completedAnimes: 0 };
 
   try {
     const db = getDb();
@@ -577,9 +584,10 @@ export async function getSubtitleLibraryStats(): Promise<SubtitleLibraryStats> {
     return {
       totalAnimes: row?.totalAnimes ?? 0,
       totalTracks: row?.totalTracks ?? 0,
+      completedAnimes: 0,
     };
   } catch {
-    return { totalAnimes: 0, totalTracks: 0 };
+    return { totalAnimes: 0, totalTracks: 0, completedAnimes: 0 };
   }
 }
 

@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "react-query";
 import Container from "@/components/container";
 import Pagination from "@/components/common/pagination";
+import SubtitleAnimeCard from "@/components/subtitle-anime-card";
+import DiscoverSubtitleCard from "@/components/discover-subtitle-card";
 import { ROUTES } from "@/constants/routes";
 import {
+  syncSubtitleLibrary,
   useDiscoverAnimeSearch,
   useSubtitleLibrary,
   useSubtitleLibraryStats,
+  type SubtitleLibraryFilter,
 } from "@/query/get-subtitle-library";
 import {
   downloadSubtitleEpisodesZip,
@@ -20,15 +22,11 @@ import {
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { IAnime } from "@/types/anime";
 import {
   Captions,
-  Download,
-  ExternalLink,
+  CheckCircle2,
   Film,
   Loader2,
-  Plus,
-  RefreshCw,
   Search,
   Subtitles,
 } from "lucide-react";
@@ -38,20 +36,28 @@ export default function SubtitleLibraryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const autoSyncStarted = useRef(false);
 
   const qParam = searchParams.get("q") ?? "";
   const pageParam = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const filterParam: SubtitleLibraryFilter =
+    searchParams.get("filter") === "completed" ? "completed" : "all";
 
   const [query, setQuery] = useState(qParam);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [fetchingId, setFetchingId] = useState<number | null>(null);
+  const [autoSyncing, setAutoSyncing] = useState(false);
 
   useEffect(() => {
     setQuery(qParam);
   }, [qParam]);
 
   const { data: stats, isLoading: statsLoading } = useSubtitleLibraryStats();
-  const { data: library, isLoading, isFetching } = useSubtitleLibrary(qParam, pageParam);
+  const { data: library, isLoading, isFetching } = useSubtitleLibrary(
+    qParam,
+    pageParam,
+    filterParam,
+  );
   const { data: animeSearch, isLoading: animeSearchLoading } = useDiscoverAnimeSearch(qParam);
 
   const cachedIdSet = useMemo(
@@ -70,22 +76,48 @@ export default function SubtitleLibraryPage() {
   const totalPages = Math.max(1, Math.ceil((library?.total ?? 0) / (library?.limit ?? 24)));
   const showDiscover = qParam.trim().length >= 2;
 
-  const pushParams = (nextQ: string, nextPage: number) => {
+  const pushParams = (nextQ: string, nextPage: number, filter: SubtitleLibraryFilter) => {
     const p = new URLSearchParams();
     if (nextQ.trim()) p.set("q", nextQ.trim());
     if (nextPage > 1) p.set("page", String(nextPage));
+    if (filter === "completed") p.set("filter", "completed");
     const qs = p.toString();
     router.push(`${ROUTES.SUBTITLES}${qs ? `?${qs}` : ""}`);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    pushParams(query, 1);
   };
 
   const invalidateLibrary = () => {
     queryClient.invalidateQueries(["subtitle-library-stats"]);
     queryClient.invalidateQueries(["subtitle-library"]);
+  };
+
+  useEffect(() => {
+    if (autoSyncStarted.current) return;
+    autoSyncStarted.current = true;
+
+    const runAutoSync = async () => {
+      setAutoSyncing(true);
+      let rounds = 0;
+      try {
+        while (rounds < 20) {
+          const result = await syncSubtitleLibrary(2);
+          if (result.processed === 0) break;
+          invalidateLibrary();
+          rounds++;
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      } catch {
+        /* silent — user can manually refresh */
+      } finally {
+        setAutoSyncing(false);
+      }
+    };
+
+    void runAutoSync();
+  }, [queryClient]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    pushParams(query, 1, filterParam);
   };
 
   const handleDownloadAll = async (anilistId: number) => {
@@ -133,15 +165,27 @@ export default function SubtitleLibraryPage() {
         <p className="text-sm text-white/35 font-mono pl-[3.25rem] max-w-2xl leading-relaxed">
           {t("subsLibrary.subtitle")}
         </p>
+        {autoSyncing && (
+          <p className="text-[11px] font-mono text-teal-400/70 pl-[3.25rem] mt-2 flex items-center gap-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            {t("subsLibrary.autoSyncing")}
+          </p>
+        )}
       </Container>
 
-      <Container className="mt-8 space-y-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Container className="mt-8 space-y-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
             label={t("subsLibrary.stats.animes")}
             value={stats?.totalAnimes}
             loading={statsLoading}
             icon={<Film className="w-4 h-4 text-violet-400/80" />}
+          />
+          <StatCard
+            label={t("subsLibrary.stats.completed")}
+            value={stats?.completedAnimes}
+            loading={statsLoading}
+            icon={<CheckCircle2 className="w-4 h-4 text-emerald-400/80" />}
           />
           <StatCard
             label={t("subsLibrary.stats.tracks")}
@@ -167,13 +211,32 @@ export default function SubtitleLibraryPage() {
           </button>
         </form>
 
-        {/* Cached library */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {(["all", "completed"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => pushParams(qParam, 1, tab)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors",
+                filterParam === tab
+                  ? "bg-white text-black border-white"
+                  : "bg-white/[0.03] text-white/45 border-white/10 hover:text-white/70",
+              )}
+            >
+              {tab === "all" ? t("subsLibrary.tabAll") : t("subsLibrary.tabCompleted")}
+            </button>
+          ))}
+        </div>
+
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-[11px] font-mono text-white/30 uppercase tracking-widest">
-              {qParam
-                ? t("subsLibrary.cachedSection", { count: library?.total ?? 0 })
-                : t("subsLibrary.cachedBrowse")}
+              {filterParam === "completed"
+                ? t("subsLibrary.completedSection", { count: library?.total ?? 0 })
+                : qParam
+                  ? t("subsLibrary.cachedSection", { count: library?.total ?? 0 })
+                  : t("subsLibrary.cachedBrowse")}
             </h2>
             {isFetching && !isLoading && (
               <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
@@ -181,12 +244,12 @@ export default function SubtitleLibraryPage() {
           </div>
 
           {isLoading ? (
-            <LibrarySkeletons />
+            <CardGridSkeleton />
           ) : library && library.items.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {library.items.map((item) => (
-                  <CachedAnimeCard
+                  <SubtitleAnimeCard
                     key={item.anilistId}
                     item={item}
                     downloading={downloadingId === item.anilistId}
@@ -201,18 +264,17 @@ export default function SubtitleLibraryPage() {
                 <Pagination
                   currentPage={pageParam}
                   totalPages={totalPages}
-                  handlePreviousPage={() => pushParams(qParam, pageParam - 1)}
-                  handleNextPage={() => pushParams(qParam, pageParam + 1)}
-                  handlePageChange={(p) => pushParams(qParam, p)}
+                  handlePreviousPage={() => pushParams(qParam, pageParam - 1, filterParam)}
+                  handleNextPage={() => pushParams(qParam, pageParam + 1, filterParam)}
+                  handlePageChange={(p) => pushParams(qParam, p, filterParam)}
                 />
               )}
             </>
           ) : (
-            <EmptyLibrary hasQuery={!!qParam} />
+            <EmptyLibrary hasQuery={!!qParam} filter={filterParam} />
           )}
         </section>
 
-        {/* AniList discover */}
         {showDiscover && (
           <section className="space-y-4">
             <h2 className="text-[11px] font-mono text-white/30 uppercase tracking-widest">
@@ -223,11 +285,11 @@ export default function SubtitleLibraryPage() {
             </p>
 
             {animeSearchLoading ? (
-              <DiscoverSkeletons />
+              <CardGridSkeleton count={6} />
             ) : discoverAnimes.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {discoverAnimes.map((anime) => (
-                  <DiscoverAnimeCard
+                  <DiscoverSubtitleCard
                     key={anime.id}
                     anime={anime}
                     fetching={fetchingId === parseInt(anime.id, 10)}
@@ -273,193 +335,39 @@ function StatCard({
   );
 }
 
-function CachedAnimeCard({
-  item,
-  downloading,
-  fetching,
-  onDownload,
-  onFetch,
+function EmptyLibrary({
+  hasQuery,
+  filter,
 }: {
-  item: {
-    anilistId: number;
-    animeTitle: string | null;
-    trackCount: number;
-    episodeCount: number;
-  };
-  downloading: boolean;
-  fetching: boolean;
-  onDownload: () => void;
-  onFetch: () => void;
+  hasQuery: boolean;
+  filter: SubtitleLibraryFilter;
 }) {
-  const t = useT();
-  const busy = downloading || fetching;
-  const title = item.animeTitle?.trim() || t("subsLibrary.unknownAnime", { id: item.anilistId });
-
-  return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4 flex flex-col gap-4 hover:border-white/14 transition-colors">
-      <div className="min-w-0">
-        <Link
-          href={`${ROUTES.ANIME_DETAILS}/${item.anilistId}?tab=subtitles`}
-          className="text-sm font-semibold text-white/90 hover:text-white line-clamp-2 transition-colors"
-        >
-          {title}
-        </Link>
-        <p className="text-[10px] font-mono text-white/25 mt-1">AniList #{item.anilistId}</p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <span className="text-[10px] font-mono px-2 py-1 rounded-md bg-white/[0.04] border border-white/8 text-white/45">
-          {t("subsLibrary.episodesCached", { count: item.episodeCount })}
-        </span>
-        <span className="text-[10px] font-mono px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/20 text-teal-300/80">
-          {t("subsLibrary.tracksCached", { count: item.trackCount })}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2 mt-auto pt-1">
-        <button
-          type="button"
-          onClick={onDownload}
-          disabled={busy}
-          className={cn(
-            "inline-flex items-center justify-center gap-1.5 flex-1 h-8 rounded-lg text-[11px] font-semibold",
-            "bg-violet-500/15 border border-violet-500/25 text-violet-300 hover:bg-violet-500/25 transition-colors disabled:opacity-50",
-          )}
-        >
-          {downloading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Download className="w-3.5 h-3.5" />
-          )}
-          {t("subsLibrary.downloadAll")}
-        </button>
-        <button
-          type="button"
-          onClick={onFetch}
-          disabled={busy}
-          title={t("subsLibrary.fetchMore")}
-          className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg text-[11px] font-semibold border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
-        >
-          {fetching ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-3.5 h-3.5" />
-          )}
-        </button>
-        <Link
-          href={`${ROUTES.ANIME_DETAILS}/${item.anilistId}?tab=subtitles`}
-          className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg text-[11px] font-semibold border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/[0.04] transition-colors"
-          title={t("subsLibrary.browse")}
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function DiscoverAnimeCard({
-  anime,
-  fetching,
-  onFetch,
-}: {
-  anime: IAnime;
-  fetching: boolean;
-  onFetch: () => void;
-}) {
-  const t = useT();
-  const anilistId = parseInt(anime.id, 10);
-
-  return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden flex gap-0 hover:border-violet-500/25 transition-colors">
-      <div className="relative w-20 sm:w-24 shrink-0 bg-[#0d0d0d]">
-        {anime.poster ? (
-          <Image
-            src={anime.poster}
-            alt={anime.name}
-            fill
-            className="object-cover"
-            unoptimized
-            sizes="96px"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Film className="w-6 h-6 text-white/10" />
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0 p-3 flex flex-col justify-between gap-2">
-        <div className="min-w-0">
-          <Link
-            href={`${ROUTES.ANIME_DETAILS}/${anime.id}?tab=subtitles`}
-            className="text-sm font-semibold text-white/85 hover:text-white line-clamp-2 transition-colors"
-          >
-            {anime.name}
-          </Link>
-          <p className="text-[10px] font-mono text-white/25 mt-0.5">
-            #{anime.id}
-            {anime.episodes?.sub ? ` · ${anime.episodes.sub} eps` : ""}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onFetch}
-          disabled={fetching || Number.isNaN(anilistId)}
-          className={cn(
-            "inline-flex items-center justify-center gap-1.5 w-full h-8 rounded-lg text-[11px] font-semibold",
-            "bg-teal-500/12 border border-teal-500/25 text-teal-300 hover:bg-teal-500/20 transition-colors disabled:opacity-50",
-          )}
-        >
-          {fetching ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Plus className="w-3.5 h-3.5" />
-          )}
-          {t("subsLibrary.fetchSubs")}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function EmptyLibrary({ hasQuery }: { hasQuery: boolean }) {
   const t = useT();
   return (
     <div className="rounded-xl border border-white/8 bg-white/[0.02] px-6 py-12 text-center">
       <Captions className="w-10 h-10 text-white/15 mx-auto mb-4" />
       <p className="text-sm text-white/45">
-        {hasQuery ? t("subsLibrary.emptySearch") : t("subsLibrary.empty")}
+        {filter === "completed"
+          ? t("subsLibrary.emptyCompleted")
+          : hasQuery
+            ? t("subsLibrary.emptySearch")
+            : t("subsLibrary.empty")}
       </p>
-      {hasQuery && (
+      {hasQuery && filter === "all" && (
         <p className="text-xs text-white/30 mt-2">{t("subsLibrary.emptySearchHint")}</p>
       )}
     </div>
   );
 }
 
-function LibrarySkeletons() {
+function CardGridSkeleton({ count = 12 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-36 rounded-xl border border-white/8 bg-white/[0.02] animate-pulse"
-        />
-      ))}
-    </div>
-  );
-}
-
-function DiscoverSkeletons() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-24 rounded-xl border border-white/8 bg-white/[0.02] animate-pulse"
-        />
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-2 max-w-[12.625rem] mx-auto w-full">
+          <div className="aspect-[2/3] rounded-xl border border-white/8 bg-white/[0.02] animate-pulse" />
+          <div className="h-7 rounded-lg bg-white/[0.04] animate-pulse" />
+        </div>
       ))}
     </div>
   );

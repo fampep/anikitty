@@ -554,8 +554,17 @@
     "browse": "Browse subtitles",
     "stats": {
       "animes": "Anime with subtitles",
-      "tracks": "Total subtitle tracks"
-    }
+      "tracks": "Total subtitle tracks",
+      "completed": "Completed series"
+    },
+    "tabAll": "All shows",
+    "tabCompleted": "Completed",
+    "completedSection": "Completed with full subs ({count})",
+    "emptyCompleted": "No completed series with full subtitle coverage yet. Auto-sync is fetching missing episodes in the background.",
+    "autoSyncing": "Auto-fetching missing subtitles for library anime…",
+    "subProgress": "{cached}/{total} eps · {tracks} tracks",
+    "tracksOnly": "{tracks} subtitle tracks",
+    "notCached": "Not in library"
   },
   "watch": {
     "episode": "Episode {n}",
