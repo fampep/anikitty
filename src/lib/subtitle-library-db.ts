@@ -322,10 +322,10 @@ export async function countCompletedSubtitleAnimesFromDb(): Promise<number> {
 }
 
 function completedWhere(q?: string) {
-  const base = and(
-    eq(subtitleLibraryAnime.isComplete, true),
-    or(isNull(subtitleLibraryAnime.status), eq(subtitleLibraryAnime.status, "FINISHED")),
-  );
+  // "Completed" = every known episode is cached (isComplete). We intentionally do
+  // NOT restrict by airing status — a still-releasing show with all aired episodes
+  // cached should still appear, matching countCompletedSubtitleAnimesFromDb.
+  const base = eq(subtitleLibraryAnime.isComplete, true);
 
   const trimmed = q?.trim();
   if (!trimmed) return base;

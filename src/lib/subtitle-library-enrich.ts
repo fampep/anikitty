@@ -235,9 +235,7 @@ export async function getEnrichedSubtitleLibraryEntriesByIds(
 }
 
 export function isCompletedWithSubs(item: SubtitleLibraryEntry): boolean {
-  if (!item.isComplete) return false;
-  if (!item.status) return true;
-  return item.status === "FINISHED";
+  return Boolean(item.isComplete);
 }
 
 export async function searchEnrichedSubtitleLibrary(opts: {
