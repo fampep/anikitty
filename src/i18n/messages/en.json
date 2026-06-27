@@ -45,7 +45,9 @@
     "faqPrivacy": "FAQ & privacy",
     "disclaimer": "AniKitty does not store any files on its servers. All content is provided by third-party services.",
     "github": "GitHub",
-    "discord": "Discord"
+    "discord": "Discord",
+    "kittyApi": "KittyAPI ↗",
+    "anisurgeExternal": "Anisurge ↗"
   },
   "landing": {
     "browse": "Browse",
@@ -102,7 +104,10 @@
     "episode": "Episode {n}",
     "aired": "Aired",
     "justNow": "just now",
-    "sharedGif": "shared a GIF"
+    "sharedGif": "shared a GIF",
+    "browseByGenre": "Browse by genre",
+    "allGenres": "All genres →",
+    "inMinutes": "in {m}m"
   },
   "search": {
     "title": "Search",
@@ -373,6 +378,15 @@
     "alsoWatch": "Also Watch",
     "tryAgain": "Try again",
     "retry": "Retry",
-    "ep": "EP"
+    "ep": "EP",
+    "timeAgoMinutes": "{m}m ago",
+    "timeAgoHours": "{h}h ago",
+    "timeAgoDays": "{d}d ago",
+    "live": "Live"
+  },
+  "navAvatar": {
+    "xpSummary": "{xp} XP · {count} done",
+    "xpToNext": "{xp} XP to Lv.{level}",
+    "max": "MAX"
   }
 }

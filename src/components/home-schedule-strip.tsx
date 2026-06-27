@@ -7,6 +7,7 @@ import { ROUTES } from "@/constants/routes";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, RefreshCw } from "lucide-react";
 import { SectionHeading } from "./section-heading";
 import { cn } from "@/lib/utils";
+import { useI18n, useT } from "@/providers/i18n-provider";
 
 type ScheduleItem = {
   id: string;
@@ -20,16 +21,18 @@ function formatAiringTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function airingLabel(item: ScheduleItem) {
-  if (item.secondsUntilAiring <= 0) return "Aired";
+function airingLabel(item: ScheduleItem, t: ReturnType<typeof useT>) {
+  if (item.secondsUntilAiring <= 0) return t("home.aired");
   if (item.secondsUntilAiring < 3600) {
     const m = Math.max(1, Math.ceil(item.secondsUntilAiring / 60));
-    return `in ${m}m`;
+    return t("home.inMinutes", { m });
   }
   return formatAiringTime(item.airingTimestamp);
 }
 
 export default function HomeScheduleStrip() {
+  const t = useT();
+  const { locale } = useI18n();
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -81,14 +84,14 @@ export default function HomeScheduleStrip() {
     return (
       <Container className="py-4">
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-white/8 bg-white/[0.02]">
-          <p className="text-xs text-white/40 font-mono">Couldn&apos;t load today&apos;s schedule</p>
+          <p className="text-xs text-white/40 font-mono">{t("home.scheduleLoadError")}</p>
           <button
             type="button"
-            onClick={() => setRetryTick((t) => t + 1)}
+            onClick={() => setRetryTick((n) => n + 1)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/60 text-xs font-semibold hover:bg-white/5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Retry
+            {t("home.retry")}
           </button>
         </div>
       </Container>
@@ -97,14 +100,14 @@ export default function HomeScheduleStrip() {
 
   if (!items.length) return null;
 
-  const today = new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  const today = new Date().toLocaleDateString(locale, { weekday: "long", month: "short", day: "numeric" });
 
   return (
     <Container className="flex flex-col gap-4 py-6 items-start">
       <div className="flex items-center gap-3 w-full">
         <SectionHeading
           icon={<CalendarDays className="w-4 h-4" />}
-          title="Airing Today"
+          title={t("home.airingToday")}
           subtitle={today}
           href={ROUTES.SCHEDULE}
         />
@@ -143,7 +146,7 @@ export default function HomeScheduleStrip() {
                   <p className="text-[12px] font-semibold text-white/75 group-hover:text-white truncate leading-tight">
                     {item.name}
                   </p>
-                  <p className="text-[10px] font-mono text-white/30 mt-0.5">Episode {item.episode}</p>
+                  <p className="text-[10px] font-mono text-white/30 mt-0.5">{t("home.episode", { n: item.episode })}</p>
                 </div>
                 <span
                   className={cn(
@@ -154,7 +157,7 @@ export default function HomeScheduleStrip() {
                   )}
                 >
                   <Clock className="w-3 h-3" />
-                  {airingLabel(item)}
+                  {airingLabel(item, t)}
                 </span>
               </Link>
             );

@@ -1,3 +1,5 @@
+"use client";
+
 import Container from "./container";
 import React, { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -6,6 +8,7 @@ import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n, useT } from "@/providers/i18n-provider";
 
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -19,15 +22,17 @@ function getDateForWeekday(targetDay: string, referenceDate: Date) {
 }
 
 function AnimeSchedule() {
+  const t = useT();
+  const { locale } = useI18n();
   const currentDate = new Date();
-  const currentDay = currentDate.toLocaleString("en-US", { weekday: "long" }).toLowerCase();
+  const currentDay = currentDate.toLocaleString(locale, { weekday: "long" }).toLowerCase();
 
   const [currentSelectedTab, setCurrentSelectedTab] = React.useState<string>(currentDay);
 
   const selectedDate = useMemo(() => {
     const date = getDateForWeekday(currentSelectedTab, currentDate);
     date.setDate(date.getDate() + 1);
-    return date.toLocaleDateString("en-US");
+    return date.toLocaleDateString(locale);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSelectedTab]);
 
@@ -40,7 +45,7 @@ function AnimeSchedule() {
         <div className="w-0.5 h-5 bg-white/35 shrink-0" />
         <CalendarDays className="w-4 h-4 text-white/50" />
         <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-          Schedule
+          {t("nav.schedule")}
         </h5>
       </div>
 
@@ -69,7 +74,7 @@ function AnimeSchedule() {
                   {day.slice(0, 3)}
                 </span>
                 <span className={cn("text-[10px] font-mono", isToday ? "text-white/60" : "text-white/25")}>
-                  {d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}
                 </span>
                 {isToday && (
                   <span className="w-1 h-1 rounded-full bg-white/50 mt-0.5" />
@@ -88,7 +93,7 @@ function AnimeSchedule() {
                 <div className="flex flex-col divide-y divide-white/5">
                   {!data?.scheduledAnimes?.length ? (
                     <div className="flex items-center justify-center py-12 text-white/25 text-sm font-mono">
-                      No schedule for this day
+                      {t("schedule.noSchedule")}
                     </div>
                   ) : (
                     data.scheduledAnimes.map((anime) => {

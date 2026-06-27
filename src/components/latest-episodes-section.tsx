@@ -7,6 +7,7 @@ import { ROUTES } from "@/constants/routes";
 import { LatestCompletedAnime } from "@/types/anime";
 import { SectionHeading } from "./section-heading";
 import { Tv2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   latestEpisodes: LatestCompletedAnime[];
@@ -16,6 +17,7 @@ type Props = {
 const CARD_W = 160;
 
 const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
+  const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -45,7 +47,7 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
   return (
     <Container className="flex flex-col gap-4 py-8 items-start lg:mt-[-5rem] z-20">
       <div className="flex items-center gap-3 w-full">
-        <SectionHeading icon={<Tv2 className="w-4 h-4" />} title="Recent Releases" href={ROUTES.SEARCH} />
+        <SectionHeading icon={<Tv2 className="w-4 h-4" />} title={t("home.recentReleases")} href={ROUTES.SEARCH} />
         <div className="flex items-center gap-1">
           <button
             onClick={() => scroll("left")}

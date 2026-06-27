@@ -16,6 +16,7 @@ import { ArrowLeft, ArrowRight, Captions, Mic, Play, Info } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { ButtonLink } from "./common/button-link";
 import { SpotlightAnime } from "@/types/anime";
+import { useT } from "@/providers/i18n-provider";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -142,7 +143,9 @@ const HeroCarouselItem = ({
   anime: SpotlightAnime;
   isNearActive: boolean;
   priority?: boolean;
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div className="w-full h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] relative overflow-hidden bg-black">
     {isNearActive && anime?.poster ? (
       <Image
@@ -212,21 +215,22 @@ const HeroCarouselItem = ({
               className="flex items-center gap-2 h-10 sm:h-11 bg-white text-black font-bold px-4 sm:px-6 rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-lg shadow-white/10 text-sm"
             >
               <Play className="h-4 w-4 fill-current" />
-              Watch Now
+              {t("home.watchNow")}
             </ButtonLink>
             <ButtonLink
               href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
               className="flex items-center gap-2 h-10 sm:h-11 bg-white/5 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/35 px-4 sm:px-5 rounded-xl transition-all text-sm"
             >
               <Info className="h-4 w-4" />
-              Details
+              {t("home.details")}
             </ButtonLink>
           </div>
         </div>
       </Container>
     </div>
   </div>
-);
+  );
+};
 
 const LoadingSkeleton = () => (
   <div className="h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] w-full relative bg-black">

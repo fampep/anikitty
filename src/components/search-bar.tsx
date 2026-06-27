@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useT } from "@/providers/i18n-provider";
 
 const SearchBar = ({
   className,
@@ -17,6 +18,7 @@ const SearchBar = ({
   className?: string;
   onAnimeClick?: () => void;
 }) => {
+  const t = useT();
   const [searchValue, setSearchValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const debouncedValue = useDebounce(searchValue, 300);
@@ -72,7 +74,7 @@ const SearchBar = ({
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search anime..."
+          placeholder={t("search.placeholder")}
           className="w-full h-9 pl-9 pr-8 bg-white/[0.06] border border-white/[0.1] rounded-xl text-sm text-white/90 placeholder-white/35 focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20 transition-all"
         />
         {searchValue && (
@@ -143,7 +145,7 @@ const SearchBar = ({
                 onClick={handleSelect}
                 className="flex items-center justify-between px-3 py-2.5 border-t border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors text-sm font-medium"
               >
-                <span>View all results for &ldquo;{searchValue.trim()}&rdquo;</span>
+                <span>{t("search.viewAllResults", { query: searchValue.trim() })}</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -151,13 +153,13 @@ const SearchBar = ({
 
           {!isLoading && debouncedValue && (!searchResults || searchResults.length === 0) && (
             <div className="px-4 py-6 text-center">
-              <p className="text-white/35 text-sm">No results for &ldquo;{debouncedValue}&rdquo;</p>
+              <p className="text-white/35 text-sm">{t("search.noResultsFor", { query: debouncedValue })}</p>
               <Link
                 href={`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`}
                 onClick={handleSelect}
                 className="text-white/50 hover:text-white/80 text-xs mt-1 inline-block"
               >
-                Browse all anime →
+                {t("search.browseAllLink")}
               </Link>
             </div>
           )}

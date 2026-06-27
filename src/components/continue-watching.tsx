@@ -12,6 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn, formatSecondsToMMSS } from "@/lib/utils";
 import LoginPopoverButton from "./login-popover-button";
+import { useT } from "@/providers/i18n-provider";
 
 interface ContinueItem {
   id: string;
@@ -24,6 +25,7 @@ interface ContinueItem {
 type Props = { loading: boolean };
 
 function ContinueCard({ item }: { item: ContinueItem }) {
+  const t = useT();
   const { current, timestamp: duration, episodeNumber } = item.watchDetail;
   const pct = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
   const remaining = duration > current ? duration - current : 0;
@@ -54,7 +56,7 @@ function ContinueCard({ item }: { item: ContinueItem }) {
         {/* Episode badge */}
         <div className="absolute bottom-2 left-2">
           <span className="text-[10px] font-mono font-bold bg-black/70 text-white/90 px-1.5 py-0.5 rounded backdrop-blur-sm">
-            EP {episodeNumber}
+            {t("common.ep")} {episodeNumber}
           </span>
         </div>
 
@@ -62,7 +64,7 @@ function ContinueCard({ item }: { item: ContinueItem }) {
         {remaining > 30 && (
           <div className="absolute bottom-2 right-2">
             <span className="text-[9px] font-mono text-white/55 bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm">
-              {formatSecondsToMMSS(remaining)} left
+              {t("home.epLeft", { time: formatSecondsToMMSS(remaining) })}
             </span>
           </div>
         )}
@@ -88,6 +90,7 @@ function ContinueCard({ item }: { item: ContinueItem }) {
 }
 
 const ContinueWatching = ({ loading }: Props) => {
+  const t = useT();
   const { auth } = useAuthStore();
   const lastSaved = useProgressStore((s) => s.lastSaved);
   const getProgress = useProgressStore((s) => s.getProgress);
@@ -173,9 +176,9 @@ const ContinueWatching = ({ loading }: Props) => {
           <div className="flex items-start gap-3">
             <History className="w-5 h-5 text-white/25 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-white/70">Continue where you left off</p>
+              <p className="text-sm font-semibold text-white/70">{t("home.continueSignInTitle")}</p>
               <p className="text-[11px] text-white/30 font-mono mt-0.5">
-                Sign in to sync your watch progress across devices
+                {t("home.continueSignInDesc")}
               </p>
             </div>
           </div>
@@ -185,7 +188,7 @@ const ContinueWatching = ({ loading }: Props) => {
                 type="button"
                 className="shrink-0 px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors"
               >
-                Sign in to continue
+                {t("home.signInToContinue")}
               </button>
             }
           />
@@ -200,14 +203,14 @@ const ContinueWatching = ({ loading }: Props) => {
     return (
       <Container className="py-6">
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
-          <p className="text-xs text-white/40 font-mono">Couldn&apos;t load continue watching</p>
+          <p className="text-xs text-white/40 font-mono">{t("home.continueLoadError")}</p>
           <button
             type="button"
             onClick={() => setRetryTick((t) => t + 1)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/60 text-xs font-semibold hover:bg-white/5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Retry
+            {t("home.retry")}
           </button>
         </div>
       </Container>
@@ -221,7 +224,7 @@ const ContinueWatching = ({ loading }: Props) => {
       <div className="flex items-center gap-3 w-full">
         <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-white/70 to-white/20 shrink-0" />
         <History className="text-white/45 w-4 h-4" />
-        <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight">Continue Watching</h5>
+        <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight">{t("home.continueWatching")}</h5>
         <div className="ml-auto flex items-center gap-1">
           <button
             onClick={() => scroll("left")}

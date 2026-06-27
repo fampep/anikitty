@@ -10,8 +10,10 @@ import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import { useT } from "@/providers/i18n-provider";
 
 export default function LandingPage() {
+  const t = useT();
   const count = useOnlineCount();
   const auth = useAuthStore();
   const isLoggedIn = !!auth.auth;
@@ -97,7 +99,7 @@ export default function LandingPage() {
             href="/home"
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white text-black text-sm font-bold rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-xl shadow-black/30"
           >
-            Browse
+            {t("landing.browse")}
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -117,7 +119,7 @@ export default function LandingPage() {
         >
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
           {count !== null && (
-            <>{count.toLocaleString()} {count === 1 ? "person" : "people"} watching right now</>
+            <>{t("landing.watchingNow", { count: count.toLocaleString(), people: count === 1 ? t("landing.person") : t("landing.people") })}</>
           )}
         </div>
 
@@ -135,14 +137,14 @@ export default function LandingPage() {
         </h1>
 
         <p className="text-white/65 text-base sm:text-lg md:text-xl font-light mb-2 sm:mb-3 leading-relaxed tracking-wide max-w-md">
-          Stream thousands of anime, completely free.
+          {t("landing.tagline")}
         </p>
         <p className="text-white/25 text-xs sm:text-sm md:text-base font-mono mb-10 sm:mb-12 flex items-center gap-2 flex-wrap justify-center">
-          <span>No ads</span>
+          <span>{t("landing.noAds")}</span>
           <span className="w-1 h-1 rounded-full bg-white/15" />
-          <span>No subscriptions</span>
+          <span>{t("landing.noSubscriptions")}</span>
           <span className="w-1 h-1 rounded-full bg-white/15" />
-          <span>Sub &amp; Dub</span>
+          <span>{t("landing.subDub")}</span>
         </p>
 
         {/* CTA buttons */}
@@ -152,14 +154,14 @@ export default function LandingPage() {
             className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 w-full sm:w-auto sm:min-w-[170px] justify-center"
           >
             <Tv2 className="w-4 h-4" />
-            Start Watching
+            {t("landing.startWatching")}
           </Link>
           {!isLoggedIn ? (
             <LoginPopoverButton
               customTrigger={
                 <button className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center">
                   <LogIn className="w-4 h-4" />
-                  Sign in
+                  {t("landing.signIn")}
                 </button>
               }
             />
@@ -168,7 +170,7 @@ export default function LandingPage() {
               href="/home"
               className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center"
             >
-              Continue as {auth.auth?.username}
+              {t("landing.continueAs", { username: auth.auth?.username ?? "" })}
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           )}
@@ -176,11 +178,11 @@ export default function LandingPage() {
 
         {/* Feature pills */}
         <div className="mt-12 sm:mt-16 flex flex-wrap justify-center gap-2 sm:gap-3">
-          <FeaturePill icon={<Shield className="w-3.5 h-3.5" />} label="Zero Ads" />
-          <FeaturePill icon={<Zap className="w-3.5 h-3.5" />} label="Fast Streams" />
-          <FeaturePill icon={<Tv2 className="w-3.5 h-3.5" />} label="Sub & Dub" />
-          <FeaturePill icon={<MessageSquare className="w-3.5 h-3.5" />} label="Comments" />
-          <FeaturePill icon={<Users className="w-3.5 h-3.5" />} label="Community" />
+          <FeaturePill icon={<Shield className="w-3.5 h-3.5" />} label={t("landing.zeroAds")} />
+          <FeaturePill icon={<Zap className="w-3.5 h-3.5" />} label={t("landing.fastStreams")} />
+          <FeaturePill icon={<Tv2 className="w-3.5 h-3.5" />} label={t("landing.subDub")} />
+          <FeaturePill icon={<MessageSquare className="w-3.5 h-3.5" />} label={t("landing.comments")} />
+          <FeaturePill icon={<Users className="w-3.5 h-3.5" />} label={t("landing.community")} />
         </div>
       </div>
 
@@ -195,16 +197,16 @@ export default function LandingPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-white/70 text-sm font-semibold truncate">
-                  {count.toLocaleString()} <span className="text-white/35">online</span>
+                  {t("footer.online", { count: count.toLocaleString() })}
                 </p>
-                <p className="text-white/20 text-[10px] font-mono hidden sm:block">people watching anime right now</p>
+                <p className="text-white/20 text-[10px] font-mono hidden sm:block">{t("landing.onlineStrip")}</p>
               </div>
             </div>
             <Link
               href="/home"
               className="flex items-center gap-1.5 text-xs font-semibold text-white/35 hover:text-white/70 transition-colors shrink-0 group"
             >
-              Join them
+              {t("landing.joinThem")}
               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
@@ -222,7 +224,7 @@ export default function LandingPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="text-white/20 hover:text-white/55 transition-colors"
-            aria-label="Discord"
+            aria-label={t("footer.discord")}
           >
             <DiscordLogoIcon width="15" height="15" />
           </a>
@@ -231,7 +233,7 @@ export default function LandingPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="text-white/20 hover:text-white/55 transition-colors"
-            aria-label="GitHub"
+            aria-label={t("footer.github")}
           >
             <GitHubLogoIcon width="15" height="15" />
           </a>

@@ -7,14 +7,15 @@ import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Flame, CalendarDays, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
+import { useT } from "@/providers/i18n-provider";
 
 const KITTY_ICON = "/jiji.jpg";
 
 const Footer = () => {
+  const t = useT();
   const pathname = usePathname();
   const count = useOnlineCount();
 
-  // Landing page has its own footer
   if (pathname === "/") return null;
 
   return (
@@ -25,7 +26,6 @@ const Footer = () => {
       <div className="max-w-screen-xl mx-auto px-6 py-14 relative">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-white/[0.06]">
 
-          {/* Brand */}
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-violet-400/25 shadow-[0_0_12px_rgba(124,58,237,0.12)]">
@@ -34,10 +34,9 @@ const Footer = () => {
               <p className="text-base font-bold text-white/90 tracking-widest">AniKitty</p>
             </div>
             <p className="text-[11px] text-white/20 font-mono leading-relaxed max-w-[180px]">
-              Free anime streaming. No ads. No limits.
+              {t("footer.tagline")}
             </p>
 
-            {/* Online counter */}
             {count !== null && (
               <div className="flex items-center gap-2 mt-1">
                 <span className="relative flex h-2 w-2">
@@ -45,7 +44,7 @@ const Footer = () => {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                 </span>
                 <span className="text-[11px] text-white/30 font-mono">
-                  {count.toLocaleString()} online
+                  {t("footer.online", { count: count.toLocaleString() })}
                 </span>
               </div>
             )}
@@ -70,34 +69,31 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Browse */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Browse</p>
-            <NavLink href="/home" label="Home" />
-            <NavLink href="/search" label="Search" icon={<Search className="w-3 h-3" />} />
-            <NavLink href="/trending" label="Trending" icon={<Flame className="w-3 h-3" />} />
-            <NavLink href="/schedule" label="Schedule" icon={<CalendarDays className="w-3 h-3" />} />
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.browse")}</p>
+            <NavLink href="/home" label={t("nav.home")} />
+            <NavLink href="/search" label={t("nav.search")} icon={<Search className="w-3 h-3" />} />
+            <NavLink href="/trending" label={t("nav.trending")} icon={<Flame className="w-3 h-3" />} />
+            <NavLink href="/schedule" label={t("nav.schedule")} icon={<CalendarDays className="w-3 h-3" />} />
           </div>
 
-          {/* Account */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Account</p>
-            <NavLink href="/settings" label="Settings" />
-            <NavLink href="/faq" label="FAQ" />
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.account")}</p>
+            <NavLink href="/settings" label={t("footer.settings")} />
+            <NavLink href="/faq" label={t("nav.faq")} />
             <a
               href="https://anisurge.me"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-white/35 hover:text-white/65 transition-colors"
             >
-              Anisurge ↗
+              {t("footer.anisurgeExternal")}
             </a>
           </div>
 
-          {/* Links */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Project</p>
-            <NavLink href="/faq" label="FAQ & privacy" />
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.project")}</p>
+            <NavLink href="/faq" label={t("footer.faqPrivacy")} />
             <a
               href="https://github.com/fampep/anikitty"
               target="_blank"
@@ -105,7 +101,7 @@ const Footer = () => {
               className="flex items-center gap-2 text-sm text-white/35 hover:text-white/65 transition-colors"
             >
               <GitHubLogoIcon width="13" height="13" />
-              GitHub
+              {t("footer.github")}
             </a>
             <a
               href="https://discord.gg/AWpSHbEDZ2"
@@ -114,7 +110,7 @@ const Footer = () => {
               className="flex items-center gap-2 text-sm text-white/35 hover:text-white/65 transition-colors"
             >
               <DiscordLogoIcon width="13" height="13" />
-              Discord
+              {t("footer.discord")}
             </a>
             <a
               href="https://kittyapi.buzz"
@@ -122,15 +118,14 @@ const Footer = () => {
               rel="noopener noreferrer"
               className="text-sm text-white/35 hover:text-white/65 transition-colors"
             >
-              KittyAPI ↗
+              {t("footer.kittyApi")}
             </a>
           </div>
         </div>
 
-        {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[11px] text-white/18 text-center sm:text-left leading-relaxed max-w-lg">
-            AniKitty does not store any files on its servers. All content is provided by third-party services.
+            {t("footer.disclaimer")}
           </p>
           <p className="text-[11px] text-white/15 shrink-0 font-mono">
             © {new Date().getFullYear()} anikitty.moe

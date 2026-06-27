@@ -22,7 +22,7 @@ import {
   EyeOff,
   Languages,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import AnilistConnect from "@/app/profile/[username]/components/anilist-connect";
 import Image from "next/image";
@@ -40,64 +40,65 @@ import { locales, localeLabels, type Locale } from "@/i18n/config";
 
 // ── Episode layout options ────────────────────────────────────────────────────
 
-const EPISODE_LAYOUTS: {
-  value: EpisodeLayout;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  preview: React.ReactNode;
-}[] = [
-  {
-    value: "list",
-    label: "List",
-    description: "Episode number + title in a scrollable list",
-    icon: <LayoutList className="w-4 h-4" />,
-    preview: (
-      <div className="flex flex-col gap-1 w-full px-2 py-1">
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="flex items-center gap-2 h-7 rounded-md bg-white/5 px-2">
-            <span className="text-[9px] font-mono text-white/25 w-4">{n}</span>
-            <div className="flex-1 h-1.5 rounded bg-white/10" />
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    value: "compact",
-    label: "Compact",
-    description: "Number-only grid — great for long series",
-    icon: <Grid2x2 className="w-4 h-4" />,
-    preview: (
-      <div className="grid grid-cols-4 gap-1 w-full px-2 py-1">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-          <div key={n} className="h-7 rounded bg-white/5 flex items-center justify-center">
-            <span className="text-[9px] font-mono text-white/25">{n}</span>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    value: "thumbnail",
-    label: "Thumbnail",
-    description: "Poster-style cards showing episode artwork",
-    icon: <LayoutGrid className="w-4 h-4" />,
-    preview: (
-      <div className="grid grid-cols-3 gap-1 w-full px-2 py-1">
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="aspect-[16/9] rounded bg-white/5 relative overflow-hidden flex items-end p-1">
-            <span className="text-[8px] font-mono text-white/40 bg-black/50 px-1 rounded">EP {n}</span>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-];
+function useEpisodeLayouts(t: ReturnType<typeof useT>) {
+  return useMemo(
+    () =>
+      [
+        {
+          value: "list" as EpisodeLayout,
+          label: t("settings.layoutList"),
+          description: t("settings.layoutListDesc"),
+          icon: <LayoutList className="w-4 h-4" />,
+          preview: (
+            <div className="flex flex-col gap-1 w-full px-2 py-1">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="flex items-center gap-2 h-7 rounded-md bg-white/5 px-2">
+                  <span className="text-[9px] font-mono text-white/25 w-4">{n}</span>
+                  <div className="flex-1 h-1.5 rounded bg-white/10" />
+                </div>
+              ))}
+            </div>
+          ),
+        },
+        {
+          value: "compact" as EpisodeLayout,
+          label: t("settings.layoutCompact"),
+          description: t("settings.layoutCompactDesc"),
+          icon: <Grid2x2 className="w-4 h-4" />,
+          preview: (
+            <div className="grid grid-cols-4 gap-1 w-full px-2 py-1">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <div key={n} className="h-7 rounded bg-white/5 flex items-center justify-center">
+                  <span className="text-[9px] font-mono text-white/25">{n}</span>
+                </div>
+              ))}
+            </div>
+          ),
+        },
+        {
+          value: "thumbnail" as EpisodeLayout,
+          label: t("settings.layoutThumbnail"),
+          description: t("settings.layoutThumbnailDesc"),
+          icon: <LayoutGrid className="w-4 h-4" />,
+          preview: (
+            <div className="grid grid-cols-3 gap-1 w-full px-2 py-1">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="aspect-[16/9] rounded bg-white/5 relative overflow-hidden flex items-end p-1">
+                  <span className="text-[8px] font-mono text-white/40 bg-black/50 px-1 rounded">EP {n}</span>
+                </div>
+              ))}
+            </div>
+          ),
+        },
+      ] as const,
+    [t],
+  );
+}
 
 // ── Anisurge sync ─────────────────────────────────────────────────────────────
 
 function AnisurgeSyncSection() {
+  const t = useT();
   const { auth } = useAuthStore();
   const [linked, setLinked] = useState<boolean | null>(null);
   const [anisurgeUsername, setAnisurgeUsername] = useState<string | null>(null);
@@ -121,7 +122,7 @@ function AnisurgeSyncSection() {
 
   const handleLink = async () => {
     if (!identifier.trim() || !password) {
-      toast.error("Enter your Anisurge username/email and password");
+      toast.error(t("settings.linkAnisurgeError"));
       return;
     }
     setLoading(true);
@@ -140,9 +141,9 @@ function AnisurgeSyncSection() {
       setAnisurgeUsername(data.anisurgeUsername);
       setIdentifier("");
       setPassword("");
-      toast.success("Anisurge account linked!");
+      toast.success(t("settings.linkSuccess"));
     } catch (e: any) {
-      toast.error(e.message ?? "Link failed");
+      toast.error(e.message ?? t("settings.linkFailed"));
     } finally {
       setLoading(false);
     }
@@ -158,9 +159,9 @@ function AnisurgeSyncSection() {
       if (!res.ok) throw new Error("Failed");
       setLinked(false);
       setAnisurgeUsername(null);
-      toast.success("Anisurge account unlinked");
+      toast.success(t("settings.unlinkSuccess"));
     } catch {
-      toast.error("Failed to unlink");
+      toast.error(t("settings.unlinkFailed"));
     } finally {
       setLoading(false);
     }
@@ -173,7 +174,7 @@ function AnisurgeSyncSection() {
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <div>
-              <p className="text-sm font-medium text-white/80">Connected</p>
+              <p className="text-sm font-medium text-white/80">{t("settings.connected")}</p>
               {anisurgeUsername && (
                 <p className="text-[11px] font-mono text-white/30 mt-0.5">@{anisurgeUsername}</p>
               )}
@@ -185,7 +186,7 @@ function AnisurgeSyncSection() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/8 border border-red-500/20 text-red-400/80 text-xs font-medium hover:bg-red-500/15 disabled:opacity-40 transition-all"
           >
             {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
-            Disconnect
+            {t("settings.disconnect")}
           </button>
         </div>
       ) : (
@@ -194,7 +195,7 @@ function AnisurgeSyncSection() {
             type="text"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Anisurge username or email"
+            placeholder={t("settings.anisurgePlaceholder")}
             className="bg-white/4 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
           />
           <input
@@ -202,7 +203,7 @@ function AnisurgeSyncSection() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleLink()}
-            placeholder="Anisurge password"
+            placeholder={t("settings.anisurgePassword")}
             className="bg-white/4 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
           />
           <button
@@ -211,7 +212,7 @@ function AnisurgeSyncSection() {
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/14 disabled:opacity-35 transition-all"
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LinkIcon className="w-3.5 h-3.5" />}
-            Connect Anisurge
+            {t("settings.connectAnisurge")}
           </button>
         </div>
       )}
@@ -312,6 +313,7 @@ function ToggleRow({
 }
 
 function AppearanceSection() {
+  const t = useT();
   const { auth, setAuth } = useAuthStore();
   const [loaded, setLoaded] = useState(false);
   const [initial, setInitial] = useState<ProfileCustomizationValues>({
@@ -351,8 +353,8 @@ function AppearanceSection() {
     <SectionCard>
       <SectionHeader
         icon={<Palette className="w-4 h-4" />}
-        title="Appearance"
-        description="Theme color, anime banners, GIF avatars, and bio"
+        title={t("settings.appearance")}
+        description={t("settings.appearanceDesc")}
       />
       <SectionBody>
         {loaded ? (
@@ -373,7 +375,7 @@ function AppearanceSection() {
         ) : (
           <div className="flex items-center gap-2 text-white/30 text-sm font-mono py-4">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Loading…
+            {t("settings.loading")}
           </div>
         )}
       </SectionBody>
@@ -443,6 +445,7 @@ function LanguageSection() {
 
 export default function SettingsPage() {
   const t = useT();
+  const episodeLayouts = useEpisodeLayouts(t);
   const { auth } = useAuthStore();
   const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay } =
     useSettingsStore();
@@ -466,8 +469,8 @@ export default function SettingsPage() {
             <SectionCard>
               <SectionHeader
                 icon={<User className="w-4 h-4" />}
-                title="Account"
-                description="Your profile information"
+                title={t("settings.account")}
+                description={t("settings.accountDesc")}
               />
               <SectionBody>
                 <AccountCard />
@@ -481,14 +484,14 @@ export default function SettingsPage() {
             <SectionCard>
               <SectionHeader
                 icon={<EyeOff className="w-4 h-4" />}
-                title="Privacy"
-                description="Control who can see your profile"
+                title={t("settings.privacy")}
+                description={t("settings.privacyDesc")}
               />
               <SectionBody className="flex flex-col gap-8">
                 <ProfilePrivacySection />
                 <div className="border-t border-white/6 pt-8">
                   <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-4">
-                    Account deletion
+                    {t("settings.accountDeletion")}
                   </p>
                   <AccountDeletionSection />
                 </div>
@@ -501,19 +504,19 @@ export default function SettingsPage() {
             <SectionCard>
               <SectionHeader
                 icon={<Shield className="w-4 h-4" />}
-                title="Security"
-                description="Two-factor authentication and active sessions"
+                title={t("settings.security")}
+                description={t("settings.securityDesc")}
               />
               <SectionBody className="flex flex-col gap-6">
                 <div>
                   <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">
-                    Two-factor authentication
+                    {t("settings.twoFactor")}
                   </p>
                   <TwoFactorSection />
                 </div>
                 <div className="border-t border-white/6 pt-6">
                   <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">
-                    Active sessions
+                    {t("settings.activeSessions")}
                   </p>
                   <ActiveSessionsSection />
                 </div>
@@ -526,16 +529,16 @@ export default function SettingsPage() {
             <SectionCard>
               <SectionHeader
                 icon={<Shield className="w-4 h-4" />}
-                title="Connected Accounts"
-                description="Sync your watchlist and history from other services"
+                title={t("settings.connectedAccounts")}
+                description={t("settings.connectedDesc")}
               />
               <SectionBody className="flex flex-col gap-5">
                 <div>
-                  <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">AniList</p>
+                  <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">{t("settings.anilist")}</p>
                   <AnilistConnect />
                 </div>
                 <div className="border-t border-white/6 pt-5">
-                  <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">Anisurge</p>
+                  <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">{t("settings.anisurge")}</p>
                   <AnisurgeSyncSection />
                 </div>
               </SectionBody>
@@ -546,12 +549,12 @@ export default function SettingsPage() {
           <SectionCard>
             <SectionHeader
               icon={<LayoutList className="w-4 h-4" />}
-              title="Episode List Layout"
-              description="How episodes are displayed on the watch page"
+              title={t("settings.episodeLayout")}
+              description={t("settings.episodeLayoutDesc")}
             />
             <SectionBody>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {EPISODE_LAYOUTS.map((opt) => (
+                {episodeLayouts.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => setEpisodeLayout(opt.value)}
@@ -589,21 +592,21 @@ export default function SettingsPage() {
           <SectionCard>
             <SectionHeader
               icon={<Play className="w-4 h-4" />}
-              title="Playback"
-              description="Default behaviour when watching anime"
+              title={t("settings.playback")}
+              description={t("settings.playbackDesc")}
             />
             <SectionBody className="flex flex-col gap-3">
               <ToggleRow
                 icon={<Mic className="w-4 h-4" />}
-                label="Prefer Dub"
-                description="Default to English dub when available"
+                label={t("settings.preferDub")}
+                description={t("settings.preferDubDesc")}
                 value={preferDub}
                 onChange={setPreferDub}
               />
               <ToggleRow
                 icon={<Play className="w-4 h-4" />}
-                label="Auto-play next episode"
-                description="Automatically play the next episode when one ends"
+                label={t("settings.autoPlay")}
+                description={t("settings.autoPlayDesc")}
                 value={autoPlay}
                 onChange={setAutoPlay}
               />
@@ -614,20 +617,12 @@ export default function SettingsPage() {
           <SectionCard>
             <SectionHeader
               icon={<Captions className="w-4 h-4" />}
-              title="Audio & Subtitles"
-              description="Visual indicators on anime cards"
+              title={t("settings.audioSubtitles")}
+              description={t("settings.audioSubtitlesDesc")}
             />
             <SectionBody>
               <p className="text-sm text-white/45 leading-relaxed">
-                Cards showing{" "}
-                <span className="inline-flex items-center gap-0.5 bg-sky-500/15 text-sky-300 border border-sky-500/25 text-[10px] font-bold px-1.5 py-0.5 rounded mx-1">
-                  <Captions className="h-2.5 w-2.5" /> 12
-                </span>
-                have subtitled episodes. Cards with a{" "}
-                <span className="inline-flex items-center gap-0.5 bg-purple-600/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded mx-1">
-                  DUB
-                </span>
-                badge have English dubbing available.
+                {t("settings.audioHelp")}
               </p>
             </SectionBody>
           </SectionCard>

@@ -1,9 +1,12 @@
+"use client";
+
 import React from "react";
 import Container from "./container";
 import FeaturedCollectionCard from "./featured-collection-card";
 import { SectionHeading } from "./section-heading";
 import { IAnime, LatestCompletedAnime } from "@/types/anime";
 import { Layers } from "lucide-react";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   featuredAnime: [
@@ -15,10 +18,11 @@ type Props = {
 };
 
 const FeaturedCollection = ({ featuredAnime, loading }: Props) => {
+  const t = useT();
   if (loading) return <LoadingSkeleton />;
   return (
     <Container className="flex flex-col gap-5 items-center lg:items-start py-8">
-      <SectionHeading icon={<Layers className="w-4 h-4" />} title="Featured Collection" subtitle="Curated lists across all time" />
+      <SectionHeading icon={<Layers className="w-4 h-4" />} title={t("home.featuredCollection")} subtitle={t("home.featuredSubtitle")} />
       <div className="grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {featuredAnime.map((category, idx) => (
           <FeaturedCollectionCard

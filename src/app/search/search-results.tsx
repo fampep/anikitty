@@ -8,20 +8,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useGetSearchAnimeResults } from "@/query/get-search-results";
 import Pagination from "@/components/common/pagination";
 import { useAnimeSearchParams } from "@/hooks/use-anime-search-params";
+import { useFilterLabels } from "@/hooks/use-filter-labels";
+import { useT } from "@/providers/i18n-provider";
 import Select from "@/components/common/select";
-import {
-  statuses,
-  types,
-  seasons,
-  sort,
-  genres,
-} from "@/constants/search-filters";
 import { SearchAnimeParams } from "@/types/anime";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { SlidersHorizontal, RotateCcw, Search, RefreshCw } from "lucide-react";
 
 const SearchResults = () => {
+  const t = useT();
+  const filterLabels = useFilterLabels();
   const params = useAnimeSearchParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -106,7 +103,7 @@ const SearchResults = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-white/50" />
-            <span className="text-sm font-semibold text-white/80">Filters</span>
+            <span className="text-sm font-semibold text-white/80">{t("search.filters")}</span>
             {activeFilterCount > 0 && (
               <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {activeFilterCount}
@@ -118,26 +115,26 @@ const SearchResults = () => {
             className="flex items-center gap-1 text-xs text-white/35 hover:text-white/60 transition-colors"
           >
             <RotateCcw className="h-3 w-3" />
-            Reset
+            {t("search.reset")}
           </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Select options={types} placeholder="Type" value={filters.type || ""} onChange={(val) => onChange("type", val)} />
-          <Select options={statuses} placeholder="Status" value={filters.status || ""} onChange={(val) => onChange("status", val)} />
-          <Select options={seasons} placeholder="Season" value={filters.season || ""} onChange={(val) => onChange("season", val)} />
-          <Select options={sort} placeholder="Sort" value={filters.sort || ""} onChange={(val) => onChange("sort", val)} />
+          <Select options={filterLabels.types} placeholder={t("search.placeholders.type")} value={filters.type || ""} onChange={(val) => onChange("type", val)} />
+          <Select options={filterLabels.statuses} placeholder={t("search.placeholders.status")} value={filters.status || ""} onChange={(val) => onChange("status", val)} />
+          <Select options={filterLabels.seasons} placeholder={t("search.placeholders.season")} value={filters.season || ""} onChange={(val) => onChange("season", val)} />
+          <Select options={filterLabels.sort} placeholder={t("search.placeholders.sort")} value={filters.sort || ""} onChange={(val) => onChange("sort", val)} />
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Genres</p>
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">{t("search.genres")}</p>
           <ToggleGroup
             type="multiple"
             className="flex flex-wrap justify-start gap-1.5"
             value={filters.genres?.split(",").filter(Boolean) || []}
             onValueChange={(value) => onChange("genres", value.filter(Boolean).join(","))}
           >
-            {genres.map((genre) => (
+            {filterLabels.genres.map((genre) => (
               <ToggleGroupItem
                 value={genre.value}
                 key={genre.value}
@@ -158,7 +155,7 @@ const SearchResults = () => {
           className="self-start flex items-center gap-2 bg-white text-black hover:bg-white/90 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
         >
           <Search className="h-3.5 w-3.5" />
-          Apply Filters
+          {t("search.apply")}
         </button>
       </div>
 
@@ -167,17 +164,14 @@ const SearchResults = () => {
         <div className="h-5 w-1 bg-white/50 rounded-full" />
         <h1 className="text-xl font-bold text-white/90">
           {displayPhrase === "" ? (
-            "Browse Anime"
+            t("search.browseAnime")
           ) : (
-            <>
-              Results for{" "}
-              <span className="text-white/60">&ldquo;{displayPhrase}&rdquo;</span>
-            </>
+            t("search.resultsFor", { query: displayPhrase })
           )}
         </h1>
         {searchResults && !isLoading && (
           <span className="text-xs text-white/35 font-mono">
-            page {searchResults.currentPage}/{searchResults.totalPages}
+            {t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}
           </span>
         )}
       </div>
@@ -185,14 +179,14 @@ const SearchResults = () => {
       {/* Grid */}
       {isError && !searchResults ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <p className="text-sm text-white/40 font-mono">Search failed to load</p>
+          <p className="text-sm text-white/40 font-mono">{t("search.loadError")}</p>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-            Try again
+            {t("common.tryAgain")}
           </button>
         </div>
       ) : isLoading ? (
@@ -227,8 +221,8 @@ const SearchResults = () => {
           {searchResults?.animes.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
               <span className="text-5xl mb-4">🐱</span>
-              <p className="text-white/50 font-medium">No anime found</p>
-              <p className="text-white/35 text-sm mt-1">Try adjusting your filters or search term</p>
+              <p className="text-white/50 font-medium">{t("search.noResults")}</p>
+              <p className="text-white/35 text-sm mt-1">{t("search.noResultsHint")}</p>
             </div>
           )}
         </div>

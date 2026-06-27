@@ -13,6 +13,7 @@ import { ROUTES } from "@/constants/routes";
 import { anisurgeAuth, clearAnisurgeToken } from "@/lib/anisurge";
 import { useUserLevel } from "@/hooks/use-user-level";
 import type { LevelTier } from "@/lib/user-level";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = { auth: IAuthStore };
 
@@ -34,6 +35,7 @@ function hexToRgb(hex: string) {
 }
 
 function NavbarAvatar({ auth }: Props) {
+  const t = useT();
   const [open, setOpen] = React.useState(false);
   const level = useUserLevel();
 
@@ -89,13 +91,13 @@ function NavbarAvatar({ auth }: Props) {
                 </p>
                 {isAdmin && (
                   <span className="shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500/15 border border-amber-500/20 text-amber-400/80 uppercase tracking-wider">
-                    Admin
+                    {t("nav.admin")}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1 mt-0.5">
                 <Zap className="w-2.5 h-2.5 text-violet-400/60 shrink-0" />
-                <p className="text-white/25 text-[10px] font-mono truncate">Anisurge</p>
+                <p className="text-white/25 text-[10px] font-mono truncate">{t("nav.anisurge")}</p>
               </div>
             </div>
           </div>
@@ -132,12 +134,12 @@ function NavbarAvatar({ auth }: Props) {
               </div>
               <div className="flex justify-between mt-0.5">
                 <span className="text-[9px] font-mono text-white/20">
-                  {level.xp} XP · {level.completedEpisodes} done
+                  {t("navAvatar.xpSummary", { xp: level.xp, count: level.completedEpisodes })}
                 </span>
                 <span className="text-[9px] font-mono text-white/20">
                   {level.level < 100 && (level.xpToNext ?? level.episodesToNext) > 0
-                    ? `${level.xpToNext ?? level.episodesToNext} XP to Lv.${level.level + 1}`
-                    : "MAX"}
+                    ? t("navAvatar.xpToNext", { xp: level.xpToNext ?? level.episodesToNext, level: level.level + 1 })
+                    : t("navAvatar.max")}
                 </span>
               </div>
             </div>
@@ -148,19 +150,19 @@ function NavbarAvatar({ auth }: Props) {
           <MenuItem
             href={`/profile/${auth.auth.username}`}
             icon={<User className="w-3.5 h-3.5" />}
-            label="Profile"
+            label={t("nav.profile")}
             onClick={close}
           />
           <MenuItem
             href={`/profile/${auth.auth.username}#watchlist`}
             icon={<BookMarked className="w-3.5 h-3.5" />}
-            label="Watchlist"
+            label={t("nav.watchlist")}
             onClick={close}
           />
           <MenuItem
             href={ROUTES.SETTINGS}
             icon={<Settings className="w-3.5 h-3.5" />}
-            label="Settings"
+            label={t("nav.settings")}
             onClick={close}
           />
         </div>
@@ -171,7 +173,7 @@ function NavbarAvatar({ auth }: Props) {
             className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
-            Sign out
+            {t("nav.signOut")}
           </button>
         </div>
       </PopoverContent>

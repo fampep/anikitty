@@ -5,10 +5,12 @@ import Container from "@/components/container";
 import { Flame, CalendarClock, TrendingUp } from "lucide-react";
 import { useGetHomePageData } from "@/query/get-home-page-data";
 import { IAnime } from "@/types/anime";
+import { useT } from "@/providers/i18n-provider";
 
 const AnimeSections = dynamic(() => import("@/components/anime-sections"), { ssr: false });
 
 export default function TrendingPage() {
+  const t = useT();
   const { data, isLoading } = useGetHomePageData();
 
   return (
@@ -18,16 +20,16 @@ export default function TrendingPage() {
           <div className="w-0.5 h-6 bg-white/35 shrink-0" />
           <TrendingUp className="w-5 h-5 text-white/50" />
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Trending &amp; Upcoming
+            {t("trending.title")}
           </h1>
         </div>
         <p className="text-sm text-white/35 font-mono pl-[3.25rem]">
-          What everyone&apos;s watching right now
+          {t("trending.subtitle")}
         </p>
       </Container>
 
       <AnimeSections
-        title="Trending Now"
+        title={t("trending.trendingNow")}
         icon={<Flame className="w-4 h-4" />}
         trendingAnime={data?.trendingAnimes as IAnime[]}
         loading={isLoading}
@@ -36,7 +38,7 @@ export default function TrendingPage() {
 
       <div id="upcoming">
         <AnimeSections
-          title="Upcoming Anime"
+          title={t("trending.upcomingAnime")}
           icon={<CalendarClock className="w-4 h-4" />}
           trendingAnime={data?.topUpcomingAnimes as IAnime[]}
           loading={isLoading}

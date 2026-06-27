@@ -8,6 +8,7 @@ import { SectionHeading } from "./section-heading";
 import { UserBadges } from "./user-badges";
 import { MessageSquare, ArrowRight } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
+import { useT } from "@/providers/i18n-provider";
 
 interface LatestComment {
   id: string;
@@ -33,14 +34,14 @@ function commentLink(c: LatestComment) {
   return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
 }
 
-function timeAgo(dateStr: string) {
+function timeAgo(dateStr: string, t: ReturnType<typeof useT>) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return t("home.justNow");
+  if (m < 60) return t("common.timeAgoMinutes", { m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return t("common.timeAgoHours", { h });
+  return t("common.timeAgoDays", { d: Math.floor(h / 24) });
 }
 
 function formatAnimeId(id: string) {
@@ -52,6 +53,7 @@ function formatAnimeId(id: string) {
 }
 
 function CommentsFeed({ comments }: { comments: LatestComment[] }) {
+  const t = useT();
   return (
     <div className="w-full flex flex-col gap-1.5">
       {comments.map((c) => (
@@ -75,7 +77,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
                 levelRoleColor={c.levelRoleColor}
                 size="xs"
               />
-              <span className="text-[10px] text-white/25 font-mono">{timeAgo(c.createdAt)}</span>
+              <span className="text-[10px] text-white/25 font-mono">{timeAgo(c.createdAt, t)}</span>
             </div>
             {c.body && (
               <p className="text-[12.5px] text-white/55 line-clamp-2 leading-relaxed group-hover:text-white/70 transition-colors">
@@ -83,7 +85,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
               </p>
             )}
             {c.gifUrl && !c.body && (
-              <p className="text-[11px] text-white/30 font-mono italic">shared a GIF</p>
+              <p className="text-[11px] text-white/30 font-mono italic">{t("home.sharedGif")}</p>
             )}
             <Link
               href={commentLink(c)}
@@ -105,6 +107,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
 }
 
 export default function LatestComments({ bare = false }: { bare?: boolean }) {
+  const t = useT();
   const [comments, setComments] = useState<LatestComment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -122,10 +125,10 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <SectionHeading icon={<MessageSquare className="w-4 h-4" />} title="Latest Comments" />
+          <SectionHeading icon={<MessageSquare className="w-4 h-4" />} title={t("home.latestComments")} />
           <span className="hidden sm:inline-flex items-center gap-1.5 shrink-0 text-[10px] font-mono text-emerald-300/70 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Live
+            {t("common.live")}
           </span>
         </div>
         <CommentsFeed comments={comments} />
@@ -138,7 +141,7 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
 
   return (
     <Container className="flex flex-col gap-5 py-8 items-start">
-      <SectionHeading icon={<MessageSquare className="w-4 h-4" />} title="Latest Comments" />
+      <SectionHeading icon={<MessageSquare className="w-4 h-4" />} title={t("home.latestComments")} />
       <CommentsFeed comments={comments} />
     </Container>
   );

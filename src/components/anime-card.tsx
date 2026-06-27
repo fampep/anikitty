@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -6,6 +8,7 @@ import { cn, formatSecondsToMMSS } from "@/lib/utils";
 import { Captions, Mic, Play, Star } from "lucide-react";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { Progress } from "./ui/progress";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   className?: string;
@@ -58,6 +61,7 @@ const AnimeCard = ({
   rank,
   ...props
 }: Props) => {
+  const t = useT();
   const safeCurrent =
     typeof props.watchDetail?.current === "number" ? props.watchDetail.current : 0;
   const safeTotal =
@@ -147,7 +151,7 @@ const AnimeCard = ({
             {isAiring && (
               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 backdrop-blur-md border border-emerald-500/25">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                LIVE
+                {t("card.live")}
               </span>
             )}
             {props.year && (
@@ -192,7 +196,7 @@ const AnimeCard = ({
               {props.watchDetail && (
                 <>
                   <p className="text-[9px] text-white/45 font-mono tabular-nums">
-                    EP {props.watchDetail.episodeNumber} ·{" "}
+                    {t("common.ep")} {props.watchDetail.episodeNumber} ·{" "}
                     {formatSecondsToMMSS(props.watchDetail.current)}/
                     {formatSecondsToMMSS(props.watchDetail.timestamp)}
                   </p>

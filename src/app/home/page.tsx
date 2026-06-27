@@ -27,6 +27,7 @@ import { useQueryClient } from "react-query";
 import { GET_HOME_PAGE_DATA } from "@/constants/query-keys";
 import LazyMount from "@/components/lazy-mount";
 import { useAuthStore } from "@/store/auth-store";
+import { useT } from "@/providers/i18n-provider";
 
 const HeroSection = dynamic(() => import("@/components/hero-section"));
 const LatestEpisodesAnime = dynamic(() => import("@/components/latest-episodes-section"));
@@ -42,6 +43,7 @@ function HomeSectionDivider() {
 }
 
 export default function Home() {
+  const t = useT();
   const { data, isLoading, isError, refetch, isFetching } = useGetHomePageData();
   const queryClient = useQueryClient();
   const auth = useAuthStore((s) => s.auth);
@@ -54,14 +56,14 @@ export default function Home() {
   if (isError && !data) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6">
-        <p className="text-sm text-white/40 font-mono">Couldn&apos;t load home feed</p>
+        <p className="text-sm text-white/40 font-mono">{t("home.loadError")}</p>
         <button
           onClick={handleRetry}
           disabled={isFetching}
           className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-          Try again
+          {t("home.tryAgain")}
         </button>
       </div>
     );
@@ -93,14 +95,14 @@ export default function Home() {
         <FeaturedCollection
           loading={isLoading}
           featuredAnime={[
-            { title: "Most Favorite", anime: data?.mostFavoriteAnimes as IAnime[] },
-            { title: "Most Popular", anime: data?.mostPopularAnimes as IAnime[] },
-            { title: "Latest Completed", anime: data?.latestCompletedAnimes as LatestCompletedAnime[] },
+            { title: t("home.mostFavorite"), anime: data?.mostFavoriteAnimes as IAnime[] },
+            { title: t("home.mostPopular"), anime: data?.mostPopularAnimes as IAnime[] },
+            { title: t("home.latestCompleted"), anime: data?.latestCompletedAnimes as LatestCompletedAnime[] },
           ]}
         />
 
         <AnimeSections
-          title="Trending Now"
+          title={t("home.trendingNow")}
           icon={<Flame className="w-4 h-4" />}
           trendingAnime={data?.trendingAnimes as IAnime[]}
           loading={isLoading}
@@ -110,7 +112,7 @@ export default function Home() {
         />
 
         <AnimeSections
-          title="Coming Soon"
+          title={t("home.comingSoon")}
           icon={<CalendarClock className="w-4 h-4" />}
           trendingAnime={data?.topUpcomingAnimes as IAnime[]}
           loading={isLoading}
@@ -131,43 +133,43 @@ export default function Home() {
           <div className="flex flex-col gap-3 lg:sticky lg:top-24">
             <div className="flex items-center gap-2 px-1">
               <Compass className="w-3.5 h-3.5 text-violet-400/60" />
-              <p className="site-label">Explore</p>
+              <p className="site-label">{t("home.explore")}</p>
             </div>
 
             <div className="flex flex-col gap-2.5">
               <ExploreCard
                 href={ROUTES.SCHEDULE}
                 icon={<CalendarDays className="w-4 h-4" />}
-                title="Schedule"
-                description="What's airing this week"
+                title={t("nav.schedule")}
+                description={t("home.scheduleDesc")}
                 color="sky"
               />
               <ExploreCard
                 href={`${ROUTES.TRENDING}#upcoming`}
                 icon={<CalendarClock className="w-4 h-4" />}
-                title="Upcoming"
-                description="Coming soon"
+                title={t("home.upcoming")}
+                description={t("home.upcomingDesc")}
                 color="violet"
               />
               <ExploreCard
                 href={ROUTES.TRENDING}
                 icon={<Sparkles className="w-4 h-4" />}
-                title="Trending"
-                description="What everyone is watching"
+                title={t("nav.trending")}
+                description={t("home.trendingDesc")}
                 color="amber"
               />
               <ExploreCard
                 href={ROUTES.FORUM}
                 icon={<MessagesSquare className="w-4 h-4" />}
-                title="Forum"
-                description="Discuss anime with the community"
+                title={t("nav.forum")}
+                description={t("home.forumDesc")}
                 color="rose"
               />
               <ExploreCard
                 href={ROUTES.SEARCH}
                 icon={<Clock className="w-4 h-4" />}
-                title="Browse All"
-                description="Search thousands of titles"
+                title={t("home.browseAll")}
+                description={t("home.browseAllDesc")}
                 color="emerald"
               />
             </div>

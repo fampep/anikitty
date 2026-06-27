@@ -30,22 +30,38 @@ import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 import { usePathname } from "next/navigation";
+import { useT } from "@/providers/i18n-provider";
 
 const KITTY_ICON = "/jiji.jpg";
 
-const menuItems = [
-  { title: "Home", short: "Home", href: ROUTES.HOME, icon: Home },
-  { title: "Schedule", short: "Schedule", href: ROUTES.SCHEDULE, icon: CalendarDays },
-  { title: "Trending", short: "Trending", href: ROUTES.TRENDING, icon: Flame },
-  { title: "Forum", short: "Forum", href: ROUTES.FORUM, icon: MessagesSquare },
-  { title: "Live Chat", short: "Chat", href: ROUTES.CHAT, icon: MessageCircle },
-  { title: "Watch Together", short: "Together", href: ROUTES.WATCH_TOGETHER, icon: Users },
-  { title: "FAQ", short: "FAQ", href: ROUTES.FAQ, icon: HelpCircle },
+const MENU_DEFS = [
+  { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home" },
+  { href: ROUTES.SCHEDULE, icon: CalendarDays, titleKey: "nav.schedule", shortKey: "nav.short.schedule" },
+  { href: ROUTES.TRENDING, icon: Flame, titleKey: "nav.trending", shortKey: "nav.short.trending" },
+  { href: ROUTES.FORUM, icon: MessagesSquare, titleKey: "nav.forum", shortKey: "nav.short.forum" },
+  { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat" },
+  { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together" },
+  { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq" },
 ] as const;
 
 const PRIMARY_NAV_COUNT = 4;
 
-type MenuItem = (typeof menuItems)[number];
+type MenuItem = {
+  href: string;
+  icon: (typeof MENU_DEFS)[number]["icon"];
+  title: string;
+  short: string;
+};
+
+function useMenuItems(): MenuItem[] {
+  const t = useT();
+  return MENU_DEFS.map((item) => ({
+    href: item.href,
+    icon: item.icon,
+    title: t(item.titleKey),
+    short: t(item.shortKey),
+  }));
+}
 
 function navLinkClass(isActive: boolean, compact = false) {
   return cn(
@@ -86,6 +102,8 @@ function NavLink({
 }
 
 function DesktopNav({ pathname }: { pathname: string }) {
+  const t = useT();
+  const menuItems = useMenuItems();
   const primary = menuItems.slice(0, PRIMARY_NAV_COUNT);
   const secondary = menuItems.slice(PRIMARY_NAV_COUNT);
   const secondaryActive = secondary.some((item) => pathname === item.href);
@@ -94,7 +112,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
     <>
       <nav
         className="hidden min-w-0 items-center justify-center gap-0.5 lg:flex 2xl:hidden"
-        aria-label="Main navigation"
+        aria-label={t("nav.aria.mainNav")}
       >
         {primary.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} compact />
@@ -104,7 +122,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
 
       <nav
         className="hidden min-w-0 items-center justify-center gap-0.5 2xl:flex"
-        aria-label="Main navigation"
+        aria-label={t("nav.aria.mainNav")}
       >
         {menuItems.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />
@@ -125,6 +143,7 @@ function MoreNavMenu({
   isActive: boolean;
   compact?: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -133,10 +152,10 @@ function MoreNavMenu({
         <button
           type="button"
           className={cn(navLinkClass(isActive, compact), "cursor-pointer")}
-          aria-label="More pages"
+          aria-label={t("nav.aria.morePages")}
         >
           <MoreHorizontal className="h-3.5 w-3.5" />
-          <span>More</span>
+          <span>{t("nav.more")}</span>
           <ChevronDown className={cn("h-3 w-3 opacity-60 transition-transform", open && "rotate-180")} />
         </button>
       </PopoverTrigger>
@@ -173,6 +192,7 @@ function MoreNavMenu({
 }
 
 const NavBar = () => {
+  const t = useT();
   const auth = useAuthStore();
   const { y } = useScrollPosition();
   const pathname = usePathname();
@@ -256,7 +276,7 @@ const NavBar = () => {
                     type="button"
                     onClick={() => setMobileSearchOpen(false)}
                     className="shrink-0 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white"
-                    aria-label="Close search"
+                    aria-label={t("nav.aria.closeSearch")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -266,7 +286,7 @@ const NavBar = () => {
                 type="button"
                 onClick={() => setMobileSearchOpen(true)}
                 className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white"
-                aria-label="Search"
+                aria-label={t("nav.aria.openSearch")}
               >
                 <SearchIcon className="h-5 w-5" />
               </button>
@@ -281,12 +301,14 @@ const NavBar = () => {
 };
 
 const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: string }) => {
+  const t = useT();
+  const menuItems = useMenuItems();
   const [open, setOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button type="button" className="rounded-lg p-2 transition-colors hover:bg-white/8" aria-label="Open menu">
+        <button type="button" className="rounded-lg p-2 transition-colors hover:bg-white/8" aria-label={t("nav.aria.openMenu")}>
           {trigger}
         </button>
       </SheetTrigger>
@@ -311,7 +333,7 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
             </SheetClose>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label="Mobile navigation">
+          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label={t("nav.aria.mobileNav")}>
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Container from "./container";
 import { ROUTES } from "@/constants/routes";
 import { Tags } from "lucide-react";
+import { useT } from "@/providers/i18n-provider";
 
 const QUICK_GENRES = [
   "action",
@@ -20,25 +21,22 @@ const QUICK_GENRES = [
   "mystery",
 ] as const;
 
-const LABELS: Record<string, string> = {
-  "slice-of-life": "Slice of Life",
-  "sci-fi": "Sci-Fi",
-  isekai: "Isekai",
-  shounen: "Shounen",
-};
-
-function genreLabel(slug: string) {
-  return LABELS[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
+function genreKey(slug: string) {
+  if (slug === "sci-fi") return "sciFi";
+  if (slug === "slice-of-life") return "sliceOfLife";
+  return slug;
 }
 
 export default function HomeGenreBar() {
+  const t = useT();
+
   return (
     <Container className="py-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 px-0.5">
           <Tags className="w-3.5 h-3.5 text-white/30" />
           <p className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em]">
-            Browse by genre
+            {t("home.browseByGenre")}
           </p>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide scroll-momentum">
@@ -48,14 +46,14 @@ export default function HomeGenreBar() {
               href={`${ROUTES.SEARCH}?genres=${genre}`}
               className="shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold border border-white/10 bg-white/[0.03] text-white/45 hover:text-white/85 hover:border-white/22 hover:bg-white/[0.06] transition-all"
             >
-              {genreLabel(genre)}
+              {t(`search.filterGenres.${genreKey(genre)}`)}
             </Link>
           ))}
           <Link
             href={ROUTES.SEARCH}
             className="shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-white/12 text-white/30 hover:text-white/60 hover:border-white/25 transition-all"
           >
-            All genres →
+            {t("home.allGenres")}
           </Link>
         </div>
       </div>

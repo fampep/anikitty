@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
 import { Loader2, LogIn, UserPlus, Zap, ShieldCheck } from "lucide-react";
 import { anisurgeAuth, authFromMeResponse } from "@/lib/anisurge";
+import { useT } from "@/providers/i18n-provider";
 
 type Tab = "login" | "signup" | "2fa";
 
 function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode } = {}) {
+  const t = useT();
   const { setAuth } = useAuthStore();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("login");
@@ -40,7 +42,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
 
   const handleLogin = async () => {
     if (!identifier.trim() || !password) {
-      toast.error("Enter your username/email and password");
+      toast.error(t("auth.enterCredentials"));
       return;
     }
     setLoading(true);
@@ -53,11 +55,11 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         return;
       }
       syncAuth(data);
-      toast.success("Welcome back!");
+      toast.success(t("auth.welcomeBack"));
       setOpen(false);
       reset();
     } catch (e: any) {
-      toast.error(e?.body?.error ?? "Invalid credentials");
+      toast.error(e?.body?.error ?? t("auth.invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -65,18 +67,18 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
 
   const handle2fa = async () => {
     if (!pendingToken || totpCode.length !== 6) {
-      toast.error("Enter the 6-digit code from your authenticator app");
+      toast.error(t("auth.enterTotp"));
       return;
     }
     setLoading(true);
     try {
       const data = await anisurgeAuth.verify2fa(pendingToken, totpCode);
       syncAuth(data);
-      toast.success("Welcome back!");
+      toast.success(t("auth.welcomeBack"));
       setOpen(false);
       reset();
     } catch (e: any) {
-      toast.error(e?.body?.error ?? "Invalid verification code");
+      toast.error(e?.body?.error ?? t("auth.invalidTotp"));
     } finally {
       setLoading(false);
     }
@@ -84,25 +86,25 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
 
   const handleSignup = async () => {
     if (!username.trim() || !email.trim() || !signupPassword) {
-      toast.error("Fill in all fields");
+      toast.error(t("auth.fillAllFields"));
       return;
     }
     if (!/^[a-zA-Z0-9]{3,10}$/.test(username.trim())) {
-      toast.error("Username must be 3–10 alphanumeric characters");
+      toast.error(t("auth.usernameRules"));
       return;
     }
     setLoading(true);
     try {
       const data = await anisurgeAuth.signupWithAnisurge(username.trim(), email.trim(), signupPassword);
       syncAuth(data);
-      toast.success("Account created!");
+      toast.success(t("auth.accountCreated"));
       setOpen(false);
       reset();
     } catch (e: any) {
-      const msg = e?.body?.error ?? "Signup failed";
+      const msg = e?.body?.error ?? t("auth.signupFailed");
       toast.error(
         msg.toLowerCase().includes("taken") || e?.status === 409
-          ? "Username or email already taken"
+          ? t("auth.usernameTaken")
           : msg,
       );
     } finally {
@@ -118,7 +120,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         ) : (
           <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-white/20 text-white/70 text-sm font-semibold hover:bg-white/10 hover:border-white/40 hover:text-white transition-all">
             <LogIn className="w-4 h-4" />
-            Login
+            {t("auth.login")}
           </button>
         )}
       </PopoverTrigger>
@@ -132,10 +134,10 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         {/* Header */}
         <div className="px-5 pt-5 pb-0 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <p className="text-white/60 text-xs font-mono">powered by</p>
+            <p className="text-white/60 text-xs font-mono">{t("auth.poweredBy")}</p>
             <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/12 border border-violet-500/20 text-violet-400/70">
               <Zap className="w-2.5 h-2.5" />
-              Anisurge
+              {t("nav.anisurge")}
             </span>
           </div>
 
@@ -151,7 +153,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               }`}
             >
               <LogIn className="w-3.5 h-3.5" />
-              Sign in
+              {t("auth.signIn")}
             </button>
             <button
               onClick={() => setTab("signup")}
@@ -162,7 +164,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
-              Create account
+              {t("auth.createAccount")}
             </button>
           </div>
           )}
@@ -172,13 +174,13 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
           <div className="p-5 flex flex-col gap-3.5">
             <div className="flex items-center gap-2 text-violet-300/80">
               <ShieldCheck className="w-4 h-4" />
-              <p className="text-sm font-semibold text-white/85">Two-factor authentication</p>
+              <p className="text-sm font-semibold text-white/85">{t("auth.twoFactor")}</p>
             </div>
             <p className="text-[11px] text-white/40 font-mono leading-relaxed">
-              Enter the 6-digit code from your authenticator app to finish signing in.
+              {t("auth.twoFactorHint")}
             </p>
             <Field
-              label="Authentication code"
+              label={t("auth.authCode")}
               value={totpCode}
               onChange={(v) => setTotpCode(v.replace(/\D/g, "").slice(0, 6))}
               placeholder="000000"
@@ -190,14 +192,14 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              Verify & sign in
+              {t("auth.verifySignIn")}
             </button>
             <button
               type="button"
               onClick={() => { setTab("login"); setPendingToken(""); setTotpCode(""); }}
               className="text-xs text-white/40 hover:text-white/70 transition-colors"
             >
-              Back to sign in
+              {t("auth.backToSignIn")}
             </button>
           </div>
         )}
@@ -206,14 +208,14 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         {tab === "login" && (
           <div className="p-5 flex flex-col gap-3.5">
             <Field
-              label="Username or email"
+              label={t("auth.usernameOrEmail")}
               value={identifier}
               onChange={setIdentifier}
-              placeholder="your Anisurge username"
+              placeholder={t("auth.usernamePlaceholder")}
               onEnter={handleLogin}
             />
             <Field
-              label="Password"
+              label={t("auth.password")}
               value={password}
               onChange={setPassword}
               placeholder="••••••••"
@@ -226,7 +228,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              Sign in with Anisurge
+              {t("auth.signInAnisurge")}
             </button>
           </div>
         )}
@@ -235,22 +237,22 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         {tab === "signup" && (
           <div className="p-5 flex flex-col gap-3.5">
             <Field
-              label="Username"
+              label={t("auth.username")}
               value={username}
               onChange={setUsername}
-              placeholder="3–10 alphanumeric"
+              placeholder={t("auth.usernameHint")}
               onEnter={handleSignup}
             />
             <Field
-              label="Email"
+              label={t("auth.email")}
               value={email}
               onChange={setEmail}
-              placeholder="you@example.com"
+              placeholder={t("auth.emailPlaceholder")}
               type="email"
               onEnter={handleSignup}
             />
             <Field
-              label="Password"
+              label={t("auth.password")}
               value={signupPassword}
               onChange={setSignupPassword}
               placeholder="••••••••"
@@ -263,7 +265,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Create Anisurge account
+              {t("auth.createAnisurge")}
             </button>
           </div>
         )}
