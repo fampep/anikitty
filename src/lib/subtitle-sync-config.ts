@@ -1,4 +1,4 @@
-/** Minimum gap between Kitty/Anitaku subtitle stream requests. */
+/** Minimum gap between Miruro/Kitty subtitle stream requests. */
 export const SUBTITLE_API_INTERVAL_MS = 5_000;
 
 /** Episodes fetched per background sync tick (one anime). */

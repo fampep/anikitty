@@ -36,7 +36,7 @@ SELECT
   MAX(fetched_at),
   NOW()
 FROM episode_subtitles
-WHERE provider = 'Anitaku'
+WHERE provider IN ('Anitaku', 'Miruro')
 GROUP BY anilist_id
 ON CONFLICT (anilist_id) DO UPDATE SET
   anime_title = EXCLUDED.anime_title,

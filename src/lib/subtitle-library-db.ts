@@ -2,7 +2,11 @@ import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { episodeSubtitles, subtitleLibraryAnime } from "@/db/schema";
 import type { SubtitleLibraryEntry } from "@/lib/subtitle-cache-store";
-import { SUBTITLE_SOURCE_PROVIDER } from "@/lib/subtitle-track-utils";
+import { SUBTITLE_LIBRARY_PROVIDERS } from "@/lib/subtitle-track-utils";
+
+function subtitleProviderFilter() {
+  return inArray(episodeSubtitles.provider, [...SUBTITLE_LIBRARY_PROVIDERS]);
+}
 
 export type AnilistMeta = {
   anilistId: number;
@@ -154,7 +158,7 @@ export async function syncSubtitleLibraryAnime(anilistId: number): Promise<void>
       .where(
         and(
           eq(episodeSubtitles.anilistId, anilistId),
-          eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER),
+          subtitleProviderFilter(),
         ),
       );
 
@@ -540,7 +544,7 @@ export async function listCachedSubtitleAnilistIds(): Promise<Set<number>> {
     const fromTracks = await db
       .selectDistinct({ anilistId: episodeSubtitles.anilistId })
       .from(episodeSubtitles)
-      .where(eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER));
+      .where(subtitleProviderFilter());
     for (const row of fromTracks) ids.add(row.anilistId);
   } catch {
     /* ignore */
@@ -564,7 +568,7 @@ export async function backfillSubtitleLibraryAnime(limit = 50): Promise<number> 
       )
       .where(
         and(
-          eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER),
+          subtitleProviderFilter(),
           isNull(subtitleLibraryAnime.anilistId),
         ),
       )

@@ -1,5 +1,13 @@
-/** Only this provider may download and cache subtitle files. */
-export const SUBTITLE_SOURCE_PROVIDER = "Anitaku";
+/** Primary provider for downloading and caching subtitle files (Miruro API). */
+export const SUBTITLE_SOURCE_PROVIDER = "Miruro";
+
+/** Legacy cached rows — still included in library stats and listings. */
+export const SUBTITLE_LEGACY_PROVIDERS = ["Anitaku"] as const;
+
+export const SUBTITLE_LIBRARY_PROVIDERS = [
+  SUBTITLE_SOURCE_PROVIDER,
+  ...SUBTITLE_LEGACY_PROVIDERS,
+] as const;
 
 export type StreamTrack = {
   file?: string;

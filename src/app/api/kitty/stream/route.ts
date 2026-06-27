@@ -1,7 +1,6 @@
 import {
-  cacheStreamSubtitleTracks,
-  ensureAnitakuSubtitleCache,
   ensureFullShowSubtitleCache,
+  ensureMiruroSubtitleCache,
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitle-cache-store";
 import {
@@ -67,25 +66,9 @@ export async function GET(req: Request) {
       }
     }
 
-    const animeTitle =
-      typeof data.matchedTitle === "string"
-        ? data.matchedTitle
-        : typeof data.animeTitle === "string"
-          ? data.animeTitle
-          : null;
-
-    // Subtitles are always sourced from Anitaku — other providers must not cache or expose their own tracks.
-    if (provider === SUBTITLE_SOURCE_PROVIDER) {
-      data.tracks = await cacheStreamSubtitleTracks(data.tracks, {
-        ...subtitleCtx,
-        provider: SUBTITLE_SOURCE_PROVIDER,
-        animeTitle,
-        headers: data.headers ?? {},
-      });
-    } else {
-      data.tracks = stripSubtitleTracks(data.tracks);
-      await ensureAnitakuSubtitleCache(subtitleCtx);
-    }
+    // Subtitles always come from the Miruro API — never from stream-direct video responses.
+    data.tracks = stripSubtitleTracks(data.tracks);
+    await ensureMiruroSubtitleCache(subtitleCtx);
 
     data.tracks = await mergeCachedSubtitleTracks(
       data.tracks,

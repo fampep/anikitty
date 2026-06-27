@@ -1,5 +1,5 @@
 /**
- * Smoke test: Anitaku stream → subtitle track detection → VTT download.
+ * Smoke test: Miruro API → subtitle track detection → VTT download.
  * Run: node scripts/test-subtitle-extraction.mjs
  * Optional: node --env-file=.env.local scripts/test-subtitle-extraction.mjs
  */
@@ -8,7 +8,7 @@ const KITTY_API = "https://kittyapi.buzz";
 const LOCAL_API = process.env.LOCAL_API ?? "http://localhost:3002";
 const ANILIST_ID = 1535; // Death Note
 const EPISODE = 1;
-const PROVIDER = "Anitaku";
+const PROVIDER = "Miruro";
 
 function kittyHeaders() {
   const headers = {};
@@ -152,11 +152,17 @@ async function main() {
     }
   }
 
-  console.log("\n4. Testing non-Anitaku provider strips subs (Miruro)...");
-  const miruroUrl = `${KITTY_API}/provider/Miruro/stream-direct?anilistId=${ANILIST_ID}&episode=${EPISODE}&audio=sub`;
-  const miruro = await fetchJson(miruroUrl);
-  const miruroSubs = (miruro.data?.tracks ?? []).filter(isSubtitleTrack);
-  console.log(`   Miruro raw subtitle tracks: ${miruroSubs.length} (expected: may have some from provider)`);
+  console.log("\n4. Miruro /miruro/stream API (direct)...");
+  const miruroStream = await fetchJson(
+    `${KITTY_API}/miruro/episodes/${ANILIST_ID}`,
+    kittyHeaders(),
+  );
+  const episodes = miruroStream.data?.results?.episodes ?? miruroStream.data?.episodes ?? [];
+  const slug = episodes[0]?.slug ?? "1";
+  const streamUrl = `${KITTY_API}/miruro/stream?provider=kiwi&anilistId=${ANILIST_ID}&category=sub&slug=${encodeURIComponent(slug)}&quality=1080p`;
+  const miruro = await fetchJson(streamUrl, kittyHeaders());
+  const miruroSubs = (miruro.data?.results?.subtitles ?? miruro.data?.subtitles ?? []).filter(isSubtitleTrack);
+  console.log(`   Miruro API subtitle tracks: ${miruroSubs.length}`);
 
   console.log("\n=== Summary ===");
   if (passed === subTracks.length) {

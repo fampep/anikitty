@@ -5,6 +5,7 @@ import {
   getTrackFile,
   isOurSubtitleUrl,
   isSubtitleTrack,
+  SUBTITLE_LIBRARY_PROVIDERS,
   SUBTITLE_SOURCE_PROVIDER,
   subtitleProxyUrl,
   subtitleServeUrl,
@@ -15,8 +16,7 @@ import {
   SUBTITLE_API_INTERVAL_MS,
   sleep,
 } from "@/lib/subtitle-sync-config";
-
-const KITTY_API_BASE = "https://kittyapi.buzz";
+import { fetchMiruroSubtitleStream } from "@/lib/miruro-api";
 
 /** Subtitle VTT content is stable per episode — refresh weekly. */
 const SUBTITLE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -144,7 +144,7 @@ export async function getStoredSubtitleTracks(
           eq(episodeSubtitles.anilistId, ctx.anilistId),
           eq(episodeSubtitles.episode, ctx.episode),
           eq(episodeSubtitles.audio, ctx.audio),
-          eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER),
+          subtitleProviderFilter(),
         ),
       );
 
@@ -160,55 +160,42 @@ function hasFreshCachedSubtitles(
   return getStoredSubtitleTracks(ctx).then((tracks) => tracks.length > 0);
 }
 
-async function fetchAnitakuStream(
+function subtitleProviderFilter() {
+  return inArray(episodeSubtitles.provider, [...SUBTITLE_LIBRARY_PROVIDERS]);
+}
+
+async function fetchMiruroSubtitleTracks(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
 ): Promise<{ tracks?: StreamTrack[]; headers?: Record<string, string>; animeTitle?: string | null } | null> {
-  const url = `${KITTY_API_BASE}/provider/${encodeURIComponent(SUBTITLE_SOURCE_PROVIDER)}/stream-direct?anilistId=${ctx.anilistId}&episode=${ctx.episode}&audio=${ctx.audio}`;
-
-  const headers: HeadersInit = {};
-  const apiKey = process.env.KITTY_API_KEY;
-  if (apiKey) headers["x-api-key"] = apiKey;
-
   try {
-    const res = await fetch(url, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-      headers,
+    const result = await fetchMiruroSubtitleStream({
+      anilistId: ctx.anilistId,
+      episode: ctx.episode,
+      audio: ctx.audio,
     });
+    if (!result) return null;
 
-    const data = await res.json();
-    if (!res.ok || !data?.file) return null;
-
-    if (Array.isArray(data.tracks)) {
-      for (const t of data.tracks) {
-        if (!t.file && t.url) t.file = t.url;
-      }
-    }
-
-    const animeTitle =
-      typeof data.matchedTitle === "string"
-        ? data.matchedTitle
-        : typeof data.animeTitle === "string"
-          ? data.animeTitle
-          : null;
-
-    return { tracks: data.tracks, headers: data.headers ?? {}, animeTitle };
+    return {
+      tracks: result.tracks,
+      headers: result.headers,
+      animeTitle: result.animeTitle,
+    };
   } catch {
     return null;
   }
 }
 
-/** Fetch subtitle tracks from Anitaku and persist them when cache is missing or stale. */
-export async function ensureAnitakuSubtitleCache(
+/** Fetch subtitle tracks from Miruro API and persist when cache is missing or stale. */
+export async function ensureMiruroSubtitleCache(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
 ): Promise<void> {
   if (await hasFreshCachedSubtitles(ctx)) return;
 
-  let stream = await fetchAnitakuStream(ctx);
+  let stream = await fetchMiruroSubtitleTracks(ctx);
   const hasSubs = stream?.tracks?.some(isSubtitleTrack);
 
   if (!hasSubs && ctx.audio === "dub") {
-    stream = await fetchAnitakuStream({ ...ctx, audio: "sub" });
+    stream = await fetchMiruroSubtitleTracks({ ...ctx, audio: "sub" });
   }
 
   if (!stream?.tracks?.length) return;
@@ -220,6 +207,9 @@ export async function ensureAnitakuSubtitleCache(
     headers: stream.headers,
   });
 }
+
+/** @deprecated Use ensureMiruroSubtitleCache */
+export const ensureAnitakuSubtitleCache = ensureMiruroSubtitleCache;
 
 async function upsertSubtitle(
   ctx: SubtitleCacheContext,
@@ -311,7 +301,7 @@ async function resolveSubtitleTrack(
             eq(episodeSubtitles.anilistId, ctx.anilistId),
             eq(episodeSubtitles.episode, ctx.episode),
             eq(episodeSubtitles.audio, ctx.audio),
-            eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER),
+            subtitleProviderFilter(),
             eq(episodeSubtitles.label, label),
           ),
         )
@@ -401,7 +391,7 @@ export async function ensureIncrementalSubtitleCache(
     if (count > 0) {
       for (let ep = 1; ep <= count && fetched < maxEpisodes; ep++) {
         if (cachedEps.has(ep)) continue;
-        await ensureAnitakuSubtitleCache({ anilistId, episode: ep, audio: "sub" });
+        await ensureMiruroSubtitleCache({ anilistId, episode: ep, audio: "sub" });
         cachedEps.add(ep);
         fetched++;
         if (fetched < maxEpisodes && ep < count) {
@@ -411,7 +401,7 @@ export async function ensureIncrementalSubtitleCache(
     } else if (fetched < maxEpisodes) {
       // Unknown episode count — try next sequential episode after highest cached.
       const nextEp = cachedEps.size > 0 ? Math.max(...cachedEps) + 1 : 1;
-      await ensureAnitakuSubtitleCache({ anilistId, episode: nextEp, audio: "sub" });
+      await ensureMiruroSubtitleCache({ anilistId, episode: nextEp, audio: "sub" });
       cachedEps.add(nextEp);
       fetched = 1;
     }
@@ -456,7 +446,7 @@ async function fetchAnilistEpisodeCount(anilistId: number): Promise<number> {
   }
 }
 
-/** Download subtitle tracks from Anitaku, persist to Postgres, and rewrite file URLs to our API. */
+/** Download subtitle tracks from Miruro, persist to Postgres, and rewrite file URLs to our API. */
 export async function cacheStreamSubtitleTracks(
   tracks: StreamTrack[] | undefined,
   ctx: SubtitleCacheContext,
@@ -491,7 +481,7 @@ export async function cacheStreamSubtitleTracks(
   return results;
 }
 
-/** Inject Anitaku cached subtitle tracks (always sourced from SUBTITLE_SOURCE_PROVIDER). */
+/** Inject cached Miruro subtitle tracks (always sourced from SUBTITLE_SOURCE_PROVIDER). */
 export async function mergeCachedSubtitleTracks(
   tracks: StreamTrack[] | undefined,
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
@@ -543,7 +533,7 @@ export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubti
       .where(
         and(
           eq(episodeSubtitles.anilistId, anilistId),
-          eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER),
+          subtitleProviderFilter(),
         ),
       )
       .orderBy(asc(episodeSubtitles.episode), asc(episodeSubtitles.label));
@@ -570,7 +560,7 @@ export async function getSubtitleArchiveRows(
     const db = getDb();
     const conditions = [
       eq(episodeSubtitles.anilistId, anilistId),
-      eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER),
+      subtitleProviderFilter(),
     ];
 
     if (episodes && episodes.length > 0) {
@@ -628,7 +618,7 @@ function subtitleLibrarySearchPattern(q: string): string {
 }
 
 function subtitleLibraryWhere(q?: string) {
-  const providerFilter = eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER);
+  const providerFilter = subtitleProviderFilter();
   const trimmed = q?.trim();
   if (!trimmed) return providerFilter;
 
@@ -653,7 +643,7 @@ export async function getSubtitleLibraryStats(): Promise<SubtitleLibraryStats> {
         totalAnimes: sql<number>`count(distinct ${episodeSubtitles.anilistId})::int`,
       })
       .from(episodeSubtitles)
-      .where(eq(episodeSubtitles.provider, SUBTITLE_SOURCE_PROVIDER));
+      .where(subtitleProviderFilter());
 
     const { countCompletedSubtitleAnimesFromDb } = await import("@/lib/subtitle-library-db");
     const completedAnimes = await countCompletedSubtitleAnimesFromDb();
