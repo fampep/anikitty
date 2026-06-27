@@ -29,6 +29,8 @@ import ProfileCustomizationForm, {
 } from "@/components/profile-customization-form";
 import { applyUserThemeColor } from "@/lib/theme-color";
 import { getAnisurgeToken } from "@/lib/anisurge";
+import TwoFactorSection from "@/components/two-factor-section";
+import ActiveSessionsSection from "@/components/active-sessions-section";
 
 // ── Episode layout options ────────────────────────────────────────────────────
 
@@ -411,6 +413,31 @@ export default function SettingsPage() {
           )}
 
           {auth && <AppearanceSection />}
+
+          {/* Security */}
+          {auth && (
+            <SectionCard>
+              <SectionHeader
+                icon={<Shield className="w-4 h-4" />}
+                title="Security"
+                description="Two-factor authentication and active sessions"
+              />
+              <SectionBody className="flex flex-col gap-6">
+                <div>
+                  <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">
+                    Two-factor authentication
+                  </p>
+                  <TwoFactorSection />
+                </div>
+                <div className="border-t border-white/6 pt-6">
+                  <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-3">
+                    Active sessions
+                  </p>
+                  <ActiveSessionsSection />
+                </div>
+              </SectionBody>
+            </SectionCard>
+          )}
 
           {/* Connected Accounts */}
           {auth && (

@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { Loader2, LogIn, UserPlus, Zap } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Zap, ShieldCheck } from "lucide-react";
 import { anisurgeAuth, setAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 
-type Tab = "login" | "signup";
+type Tab = "login" | "signup" | "2fa";
 
 function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode } = {}) {
   const { setAuth } = useAuthStore();
@@ -20,6 +20,8 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [pendingToken, setPendingToken] = useState("");
+  const [totpCode, setTotpCode] = useState("");
 
   const reset = () => {
     setIdentifier("");
@@ -27,6 +29,8 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     setUsername("");
     setEmail("");
     setSignupPassword("");
+    setPendingToken("");
+    setTotpCode("");
     setLoading(false);
   };
 
@@ -43,12 +47,37 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     setLoading(true);
     try {
       const data = await anisurgeAuth.loginWithAnisurge(identifier.trim(), password);
+      if (data.requires2fa && data.pendingToken) {
+        setPendingToken(data.pendingToken);
+        setTab("2fa");
+        setTotpCode("");
+        return;
+      }
       syncAuth(data);
       toast.success("Welcome back!");
       setOpen(false);
       reset();
     } catch (e: any) {
       toast.error(e?.body?.error ?? "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handle2fa = async () => {
+    if (!pendingToken || totpCode.length !== 6) {
+      toast.error("Enter the 6-digit code from your authenticator app");
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await anisurgeAuth.verify2fa(pendingToken, totpCode);
+      syncAuth(data);
+      toast.success("Welcome back!");
+      setOpen(false);
+      reset();
+    } catch (e: any) {
+      toast.error(e?.body?.error ?? "Invalid verification code");
     } finally {
       setLoading(false);
     }
@@ -112,6 +141,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
           </div>
 
           {/* Tabs */}
+          {tab !== "2fa" && (
           <div className="flex rounded-lg bg-white/[0.04] border border-white/8 p-0.5">
             <button
               onClick={() => setTab("login")}
@@ -136,7 +166,42 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               Create account
             </button>
           </div>
+          )}
         </div>
+
+        {tab === "2fa" && (
+          <div className="p-5 flex flex-col gap-3.5">
+            <div className="flex items-center gap-2 text-violet-300/80">
+              <ShieldCheck className="w-4 h-4" />
+              <p className="text-sm font-semibold text-white/85">Two-factor authentication</p>
+            </div>
+            <p className="text-[11px] text-white/40 font-mono leading-relaxed">
+              Enter the 6-digit code from your authenticator app to finish signing in.
+            </p>
+            <Field
+              label="Authentication code"
+              value={totpCode}
+              onChange={(v) => setTotpCode(v.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              onEnter={handle2fa}
+            />
+            <button
+              onClick={handle2fa}
+              disabled={loading || totpCode.length !== 6}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              Verify & sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTab("login"); setPendingToken(""); setTotpCode(""); }}
+              className="text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
+              Back to sign in
+            </button>
+          </div>
+        )}
 
         {/* Login form */}
         {tab === "login" && (

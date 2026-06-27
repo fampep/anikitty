@@ -25,8 +25,29 @@ export const users = pgTable("users", {
   anilistAccessToken: text("anilist_access_token"),
   anilistUserId: integer("anilist_user_id"),
   anilistUsername: varchar("anilist_username", { length: 100 }),
+  totpSecret: text("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const userSessions = pgTable(
+  "user_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    userAgent: text("user_agent"),
+    deviceLabel: varchar("device_label", { length: 120 }),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    lastActiveAt: timestamp("last_active_at").defaultNow(),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("user_sessions_user_id_idx").on(t.userId),
+  }),
+);
 
 export const watchlist = pgTable(
   "watchlist",

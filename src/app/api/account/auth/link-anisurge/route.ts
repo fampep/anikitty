@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { eq } from "drizzle-orm";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   const token = extractToken(req);
@@ -10,6 +11,9 @@ export async function POST(req: Request) {
 
   const payload = await verifyToken(token);
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = checkRateLimit(`link-anisurge:${payload.userId}`, 10, 60 * 60 * 1000);
+  if (limited) return limited;
 
   try {
     const { identifier, password } = await req.json();

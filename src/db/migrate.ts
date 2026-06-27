@@ -191,7 +191,20 @@ export async function migrateDb() {
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS episode_number INTEGER`,
       `CREATE INDEX IF NOT EXISTS comments_anime_episode_idx ON comments (anime_id, episode_id)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_color VARCHAR(7)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS anilist_synced_at TIMESTAMP`,
+      `CREATE TABLE IF NOT EXISTS user_sessions (
+        id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_agent      TEXT,
+        device_label    VARCHAR(120),
+        ip_address      VARCHAR(45),
+        last_active_at  TIMESTAMP DEFAULT NOW(),
+        revoked_at      TIMESTAMP,
+        created_at      TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS user_sessions_user_id_idx ON user_sessions (user_id)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

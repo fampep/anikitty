@@ -1,4 +1,6 @@
 const BASE = "https://kittyapi.buzz";
+const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
+const SAFE_ID = /^\d{1,10}$/;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -7,8 +9,16 @@ export async function GET(req: Request) {
   const audio     = searchParams.get("audio") || "sub";
   const provider  = searchParams.get("provider") || "Miruro";
 
-  if (!anilistId || !episode) {
+  if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
     return Response.json({ error: "anilistId and episode are required" }, { status: 400 });
+  }
+
+  if (!["sub", "dub"].includes(audio)) {
+    return Response.json({ error: "Invalid audio parameter" }, { status: 400 });
+  }
+
+  if (!SAFE_PROVIDER.test(provider)) {
+    return Response.json({ error: "Invalid provider" }, { status: 400 });
   }
 
   const url = `${BASE}/provider/${encodeURIComponent(provider)}/stream-direct?anilistId=${anilistId}&episode=${episode}&audio=${audio}`;

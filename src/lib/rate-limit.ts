@@ -31,3 +31,20 @@ export function getClientIp(req: Request): string {
     "unknown"
   );
 }
+
+export function rateLimitedResponse(retryAfterSec: number, message?: string) {
+  return Response.json(
+    { error: message ?? `Too many requests. Try again in ${retryAfterSec}s.` },
+    { status: 429, headers: { "Retry-After": String(retryAfterSec) } },
+  );
+}
+
+export function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Response | null {
+  const result = rateLimit(key, limit, windowMs);
+  if (!result.ok) return rateLimitedResponse(result.retryAfterSec);
+  return null;
+}

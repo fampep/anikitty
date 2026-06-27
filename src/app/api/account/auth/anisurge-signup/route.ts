@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { signToken } from "@/lib/auth-jwt";
+import { buildAuthResponse } from "@/lib/auth-response";
 import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { assertAuthSecretsConfigured } from "@/lib/security";
 
 const ANISURGE_BFF = "https://db.anisurge.qzz.io/v1";
 
 export async function POST(req: Request) {
+  const misconfigured = assertAuthSecretsConfigured();
+  if (misconfigured) {
+    return NextResponse.json({ error: misconfigured }, { status: 503 });
+  }
+
   const ip = getClientIp(req);
   const limited = rateLimit(`signup:${ip}`, 10, 60 * 60 * 1000);
   if (!limited.ok) {
@@ -67,25 +73,7 @@ export async function POST(req: Request) {
         .returning();
     }
 
-    const token = await signToken({
-      userId: existing.id,
-      username: existing.username,
-      role: existing.role ?? "user",
-    });
-
-    return NextResponse.json({
-      anisurgeToken: token,
-      anisurgeUserId: existing.id,
-      user: {
-        username: existing.username,
-        email: existing.email,
-        avatarUrl: existing.avatarUrl ?? null,
-        bannerUrl: existing.bannerUrl ?? null,
-        bio: existing.bio ?? null,
-        themeColor: existing.themeColor ?? null,
-        role: existing.role ?? "user",
-      },
-    });
+    return NextResponse.json(await buildAuthResponse(existing, req));
   } catch (e: any) {
     console.error("[anisurge-signup]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

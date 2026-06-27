@@ -27,6 +27,7 @@ export async function GET(req: Request) {
       anisurgeUsername: users.anisurgeUsername,
       anilistUsername: users.anilistUsername,
       anilistAccessToken: users.anilistAccessToken,
+      totpEnabled: users.totpEnabled,
       createdAt: users.createdAt,
     })
     .from(users)
@@ -42,8 +43,9 @@ export async function GET(req: Request) {
     anisurgeLinked: !!safeUser.anisurgeUsername,
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,
-    anilistUsername: safeUser.anilistUsername ?? null,
-    user: {
+      anilistUsername: safeUser.anilistUsername ?? null,
+      totpEnabled: safeUser.totpEnabled ?? false,
+      user: {
       id: safeUser.id,
       username: safeUser.username,
       email: safeUser.email,

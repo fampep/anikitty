@@ -15,6 +15,7 @@ import { useGetAnilistAnimes } from "@/mutation/get-anilist-animes";
 import { toast } from "sonner";
 import { AnilistMediaList } from "@/types/anilist-animes";
 import { api } from "@/lib/api";
+import { getAnisurgeToken } from "@/lib/anisurge";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { Badge } from "@/components/ui/badge";
 
@@ -62,9 +63,12 @@ function AnilistImport() {
     setIsLoading(true);
 
     try {
-      const { data } = await api.post("/api/import/anilist", {
-        animes,
-      });
+      const authToken = getAnisurgeToken();
+      const { data } = await api.post(
+        "/api/import/anilist",
+        { animes },
+        authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : undefined,
+      );
       if (!data || !data.animes) {
         toast.error("No anime found", {
           style: { background: "red" },

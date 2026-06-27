@@ -1,3 +1,5 @@
+import { isAllowedFetchUrl } from "@/lib/security";
+
 function isM3u8ByUrl(url: string): boolean {
   return url.endsWith(".m3u8") || url.includes(".m3u8?") || url.includes(".m3u8&");
 }
@@ -65,9 +67,11 @@ function upstreamHeaders(referer: string, origin: string, range?: string | null)
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   };
-  if (referer) headers.Referer = referer;
-  if (origin) headers.Origin = origin;
-  if (range) headers.Range = range;
+  const safeReferer = referer.replace(/[\r\n\0]/g, "").trim().slice(0, 512);
+  const safeOrigin = origin.replace(/[\r\n\0]/g, "").trim().slice(0, 512);
+  if (safeReferer) headers.Referer = safeReferer;
+  if (safeOrigin) headers.Origin = safeOrigin;
+  if (range) headers.Range = range.replace(/[\r\n\0]/g, "").trim().slice(0, 128);
   return headers;
 }
 
@@ -95,6 +99,10 @@ export async function GET(req: Request) {
     decoded = decodeURIComponent(url);
   } catch {
     return new Response("invalid url encoding", { status: 400 });
+  }
+
+  if (!isAllowedFetchUrl(decoded)) {
+    return new Response("url not allowed", { status: 403 });
   }
 
   const referer = searchParams.get("referer") ?? "";

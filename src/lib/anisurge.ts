@@ -77,6 +77,43 @@ export const anisurgeAuth = {
   loginWithAnisurge: (identifier: string, password: string) =>
     bff("/auth/anisurge-login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
 
+  verify2fa: (pendingToken: string, code: string) =>
+    bff("/auth/2fa-verify", { method: "POST", body: JSON.stringify({ pendingToken, code }) }),
+
+  get2faStatus: () => bff<{ enabled: boolean; pendingSetup: boolean }>("/2fa"),
+
+  setup2fa: () => bff<{ secret: string; otpauthUrl: string; qrDataUrl: string }>("/2fa/setup", { method: "POST" }),
+
+  enable2fa: (code: string) =>
+    bff("/2fa/enable", { method: "POST", body: JSON.stringify({ code }) }),
+
+  disable2fa: (code: string) =>
+    bff("/2fa/disable", { method: "POST", body: JSON.stringify({ code }) }),
+
+  getSessions: () =>
+    bff<{
+      sessions: {
+        id: string;
+        deviceLabel: string;
+        ipAddress: string | null;
+        lastActiveAt: string | null;
+        createdAt: string | null;
+        current: boolean;
+      }[];
+    }>("/sessions"),
+
+  revokeSessions: (sessionIds: string[]) =>
+    bff<{ ok: boolean; revoked: string[]; currentRevoked: boolean }>("/sessions", {
+      method: "DELETE",
+      body: JSON.stringify({ sessionIds }),
+    }),
+
+  revokeOtherSessions: () =>
+    bff<{ ok: boolean; revoked: string[]; currentRevoked: boolean }>("/sessions", {
+      method: "DELETE",
+      body: JSON.stringify({ allOthers: true }),
+    }),
+
   signupWithAnisurge: (username: string, email: string, password: string) =>
     bff("/auth/anisurge-signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
 
