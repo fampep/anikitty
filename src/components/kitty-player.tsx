@@ -15,22 +15,10 @@ import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { SkipForward, ChevronRight, X } from "lucide-react";
-import { KittyScrubPreview } from "@/components/kitty-scrub-preview";
-import {
-  THUMB_W,
-  THUMB_H,
-  SPRITE_COLS,
-  MAX_FRAMES,
-  buildThumbnailSprites,
-  type KittyThumbnail,
-} from "@/lib/kitty-thumbnails";
 import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
 import { createHlsConfig } from "@/lib/hls-config";
 import { isHLSProvider, type MediaProviderAdapter } from "@vidstack/react";
 import Hls from "hls.js";
-
-const THUMB_CAPTURE_W = THUMB_W;
-const THUMB_CAPTURE_H = THUMB_H;
 
 interface W2gSyncState {
   version: number;
@@ -125,41 +113,14 @@ export default function KittyPlayer({
         t.label?.toLowerCase().includes("skip") ||
         t.label?.toLowerCase().includes("intro")),
   );
-  const thumbnailTrack = tracks.find((t) => !!t.file && t.kind === "thumbnails");
-  const thumbnailsUrl = thumbnailTrack?.file
-    ? buildKittyHlsUrl(thumbnailTrack.file, headers)
-    : undefined;
   const m3u8ChaptersUrl =
     !chapterTrack && src
       ? `/api/kitty/chapters?url=${encodeURIComponent(src)}&referer=${encodeURIComponent(referer)}`
       : undefined;
   const effectiveChapterUrl = chapterTrack?.file ?? m3u8ChaptersUrl;
 
-  // ── Thumbnail generation (sprite storyboard for scrub previews) ──
-  const captureFrames = useRef<Map<number, HTMLCanvasElement>>(new Map());
-  const spriteCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const bgStarted       = useRef(false);
-  const [generatedThumbs, setGeneratedThumbs] = useState<KittyThumbnail[]>([]);
-  const [thumbsLoading, setThumbsLoading] = useState(false);
-
-  const publishThumbnails = useCallback((interval: number) => {
-    if (!spriteCanvasRef.current) {
-      spriteCanvasRef.current = document.createElement("canvas");
-    }
-    const built = buildThumbnailSprites(
-      captureFrames.current,
-      interval,
-      spriteCanvasRef.current,
-    );
-    if (built.length > 0) setGeneratedThumbs(built);
-  }, []);
-
   // Reset on source change
   useEffect(() => {
-    captureFrames.current.clear();
-    bgStarted.current = false;
-    setGeneratedThumbs([]);
-    setThumbsLoading(false);
     startFiredRef.current = false;
     outroFiredRef.current = false;
     lastProgressTs.current = 0;
@@ -167,96 +128,6 @@ export default function KittyPlayer({
     setCurrentTime(0);
     setCountdown(null);
   }, [src]);
-
-  // Background: seek hidden HLS video and capture frames into a sprite sheet
-  useEffect(() => {
-    if (!duration || duration < 10) return;
-    if (bgStarted.current) return;
-    bgStarted.current = true;
-    setThumbsLoading(true);
-
-    const interval = Math.max(8, duration / MAX_FRAMES);
-    const timestamps: number[] = [];
-    for (let t = 0; t < duration; t += interval) timestamps.push(t);
-
-    let destroyed = false;
-    let hlsInst: { destroy: () => void } | null = null;
-    const vid = document.createElement("video");
-    vid.muted = true;
-    vid.preload = "auto";
-    vid.crossOrigin = "anonymous";
-    vid.playsInline = true;
-    vid.style.cssText = "position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:-9999px";
-
-    const frameCanvas = document.createElement("canvas");
-    frameCanvas.width = THUMB_CAPTURE_W;
-    frameCanvas.height = THUMB_CAPTURE_H;
-
-    let idx = 0;
-    let captured = 0;
-
-    const captureAndNext = () => {
-      const ctx = frameCanvas.getContext("2d");
-      if (ctx) {
-        try {
-          ctx.drawImage(vid, 0, 0, THUMB_CAPTURE_W, THUMB_CAPTURE_H);
-          const key = Math.round(vid.currentTime);
-          const copy = document.createElement("canvas");
-          copy.width = THUMB_CAPTURE_W;
-          copy.height = THUMB_CAPTURE_H;
-          copy.getContext("2d")?.drawImage(frameCanvas, 0, 0);
-          captureFrames.current.set(key, copy);
-          captured++;
-          if (captured % 4 === 0 || captured === timestamps.length) {
-            publishThumbnails(interval);
-          }
-        } catch {
-          /* CORS-tainted canvas */
-        }
-      }
-      if (!destroyed && idx < timestamps.length) {
-        vid.currentTime = timestamps[idx++];
-      } else if (!destroyed) {
-        publishThumbnails(interval);
-        setThumbsLoading(false);
-      }
-    };
-
-    vid.addEventListener("seeked", captureAndNext);
-
-    const startSeeking = () => {
-      if (!destroyed && timestamps.length > 0) {
-        vid.currentTime = timestamps[idx++];
-      }
-    };
-
-    import("hls.js").then(({ default: Hls }) => {
-      if (destroyed) return;
-      if (Hls.isSupported()) {
-        const h = new Hls({ maxBufferSize: 0, maxBufferLength: 8, startLevel: 0, debug: false });
-        hlsInst = h;
-        h.loadSource(proxiedSrc);
-        h.attachMedia(vid);
-        h.on(Hls.Events.MANIFEST_PARSED, startSeeking);
-      } else if (vid.canPlayType("application/vnd.apple.mpegurl")) {
-        vid.src = proxiedSrc;
-        vid.addEventListener("loadedmetadata", startSeeking, { once: true });
-      } else {
-        setThumbsLoading(false);
-      }
-    }).catch(() => setThumbsLoading(false));
-
-    return () => {
-      destroyed = true;
-      vid.removeEventListener("seeked", captureAndNext);
-      hlsInst?.destroy();
-      vid.src = "";
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duration, proxiedSrc, publishThumbnails]);
-
-  const effectiveThumbnails = thumbnailsUrl ?? generatedThumbs;
-  const spriteWidth = SPRITE_COLS * THUMB_W;
 
   // Track that fullscreen should be re-entered when the player is ready
   const autoFsRef = useRef(false);
@@ -296,10 +167,9 @@ export default function KittyPlayer({
         const marker = document.createElement("div");
         marker.className = "kitty-skip-marker";
         marker.style.cssText = `
-          position:absolute;top:0;height:100%;pointer-events:none;border-radius:2px;z-index:2;
+          position:absolute;top:0;height:100%;pointer-events:none;border-radius:999px;z-index:2;
           left:${(interval.start / duration) * 100}%;
           width:${((interval.end - interval.start) / duration) * 100}%;
-          background:rgba(255,196,0,0.65);
         `;
         track.appendChild(marker);
       }
@@ -450,8 +320,7 @@ export default function KittyPlayer({
   return (
     <div
       ref={containerRef}
-      className="vds-kitty relative w-full bg-black overflow-hidden"
-      data-custom-thumbs={Array.isArray(effectiveThumbnails) && effectiveThumbnails.length > 0 ? "" : undefined}
+      className="vds-kitty relative w-full bg-black overflow-hidden ring-1 ring-white/[0.08] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)]"
       style={{ aspectRatio: "16/9" }}
     >
       <MediaPlayer
@@ -487,12 +356,7 @@ export default function KittyPlayer({
             />
           ))}
         </MediaProvider>
-        <DefaultVideoLayout
-          icons={defaultLayoutIcons}
-          thumbnails={
-            typeof effectiveThumbnails === "string" ? effectiveThumbnails : undefined
-          }
-        />
+        <DefaultVideoLayout icons={defaultLayoutIcons} />
 
         {showNext && nextEpisode && (
           <NextEpisodeButton episode={nextEpisode} onClick={() => onNextEpisodeRef.current?.()} />
@@ -517,25 +381,6 @@ export default function KittyPlayer({
           />
         )}
       </MediaPlayer>
-
-      {Array.isArray(effectiveThumbnails) && effectiveThumbnails.length > 0 && duration > 0 && (
-        <KittyScrubPreview
-          containerRef={containerRef}
-          thumbnails={effectiveThumbnails}
-          duration={duration}
-          spriteWidth={spriteWidth}
-        />
-      )}
-
-      {thumbsLoading && (
-        <div className="absolute bottom-[3.35rem] left-4 z-[55] pointer-events-none flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/70 border border-white/10 backdrop-blur-sm">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-60" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
-          </span>
-          <span className="text-[10px] font-mono text-white/50">Loading previews…</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -564,19 +409,21 @@ function SkipButton({
   return (
     <button
       onClick={onSkip}
-      className={`absolute ${bottomClass} right-4 z-50 group flex flex-col overflow-hidden rounded-xl border border-white/20 bg-black/80 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/90 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200`}
-      style={{ minWidth: 148 }}
+      className={`absolute ${bottomClass} right-4 z-50 group flex flex-col overflow-hidden rounded-2xl border border-violet-400/25 bg-black/75 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-200 hover:border-violet-400/45 hover:bg-black/85 active:scale-[0.98] animate-in slide-in-from-right-4 fade-in duration-200`}
+      style={{ minWidth: 156 }}
     >
-      <div className="flex items-center gap-2 px-4 py-2.5">
-        <SkipForward className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors shrink-0" />
+      <div className="flex items-center gap-2.5 px-4 py-3">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/20 ring-1 ring-violet-400/30 shrink-0">
+          <SkipForward className="w-3.5 h-3.5 text-violet-200 group-hover:text-white transition-colors" />
+        </span>
         <span className="text-sm font-semibold text-white leading-none">{label}</span>
-        <span className="ml-auto text-[11px] font-mono text-white/35 group-hover:text-white/55 transition-colors shrink-0 leading-none">
+        <span className="ml-auto text-[11px] font-mono text-white/40 group-hover:text-violet-200/70 transition-colors shrink-0 leading-none tabular-nums">
           {remaining}s
         </span>
       </div>
-      <div className="relative h-[3px] w-full bg-white/10">
+      <div className="relative h-1 w-full bg-white/[0.06]">
         <div
-          className="absolute left-0 top-0 h-full bg-white/70 transition-none"
+          className="absolute left-0 top-0 h-full bg-gradient-to-r from-violet-600 to-violet-400 transition-none"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
@@ -601,18 +448,20 @@ function NextEpisodeButton({
   return (
     <button
       onClick={onClick}
-      className="absolute bottom-[4.5rem] right-4 z-50 group flex items-center gap-3 px-4 py-3 rounded-xl border border-white/20 bg-black/85 backdrop-blur-md shadow-2xl shadow-black/60 transition-all duration-200 hover:border-white/40 hover:bg-black/95 active:scale-95 animate-in slide-in-from-right-4 fade-in duration-200"
-      style={{ maxWidth: 260 }}
+      className="absolute bottom-[4.5rem] right-4 z-50 group flex items-center gap-3 pl-3 pr-4 py-2.5 rounded-2xl border border-white/15 bg-black/75 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-200 hover:border-violet-400/35 hover:bg-black/85 active:scale-[0.98] animate-in slide-in-from-right-4 fade-in duration-200"
+      style={{ maxWidth: 280 }}
     >
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-400/25 shrink-0">
+        <ChevronRight className="w-4 h-4 text-violet-300 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+      </span>
       <div className="flex flex-col items-start min-w-0">
-        <span className="text-[10px] font-mono text-white/35 group-hover:text-white/55 transition-colors leading-none mb-1">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300/60 group-hover:text-violet-200/80 transition-colors leading-none mb-1">
           Next episode
         </span>
         <span className="text-sm font-semibold text-white leading-tight truncate w-full">
           {title}
         </span>
       </div>
-      <ChevronRight className="w-4 h-4 text-white/50 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
     </button>
   );
 }
@@ -640,25 +489,31 @@ function CountdownOverlay({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
-      <div className="pointer-events-auto flex items-center gap-4 px-5 py-4 rounded-2xl border border-white/20 bg-black/85 backdrop-blur-md shadow-2xl shadow-black/60 animate-in slide-in-from-right-6 fade-in duration-300">
+      <div className="pointer-events-auto flex items-center gap-4 pl-4 pr-5 py-4 rounded-2xl border border-white/15 bg-black/80 backdrop-blur-xl shadow-[0_12px_48px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)] animate-in slide-in-from-right-6 fade-in duration-300">
         <div className="relative w-12 h-12 shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
-            <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+            <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
             <circle
               cx="24" cy="24" r="20" fill="none"
-              stroke="white" strokeWidth="3"
+              stroke="url(#countdown-gradient)" strokeWidth="3"
               strokeDasharray={circumference}
               strokeDashoffset={dashOffset}
               strokeLinecap="round"
               className="transition-[stroke-dashoffset] duration-1000 ease-linear"
             />
+            <defs>
+              <linearGradient id="countdown-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#7c3aed" />
+                <stop offset="100%" stopColor="#c084fc" />
+              </linearGradient>
+            </defs>
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
+          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white tabular-nums">
             {countdown}
           </span>
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-[10px] font-mono text-white/40 leading-none mb-1">Up next</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300/60 leading-none mb-1">Up next</span>
           <span className="text-sm font-semibold text-white leading-tight truncate max-w-[180px]">
             {title}
           </span>
@@ -666,13 +521,13 @@ function CountdownOverlay({
         <div className="flex flex-col gap-1.5 shrink-0">
           <button
             onClick={onSkip}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 text-white text-xs font-bold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-900/40"
           >
             Play now <ChevronRight className="w-3 h-3" />
           </button>
           <button
             onClick={onCancel}
-            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white/8 text-white/50 text-xs font-medium hover:bg-white/14 hover:text-white/80 transition-colors"
+            className="flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-xl bg-white/[0.06] text-white/50 text-xs font-medium hover:bg-white/10 hover:text-white/80 transition-colors ring-1 ring-white/10"
           >
             <X className="w-3 h-3" /> Cancel
           </button>

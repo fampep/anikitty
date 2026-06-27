@@ -91,7 +91,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/jiji.jpg" />
       </head>
       <body
-        className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden`}
+        className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
         <ThemeProvider
           attribute="class"

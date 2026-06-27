@@ -8,7 +8,7 @@ const AnimeSchedule = dynamic(() => import("@/components/anime-schedule"), { ssr
 
 export default function SchedulePage() {
   return (
-    <div className="min-h-screen bg-black pt-8 pb-24">
+    <div className="min-h-screen pt-8 pb-24">
       <Container className="pb-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-0.5 h-6 bg-white/35 shrink-0" />

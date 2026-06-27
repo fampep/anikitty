@@ -73,7 +73,7 @@ const SearchBar = ({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search anime..."
-          className="w-full h-9 pl-9 pr-8 bg-white/8 border border-white/15 rounded-lg text-sm text-white/90 placeholder-white/30 focus:outline-none focus:border-white/35 focus:ring-1 focus:ring-white/20 transition-colors"
+          className="w-full h-9 pl-9 pr-8 bg-white/[0.06] border border-white/[0.1] rounded-xl text-sm text-white/90 placeholder-white/35 focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20 transition-all"
         />
         {searchValue && (
           <button
@@ -86,7 +86,7 @@ const SearchBar = ({
       </div>
 
       {showDropdown && (
-        <div className="absolute top-[calc(100%+6px)] left-0 w-full z-50 bg-[#0a0a0a] border border-white/15 rounded-lg shadow-xl shadow-black/50 overflow-hidden">
+        <div className="absolute top-[calc(100%+8px)] left-0 w-full z-50 site-panel backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.55)] overflow-hidden">
           {isLoading && (
             <div className="flex flex-col gap-0 p-2">
               {[1, 2, 3, 4].map((i) => (

@@ -56,9 +56,9 @@ const AnimeCard = ({
     <Link href={props.href as string} className="block w-full">
       <div
         className={cn(
-          "rounded-xl overflow-hidden relative cursor-pointer group",
+          "rounded-xl overflow-hidden relative cursor-pointer group ring-1 ring-white/[0.06]",
           "transition-all duration-300",
-          "hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_16px_48px_rgba(0,0,0,0.8)]",
+          "hover:scale-[1.03] hover:ring-violet-400/25 hover:shadow-[0_0_0_1px_rgba(167,139,250,0.2),0_20px_50px_rgba(0,0,0,0.65)]",
           !compact && variant === "sm" &&
             "h-[14rem] min-[380px]:h-[17rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           !compact && variant === "lg" &&
@@ -139,7 +139,7 @@ const AnimeCard = ({
               className="absolute inset-0 rounded-full bg-white/30"
               style={{ animation: "pulse-ring 0.8s ease-out forwards" }}
             />
-            <div className="relative bg-white rounded-full p-3 shadow-2xl shadow-black/80 scale-75 group-hover:scale-100 transition-transform duration-200">
+            <div className="relative bg-white rounded-full p-3 shadow-2xl shadow-violet-900/30 scale-75 group-hover:scale-100 transition-transform duration-200 ring-2 ring-violet-400/20">
               <Play className="h-5 w-5 text-black fill-black" />
             </div>
           </div>

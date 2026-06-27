@@ -34,7 +34,7 @@ const LatestComments = dynamic(() => import("@/components/latest-comments"));
 function HomeSectionDivider() {
   return (
     <Container>
-      <div className="h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+      <div className="site-divider" />
     </Container>
   );
 }
@@ -50,7 +50,7 @@ export default function Home() {
 
   if (isError && !data) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6 bg-black">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6">
         <p className="text-sm text-white/40 font-mono">Couldn&apos;t load home feed</p>
         <button
           onClick={handleRetry}
@@ -65,7 +65,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col bg-black pb-16">
+    <div className="flex flex-col pb-16">
       {/* ── Hero & discovery ── */}
       <HeroSection
         spotlightAnime={data?.spotlightAnimes as SpotlightAnime[]}
@@ -118,16 +118,14 @@ export default function Home() {
       {/* ── Community & explore ── */}
       <Container className="py-12">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
-          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5 sm:p-6">
+          <div className="site-panel p-5 sm:p-6">
             <LatestComments bare />
           </div>
 
           <div className="flex flex-col gap-3 lg:sticky lg:top-24">
             <div className="flex items-center gap-2 px-1">
-              <Compass className="w-3.5 h-3.5 text-white/30" />
-              <p className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em]">
-                Explore
-              </p>
+              <Compass className="w-3.5 h-3.5 text-violet-400/60" />
+              <p className="site-label">Explore</p>
             </div>
 
             <div className="flex flex-col gap-2.5">
@@ -199,7 +197,7 @@ function ExploreCard({
   return (
     <Link
       href={href}
-      className={`group flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.025] border border-white/8 ${c.bg} ${c.border} hover:translate-x-0.5 transition-all duration-200`}
+      className={`group flex items-center gap-3 px-4 py-3 rounded-xl site-panel-hover ${c.bg} ${c.border} hover:translate-x-0.5`}
     >
       <span className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.04] text-white/40 transition-colors group-hover:bg-white/[0.07] ${c.icon}`}>
         {icon}

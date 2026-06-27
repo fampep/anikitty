@@ -15,10 +15,10 @@ export default function HomeWelcomeBar() {
 
   return (
     <Container className="pt-3 pb-1">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2 rounded-xl border border-white/8 bg-white/[0.02]">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 site-panel">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-white/80 truncate">
-            Welcome, <span className="text-white">{auth.username}</span>
+            Welcome back, <span className="text-violet-200">{auth.username}</span>
           </p>
           {level ? (
             <div className="mt-1.5">
@@ -31,7 +31,7 @@ export default function HomeWelcomeBar() {
         <div className="flex items-center gap-1.5 shrink-0">
           <Link
             href={`/profile/${auth.username}`}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/8 text-white/55 hover:text-white text-[11px] font-semibold transition-colors"
+            className="site-ghost-btn"
             aria-label="Profile"
           >
             <User className="w-3 h-3" />
@@ -39,7 +39,7 @@ export default function HomeWelcomeBar() {
           </Link>
           <Link
             href={ROUTES.SETTINGS}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/8 text-white/55 hover:text-white text-[11px] font-semibold transition-colors"
+            className="site-ghost-btn"
             aria-label="Settings"
           >
             <Settings className="w-3 h-3" />
@@ -47,7 +47,7 @@ export default function HomeWelcomeBar() {
           </Link>
           <Link
             href={`/profile/${auth.username}#watchlist`}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white text-black hover:bg-white/90 text-[11px] font-semibold transition-colors"
+            className="site-brand-btn"
           >
             <Play className="w-3 h-3 fill-current" />
             Watchlist

@@ -495,12 +495,21 @@ const VideoPlayerSection = () => {
 
 const PlayerSkeleton = ({ dim = false }: { dim?: boolean }) => (
   <div
-    className={`relative w-full aspect-video rounded-xl bg-[#050505] border border-white/10 flex flex-col items-center justify-center gap-3 overflow-hidden shadow-2xl shadow-black/60 ${dim ? "opacity-40" : ""}`}
+    className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
-    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-transparent pointer-events-none" />
-    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
-    <Loader2 className="w-7 h-7 text-violet-300/40 animate-spin relative z-10" />
-    <p className="text-white/25 text-[11px] font-mono tracking-widest animate-pulse relative z-10">fetching stream...</p>
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
+    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+    <div className="absolute inset-x-4 bottom-4 flex flex-col gap-2 pointer-events-none">
+      <div className="h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-violet-600/40 to-violet-400/40 animate-pulse" />
+      </div>
+      <div className="flex justify-between">
+        <div className="h-2 w-16 rounded bg-white/[0.05] animate-pulse" />
+        <div className="h-2 w-10 rounded bg-white/[0.05] animate-pulse" />
+      </div>
+    </div>
+    <Loader2 className="w-7 h-7 text-violet-400/50 animate-spin relative z-10" />
+    <p className="text-white/30 text-[11px] font-medium tracking-widest uppercase animate-pulse relative z-10">Loading stream</p>
   </div>
 );
 

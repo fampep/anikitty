@@ -18,17 +18,17 @@ const Footer = () => {
   if (pathname === "/") return null;
 
   return (
-    <footer className="w-full bg-black mt-10 relative overflow-hidden">
-      {/* Top fade */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    <footer className="w-full mt-16 relative overflow-hidden border-t border-white/[0.06]">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/15 to-transparent" />
 
-      <div className="max-w-screen-xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-white/6">
+      <div className="max-w-screen-xl mx-auto px-6 py-14 relative">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-white/[0.06]">
 
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/12">
+              <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-violet-400/25 shadow-[0_0_12px_rgba(124,58,237,0.12)]">
                 <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
               </div>
               <p className="text-base font-bold text-white/90 tracking-widest">AniKitty</p>
@@ -72,7 +72,7 @@ const Footer = () => {
 
           {/* Browse */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">Browse</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Browse</p>
             <NavLink href="/home" label="Home" />
             <NavLink href="/search" label="Search" icon={<Search className="w-3 h-3" />} />
             <NavLink href="/trending" label="Trending" icon={<Flame className="w-3 h-3" />} />
@@ -81,7 +81,7 @@ const Footer = () => {
 
           {/* Account */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">Account</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Account</p>
             <NavLink href="/settings" label="Settings" />
             <a
               href="https://anisurge.me"
@@ -95,7 +95,7 @@ const Footer = () => {
 
           {/* Links */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">Project</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">Project</p>
             <a
               href="https://github.com/fampep/anikitty"
               target="_blank"
@@ -141,8 +141,8 @@ const Footer = () => {
 
 function NavLink({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1.5 text-sm text-white/35 hover:text-white/65 transition-colors">
-      {icon && <span className="text-white/20">{icon}</span>}
+    <Link href={href} className="flex items-center gap-1.5 text-sm text-white/40 hover:text-violet-200/90 transition-colors">
+      {icon && <span className="text-white/25">{icon}</span>}
       {label}
     </Link>
   );

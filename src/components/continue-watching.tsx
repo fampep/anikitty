@@ -32,7 +32,7 @@ function ContinueCard({ item }: { item: ContinueItem }) {
   return (
     <Link href={href} className="block shrink-0 w-[160px] sm:w-[200px] group">
       {/* Thumbnail area */}
-      <div className="relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
+      <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover:ring-violet-400/20 transition-all" style={{ aspectRatio: "16/9" }}>
         <Image
           src={item.poster}
           alt={item.name}

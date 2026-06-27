@@ -385,7 +385,7 @@ export default function SettingsPage() {
     useSettingsStore();
 
   return (
-    <div className="min-h-screen bg-black pt-8 pb-24">
+    <div className="min-h-screen pt-8 pb-24">
       <Container className="max-w-2xl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">

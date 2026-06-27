@@ -12,7 +12,7 @@ export default function TrendingPage() {
   const { data, isLoading } = useGetHomePageData();
 
   return (
-    <div className="min-h-screen bg-black pt-8 pb-24">
+    <div className="min-h-screen pt-8 pb-24">
       <Container className="pb-2">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-0.5 h-6 bg-white/35 shrink-0" />
