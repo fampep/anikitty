@@ -226,6 +226,14 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "subtitle": "Einstellungen, Profil und Konto verwalten",
+    "viewProfile": "Profil ansehen",
+    "tabs": {
+      "general": "Allgemein",
+      "profile": "Profil",
+      "security": "Datenschutz & Sicherheit",
+      "connections": "Verbindungen"
+    },
     "language": "Sprache",
     "languageDesc": "Wähle die Sprache für Menüs, Schaltflächen und Seitentexte. Anime-Titel bleiben in der Originalsprache.",
     "account": "Konto",

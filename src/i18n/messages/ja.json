@@ -226,6 +226,14 @@
   },
   "settings": {
     "title": "設定",
+    "subtitle": "設定、プロフィール、アカウントを管理",
+    "viewProfile": "プロフィールを見る",
+    "tabs": {
+      "general": "一般",
+      "profile": "プロフィール",
+      "security": "プライバシーとセキュリティ",
+      "connections": "連携"
+    },
     "language": "言語",
     "languageDesc": "メニュー、ボタン、サイトテキストの言語を選択してください。アニメタイトルは原語のまま表示されます。",
     "account": "アカウント",

@@ -226,6 +226,14 @@
   },
   "settings": {
     "title": "设置",
+    "subtitle": "管理偏好、个人资料和账户",
+    "viewProfile": "查看个人资料",
+    "tabs": {
+      "general": "常规",
+      "profile": "个人资料",
+      "security": "隐私与安全",
+      "connections": "连接"
+    },
     "language": "语言",
     "languageDesc": "选择菜单、按钮和网站文本的语言。动漫标题保持原语言。",
     "account": "账户",

@@ -226,6 +226,14 @@
   },
   "settings": {
     "title": "Indstillinger",
+    "subtitle": "Administrer præferencer, profil og konto",
+    "viewProfile": "Se profil",
+    "tabs": {
+      "general": "Generelt",
+      "profile": "Profil",
+      "security": "Privatliv og sikkerhed",
+      "connections": "Forbindelser"
+    },
     "language": "Sprog",
     "languageDesc": "Vælg sprog til menuer, knapper og sidetekst. Anime-titler forbliver på originalsproget.",
     "account": "Konto",

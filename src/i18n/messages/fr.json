@@ -226,6 +226,14 @@
   },
   "settings": {
     "title": "Paramètres",
+    "subtitle": "Gérer les préférences, le profil et le compte",
+    "viewProfile": "Voir le profil",
+    "tabs": {
+      "general": "Général",
+      "profile": "Profil",
+      "security": "Confidentialité et sécurité",
+      "connections": "Connexions"
+    },
     "language": "Langue",
     "languageDesc": "Choisissez la langue des menus, boutons et textes du site. Les titres d'anime restent dans leur langue d'origine.",
     "account": "Compte",

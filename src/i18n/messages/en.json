@@ -226,6 +226,14 @@
   },
   "settings": {
     "title": "Settings",
+    "subtitle": "Manage preferences, profile, and account",
+    "viewProfile": "View profile",
+    "tabs": {
+      "general": "General",
+      "profile": "Profile",
+      "security": "Privacy & Security",
+      "connections": "Connections"
+    },
     "language": "Language",
     "languageDesc": "Choose the language for menus, buttons, and site text. Anime titles stay in their original language.",
     "account": "Account",
