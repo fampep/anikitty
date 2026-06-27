@@ -256,7 +256,13 @@ export async function searchEnrichedSubtitleLibrary(opts: {
     const scanSize = Math.min(300, Math.max(limit * page * 4, 96));
     const raw = await searchSubtitleLibrary({ q: opts.q, page: 1, limit: scanSize });
     const enriched = await enrichWithTimeout(raw.items, 12_000);
-    const completed = enriched.filter(isCompletedWithSubs);
+    const completed = enriched
+      .filter(isCompletedWithSubs)
+      .sort((a, b) => {
+        const ta = a.lastFetched ? Date.parse(a.lastFetched) : 0;
+        const tb = b.lastFetched ? Date.parse(b.lastFetched) : 0;
+        return tb - ta;
+      });
     const start = (page - 1) * limit;
 
     return {
@@ -269,18 +275,15 @@ export async function searchEnrichedSubtitleLibrary(opts: {
     };
   }
 
-  let result = await searchSubtitleLibrary({ q: opts.q, page, limit });
+  let result = await searchAllSubtitleLibraryFromDb({ q: opts.q, page, limit });
 
   if (result.total === 0 && !opts.q?.trim()) {
     await backfillSubtitleLibraryAnime(100);
-    result = await searchSubtitleLibrary({ q: opts.q, page, limit });
+    result = await searchAllSubtitleLibraryFromDb({ q: opts.q, page, limit });
   }
 
   if (result.total === 0) {
-    const fromDb = await searchAllSubtitleLibraryFromDb({ q: opts.q, page, limit });
-    if (fromDb.total > 0) {
-      result = fromDb;
-    }
+    result = await searchSubtitleLibrary({ q: opts.q, page, limit });
   }
 
   const needsMeta = result.items.some(

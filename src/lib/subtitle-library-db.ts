@@ -104,7 +104,22 @@ export async function persistSubtitleLibraryMeta(meta: AnilistMeta): Promise<voi
       .where(eq(subtitleLibraryAnime.anilistId, meta.anilistId))
       .limit(1);
 
-    const cachedEpisodeCount = existing?.cachedEpisodeCount ?? 0;
+    const [agg] = await db
+      .select({
+        episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
+      })
+      .from(episodeSubtitles)
+      .where(
+        and(
+          eq(episodeSubtitles.anilistId, meta.anilistId),
+          subtitleProviderFilter(),
+        ),
+      );
+
+    const cachedEpisodeCount = Math.max(
+      agg?.episodeCount ?? 0,
+      existing?.cachedEpisodeCount ?? 0,
+    );
     const isComplete = computeIsComplete(cachedEpisodeCount, meta.episodes);
     const now = new Date();
 
@@ -117,6 +132,7 @@ export async function persistSubtitleLibraryMeta(meta: AnilistMeta): Promise<voi
         status: meta.status,
         totalEpisodes: meta.episodes,
         cachedEpisodeCount,
+        trackCount: 0,
         isComplete,
         score: meta.score,
         year: meta.year,
@@ -130,6 +146,7 @@ export async function persistSubtitleLibraryMeta(meta: AnilistMeta): Promise<voi
           poster: meta.poster,
           status: meta.status,
           totalEpisodes: meta.episodes,
+          cachedEpisodeCount,
           isComplete,
           score: meta.score,
           year: meta.year,
@@ -142,8 +159,16 @@ export async function persistSubtitleLibraryMeta(meta: AnilistMeta): Promise<voi
   }
 }
 
-export async function syncSubtitleLibraryAnime(anilistId: number): Promise<void> {
-  if (!dbAvailable()) return;
+export type SubtitleLibrarySyncResult = {
+  isComplete: boolean;
+  newlyComplete: boolean;
+};
+
+export async function syncSubtitleLibraryAnime(
+  anilistId: number,
+  opts?: { totalEpisodes?: number | null },
+): Promise<SubtitleLibrarySyncResult> {
+  if (!dbAvailable()) return { isComplete: false, newlyComplete: false };
 
   try {
     const db = getDb();
@@ -152,7 +177,7 @@ export async function syncSubtitleLibraryAnime(anilistId: number): Promise<void>
         trackCount: sql<number>`count(*)::int`,
         episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
         animeTitle: sql<string | null>`max(${episodeSubtitles.animeTitle})`,
-        lastFetched: sql<Date | null>`max(${episodeSubtitles.fetchedAt})`,
+        lastFetched: sql<Date | null>`max(${episodeSubtitles.updatedAt})`,
       })
       .from(episodeSubtitles)
       .where(
@@ -162,7 +187,7 @@ export async function syncSubtitleLibraryAnime(anilistId: number): Promise<void>
         ),
       );
 
-    if (!agg || agg.trackCount === 0) return;
+    if (!agg || agg.trackCount === 0) return { isComplete: false, newlyComplete: false };
 
     const [existing] = await db
       .select()
@@ -170,7 +195,9 @@ export async function syncSubtitleLibraryAnime(anilistId: number): Promise<void>
       .where(eq(subtitleLibraryAnime.anilistId, anilistId))
       .limit(1);
 
-    const totalEpisodes = existing?.totalEpisodes ?? null;
+    const totalEpisodes =
+      opts?.totalEpisodes ?? existing?.totalEpisodes ?? null;
+    const wasComplete = existing?.isComplete ?? false;
     const isComplete = computeIsComplete(agg.episodeCount, totalEpisodes);
     const now = new Date();
 
@@ -198,12 +225,16 @@ export async function syncSubtitleLibraryAnime(anilistId: number): Promise<void>
           cachedEpisodeCount: agg.episodeCount,
           trackCount: agg.trackCount,
           isComplete,
+          ...(opts?.totalEpisodes != null ? { totalEpisodes: opts.totalEpisodes } : {}),
           lastSubtitleAt: agg.lastFetched,
           updatedAt: now,
         },
       });
+
+    return { isComplete, newlyComplete: isComplete && !wasComplete };
   } catch (err) {
     console.error("[subtitle-library-db] sync failed:", err);
+    return { isComplete: false, newlyComplete: false };
   }
 }
 
@@ -238,12 +269,7 @@ export async function countCompletedSubtitleAnimesFromDb(): Promise<number> {
     const [row] = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(subtitleLibraryAnime)
-      .where(
-        and(
-          eq(subtitleLibraryAnime.isComplete, true),
-          or(isNull(subtitleLibraryAnime.status), eq(subtitleLibraryAnime.status, "FINISHED")),
-        ),
-      );
+      .where(eq(subtitleLibraryAnime.isComplete, true));
 
     return row?.total ?? 0;
   } catch {
@@ -322,6 +348,16 @@ function allLibraryWhere(q?: string) {
   );
 }
 
+/** Most recently synced or subtitle-updated shows first. */
+function orderByLatestLibraryUpdate() {
+  return desc(
+    sql`greatest(
+      coalesce(${subtitleLibraryAnime.lastSubtitleAt}, to_timestamp(0)),
+      ${subtitleLibraryAnime.updatedAt}
+    )`,
+  );
+}
+
 export async function searchAllSubtitleLibraryFromDb(opts: {
   q?: string;
   page?: number;
@@ -366,7 +402,7 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
       .select()
       .from(subtitleLibraryAnime)
       .where(whereClause ?? sql`true`)
-      .orderBy(desc(subtitleLibraryAnime.lastSubtitleAt))
+      .orderBy(orderByLatestLibraryUpdate())
       .limit(limit)
       .offset(offset);
 
@@ -377,7 +413,7 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
           animeTitle: row.animeTitle,
           trackCount: row.trackCount,
           episodeCount: row.cachedEpisodeCount,
-          lastFetched: row.lastSubtitleAt,
+          lastFetched: row.lastSubtitleAt ?? row.updatedAt,
           poster: row.poster,
           status: row.status,
           totalEpisodes: row.totalEpisodes,
@@ -442,7 +478,7 @@ export async function searchCompletedSubtitleLibrary(opts: {
       .select()
       .from(subtitleLibraryAnime)
       .where(whereClause)
-      .orderBy(desc(subtitleLibraryAnime.lastSubtitleAt))
+      .orderBy(orderByLatestLibraryUpdate())
       .limit(limit)
       .offset(offset);
 
@@ -453,7 +489,7 @@ export async function searchCompletedSubtitleLibrary(opts: {
           animeTitle: row.animeTitle,
           trackCount: row.trackCount,
           episodeCount: row.cachedEpisodeCount,
-          lastFetched: row.lastSubtitleAt,
+          lastFetched: row.lastSubtitleAt ?? row.updatedAt,
           poster: row.poster,
           status: row.status,
           totalEpisodes: row.totalEpisodes,

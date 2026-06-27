@@ -18,6 +18,7 @@ export type SubtitleSyncResult = {
   remaining: number;
   mode?: SubtitleSyncMode;
   nextInMs?: number;
+  stats?: SubtitleLibraryStats;
 };
 
 export type SubtitleLibraryResult = {
@@ -71,8 +72,8 @@ export const useSubtitleLibraryStats = () =>
   useQuery({
     queryKey: ["subtitle-library-stats"],
     queryFn: getSubtitleLibraryStats,
-    staleTime: 15_000,
-    refetchInterval: 15_000,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
   });
 
 export const useSubtitleLibrary = (

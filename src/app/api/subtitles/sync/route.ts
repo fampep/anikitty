@@ -1,5 +1,6 @@
 import {
   ensureIncrementalSubtitleCache,
+  getSubtitleLibraryStats,
 } from "@/lib/subtitle-cache-store";
 import {
   backfillSubtitleLibraryAnime,
@@ -81,6 +82,7 @@ export async function GET(req: Request) {
   }
 
   const incomplete = await listIncompleteSubtitleAnimesFromDb(500);
+  const stats = await getSubtitleLibraryStats();
 
   return Response.json({
     data: {
@@ -92,6 +94,7 @@ export async function GET(req: Request) {
       results,
       mode: syncMode,
       nextInMs: SUBTITLE_API_INTERVAL_MS,
+      stats,
     },
   });
 }

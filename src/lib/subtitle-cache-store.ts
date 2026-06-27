@@ -416,15 +416,18 @@ export async function ensureIncrementalSubtitleCache(
     }
 
     await fetchAnilistMetaBatch([anilistId]);
-    await import("@/lib/subtitle-library-db").then((m) =>
-      m.syncSubtitleLibraryAnime(anilistId),
-    );
-
     const totalEpisodes =
       count > 0 ? count : (await fetchAnilistEpisodeCount(anilistId)) || cachedEps.size;
+    const syncResult = await import("@/lib/subtitle-library-db").then((m) =>
+      m.syncSubtitleLibraryAnime(anilistId, {
+        totalEpisodes: totalEpisodes > 0 ? totalEpisodes : null,
+      }),
+    );
+
     const cachedEpisodes = cachedEps.size;
     const isComplete =
-      totalEpisodes > 0 && cachedEpisodes >= totalEpisodes;
+      syncResult.isComplete ||
+      (totalEpisodes > 0 && cachedEpisodes >= totalEpisodes);
 
     return {
       anilistId,
@@ -715,12 +718,12 @@ export async function searchSubtitleLibrary(opts: {
         animeTitle: sql<string | null>`max(${episodeSubtitles.animeTitle})`,
         trackCount: sql<number>`count(*)::int`,
         episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
-        lastFetched: sql<Date | null>`max(${episodeSubtitles.fetchedAt})`,
+        lastFetched: sql<Date | null>`max(${episodeSubtitles.updatedAt})`,
       })
       .from(episodeSubtitles)
       .where(whereClause)
       .groupBy(episodeSubtitles.anilistId)
-      .orderBy(desc(sql`max(${episodeSubtitles.fetchedAt})`))
+      .orderBy(desc(sql`max(${episodeSubtitles.updatedAt})`))
       .limit(limit)
       .offset(offset);
 

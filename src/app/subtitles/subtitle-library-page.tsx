@@ -114,14 +114,19 @@ export default function SubtitleLibraryPage() {
           episodes: 1,
         });
 
-        if (result.fetchedEpisodes > 0) {
+        if (result.stats) {
+          queryClient.setQueryData(["subtitle-library-stats"], result.stats);
+        }
+
+        if (result.fetchedEpisodes > 0 || result.completed > 0) {
           setAutoSyncDetail(
-            t("subsLibrary.autoSyncProgress", {
-              fetched: result.fetchedEpisodes,
-              remaining: result.remaining,
-            }),
+            result.completed > 0
+              ? t("subsLibrary.autoSyncComplete", { count: result.completed })
+              : t("subsLibrary.autoSyncProgress", {
+                  fetched: result.fetchedEpisodes,
+                  remaining: result.remaining,
+                }),
           );
-          invalidateLibrary();
         } else if (result.processed > 0) {
           setAutoSyncDetail(
             result.mode === "discover"
@@ -132,7 +137,7 @@ export default function SubtitleLibraryPage() {
           setAutoSyncDetail(t("subsLibrary.autoSyncIdle"));
         }
 
-        if (result.completed > 0) {
+        if (result.fetchedEpisodes > 0 || result.completed > 0 || result.stats) {
           invalidateLibrary();
         }
       } catch {
