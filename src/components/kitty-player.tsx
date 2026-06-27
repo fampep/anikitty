@@ -24,6 +24,7 @@ import { createHlsConfig } from "@/lib/hls-config";
 import { isHLSProvider, type MediaProviderAdapter } from "@vidstack/react";
 import Hls from "hls.js";
 import { useT } from "@/providers/i18n-provider";
+import { useAnime4KUpscaler } from "@/hooks/use-anime4k-upscaler";
 
 interface W2gSyncState {
   version: number;
@@ -74,6 +75,9 @@ export default function KittyPlayer({
   preferSubtitles = true,
 }: KittyPlayerProps) {
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
+  const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
+  const anime4kMode = useSettingsStore((s) => s.anime4kMode);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const subtitleCssVars = useMemo(
     () => subtitleSettingsToCssVars(subtitleSettings),
     [subtitleSettings],
@@ -115,6 +119,14 @@ export default function KittyPlayer({
   // Derived early so effects can reference them
   const referer = headers?.Referer ?? headers?.referer ?? "";
   const proxiedSrc = buildKittyHlsUrl(src, headers);
+
+  useAnime4KUpscaler(
+    containerRef,
+    canvasRef,
+    anime4kEnabled,
+    anime4kMode,
+    proxiedSrc ?? src,
+  );
 
   const subTracks = useMemo(
     () =>
@@ -422,6 +434,7 @@ export default function KittyPlayer({
       ref={containerRef}
       className="vds-kitty relative w-full bg-black overflow-hidden ring-1 ring-white/[0.08] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)]"
       style={{ aspectRatio: "16/9" }}
+      data-anime4k={anime4kEnabled ? "true" : undefined}
     >
       <MediaPlayer
         ref={playerRef}
@@ -486,6 +499,14 @@ export default function KittyPlayer({
           />
         )}
       </MediaPlayer>
+
+      {anime4kEnabled && (
+        <canvas
+          ref={canvasRef}
+          className="anime4k-canvas pointer-events-none"
+          aria-hidden
+        />
+      )}
     </div>
   );
 }

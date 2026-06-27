@@ -7,6 +7,7 @@ import {
 } from "@/lib/subtitle-settings";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
+export type Anime4KMode = "A" | "B" | "C";
 
 interface ISettingsStore {
   episodeLayout: EpisodeLayout;
@@ -17,6 +18,11 @@ interface ISettingsStore {
 
   autoPlay: boolean;
   setAutoPlay: (val: boolean) => void;
+
+  anime4kEnabled: boolean;
+  setAnime4kEnabled: (val: boolean) => void;
+  anime4kMode: Anime4KMode;
+  setAnime4kMode: (mode: Anime4KMode) => void;
 
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
@@ -42,6 +48,11 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       autoPlay: false,
       setAutoPlay: (autoPlay) => set({ autoPlay }),
+
+      anime4kEnabled: false,
+      setAnime4kEnabled: (anime4kEnabled) => set({ anime4kEnabled }),
+      anime4kMode: "A",
+      setAnime4kMode: (anime4kMode) => set({ anime4kMode }),
 
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
@@ -69,16 +80,18 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore>;
-        if (version < 2 || !state.subtitleSettings) {
-          return {
-            ...state,
-            subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
-          };
+        let next = { ...state } as Partial<ISettingsStore>;
+        if (version < 2 || !next.subtitleSettings) {
+          next = { ...next, subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } };
         }
-        return state as ISettingsStore;
+        if (version < 3) {
+          next.anime4kEnabled ??= false;
+          next.anime4kMode ??= "A";
+        }
+        return next as ISettingsStore;
       },
     },
   ),

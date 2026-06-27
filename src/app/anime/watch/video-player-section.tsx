@@ -30,6 +30,7 @@ import {
   Server,
   Users,
   SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
 import WatchDownloadPanel from "@/components/watch-download-panel";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -54,6 +55,8 @@ import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/w2g/w2g-panel";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
+import { isAnime4KSupported } from "@/hooks/use-anime4k-upscaler";
+import type { Anime4KMode } from "@/store/settings-store";
 
 const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
   ssr: false,
@@ -70,7 +73,8 @@ const VideoPlayerSection = () => {
   const w2gCode = searchParams.get("w2g");
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { preferDub, setPreferDub } = useSettingsStore();
+  const { preferDub, setPreferDub, anime4kEnabled, setAnime4kEnabled, anime4kMode, setAnime4kMode } =
+    useSettingsStore();
 
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
@@ -352,6 +356,14 @@ const VideoPlayerSection = () => {
     setPreferDub(dub);
   };
 
+  const handleAnime4kToggle = () => {
+    if (!anime4kEnabled && !isAnime4KSupported()) {
+      toast.error(t("watch.anime4kUnsupported"));
+      return;
+    }
+    setAnime4kEnabled(!anime4kEnabled);
+  };
+
   if (!episodeId && !selectedEpisode) {
     return (
       <div className="w-full aspect-video bg-black flex flex-col items-center justify-center gap-3 rounded-xl border border-white/10">
@@ -562,6 +574,46 @@ const VideoPlayerSection = () => {
                 provider={provider}
               />
             )}
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleAnime4kToggle}
+                title={t("watch.anime4kHint")}
+                className={`flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                  anime4kEnabled
+                    ? "border-fuchsia-500/40 bg-fuchsia-500/20 text-fuchsia-200"
+                    : "border-white/12 bg-white/[0.03] text-white/45 hover:text-white/70 hover:bg-white/6"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />
+                <span className="hidden sm:inline">{t("watch.anime4k")}</span>
+              </button>
+
+              {anime4kEnabled && (
+                <Select
+                  value={anime4kMode}
+                  onValueChange={(v) => setAnime4kMode(v as Anime4KMode)}
+                >
+                  <SelectTrigger className="h-8 w-[52px] text-[10px] font-mono px-2 bg-fuchsia-500/10 border-fuchsia-500/25 text-fuchsia-200/90">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0e0e0e] border-fuchsia-500/20">
+                    <SelectGroup>
+                      {(["A", "B", "C"] as const).map((mode) => (
+                        <SelectItem
+                          key={mode}
+                          value={mode}
+                          className="text-xs font-mono text-white/75"
+                        >
+                          {t("watch.anime4kMode", { mode })}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
 
             <Popover>
               <PopoverTrigger asChild>
