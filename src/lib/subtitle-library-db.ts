@@ -279,6 +279,32 @@ export async function needsSubtitleLibraryMetaRefresh(anilistId: number): Promis
   }
 }
 
+/** Sum of cached vs total episodes across the library, for track-level coverage. */
+export async function getSubtitleEpisodeCoverage(): Promise<{
+  cachedEpisodes: number;
+  totalEpisodes: number;
+}> {
+  if (!dbAvailable()) return { cachedEpisodes: 0, totalEpisodes: 0 };
+
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({
+        cachedEpisodes: sql<number>`coalesce(sum(${subtitleLibraryAnime.cachedEpisodeCount}), 0)::int`,
+        totalEpisodes: sql<number>`coalesce(sum(greatest(${subtitleLibraryAnime.totalEpisodes}, ${subtitleLibraryAnime.cachedEpisodeCount})), 0)::int`,
+      })
+      .from(subtitleLibraryAnime)
+      .where(sql`${subtitleLibraryAnime.trackCount} > 0`);
+
+    return {
+      cachedEpisodes: row?.cachedEpisodes ?? 0,
+      totalEpisodes: row?.totalEpisodes ?? 0,
+    };
+  } catch {
+    return { cachedEpisodes: 0, totalEpisodes: 0 };
+  }
+}
+
 export async function countCompletedSubtitleAnimesFromDb(): Promise<number> {
   if (!dbAvailable()) return 0;
 
@@ -500,6 +526,8 @@ function applyLiveCounts(
   });
 }
 
+export type SubtitleLibrarySort = "latest" | "tracks" | "progress" | "az";
+
 /** Most recently synced or subtitle-updated shows first. */
 function orderByLatestLibraryUpdate() {
   return desc(
@@ -510,10 +538,31 @@ function orderByLatestLibraryUpdate() {
   );
 }
 
+function resolveLibraryOrderBy(sort: SubtitleLibrarySort | undefined) {
+  switch (sort) {
+    case "tracks":
+      return desc(subtitleLibraryAnime.trackCount);
+    case "progress":
+      return desc(
+        sql`case
+          when coalesce(${subtitleLibraryAnime.totalEpisodes}, 0) > 0
+          then ${subtitleLibraryAnime.cachedEpisodeCount}::float / ${subtitleLibraryAnime.totalEpisodes}
+          else 0
+        end`,
+      );
+    case "az":
+      return sql`lower(coalesce(${subtitleLibraryAnime.animeTitle}, '')) asc`;
+    case "latest":
+    default:
+      return orderByLatestLibraryUpdate();
+  }
+}
+
 export async function searchAllSubtitleLibraryFromDb(opts: {
   q?: string;
   page?: number;
   limit?: number;
+  sort?: SubtitleLibrarySort;
 }): Promise<{
   items: SubtitleLibraryEntry[];
   total: number;
@@ -562,7 +611,7 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
           ? and(whereClause, sql`${subtitleLibraryAnime.trackCount} > 0`)
           : sql`${subtitleLibraryAnime.trackCount} > 0`,
       )
-      .orderBy(orderByLatestLibraryUpdate())
+      .orderBy(resolveLibraryOrderBy(opts.sort))
       .limit(limit)
       .offset(offset);
 
@@ -602,6 +651,7 @@ export async function searchCompletedSubtitleLibrary(opts: {
   q?: string;
   page?: number;
   limit?: number;
+  sort?: SubtitleLibrarySort;
 }): Promise<{
   items: SubtitleLibraryEntry[];
   total: number;
@@ -642,7 +692,7 @@ export async function searchCompletedSubtitleLibrary(opts: {
       .select()
       .from(subtitleLibraryAnime)
       .where(whereClause)
-      .orderBy(orderByLatestLibraryUpdate())
+      .orderBy(resolveLibraryOrderBy(opts.sort))
       .limit(limit)
       .offset(offset);
 

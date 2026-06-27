@@ -8,9 +8,14 @@ export async function GET(req: Request) {
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "24", 10) || 24));
   const filterParam = searchParams.get("filter");
   const filter = filterParam === "completed" ? "completed" : "all";
+  const sortParam = searchParams.get("sort");
+  const sort =
+    sortParam === "tracks" || sortParam === "progress" || sortParam === "az"
+      ? sortParam
+      : "latest";
 
   try {
-    const result = await searchEnrichedSubtitleLibrary({ q, page, limit, filter });
+    const result = await searchEnrichedSubtitleLibrary({ q, page, limit, filter, sort });
     return Response.json({ data: result });
   } catch (err) {
     console.error("[subtitles/library]", err);

@@ -20,16 +20,47 @@ import {
   useSubtitleLibrary,
   useSubtitleLibraryStats,
   type SubtitleLibraryFilter,
+  type SubtitleLibrarySort,
 } from "@/query/get-subtitle-library";
 import {
   downloadSubtitleEpisodesZip,
   fetchAllAnimeSubtitles,
+  listAnimeSubtitleTracks,
 } from "@/query/get-anime-subtitles";
 import type { SubtitleLibraryEntry } from "@/lib/subtitle-cache-store";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Captions, Loader2, Search } from "lucide-react";
+
+const SORT_OPTIONS: SubtitleLibrarySort[] = ["latest", "tracks", "progress", "az"];
+
+function useStableOrder(
+  items: SubtitleLibraryEntry[] | undefined,
+  frozen: boolean,
+): SubtitleLibraryEntry[] {
+  const orderRef = useRef<number[]>([]);
+
+  return useMemo(() => {
+    const list = items ?? [];
+    if (!frozen || orderRef.current.length === 0) {
+      orderRef.current = list.map((i) => i.anilistId);
+      return list;
+    }
+
+    const byId = new Map(list.map((i) => [i.anilistId, i]));
+    const ordered: SubtitleLibraryEntry[] = [];
+    for (const id of orderRef.current) {
+      const found = byId.get(id);
+      if (found) {
+        ordered.push(found);
+        byId.delete(id);
+      }
+    }
+    for (const leftover of byId.values()) ordered.push(leftover);
+    return ordered;
+  }, [items, frozen]);
+}
 
 export default function SubtitleLibraryPage() {
   const t = useT();
@@ -41,12 +72,25 @@ export default function SubtitleLibraryPage() {
   const pageParam = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const filterParam: SubtitleLibraryFilter =
     searchParams.get("filter") === "completed" ? "completed" : "all";
+  const sortParamRaw = searchParams.get("sort");
+  const sortParam: SubtitleLibrarySort = SORT_OPTIONS.includes(
+    sortParamRaw as SubtitleLibrarySort,
+  )
+    ? (sortParamRaw as SubtitleLibrarySort)
+    : "latest";
 
   const [query, setQuery] = useState(qParam);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [fetchingId, setFetchingId] = useState<number | null>(null);
+  const [fetchProgress, setFetchProgress] = useState<{
+    id: number;
+    done: number;
+    total: number;
+  } | null>(null);
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [autoSyncDetail, setAutoSyncDetail] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState(false);
+  const syncFailures = useRef(0);
 
   const SYNC_INTERVAL_MS = 5_000;
 
@@ -59,6 +103,7 @@ export default function SubtitleLibraryPage() {
     qParam,
     pageParam,
     filterParam,
+    sortParam,
   );
   const backfillAttempted = useRef(false);
   const { data: animeSearch, isLoading: animeSearchLoading } = useDiscoverAnimeSearch(qParam);
@@ -79,21 +124,31 @@ export default function SubtitleLibraryPage() {
   const totalPages = Math.max(1, Math.ceil((library?.total ?? 0) / (library?.limit ?? 24)));
   const showDiscover = qParam.trim().length >= 2;
 
+  const rowBusy = downloadingId !== null || fetchingId !== null;
+  const displayItems = useStableOrder(library?.items, rowBusy);
+
   const buildSubsUrl = (
     nextQ: string,
     nextPage: number,
     filter: SubtitleLibraryFilter,
+    sort: SubtitleLibrarySort,
   ) => {
     const p = new URLSearchParams();
     if (nextQ.trim()) p.set("q", nextQ.trim());
     if (nextPage > 1) p.set("page", String(nextPage));
     if (filter === "completed") p.set("filter", "completed");
+    if (sort !== "latest") p.set("sort", sort);
     const qs = p.toString();
     return `${ROUTES.SUBTITLES}${qs ? `?${qs}` : ""}`;
   };
 
-  const pushParams = (nextQ: string, nextPage: number, filter: SubtitleLibraryFilter) => {
-    router.replace(buildSubsUrl(nextQ, nextPage, filter), { scroll: false });
+  const pushParams = (
+    nextQ: string,
+    nextPage: number,
+    filter: SubtitleLibraryFilter,
+    sort: SubtitleLibrarySort = sortParam,
+  ) => {
+    router.replace(buildSubsUrl(nextQ, nextPage, filter, sort), { scroll: false });
   };
 
   const invalidateLibrary = () => {
@@ -107,6 +162,12 @@ export default function SubtitleLibraryPage() {
 
     const tick = async () => {
       if (cancelled) return;
+
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        timer = setTimeout(tick, SYNC_INTERVAL_MS);
+        return;
+      }
+
       setAutoSyncing(true);
       try {
         const result = await syncSubtitleLibrary({
@@ -115,16 +176,15 @@ export default function SubtitleLibraryPage() {
           episodes: 1,
         });
 
+        syncFailures.current = 0;
+        setSyncError(false);
+
         if (result.stats) {
           queryClient.setQueryData(["subtitle-library-stats"], result.stats);
         }
 
         if (result.updatedEntries?.length) {
-          patchSubtitleLibraryCache(queryClient, result.updatedEntries, {
-            q: qParam,
-            page: pageParam,
-            filter: filterParam,
-          });
+          patchSubtitleLibraryCache(queryClient, result.updatedEntries);
         }
 
         if (result.fetchedEpisodes > 0 || result.completed > 0) {
@@ -155,7 +215,8 @@ export default function SubtitleLibraryPage() {
           invalidateLibrary();
         }
       } catch {
-        /* silent — retry on next tick */
+        syncFailures.current += 1;
+        if (syncFailures.current >= 3) setSyncError(true);
       } finally {
         setAutoSyncing(false);
         if (!cancelled) {
@@ -170,7 +231,7 @@ export default function SubtitleLibraryPage() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [queryClient, t, qParam, pageParam, filterParam]);
+  }, [queryClient, t]);
 
   useEffect(() => {
     if (backfillAttempted.current || statsLoading || isLoading || qParam.trim()) return;
@@ -197,9 +258,28 @@ export default function SubtitleLibraryPage() {
     }
   };
 
-  const handleFetchSubs = async (anilistId: number) => {
+  const handleFetchSubs = async (
+    anilistId: number,
+    totalEpisodes?: number | null,
+  ) => {
     setFetchingId(anilistId);
+    const total = totalEpisodes && totalEpisodes > 0 ? totalEpisodes : 0;
+    if (total > 0) setFetchProgress({ id: anilistId, done: 0, total });
     toast.loading(t("subsLibrary.fetching"), { id: `fetch-subs-${anilistId}` });
+
+    let poll: ReturnType<typeof setInterval> | undefined;
+    if (total > 0) {
+      poll = setInterval(async () => {
+        try {
+          const rows = await listAnimeSubtitleTracks(anilistId);
+          const done = new Set(rows.map((r) => r.episode)).size;
+          setFetchProgress({ id: anilistId, done: Math.min(done, total), total });
+        } catch {
+          /* ignore poll errors */
+        }
+      }, 3_000);
+    }
+
     try {
       const result = await fetchAllAnimeSubtitles(anilistId);
       toast.dismiss(`fetch-subs-${anilistId}`);
@@ -212,17 +292,15 @@ export default function SubtitleLibraryPage() {
         queryClient.setQueryData(["subtitle-library-stats"], result.stats);
       }
       if (result.libraryEntry) {
-        patchSubtitleLibraryCache(queryClient, [result.libraryEntry], {
-          q: qParam,
-          page: pageParam,
-          filter: filterParam,
-        });
+        patchSubtitleLibraryCache(queryClient, [result.libraryEntry]);
       }
       invalidateLibrary();
     } catch {
       toast.dismiss(`fetch-subs-${anilistId}`);
       toast.error(t("subsLibrary.fetchError"));
     } finally {
+      if (poll) clearInterval(poll);
+      setFetchProgress(null);
       setFetchingId(null);
     }
   };
@@ -252,6 +330,11 @@ export default function SubtitleLibraryPage() {
               )}
               {!autoSyncing && autoSyncDetail && (
                 <p className="mt-2 text-[11px] font-mono text-white/30">{autoSyncDetail}</p>
+              )}
+              {syncError && (
+                <p className="mt-2 text-[11px] font-mono text-amber-400/70">
+                  {t("subsLibrary.autoSyncError")}
+                </p>
               )}
             </div>
 
@@ -297,9 +380,27 @@ export default function SubtitleLibraryPage() {
                   </button>
                 </form>
 
-                {isFetching && !isLoading && (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/30" />
-                )}
+                <div className="flex items-center gap-2">
+                  <label className="sr-only" htmlFor="subs-sort">
+                    {t("subsLibrary.sortLabel")}
+                  </label>
+                  <select
+                    id="subs-sort"
+                    value={sortParam}
+                    onChange={(e) =>
+                      pushParams(qParam, 1, filterParam, e.target.value as SubtitleLibrarySort)
+                    }
+                    className="h-9 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 text-[12px] text-white/70 outline-none transition-colors focus:border-violet-500/30"
+                  >
+                    <option value="latest">{t("subsLibrary.sortLatest")}</option>
+                    <option value="tracks">{t("subsLibrary.sortTracks")}</option>
+                    <option value="progress">{t("subsLibrary.sortProgress")}</option>
+                    <option value="az">{t("subsLibrary.sortAZ")}</option>
+                  </select>
+                  {isFetching && !isLoading && (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/30" />
+                  )}
+                </div>
               </div>
 
               <div className="subs-feed-grid mt-4 space-y-2">
@@ -309,16 +410,21 @@ export default function SubtitleLibraryPage() {
                   ))
                 ) : isError ? (
                   <LibraryError onRetry={() => refetch()} />
-                ) : library && library.items.length > 0 ? (
-                  library.items.map((item, i) => (
+                ) : displayItems.length > 0 ? (
+                  displayItems.map((item, i) => (
                     <SubtitleFeedCard
                       key={item.anilistId}
                       item={item}
                       index={i}
                       downloading={downloadingId === item.anilistId}
                       fetching={fetchingId === item.anilistId}
+                      progress={
+                        fetchProgress?.id === item.anilistId
+                          ? { done: fetchProgress.done, total: fetchProgress.total }
+                          : undefined
+                      }
                       onDownload={() => handleDownloadAll(item.anilistId)}
-                      onFetch={() => handleFetchSubs(item.anilistId)}
+                      onFetch={() => handleFetchSubs(item.anilistId, item.totalEpisodes)}
                     />
                   ))
                 ) : (
@@ -352,15 +458,16 @@ export default function SubtitleLibraryPage() {
                   ) : discoverAnimes.length > 0 ? (
                     discoverAnimes.map((anime, i) => {
                       const anilistId = parseInt(anime.id, 10);
+                      const totalEpisodes = anime.episodes?.sub ?? null;
                       const entry: SubtitleLibraryEntry = {
                         anilistId,
                         animeTitle: anime.name ?? null,
                         trackCount: 0,
-                        episodeCount: anime.episodes?.sub ?? 0,
+                        episodeCount: 0,
                         lastFetched: null,
                         poster: anime.poster ?? null,
                         status: anime.status ?? null,
-                        totalEpisodes: anime.episodes?.sub ?? null,
+                        totalEpisodes,
                         year: anime.year ?? null,
                       };
                       return (
@@ -370,7 +477,12 @@ export default function SubtitleLibraryPage() {
                           index={i}
                           discover
                           fetching={fetchingId === anilistId}
-                          onFetch={() => handleFetchSubs(anilistId)}
+                          progress={
+                            fetchProgress?.id === anilistId
+                              ? { done: fetchProgress.done, total: fetchProgress.total }
+                              : undefined
+                          }
+                          onFetch={() => handleFetchSubs(anilistId, totalEpisodes)}
                         />
                       );
                     })

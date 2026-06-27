@@ -8,6 +8,8 @@ import type {
 
 export type SubtitleLibraryFilter = "all" | "completed";
 
+export type SubtitleLibrarySort = "latest" | "tracks" | "progress" | "az";
+
 export type SubtitleSyncMode = "fill" | "discover" | "auto";
 
 export type SubtitleSyncResult = {
@@ -40,6 +42,7 @@ const getSubtitleLibrary = async (
   q: string,
   page: number,
   filter: SubtitleLibraryFilter,
+  sort: SubtitleLibrarySort = "latest",
 ): Promise<SubtitleLibraryResult> => {
   const res = await api.get("/api/subtitles/library", {
     params: {
@@ -47,6 +50,7 @@ const getSubtitleLibrary = async (
       page,
       limit: 24,
       filter: filter === "completed" ? "completed" : undefined,
+      sort: sort !== "latest" ? sort : undefined,
     },
     timeout: 120_000,
   });
@@ -75,19 +79,22 @@ export const useSubtitleLibraryStats = () =>
     queryFn: getSubtitleLibraryStats,
     staleTime: 5_000,
     refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 
 export const useSubtitleLibrary = (
   q: string,
   page: number,
   filter: SubtitleLibraryFilter = "all",
+  sort: SubtitleLibrarySort = "latest",
 ) =>
   useQuery({
-    queryKey: ["subtitle-library", q, page, filter],
-    queryFn: () => getSubtitleLibrary(q, page, filter),
+    queryKey: ["subtitle-library", q, page, filter, sort],
+    queryFn: () => getSubtitleLibrary(q, page, filter, sort),
     keepPreviousData: true,
     staleTime: 0,
     refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
     retry: 2,
   });
 
@@ -112,11 +119,10 @@ function mergeLibraryEntries(
   });
 }
 
-/** Patch visible library queries immediately (no wait for refetch). */
+/** Patch every cached library query immediately (no wait for refetch). */
 export function patchSubtitleLibraryCache(
   queryClient: QueryClient,
   updatedEntries: SubtitleLibraryEntry[],
-  opts?: { q?: string; page?: number; filter?: SubtitleLibraryFilter },
 ) {
   if (updatedEntries.length === 0) return;
 
@@ -124,15 +130,6 @@ export function patchSubtitleLibraryCache(
     ...old,
     items: mergeLibraryEntries(old.items, updatedEntries),
   });
-
-  if (opts) {
-    const key = ["subtitle-library", opts.q ?? "", opts.page ?? 1, opts.filter ?? "all"];
-    const existing = queryClient.getQueryData<SubtitleLibraryResult>(key);
-    if (existing) {
-      queryClient.setQueryData(key, patchResult(existing));
-    }
-    return;
-  }
 
   queryClient
     .getQueryCache()

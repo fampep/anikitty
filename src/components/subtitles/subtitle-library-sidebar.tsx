@@ -92,7 +92,13 @@ export function SubtitleCacheSidebar({
   const totalAnimes = stats?.totalAnimes ?? 0;
   const totalTracks = stats?.totalTracks ?? 0;
   const completed = stats?.completedAnimes ?? 0;
+  const cachedEpisodes = stats?.cachedEpisodes ?? 0;
+  const totalEpisodes = stats?.totalEpisodes ?? 0;
   const coveragePct =
+    totalEpisodes > 0
+      ? Math.round((cachedEpisodes / totalEpisodes) * 100)
+      : 0;
+  const completedPct =
     totalAnimes > 0 ? Math.round((completed / totalAnimes) * 100) : 0;
 
   return (
@@ -121,15 +127,24 @@ export function SubtitleCacheSidebar({
       </div>
 
       <StatBar
-        label={t("subsLibrary.coverage")}
-        value={`${coveragePct}%`}
+        label={t("subsLibrary.coverageEpisodes")}
+        value={
+          loading
+            ? "—"
+            : totalEpisodes > 0
+              ? t("subsLibrary.episodeCoverageMeta", {
+                  cached: cachedEpisodes.toLocaleString(),
+                  total: totalEpisodes.toLocaleString(),
+                })
+              : `${coveragePct}%`
+        }
         width={coveragePct}
         variant="primary"
       />
       <StatBar
         label={t("subsLibrary.stats.completed")}
-        value={loading ? "—" : String(completed)}
-        width={totalAnimes > 0 ? (completed / totalAnimes) * 100 : 0}
+        value={loading ? "—" : `${completed} (${completedPct}%)`}
+        width={completedPct}
         variant="alt"
       />
     </div>

@@ -11,6 +11,7 @@ import {
   searchAllSubtitleLibraryFromDb,
   searchCompletedSubtitleLibrary,
   type AnilistMeta,
+  type SubtitleLibrarySort,
 } from "@/lib/subtitle-library-db";
 
 export type { AnilistMeta };
@@ -244,6 +245,7 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   page?: number;
   limit?: number;
   filter?: "all" | "completed";
+  sort?: SubtitleLibrarySort;
 }): Promise<{
   items: SubtitleLibraryEntry[];
   total: number;
@@ -257,7 +259,12 @@ export async function searchEnrichedSubtitleLibrary(opts: {
   const filter = opts.filter ?? "all";
 
   if (filter === "completed") {
-    const dbResult = await searchCompletedSubtitleLibrary({ q: opts.q, page, limit });
+    const dbResult = await searchCompletedSubtitleLibrary({
+      q: opts.q,
+      page,
+      limit,
+      sort: opts.sort,
+    });
     if (dbResult.total > 0 || dbResult.items.length > 0) {
       const items = await enrichWithTimeout(dbResult.items, 12_000);
       return { ...dbResult, items };
@@ -285,11 +292,21 @@ export async function searchEnrichedSubtitleLibrary(opts: {
     };
   }
 
-  let result = await searchAllSubtitleLibraryFromDb({ q: opts.q, page, limit });
+  let result = await searchAllSubtitleLibraryFromDb({
+    q: opts.q,
+    page,
+    limit,
+    sort: opts.sort,
+  });
 
   if (result.total === 0 && !opts.q?.trim()) {
     await backfillSubtitleLibraryAnime(100);
-    result = await searchAllSubtitleLibraryFromDb({ q: opts.q, page, limit });
+    result = await searchAllSubtitleLibraryFromDb({
+      q: opts.q,
+      page,
+      limit,
+      sort: opts.sort,
+    });
   }
 
   if (result.total === 0) {

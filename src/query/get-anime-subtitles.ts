@@ -70,10 +70,29 @@ export const useGetAnimeSubtitles = (anilistId: number | undefined) => {
   });
 };
 
+/** Cached subtitle tracks for one anime, fetched lazily (e.g. when a card expands). */
+export const useAnimeSubtitleTracks = (anilistId: number, enabled: boolean) => {
+  return useQuery({
+    queryKey: ["anime-subtitle-tracks", anilistId],
+    queryFn: () => listAnimeSubtitleTracks(anilistId),
+    enabled: enabled && anilistId > 0,
+    staleTime: 10_000,
+    refetchInterval: enabled ? 10_000 : false,
+    refetchIntervalInBackground: false,
+  });
+};
+
 export const fetchAllAnimeSubtitles = async (
   anilistId: number,
 ): Promise<FetchAllAnimeSubtitlesResult> => {
   return getAnimeSubtitlesWithMeta(anilistId, { fetchAll: true });
+};
+
+/** List already-cached subtitle tracks without triggering a fetch. */
+export const listAnimeSubtitleTracks = async (
+  anilistId: number,
+): Promise<AnimeSubtitleItem[]> => {
+  return getAnimeSubtitles(anilistId);
 };
 
 export const fetchAnimeEpisodeSubtitles = async (

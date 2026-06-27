@@ -617,6 +617,8 @@ export type SubtitleLibraryStats = {
   totalAnimes: number;
   totalTracks: number;
   completedAnimes: number;
+  cachedEpisodes: number;
+  totalEpisodes: number;
 };
 
 export type SubtitleLibraryEntry = {
@@ -653,8 +655,16 @@ function subtitleLibraryWhere(q?: string) {
   );
 }
 
+const EMPTY_STATS: SubtitleLibraryStats = {
+  totalAnimes: 0,
+  totalTracks: 0,
+  completedAnimes: 0,
+  cachedEpisodes: 0,
+  totalEpisodes: 0,
+};
+
 export async function getSubtitleLibraryStats(): Promise<SubtitleLibraryStats> {
-  if (!dbAvailable()) return { totalAnimes: 0, totalTracks: 0, completedAnimes: 0 };
+  if (!dbAvailable()) return EMPTY_STATS;
 
   try {
     const db = getDb();
@@ -666,16 +676,22 @@ export async function getSubtitleLibraryStats(): Promise<SubtitleLibraryStats> {
       .from(episodeSubtitles)
       .where(subtitleProviderFilter());
 
-    const { countCompletedSubtitleAnimesFromDb } = await import("@/lib/subtitle-library-db");
+    const {
+      countCompletedSubtitleAnimesFromDb,
+      getSubtitleEpisodeCoverage,
+    } = await import("@/lib/subtitle-library-db");
     const completedAnimes = await countCompletedSubtitleAnimesFromDb();
+    const coverage = await getSubtitleEpisodeCoverage();
 
     return {
       totalAnimes: row?.totalAnimes ?? 0,
       totalTracks: row?.totalTracks ?? 0,
       completedAnimes,
+      cachedEpisodes: coverage.cachedEpisodes,
+      totalEpisodes: coverage.totalEpisodes,
     };
   } catch {
-    return { totalAnimes: 0, totalTracks: 0, completedAnimes: 0 };
+    return EMPTY_STATS;
   }
 }
 
