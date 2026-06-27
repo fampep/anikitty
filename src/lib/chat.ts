@@ -1,5 +1,5 @@
-import { getAnisurgeToken } from "@/lib/anisurge";
 import { formatChatTtlLabel, isChatMessageActive } from "@/lib/chat-config";
+import { withAuth } from "@/lib/auth-fetch";
 
 export type ChatMessage = {
   id: string;
@@ -19,14 +19,16 @@ export type ChatMessage = {
 };
 
 async function chatFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getAnisurgeToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(init.headers as Record<string, string>),
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`/api/chat${path}`, { ...init, headers });
+  const res = await fetch(
+    `/api/chat${path}`,
+    withAuth({
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init.headers as Record<string, string>),
+      },
+    }),
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const err = new Error(body?.error ?? res.statusText) as Error & { status?: number };

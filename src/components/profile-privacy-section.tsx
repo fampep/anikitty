@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { getAnisurgeToken } from "@/lib/anisurge";
+import { withAuth } from "@/lib/auth-fetch";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePrivacySection() {
@@ -14,11 +14,7 @@ export default function ProfilePrivacySection() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const token = getAnisurgeToken();
-      if (!token) return;
-      const res = await fetch("/api/account/privacy", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/account/privacy", withAuth());
       if (!res.ok) throw new Error("failed");
       const data = await res.json();
       setProfilePrivate(!!data.profilePrivate);
@@ -37,16 +33,14 @@ export default function ProfilePrivacySection() {
     const next = !profilePrivate;
     setBusy(true);
     try {
-      const token = getAnisurgeToken();
-      if (!token) throw new Error("Not signed in");
-      const res = await fetch("/api/account/privacy", {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ profilePrivate: next }),
-      });
+      const res = await fetch(
+        "/api/account/privacy",
+        withAuth({
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profilePrivate: next }),
+        }),
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Failed to update");

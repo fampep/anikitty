@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { decodeAuthToken, extractToken } from "@/lib/auth-jwt";
+import { clearAuthCookie } from "@/lib/auth-cookie";
 import { revokeSessionById } from "@/lib/user-sessions";
 
 export async function POST(req: Request) {
@@ -11,5 +12,7 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true });
+  clearAuthCookie(res);
+  return res;
 }

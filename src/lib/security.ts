@@ -96,7 +96,8 @@ export function isAllowedFetchUrl(url: string): boolean {
     return false;
   }
 
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+  if (isProduction() && parsed.protocol !== "https:") return false;
+  if (!isProduction() && parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
   if (parsed.username || parsed.password) return false;
   if (isBlockedHostname(parsed.hostname)) return false;
   if (url.length > 4096) return false;

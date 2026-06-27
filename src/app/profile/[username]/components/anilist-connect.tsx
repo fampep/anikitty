@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
-import { anisurgeAuth, anilistSync, getAnisurgeToken } from "@/lib/anisurge";
+import { anisurgeAuth, anilistSync } from "@/lib/anisurge";
+import { withAuth } from "@/lib/auth-fetch";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { Check, Link2, Link2Off, Loader2, RefreshCw } from "lucide-react";
 import AnilistIcon from "@/icons/anilist";
@@ -64,18 +65,14 @@ function AnilistConnect() {
   }, [searchParams, router, loadAccount]);
 
   const handleConnect = async () => {
-    const token = getAnisurgeToken();
-    if (!token) {
+    if (!auth) {
       toast.error("Please log in first");
       return;
     }
 
     setConnecting(true);
     try {
-      const res = await fetch("/api/anilist/oauth/start", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/anilist/oauth/start", withAuth({ method: "POST" }));
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? "Failed to start OAuth");
       window.location.href = body.url;
@@ -111,15 +108,11 @@ function AnilistConnect() {
   };
 
   const handleDisconnect = async () => {
-    const token = getAnisurgeToken();
-    if (!token) return;
+    if (!auth) return;
 
     setDisconnecting(true);
     try {
-      const res = await fetch("/api/anilist/disconnect", {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/anilist/disconnect", withAuth({ method: "DELETE" }));
       if (!res.ok) throw new Error("Disconnect failed");
       setLinked(false);
       setUsername(null);

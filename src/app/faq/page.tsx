@@ -239,8 +239,8 @@ const SECTIONS: FaqSection[] = [
         a: (
           <ul className="list-disc pl-5 space-y-2 marker:text-white/25">
             <li>
-              <strong className="text-white/75 font-medium">Auth token</strong> (localStorage) — keeps
-              you signed in until logout or expiry.
+              <strong className="text-white/75 font-medium">Session cookie</strong> (HttpOnly, Secure in
+              production) — keeps you signed in until logout or expiry. JavaScript cannot read it.
             </li>
             <li>
               <strong className="text-white/75 font-medium">Player & UI settings</strong> — e.g. dub
@@ -296,11 +296,11 @@ const SECTIONS: FaqSection[] = [
       },
       {
         q: "How can I delete my data?",
-        a: "There is no self-serve account deletion UI yet. You can revoke sessions, disconnect AniList, enable Ninja mode, and delete your chat messages. For full account removal, contact the team on Discord (link in footer) or open an issue on GitHub.",
+        a: "Go to Settings → Privacy → Account deletion to request permanent removal. An admin will review and delete your account and associated data (watchlist, progress, comments, forum posts, profile). You can cancel a pending request anytime before it is processed. You can also revoke sessions, disconnect AniList, enable Ninja mode, and delete your chat messages yourself.",
       },
       {
         q: "Cookies",
-        a: "Sign-in uses browser localStorage for the session token rather than a classic session cookie. Google Analytics may use cookies. Essential security headers (CSP, HSTS in production) apply site-wide.",
+        a: "Sign-in uses an HttpOnly session cookie (Secure on HTTPS in production) instead of a readable localStorage token. Google Analytics may set its own cookies. The site enforces HTTPS in production (HSTS), upgrades mixed content, and applies CSP and other security headers site-wide.",
       },
     ],
   },
@@ -311,7 +311,11 @@ const SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How is my password protected?",
-        a: "Passwords are hashed with bcrypt before being stored. Login uses signed JWT tokens with a server secret (and separate admin secrets for the admin panel). Production requires strong JWT and admin secrets configured in environment variables.",
+        a: "Passwords are hashed with bcrypt before being stored. Login issues a signed JWT stored in an HttpOnly session cookie (not readable by page scripts). Production requires strong JWT and admin secrets configured in environment variables.",
+      },
+      {
+        q: "Is traffic encrypted?",
+        a: "Yes — use the site over HTTPS. In production, HTTP requests are redirected to HTTPS, HSTS tells browsers to always use TLS, and mixed content is blocked/upgraded. Server-side fetches to external URLs are restricted to HTTPS in production.",
       },
       {
         q: "Rate limiting",

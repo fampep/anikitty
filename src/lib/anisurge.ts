@@ -1,14 +1,15 @@
 const BFF = "/api/account";
 
 import { IAuth } from "@/store/auth-store";
+import { withAuth } from "@/lib/auth-fetch";
 
 // ── Token management ────────────────────────────────────────────────
 export function getAnisurgeToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("anisurgeToken");
 }
-export function setAnisurgeToken(token: string) {
-  localStorage.setItem("anisurgeToken", token);
+export function setAnisurgeToken(_token: string) {
+  localStorage.removeItem("anisurgeToken");
 }
 export function clearAnisurgeToken() {
   localStorage.removeItem("anisurgeToken");
@@ -30,14 +31,16 @@ export function authFromMeResponse(data: Record<string, unknown>): IAuth {
 
 // ── Fetch wrapper ────────────────────────────────────────────────────
 async function bff<T = any>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getAnisurgeToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(init.headers as Record<string, string>),
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${BFF}${path}`, { ...init, headers });
+  const res = await fetch(
+    `${BFF}${path}`,
+    withAuth({
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init.headers as Record<string, string>),
+      },
+    }),
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const err = new Error(body?.error ?? res.statusText) as any;
@@ -151,14 +154,11 @@ export const anisurgeWatchlist = {
 // ── AniList sync ─────────────────────────────────────────────────────
 export const anilistSync = {
   importWatchlist: (override = false) =>
-    fetch("/api/anilist/sync", {
+    fetch("/api/anilist/sync", withAuth({
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(getAnisurgeToken() ? { Authorization: `Bearer ${getAnisurgeToken()}` } : {}),
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ override }),
-    }).then(async (res) => {
+    })).then(async (res) => {
       const body = await res.json();
       if (!res.ok) {
         const err = new Error(body?.error ?? res.statusText) as Error & { status?: number };

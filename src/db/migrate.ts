@@ -210,6 +210,12 @@ export async function migrateDb() {
         created_at      TIMESTAMP DEFAULT NOW()
       )`,
       `CREATE INDEX IF NOT EXISTS user_sessions_user_id_idx ON user_sessions (user_id)`,
+      `CREATE TABLE IF NOT EXISTS account_deletion_requests (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        reason TEXT,
+        requested_at TIMESTAMP DEFAULT NOW()
+      )`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

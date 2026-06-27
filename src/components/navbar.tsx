@@ -20,7 +20,7 @@ import LoginPopoverButton from "./login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import { toast } from "sonner";
-import { anisurgeAuth, clearAnisurgeToken, getAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
+import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 import { usePathname } from "next/navigation";
 
 const menuItems = [
@@ -44,8 +44,6 @@ const NavBar = () => {
 
   useEffect(() => {
     const refreshAuth = async () => {
-      const token = getAnisurgeToken();
-      if (!token) return;
       try {
         const me = await anisurgeAuth.me();
         auth.setAuth(authFromMeResponse(me));
@@ -53,7 +51,6 @@ const NavBar = () => {
         if (e?.status === 401) {
           clearAnisurgeToken();
           auth.clearAuth();
-          toast.error("Session expired. Please log in again.");
         }
       }
     };

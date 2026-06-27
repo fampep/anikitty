@@ -1,16 +1,18 @@
-import { getAnisurgeToken } from "@/lib/anisurge";
+import { withAuth } from "@/lib/auth-fetch";
 
 const BASE = "/api/w2g";
 
 async function w2gFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getAnisurgeToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(init.headers as Record<string, string>),
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  const res = await fetch(
+    `${BASE}${path}`,
+    withAuth({
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init.headers as Record<string, string>),
+      },
+    }),
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const err = new Error(body?.error ?? res.statusText) as Error & { status?: number };

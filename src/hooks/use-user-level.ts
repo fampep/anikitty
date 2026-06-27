@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import type { LevelTier } from "@/lib/user-level";
-import { getAnisurgeToken } from "@/lib/anisurge";
+import { withAuth } from "@/lib/auth-fetch";
 
 export type UserLevelData = {
   xp: number;
@@ -56,9 +56,7 @@ export function useUserLevel(): UserLevelData | null {
       }
     }
 
-    fetch("/api/account/level", {
-      headers: { Authorization: `Bearer ${getAnisurgeToken() ?? ""}` },
-    })
+    fetch("/api/account/level", withAuth())
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.level) {

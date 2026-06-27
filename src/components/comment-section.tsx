@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
-import { getAnisurgeToken } from "@/lib/anisurge";
+import { withAuth } from "@/lib/auth-fetch";
 import {
   MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
   ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp,
@@ -285,7 +285,6 @@ export default function CommentSection({
           setLoading(true);
           setLoadError(null);
         }
-        const token = getAnisurgeToken();
         const episodeParam =
           activeEpisodeQuery && activeEpisodeQuery !== "all"
             ? `&episodeId=${encodeURIComponent(activeEpisodeQuery)}`
@@ -294,7 +293,7 @@ export default function CommentSection({
               : "";
         const res = await fetch(
           `/api/account/comments/${encodeURIComponent(animeId)}?sort=${s}&page=${p}${episodeParam}`,
-          { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+          withAuth(),
         );
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error ?? "Failed to load comments");
@@ -330,21 +329,23 @@ export default function CommentSection({
   const handleSubmit = async () => {
     const body = draft.trim();
     if ((!body && !selectedGif) || submitting) return;
-    const token = getAnisurgeToken();
-    if (!token) return;
+    if (!auth) return;
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/account/comments/${encodeURIComponent(animeId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          body,
-          gifUrl: selectedGif,
-          isSpoiler,
-          ...(activeEpisodeId ? { episodeId: activeEpisodeId, episodeNumber: activeEpisodeNumber } : {}),
+      const res = await fetch(
+        `/api/account/comments/${encodeURIComponent(animeId)}`,
+        withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            body,
+            gifUrl: selectedGif,
+            isSpoiler,
+            ...(activeEpisodeId ? { episodeId: activeEpisodeId, episodeNumber: activeEpisodeNumber } : {}),
+          }),
         }),
-      });
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error ?? "Failed");
@@ -368,16 +369,18 @@ export default function CommentSection({
   const handleReply = async (parentId: string) => {
     const body = replyDraft.trim();
     if (!body || submittingReply) return;
-    const token = getAnisurgeToken();
-    if (!token) return;
+    if (!auth) return;
 
     setSubmittingReply(true);
     try {
-      const res = await fetch(`/api/account/comments/${encodeURIComponent(animeId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ body, parentId, isSpoiler: false }),
-      });
+      const res = await fetch(
+        `/api/account/comments/${encodeURIComponent(animeId)}`,
+        withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body, parentId, isSpoiler: false }),
+        }),
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error ?? "Failed");
@@ -401,14 +404,13 @@ export default function CommentSection({
   };
 
   const handleDelete = async (commentId: string) => {
-    const token = getAnisurgeToken();
-    if (!token) return;
+    if (!auth) return;
     const isTopLevel = comments.some((c) => c.id === commentId);
     try {
-      await fetch(`/api/account/comments/${encodeURIComponent(animeId)}/${commentId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await fetch(
+        `/api/account/comments/${encodeURIComponent(animeId)}/${commentId}`,
+        withAuth({ method: "DELETE" }),
+      );
       setComments((prev) => removeById(prev, commentId));
       if (isTopLevel) setTotal((t) => Math.max(0, t - 1));
     } catch {
@@ -419,18 +421,17 @@ export default function CommentSection({
   const saveEdit = async (commentId: string) => {
     const body = editDraft.trim();
     if (!body || savingEdit) return;
-    const token = getAnisurgeToken();
-    if (!token) return;
+    if (!auth) return;
 
     setSavingEdit(true);
     try {
       const res = await fetch(
         `/api/account/comments/${encodeURIComponent(animeId)}/${commentId}`,
-        {
+        withAuth({
           method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ body }),
-        },
+        }),
       );
       if (!res.ok) throw new Error();
       const now = new Date().toISOString();
@@ -447,8 +448,7 @@ export default function CommentSection({
   };
 
   const handleVote = async (commentId: string, vote: 1 | -1) => {
-    const token = getAnisurgeToken();
-    if (!token) return;
+    if (!auth) return;
 
     setComments((prev) =>
       updateById(prev, commentId, (c) => {
@@ -466,11 +466,11 @@ export default function CommentSection({
     try {
       await fetch(
         `/api/account/comments/${encodeURIComponent(animeId)}/${commentId}/vote`,
-        {
+        withAuth({
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ vote }),
-        },
+        }),
       );
     } catch {
       fetchComments(1, sort, false);
@@ -478,8 +478,7 @@ export default function CommentSection({
   };
 
   const handleReact = async (commentId: string, emoji: string) => {
-    const token = getAnisurgeToken();
-    if (!token) return;
+    if (!auth) return;
 
     setComments((prev) =>
       updateById(prev, commentId, (c) => {
@@ -505,11 +504,11 @@ export default function CommentSection({
     try {
       await fetch(
         `/api/account/comments/${encodeURIComponent(animeId)}/${commentId}/react`,
-        {
+        withAuth({
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ emoji }),
-        },
+        }),
       );
     } catch {
       fetchComments(1, sort, false);

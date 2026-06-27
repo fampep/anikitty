@@ -31,7 +31,8 @@ import { useGetAnimeDetails } from "@/query/get-anime-details";
 import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import { IAnime } from "@/types/anime";
 import useBookMarks from "@/hooks/use-get-bookmark";
-import { anisurgeContinue, getAnisurgeToken } from "@/lib/anisurge";
+import { anisurgeContinue } from "@/lib/anisurge";
+import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import Link from "next/link";
@@ -65,6 +66,7 @@ const SelectOptions: ISelectOptions[] = [
 const Layout = (props: Props) => {
   const searchParams = useSearchParams();
   const { setAnime, setSelectedEpisode, selectedEpisode } = useAnimeStore();
+  const { auth } = useAuthStore();
   const router = useRouter();
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
@@ -121,8 +123,7 @@ const Layout = (props: Props) => {
     let cancelled = false;
     (async () => {
       let target = episodes.episodes[0].episodeId;
-      const token = getAnisurgeToken();
-      if (token) {
+      if (auth) {
         try {
           const res = await anisurgeContinue.getByAnime(animeId, 1);
           const latest = res?.data?.[0];

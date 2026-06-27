@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verify2faPendingToken } from "@/lib/auth-jwt";
 import { buildAuthResponse } from "@/lib/auth-response";
+import { jsonWithAuthCookie } from "@/lib/auth-cookie";
 import { decryptTotpSecret, verifyTotpCode } from "@/lib/totp";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security";
@@ -50,7 +51,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid verification code" }, { status: 401 });
     }
 
-    return NextResponse.json(await buildAuthResponse(user, req));
+    const authData = await buildAuthResponse(user, req);
+    return jsonWithAuthCookie(authData, authData.anisurgeToken);
   } catch (e) {
     console.error("[2fa-verify]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

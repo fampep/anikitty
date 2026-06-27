@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { buildAuthResponse } from "@/lib/auth-response";
+import { jsonWithAuthCookie } from "@/lib/auth-cookie";
 import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
@@ -73,7 +74,8 @@ export async function POST(req: Request) {
         .returning();
     }
 
-    return NextResponse.json(await buildAuthResponse(existing, req));
+    const authData = await buildAuthResponse(existing, req);
+    return jsonWithAuthCookie(authData, authData.anisurgeToken);
   } catch (e: any) {
     console.error("[anisurge-signup]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

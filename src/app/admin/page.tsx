@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/chat-config";
+import { cn } from "@/lib/utils";
 
 const ADMIN_TOKEN_KEY = "adminToken";
 
@@ -116,6 +117,16 @@ interface AdminUser {
   avatarUrl?: string | null;
   createdAt: string;
   lastActiveAt?: string | null;
+}
+
+interface DeletionRequest {
+  id: string;
+  userId: string;
+  username: string;
+  email: string;
+  role: string;
+  reason: string | null;
+  requestedAt: string | null;
 }
 
 interface Role {
@@ -249,6 +260,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [pendingRole, setPendingRole] = useState<Record<string, string>>({});
   const [savingRole, setSavingRole]  = useState<string | null>(null);
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
+  const [deletionLoading, setDeletionLoading] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   // Roles
   const [roles, setRoles]             = useState<Role[]>([]);
@@ -350,6 +364,17 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setChatLoading(false); }
   }, [onLogout]);
 
+  const fetchDeletionRequests = useCallback(async () => {
+    setDeletionLoading(true);
+    try {
+      const res = await fetch("/api/admin/deletion-requests", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      const data = await res.json();
+      setDeletionRequests(data.requests ?? []);
+    } catch { toast.error("Failed to load deletion requests"); }
+    finally { setDeletionLoading(false); }
+  }, [onLogout]);
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
@@ -357,7 +382,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     fetchStats();
     fetchAnnouncements();
     fetchChat();
-  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements, fetchChat]);
+    fetchDeletionRequests();
+  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements, fetchChat, fetchDeletionRequests]);
 
   const refreshAll = async () => {
     setRefreshing(true);
@@ -369,6 +395,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         fetchStats(),
         fetchAnnouncements(),
         fetchChat(),
+        fetchDeletionRequests(),
       ]);
       toast.success("Dashboard refreshed");
     } finally {
@@ -392,6 +419,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const filteredUsers = roleFilter === "all"
     ? users
     : users.filter((u) => u.role === roleFilter);
+
+  const deletionRequestUserIds = new Set(deletionRequests.map((r) => r.userId));
 
   const handleDeleteChatMessage = async (messageId: string) => {
     setChatDeleting(messageId);
@@ -461,6 +490,23 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       toast.success(`Role updated to "${role}"`);
     } catch { toast.error("Failed to update role"); }
     finally { setSavingRole(null); }
+  };
+
+  const handleDeleteUser = async (user: Pick<AdminUser, "id" | "username">) => {
+    if (!confirm(`Permanently delete @${user.username}? This cannot be undone.`)) return;
+    setDeletingUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE", headers: adminHeaders() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
+      toast.success(`@${user.username} deleted`);
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      setDeletionRequests((prev) => prev.filter((r) => r.userId !== user.id));
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete user");
+    } finally {
+      setDeletingUserId(null);
+    }
   };
 
   const handleCreateRole = async () => {
@@ -774,6 +820,66 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         {/* ── USERS ──────────────────────────────────────────────── */}
         {tab === "users" && (
           <div className="flex flex-col gap-5">
+            {(deletionLoading || deletionRequests.length > 0) && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-amber-500/15">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-semibold text-amber-200/90">Deletion requests</span>
+                    {!deletionLoading && (
+                      <span className="text-[11px] font-mono text-amber-200/50">{deletionRequests.length} pending</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fetchDeletionRequests()}
+                    disabled={deletionLoading}
+                    className="text-[11px] font-mono text-white/35 hover:text-white/60 transition-colors disabled:opacity-40"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                {deletionLoading ? (
+                  <div className="flex items-center gap-2 px-4 py-4 text-white/25">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm font-mono">Loading requests…</span>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-amber-500/10">
+                    {deletionRequests.map((req) => (
+                      <div key={req.id} className="flex items-start justify-between gap-4 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white/85">@{req.username}</p>
+                          <p className="text-xs text-white/35 mt-0.5">{req.email}</p>
+                          {req.reason && (
+                            <p className="text-xs text-white/45 mt-2 leading-relaxed">&ldquo;{req.reason}&rdquo;</p>
+                          )}
+                          {req.requestedAt && (
+                            <p className="text-[10px] font-mono text-white/25 mt-1.5">
+                              Requested {new Date(req.requestedAt).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteUser(req)}
+                          disabled={deletingUserId === req.userId}
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-300 text-[11px] font-medium hover:bg-red-500/15 disabled:opacity-40 transition-all"
+                        >
+                          {deletingUserId === req.userId ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          Delete account
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 max-w-sm flex-1">
                 <Search className="w-4 h-4 text-white/30 shrink-0" />
@@ -817,7 +923,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Role</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Joined</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden lg:table-cell">Last active</th>
-                      <th className="px-4 py-3 w-24" />
+                      <th className="px-4 py-3 w-32" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.05]">
@@ -825,7 +931,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       const selected = pendingRole[u.id] ?? u.role;
                       const dirty = pendingRole[u.id] !== undefined && pendingRole[u.id] !== u.role;
                       return (
-                        <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
+                        <tr key={u.id} className={cn("hover:bg-white/[0.02] transition-colors", deletionRequestUserIds.has(u.id) && "bg-amber-500/[0.03]")}>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
                               {u.avatarUrl ? (
@@ -862,16 +968,31 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             {u.lastActiveAt ? timeAgo(u.lastActiveAt) : "—"}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            {dirty && (
+                            <div className="flex items-center justify-end gap-1.5">
+                              {dirty && (
+                                <button
+                                  onClick={() => handleRoleChange(u.id, selected)}
+                                  disabled={savingRole === u.id}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-white/70 text-[11px] font-medium hover:bg-white/18 disabled:opacity-40 transition-all"
+                                >
+                                  {savingRole === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                  Save
+                                </button>
+                              )}
                               <button
-                                onClick={() => handleRoleChange(u.id, selected)}
-                                disabled={savingRole === u.id}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-white/70 text-[11px] font-medium hover:bg-white/18 disabled:opacity-40 transition-all"
+                                type="button"
+                                onClick={() => handleDeleteUser(u)}
+                                disabled={deletingUserId === u.id}
+                                title="Delete account"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-red-500/20 text-red-300/70 text-[11px] hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40 transition-all"
                               >
-                                {savingRole === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                                Save
+                                {deletingUserId === u.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
                               </button>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       );

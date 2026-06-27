@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { readAuthCookie } from "@/lib/auth-cookie";
 import { isSessionActive, touchSession } from "@/lib/user-sessions";
 import { assertAuthSecretsConfigured } from "@/lib/security";
 
@@ -90,6 +91,9 @@ export async function verifyToken(token: string): Promise<AuthPayload | null> {
 }
 
 export function extractToken(req: Request): string | null {
+  const cookieToken = readAuthCookie(req);
+  if (cookieToken) return cookieToken;
+
   const auth = req.headers.get("Authorization");
   if (auth?.startsWith("Bearer ")) return auth.slice(7);
   return null;

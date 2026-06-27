@@ -352,3 +352,19 @@ export const announcements = pgTable(
     activeIdx: index("announcements_active_idx").on(t.isActive),
   }),
 );
+
+// ── Account deletion requests ──────────────────────────────────────────────
+export const accountDeletionRequests = pgTable(
+  "account_deletion_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    requestedAt: timestamp("requested_at").defaultNow(),
+  },
+  (t) => ({
+    userUnique: unique("account_deletion_requests_user_id").on(t.userId),
+  }),
+);

@@ -29,10 +29,11 @@ import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile-customization-form";
 import { applyUserThemeColor } from "@/lib/theme-color";
-import { getAnisurgeToken } from "@/lib/anisurge";
+import { withAuth } from "@/lib/auth-fetch";
 import TwoFactorSection from "@/components/two-factor-section";
 import ActiveSessionsSection from "@/components/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile-privacy-section";
+import AccountDeletionSection from "@/components/account-deletion-section";
 
 // ── Episode layout options ────────────────────────────────────────────────────
 
@@ -103,9 +104,7 @@ function AnisurgeSyncSection() {
 
   useEffect(() => {
     if (!auth) return;
-    fetch("/api/account/me", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("anisurgeToken") ?? ""}` },
-    })
+    fetch("/api/account/me", withAuth())
       .then((r) => r.json())
       .then((d) => {
         setLinked(!!d.anisurgeLinked);
@@ -124,14 +123,14 @@ function AnisurgeSyncSection() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/account/auth/link-anisurge", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("anisurgeToken") ?? ""}`,
-        },
-        body: JSON.stringify({ identifier: identifier.trim(), password }),
-      });
+      const res = await fetch(
+        "/api/account/auth/link-anisurge",
+        withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier: identifier.trim(), password }),
+        }),
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to link");
       setLinked(true);
@@ -149,10 +148,10 @@ function AnisurgeSyncSection() {
   const handleUnlink = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/account/auth/link-anisurge", {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("anisurgeToken") ?? ""}` },
-      });
+      const res = await fetch(
+        "/api/account/auth/link-anisurge",
+        withAuth({ method: "DELETE" }),
+      );
       if (!res.ok) throw new Error("Failed");
       setLinked(false);
       setAnisurgeUsername(null);
@@ -321,9 +320,7 @@ function AppearanceSection() {
 
   useEffect(() => {
     if (!auth) return;
-    fetch("/api/account/me", {
-      headers: { Authorization: `Bearer ${getAnisurgeToken() ?? ""}` },
-    })
+    fetch("/api/account/me", withAuth())
       .then((r) => r.json())
       .then((d) => {
         const u = d.user ?? {};
@@ -423,8 +420,14 @@ export default function SettingsPage() {
                 title="Privacy"
                 description="Control who can see your profile"
               />
-              <SectionBody>
+              <SectionBody className="flex flex-col gap-8">
                 <ProfilePrivacySection />
+                <div className="border-t border-white/6 pt-8">
+                  <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest font-mono mb-4">
+                    Account deletion
+                  </p>
+                  <AccountDeletionSection />
+                </div>
               </SectionBody>
             </SectionCard>
           )}

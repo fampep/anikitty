@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { sign2faPendingToken } from "@/lib/auth-jwt";
 import { buildAuthResponse } from "@/lib/auth-response";
+import { jsonWithAuthCookie } from "@/lib/auth-cookie";
 import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
@@ -108,7 +109,8 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json(await buildAuthResponse(existing, req));
+    const authData = await buildAuthResponse(existing, req);
+    return jsonWithAuthCookie(authData, authData.anisurgeToken);
   } catch (e: any) {
     console.error("[anisurge-login]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

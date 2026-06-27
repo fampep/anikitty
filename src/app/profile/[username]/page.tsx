@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useParams } from "next/navigation";
 import { applyUserThemeColor } from "@/lib/theme-color";
-import { getAnisurgeToken } from "@/lib/anisurge";
+import { withAuth } from "@/lib/auth-fetch";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile-customization-form";
@@ -144,10 +144,8 @@ function userCommentHref(c: UserComment) {
   return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
 }
 
-function profileAuthHeaders(): Record<string, string> {
-  const token = getAnisurgeToken();
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
+function profileFetchInit(): RequestInit {
+  return withAuth();
 }
 
 function UserComments({ username }: { username: string }) {
@@ -155,9 +153,7 @@ function UserComments({ username }: { username: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/users/${encodeURIComponent(username)}/comments`, {
-      headers: profileAuthHeaders(),
-    })
+    fetch(`/api/users/${encodeURIComponent(username)}/comments`, profileFetchInit())
       .then((r) => r.json())
       .then((d) => setItems(d.comments ?? []))
       .catch(() => {})
@@ -246,9 +242,7 @@ function ProfilePage() {
     setProfileLoading(true);
     setNotFound(false);
     setProfileHidden(false);
-    fetch(`/api/users/${encodeURIComponent(profileUsername)}`, {
-      headers: profileAuthHeaders(),
-    })
+    fetch(`/api/users/${encodeURIComponent(profileUsername)}`, profileFetchInit())
       .then(async (r) => {
         if (r.status === 404) {
           setNotFound(true);

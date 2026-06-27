@@ -12,10 +12,11 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
-  "connect-src 'self' https: wss:",
+  isProd ? "connect-src 'self' https: wss:" : "connect-src 'self' https: http: wss: ws:",
   "media-src 'self' blob: https:",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
+  ...(isProd ? ["upgrade-insecure-requests", "block-all-mixed-content"] : []),
 ].join("; ");
 
 /** @type {import('next').NextConfig} */
@@ -39,10 +40,14 @@ const nextConfig = {
       { key: "X-Frame-Options", value: "DENY" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), interest-cohort=()",
+      },
       { key: "X-DNS-Prefetch-Control", value: "off" },
       { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
       { key: "Cross-Origin-Resource-Policy", value: "same-site" },
+      { key: "Origin-Agent-Cluster", value: "?1" },
       { key: "Content-Security-Policy", value: csp },
     ];
 
