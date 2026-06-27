@@ -13,6 +13,7 @@ import {
   KITTY_PROVIDERS,
   KittyProvider,
 } from "@/query/get-kitty-stream";
+import { isSubtitleTrack } from "@/lib/subtitle-track-utils";
 import { useSkipTimes } from "@/query/use-aniskip";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
@@ -306,6 +307,8 @@ const VideoPlayerSection = () => {
 
   const upstreamError = (streamError as any)?.response?.data?.error as string | undefined;
 
+  const subtitleTracks = (streamData?.tracks ?? []).filter(isSubtitleTrack);
+
   if (streamError || !streamData?.file) {
     return (
       <div className="flex flex-col gap-3">
@@ -359,6 +362,7 @@ const VideoPlayerSection = () => {
         poster={anime?.anime?.info?.poster}
         tracks={streamData.tracks ?? []}
         headers={streamData.headers ?? {}}
+        preferSubtitles={!preferDub || subtitleTracks.length > 0}
         skipTimes={skipTimes}
         startTime={
           w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
@@ -404,6 +408,14 @@ const VideoPlayerSection = () => {
           {(skipTimes?.intro || skipTimes?.outro) && (
             <span className="text-[10px] font-mono text-white/20 hidden lg:inline shrink-0">
               · {t("watch.chapters")}
+            </span>
+          )}
+          {subtitleTracks.length > 0 && (
+            <span
+              className="text-[10px] font-mono text-teal-400/60 hidden md:inline shrink-0"
+              title={t("watch.subtitlesAvailable")}
+            >
+              · {t("watch.subtitleTracks", { count: subtitleTracks.length })}
             </span>
           )}
         </div>

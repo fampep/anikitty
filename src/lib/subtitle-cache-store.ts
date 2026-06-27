@@ -187,7 +187,13 @@ export async function ensureAnitakuSubtitleCache(
 ): Promise<void> {
   if (await hasFreshCachedSubtitles(ctx)) return;
 
-  const stream = await fetchAnitakuStream(ctx);
+  let stream = await fetchAnitakuStream(ctx);
+  const hasSubs = stream?.tracks?.some(isSubtitleTrack);
+
+  if (!hasSubs && ctx.audio === "dub") {
+    stream = await fetchAnitakuStream({ ...ctx, audio: "sub" });
+  }
+
   if (!stream?.tracks?.length) return;
 
   await cacheStreamSubtitleTracks(stream.tracks, {
@@ -343,7 +349,15 @@ export async function mergeCachedSubtitleTracks(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
 ): Promise<StreamTrack[]> {
   const base = Array.isArray(tracks) ? [...tracks] : [];
-  const cached = await getStoredSubtitleTracks(ctx);
+
+  if (base.some(isSubtitleTrack)) {
+    return base;
+  }
+
+  let cached = await getStoredSubtitleTracks(ctx);
+  if (cached.length === 0 && ctx.audio === "dub") {
+    cached = await getStoredSubtitleTracks({ ...ctx, audio: "sub" });
+  }
   if (cached.length === 0) return base;
 
   return [...base, ...cached];

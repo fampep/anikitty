@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { KittyTrack } from "@/query/get-kitty-stream";
 import type { SkipTimes, SkipInterval } from "@/query/use-aniskip";
+import { isSubtitleTrack, labelToLanguage } from "@/lib/subtitle-track-utils";
 import {
   MediaPlayer,
   MediaProvider,
@@ -47,6 +48,8 @@ interface KittyPlayerProps {
     syncState?: W2gSyncState | null;
     onPlaybackSync?: (state: { isPlaying: boolean; currentTime: number }) => void;
   };
+  /** Auto-select and show subtitles when tracks are available (default: sub mode). */
+  preferSubtitles?: boolean;
 }
 
 export default function KittyPlayer({
@@ -65,6 +68,7 @@ export default function KittyPlayer({
   onOutroStart,
   onEnded: onEndedProp,
   w2g,
+  preferSubtitles = true,
 }: KittyPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -104,9 +108,17 @@ export default function KittyPlayer({
   const referer = headers?.Referer ?? headers?.referer ?? "";
   const proxiedSrc = buildKittyHlsUrl(src, headers);
 
-  const subTracks = tracks.filter(
-    (t) => !!t.file && t.kind !== "thumbnails" && t.kind !== "chapters" && t.kind !== "metadata",
+  const subTracks = useMemo(
+    () =>
+      tracks
+        .filter(isSubtitleTrack)
+        .map((track) => ({
+          ...track,
+          file: resolveTrackSrc(track.file),
+        })),
+    [tracks],
   );
+
   const chapterTrack = tracks.find(
     (t) =>
       !!t.file &&
@@ -133,6 +145,48 @@ export default function KittyPlayer({
     setCurrentTime(0);
     setCountdown(null);
   }, [src]);
+
+  // Enable default subtitle track when available (Vidstack CC menu still allows switching/off).
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player || subTracks.length === 0) return;
+
+    const activate = () => {
+      if (!preferSubtitles) return;
+
+      const preferred =
+        subTracks.find((t) => t.default) ??
+        subTracks[0];
+
+      const textTracks = player.textTracks;
+      if (!textTracks?.length) return;
+
+      for (const track of textTracks) {
+        if (track.kind !== "subtitles" && track.kind !== "captions") continue;
+        track.setMode("disabled");
+      }
+
+      for (const track of textTracks) {
+        if (track.kind !== "subtitles" && track.kind !== "captions") continue;
+        if (track.label === preferred.label) {
+          track.setMode("showing");
+          return;
+        }
+      }
+
+      const fallback = [...textTracks].find(
+        (t) => t.kind === "subtitles" || t.kind === "captions",
+      );
+      fallback?.setMode("showing");
+    };
+
+    player.addEventListener("can-play", activate, { once: true });
+    if (player.state.canPlay) activate();
+
+    return () => {
+      player.removeEventListener("can-play", activate);
+    };
+  }, [proxiedSrc, subTracks, preferSubtitles]);
 
   // Track that fullscreen should be re-entered when the player is ready
   const autoFsRef = useRef(false);
@@ -364,11 +418,16 @@ export default function KittyPlayer({
           )}
           {subTracks.map((track, i) => (
             <Track
-              key={track.file}
+              key={`${track.file}-${track.label}-${i}`}
               src={track.file}
               kind="subtitles"
+              type="vtt"
+              lang={labelToLanguage(track.label || "")}
               label={track.label || `Track ${i + 1}`}
-              default={track.default ?? (i === 0 && !subTracks.some((t) => t.default))}
+              default={
+                preferSubtitles &&
+                (track.default ?? (i === 0 && !subTracks.some((t) => t.default)))
+              }
             />
           ))}
         </MediaProvider>
@@ -399,6 +458,15 @@ export default function KittyPlayer({
       </MediaPlayer>
     </div>
   );
+}
+
+function resolveTrackSrc(file: string): string {
+  if (!file) return file;
+  if (/^https?:\/\//i.test(file)) return file;
+  if (typeof window !== "undefined" && file.startsWith("/")) {
+    return `${window.location.origin}${file}`;
+  }
+  return file;
 }
 
 // ── Skip button ───────────────────────────────────────────────────────

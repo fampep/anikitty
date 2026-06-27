@@ -48,3 +48,28 @@ export function stripSubtitleTracks(tracks: StreamTrack[] | undefined): StreamTr
   if (!Array.isArray(tracks)) return [];
   return tracks.filter((track) => !isSubtitleTrack(track));
 }
+
+const LABEL_LANG_MAP: [string, string][] = [
+  ["english", "en"],
+  ["en-us", "en"],
+  ["en-gb", "en"],
+  ["japanese", "ja"],
+  ["japan", "ja"],
+  ["spanish", "es"],
+  ["french", "fr"],
+  ["german", "de"],
+  ["portuguese", "pt"],
+  ["chinese", "zh"],
+  ["korean", "ko"],
+  ["arabic", "ar"],
+  ["italian", "it"],
+  ["russian", "ru"],
+];
+
+export function labelToLanguage(label: string): string {
+  const normalized = label.toLowerCase();
+  for (const [key, code] of LABEL_LANG_MAP) {
+    if (normalized.includes(key)) return code;
+  }
+  return "en";
+}
