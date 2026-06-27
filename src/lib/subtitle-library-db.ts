@@ -294,7 +294,7 @@ export async function getSubtitleEpisodeCoverage(): Promise<{
         totalEpisodes: sql<number>`coalesce(sum(greatest(${subtitleLibraryAnime.totalEpisodes}, ${subtitleLibraryAnime.cachedEpisodeCount})), 0)::int`,
       })
       .from(subtitleLibraryAnime)
-      .where(sql`${subtitleLibraryAnime.trackCount} > 0`);
+      .where(hasCachedTracksFilter());
 
     return {
       cachedEpisodes: row?.cachedEpisodes ?? 0,
@@ -528,6 +528,15 @@ function applyLiveCounts(
 
 export type SubtitleLibrarySort = "latest" | "tracks" | "progress" | "az";
 
+/**
+ * A summary row is "cached" if it has any tracks or cached episodes. We can't
+ * rely on track_count alone because metadata enrichment writes rows with
+ * track_count = 0 even when episodes are cached.
+ */
+function hasCachedTracksFilter() {
+  return sql`(${subtitleLibraryAnime.trackCount} > 0 or ${subtitleLibraryAnime.cachedEpisodeCount} > 0)`;
+}
+
 /** Most recently synced or subtitle-updated shows first. */
 function orderByLatestLibraryUpdate() {
   return desc(
@@ -583,14 +592,13 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
   try {
     const db = getDb();
 
+    const cachedFilter = hasCachedTracksFilter();
+    const fullWhere = whereClause ? and(whereClause, cachedFilter) : cachedFilter;
+
     const [countRow] = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(subtitleLibraryAnime)
-      .where(
-        whereClause
-          ? and(whereClause, sql`${subtitleLibraryAnime.trackCount} > 0`)
-          : sql`${subtitleLibraryAnime.trackCount} > 0`,
-      );
+      .where(fullWhere);
 
     const total = countRow?.total ?? 0;
 
@@ -606,11 +614,7 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
     const rows = await db
       .select()
       .from(subtitleLibraryAnime)
-      .where(
-        whereClause
-          ? and(whereClause, sql`${subtitleLibraryAnime.trackCount} > 0`)
-          : sql`${subtitleLibraryAnime.trackCount} > 0`,
-      )
+      .where(fullWhere)
       .orderBy(resolveLibraryOrderBy(opts.sort))
       .limit(limit)
       .offset(offset);
