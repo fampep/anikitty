@@ -24,12 +24,30 @@ function dbAvailable(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
-function computeIsComplete(cachedEpisodeCount: number, totalEpisodes: number | null | undefined) {
+export function isSubtitleLibraryComplete(opts: {
+  trackCount: number;
+  episodeCount: number;
+  totalEpisodes: number | null | undefined;
+}): boolean {
   return (
-    totalEpisodes != null &&
-    totalEpisodes > 0 &&
-    cachedEpisodeCount >= totalEpisodes
+    opts.trackCount > 0 &&
+    opts.episodeCount > 0 &&
+    opts.totalEpisodes != null &&
+    opts.totalEpisodes > 0 &&
+    opts.episodeCount >= opts.totalEpisodes
   );
+}
+
+function computeIsComplete(
+  cachedEpisodeCount: number,
+  totalEpisodes: number | null | undefined,
+  trackCount: number,
+) {
+  return isSubtitleLibraryComplete({
+    trackCount,
+    episodeCount: cachedEpisodeCount,
+    totalEpisodes,
+  });
 }
 
 function rowToEntry(row: {
@@ -120,7 +138,7 @@ export async function persistSubtitleLibraryMeta(meta: AnilistMeta): Promise<voi
       agg?.episodeCount ?? 0,
       existing?.cachedEpisodeCount ?? 0,
     );
-    const isComplete = computeIsComplete(cachedEpisodeCount, meta.episodes);
+    const isComplete = computeIsComplete(cachedEpisodeCount, meta.episodes, 0);
     const now = new Date();
 
     await db
@@ -198,7 +216,7 @@ export async function syncSubtitleLibraryAnime(
     const totalEpisodes =
       opts?.totalEpisodes ?? existing?.totalEpisodes ?? null;
     const wasComplete = existing?.isComplete ?? false;
-    const isComplete = computeIsComplete(agg.episodeCount, totalEpisodes);
+    const isComplete = computeIsComplete(agg.episodeCount, totalEpisodes, agg.trackCount);
     const now = new Date();
 
     await db
@@ -337,6 +355,68 @@ export async function getSubtitleLibrarySummaryMap(
   return map;
 }
 
+/** Live library rows for specific anime (after sync / fetch). */
+export async function getSubtitleLibraryEntriesByIds(
+  anilistIds: number[],
+): Promise<SubtitleLibraryEntry[]> {
+  if (!dbAvailable() || anilistIds.length === 0) return [];
+
+  const unique = [...new Set(anilistIds)];
+  try {
+    const db = getDb();
+    const aggRows = await db
+      .select({
+        anilistId: episodeSubtitles.anilistId,
+        trackCount: sql<number>`count(*)::int`,
+        episodeCount: sql<number>`count(distinct ${episodeSubtitles.episode})::int`,
+        animeTitle: sql<string | null>`max(${episodeSubtitles.animeTitle})`,
+        lastFetched: sql<Date | null>`max(${episodeSubtitles.updatedAt})`,
+      })
+      .from(episodeSubtitles)
+      .where(
+        and(
+          inArray(episodeSubtitles.anilistId, unique),
+          subtitleProviderFilter(),
+        ),
+      )
+      .groupBy(episodeSubtitles.anilistId);
+
+    const summaryMap = await getSubtitleLibrarySummaryMap(unique);
+
+    return unique
+      .map((anilistId) => {
+        const agg = aggRows.find((row) => row.anilistId === anilistId);
+        const summary = summaryMap.get(anilistId);
+        if (!agg) return null;
+
+        const trackCount = agg.trackCount;
+        const episodeCount = agg.episodeCount;
+        const totalEpisodes = summary?.totalEpisodes ?? null;
+        const isComplete =
+          summary?.isComplete ??
+          isSubtitleLibraryComplete({ trackCount, episodeCount, totalEpisodes });
+
+        return rowToEntry({
+          anilistId,
+          animeTitle: summary?.animeTitle ?? agg.animeTitle ?? null,
+          trackCount,
+          episodeCount,
+          lastFetched: agg.lastFetched,
+          poster: summary?.poster ?? null,
+          status: summary?.status ?? null,
+          totalEpisodes,
+          isComplete,
+          score: summary?.score ?? null,
+          year: summary?.year ?? null,
+        });
+      })
+      .filter((entry): entry is SubtitleLibraryEntry => entry != null);
+  } catch (err) {
+    console.error("[subtitle-library-db] entriesByIds failed:", err);
+    return [];
+  }
+}
+
 function allLibraryWhere(q?: string) {
   const trimmed = q?.trim();
   if (!trimmed) return undefined;
@@ -385,7 +465,11 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
     const [countRow] = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(subtitleLibraryAnime)
-      .where(whereClause ?? sql`true`);
+      .where(
+        whereClause
+          ? and(whereClause, sql`${subtitleLibraryAnime.trackCount} > 0`)
+          : sql`${subtitleLibraryAnime.trackCount} > 0`,
+      );
 
     const total = countRow?.total ?? 0;
 
@@ -401,7 +485,11 @@ export async function searchAllSubtitleLibraryFromDb(opts: {
     const rows = await db
       .select()
       .from(subtitleLibraryAnime)
-      .where(whereClause ?? sql`true`)
+      .where(
+        whereClause
+          ? and(whereClause, sql`${subtitleLibraryAnime.trackCount} > 0`)
+          : sql`${subtitleLibraryAnime.trackCount} > 0`,
+      )
       .orderBy(orderByLatestLibraryUpdate())
       .limit(limit)
       .offset(offset);
@@ -518,7 +606,12 @@ export async function listIncompleteSubtitleAnimesFromDb(limit: number): Promise
     const rows = await db
       .select({ anilistId: subtitleLibraryAnime.anilistId })
       .from(subtitleLibraryAnime)
-      .where(eq(subtitleLibraryAnime.isComplete, false))
+      .where(
+        and(
+          eq(subtitleLibraryAnime.isComplete, false),
+          sql`${subtitleLibraryAnime.trackCount} > 0`,
+        ),
+      )
       .orderBy(subtitleLibraryAnime.cachedEpisodeCount)
       .limit(limit);
 

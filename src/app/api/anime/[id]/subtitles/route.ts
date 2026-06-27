@@ -1,8 +1,10 @@
 import {
   ensureMiruroSubtitleCache,
   ensureFullShowSubtitleCache,
+  getSubtitleLibraryStats,
   listAnimeSubtitles,
 } from "@/lib/subtitle-cache-store";
+import { getEnrichedSubtitleLibraryEntriesByIds } from "@/lib/subtitle-library-enrich";
 import {
   buildSubtitleFilename,
   subtitleDownloadUrl,
@@ -48,8 +50,7 @@ export async function GET(
     rows = rows.filter((row) => row.audio === audioParam);
   }
 
-  return Response.json({
-    data: rows.map((row) => {
+  const tracks = rows.map((row) => {
       const filename = buildSubtitleFilename({
         anilistId: row.anilistId,
         episode: row.episode,
@@ -67,7 +68,20 @@ export async function GET(
         previewUrl: subtitleServeUrl(row.id),
         downloadUrl: subtitleDownloadUrl(row.id),
       };
-    }),
+    });
+
+  let libraryEntry = null;
+  let stats = null;
+  if (fetchAll) {
+    const entries = await getEnrichedSubtitleLibraryEntriesByIds([anilistId]);
+    libraryEntry = entries[0] ?? null;
+    stats = await getSubtitleLibraryStats();
+  }
+
+  return Response.json({
+    data: tracks,
+    libraryEntry,
+    stats,
   });
 }
 

@@ -10,6 +10,7 @@ import {
 import {
   discoverSubtitleLibraryCandidates,
   fetchAnilistMetaBatch,
+  getEnrichedSubtitleLibraryEntriesByIds,
   listIncompleteSubtitleAnimes,
 } from "@/lib/subtitle-library-enrich";
 import {
@@ -83,6 +84,10 @@ export async function GET(req: Request) {
 
   const incomplete = await listIncompleteSubtitleAnimesFromDb(500);
   const stats = await getSubtitleLibraryStats();
+  const updatedEntries =
+    results.length > 0
+      ? await getEnrichedSubtitleLibraryEntriesByIds(results.map((r) => r.anilistId))
+      : [];
 
   return Response.json({
     data: {
@@ -92,6 +97,7 @@ export async function GET(req: Request) {
       completed: results.filter((r) => r.isComplete).length,
       remaining: incomplete.length,
       results,
+      updatedEntries,
       mode: syncMode,
       nextInMs: SUBTITLE_API_INTERVAL_MS,
       stats,

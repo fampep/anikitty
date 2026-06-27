@@ -5,6 +5,7 @@ import {
   backfillSubtitleLibraryAnime,
   countCompletedSubtitleAnimesFromDb,
   getStoredSubtitleLibraryMeta,
+  isSubtitleLibraryComplete,
   listIncompleteSubtitleAnimesFromDb,
   persistSubtitleLibraryMeta,
   searchAllSubtitleLibraryFromDb,
@@ -194,10 +195,11 @@ export function applyAnilistMeta(
 ): SubtitleLibraryEntry {
   const totalEpisodes = meta?.episodes ?? item.totalEpisodes ?? null;
   const episodeCount = item.episodeCount;
-  const isComplete =
-    totalEpisodes != null &&
-    totalEpisodes > 0 &&
-    episodeCount >= totalEpisodes;
+  const isComplete = isSubtitleLibraryComplete({
+    trackCount: item.trackCount,
+    episodeCount,
+    totalEpisodes,
+  });
 
   return {
     ...item,
@@ -221,6 +223,14 @@ export async function enrichSubtitleLibraryEntries(
   if (items.length === 0) return items;
   const metaMap = await fetchAnilistMetaBatch(items.map((i) => i.anilistId));
   return items.map((item) => applyAnilistMeta(item, metaMap.get(item.anilistId)));
+}
+
+export async function getEnrichedSubtitleLibraryEntriesByIds(
+  anilistIds: number[],
+): Promise<SubtitleLibraryEntry[]> {
+  const { getSubtitleLibraryEntriesByIds } = await import("@/lib/subtitle-library-db");
+  const items = await getSubtitleLibraryEntriesByIds(anilistIds);
+  return enrichWithTimeout(items, 8_000);
 }
 
 export function isCompletedWithSubs(item: SubtitleLibraryEntry): boolean {

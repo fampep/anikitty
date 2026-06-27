@@ -1,6 +1,11 @@
 import { useQuery } from "react-query";
 import { api } from "@/lib/api";
 
+import type {
+  SubtitleLibraryEntry,
+  SubtitleLibraryStats,
+} from "@/lib/subtitle-cache-store";
+
 export type AnimeSubtitleItem = {
   id: string;
   anilistId: number;
@@ -12,6 +17,12 @@ export type AnimeSubtitleItem = {
   filename: string;
   previewUrl: string;
   downloadUrl: string;
+};
+
+export type FetchAllAnimeSubtitlesResult = {
+  tracks: AnimeSubtitleItem[];
+  libraryEntry: SubtitleLibraryEntry | null;
+  stats: SubtitleLibraryStats | null;
 };
 
 const getAnimeSubtitles = async (
@@ -30,6 +41,26 @@ const getAnimeSubtitles = async (
   return res.data.data;
 };
 
+const getAnimeSubtitlesWithMeta = async (
+  anilistId: number,
+  opts?: { episode?: number; fetch?: boolean; fetchAll?: boolean; audio?: "sub" | "dub" },
+): Promise<FetchAllAnimeSubtitlesResult> => {
+  const res = await api.get(`/api/anime/${anilistId}/subtitles`, {
+    params: {
+      episode: opts?.episode,
+      fetch: opts?.fetch ? 1 : undefined,
+      fetchAll: opts?.fetchAll ? 1 : undefined,
+      audio: opts?.audio,
+    },
+    timeout: opts?.fetchAll ? 300_000 : undefined,
+  });
+  return {
+    tracks: res.data.data,
+    libraryEntry: res.data.libraryEntry ?? null,
+    stats: res.data.stats ?? null,
+  };
+};
+
 export const useGetAnimeSubtitles = (anilistId: number | undefined) => {
   return useQuery({
     queryKey: ["anime-subtitles", anilistId],
@@ -39,8 +70,10 @@ export const useGetAnimeSubtitles = (anilistId: number | undefined) => {
   });
 };
 
-export const fetchAllAnimeSubtitles = async (anilistId: number): Promise<AnimeSubtitleItem[]> => {
-  return getAnimeSubtitles(anilistId, { fetchAll: true });
+export const fetchAllAnimeSubtitles = async (
+  anilistId: number,
+): Promise<FetchAllAnimeSubtitlesResult> => {
+  return getAnimeSubtitlesWithMeta(anilistId, { fetchAll: true });
 };
 
 export const fetchAnimeEpisodeSubtitles = async (

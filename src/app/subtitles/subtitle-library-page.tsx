@@ -14,6 +14,7 @@ import {
 } from "@/components/subtitles/subtitle-library-sidebar";
 import { ROUTES } from "@/constants/routes";
 import {
+  patchSubtitleLibraryCache,
   syncSubtitleLibrary,
   useDiscoverAnimeSearch,
   useSubtitleLibrary,
@@ -118,6 +119,14 @@ export default function SubtitleLibraryPage() {
           queryClient.setQueryData(["subtitle-library-stats"], result.stats);
         }
 
+        if (result.updatedEntries?.length) {
+          patchSubtitleLibraryCache(queryClient, result.updatedEntries, {
+            q: qParam,
+            page: pageParam,
+            filter: filterParam,
+          });
+        }
+
         if (result.fetchedEpisodes > 0 || result.completed > 0) {
           setAutoSyncDetail(
             result.completed > 0
@@ -137,7 +146,12 @@ export default function SubtitleLibraryPage() {
           setAutoSyncDetail(t("subsLibrary.autoSyncIdle"));
         }
 
-        if (result.fetchedEpisodes > 0 || result.completed > 0 || result.stats) {
+        if (
+          result.fetchedEpisodes > 0 ||
+          result.completed > 0 ||
+          result.stats ||
+          (result.updatedEntries?.length ?? 0) > 0
+        ) {
           invalidateLibrary();
         }
       } catch {
@@ -156,7 +170,7 @@ export default function SubtitleLibraryPage() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [queryClient, t]);
+  }, [queryClient, t, qParam, pageParam, filterParam]);
 
   useEffect(() => {
     if (backfillAttempted.current || statsLoading || isLoading || qParam.trim()) return;
@@ -187,12 +201,22 @@ export default function SubtitleLibraryPage() {
     setFetchingId(anilistId);
     toast.loading(t("subsLibrary.fetching"), { id: `fetch-subs-${anilistId}` });
     try {
-      const tracks = await fetchAllAnimeSubtitles(anilistId);
+      const result = await fetchAllAnimeSubtitles(anilistId);
       toast.dismiss(`fetch-subs-${anilistId}`);
-      if (tracks.length > 0) {
-        toast.success(t("subsLibrary.fetchSuccess", { count: tracks.length }));
+      if (result.tracks.length > 0) {
+        toast.success(t("subsLibrary.fetchSuccess", { count: result.tracks.length }));
       } else {
         toast.info(t("subsLibrary.fetchEmpty"));
+      }
+      if (result.stats) {
+        queryClient.setQueryData(["subtitle-library-stats"], result.stats);
+      }
+      if (result.libraryEntry) {
+        patchSubtitleLibraryCache(queryClient, [result.libraryEntry], {
+          q: qParam,
+          page: pageParam,
+          filter: filterParam,
+        });
       }
       invalidateLibrary();
     } catch {

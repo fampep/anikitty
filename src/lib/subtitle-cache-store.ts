@@ -351,6 +351,11 @@ export async function ensureFullShowSubtitleCache(
   });
 }
 
+async function getCachedEpisodeNumbers(anilistId: number): Promise<Set<number>> {
+  const rows = await listAnimeSubtitles(anilistId);
+  return new Set(rows.map((row) => row.episode));
+}
+
 export type IncrementalSubtitleCacheResult = {
   anilistId: number;
   fetched: number;
@@ -394,15 +399,18 @@ export async function ensureIncrementalSubtitleCache(
     }
 
     const existing = await listAnimeSubtitles(anilistId);
-    const cachedEps = new Set(existing.map((r) => r.episode));
+    let cachedEps = new Set(existing.map((r) => r.episode));
 
     let fetched = 0;
     if (count > 0) {
       for (let ep = 1; ep <= count && fetched < maxEpisodes; ep++) {
         if (cachedEps.has(ep)) continue;
+        const before = cachedEps.size;
         await ensureMiruroSubtitleCache({ anilistId, episode: ep, audio: "sub" });
-        cachedEps.add(ep);
-        fetched++;
+        cachedEps = await getCachedEpisodeNumbers(anilistId);
+        if (cachedEps.size > before) {
+          fetched++;
+        }
         if (fetched < maxEpisodes && ep < count) {
           await sleep(delayMs);
         }
@@ -410,9 +418,12 @@ export async function ensureIncrementalSubtitleCache(
     } else if (fetched < maxEpisodes) {
       // Unknown episode count — try next sequential episode after highest cached.
       const nextEp = cachedEps.size > 0 ? Math.max(...cachedEps) + 1 : 1;
+      const before = cachedEps.size;
       await ensureMiruroSubtitleCache({ anilistId, episode: nextEp, audio: "sub" });
-      cachedEps.add(nextEp);
-      fetched = 1;
+      cachedEps = await getCachedEpisodeNumbers(anilistId);
+      if (cachedEps.size > before) {
+        fetched = 1;
+      }
     }
 
     await fetchAnilistMetaBatch([anilistId]);
@@ -425,9 +436,7 @@ export async function ensureIncrementalSubtitleCache(
     );
 
     const cachedEpisodes = cachedEps.size;
-    const isComplete =
-      syncResult.isComplete ||
-      (totalEpisodes > 0 && cachedEpisodes >= totalEpisodes);
+    const isComplete = syncResult.isComplete;
 
     return {
       anilistId,
@@ -727,7 +736,9 @@ export async function searchSubtitleLibrary(opts: {
       .limit(limit)
       .offset(offset);
 
-    const { getSubtitleLibrarySummaryMap } = await import("@/lib/subtitle-library-db");
+    const { getSubtitleLibrarySummaryMap, isSubtitleLibraryComplete } = await import(
+      "@/lib/subtitle-library-db"
+    );
     const summaryMap = await getSubtitleLibrarySummaryMap(rows.map((row) => row.anilistId));
 
     return {
@@ -737,7 +748,11 @@ export async function searchSubtitleLibrary(opts: {
         const episodeCount = row.episodeCount;
         const isComplete =
           summary?.isComplete ??
-          (totalEpisodes != null && totalEpisodes > 0 && episodeCount >= totalEpisodes);
+          isSubtitleLibraryComplete({
+            trackCount: row.trackCount,
+            episodeCount,
+            totalEpisodes,
+          });
 
         return {
           anilistId: row.anilistId,
