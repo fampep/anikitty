@@ -382,7 +382,9 @@
     "timeAgoMinutes": "for {m} min. siden",
     "timeAgoHours": "for {h} t. siden",
     "timeAgoDays": "for {d} d. siden",
-    "live": "Live"
+    "live": "Live",
+    "backHome": "Tilbage til forsiden",
+    "reload": "Genindlæs"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} færdige",
@@ -505,5 +507,20 @@
       "sayHi": "Sig hej til rummet…",
       "chatPlaceholder": "Rumchat…"
     }
+  },
+  "comments": {
+    "title": "Kommentarer",
+    "signInToJoin": "Log ind for at deltage i diskussionen.",
+    "selectEpisode": "Vælg en episode for at se kommentarer",
+    "scopedPerEpisode": "Kommentarer er knyttet til hver episode",
+    "noComments": "Ingen kommentarer endnu",
+    "noCommentsEpisode": "Ingen kommentarer til denne episode endnu",
+    "allEpisodes": "Alle episoder",
+    "placeholder": "Del dine tanker…",
+    "placeholderEpisode": "Del dine tanker om episode {n}…",
+    "logInToReact": "Log ind for at reagere",
+    "sortNew": "Ny",
+    "sortTop": "Top",
+    "sortOld": "Gammel"
   }
 }

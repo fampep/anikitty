@@ -8,6 +8,7 @@ import { Flame, CalendarDays, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
+import LanguageSwitcher from "@/components/language-switcher";
 
 const KITTY_ICON = "/jiji.jpg";
 
@@ -81,6 +82,9 @@ const Footer = () => {
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.account")}</p>
             <NavLink href="/settings" label={t("footer.settings")} />
             <NavLink href="/faq" label={t("nav.faq")} />
+            <div className="pt-1">
+              <LanguageSwitcher compact />
+            </div>
             <a
               href="https://anisurge.me"
               target="_blank"

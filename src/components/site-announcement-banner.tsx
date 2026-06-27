@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Info, AlertTriangle, AlertOctagon, CheckCircle2, X, MessageSquare, ArrowRight } from "lucide-react";
@@ -52,6 +52,8 @@ export default function SiteAnnouncementBanner() {
   const [items, setItems] = useState<Announcement[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const [spacerHeight, setSpacerHeight] = useState(0);
 
   useEffect(() => {
     setDismissed(readDismissed());
@@ -71,67 +73,93 @@ export default function SiteAnnouncementBanner() {
     });
   };
 
-  // Don't show on the landing page (its own design) or watch player.
-  if (!hydrated) return null;
-  if (pathname === "/") return null;
-  if (pathname?.startsWith("/anime/watch")) return null;
+  const hideOnPage = !hydrated || pathname === "/" || pathname?.startsWith("/anime/watch");
+  const visible = hideOnPage ? [] : items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
 
-  const visible = items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
-  if (visible.length === 0) return null;
+  useEffect(() => {
+    if (visible.length === 0) {
+      setSpacerHeight(0);
+      document.documentElement.style.setProperty("--banner-offset", "0px");
+      return;
+    }
+
+    const measure = () => {
+      const h = bannerRef.current?.offsetHeight ?? 0;
+      const offset = h + 8;
+      setSpacerHeight(offset);
+      document.documentElement.style.setProperty("--banner-offset", `${offset}px`);
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (bannerRef.current) ro.observe(bannerRef.current);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.setProperty("--banner-offset", "0px");
+    };
+  }, [visible]);
+
+  if (hideOnPage || visible.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed left-0 right-0 top-[var(--nav-height)] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4">
-      {visible.map((a) => {
-        const style = STYLES[a.severity] ?? STYLES.info;
-        const Icon = style.icon;
-        const href = a.linkUrl ?? (a.forumThreadId ? `${ROUTES.FORUM}/${a.forumThreadId}` : null);
-        const linkLabel = a.linkLabel ?? (a.forumThreadId ? "Read more" : "Learn more");
+    <>
+      <div aria-hidden style={{ height: spacerHeight }} className="shrink-0" />
+      <div
+        ref={bannerRef}
+        className="pointer-events-none fixed left-0 right-0 top-[var(--nav-height)] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4"
+      >
+        {visible.map((a) => {
+          const style = STYLES[a.severity] ?? STYLES.info;
+          const Icon = style.icon;
+          const href = a.linkUrl ?? (a.forumThreadId ? `${ROUTES.FORUM}/${a.forumThreadId}` : null);
+          const linkLabel = a.linkLabel ?? (a.forumThreadId ? "Read more" : "Learn more");
 
-        return (
-          <div
-            key={a.id}
-            className={cn(
-              "pointer-events-auto mx-auto w-full max-w-[1400px] flex items-center gap-2.5 px-3 py-1.5 rounded-lg border backdrop-blur-md shadow-lg shadow-black/20",
-              style.bg,
-              style.border,
-            )}
-          >
-            <Icon className={cn("w-3.5 h-3.5 shrink-0", style.iconColor)} />
-            <div className="flex-1 min-w-0 flex items-center gap-x-3 gap-y-0">
-              <div className="flex-1 min-w-0 flex items-center gap-2">
-                <p className={cn("text-[12px] font-semibold truncate", style.text)}>{a.title}</p>
-                {a.body && (
-                  <p className="text-[11px] text-white/55 truncate hidden sm:block">{a.body}</p>
+          return (
+            <div
+              key={a.id}
+              className={cn(
+                "pointer-events-auto mx-auto w-full max-w-[1400px] flex items-center gap-2.5 px-3 py-1.5 rounded-lg border backdrop-blur-md shadow-lg shadow-black/20",
+                style.bg,
+                style.border,
+              )}
+            >
+              <Icon className={cn("w-3.5 h-3.5 shrink-0", style.iconColor)} />
+              <div className="flex-1 min-w-0 flex items-center gap-x-3 gap-y-0">
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <p className={cn("text-[12px] font-semibold truncate", style.text)}>{a.title}</p>
+                  {a.body && (
+                    <p className="text-[11px] text-white/55 truncate hidden sm:block">{a.body}</p>
+                  )}
+                </div>
+                {href && (
+                  <Link
+                    href={href}
+                    className={cn(
+                      "shrink-0 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border transition-colors",
+                      "border-white/15 bg-white/[0.06] text-white hover:bg-white/12",
+                    )}
+                  >
+                    {a.forumThreadId && !a.linkUrl ? (
+                      <MessageSquare className="w-3 h-3" />
+                    ) : null}
+                    {linkLabel}
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
                 )}
               </div>
-              {href && (
-                <Link
-                  href={href}
-                  className={cn(
-                    "shrink-0 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border transition-colors",
-                    "border-white/15 bg-white/[0.06] text-white hover:bg-white/12",
-                  )}
+              {a.dismissible && (
+                <button
+                  onClick={() => handleDismiss(a.id)}
+                  className="shrink-0 p-1 rounded-md text-white/40 hover:text-white hover:bg-white/8 transition-colors"
+                  aria-label="Dismiss"
                 >
-                  {a.forumThreadId && !a.linkUrl ? (
-                    <MessageSquare className="w-3 h-3" />
-                  ) : null}
-                  {linkLabel}
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
+                  <X className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
-            {a.dismissible && (
-              <button
-                onClick={() => handleDismiss(a.id)}
-                className="shrink-0 p-1 rounded-md text-white/40 hover:text-white hover:bg-white/8 transition-colors"
-                aria-label="Dismiss"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

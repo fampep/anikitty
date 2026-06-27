@@ -5,12 +5,12 @@ import parse from "html-react-parser";
 import { ROUTES } from "@/constants/routes";
 
 import Container from "@/components/container";
-import CommentSection from "@/components/comment-section";
 import { useAnimeStore } from "@/store/anime-store";
 
 import EpisodePlaylist from "@/components/episode-playlist";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime-carousel";
+import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play,
@@ -36,6 +36,10 @@ import { useGetAnimeMappings } from "@/query/get-anime-mappings";
 import { ChevronDown } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
+
+const CommentSection = dynamic(() => import("@/components/comment-section"), {
+  loading: () => <div className="h-32 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
+});
 
 const DB_LINKS = [
   { key: "anilist",   label: "AniList",     url: (id: string | number) => `https://anilist.co/anime/${id}`,                   color: "text-teal-400/80 border-teal-500/20 bg-teal-500/8"       },

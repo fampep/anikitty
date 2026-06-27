@@ -13,6 +13,8 @@ import { UserBadges } from "@/components/user-badges";
 import { GifUrlPanel } from "@/components/gif-url-panel";
 import { invalidateUserLevel } from "@/hooks/use-user-level";
 import { cn } from "@/lib/utils";
+import { useT } from "@/providers/i18n-provider";
+import LoginPopoverButton from "@/components/login-popover-button";
 
 // ── Emoji picker ──────────────────────────────────────────────────────────────
 
@@ -209,6 +211,7 @@ export default function CommentSection({
   episodeLabel,
   episodes,
 }: CommentSectionProps) {
+  const t = useT();
   const { auth } = useAuthStore();
 
   const hasEpisodePicker = !!episodes?.length;
@@ -229,9 +232,9 @@ export default function CommentSection({
   const headerLabel =
     episodeLabel ??
     (activeEpisodeId && activeEpisodeNumber
-      ? `Episode ${activeEpisodeNumber}`
+      ? t("watch.episode", { n: activeEpisodeNumber })
       : hasEpisodePicker && pickedEpisodeId === "all"
-        ? "All episodes"
+        ? t("comments.allEpisodes")
         : null);
   const requiresEpisode = lockedEpisodeId !== undefined && !lockedEpisodeId;
 
@@ -598,7 +601,7 @@ export default function CommentSection({
                   ? c.myReactions.includes(emoji)
                     ? "Remove reaction"
                     : "React"
-                  : "Log in to react"
+                  : t("comments.logInToReact")
               }
               className={cn(
                 "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all",
@@ -724,7 +727,7 @@ export default function CommentSection({
           <MessageSquare className="w-4 h-4 text-white/40 shrink-0" />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-base font-bold text-white tracking-tight">Comments</span>
+              <span className="text-base font-bold text-white tracking-tight">{t("comments.title")}</span>
               {headerLabel && (
                 <span className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-[10px] font-mono text-sky-300/80">
                   {headerLabel}
@@ -745,13 +748,13 @@ export default function CommentSection({
                 key={s}
                 onClick={() => setSort(s)}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all capitalize",
+                  "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all",
                   sort === s
                     ? "bg-white/10 text-white/80"
                     : "text-white/30 hover:text-white/55",
                 )}
               >
-                {s}
+                {s === "new" ? t("comments.sortNew") : s === "top" ? t("comments.sortTop") : t("comments.sortOld")}
               </button>
             ))}
           </div>
@@ -781,8 +784,8 @@ export default function CommentSection({
                 }}
                 placeholder={
                   activeEpisodeNumber
-                    ? `Share your thoughts on Episode ${activeEpisodeNumber}…`
-                    : "Share your thoughts…"
+                    ? t("comments.placeholderEpisode", { n: activeEpisodeNumber })
+                    : t("comments.placeholder")
                 }
                 rows={focused ? 3 : 2}
                 maxLength={1000}
@@ -887,9 +890,12 @@ export default function CommentSection({
           </div>
         </div>
       ) : !auth ? (
-        <div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-white/[0.02] border border-white/6">
-          <SmilePlus className="w-4 h-4 text-white/20 shrink-0" />
-          <p className="text-sm text-white/30">Log in to join the discussion.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 px-4 rounded-xl bg-white/[0.02] border border-white/6">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <SmilePlus className="w-4 h-4 text-white/20 shrink-0" />
+            <p className="text-sm text-white/30">{t("comments.signInToJoin")}</p>
+          </div>
+          <LoginPopoverButton />
         </div>
       ) : null}
 
@@ -897,8 +903,8 @@ export default function CommentSection({
       {requiresEpisode ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <MessageSquare className="w-8 h-8 text-white/8" />
-          <p className="text-sm text-white/25 font-mono">Select an episode to view comments</p>
-          <p className="text-xs text-white/15">Comments are scoped to each episode</p>
+          <p className="text-sm text-white/25 font-mono">{t("comments.selectEpisode")}</p>
+          <p className="text-xs text-white/15">{t("comments.scopedPerEpisode")}</p>
         </div>
       ) : loadError ? (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -919,7 +925,7 @@ export default function CommentSection({
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <MessageSquare className="w-8 h-8 text-white/8" />
           <p className="text-sm text-white/20 font-mono">
-            {activeEpisodeId ? "No comments for this episode yet" : "No comments yet"}
+            {activeEpisodeId ? t("comments.noCommentsEpisode") : t("comments.noComments")}
           </p>
           <p className="text-xs text-white/12">Be the first to share your thoughts</p>
         </div>

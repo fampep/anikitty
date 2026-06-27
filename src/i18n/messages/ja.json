@@ -382,7 +382,9 @@
     "timeAgoMinutes": "{m}分前",
     "timeAgoHours": "{h}時間前",
     "timeAgoDays": "{d}日前",
-    "live": "ライブ"
+    "live": "ライブ",
+    "backHome": "ホームに戻る",
+    "reload": "再読み込み"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} 完了",
@@ -505,5 +507,20 @@
       "sayHi": "ルームに挨拶しましょう…",
       "chatPlaceholder": "ルームチャット…"
     }
+  },
+  "comments": {
+    "title": "コメント",
+    "signInToJoin": "ログインしてディスカッションに参加しましょう。",
+    "selectEpisode": "エピソードを選んでコメントを表示",
+    "scopedPerEpisode": "コメントは各エピソードごとに表示されます",
+    "noComments": "まだコメントがありません",
+    "noCommentsEpisode": "このエピソードにはまだコメントがありません",
+    "allEpisodes": "すべてのエピソード",
+    "placeholder": "感想を共有…",
+    "placeholderEpisode": "第{n}話の感想を共有…",
+    "logInToReact": "ログインしてリアクション",
+    "sortNew": "新着",
+    "sortTop": "人気",
+    "sortOld": "古い"
   }
 }

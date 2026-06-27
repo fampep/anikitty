@@ -5,6 +5,7 @@
 html {
   scroll-behavior: smooth;
   --nav-height: 4rem;
+  --banner-offset: 0px;
   /* Prevent font scaling on orientation change in iOS */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -60,6 +61,9 @@ body {
   }
   .pt-safe {
     padding-top: max(0px, env(safe-area-inset-top));
+  }
+  .pt-page {
+    padding-top: calc(var(--nav-height) + var(--banner-offset));
   }
   /* Momentum scrolling on iOS */
   .scroll-momentum {
@@ -142,7 +146,6 @@ body {
       radial-gradient(ellipse 120% 70% at 50% -25%, rgba(124, 58, 237, 0.09), transparent 55%),
       radial-gradient(ellipse 50% 40% at 100% 0%, rgba(99, 102, 241, 0.04), transparent 50%),
       hsl(var(--background));
-    background-attachment: fixed;
   }
 }
 

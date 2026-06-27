@@ -1,7 +1,7 @@
 "use client";
 
 import { locales, localeLabels, type Locale } from "@/i18n/config";
-import { useI18n } from "@/providers/i18n-provider";
+import { useI18n, useT } from "@/providers/i18n-provider";
 import { Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ type Props = {
 
 export default function LanguageSwitcher({ compact, className }: Props) {
   const { locale, setLocale } = useI18n();
+  const t = useT();
 
   return (
     <label
@@ -26,7 +27,7 @@ export default function LanguageSwitcher({ compact, className }: Props) {
         value={locale}
         onChange={(e) => void setLocale(e.target.value as Locale)}
         className="bg-transparent outline-none cursor-pointer max-w-[7.5rem] truncate"
-        aria-label="Language"
+        aria-label={t("settings.language")}
       >
         {locales.map((code) => (
           <option key={code} value={code} className="bg-zinc-900 text-white">

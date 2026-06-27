@@ -13,7 +13,6 @@ import AnimeCarousel from "@/components/anime-carousel";
 import AnimeEpisodes from "@/components/anime-episodes";
 import CharacterCard from "@/components/common/character-card";
 import { ROUTES } from "@/constants/routes";
-import WatchTrailer from "@/components/watch-trailer";
 import Select from "@/components/common/select";
 import {
   ExternalLink,
@@ -31,9 +30,14 @@ import { useGetAnimeBanner } from "@/query/get-banner-anime";
 import { useGetAnimeMappings } from "@/query/get-anime-mappings";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import { cn } from "@/lib/utils";
-import CommentSection from "@/components/comment-section";
+import dynamic from "next/dynamic";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
+
+const WatchTrailer = dynamic(() => import("@/components/watch-trailer"), { ssr: false });
+const CommentSection = dynamic(() => import("@/components/comment-section"), {
+  loading: () => <div className="h-32 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
+});
 
 const DB_LINKS = [
   { key: "anilist",   label: "AniList",      url: (id: string | number) => `https://anilist.co/anime/${id}`,                    color: "text-teal-400/80 border-teal-500/20 bg-teal-500/8"      },

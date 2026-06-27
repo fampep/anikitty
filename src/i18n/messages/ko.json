@@ -382,7 +382,9 @@
     "timeAgoMinutes": "{m}분 전",
     "timeAgoHours": "{h}시간 전",
     "timeAgoDays": "{d}일 전",
-    "live": "라이브"
+    "live": "라이브",
+    "backHome": "홈으로 돌아가기",
+    "reload": "새로고침"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count}개 완료",
@@ -505,5 +507,20 @@
       "sayHi": "방에 인사하세요…",
       "chatPlaceholder": "방 채팅…"
     }
+  },
+  "comments": {
+    "title": "댓글",
+    "signInToJoin": "로그인하여 토론에 참여하세요.",
+    "selectEpisode": "댓글을 보려면 에피소드를 선택하세요",
+    "scopedPerEpisode": "댓글은 각 에피소드별로 표시됩니다",
+    "noComments": "아직 댓글이 없습니다",
+    "noCommentsEpisode": "이 에피소드에 아직 댓글이 없습니다",
+    "allEpisodes": "모든 에피소드",
+    "placeholder": "생각을 공유하세요…",
+    "placeholderEpisode": "{n}화에 대한 생각을 공유하세요…",
+    "logInToReact": "로그인하여 반응하기",
+    "sortNew": "최신",
+    "sortTop": "인기",
+    "sortOld": "오래된"
   }
 }

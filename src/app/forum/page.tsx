@@ -175,7 +175,7 @@ export default function ForumPage() {
   const statsMemo = useMemo(() => stats, [stats]);
 
   return (
-    <div className="min-h-screen pt-20 pb-24">
+    <div className="min-h-screen pt-page pb-24">
       <Container className="flex flex-col gap-8">
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">

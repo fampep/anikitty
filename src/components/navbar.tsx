@@ -22,10 +22,11 @@ import {
   Users,
   X,
 } from "lucide-react";
-import useScrollPosition from "@/hooks/use-scroll-position";
+import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import LoginPopoverButton from "./login-popover-button";
+import LanguageSwitcher from "./language-switcher";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
@@ -44,7 +45,7 @@ const MENU_DEFS = [
   { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq" },
 ] as const;
 
-const PRIMARY_NAV_COUNT = 4;
+const PRIMARY_NAV_COUNT = 5;
 
 type MenuItem = {
   href: string;
@@ -193,29 +194,39 @@ function MoreNavMenu({
 
 const NavBar = () => {
   const t = useT();
-  const auth = useAuthStore();
-  const { y } = useScrollPosition();
+  const user = useAuthStore((s) => s.auth);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
   const pathname = usePathname();
-  const isScrolled = y > 20;
+  const isScrolled = useScrolledPast(20);
   const isLanding = pathname === "/";
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const authBag = React.useMemo(
+    () => ({ auth: user, setAuth, clearAuth }),
+    [user, setAuth, clearAuth],
+  );
 
   useEffect(() => {
+    if (user) return;
+
+    let cancelled = false;
     const refreshAuth = async () => {
       try {
         const me = await anisurgeAuth.me();
-        auth.setAuth(authFromMeResponse(me));
+        if (!cancelled) setAuth(authFromMeResponse(me));
       } catch (e: any) {
-        if (e?.status === 401) {
+        if (!cancelled && e?.status === 401) {
           clearAnisurgeToken();
-          auth.clearAuth();
+          clearAuth();
         }
       }
     };
     refreshAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, setAuth, clearAuth]);
 
   if (isLanding) return null;
 
@@ -224,7 +235,7 @@ const NavBar = () => {
       className={cn(
         "fixed left-0 right-0 top-0 z-[100] transition-all duration-300",
         isScrolled
-          ? "bg-[#050508]/88 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md md:backdrop-blur-2xl"
+          ? "bg-[#050508]/92 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md"
           : "bg-gradient-to-b from-black/75 via-black/35 to-transparent",
       )}
     >
@@ -262,7 +273,10 @@ const NavBar = () => {
             <div className="hidden lg:block">
               <SearchBar className="w-[min(18rem,28vw)]" />
             </div>
-            <div className="hidden lg:flex">{auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}</div>
+            <div className="hidden lg:flex items-center gap-2">
+              <LanguageSwitcher compact />
+              {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
+            </div>
 
             {/* Mobile */}
             <div className="flex items-center gap-1 lg:hidden">
@@ -291,7 +305,7 @@ const NavBar = () => {
                 <SearchIcon className="h-5 w-5" />
               </button>
               <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />} />
-              {auth.auth ? <NavbarAvatar auth={auth} /> : <LoginPopoverButton />}
+              {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
           </div>
         </div>
@@ -356,7 +370,8 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
             })}
           </nav>
 
-          <div className="border-t border-white/[0.06] p-4">
+          <div className="border-t border-white/[0.06] p-4 space-y-3">
+            <LanguageSwitcher className="w-full justify-between" />
             <SearchBar onAnimeClick={() => setOpen(false)} />
           </div>
         </div>

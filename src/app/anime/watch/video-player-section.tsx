@@ -256,6 +256,7 @@ const VideoPlayerSection = () => {
       if (t > 5 && dur > 0) {
         saveProgress(t, dur);
       }
+      useProgressStore.getState().flush();
     };
     window.addEventListener("beforeunload", onUnload);
     return () => window.removeEventListener("beforeunload", onUnload);

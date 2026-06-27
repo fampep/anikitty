@@ -382,7 +382,9 @@
     "timeAgoMinutes": "{m} 分钟前",
     "timeAgoHours": "{h} 小时前",
     "timeAgoDays": "{d} 天前",
-    "live": "直播"
+    "live": "直播",
+    "backHome": "返回首页",
+    "reload": "重新加载"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · 已完成 {count}",
@@ -505,5 +507,20 @@
       "sayHi": "向房间打个招呼…",
       "chatPlaceholder": "房间聊天…"
     }
+  },
+  "comments": {
+    "title": "评论",
+    "signInToJoin": "登录以参与讨论。",
+    "selectEpisode": "选择一集以查看评论",
+    "scopedPerEpisode": "评论按每集单独显示",
+    "noComments": "暂无评论",
+    "noCommentsEpisode": "本集暂无评论",
+    "allEpisodes": "全部剧集",
+    "placeholder": "分享你的想法…",
+    "placeholderEpisode": "分享你对第 {n} 集的想法…",
+    "logInToReact": "登录以回应",
+    "sortNew": "最新",
+    "sortTop": "热门",
+    "sortOld": "最早"
   }
 }

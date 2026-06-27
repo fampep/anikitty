@@ -238,7 +238,7 @@ export default function ThreadPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 pb-24">
+      <div className="min-h-screen pt-page pb-24">
         <Container>
           <ThreadLoadingSkeleton />
         </Container>
@@ -253,7 +253,7 @@ export default function ThreadPage() {
   const canDeleteThread = isOwner || isMod;
 
   return (
-    <div className="min-h-screen pt-20 pb-24">
+    <div className="min-h-screen pt-page pb-24">
       <Container className="flex flex-col gap-5 max-w-[900px]">
         {/* Back link */}
         <Link

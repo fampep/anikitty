@@ -13,5 +13,6 @@ export const useGetAnimeDetails = (animeId: string) => {
     queryFn: () => getAnimeDetails(animeId),
     queryKey: [GET_ANIME_DETAILS, animeId],
     enabled: Boolean(animeId?.trim()),
+    staleTime: 5 * 60_000,
   });
 };

@@ -226,7 +226,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col pb-4 pt-[var(--nav-height)]">
+    <div className="flex min-h-screen flex-col pb-4 pb-safe pt-page">
       <Container className="flex flex-col flex-1 max-w-3xl">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 py-5 shrink-0">

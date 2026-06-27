@@ -382,7 +382,9 @@
     "timeAgoMinutes": "vor {m} Min.",
     "timeAgoHours": "vor {h} Std.",
     "timeAgoDays": "vor {d} T.",
-    "live": "Live"
+    "live": "Live",
+    "backHome": "Zurück zur Startseite",
+    "reload": "Neu laden"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} erledigt",
@@ -505,5 +507,20 @@
       "sayHi": "Sag Hallo zum Raum…",
       "chatPlaceholder": "Raum-Chat…"
     }
+  },
+  "comments": {
+    "title": "Kommentare",
+    "signInToJoin": "Melde dich an, um an der Diskussion teilzunehmen.",
+    "selectEpisode": "Wähle eine Episode, um Kommentare anzuzeigen",
+    "scopedPerEpisode": "Kommentare beziehen sich auf jede Episode",
+    "noComments": "Noch keine Kommentare",
+    "noCommentsEpisode": "Noch keine Kommentare für diese Episode",
+    "allEpisodes": "Alle Episoden",
+    "placeholder": "Teile deine Gedanken…",
+    "placeholderEpisode": "Teile deine Gedanken zu Folge {n}…",
+    "logInToReact": "Melde dich an, um zu reagieren",
+    "sortNew": "Neu",
+    "sortTop": "Top",
+    "sortOld": "Alt"
   }
 }

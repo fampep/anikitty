@@ -61,7 +61,7 @@ export default function WatchTogetherPage() {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-24">
+    <div className="min-h-screen pt-page pb-24">
       <Container className="max-w-lg">
         <div className="flex flex-col gap-8">
           <div className="text-center">

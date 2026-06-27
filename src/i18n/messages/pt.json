@@ -382,7 +382,9 @@
     "timeAgoMinutes": "há {m} min",
     "timeAgoHours": "há {h} h",
     "timeAgoDays": "há {d} d",
-    "live": "Ao vivo"
+    "live": "Ao vivo",
+    "backHome": "Voltar ao início",
+    "reload": "Recarregar"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} concluídos",
@@ -505,5 +507,20 @@
       "sayHi": "Diga olá à sala…",
       "chatPlaceholder": "Chat da sala…"
     }
+  },
+  "comments": {
+    "title": "Comentários",
+    "signInToJoin": "Entre para participar da discussão.",
+    "selectEpisode": "Selecione um episódio para ver comentários",
+    "scopedPerEpisode": "Os comentários são por episódio",
+    "noComments": "Nenhum comentário ainda",
+    "noCommentsEpisode": "Nenhum comentário para este episódio ainda",
+    "allEpisodes": "Todos os episódios",
+    "placeholder": "Compartilhe suas ideias…",
+    "placeholderEpisode": "Compartilhe suas ideias sobre o Episódio {n}…",
+    "logInToReact": "Entre para reagir",
+    "sortNew": "Novo",
+    "sortTop": "Top",
+    "sortOld": "Antigo"
   }
 }

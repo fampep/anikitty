@@ -88,6 +88,8 @@ export default function KittyPlayer({
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const lastUiTimeRef = useRef(0);
+  const skipUiRef = useRef<"intro" | "outro" | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const onNextEpisodeRef = useRef(onNextEpisode);
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
@@ -126,6 +128,8 @@ export default function KittyPlayer({
     outroFiredRef.current = false;
     lastProgressTs.current = 0;
     setActiveSkip(null);
+    skipUiRef.current = null;
+    lastUiTimeRef.current = 0;
     setCurrentTime(0);
     setCountdown(null);
   }, [src]);
@@ -223,19 +227,30 @@ export default function KittyPlayer({
     const st  = skipRef.current;
 
     onLiveTimeRef.current?.(t, dur);
-    setCurrentTime(t);
-    if (dur > 0) setDuration(dur);
 
+    if (dur > 0 && Math.abs(dur - duration) > 0.5) {
+      setDuration(dur);
+    }
+
+    let nextSkip: "intro" | "outro" | null = null;
     if (st?.intro && t >= st.intro.start && t < st.intro.end) {
-      setActiveSkip("intro");
+      nextSkip = "intro";
     } else if (st?.outro && t >= st.outro.start && t < st.outro.end) {
-      setActiveSkip("outro");
+      nextSkip = "outro";
       if (!outroFiredRef.current && dur > 0) {
         outroFiredRef.current = true;
         onOutroStartRef.current?.(dur);
       }
-    } else {
-      setActiveSkip((prev) => (prev ? null : prev));
+    }
+    setActiveSkip((prev) => (prev === nextSkip ? prev : nextSkip));
+
+    const skipChanged = nextSkip !== skipUiRef.current;
+    if (skipChanged) skipUiRef.current = nextSkip;
+
+    const uiInterval = nextSkip ? 0.25 : 1;
+    if (skipChanged || t - lastUiTimeRef.current >= uiInterval) {
+      lastUiTimeRef.current = t;
+      setCurrentTime(t);
     }
 
     if (t > 5 && dur > 0) {
@@ -250,7 +265,7 @@ export default function KittyPlayer({
     if (cfg?.isHost && !applyingW2gRef.current && Math.abs(t - lastW2gReportRef.current) > 2.5) {
       reportW2g(!player.paused, t);
     }
-  }, [reportW2g]);
+  }, [duration, reportW2g]);
 
   const handleCanPlay = useCallback(() => {
     const t = startTimeRef.current;

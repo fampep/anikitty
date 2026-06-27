@@ -1,56 +1,107 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useSyncExternalStore } from "react";
 
 function getOrCreateSid(): string {
   try {
-    let sid = sessionStorage.getItem("kk-sid");
-    if (!sid) {
-      sid = crypto.randomUUID();
-      sessionStorage.setItem("kk-sid", sid);
+    let stored = sessionStorage.getItem("kk-sid");
+    if (!stored) {
+      stored = crypto.randomUUID();
+      sessionStorage.setItem("kk-sid", stored);
     }
-    return sid;
+    return stored;
   } catch {
     return crypto.randomUUID();
   }
 }
 
-export function useOnlineCount() {
-  const [count, setCount] = useState<number | null>(null);
+let count: number | null = null;
+let sid: string | null = null;
+let interval: ReturnType<typeof setInterval> | null = null;
+let subscribers = 0;
+const listeners = new Set<() => void>();
+let teardown: (() => void) | null = null;
 
-  useEffect(() => {
-    const sid = getOrCreateSid();
+function emit() {
+  listeners.forEach((l) => l());
+}
 
-    const beat = async () => {
-      try {
-        const res = await fetch("/api/online", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: sid }),
-        });
-        const data = await res.json();
-        setCount(data.count);
-      } catch {}
-    };
+async function beat() {
+  if (typeof document !== "undefined" && document.hidden) return;
+  if (!sid) sid = getOrCreateSid();
+  try {
+    const res = await fetch("/api/online", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: sid }),
+    });
+    const data = await res.json();
+    if (data.count !== count) {
+      count = data.count;
+      emit();
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
-    beat();
-    const iv = setInterval(beat, 30_000);
+function startPolling() {
+  if (interval) return;
 
-    const onUnload = () => {
-      navigator.sendBeacon(
-        "/api/online",
-        new Blob(
-          [JSON.stringify({ sessionId: sid, action: "leave" })],
-          { type: "application/json" },
-        ),
-      );
-    };
-    window.addEventListener("beforeunload", onUnload);
+  void beat();
+  interval = setInterval(beat, 30_000);
 
-    return () => {
-      clearInterval(iv);
-      window.removeEventListener("beforeunload", onUnload);
-    };
-  }, []);
+  const onVisibility = () => {
+    if (!document.hidden) void beat();
+  };
+  document.addEventListener("visibilitychange", onVisibility);
 
+  const onUnload = () => {
+    if (!sid) return;
+    navigator.sendBeacon(
+      "/api/online",
+      new Blob([JSON.stringify({ sessionId: sid, action: "leave" })], {
+        type: "application/json",
+      }),
+    );
+  };
+  window.addEventListener("beforeunload", onUnload);
+
+  teardown = () => {
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("beforeunload", onUnload);
+  };
+}
+
+function stopPolling() {
+  if (interval) {
+    clearInterval(interval);
+    interval = null;
+  }
+  teardown?.();
+  teardown = null;
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  subscribers += 1;
+  if (subscribers === 1) startPolling();
+
+  return () => {
+    listeners.delete(listener);
+    subscribers -= 1;
+    if (subscribers === 0) stopPolling();
+  };
+}
+
+function getSnapshot() {
   return count;
+}
+
+function getServerSnapshot() {
+  return null;
+}
+
+export function useOnlineCount() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

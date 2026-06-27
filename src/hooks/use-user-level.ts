@@ -25,6 +25,9 @@ export type UserLevelData = {
   commentCount?: number;
 };
 
+let inflightLevel: Promise<UserLevelData | null> | null = null;
+let inflightUserId: string | null = null;
+
 export function invalidateUserLevel(userId?: string) {
   if (typeof window === "undefined") return;
   if (userId) {
@@ -36,8 +39,17 @@ export function invalidateUserLevel(userId?: string) {
     .forEach((k) => sessionStorage.removeItem(k));
 }
 
+async function fetchLevelData(userId: string): Promise<UserLevelData | null> {
+  const res = await fetch("/api/account/level", withAuth());
+  if (!res.ok) return null;
+  const d = await res.json();
+  if (!d?.level) return null;
+  sessionStorage.setItem(`level:${userId}`, JSON.stringify(d));
+  return d as UserLevelData;
+}
+
 export function useUserLevel(): UserLevelData | null {
-  const { auth } = useAuthStore();
+  const auth = useAuthStore((s) => s.auth);
   const [data, setData] = useState<UserLevelData | null>(null);
 
   const fetchLevel = useCallback(() => {
@@ -56,15 +68,22 @@ export function useUserLevel(): UserLevelData | null {
       }
     }
 
-    fetch("/api/account/level", withAuth())
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.level) {
-          setData(d);
-          sessionStorage.setItem(cacheKey, JSON.stringify(d));
-        }
-      })
-      .catch(() => {});
+    if (inflightLevel && inflightUserId === auth.id) {
+      inflightLevel.then((d) => {
+        if (d) setData(d);
+      });
+      return;
+    }
+
+    inflightUserId = auth.id;
+    inflightLevel = fetchLevelData(auth.id).finally(() => {
+      inflightLevel = null;
+      inflightUserId = null;
+    });
+
+    inflightLevel.then((d) => {
+      if (d) setData(d);
+    });
   }, [auth]);
 
   useEffect(() => {

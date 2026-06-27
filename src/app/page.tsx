@@ -9,6 +9,7 @@ import { nightTokyo } from "@/utils/fonts";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
 import LoginPopoverButton from "@/components/login-popover-button";
+import LanguageSwitcher from "@/components/language-switcher";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useT } from "@/providers/i18n-provider";
 
@@ -51,25 +52,26 @@ export default function LandingPage() {
           postersLoaded && posters.length > 0 ? "opacity-100" : "opacity-0",
         )}
       >
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10 h-full gap-1 sm:gap-1.5 scale-110">
-          {Array.from({ length: 40 }).map((_, i) => {
+        <div className="grid grid-cols-3 sm:grid-cols-6 h-full gap-1 sm:gap-1.5">
+          {Array.from({ length: 18 }).map((_, i) => {
             const src = posters[i % posters.length];
             return src ? (
-              <div key={i} className="relative overflow-hidden rounded-md">
+              <div key={i} className="relative overflow-hidden rounded-md aspect-[2/3]">
                 <Image
                   src={src}
                   alt=""
                   fill
-                  className="object-cover blur-[1px] saturate-[0.6] brightness-[0.7]"
-                  unoptimized
-                  sizes="12vw"
+                  className="object-cover saturate-[0.55] brightness-[0.65]"
+                  loading="lazy"
+                  sizes="(max-width: 640px) 33vw, 16vw"
                 />
               </div>
             ) : (
-              <div key={i} className="bg-white/[0.02] rounded-md" />
+              <div key={i} className="bg-white/[0.02] rounded-md aspect-[2/3]" />
             );
           })}
         </div>
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-[3px]" />
       </div>
 
       {/* ── Gradient vignettes ── */}
@@ -94,6 +96,7 @@ export default function LandingPage() {
         </Link>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher compact className="hidden sm:inline-flex" />
           {!isLoggedIn && <LoginPopoverButton />}
           <Link
             href="/home"

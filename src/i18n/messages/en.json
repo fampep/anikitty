@@ -382,7 +382,9 @@
     "timeAgoMinutes": "{m}m ago",
     "timeAgoHours": "{h}h ago",
     "timeAgoDays": "{d}d ago",
-    "live": "Live"
+    "live": "Live",
+    "backHome": "Back to Home",
+    "reload": "Reload"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} done",
@@ -505,5 +507,20 @@
       "sayHi": "Say hi to the room…",
       "chatPlaceholder": "Room chat…"
     }
+  },
+  "comments": {
+    "title": "Comments",
+    "signInToJoin": "Log in to join the discussion.",
+    "selectEpisode": "Select an episode to view comments",
+    "scopedPerEpisode": "Comments are scoped to each episode",
+    "noComments": "No comments yet",
+    "noCommentsEpisode": "No comments for this episode yet",
+    "allEpisodes": "All episodes",
+    "placeholder": "Share your thoughts…",
+    "placeholderEpisode": "Share your thoughts on Episode {n}…",
+    "logInToReact": "Log in to react",
+    "sortNew": "New",
+    "sortTop": "Top",
+    "sortOld": "Old"
   }
 }

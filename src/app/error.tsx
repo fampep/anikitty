@@ -1,4 +1,4 @@
-"use client"; // Error components must be Client Components
+"use client";
 
 import Image from "next/image";
 import { useEffect } from "react";
@@ -6,6 +6,7 @@ import ErrorImage from "@/assets/error.gif";
 import { ROUTES } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/common/button-link";
+import { useT } from "@/providers/i18n-provider";
 
 export default function Error({
   error,
@@ -14,30 +15,33 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
+
   useEffect(() => {
-    // Log the error to an error reporting service
     console.error(error);
   }, [error]);
 
   return (
-    <div className="w-[100dvw] h-[100dvh]">
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col space-y-5 items-center justify-center">
+    <div className="min-h-[100dvh] w-full bg-black flex items-center justify-center px-6">
+      <div className="flex flex-col items-center gap-5 text-center max-w-md">
         <Image
           src={ErrorImage.src}
-          alt="error"
-          width={300}
-          height={300}
-          className=""
+          alt=""
+          width={220}
+          height={220}
+          className="opacity-90"
         />
-        <p className="font-bold text-2xl">Something went wrong!</p>
-        <div className="flex gap-3 items-center">
-          <ButtonLink href={ROUTES.HOME}>Back to Home</ButtonLink>
-          <Button onClick={() => reset()} className="" variant={"secondary"}>
-            Reload
+        <div>
+          <p className="font-bold text-2xl text-white">{t("common.error")}</p>
+          <p className="text-sm text-white/35 mt-2 font-mono">{t("common.tryAgain")}</p>
+        </div>
+        <div className="flex gap-3 items-center flex-wrap justify-center">
+          <ButtonLink href={ROUTES.HOME}>{t("common.backHome")}</ButtonLink>
+          <Button onClick={() => reset()} variant="secondary">
+            {t("common.reload")}
           </Button>
         </div>
       </div>
     </div>
   );
 }
-
