@@ -519,6 +519,9 @@
       "batchFailed": "All downloads failed"
     }
   },
+  "download": {
+    "videoTemporarilyDisabled": "Video downloads are temporarily disabled. Please try again later."
+  },
   "watch": {
     "episode": "Episode {n}",
     "episodeShort": "EP {n}",

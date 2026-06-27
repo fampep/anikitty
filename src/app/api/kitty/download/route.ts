@@ -1,11 +1,16 @@
 import { fetchKittyStreamRaw } from "@/lib/kitty-stream-fetch";
 import { fetchSegment, resolveVideoDownload } from "@/lib/hls-download";
 import { buildVideoDownloadFilename } from "@/lib/video-download-utils";
+import { VIDEO_DOWNLOAD_ENABLED } from "@/lib/video-download-config";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ID = /^\d{1,10}$/;
 
 export async function GET(req: Request) {
+  if (!VIDEO_DOWNLOAD_ENABLED) {
+    return new Response("Video downloads are temporarily disabled", { status: 503 });
+  }
+
   const { searchParams } = new URL(req.url);
   const anilistId = searchParams.get("anilistId");
   const episode = searchParams.get("episode");

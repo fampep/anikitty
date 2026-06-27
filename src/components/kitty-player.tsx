@@ -16,6 +16,7 @@ import {
 import { DefaultVideoLayout, defaultLayoutIcons } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/default/theme.css";
+import "@vidstack/react/player/styles/default/captions.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import { SkipForward, ChevronRight, X } from "lucide-react";
 import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
@@ -420,7 +421,7 @@ export default function KittyPlayer({
     <div
       ref={containerRef}
       className="vds-kitty relative w-full bg-black overflow-hidden ring-1 ring-white/[0.08] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)]"
-      style={{ aspectRatio: "16/9", ...subtitleCssVars } as React.CSSProperties}
+      style={{ aspectRatio: "16/9" }}
     >
       <MediaPlayer
         ref={playerRef}
@@ -432,6 +433,7 @@ export default function KittyPlayer({
         load="eager"
         autoPlay
         className="w-full h-full"
+        style={subtitleCssVars as React.CSSProperties & Record<string, string>}
         onProviderChange={onProviderChange}
         onCanPlay={handleCanPlay}
         onPlay={handlePlay}

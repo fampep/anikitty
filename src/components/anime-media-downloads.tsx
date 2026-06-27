@@ -18,8 +18,10 @@ import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
   downloadEpisodeVideo,
   downloadEpisodeVideosBatch,
+  VideoDownloadDisabledError,
 } from "@/query/download-episode-video";
 import { KITTY_PROVIDERS, type KittyProvider } from "@/query/get-kitty-stream";
+import { VIDEO_DOWNLOAD_ENABLED } from "@/lib/video-download-config";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 
@@ -90,8 +92,12 @@ export default function AnimeMediaDownloads({ anilistId, hasDub = false }: Props
     try {
       await downloadEpisodeVideo(anilistId, episode, audio, provider);
       toast.success(t("anime.media.downloadSuccess", { n: episode }));
-    } catch {
-      toast.error(t("anime.media.downloadError", { n: episode }));
+    } catch (err) {
+      if (err instanceof VideoDownloadDisabledError) {
+        toast.info(t("download.videoTemporarilyDisabled"));
+      } else {
+        toast.error(t("anime.media.downloadError", { n: episode }));
+      }
     } finally {
       setDownloadingEp(null);
     }
@@ -117,6 +123,13 @@ export default function AnimeMediaDownloads({ anilistId, hasDub = false }: Props
       toast.dismiss("media-batch");
       if (ok > 0) {
         toast.success(t("anime.media.batchSuccess", { ok, failed }));
+      } else {
+        toast.error(t("anime.media.batchFailed"));
+      }
+    } catch (err) {
+      toast.dismiss("media-batch");
+      if (err instanceof VideoDownloadDisabledError) {
+        toast.info(t("download.videoTemporarilyDisabled"));
       } else {
         toast.error(t("anime.media.batchFailed"));
       }
@@ -148,6 +161,11 @@ export default function AnimeMediaDownloads({ anilistId, hasDub = false }: Props
           <p className="text-xs text-white/40 mt-1.5 max-w-xl leading-relaxed">
             {t("anime.media.description")}
           </p>
+          {!VIDEO_DOWNLOAD_ENABLED && (
+            <p className="text-xs text-amber-400/80 mt-2 max-w-xl leading-relaxed">
+              {t("download.videoTemporarilyDisabled")}
+            </p>
+          )}
           {allEpisodes.length > 0 && (
             <p className="text-[11px] font-mono text-white/25 mt-2">
               {t("anime.media.episodeCount", { total: allEpisodes.length })}

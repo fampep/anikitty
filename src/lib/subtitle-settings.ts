@@ -27,9 +27,15 @@ export function subtitleSettingsToCssVars(
   settings: SubtitleSettings,
 ): Record<string, string> {
   return {
+    "--media-cue-font-size": `${settings.fontSize}px`,
+    "--media-cue-color": settings.color,
+    "--media-cue-bg": `rgba(0, 0, 0, ${settings.backgroundOpacity / 100})`,
+    "--media-cue-border-radius": "6px",
+    "--media-cue-line-height": "1.45",
+    "--media-cue-backdrop": "none",
+    "--media-cue-text-shadow": "0 1px 4px rgba(0, 0, 0, 0.85)",
+    "--media-cue-display-padding": "0",
     "--kitty-sub-font-size": `${settings.fontSize}px`,
-    "--kitty-sub-color": settings.color,
-    "--kitty-sub-bg-opacity": String(settings.backgroundOpacity / 100),
     "--kitty-sub-font-weight": String(settings.fontWeight),
     "--kitty-sub-bottom": `${settings.bottomOffset}rem`,
   };

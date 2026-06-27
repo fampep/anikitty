@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import {
   downloadEpisodeVideo,
   downloadEpisodeVideosBatch,
+  VideoDownloadDisabledError,
 } from "@/query/download-episode-video";
 import type { KittyProvider } from "@/query/get-kitty-stream";
 import type { Episode } from "@/types/episodes";
@@ -60,8 +61,12 @@ export default function WatchDownloadPanel({
     try {
       await downloadEpisodeVideo(anilistId, currentEpisodeNumber, audio, provider);
       toast.success(t("watch.downloadEpisodeSuccess"));
-    } catch {
-      toast.error(t("watch.downloadEpisodeError"));
+    } catch (err) {
+      if (err instanceof VideoDownloadDisabledError) {
+        toast.info(t("download.videoTemporarilyDisabled"));
+      } else {
+        toast.error(t("watch.downloadEpisodeError"));
+      }
     } finally {
       setDownloadingCurrent(false);
     }
@@ -87,6 +92,13 @@ export default function WatchDownloadPanel({
       toast.dismiss("watch-download-batch");
       if (ok > 0) {
         toast.success(t("watch.downloadBatchSuccess", { ok, failed }));
+      } else {
+        toast.error(t("watch.downloadBatchFailed"));
+      }
+    } catch (err) {
+      toast.dismiss("watch-download-batch");
+      if (err instanceof VideoDownloadDisabledError) {
+        toast.info(t("download.videoTemporarilyDisabled"));
       } else {
         toast.error(t("watch.downloadBatchFailed"));
       }

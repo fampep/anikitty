@@ -156,20 +156,24 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
       </div>
 
       {/* Live preview */}
-      <div className="rounded-xl border border-white/10 bg-black/80 p-4 relative min-h-[88px] overflow-hidden">
+      <div className="rounded-xl border border-white/10 bg-black/80 p-4 relative min-h-[100px] overflow-hidden">
         <div
-          className="absolute left-1/2 -translate-x-1/2 text-center max-w-[90%] px-2 py-1 rounded-md"
-          style={{
-            bottom: `${Math.min(subtitleSettings.bottomOffset, 3)}rem`,
-            color: subtitleSettings.color,
-            fontSize: `${Math.min(subtitleSettings.fontSize, 22)}px`,
-            fontWeight: subtitleSettings.fontWeight,
-            backgroundColor: `rgba(0, 0, 0, ${subtitleSettings.backgroundOpacity / 100})`,
-            textShadow: "0 1px 3px rgba(0,0,0,0.9)",
-            lineHeight: 1.45,
-          }}
+          className="absolute inset-x-0 flex justify-center px-3"
+          style={{ bottom: `${Math.min(subtitleSettings.bottomOffset, 3)}rem` }}
         >
-          {t("settings.subtitlePreviewText")}
+          <span
+            className="inline-block text-center max-w-[90%] px-2.5 py-1 rounded-md"
+            style={{
+              color: subtitleSettings.color,
+              fontSize: `${subtitleSettings.fontSize}px`,
+              fontWeight: subtitleSettings.fontWeight,
+              backgroundColor: `rgba(0, 0, 0, ${subtitleSettings.backgroundOpacity / 100})`,
+              textShadow: "0 1px 4px rgba(0,0,0,0.85)",
+              lineHeight: 1.45,
+            }}
+          >
+            {t("settings.subtitlePreviewText")}
+          </span>
         </div>
         <p className="text-[10px] font-mono text-white/20 absolute top-2 left-3 uppercase tracking-widest">
           {t("settings.subtitlePreview")}
