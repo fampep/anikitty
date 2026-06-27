@@ -140,7 +140,7 @@ export async function GET(req: Request) {
     const chapters = extractChapters(text);
 
     if (chapters.length === 0) {
-      return new Response("", { status: 204 });
+      return new Response(null, { status: 204 });
     }
 
     // Build WebVTT
@@ -159,6 +159,6 @@ export async function GET(req: Request) {
       },
     });
   } catch {
-    return new Response("", { status: 204 });
+    return new Response(null, { status: 204 });
   }
 }

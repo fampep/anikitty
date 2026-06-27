@@ -24,6 +24,14 @@ function dbAvailable(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
+/** Postgres aggregates and some drivers return timestamps as strings. */
+function toDateOrNull(value: unknown): Date | null {
+  if (value == null) return null;
+  if (value instanceof Date) return value;
+  const date = new Date(value as string | number);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function isSubtitleLibraryComplete(opts: {
   trackCount: number;
   episodeCount: number;
@@ -68,7 +76,7 @@ function rowToEntry(row: {
     animeTitle: row.animeTitle,
     trackCount: row.trackCount,
     episodeCount: row.episodeCount,
-    lastFetched: row.lastFetched?.toISOString() ?? null,
+    lastFetched: toDateOrNull(row.lastFetched)?.toISOString() ?? null,
     poster: row.poster ?? null,
     status: row.status ?? null,
     totalEpisodes: row.totalEpisodes ?? null,
@@ -232,7 +240,7 @@ export async function syncSubtitleLibraryAnime(
         isComplete,
         score: existing?.score ?? null,
         year: existing?.year ?? null,
-        lastSubtitleAt: agg.lastFetched,
+        lastSubtitleAt: toDateOrNull(agg.lastFetched),
         metaFetchedAt: existing?.metaFetchedAt ?? null,
         updatedAt: now,
       })
@@ -244,7 +252,7 @@ export async function syncSubtitleLibraryAnime(
           trackCount: agg.trackCount,
           isComplete,
           ...(opts?.totalEpisodes != null ? { totalEpisodes: opts.totalEpisodes } : {}),
-          lastSubtitleAt: agg.lastFetched,
+          lastSubtitleAt: toDateOrNull(agg.lastFetched),
           updatedAt: now,
         },
       });
@@ -273,7 +281,9 @@ export async function needsSubtitleLibraryMetaRefresh(anilistId: number): Promis
 
     if (!row?.metaFetchedAt || row.totalEpisodes == null) return true;
     if (!row.poster?.includes("anilist.co")) return true;
-    return Date.now() - row.metaFetchedAt.getTime() > META_STALE_MS;
+    const metaFetchedAt = toDateOrNull(row.metaFetchedAt);
+    if (!metaFetchedAt) return true;
+    return Date.now() - metaFetchedAt.getTime() > META_STALE_MS;
   } catch {
     return true;
   }
@@ -521,7 +531,8 @@ function applyLiveCounts(
       trackCount: counts.trackCount,
       episodeCount,
       isComplete,
-      lastFetched: counts.lastFetched?.toISOString() ?? entry.lastFetched,
+      lastFetched:
+        toDateOrNull(counts.lastFetched)?.toISOString() ?? entry.lastFetched,
     };
   });
 }
