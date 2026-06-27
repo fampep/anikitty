@@ -390,12 +390,20 @@ export default function SubtitleLibraryPage() {
                     onChange={(e) =>
                       pushParams(qParam, 1, filterParam, e.target.value as SubtitleLibrarySort)
                     }
-                    className="h-9 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 text-[12px] text-white/70 outline-none transition-colors focus:border-violet-500/30"
+                    className="h-9 cursor-pointer rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 text-[12px] text-white/70 outline-none transition-colors focus:border-violet-500/30"
                   >
-                    <option value="latest">{t("subsLibrary.sortLatest")}</option>
-                    <option value="tracks">{t("subsLibrary.sortTracks")}</option>
-                    <option value="progress">{t("subsLibrary.sortProgress")}</option>
-                    <option value="az">{t("subsLibrary.sortAZ")}</option>
+                    <option value="latest" className="bg-zinc-900 text-white">
+                      {t("subsLibrary.sortLatest")}
+                    </option>
+                    <option value="tracks" className="bg-zinc-900 text-white">
+                      {t("subsLibrary.sortTracks")}
+                    </option>
+                    <option value="progress" className="bg-zinc-900 text-white">
+                      {t("subsLibrary.sortProgress")}
+                    </option>
+                    <option value="az" className="bg-zinc-900 text-white">
+                      {t("subsLibrary.sortAZ")}
+                    </option>
                   </select>
                   {isFetching && !isLoading && (
                     <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/30" />
