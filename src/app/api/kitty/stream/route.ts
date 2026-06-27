@@ -4,6 +4,7 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitle-cache-store";
 import {
+  isSubtitleTrack,
   stripSubtitleTracks,
   SUBTITLE_SOURCE_PROVIDER,
 } from "@/lib/subtitle-track-utils";
@@ -68,13 +69,18 @@ export async function GET(req: Request) {
 
     // Subtitles always come from the Miruro API — never from stream-direct video responses.
     data.tracks = stripSubtitleTracks(data.tracks);
-    await ensureMiruroSubtitleCache(subtitleCtx);
+    const fetchedSubs = await ensureMiruroSubtitleCache(subtitleCtx);
 
     data.tracks = await mergeCachedSubtitleTracks(
       data.tracks,
       subtitleCtx,
       data.headers ?? {},
     );
+
+    if (!data.tracks.some(isSubtitleTrack) && fetchedSubs.length > 0) {
+      data.tracks = [...data.tracks, ...fetchedSubs];
+    }
+
     data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
 
     if (subtitleCtx.episode === 1) {

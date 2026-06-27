@@ -4,8 +4,8 @@ import { isSubtitleTrack } from "@/lib/subtitle-track-utils";
 const KITTY_API_BASE = process.env.KITTY_API_BASE ?? "https://kittyapi.buzz";
 const MIRURO_API_BASE = `${KITTY_API_BASE.replace(/\/$/, "")}/miruro`;
 
-/** Native providers with external WebVTT subtitles (`sub` capability). */
-export const MIRURO_SUB_PROVIDERS = ["kiwi", "bonk", "ally", "moo", "pewe"] as const;
+/** External VTT providers — bonk first (best subtitle support per Miruro pipe). */
+export const MIRURO_SUB_PROVIDERS = ["bonk", "ally", "kiwi", "moo", "pewe"] as const;
 
 /** Providers with soft-sub / embedded subtitle streams (`ssub` capability). */
 export const MIRURO_SSUB_PROVIDERS = ["bonk", "bee", "hop"] as const;
@@ -15,8 +15,29 @@ export type MiruroStreamProvider = (typeof MIRURO_SUB_PROVIDERS)[number];
 export type MiruroEpisode = {
   number: number;
   slug: string;
+  provider: string;
   title?: string | null;
-  id?: string | null;
+  watchId?: string | null;
+};
+
+type MiruroProviderEpisodes = {
+  meta?: { title?: string | null };
+  episodes?: {
+    sub?: MiruroEpisodeRow[];
+    ssub?: MiruroEpisodeRow[];
+    dub?: MiruroEpisodeRow[];
+  };
+};
+
+type MiruroEpisodeRow = {
+  id: string;
+  number: number;
+  title?: string | null;
+};
+
+type MiruroEpisodesPayload = {
+  providers?: Record<string, MiruroProviderEpisodes>;
+  mappings?: { title?: string | null };
 };
 
 type MiruroApiResponse<T> = {
@@ -33,7 +54,7 @@ export type MiruroStreamResult = {
   slug: string;
 };
 
-const episodeListCache = new Map<number, { episodes: MiruroEpisode[]; at: number }>();
+const episodeListCache = new Map<number, { payload: MiruroEpisodesPayload; at: number }>();
 const EPISODE_LIST_TTL_MS = 5 * 60_000;
 
 function miruroHeaders(): HeadersInit {
@@ -76,76 +97,114 @@ async function miruroFetch<T>(
   }
 }
 
-function parseEpisodeNumber(raw: unknown): number | null {
-  if (typeof raw === "number" && raw > 0) return raw;
-  if (typeof raw === "string") {
-    const n = parseInt(raw, 10);
-    return Number.isNaN(n) || n <= 0 ? null : n;
-  }
-  return null;
+function slugFromWatchId(watchId: string): string {
+  const trimmed = watchId.trim();
+  if (!trimmed) return trimmed;
+  const parts = trimmed.split("/");
+  return parts[parts.length - 1] || trimmed;
 }
 
-function parseEpisodeSlug(raw: unknown, episodeNumber: number): string {
-  if (typeof raw === "string" && raw.trim()) return raw.trim();
-  return String(episodeNumber);
-}
+/** Kitty API returns proxied subs as `/proxy?url=...&referer=...` — unwrap to the raw VTT URL. */
+function unwrapKittyProxyUrl(file: string): { url: string; referer?: string } {
+  const trimmed = file.trim();
+  if (!trimmed) return { url: trimmed };
 
-function normalizeEpisodeList(data: unknown): MiruroEpisode[] {
-  if (!data) return [];
-
-  const list = Array.isArray(data)
-    ? data
-    : typeof data === "object" && data !== null
-      ? ((data as { episodes?: unknown[]; results?: unknown[] }).episodes ??
-        (data as { results?: unknown[] }).results ??
-        [])
-      : [];
-
-  const out: MiruroEpisode[] = [];
-  for (const item of list) {
-    if (!item || typeof item !== "object") continue;
-    const row = item as Record<string, unknown>;
-    const number =
-      parseEpisodeNumber(row.number) ??
-      parseEpisodeNumber(row.episode) ??
-      parseEpisodeNumber(row.episodeNumber) ??
-      parseEpisodeNumber(row.episode_number);
-
-    if (!number) continue;
-
-    out.push({
-      number,
-      slug: parseEpisodeSlug(row.slug ?? row.episodeSlug ?? row.id, number),
-      title: typeof row.title === "string" ? row.title : null,
-      id: typeof row.id === "string" ? row.id : null,
-    });
+  let query: string | null = null;
+  if (trimmed.startsWith("/proxy?")) {
+    query = trimmed.slice("/proxy?".length);
+  } else {
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.pathname === "/proxy" || parsed.pathname.endsWith("/proxy")) {
+        query = parsed.searchParams.toString();
+      }
+    } catch {
+      return { url: trimmed };
+    }
   }
 
-  return out.sort((a, b) => a.number - b.number);
+  if (!query) return { url: trimmed };
+
+  const params = new URLSearchParams(query);
+  const target = params.get("url");
+  if (!target) return { url: trimmed };
+
+  const referer = params.get("referer");
+  return {
+    url: target,
+    referer: referer ?? undefined,
+  };
 }
 
-export async function getMiruroEpisodes(anilistId: number): Promise<MiruroEpisode[]> {
+function episodeRowsForCategory(
+  providerData: MiruroProviderEpisodes | undefined,
+  category: "sub" | "ssub",
+): MiruroEpisodeRow[] {
+  const episodes = providerData?.episodes;
+  if (!episodes) return [];
+  if (category === "ssub") {
+    return episodes.ssub ?? episodes.sub ?? [];
+  }
+  return episodes.sub ?? episodes.ssub ?? [];
+}
+
+async function getMiruroEpisodesPayload(anilistId: number): Promise<MiruroEpisodesPayload | null> {
   const cached = episodeListCache.get(anilistId);
   if (cached && Date.now() - cached.at < EPISODE_LIST_TTL_MS) {
-    return cached.episodes;
+    return cached.payload;
   }
 
-  const data = await miruroFetch<unknown>(`/episodes/${anilistId}`);
-  const episodes = normalizeEpisodeList(data);
-  if (episodes.length > 0) {
-    episodeListCache.set(anilistId, { episodes, at: Date.now() });
+  const data = await miruroFetch<MiruroEpisodesPayload>(`/episodes/${anilistId}`);
+  if (!data?.providers) return null;
+
+  episodeListCache.set(anilistId, { payload: data, at: Date.now() });
+  return data;
+}
+
+function findProviderEpisode(
+  payload: MiruroEpisodesPayload,
+  provider: string,
+  episode: number,
+  category: "sub" | "ssub",
+): MiruroEpisodeRow | null {
+  const rows = episodeRowsForCategory(payload.providers?.[provider], category);
+  return rows.find((row) => row.number === episode) ?? null;
+}
+
+/** Episodes from the first provider that has a sub list (for display / slug hints). */
+export async function getMiruroEpisodes(anilistId: number): Promise<MiruroEpisode[]> {
+  const payload = await getMiruroEpisodesPayload(anilistId);
+  if (!payload?.providers) return [];
+
+  for (const provider of MIRURO_SUB_PROVIDERS) {
+    const rows = episodeRowsForCategory(payload.providers[provider], "sub");
+    if (rows.length === 0) continue;
+
+    return rows.map((row) => ({
+      number: row.number,
+      slug: slugFromWatchId(row.id),
+      provider,
+      title: row.title ?? null,
+      watchId: row.id,
+    }));
   }
-  return episodes;
+
+  return [];
 }
 
 export async function resolveMiruroEpisodeSlug(
   anilistId: number,
   episode: number,
 ): Promise<string | null> {
-  const episodes = await getMiruroEpisodes(anilistId);
-  const match = episodes.find((row) => row.number === episode);
-  if (match?.slug) return match.slug;
-  return episodes.length > 0 ? String(episode) : null;
+  const payload = await getMiruroEpisodesPayload(anilistId);
+  if (!payload?.providers) return null;
+
+  for (const provider of MIRURO_SUB_PROVIDERS) {
+    const row = findProviderEpisode(payload, provider, episode, "sub");
+    if (row) return slugFromWatchId(row.id);
+  }
+
+  return null;
 }
 
 function normalizeSubtitleTracks(raw: unknown): StreamTrack[] {
@@ -155,24 +214,27 @@ function normalizeSubtitleTracks(raw: unknown): StreamTrack[] {
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
     const row = item as Record<string, unknown>;
-    const file =
+    const rawFile =
       (typeof row.file === "string" && row.file) ||
       (typeof row.url === "string" && row.url) ||
       (typeof row.src === "string" && row.src) ||
       (typeof row.uri === "string" && row.uri) ||
       null;
 
-    if (!file?.trim()) continue;
+    if (!rawFile?.trim()) continue;
+
+    const unwrapped = unwrapKittyProxyUrl(rawFile.trim());
 
     tracks.push({
-      file: file.trim(),
+      file: unwrapped.url,
       label:
         (typeof row.label === "string" && row.label) ||
         (typeof row.name === "string" && row.name) ||
         (typeof row.language === "string" && row.language) ||
         "Unknown",
       kind: (typeof row.kind === "string" && row.kind) || "subtitles",
-      default: Boolean(row.default),
+      default: Boolean(row.default ?? row.isDefault),
+      ...(unwrapped.referer ? { referer: unwrapped.referer } : {}),
     });
   }
 
@@ -185,21 +247,34 @@ function providersForCategory(category: "sub" | "ssub"): readonly string[] {
     : MIRURO_SUB_PROVIDERS;
 }
 
-/** Fetch subtitle tracks via GET /miruro/stream (slug + provider + category). */
+/** Fetch subtitle tracks via GET /miruro/stream (provider-specific slug + category). */
 export async function fetchMiruroSubtitleStream(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
   slug?: string | null;
 }): Promise<MiruroStreamResult | null> {
-  const slug = opts.slug ?? (await resolveMiruroEpisodeSlug(opts.anilistId, opts.episode));
-  if (!slug) return null;
+  const payload = await getMiruroEpisodesPayload(opts.anilistId);
 
   const categories: Array<"sub" | "ssub"> =
     opts.audio === "dub" ? ["ssub", "sub"] : ["sub"];
 
   for (const category of categories) {
     for (const provider of providersForCategory(category)) {
+      const row =
+        payload != null
+          ? findProviderEpisode(payload, provider, opts.episode, category)
+          : null;
+
+      const slug =
+        row != null
+          ? slugFromWatchId(row.id)
+          : provider === MIRURO_SUB_PROVIDERS[0] && opts.slug
+            ? opts.slug
+            : null;
+
+      if (!slug) continue;
+
       const data = await miruroFetch<Record<string, unknown>>("/stream", {
         provider,
         anilistId: opts.anilistId,
@@ -218,6 +293,9 @@ export async function fetchMiruroSubtitleStream(opts: {
         (typeof data.title === "string" && data.title) ||
         (typeof data.animeTitle === "string" && data.animeTitle) ||
         (typeof data.matchedTitle === "string" && data.matchedTitle) ||
+        payload?.providers?.[provider]?.meta?.title ||
+        payload?.mappings?.title ||
+        row?.title ||
         null;
 
       const headers =
@@ -225,10 +303,26 @@ export async function fetchMiruroSubtitleStream(opts: {
           ? (data.headers as Record<string, string>)
           : {};
 
+      for (const track of tracks) {
+        const trackReferer = (track as StreamTrack & { referer?: string }).referer;
+        if (trackReferer && !headers.Referer) {
+          headers.Referer = trackReferer;
+        }
+      }
+
+      const bestStream =
+        data.bestStream && typeof data.bestStream === "object"
+          ? (data.bestStream as { referer?: string })
+          : null;
+      if (bestStream?.referer && !headers.Referer) {
+        headers.Referer = bestStream.referer;
+      }
+
+      const cleanTracks = tracks.map(({ referer: _r, ...track }) => track as StreamTrack);
       return {
-        tracks,
+        tracks: cleanTracks,
         headers,
-        animeTitle,
+        animeTitle: animeTitle ?? null,
         provider,
         slug,
       };
@@ -241,4 +335,53 @@ export async function fetchMiruroSubtitleStream(opts: {
 export function clearMiruroEpisodeCache(anilistId?: number): void {
   if (anilistId != null) episodeListCache.delete(anilistId);
   else episodeListCache.clear();
+}
+
+const ANITAKU_FALLBACK_PROVIDER = "Anitaku";
+
+/** Legacy stream-direct subtitle fetch when Miruro /stream returns no VTT tracks. */
+export async function fetchAnitakuSubtitleStreamFallback(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+}): Promise<MiruroStreamResult | null> {
+  const url = `${KITTY_API_BASE}/provider/${encodeURIComponent(ANITAKU_FALLBACK_PROVIDER)}/stream-direct?anilistId=${opts.anilistId}&episode=${opts.episode}&audio=${opts.audio}`;
+
+  try {
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(25_000),
+      headers: miruroHeaders(),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data?.file) return null;
+
+    if (Array.isArray(data.tracks)) {
+      for (const t of data.tracks) {
+        if (!t.file && t.url) t.file = t.url;
+      }
+    }
+
+    const tracks = normalizeSubtitleTracks(data.tracks);
+    if (tracks.length === 0 && opts.audio === "dub") {
+      return fetchAnitakuSubtitleStreamFallback({ ...opts, audio: "sub" });
+    }
+    if (tracks.length === 0) return null;
+
+    const animeTitle =
+      (typeof data.matchedTitle === "string" && data.matchedTitle) ||
+      (typeof data.animeTitle === "string" && data.animeTitle) ||
+      null;
+
+    return {
+      tracks,
+      headers: (data.headers ?? {}) as Record<string, string>,
+      animeTitle,
+      provider: ANITAKU_FALLBACK_PROVIDER,
+      slug: String(opts.episode),
+    };
+  } catch {
+    return null;
+  }
 }

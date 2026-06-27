@@ -16,7 +16,7 @@ import {
   SUBTITLE_API_INTERVAL_MS,
   sleep,
 } from "@/lib/subtitle-sync-config";
-import { fetchMiruroSubtitleStream } from "@/lib/miruro-api";
+import { fetchAnitakuSubtitleStreamFallback, fetchMiruroSubtitleStream } from "@/lib/miruro-api";
 
 /** Subtitle VTT content is stable per episode — refresh weekly. */
 const SUBTITLE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -168,11 +168,20 @@ async function fetchMiruroSubtitleTracks(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
 ): Promise<{ tracks?: StreamTrack[]; headers?: Record<string, string>; animeTitle?: string | null } | null> {
   try {
-    const result = await fetchMiruroSubtitleStream({
+    let result = await fetchMiruroSubtitleStream({
       anilistId: ctx.anilistId,
       episode: ctx.episode,
       audio: ctx.audio,
     });
+
+    if (!result?.tracks?.length) {
+      result = await fetchAnitakuSubtitleStreamFallback({
+        anilistId: ctx.anilistId,
+        episode: ctx.episode,
+        audio: ctx.audio,
+      });
+    }
+
     if (!result) return null;
 
     return {
@@ -188,8 +197,8 @@ async function fetchMiruroSubtitleTracks(
 /** Fetch subtitle tracks from Miruro API and persist when cache is missing or stale. */
 export async function ensureMiruroSubtitleCache(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
-): Promise<void> {
-  if (await hasFreshCachedSubtitles(ctx)) return;
+): Promise<StreamTrack[]> {
+  if (await hasFreshCachedSubtitles(ctx)) return [];
 
   let stream = await fetchMiruroSubtitleTracks(ctx);
   const hasSubs = stream?.tracks?.some(isSubtitleTrack);
@@ -198,9 +207,9 @@ export async function ensureMiruroSubtitleCache(
     stream = await fetchMiruroSubtitleTracks({ ...ctx, audio: "sub" });
   }
 
-  if (!stream?.tracks?.length) return;
+  if (!stream?.tracks?.length) return [];
 
-  await cacheStreamSubtitleTracks(stream.tracks, {
+  return cacheStreamSubtitleTracks(stream.tracks, {
     ...ctx,
     provider: SUBTITLE_SOURCE_PROVIDER,
     animeTitle: stream.animeTitle,
