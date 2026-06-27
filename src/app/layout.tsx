@@ -1,10 +1,12 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { cookies, headers } from "next/headers";
 
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import SiteAnnouncementBanner from "@/components/site-announcement-banner";
+import I18nRoot from "@/components/i18n-root";
 import Script from "next/script";
 import QueryProvider from "@/providers/query-provider";
 import { PublicEnvScript } from "next-runtime-env";
@@ -13,6 +15,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import UserThemeSync from "@/components/user-theme-sync";
 
 import { Toaster } from "@/components/ui/sonner";
+import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -62,13 +65,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const headersList = await headers();
+  const locale = resolveLocale(
+    cookieStore.get(LOCALE_COOKIE)?.value,
+    headersList.get("accept-language"),
+  );
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <Script
           src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"
@@ -93,20 +103,22 @@ export default function RootLayout({
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <QueryProvider>
-            <UserThemeSync />
-            <NavBar />
-            <SiteAnnouncementBanner />
-            {children}
-            <Footer />
-          </QueryProvider>
-        </ThemeProvider>
+        <I18nRoot initialLocale={locale}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <QueryProvider>
+              <UserThemeSync />
+              <NavBar />
+              <SiteAnnouncementBanner />
+              {children}
+              <Footer />
+            </QueryProvider>
+          </ThemeProvider>
+        </I18nRoot>
         <Toaster />
       </body>
     </html>
