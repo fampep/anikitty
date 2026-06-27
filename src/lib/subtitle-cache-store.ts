@@ -3,8 +3,10 @@ import { getDb } from "@/db";
 import { episodeSubtitles } from "@/db/schema";
 import {
   getTrackFile,
+  isOurSubtitleUrl,
   isSubtitleTrack,
   SUBTITLE_SOURCE_PROVIDER,
+  subtitleProxyUrl,
   subtitleServeUrl,
   type StreamTrack,
 } from "@/lib/subtitle-track-utils";
@@ -14,6 +16,17 @@ const KITTY_API_BASE = "https://kittyapi.buzz";
 
 /** Subtitle VTT content is stable per episode — refresh weekly. */
 const SUBTITLE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const fullShowPrefetchInProgress = new Set<number>();
+
+const ANILIST_EPISODE_QUERY = `
+  query ($id: Int) {
+    Media(id: $id, type: ANIME) {
+      episodes
+      nextAiringEpisode { episode }
+    }
+  }
+`;
 
 export type SubtitleCacheContext = {
   anilistId: number;
@@ -310,6 +323,65 @@ async function resolveSubtitleTrack(
   return upsertSubtitle(ctx, track, content);
 }
 
+function proxySubtitleTrack(
+  track: StreamTrack,
+  headers?: Record<string, string>,
+): StreamTrack {
+  const file = getTrackFile(track);
+  if (!file || isOurSubtitleUrl(file)) return track;
+  return { ...track, file: subtitleProxyUrl(file, headers) };
+}
+
+/** Background-fetch subtitles for every episode when ep 1 is watched. */
+export async function ensureFullShowSubtitleCache(
+  anilistId: number,
+  episodeCount?: number,
+): Promise<void> {
+  if (fullShowPrefetchInProgress.has(anilistId)) return;
+  fullShowPrefetchInProgress.add(anilistId);
+
+  try {
+    let count = episodeCount ?? 0;
+    if (count <= 0) {
+      count = await fetchAnilistEpisodeCount(anilistId);
+    }
+    if (count <= 0) return;
+
+    const existing = await listAnimeSubtitles(anilistId);
+    const cachedEps = new Set(existing.map((r) => r.episode));
+
+    const CONCURRENCY = 3;
+    for (let start = 1; start <= count; start += CONCURRENCY) {
+      const batch: Promise<void>[] = [];
+      for (let ep = start; ep < Math.min(start + CONCURRENCY, count + 1); ep++) {
+        if (!cachedEps.has(ep)) {
+          batch.push(ensureAnitakuSubtitleCache({ anilistId, episode: ep, audio: "sub" }));
+        }
+      }
+      if (batch.length > 0) await Promise.allSettled(batch);
+    }
+  } finally {
+    fullShowPrefetchInProgress.delete(anilistId);
+  }
+}
+
+async function fetchAnilistEpisodeCount(anilistId: number): Promise<number> {
+  try {
+    const { queryAniList } = await import("@/lib/anilist");
+    const raw = await queryAniList(ANILIST_EPISODE_QUERY, { id: anilistId });
+    const m = raw.Media;
+    if (!m) return 0;
+
+    const total = m.nextAiringEpisode
+      ? m.nextAiringEpisode.episode - 1
+      : (m.episodes ?? 0);
+
+    return Math.max(total, 0);
+  } catch {
+    return 0;
+  }
+}
+
 /** Download subtitle tracks from Anitaku, persist to Postgres, and rewrite file URLs to our API. */
 export async function cacheStreamSubtitleTracks(
   tracks: StreamTrack[] | undefined,
@@ -328,15 +400,17 @@ export async function cacheStreamSubtitleTracks(
       if (!isSubtitleTrack(track)) return track;
 
       const cached = await resolveSubtitleTrack(ctx, track);
-      if (!cached) return track;
+      if (cached) {
+        return {
+          ...track,
+          file: cached.file,
+          kind: cached.kind,
+          label: cached.label,
+          default: cached.default ?? track.default,
+        };
+      }
 
-      return {
-        ...track,
-        file: cached.file,
-        kind: cached.kind,
-        label: cached.label,
-        default: cached.default ?? track.default,
-      };
+      return proxySubtitleTrack(track, ctx.headers);
     }),
   );
 
@@ -347,20 +421,21 @@ export async function cacheStreamSubtitleTracks(
 export async function mergeCachedSubtitleTracks(
   tracks: StreamTrack[] | undefined,
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
+  headers?: Record<string, string>,
 ): Promise<StreamTrack[]> {
-  const base = Array.isArray(tracks) ? [...tracks] : [];
-
-  if (base.some(isSubtitleTrack)) {
-    return base;
-  }
+  const all = Array.isArray(tracks) ? tracks : [];
+  const nonSubs = all.filter((t) => !isSubtitleTrack(t));
 
   let cached = await getStoredSubtitleTracks(ctx);
   if (cached.length === 0 && ctx.audio === "dub") {
     cached = await getStoredSubtitleTracks({ ...ctx, audio: "sub" });
   }
-  if (cached.length === 0) return base;
+  if (cached.length > 0) {
+    return [...nonSubs, ...cached];
+  }
 
-  return [...base, ...cached];
+  const subs = all.filter(isSubtitleTrack).map((t) => proxySubtitleTrack(t, headers));
+  return [...nonSubs, ...subs];
 }
 
 export type ListedSubtitle = {

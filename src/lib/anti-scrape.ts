@@ -6,8 +6,12 @@ export const CLIENT_HEADER_VALUE = "1";
 
 const PROTECTED_PREFIXES = ["/api/anime", "/api/kitty", "/api/episode"] as const;
 
-/** HLS/chapters are loaded by the video engine without custom headers. */
-const MEDIA_PROXY_PREFIXES = ["/api/kitty/hls", "/api/kitty/chapters"] as const;
+/** HLS/chapters/subtitles are loaded by the video engine without custom headers. */
+const MEDIA_PROXY_PREFIXES = [
+  "/api/kitty/hls",
+  "/api/kitty/chapters",
+  "/api/kitty/subtitles",
+] as const;
 
 export function clientApiHeaders(): Record<string, string> {
   return { [CLIENT_HEADER]: CLIENT_HEADER_VALUE };

@@ -277,6 +277,9 @@ const VideoPlayerSection = () => {
     refetch: retryStream,
   } = useGetKittyStream(anilistId, episodeNo || undefined, audio, provider);
 
+  const loadingThumbnail =
+    currentEpisodeInfo?.image ?? anime?.anime?.info?.poster ?? null;
+
   const { data: skipTimes } = useSkipTimes(
     streamData?.tracks,
     streamData?.file,
@@ -310,7 +313,14 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if (isLoading) return <PlayerSkeleton label={t("watch.loadingStream")} />;
+  if (isLoading) {
+    return (
+      <PlayerSkeleton
+        label={t("watch.loadingStream")}
+        thumbnail={loadingThumbnail}
+      />
+    );
+  }
 
   const upstreamError = (streamError as any)?.response?.data?.error as string | undefined;
 
@@ -319,7 +329,7 @@ const VideoPlayerSection = () => {
   if (streamError || !streamData?.file) {
     return (
       <div className="flex flex-col gap-3">
-        <PlayerSkeleton dim label={t("watch.loadingStream")} />
+        <PlayerSkeleton dim label={t("watch.loadingStream")} thumbnail={loadingThumbnail} />
         <Alert className="border-white/10 bg-white/5 rounded-xl">
           <AlertCircle className="h-4 w-4 text-white/60" />
           <AlertTitle className="text-white/80 font-semibold">
@@ -366,7 +376,7 @@ const VideoPlayerSection = () => {
       <KittyPlayer
         key={`${anilistId}-${episodeNo}-${audio}-${provider}`}
         src={streamData.file}
-        poster={anime?.anime?.info?.poster}
+        poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
         tracks={streamData.tracks ?? []}
         headers={streamData.headers ?? {}}
         preferSubtitles={!preferDub || subtitleTracks.length > 0}
@@ -538,11 +548,32 @@ const VideoPlayerSection = () => {
   );
 };
 
-const PlayerSkeleton = ({ dim = false, label = "Loading stream" }: { dim?: boolean; label?: string }) => (
+const PlayerSkeleton = ({
+  dim = false,
+  label = "Loading stream",
+  thumbnail,
+}: {
+  dim?: boolean;
+  label?: string;
+  thumbnail?: string | null;
+}) => (
   <div
     className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
-    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
+    {thumbnail && (
+      <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={thumbnail}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/65" />
+      </>
+    )}
+    {!thumbnail && (
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
+    )}
     <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
     <div className="absolute inset-x-4 bottom-4 flex flex-col gap-2 pointer-events-none">
       <div className="h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">

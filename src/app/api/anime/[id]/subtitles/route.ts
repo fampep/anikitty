@@ -1,5 +1,6 @@
 import {
   ensureAnitakuSubtitleCache,
+  ensureFullShowSubtitleCache,
   listAnimeSubtitles,
 } from "@/lib/subtitle-cache-store";
 import {
@@ -23,10 +24,13 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const episodeParam = searchParams.get("episode");
   const fetch = searchParams.get("fetch") === "1";
+  const fetchAll = searchParams.get("fetchAll") === "1";
   const audioParam = searchParams.get("audio");
   const fetchAudio = audioParam === "dub" ? "dub" : "sub";
 
-  if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
+  if (fetchAll) {
+    await ensureFullShowSubtitleCache(anilistId);
+  } else if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
     const episode = parseInt(episodeParam, 10);
     if (episode > 0) {
       await ensureAnitakuSubtitleCache({ anilistId, episode, audio: fetchAudio });
@@ -67,4 +71,4 @@ export async function GET(
   });
 }
 
-export const maxDuration = 30;
+export const maxDuration = 300;

@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
   Captions,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Loader2,
   RefreshCw,
@@ -12,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
+  fetchAllAnimeSubtitles,
   fetchAnimeEpisodeSubtitles,
   useGetAnimeSubtitles,
   type AnimeSubtitleItem,
@@ -21,61 +25,89 @@ import { toast } from "sonner";
 import { SUBTITLE_SOURCE_PROVIDER } from "@/lib/subtitle-track-utils";
 import { api } from "@/lib/api";
 
+const EPISODES_PER_PAGE = 10;
+
 type Props = {
   anilistId: number;
 };
 
-type EpisodeGroup = {
-  episode: number;
+type EpisodeRow = {
+  number: number;
   title: string;
+  image?: string | null;
   tracks: AnimeSubtitleItem[];
 };
 
 export default function AnimeSubtitles({ anilistId }: Props) {
   const t = useT();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [fetchingEp, setFetchingEp] = useState<number | null>(null);
+  const [fetchingAll, setFetchingAll] = useState(false);
 
-  const { data: episodesData } = useGetAllEpisodes(String(anilistId));
-  const { data: subtitles = [], isLoading, refetch } = useGetAnimeSubtitles(anilistId);
+  const { data: episodesData, isLoading: episodesLoading } = useGetAllEpisodes(String(anilistId));
+  const { data: subtitles = [], isLoading: subtitlesLoading, refetch } = useGetAnimeSubtitles(anilistId);
 
-  const episodeTitles = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const ep of episodesData?.episodes ?? []) {
-      map.set(ep.number, ep.title);
+  const tracksByEpisode = useMemo(() => {
+    const map = new Map<number, AnimeSubtitleItem[]>();
+    for (const track of subtitles) {
+      const list = map.get(track.episode) ?? [];
+      list.push(track);
+      map.set(track.episode, list);
+    }
+    for (const [ep, list] of map) {
+      map.set(ep, list.sort((a, b) => a.label.localeCompare(b.label)));
     }
     return map;
-  }, [episodesData]);
+  }, [subtitles]);
 
-  const groups = useMemo(() => {
-    const byEpisode = new Map<number, AnimeSubtitleItem[]>();
-    for (const track of subtitles) {
-      const list = byEpisode.get(track.episode) ?? [];
-      list.push(track);
-      byEpisode.set(track.episode, list);
-    }
+  const allEpisodes = useMemo(() => {
+    const fromApi = episodesData?.episodes ?? [];
+    if (fromApi.length > 0) return fromApi;
 
-    const result: EpisodeGroup[] = Array.from(byEpisode.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([episode, tracks]) => ({
-        episode,
-        title: episodeTitles.get(episode) ?? `Episode ${episode}`,
-        tracks: tracks.sort((a, b) => a.label.localeCompare(b.label)),
-      }));
+    return Array.from(tracksByEpisode.keys())
+      .sort((a, b) => a - b)
+      .map((n) => ({ number: n, title: `Episode ${n}`, image: null as string | null }));
+  }, [episodesData, tracksByEpisode]);
 
-    if (!query.trim()) return result;
+  const filteredEpisodes = useMemo(() => {
+    if (!query.trim()) return allEpisodes;
 
     const lower = query.toLowerCase();
-    return result.filter(
-      (g) =>
-        g.episode.toString().includes(lower) ||
-        g.title.toLowerCase().includes(lower) ||
-        g.tracks.some((tr) => tr.label.toLowerCase().includes(lower)),
+    return allEpisodes.filter(
+      (ep) =>
+        ep.number.toString().includes(lower) ||
+        ep.title.toLowerCase().includes(lower) ||
+        (tracksByEpisode.get(ep.number) ?? []).some((tr) =>
+          tr.label.toLowerCase().includes(lower),
+        ),
     );
-  }, [subtitles, episodeTitles, query]);
+  }, [allEpisodes, query, tracksByEpisode]);
 
-  const totalEpisodes = episodesData?.episodes.length ?? 0;
-  const cachedEpisodes = new Set(subtitles.map((s) => s.episode)).size;
+  const totalPages = Math.max(1, Math.ceil(filteredEpisodes.length / EPISODES_PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, anilistId]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const pageEpisodes: EpisodeRow[] = useMemo(() => {
+    const start = (safePage - 1) * EPISODES_PER_PAGE;
+    return filteredEpisodes.slice(start, start + EPISODES_PER_PAGE).map((ep) => ({
+      number: ep.number,
+      title: ep.title,
+      image: ep.image,
+      tracks: tracksByEpisode.get(ep.number) ?? [],
+    }));
+  }, [filteredEpisodes, safePage, tracksByEpisode]);
+
+  const totalEpisodes = allEpisodes.length;
+  const cachedEpisodes = tracksByEpisode.size;
+  const missingCount = totalEpisodes - cachedEpisodes;
 
   const handleFetchEpisode = async (episode: number) => {
     setFetchingEp(episode);
@@ -93,6 +125,21 @@ export default function AnimeSubtitles({ anilistId }: Props) {
       setFetchingEp(null);
     }
   };
+
+  const handleFetchAll = async () => {
+    setFetchingAll(true);
+    try {
+      await fetchAllAnimeSubtitles(anilistId);
+      await refetch();
+      toast.success(t("anime.subtitles.fetchAllSuccess"));
+    } catch {
+      toast.error(t("anime.subtitles.fetchAllError"));
+    } finally {
+      setFetchingAll(false);
+    }
+  };
+
+  const busy = fetchingEp !== null || fetchingAll;
 
   return (
     <div className="flex flex-col gap-5">
@@ -114,61 +161,62 @@ export default function AnimeSubtitles({ anilistId }: Props) {
           )}
         </div>
 
-        <div className="relative">
-          <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
-          <input
-            value={query}
-            placeholder={t("anime.subtitles.searchPlaceholder")}
-            onChange={(e) => setQuery(e.target.value)}
-            className="h-8 pl-8 pr-3 text-xs rounded-lg bg-white/4 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-white/25 focus:bg-white/7 transition-all w-52"
-          />
+        <div className="flex items-center gap-2 flex-wrap">
+          {totalEpisodes > 0 && missingCount > 0 && (
+            <button
+              type="button"
+              onClick={handleFetchAll}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-teal-500/15 border border-teal-500/25 text-teal-300 hover:bg-teal-500/25 transition-colors disabled:opacity-50"
+            >
+              {fetchingAll ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {fetchingAll
+                ? t("anime.subtitles.fetchAllProgress")
+                : t("anime.subtitles.fetchAll")}
+            </button>
+          )}
+
+          <div className="relative">
+            <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
+            <input
+              value={query}
+              placeholder={t("anime.subtitles.searchPlaceholder")}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-8 pl-8 pr-3 text-xs rounded-lg bg-white/4 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-white/25 focus:bg-white/7 transition-all w-52"
+            />
+          </div>
         </div>
       </div>
 
-      {isLoading ? (
-        <SubtitleSkeleton />
-      ) : groups.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {groups.map((group) => (
-            <div
-              key={group.episode}
-              className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden"
-            >
-              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/6 bg-white/[0.02]">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white/85 truncate">
-                    {t("anime.subtitles.episodeLabel", { n: group.episode })}
-                    {group.title !== `Episode ${group.episode}` && (
-                      <span className="text-white/40 font-normal"> — {group.title}</span>
-                    )}
-                  </p>
-                  <p className="text-[10px] font-mono text-white/25 mt-0.5">
-                    {t("anime.subtitles.trackCount", { count: group.tracks.length })}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleFetchEpisode(group.episode)}
-                  disabled={fetchingEp === group.episode}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/45 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50"
-                >
-                  {fetchingEp === group.episode ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-3 h-3" />
-                  )}
-                  {t("anime.subtitles.refresh")}
-                </button>
-              </div>
+      {episodesLoading && allEpisodes.length === 0 ? (
+        <EpisodeThumbnailSkeletons />
+      ) : pageEpisodes.length > 0 ? (
+        <>
+          <div className="flex flex-col gap-3">
+            {pageEpisodes.map((group) => (
+              <EpisodeSubtitleCard
+                key={group.number}
+                group={group}
+                busy={busy}
+                fetchingEp={fetchingEp}
+                fetchingAll={fetchingAll}
+                onFetch={() => handleFetchEpisode(group.number)}
+              />
+            ))}
+          </div>
 
-              <div className="divide-y divide-white/5">
-                {group.tracks.map((track) => (
-                  <SubtitleTrackRow key={track.id} track={track} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+          {totalPages > 1 && (
+            <Pagination
+              page={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          )}
+        </>
       ) : (
         <EmptySubtitles
           totalEpisodes={totalEpisodes}
@@ -176,15 +224,153 @@ export default function AnimeSubtitles({ anilistId }: Props) {
           onFetchEpisode={handleFetchEpisode}
         />
       )}
+    </div>
+  );
+}
 
-      {!isLoading && totalEpisodes > 0 && groups.length > 0 && (
-        <FetchMoreEpisodes
-          episodes={episodesData!.episodes}
-          cachedEpisodes={new Set(subtitles.map((s) => s.episode))}
-          fetchingEp={fetchingEp}
-          onFetchEpisode={handleFetchEpisode}
+function EpisodeThumbnail({ image, episode }: { image?: string | null; episode: number }) {
+  return (
+    <div className="absolute inset-0 bg-[#0d0d0d]">
+      {image ? (
+        <Image
+          src={image}
+          alt={`Episode ${episode}`}
+          fill
+          className="object-cover"
+          unoptimized
+          sizes="160px"
         />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-white/[0.02]">
+          <span className="text-2xl font-black font-mono text-white/10 select-none">
+            {String(episode).padStart(2, "0")}
+          </span>
+        </div>
       )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+    </div>
+  );
+}
+
+function EpisodeSubtitleCard({
+  group,
+  busy,
+  fetchingEp,
+  fetchingAll,
+  onFetch,
+}: {
+  group: EpisodeRow;
+  busy: boolean;
+  fetchingEp: number | null;
+  fetchingAll: boolean;
+  onFetch: () => void;
+}) {
+  const t = useT();
+  const isFetching =
+    fetchingEp === group.number || (fetchingAll && group.tracks.length === 0);
+
+  return (
+    <div className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden">
+      <div className="flex gap-0">
+        <div className="relative w-40 sm:w-44 shrink-0 aspect-[16/9] border-r border-white/6 overflow-hidden">
+          <EpisodeThumbnail image={group.image} episode={group.number} />
+          {isFetching && (
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 z-10">
+              <Loader2 className="w-5 h-5 text-teal-300 animate-spin" />
+            </div>
+          )}
+          <span className="absolute bottom-1.5 left-1.5 z-[1] text-[9px] font-mono font-bold text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
+            EP {group.number}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/6 bg-white/[0.02]">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white/85 truncate">
+                {t("anime.subtitles.episodeLabel", { n: group.number })}
+                {group.title !== `Episode ${group.number}` && (
+                  <span className="text-white/40 font-normal"> — {group.title}</span>
+                )}
+              </p>
+              <p className="text-[10px] font-mono text-white/25 mt-0.5">
+                {isFetching
+                  ? t("anime.subtitles.fetchAllProgress")
+                  : group.tracks.length > 0
+                    ? t("anime.subtitles.trackCount", { count: group.tracks.length })
+                    : t("anime.subtitles.noTracks")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onFetch}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/45 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50 shrink-0"
+            >
+              {fetchingEp === group.number ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3 h-3" />
+              )}
+              {group.tracks.length > 0
+                ? t("anime.subtitles.refresh")
+                : t("anime.subtitles.fetchEpisode", { n: group.number })}
+            </button>
+          </div>
+
+          {group.tracks.length > 0 ? (
+            <div className="divide-y divide-white/5">
+              {group.tracks.map((track) => (
+                <SubtitleTrackRow key={track.id} track={track} />
+              ))}
+            </div>
+          ) : !isFetching ? (
+            <div className="flex-1 flex items-center justify-center px-4 py-5">
+              <p className="text-xs text-white/35">{t("anime.subtitles.noTracks")}</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  const t = useT();
+
+  return (
+    <div className="flex items-center justify-between gap-3 pt-1">
+      <button
+        type="button"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+        {t("anime.subtitles.prevPage")}
+      </button>
+
+      <span className="text-[11px] font-mono text-white/35">
+        {t("anime.subtitles.pageInfo", { page, total: totalPages })}
+      </span>
+
+      <button
+        type="button"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+      >
+        {t("anime.subtitles.nextPage")}
+        <ChevronRight className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
@@ -328,54 +514,20 @@ function EmptySubtitles({
   );
 }
 
-function FetchMoreEpisodes({
-  episodes,
-  cachedEpisodes,
-  fetchingEp,
-  onFetchEpisode,
-}: {
-  episodes: { number: number; title: string }[];
-  cachedEpisodes: Set<number>;
-  fetchingEp: number | null;
-  onFetchEpisode: (episode: number) => void;
-}) {
-  const t = useT();
-  const missing = episodes.filter((ep) => !cachedEpisodes.has(ep.number)).slice(0, 12);
-
-  if (missing.length === 0) return null;
-
-  return (
-    <div className="rounded-xl border border-white/6 bg-white/[0.015] px-4 py-4">
-      <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
-        {t("anime.subtitles.fetchMore")}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {missing.map((ep) => (
-          <button
-            key={ep.number}
-            type="button"
-            onClick={() => onFetchEpisode(ep.number)}
-            disabled={fetchingEp !== null}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/8 text-white/40 hover:text-white/65 hover:bg-white/5 transition-colors disabled:opacity-50"
-          >
-            {fetchingEp === ep.number ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3 h-3" />
-            )}
-            EP {ep.number}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SubtitleSkeleton() {
+function EpisodeThumbnailSkeletons() {
   return (
     <div className="flex flex-col gap-3">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-white/6 bg-white/[0.02] h-24 animate-pulse" />
+      {Array.from({ length: EPISODES_PER_PAGE }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-xl border border-white/6 bg-white/[0.02] overflow-hidden animate-pulse flex"
+        >
+          <div className="w-40 sm:w-44 shrink-0 aspect-[16/9] bg-white/6" />
+          <div className="flex-1 p-4 flex flex-col gap-2">
+            <div className="h-4 w-40 rounded bg-white/6" />
+            <div className="h-3 w-24 rounded bg-white/4" />
+          </div>
+        </div>
       ))}
     </div>
   );

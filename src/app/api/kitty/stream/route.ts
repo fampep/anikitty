@@ -1,6 +1,7 @@
 import {
   cacheStreamSubtitleTracks,
   ensureAnitakuSubtitleCache,
+  ensureFullShowSubtitleCache,
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitle-cache-store";
 import {
@@ -86,8 +87,16 @@ export async function GET(req: Request) {
       await ensureAnitakuSubtitleCache(subtitleCtx);
     }
 
-    data.tracks = await mergeCachedSubtitleTracks(data.tracks, subtitleCtx);
+    data.tracks = await mergeCachedSubtitleTracks(
+      data.tracks,
+      subtitleCtx,
+      data.headers ?? {},
+    );
     data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
+
+    if (subtitleCtx.episode === 1) {
+      void ensureFullShowSubtitleCache(subtitleCtx.anilistId);
+    }
 
     return Response.json(data);
   } catch (e: any) {

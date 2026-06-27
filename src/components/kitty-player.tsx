@@ -158,15 +158,17 @@ export default function KittyPlayer({
     const player = playerRef.current;
     if (!player || subTracks.length === 0) return;
 
-    const activate = () => {
-      if (!preferSubtitles) return;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
 
-      const preferred =
-        subTracks.find((t) => t.default) ??
-        subTracks[0];
+    const activate = (): boolean => {
+      if (!preferSubtitles) return true;
+
+      const preferred = subTracks.find((t) => t.default) ?? subTracks[0];
+      const preferredLang = labelToLanguage(preferred.label || "");
 
       const textTracks = player.textTracks;
-      if (!textTracks?.length) return;
+      if (!textTracks?.length) return false;
 
       for (const track of textTracks) {
         if (track.kind !== "subtitles" && track.kind !== "captions") continue;
@@ -175,23 +177,43 @@ export default function KittyPlayer({
 
       for (const track of textTracks) {
         if (track.kind !== "subtitles" && track.kind !== "captions") continue;
-        if (track.label === preferred.label) {
+        const labelMatch =
+          track.label === preferred.label ||
+          track.language === preferredLang ||
+          (preferred.label && track.label?.toLowerCase().includes(preferred.label.toLowerCase()));
+        if (labelMatch) {
           track.setMode("showing");
-          return;
+          return true;
         }
       }
 
       const fallback = [...textTracks].find(
         (t) => t.kind === "subtitles" || t.kind === "captions",
       );
-      fallback?.setMode("showing");
+      if (fallback) {
+        fallback.setMode("showing");
+        return true;
+      }
+      return false;
     };
 
-    player.addEventListener("can-play", activate, { once: true });
-    if (player.state.canPlay) activate();
+    const tryActivate = () => {
+      if (activate()) return;
+      if (attempts++ < 10) {
+        retryTimer = setTimeout(tryActivate, 350);
+      }
+    };
+
+    const onTracksChange = () => tryActivate();
+
+    player.addEventListener("can-play", tryActivate);
+    player.addEventListener("vds-text-tracks-change", onTracksChange);
+    if (player.state.canPlay) tryActivate();
 
     return () => {
-      player.removeEventListener("can-play", activate);
+      player.removeEventListener("can-play", tryActivate);
+      player.removeEventListener("vds-text-tracks-change", onTracksChange);
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [proxiedSrc, subTracks, preferSubtitles]);
 
@@ -416,7 +438,6 @@ export default function KittyPlayer({
         onTimeUpdate={handleTimeUpdate}
         onPause={handlePause}
         onEnded={handleEnded}
-        googleCast={{ receiverApplicationId: "CC1AD845" }}
       >
         <MediaProvider>
           {poster && <Poster className="vds-poster" src={poster} alt="" />}

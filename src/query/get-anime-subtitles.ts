@@ -16,14 +16,16 @@ export type AnimeSubtitleItem = {
 
 const getAnimeSubtitles = async (
   anilistId: number,
-  opts?: { episode?: number; fetch?: boolean; audio?: "sub" | "dub" },
+  opts?: { episode?: number; fetch?: boolean; fetchAll?: boolean; audio?: "sub" | "dub" },
 ): Promise<AnimeSubtitleItem[]> => {
   const res = await api.get(`/api/anime/${anilistId}/subtitles`, {
     params: {
       episode: opts?.episode,
       fetch: opts?.fetch ? 1 : undefined,
+      fetchAll: opts?.fetchAll ? 1 : undefined,
       audio: opts?.audio,
     },
+    timeout: opts?.fetchAll ? 300_000 : undefined,
   });
   return res.data.data;
 };
@@ -35,6 +37,10 @@ export const useGetAnimeSubtitles = (anilistId: number | undefined) => {
     enabled: !!anilistId && anilistId > 0,
     staleTime: 60_000,
   });
+};
+
+export const fetchAllAnimeSubtitles = async (anilistId: number): Promise<AnimeSubtitleItem[]> => {
+  return getAnimeSubtitles(anilistId, { fetchAll: true });
 };
 
 export const fetchAnimeEpisodeSubtitles = async (

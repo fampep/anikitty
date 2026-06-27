@@ -44,6 +44,17 @@ export function subtitleDownloadUrl(id: string): string {
   return `/api/kitty/subtitles?id=${encodeURIComponent(id)}&download=1`;
 }
 
+export function subtitleProxyUrl(sourceUrl: string, headers?: Record<string, string>): string {
+  const params = new URLSearchParams({ url: sourceUrl });
+  const referer = headers?.Referer ?? headers?.referer;
+  if (referer) params.set("referer", referer);
+  return `/api/kitty/subtitles/proxy?${params.toString()}`;
+}
+
+export function isOurSubtitleUrl(url: string): boolean {
+  return url.includes("/api/kitty/subtitles");
+}
+
 export function stripSubtitleTracks(tracks: StreamTrack[] | undefined): StreamTrack[] {
   if (!Array.isArray(tracks)) return [];
   return tracks.filter((track) => !isSubtitleTrack(track));
