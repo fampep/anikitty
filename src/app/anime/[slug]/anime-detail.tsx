@@ -37,6 +37,7 @@ import { useGetAnimeMappings } from "@/query/get-anime-mappings";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import { cn } from "@/lib/utils";
 import CommentSection from "@/components/comment-section";
+import { clientApiHeaders } from "@/lib/anti-scrape";
 
 const SelectOptions: ISelectOptions[] = [
   { value: "plan to watch", label: "Plan to Watch", icon: BookmarkCheck },
@@ -76,7 +77,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`/api/anime/${slug}/dub-count`)
+    fetch(`/api/anime/${slug}/dub-count`, { headers: clientApiHeaders() })
       .then((r) => r.json())
       .then((d) => { if (d.hasDub) setHasDub(true); })
       .catch(() => {});

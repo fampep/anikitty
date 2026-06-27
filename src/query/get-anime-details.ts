@@ -12,5 +12,6 @@ export const useGetAnimeDetails = (animeId: string) => {
   return useQuery({
     queryFn: () => getAnimeDetails(animeId),
     queryKey: [GET_ANIME_DETAILS, animeId],
+    enabled: Boolean(animeId?.trim()),
   });
 };

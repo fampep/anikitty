@@ -12,5 +12,6 @@ export const useGetAllEpisodes = (animeId: string) => {
     return useQuery({
         queryFn: () => getAllEpisodes(animeId),
         queryKey: [GET_ALL_EPISODES, animeId],
+        enabled: Boolean(animeId?.trim()),
     });
 };

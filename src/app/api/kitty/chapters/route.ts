@@ -1,3 +1,4 @@
+import { isAllowedMediaProxyUrl } from "@/lib/security";
 import { NextResponse } from "next/server";
 
 // ── HLS attribute parser ──────────────────────────────────────────────
@@ -122,6 +123,9 @@ export async function GET(req: Request) {
   const referer = searchParams.get("referer") ?? "";
 
   if (!src) return NextResponse.json({ error: "Missing url" }, { status: 400 });
+  if (!isAllowedMediaProxyUrl(src)) {
+    return NextResponse.json({ error: "url not allowed" }, { status: 403 });
+  }
 
   const fetchHeaders: HeadersInit = {
     "User-Agent": "Mozilla/5.0",

@@ -1,4 +1,4 @@
-import { isAllowedFetchUrl } from "@/lib/security";
+import { isAllowedMediaProxyUrl } from "@/lib/security";
 
 function isM3u8ByUrl(url: string): boolean {
   return url.endsWith(".m3u8") || url.includes(".m3u8?") || url.includes(".m3u8&");
@@ -76,14 +76,18 @@ function upstreamHeaders(referer: string, origin: string, range?: string | null)
 }
 
 function corsHeaders(contentType: string): HeadersInit {
-  return {
+  const headers: Record<string, string> = {
     "Content-Type": contentType,
-    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
     "Access-Control-Allow-Headers": "Range, Content-Type",
     "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
     "Cache-Control": "no-store",
   };
+  // Same-origin playback does not need CORS; omit wildcard in production.
+  if (process.env.NODE_ENV !== "production") {
+    headers["Access-Control-Allow-Origin"] = "*";
+  }
+  return headers;
 }
 
 export async function GET(req: Request) {
@@ -101,7 +105,7 @@ export async function GET(req: Request) {
     return new Response("invalid url encoding", { status: 400 });
   }
 
-  if (!isAllowedFetchUrl(decoded)) {
+  if (!isAllowedMediaProxyUrl(decoded)) {
     return new Response("url not allowed", { status: 403 });
   }
 

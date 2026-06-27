@@ -88,7 +88,7 @@ export function isBlockedHostname(hostname: string): boolean {
   return false;
 }
 
-export function isAllowedFetchUrl(url: string): boolean {
+function validateFetchUrl(url: string, allowHttp: boolean): boolean {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -96,13 +96,23 @@ export function isAllowedFetchUrl(url: string): boolean {
     return false;
   }
 
-  if (isProduction() && parsed.protocol !== "https:") return false;
-  if (!isProduction() && parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+  const allowedProtocols = allowHttp ? ["https:", "http:"] : isProduction() ? ["https:"] : ["https:", "http:"];
+  if (!allowedProtocols.includes(parsed.protocol)) return false;
   if (parsed.username || parsed.password) return false;
   if (isBlockedHostname(parsed.hostname)) return false;
   if (url.length > 4096) return false;
 
   return true;
+}
+
+/** General server-side fetch — HTTPS only in production. */
+export function isAllowedFetchUrl(url: string): boolean {
+  return validateFetchUrl(url, false);
+}
+
+/** Kitty HLS/media proxy — allows HTTP upstream CDNs while blocking SSRF targets. */
+export function isAllowedMediaProxyUrl(url: string): boolean {
+  return validateFetchUrl(url, true);
 }
 
 export function isSafeHttpsUrl(url: string | null | undefined): boolean {

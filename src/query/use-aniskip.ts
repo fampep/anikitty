@@ -1,6 +1,7 @@
 import { useQuery } from "react-query";
 import type { KittyTrack } from "./get-kitty-stream";
 import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
+import { clientApiHeaders } from "@/lib/anti-scrape";
 
 export interface SkipInterval {
   start: number; // seconds
@@ -56,7 +57,7 @@ async function fetchAniSkipTimes(
   const params = new URLSearchParams({ episode: String(episode) });
   if (malId > 0) params.set("malId", String(malId));
   if (anilistId) params.set("anilistId", String(anilistId));
-  const res = await fetch(`/api/kitty/aniskip?${params}`);
+  const res = await fetch(`/api/kitty/aniskip?${params}`, { headers: clientApiHeaders() });
   if (!res.ok) return {};
   return res.json() as Promise<SkipTimes>;
 }
