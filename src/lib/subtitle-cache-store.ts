@@ -592,6 +592,41 @@ export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubti
   }
 }
 
+export type SubtitleEpisodeCoverage = {
+  cachedEpisodes: number[];
+  missingEpisodes: number[];
+  totalEpisodes: number;
+};
+
+/** Cached vs missing episode numbers for one anime (uses library meta for total count). */
+export async function getAnimeSubtitleEpisodeCoverage(
+  anilistId: number,
+  totalEpisodesHint?: number | null,
+): Promise<SubtitleEpisodeCoverage> {
+  const rows = await listAnimeSubtitles(anilistId);
+  const cachedEpisodes = [...new Set(rows.map((r) => r.episode))].sort((a, b) => a - b);
+
+  let totalEpisodes = totalEpisodesHint ?? 0;
+  if (totalEpisodes <= 0) {
+    const { getStoredSubtitleLibraryMeta } = await import("@/lib/subtitle-library-db");
+    const meta = await getStoredSubtitleLibraryMeta([anilistId]);
+    totalEpisodes = meta.get(anilistId)?.episodes ?? 0;
+  }
+
+  if (totalEpisodes <= 0) {
+    const maxCached = cachedEpisodes.length > 0 ? Math.max(...cachedEpisodes) : 0;
+    totalEpisodes = maxCached;
+  }
+
+  const cachedSet = new Set(cachedEpisodes);
+  const missingEpisodes: number[] = [];
+  for (let ep = 1; ep <= totalEpisodes; ep++) {
+    if (!cachedSet.has(ep)) missingEpisodes.push(ep);
+  }
+
+  return { cachedEpisodes, missingEpisodes, totalEpisodes };
+}
+
 export type SubtitleArchiveRow = {
   anilistId: number;
   episode: number;

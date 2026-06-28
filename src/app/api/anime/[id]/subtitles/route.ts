@@ -1,6 +1,7 @@
 import {
   ensureMiruroSubtitleCache,
   ensureFullShowSubtitleCache,
+  getAnimeSubtitleEpisodeCoverage,
   getSubtitleLibraryStats,
   listAnimeSubtitles,
 } from "@/lib/subtitle-cache-store";
@@ -27,6 +28,7 @@ export async function GET(
   const episodeParam = searchParams.get("episode");
   const fetch = searchParams.get("fetch") === "1";
   const fetchAll = searchParams.get("fetchAll") === "1";
+  const includeCoverage = searchParams.get("coverage") === "1";
   const audioParam = searchParams.get("audio");
   const fetchAudio = audioParam === "dub" ? "dub" : "sub";
 
@@ -72,16 +74,29 @@ export async function GET(
 
   let libraryEntry = null;
   let stats = null;
+  let coverage = null;
+
   if (fetchAll) {
     const entries = await getEnrichedSubtitleLibraryEntriesByIds([anilistId]);
     libraryEntry = entries[0] ?? null;
     stats = await getSubtitleLibraryStats();
   }
 
+  if (includeCoverage) {
+    const entries = libraryEntry
+      ? [libraryEntry]
+      : await getEnrichedSubtitleLibraryEntriesByIds([anilistId]);
+    coverage = await getAnimeSubtitleEpisodeCoverage(
+      anilistId,
+      entries[0]?.totalEpisodes ?? null,
+    );
+  }
+
   return Response.json({
     data: tracks,
     libraryEntry,
     stats,
+    coverage,
   });
 }
 

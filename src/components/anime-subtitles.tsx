@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   Captions,
   ChevronDown,
@@ -42,8 +43,12 @@ type EpisodeRow = {
 
 export default function AnimeSubtitles({ anilistId }: Props) {
   const t = useT();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [showMissingOnly, setShowMissingOnly] = useState(
+    () => searchParams.get("missing") === "1",
+  );
   const [fetchingEp, setFetchingEp] = useState<number | null>(null);
   const [fetchingAll, setFetchingAll] = useState(false);
   const [selectedEps, setSelectedEps] = useState<Set<number>>(() => new Set());
@@ -74,19 +79,38 @@ export default function AnimeSubtitles({ anilistId }: Props) {
       .map((n) => ({ number: n, title: `Episode ${n}`, image: null as string | null }));
   }, [episodesData, tracksByEpisode]);
 
-  const filteredEpisodes = useMemo(() => {
-    if (!query.trim()) return allEpisodes;
+  const totalEpisodes = allEpisodes.length;
+  const cachedEpisodes = tracksByEpisode.size;
+  const missingCount = totalEpisodes - cachedEpisodes;
 
-    const lower = query.toLowerCase();
-    return allEpisodes.filter(
-      (ep) =>
+  const missingEpisodes = useMemo(() => {
+    if (totalEpisodes <= 0) return [];
+    const missing: number[] = [];
+    for (const ep of allEpisodes) {
+      if (!tracksByEpisode.has(ep.number)) missing.push(ep.number);
+    }
+    return missing;
+  }, [allEpisodes, tracksByEpisode, totalEpisodes]);
+
+  const filteredEpisodes = useMemo(() => {
+    const missingSet =
+      showMissingOnly && missingEpisodes.length > 0 ? new Set(missingEpisodes) : null;
+
+    return allEpisodes.filter((ep) => {
+      if (missingSet && !missingSet.has(ep.number)) return false;
+
+      if (!query.trim()) return true;
+
+      const lower = query.toLowerCase();
+      return (
         ep.number.toString().includes(lower) ||
         ep.title.toLowerCase().includes(lower) ||
         (tracksByEpisode.get(ep.number) ?? []).some((tr) =>
           tr.label.toLowerCase().includes(lower),
-        ),
-    );
-  }, [allEpisodes, query, tracksByEpisode]);
+        )
+      );
+    });
+  }, [allEpisodes, query, tracksByEpisode, showMissingOnly, missingEpisodes]);
 
   const totalPages = Math.max(1, Math.ceil(filteredEpisodes.length / EPISODES_PER_PAGE));
   const safePage = Math.min(page, totalPages);
@@ -94,7 +118,24 @@ export default function AnimeSubtitles({ anilistId }: Props) {
   useEffect(() => {
     setPage(1);
     setSelectedEps(new Set());
-  }, [query, anilistId]);
+  }, [query, anilistId, showMissingOnly]);
+
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const match = hash.match(/^#ep-(\d+)$/);
+
+    if (searchParams.get("missing") === "1" || match) {
+      setShowMissingOnly(true);
+    }
+
+    if (match) {
+      const ep = parseInt(match[1], 10);
+      const idx = missingEpisodes.indexOf(ep);
+      if (idx >= 0) {
+        setPage(Math.floor(idx / EPISODES_PER_PAGE) + 1);
+      }
+    }
+  }, [searchParams, missingEpisodes]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -110,9 +151,21 @@ export default function AnimeSubtitles({ anilistId }: Props) {
     }));
   }, [filteredEpisodes, safePage, tracksByEpisode]);
 
-  const totalEpisodes = allEpisodes.length;
-  const cachedEpisodes = tracksByEpisode.size;
-  const missingCount = totalEpisodes - cachedEpisodes;
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const match = hash.match(/^#ep-(\d+)$/);
+    if (!match) return;
+
+    const ep = parseInt(match[1], 10);
+    if (!Number.isFinite(ep) || ep <= 0) return;
+
+    const scrollToEp = () => {
+      document.getElementById(`ep-${ep}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    const id = window.setTimeout(scrollToEp, 200);
+    return () => window.clearTimeout(id);
+  }, [safePage, pageEpisodes]);
+
   const coveragePct =
     totalEpisodes > 0 ? Math.round((cachedEpisodes / totalEpisodes) * 100) : 0;
   const uniqueLanguages = useMemo(() => {
@@ -222,6 +275,24 @@ export default function AnimeSubtitles({ anilistId }: Props) {
             {totalEpisodes > 0 && missingCount > 0 && (
               <button
                 type="button"
+                onClick={() => setShowMissingOnly((v) => !v)}
+                disabled={busy}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-50",
+                  showMissingOnly
+                    ? "bg-amber-500/20 border-amber-500/30 text-amber-200 hover:bg-amber-500/30"
+                    : "bg-white/8 border-white/12 text-white/75 hover:bg-white/12",
+                )}
+              >
+                {showMissingOnly
+                  ? t("anime.subtitles.showAllEpisodes")
+                  : t("anime.subtitles.showMissingOnly", { count: missingCount })}
+              </button>
+            )}
+
+            {totalEpisodes > 0 && missingCount > 0 && (
+              <button
+                type="button"
                 onClick={handleFetchAll}
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold bg-teal-500/20 border border-teal-500/30 text-teal-200 hover:bg-teal-500/30 transition-colors disabled:opacity-50"
@@ -291,6 +362,41 @@ export default function AnimeSubtitles({ anilistId }: Props) {
                     +{uniqueLanguages.length - 8}
                   </span>
                 )}
+              </div>
+            )}
+
+            {missingEpisodes.length > 0 && !showMissingOnly && (
+              <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.04] p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-amber-200/60">
+                    {t("anime.subtitles.missingEpisodesLabel")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowMissingOnly(true)}
+                    className="text-[10px] font-semibold text-amber-200/80 hover:text-amber-100"
+                  >
+                    {t("anime.subtitles.showMissingOnly", { count: missingCount })}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-auto">
+                  {missingEpisodes.map((ep) => (
+                    <button
+                      key={ep}
+                      type="button"
+                      onClick={() => {
+                        setShowMissingOnly(true);
+                        const idx = missingEpisodes.indexOf(ep);
+                        if (idx >= 0) {
+                          setPage(Math.floor(idx / EPISODES_PER_PAGE) + 1);
+                        }
+                      }}
+                      className="inline-flex items-center justify-center min-w-[2rem] h-7 px-2 rounded-md text-[11px] font-mono font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-200/90 hover:bg-amber-500/20 transition-colors"
+                    >
+                      {ep}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -476,9 +582,11 @@ function EpisodeSubtitleCard({
 
   return (
     <div
+      id={`ep-${group.number}`}
       className={cn(
-        "rounded-xl border bg-white/[0.02] overflow-hidden transition-all hover:border-white/12",
+        "rounded-xl border bg-white/[0.02] overflow-hidden transition-all hover:border-white/12 scroll-mt-24",
         selected ? "border-teal-500/35 ring-1 ring-teal-500/15" : "border-white/8",
+        group.tracks.length === 0 && "border-amber-500/15",
       )}
     >
       <div className="flex flex-col sm:flex-row gap-0">

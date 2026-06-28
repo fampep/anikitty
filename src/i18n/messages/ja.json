@@ -698,7 +698,10 @@
       "downloadAllCached": "キャッシュ済みをすべてダウンロード",
       "preview": "字幕テキスト",
       "previewError": "字幕プレビューを読み込めませんでした",
-      "cueCount": "{count} キュー"
+      "cueCount": "{count} キュー",
+      "showMissingOnly": "欠落字幕を表示 ({count})",
+      "showAllEpisodes": "すべての話を表示",
+      "missingEpisodesLabel": "キャッシュされていない話"
     },
     "media": {
       "heading": "エピソードをダウンロード",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "第 {n} 話 — 未キャッシュ",
     "episodeLegendCached": "キャッシュ済み",
     "episodeLegendMissing": "未キャッシュ",
+    "showMissingSubs": "欠落字幕を表示 ({count})",
+    "hideMissingSubs": "欠落字幕を非表示",
+    "missingEpisodesLabel": "欠落している話",
     "fetchProgress": "取得中 {done}/{total}…",
     "autoSyncError": "同期を一時停止 — まもなく再試行します",
     "discoverCachedNone": "0/{total} キャッシュ済み"

@@ -698,7 +698,10 @@
       "downloadAllCached": "Télécharger tout le cache",
       "preview": "Texte du sous-titre",
       "previewError": "Impossible de charger l'aperçu du sous-titre",
-      "cueCount": "{count} lignes"
+      "cueCount": "{count} lignes",
+      "showMissingOnly": "Afficher les sous-titres manquants ({count})",
+      "showAllEpisodes": "Afficher tous les épisodes",
+      "missingEpisodesLabel": "Épisodes sans sous-titres en cache"
     },
     "media": {
       "heading": "Télécharger les épisodes",
@@ -893,6 +896,9 @@
     "episodeMissingTitle": "Épisode {n} — pas encore en cache",
     "episodeLegendCached": "En cache",
     "episodeLegendMissing": "Manquant",
+    "showMissingSubs": "Afficher les sous-titres manquants ({count})",
+    "hideMissingSubs": "Masquer les sous-titres manquants",
+    "missingEpisodesLabel": "Épisodes manquants",
     "fetchProgress": "Récupération {done}/{total}…",
     "autoSyncError": "Synchronisation en pause — nouvelle tentative sous peu",
     "discoverCachedNone": "0/{total} en cache"

@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import AnimeCard from "@/components/anime-card";
 import { ROUTES } from "@/constants/routes";
 import type { SubtitleLibraryEntry } from "@/lib/subtitle-cache-store";
+import { fetchAnimeSubtitleCoverage } from "@/query/get-anime-subtitles";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/utils";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 
 type Props = {
   entry: SubtitleLibraryEntry;
@@ -13,9 +16,18 @@ type Props = {
 
 export default function SubtitleLibraryCard({ entry }: Props) {
   const t = useT();
+  const [showMissing, setShowMissing] = useState(false);
+  const [loadingMissing, setLoadingMissing] = useState(false);
+  const [missingEpisodes, setMissingEpisodes] = useState<number[] | null>(null);
+  const [cachedEpisodes, setCachedEpisodes] = useState<number[] | null>(null);
+
   const title = entry.animeTitle?.trim() || t("subsLibrary.unknownAnime", { id: entry.anilistId });
   const href = `${ROUTES.ANIME_DETAILS}/${entry.anilistId}?tab=subtitles`;
   const totalEpisodes = entry.totalEpisodes ?? null;
+  const missingCount =
+    totalEpisodes && totalEpisodes > 0
+      ? Math.max(0, totalEpisodes - entry.episodeCount)
+      : null;
   const coveragePct =
     totalEpisodes && totalEpisodes > 0
       ? Math.min(100, Math.round((entry.episodeCount / totalEpisodes) * 100))
@@ -29,6 +41,29 @@ export default function SubtitleLibraryCard({ entry }: Props) {
           tracks: entry.trackCount,
         })
       : t("subsLibrary.tracksOnly", { tracks: entry.trackCount });
+
+  const handleToggleMissing = async () => {
+    if (showMissing) {
+      setShowMissing(false);
+      return;
+    }
+
+    setShowMissing(true);
+
+    if (missingEpisodes !== null) return;
+
+    setLoadingMissing(true);
+    try {
+      const { coverage } = await fetchAnimeSubtitleCoverage(entry.anilistId);
+      setMissingEpisodes(coverage.missingEpisodes);
+      setCachedEpisodes(coverage.cachedEpisodes);
+    } catch {
+      setMissingEpisodes([]);
+      setCachedEpisodes([]);
+    } finally {
+      setLoadingMissing(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2 w-full max-w-[12.625rem] mx-auto">
@@ -73,6 +108,76 @@ export default function SubtitleLibraryCard({ entry }: Props) {
                 style={{ width: `${coveragePct}%` }}
               />
             </div>
+          </div>
+        )}
+
+        {!entry.isComplete && missingCount != null && missingCount > 0 && (
+          <button
+            type="button"
+            onClick={handleToggleMissing}
+            className="w-full inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold border border-amber-500/25 bg-amber-500/10 text-amber-200/90 hover:bg-amber-500/15 transition-colors"
+          >
+            {loadingMissing ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <ChevronDown
+                className={cn("w-3 h-3 transition-transform", showMissing && "rotate-180")}
+              />
+            )}
+            {showMissing
+              ? t("subsLibrary.hideMissingSubs")
+              : t("subsLibrary.showMissingSubs", { count: missingCount })}
+          </button>
+        )}
+
+        {showMissing && (
+          <div className="rounded-lg border border-white/8 bg-black/30 p-2 space-y-2">
+            {loadingMissing ? (
+              <p className="text-[10px] font-mono text-white/35 text-center py-2">
+                {t("subsLibrary.episodesLoading")}
+              </p>
+            ) : missingEpisodes && missingEpisodes.length > 0 ? (
+              <>
+                <p className="text-[9px] font-mono uppercase tracking-widest text-white/30">
+                  {t("subsLibrary.missingEpisodesLabel")}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {missingEpisodes.map((ep) => (
+                    <Link
+                      key={ep}
+                      href={`${href}&missing=1#ep-${ep}`}
+                      title={t("subsLibrary.episodeMissingTitle", { n: ep })}
+                      className="inline-flex items-center justify-center min-w-[1.75rem] h-6 px-1.5 rounded-md text-[10px] font-mono font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-200/90 hover:bg-amber-500/20 transition-colors"
+                    >
+                      {ep}
+                    </Link>
+                  ))}
+                </div>
+                {cachedEpisodes && cachedEpisodes.length > 0 && (
+                  <>
+                    <p className="text-[9px] font-mono uppercase tracking-widest text-white/25 pt-1">
+                      {t("subsLibrary.episodeLegendCached")}
+                    </p>
+                    <div className="flex flex-wrap gap-1 max-h-16 overflow-auto">
+                      {cachedEpisodes.map((ep) => (
+                        <Link
+                          key={ep}
+                          href={`${href}#ep-${ep}`}
+                          title={t("subsLibrary.episodeCachedTitle", { n: ep })}
+                          className="inline-flex items-center justify-center min-w-[1.75rem] h-6 px-1.5 rounded-md text-[10px] font-mono border border-teal-500/25 bg-teal-500/10 text-teal-300/80 hover:bg-teal-500/15 transition-colors"
+                        >
+                          {ep}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <p className="text-[10px] font-mono text-white/35 text-center py-1">
+                {t("subsLibrary.fullSubs")}
+              </p>
+            )}
           </div>
         )}
       </div>

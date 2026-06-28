@@ -698,7 +698,10 @@
       "downloadAllCached": "캐시된 항목 모두 다운로드",
       "preview": "자막 텍스트",
       "previewError": "자막 미리보기를 불러올 수 없습니다",
-      "cueCount": "{count}개 큐"
+      "cueCount": "{count}개 큐",
+      "showMissingOnly": "누락된 자막 표시 ({count})",
+      "showAllEpisodes": "모든 에피소드 표시",
+      "missingEpisodesLabel": "캐시되지 않은 에피소드"
     },
     "media": {
       "heading": "에피소드 다운로드",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "{n}화 — 아직 캐시되지 않음",
     "episodeLegendCached": "캐시됨",
     "episodeLegendMissing": "누락",
+    "showMissingSubs": "누락된 자막 표시 ({count})",
+    "hideMissingSubs": "누락된 자막 숨기기",
+    "missingEpisodesLabel": "누락된 에피소드",
     "fetchProgress": "가져오는 중 {done}/{total}…",
     "autoSyncError": "동기화 일시 중지 — 곧 다시 시도",
     "discoverCachedNone": "0/{total} 캐시됨"

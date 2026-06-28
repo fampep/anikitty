@@ -698,7 +698,10 @@
       "downloadAllCached": "Baixar tudo em cache",
       "preview": "Texto da legenda",
       "previewError": "Não foi possível carregar a pré-visualização da legenda",
-      "cueCount": "{count} linhas"
+      "cueCount": "{count} linhas",
+      "showMissingOnly": "Mostrar legendas faltantes ({count})",
+      "showAllEpisodes": "Mostrar todos os episódios",
+      "missingEpisodesLabel": "Episódios sem legendas em cache"
     },
     "media": {
       "heading": "Baixar episódios",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "Episódio {n} — ainda não em cache",
     "episodeLegendCached": "Em cache",
     "episodeLegendMissing": "Faltando",
+    "showMissingSubs": "Mostrar legendas faltantes ({count})",
+    "hideMissingSubs": "Ocultar legendas faltantes",
+    "missingEpisodesLabel": "Episódios faltantes",
     "fetchProgress": "Buscando {done}/{total}…",
     "autoSyncError": "Sincronização pausada — tentando novamente em breve",
     "discoverCachedNone": "0/{total} em cache"

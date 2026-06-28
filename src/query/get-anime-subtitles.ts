@@ -2,6 +2,7 @@ import { useQuery } from "react-query";
 import { api } from "@/lib/api";
 
 import type {
+  SubtitleEpisodeCoverage,
   SubtitleLibraryEntry,
   SubtitleLibraryStats,
 } from "@/lib/subtitle-cache-store";
@@ -23,6 +24,11 @@ export type FetchAllAnimeSubtitlesResult = {
   tracks: AnimeSubtitleItem[];
   libraryEntry: SubtitleLibraryEntry | null;
   stats: SubtitleLibraryStats | null;
+};
+
+export type AnimeSubtitleCoverageResult = {
+  tracks: AnimeSubtitleItem[];
+  coverage: SubtitleEpisodeCoverage;
 };
 
 const getAnimeSubtitles = async (
@@ -101,6 +107,18 @@ export const fetchAnimeEpisodeSubtitles = async (
   audio: "sub" | "dub" = "sub",
 ): Promise<AnimeSubtitleItem[]> => {
   return getAnimeSubtitles(anilistId, { episode, fetch: true, audio });
+};
+
+export const fetchAnimeSubtitleCoverage = async (
+  anilistId: number,
+): Promise<AnimeSubtitleCoverageResult> => {
+  const res = await api.get(`/api/anime/${anilistId}/subtitles`, {
+    params: { coverage: 1 },
+  });
+  return {
+    tracks: res.data.data,
+    coverage: res.data.coverage,
+  };
 };
 
 export async function downloadSubtitleEpisodesZip(

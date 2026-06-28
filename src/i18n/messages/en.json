@@ -698,7 +698,10 @@
       "downloadAllCached": "Download all cached",
       "preview": "Subtitle text",
       "previewError": "Could not load subtitle preview",
-      "cueCount": "{count} cues"
+      "cueCount": "{count} cues",
+      "showMissingOnly": "Show missing subs ({count})",
+      "showAllEpisodes": "Show all episodes",
+      "missingEpisodesLabel": "Episodes without cached subtitles"
     },
     "media": {
       "heading": "Download Episodes",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "Episode {n} — not cached yet",
     "episodeLegendCached": "Cached",
     "episodeLegendMissing": "Missing",
+    "showMissingSubs": "Show missing subs ({count})",
+    "hideMissingSubs": "Hide missing subs",
+    "missingEpisodesLabel": "Missing episodes",
     "fetchProgress": "Fetching {done}/{total}…",
     "autoSyncError": "Sync paused — retrying shortly",
     "discoverCachedNone": "0/{total} cached"

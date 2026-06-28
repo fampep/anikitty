@@ -698,7 +698,10 @@
       "downloadAllCached": "Alle Gecachten herunterladen",
       "preview": "Untertiteltext",
       "previewError": "Untertitel-Vorschau konnte nicht geladen werden",
-      "cueCount": "{count} Einblendungen"
+      "cueCount": "{count} Einblendungen",
+      "showMissingOnly": "Fehlende Untertitel anzeigen ({count})",
+      "showAllEpisodes": "Alle Episoden anzeigen",
+      "missingEpisodesLabel": "Episoden ohne gecachte Untertitel"
     },
     "media": {
       "heading": "Episoden herunterladen",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "Episode {n} — noch nicht gecacht",
     "episodeLegendCached": "Gecacht",
     "episodeLegendMissing": "Fehlt",
+    "showMissingSubs": "Fehlende Untertitel anzeigen ({count})",
+    "hideMissingSubs": "Fehlende Untertitel ausblenden",
+    "missingEpisodesLabel": "Fehlende Episoden",
     "fetchProgress": "Abrufen {done}/{total}…",
     "autoSyncError": "Sync pausiert — wird in Kürze erneut versucht",
     "discoverCachedNone": "0/{total} gecacht"

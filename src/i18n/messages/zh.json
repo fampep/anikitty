@@ -698,7 +698,10 @@
       "downloadAllCached": "下载全部缓存",
       "preview": "字幕文本",
       "previewError": "无法加载字幕预览",
-      "cueCount": "{count} 条字幕"
+      "cueCount": "{count} 条字幕",
+      "showMissingOnly": "显示缺失字幕 ({count})",
+      "showAllEpisodes": "显示全部集数",
+      "missingEpisodesLabel": "未缓存字幕的集数"
     },
     "media": {
       "heading": "下载剧集",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "第 {n} 集 — 尚未缓存",
     "episodeLegendCached": "已缓存",
     "episodeLegendMissing": "缺失",
+    "showMissingSubs": "显示缺失字幕 ({count})",
+    "hideMissingSubs": "隐藏缺失字幕",
+    "missingEpisodesLabel": "缺失集数",
     "fetchProgress": "获取中 {done}/{total}…",
     "autoSyncError": "同步已暂停 — 即将重试",
     "discoverCachedNone": "0/{total} 已缓存"

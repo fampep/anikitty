@@ -698,7 +698,10 @@
       "downloadAllCached": "Download alle cachede",
       "preview": "Underteksttekst",
       "previewError": "Kunne ikke indlæse forhåndsvisning af undertekst",
-      "cueCount": "{count} cues"
+      "cueCount": "{count} cues",
+      "showMissingOnly": "Vis manglende undertekster ({count})",
+      "showAllEpisodes": "Vis alle episoder",
+      "missingEpisodesLabel": "Episoder uden cachede undertekster"
     },
     "media": {
       "heading": "Download episoder",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "Episode {n} — endnu ikke cachet",
     "episodeLegendCached": "Cachet",
     "episodeLegendMissing": "Mangler",
+    "showMissingSubs": "Vis manglende undertekster ({count})",
+    "hideMissingSubs": "Skjul manglende undertekster",
+    "missingEpisodesLabel": "Manglende episoder",
     "fetchProgress": "Henter {done}/{total}…",
     "autoSyncError": "Sync sat på pause — prøver igen om lidt",
     "discoverCachedNone": "0/{total} cachet"

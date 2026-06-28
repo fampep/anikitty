@@ -698,7 +698,10 @@
       "downloadAllCached": "Descargar todo lo en caché",
       "preview": "Texto del subtítulo",
       "previewError": "No se pudo cargar la vista previa del subtítulo",
-      "cueCount": "{count} líneas"
+      "cueCount": "{count} líneas",
+      "showMissingOnly": "Mostrar subtítulos faltantes ({count})",
+      "showAllEpisodes": "Mostrar todos los episodios",
+      "missingEpisodesLabel": "Episodios sin subtítulos en caché"
     },
     "media": {
       "heading": "Descargar episodios",
@@ -797,6 +800,9 @@
     "episodeMissingTitle": "Episodio {n} — aún no en caché",
     "episodeLegendCached": "En caché",
     "episodeLegendMissing": "Faltante",
+    "showMissingSubs": "Mostrar subtítulos faltantes ({count})",
+    "hideMissingSubs": "Ocultar subtítulos faltantes",
+    "missingEpisodesLabel": "Episodios faltantes",
     "fetchProgress": "Obteniendo {done}/{total}…",
     "autoSyncError": "Sincronización pausada — reintentando en breve",
     "discoverCachedNone": "0/{total} en caché"
