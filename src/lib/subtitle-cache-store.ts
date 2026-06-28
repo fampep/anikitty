@@ -354,7 +354,7 @@ function proxySubtitleTrack(
   return { ...track, file: subtitleProxyUrl(file, headers) };
 }
 
-/** Background-fetch subtitles for every episode when ep 1 is watched. */
+/** Fetch all missing episodes — only via explicit user action (fetchAll API). */
 export async function ensureFullShowSubtitleCache(
   anilistId: number,
   episodeCount?: number,

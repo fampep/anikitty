@@ -1,5 +1,4 @@
 import {
-  ensureFullShowSubtitleCache,
   ensureMiruroSubtitleCache,
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitle-cache-store";
@@ -102,10 +101,6 @@ export async function GET(req: Request) {
       data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
     } else {
       data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
-    }
-
-    if (subtitleCtx.episode === 1) {
-      void ensureFullShowSubtitleCache(subtitleCtx.anilistId);
     }
 
     return Response.json(data);

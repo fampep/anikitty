@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSubtitleLibraryStats } from "@/lib/subtitle-cache-store";
 import { searchEnrichedSubtitleLibrary } from "@/lib/subtitle-library-enrich";
 import type { SubtitleLibrarySort } from "@/lib/subtitle-library-db";
-import { triggerBackgroundSubtitleLibrarySync } from "@/lib/subtitle-library-sync";
 
 const VALID_SORTS = new Set<SubtitleLibrarySort>(["latest", "tracks", "progress", "az"]);
 
@@ -22,8 +21,6 @@ export async function GET(req: Request) {
       getSubtitleLibraryStats(),
       searchEnrichedSubtitleLibrary({ q, page, limit, filter, sort }),
     ]);
-
-    triggerBackgroundSubtitleLibrarySync();
 
     return NextResponse.json({
       stats,

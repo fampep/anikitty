@@ -18,17 +18,17 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const incomplete = Math.min(
     8,
-    Math.max(0, parseInt(url.searchParams.get("incomplete") ?? "4", 10) || 4),
+    Math.max(0, parseInt(url.searchParams.get("incomplete") ?? "0", 10) || 0),
   );
   const discover = Math.min(
     8,
-    Math.max(0, parseInt(url.searchParams.get("discover") ?? "3", 10) || 3),
+    Math.max(0, parseInt(url.searchParams.get("discover") ?? "0", 10) || 0),
   );
 
   const result = await runSubtitleLibrarySyncTick({
     maxIncompleteAnime: incomplete,
     maxDiscover: discover,
-    episodesPerAnime: 8,
+    episodesPerAnime: incomplete > 0 || discover > 0 ? 8 : 0,
     backfillLimit: 50,
     refreshLimit: 30,
   });
