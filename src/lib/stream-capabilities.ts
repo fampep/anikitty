@@ -190,6 +190,13 @@ export function getProviderCapabilities(
   return caps?.providers[provider] ?? null;
 }
 
+export function providerHasStreamCapabilities(
+  caps: StreamCapabilities | null | undefined,
+): boolean {
+  if (!caps) return false;
+  return caps.sub || caps.dub || caps.softSub || caps.hardSub || caps.multi;
+}
+
 export function providerVisibleInAudioMode(
   provider: KittyProvider,
   mode: ProviderAudioMode,
@@ -198,15 +205,14 @@ export function providerVisibleInAudioMode(
   if (MULTI_ROW_PROVIDERS.has(provider)) {
     if (mode !== "multi") return false;
     if (!caps) return true;
-    return caps.multi || (caps.sub && caps.dub);
+    return providerHasStreamCapabilities(caps);
   }
+
+  if (mode === "multi" || mode === "dub") return false;
 
   if (!caps) return mode === "sub";
 
-  if (mode === "sub") return caps.sub || caps.softSub || caps.hardSub;
-  if (mode === "dub") return caps.dub;
-  if (mode === "multi") return caps.multi || (caps.sub && caps.dub);
-  return false;
+  return providerHasStreamCapabilities(caps);
 }
 
 export function selectionSupportsBothStreamAudioFromCaps(

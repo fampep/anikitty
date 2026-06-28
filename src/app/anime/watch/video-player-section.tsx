@@ -90,7 +90,8 @@ const VideoPlayerSection = () => {
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kittyAudioMode");
-      if (saved === "sub" || saved === "dub" || saved === "multi") return saved;
+      if (saved === "multi") return "multi";
+      if (saved === "sub" || saved === "dub") return "sub";
     }
     return "sub";
   });
@@ -108,7 +109,7 @@ const VideoPlayerSection = () => {
   useEffect(() => {
     const dubParam = searchParams.get("dub");
     if (dubParam === "1" || dubParam === "true") {
-      setAudioMode("dub");
+      setAudioMode("sub");
       setStreamAudio("dub");
     }
   }, [searchParams]);
@@ -429,12 +430,17 @@ const VideoPlayerSection = () => {
     setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", mode);
-    if (mode === "dub") {
-      setStreamAudio("dub");
-      localStorage.setItem("kittyStreamAudio", "dub");
-    } else if (mode === "sub") {
-      setStreamAudio("sub");
-      localStorage.setItem("kittyStreamAudio", "sub");
+    if (mode === "multi") {
+      // Keep streamAudio — SUB/DUB toggle handles audio for multi providers.
+    } else {
+      const caps = streamCapabilities?.providers[p];
+      if (caps?.dub && !caps.sub && streamAudio === "sub") {
+        setStreamAudio("dub");
+        localStorage.setItem("kittyStreamAudio", "dub");
+      } else if (caps?.sub && !caps.dub && streamAudio === "dub") {
+        setStreamAudio("sub");
+        localStorage.setItem("kittyStreamAudio", "sub");
+      }
     }
     if (mode !== "multi" || (p !== "Miruro" && p !== "Animex")) {
       setMultiPanel(null);

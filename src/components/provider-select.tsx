@@ -144,7 +144,7 @@ export function ProviderQuickPick({
       onMiruroPipeChange={onMiruroPipeChange}
       onAnimexServerChange={onAnimexServerChange}
       className={className}
-      rows={["sub", "dub", "multi"]}
+      rows={["sub", "multi"]}
     />
   );
 }
@@ -182,40 +182,19 @@ function CapabilityBadge({
 
 function StreamCapabilityBadges({
   caps,
-  rowMode,
 }: {
   caps: StreamCapabilities | null | undefined;
-  rowMode?: ProviderAudioMode;
 }) {
   const t = useT();
   if (!caps) return null;
 
   const badges: ReactNode[] = [];
 
-  if (rowMode === "multi" && caps.multi) {
-    badges.push(
-      <CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />,
-      <CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />,
-      <CapabilityBadge key="multi" label={t("watch.multi")} variant="multi" />,
-    );
-  } else if (rowMode === "sub" && caps.sub) {
-    badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
-    if (caps.dub) {
-      badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
-    }
-  } else if (rowMode === "dub" && caps.dub) {
-    badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
-    if (caps.sub) {
-      badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
-    }
-  } else {
-    if (caps.sub) badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
-    if (caps.dub) badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
-    if (caps.multi) {
-      badges.push(<CapabilityBadge key="multi" label={t("watch.multi")} variant="multi" />);
-    }
+  if (caps.sub) badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
+  if (caps.dub) badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
+  if (caps.multi) {
+    badges.push(<CapabilityBadge key="multi" label={t("watch.multi")} variant="multi" />);
   }
-
   if (caps.softSub) {
     badges.push(
       <CapabilityBadge
@@ -314,7 +293,7 @@ export function ProviderGrid({
   capabilitiesLoading = false,
   disabled,
   className,
-  rows = ["sub", "dub", "multi"],
+  rows = ["sub", "multi"],
 }: ProviderGridProps) {
   const t = useT();
   const capsReady = !capabilitiesLoading && !!capabilities;
@@ -361,7 +340,9 @@ export function ProviderGrid({
             <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
               {items.map((p) => {
                 const isMulti = p.id === "Miruro" || p.id === "Animex";
-                const isActive = provider === p.id && audioMode === mode;
+                const isActive =
+                  provider === p.id &&
+                  (mode === "multi" ? audioMode === "multi" : audioMode !== "multi");
                 const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
                 const providerCaps = capabilities?.providers[p.id];
 
@@ -385,9 +366,7 @@ export function ProviderGrid({
                     )}
                   >
                     <span className="truncate">{p.label}</span>
-                    {capsReady && (
-                      <StreamCapabilityBadges caps={providerCaps} rowMode={mode} />
-                    )}
+                    {capsReady && <StreamCapabilityBadges caps={providerCaps} />}
                     {isMulti && mode === "multi" && (
                       <ChevronDown
                         className={cn(
