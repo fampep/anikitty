@@ -12,6 +12,10 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
  * Matches KittyAPI subs-capable providers (MegaPlay, Miruro, AllAnime, AnimeNexus, etc.).
  */
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
+  "AnimeNexus",
+  "AnimeOnsen",
+  "AllAnime",
+  "MKissa",
   "Anikoto",
   "AnimeSogo",
   "Anix",
@@ -19,11 +23,7 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Animepahe",
   "Animex",
   "Miruro",
-  "AllAnime",
-  "MKissa",
   "Animetsu",
-  "AnimeOnsen",
-  "AnimeNexus",
   "AniWaves",
   "Senshi",
   "Animeya",
@@ -94,12 +94,57 @@ export function buildKittySubsUrl(opts: {
 function subsFilesToTracks(files: KittySubsFile[]): StreamTrack[] {
   return files
     .filter((f) => f.url?.trim())
-    .map((f) => ({
-      file: f.url.trim(),
-      label: (f.label || f.language || "Unknown").trim(),
-      kind: "subtitles",
-      default: Boolean(f.default),
-    }));
+    .map((f) => {
+      const language = f.language?.trim();
+      const labelRaw = f.label?.trim();
+      const label =
+        labelRaw ||
+        (language ? language.toUpperCase() : "") ||
+        "Unknown";
+      return {
+        file: f.url.trim(),
+        label,
+        kind: "subtitles",
+        default: Boolean(f.default),
+      };
+    });
+}
+
+function trackMergeKey(track: StreamTrack): string {
+  const label = (track.label ?? "").trim().toLowerCase();
+  const file = (track.file ?? track.url ?? "").trim();
+  return label || file;
+}
+
+function mergeSubtitleTracks(...lists: StreamTrack[][]): StreamTrack[] {
+  const merged = new Map<string, StreamTrack>();
+  for (const list of lists) {
+    for (const track of list) {
+      const key = trackMergeKey(track);
+      if (!key || merged.has(key)) continue;
+      merged.set(key, track);
+    }
+  }
+  return [...merged.values()];
+}
+
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+
+  async function worker() {
+    while (index < items.length) {
+      const i = index++;
+      results[i] = await fn(items[i]!);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
 }
 
 function pickEpisodeSubs(data: KittySubsResponse, episode: number): StreamTrack[] {
@@ -148,7 +193,7 @@ export async function getKittySubsProviderOrder(
   return merged;
 }
 
-/** Fetch subtitle tracks for one episode via GET /subs (tries each subs provider). */
+/** Fetch subtitle tracks for one episode via GET /subs (merges all providers). */
 export async function fetchKittySubsTracks(opts: {
   anilistId: number;
   episode: number;
@@ -165,7 +210,7 @@ export async function fetchKittySubsTracks(opts: {
   const audio = opts.audio ?? "sub";
   const order = await getKittySubsProviderOrder(opts.providers);
 
-  for (const provider of order) {
+  const probeResults = await mapPool(order, 4, async (provider) => {
     try {
       const url = buildKittySubsUrl({
         provider,
@@ -181,21 +226,36 @@ export async function fetchKittySubsTracks(opts: {
         headers: kittyApiHeaders(),
       });
 
-      if (!res.ok) continue;
+      if (!res.ok) return null;
 
       const data = (await res.json()) as KittySubsResponse;
       const tracks = pickEpisodeSubs(data, opts.episode);
-      if (tracks.length === 0) continue;
+      if (tracks.length === 0) return null;
 
       return {
         tracks,
-        provider,
         animeTitle: data.title?.trim() || opts.title?.trim() || null,
       };
     } catch {
-      // try next provider
+      return null;
+    }
+  });
+
+  const trackLists = probeResults.filter(Boolean).map((r) => r!.tracks);
+  const tracks = mergeSubtitleTracks(...trackLists);
+  if (tracks.length === 0) return null;
+
+  let animeTitle = opts.title?.trim() || null;
+  for (const row of probeResults) {
+    if (row?.animeTitle) {
+      animeTitle = row.animeTitle;
+      break;
     }
   }
 
-  return null;
+  return {
+    tracks,
+    provider: KITTY_SUB_SOURCE_PROVIDER,
+    animeTitle,
+  };
 }

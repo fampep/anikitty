@@ -37,7 +37,10 @@ export async function GET(
   } else if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
     const episode = parseInt(episodeParam, 10);
     if (episode > 0) {
-      await ensureMiruroSubtitleCache({ anilistId, episode, audio: fetchAudio });
+      await ensureMiruroSubtitleCache(
+        { anilistId, episode, audio: fetchAudio },
+        { force: fetch || fetchAll },
+      );
     }
   }
 

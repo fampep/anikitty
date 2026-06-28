@@ -28,6 +28,11 @@ export type EpisodeSubtitleCacheContext = Pick<
   animeTitle?: string | null;
 };
 
+export type EnsureSubtitleCacheOptions = {
+  /** Re-fetch from Kitty API even when cached tracks exist (adds new languages). */
+  force?: boolean;
+};
+
 /** Subtitle VTT content is stable per episode — refresh weekly. */
 const SUBTITLE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -204,11 +209,12 @@ async function fetchMiruroSubtitleTracks(
   }
 }
 
-/** Fetch subtitle tracks (Kitty /subs → Miruro) and persist when cache is missing or stale. */
+/** Fetch subtitle tracks (Kitty /subs) and persist when cache is missing or stale. */
 export async function ensureMiruroSubtitleCache(
   ctx: EpisodeSubtitleCacheContext,
+  opts?: EnsureSubtitleCacheOptions,
 ): Promise<StreamTrack[]> {
-  if (await hasFreshCachedSubtitles(ctx)) return [];
+  if (!opts?.force && (await hasFreshCachedSubtitles(ctx))) return [];
 
   let kitty = await fetchKittySubsTracks({
     anilistId: ctx.anilistId,
@@ -244,12 +250,15 @@ export async function ensureMiruroSubtitleCache(
 
   if (!stream?.tracks?.length) return [];
 
-  return cacheStreamSubtitleTracks(stream.tracks, {
-    ...ctx,
-    provider: SUBTITLE_SOURCE_PROVIDER,
-    animeTitle: stream.animeTitle,
-    headers: stream.headers,
-  });
+  return cacheStreamSubtitleTracks(
+    stream.tracks.filter(isSubtitleTrack),
+    {
+      ...ctx,
+      provider: SUBTITLE_SOURCE_PROVIDER,
+      animeTitle: stream.animeTitle,
+      headers: stream.headers,
+    },
+  );
 }
 
 /** @deprecated Use ensureMiruroSubtitleCache */
@@ -383,6 +392,7 @@ export async function ensureFullShowSubtitleCache(
     maxEpisodes: Number.MAX_SAFE_INTEGER,
     delayMs: SUBTITLE_API_INTERVAL_MS,
     episodeCount,
+    force: true,
   });
 }
 
@@ -406,10 +416,12 @@ export async function ensureIncrementalSubtitleCache(
     maxEpisodes?: number;
     delayMs?: number;
     episodeCount?: number;
+    force?: boolean;
   } = {},
 ): Promise<IncrementalSubtitleCacheResult> {
   const maxEpisodes = Math.max(1, opts.maxEpisodes ?? 1);
   const miruroDelayMs = opts.delayMs ?? SUBTITLE_API_INTERVAL_MS;
+  const force = opts.force === true;
 
   if (fullShowPrefetchInProgress.has(anilistId)) {
     const existing = await listAnimeSubtitles(anilistId);
@@ -447,7 +459,7 @@ export async function ensureIncrementalSubtitleCache(
     if (count > 0) {
       const missing: number[] = [];
       for (let ep = 1; ep <= count && missing.length < maxEpisodes; ep++) {
-        if (!cachedEps.has(ep)) missing.push(ep);
+        if (force || !cachedEps.has(ep)) missing.push(ep);
       }
 
       for (let i = 0; i < missing.length; i += batchSize) {
@@ -456,7 +468,10 @@ export async function ensureIncrementalSubtitleCache(
 
         await Promise.all(
           batch.map((ep) =>
-            ensureMiruroSubtitleCache({ anilistId, episode: ep, audio: "sub", animeTitle }),
+            ensureMiruroSubtitleCache(
+              { anilistId, episode: ep, audio: "sub", animeTitle },
+              { force },
+            ),
           ),
         );
 
@@ -473,7 +488,10 @@ export async function ensureIncrementalSubtitleCache(
       // Unknown episode count — try next sequential episode after highest cached.
       const nextEp = cachedEps.size > 0 ? Math.max(...cachedEps) + 1 : 1;
       const before = cachedEps.size;
-      await ensureMiruroSubtitleCache({ anilistId, episode: nextEp, audio: "sub", animeTitle });
+      await ensureMiruroSubtitleCache(
+        { anilistId, episode: nextEp, audio: "sub", animeTitle },
+        { force },
+      );
       cachedEps = await getCachedEpisodeNumbers(anilistId);
       if (cachedEps.size > before) {
         fetched = 1;
