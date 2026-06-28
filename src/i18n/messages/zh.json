@@ -326,6 +326,15 @@
     "subtitlePreviewText": "示例字幕行",
     "subtitleReset": "恢复默认设置"
   },
+  "profile": {
+    "badges": {
+      "anilist": "AniList",
+      "discord": "Discord",
+      "anisurge": "Anisurge",
+      "twoFactor": "2FA",
+      "passkey": "通行密钥"
+    }
+  },
   "faq": {
     "title": "常见问题",
     "subtitle": "了解 AniKitty 的工作原理、哪些功能需要账户，以及网站收集哪些数据。",

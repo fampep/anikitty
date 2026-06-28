@@ -326,6 +326,15 @@
     "subtitlePreviewText": "Beispiel-Untertitelzeile",
     "subtitleReset": "Auf Standard zurücksetzen"
   },
+  "profile": {
+    "badges": {
+      "anilist": "AniList",
+      "discord": "Discord",
+      "anisurge": "Anisurge",
+      "twoFactor": "2FA",
+      "passkey": "Passkey"
+    }
+  },
   "faq": {
     "title": "FAQ",
     "subtitle": "Wie AniKitty funktioniert, welche Funktionen ein Konto brauchen und welche Daten die Seite sammelt.",

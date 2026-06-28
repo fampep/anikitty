@@ -326,6 +326,15 @@
     "subtitlePreviewText": "Eksempel på undertekstlinje",
     "subtitleReset": "Nulstil til standard"
   },
+  "profile": {
+    "badges": {
+      "anilist": "AniList",
+      "discord": "Discord",
+      "anisurge": "Anisurge",
+      "twoFactor": "2FA",
+      "passkey": "Passkey"
+    }
+  },
   "faq": {
     "title": "FAQ",
     "subtitle": "Hvordan AniKitty fungerer, hvilke funktioner kræver en konto, og hvilke data siden indsamler.",

@@ -4,6 +4,7 @@ import { watchlist } from "@/db/schema";
 import { getUserXpStats } from "@/lib/user-xp";
 import { getLevelProgress } from "@/lib/user-level";
 import { folderCountsFromRows } from "@/lib/watchlist-response";
+import { getAccountBadgesForUser } from "@/lib/account-badges";
 import {
   publicUserFields,
   resolveVisibleProfileUser,
@@ -21,7 +22,7 @@ export async function GET(
   const { user } = resolved;
   const db = getDb();
 
-  const [countRows, stats] = await Promise.all([
+  const [countRows, stats, accountBadges] = await Promise.all([
     db
       .select({
         folder: watchlist.folder,
@@ -31,12 +32,14 @@ export async function GET(
       .where(eq(watchlist.userId, user.id))
       .groupBy(watchlist.folder),
     getUserXpStats(db, user.id),
+    getAccountBadgesForUser(db, user.id),
   ]);
 
   const levelInfo = getLevelProgress(stats.xp);
 
   return NextResponse.json({
     user: publicUserFields(user),
+    accountBadges,
     counts: folderCountsFromRows(countRows),
     level: {
       xp: stats.xp,

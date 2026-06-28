@@ -39,6 +39,8 @@ import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { RoleBadge } from "@/components/role-badge";
 import { LevelRoleBadge } from "@/components/user-badges";
+import ProfileAccountBadges from "@/components/profile-account-badges";
+import type { AccountBadges } from "@/lib/account-badges";
 import { useUserLevel } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/level-progress-card";
 import AnimeLists from "./components/anime-lists";
@@ -225,6 +227,7 @@ function ProfilePage() {
     dropped: 0,
   });
   const [levelData, setLevelData] = useState<UserLevelData | null>(null);
+  const [accountBadges, setAccountBadges] = useState<AccountBadges | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profileHidden, setProfileHidden] = useState(false);
@@ -270,6 +273,7 @@ function ProfilePage() {
           },
         );
         setLevelData(data.level ?? null);
+        setAccountBadges(data.accountBadges ?? null);
       })
       .catch(() => setNotFound(true))
       .finally(() => setProfileLoading(false));
@@ -408,6 +412,8 @@ function ProfilePage() {
                 </button>
               )}
             </div>
+
+            {accountBadges && <ProfileAccountBadges badges={accountBadges} />}
 
             {profile.bio && (
               <p className="text-sm text-white/45 mt-2 max-w-md">{profile.bio}</p>

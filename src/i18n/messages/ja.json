@@ -326,6 +326,15 @@
     "subtitlePreviewText": "字幕のサンプル行",
     "subtitleReset": "デフォルトに戻す"
   },
+  "profile": {
+    "badges": {
+      "anilist": "AniList",
+      "discord": "Discord",
+      "anisurge": "Anisurge",
+      "twoFactor": "2FA",
+      "passkey": "パスキー"
+    }
+  },
   "faq": {
     "title": "FAQ",
     "subtitle": "AniKittyの仕組み、アカウントが必要な機能、サイトが収集するデータについて。",
