@@ -20,8 +20,9 @@ import {
   type AnimexServerId,
 } from "@/lib/animex-api";
 import {
-  animexServerUsesInPlayerAudioFromCaps,
-  selectionSupportsBothStreamAudioFromCaps,
+  canToggleStreamAudio,
+  resolveActiveStreamCapabilities,
+  supportsStreamAudioMode,
 } from "@/lib/stream-capabilities";
 import { useGetStreamCapabilities } from "@/query/get-stream-capabilities";
 import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/provider-select";
@@ -172,22 +173,36 @@ const VideoPlayerSection = () => {
     isLoading: capabilitiesLoading,
   } = useGetStreamCapabilities(anilistId, episodeNo || undefined, animeTitle);
 
-  const canSwitchStreamAudio = useMemo(
+  const activeStreamCaps = useMemo(
     () =>
-      selectionSupportsBothStreamAudioFromCaps(
+      resolveActiveStreamCapabilities(
+        streamCapabilities,
         provider,
         audioMode,
-        streamCapabilities,
         provider === "Animex" ? animexServer : undefined,
         provider === "Miruro" ? miruroPipe : undefined,
       ),
-    [provider, audioMode, animexServer, miruroPipe, streamCapabilities],
+    [streamCapabilities, provider, audioMode, animexServer, miruroPipe],
   );
 
-  const inPlayerAudioSwitch =
-    audioMode === "multi" &&
-    provider === "Animex" &&
-    animexServerUsesInPlayerAudioFromCaps(streamCapabilities?.animexServers[animexServer]);
+  const canSwitchStreamAudio = useMemo(
+    () => canToggleStreamAudio(activeStreamCaps),
+    [activeStreamCaps],
+  );
+
+  const canSelectSubAudio = supportsStreamAudioMode(activeStreamCaps, "sub");
+  const canSelectDubAudio = supportsStreamAudioMode(activeStreamCaps, "dub");
+
+  useEffect(() => {
+    if (!activeStreamCaps) return;
+    if (streamAudio === "dub" && !canSelectDubAudio && canSelectSubAudio) {
+      setStreamAudio("sub");
+      localStorage.setItem("kittyStreamAudio", "sub");
+    } else if (streamAudio === "sub" && !canSelectSubAudio && canSelectDubAudio) {
+      setStreamAudio("dub");
+      localStorage.setItem("kittyStreamAudio", "dub");
+    }
+  }, [activeStreamCaps, streamAudio, canSelectSubAudio, canSelectDubAudio]);
 
   // ── Resume position ──────────────────────────────────────────────
   const [startTime, setStartTime] = useState(0);
@@ -387,6 +402,7 @@ const VideoPlayerSection = () => {
   const {
     data: streamData,
     isLoading,
+    isFetching,
     error: streamError,
     refetch: retryStream,
   } = useGetKittyStream(
@@ -398,6 +414,9 @@ const VideoPlayerSection = () => {
     animeTitle,
     provider === "Animex" ? animexServer : null,
   );
+
+  const hasStreamFile = Boolean(streamData?.file);
+  const streamSwitching = isFetching && hasStreamFile;
 
   const loadingThumbnail =
     currentEpisodeInfo?.image ?? anime?.anime?.info?.poster ?? null;
@@ -454,6 +473,8 @@ const VideoPlayerSection = () => {
 
   const handleStreamAudioChange = (next: "sub" | "dub") => {
     if (next === streamAudio) return;
+    if (next === "sub" && !canSelectSubAudio) return;
+    if (next === "dub" && !canSelectDubAudio) return;
     const t = liveTimeRef.current;
     if (t > 5) setStartTime(t);
     setStreamAudio(next);
@@ -500,7 +521,7 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !hasStreamFile) {
     return (
       <PlayerSkeleton
         label={t("watch.loadingStream")}
@@ -559,7 +580,7 @@ const VideoPlayerSection = () => {
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
-        key={`${anilistId}-${episodeNo}-${inPlayerAudioSwitch ? "multi-audio" : audio}-${provider}-${miruroPipe}-${animexServer}`}
+        key={`${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}`}
         src={streamData.file}
         poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
         tracks={streamData.tracks ?? []}
@@ -653,8 +674,9 @@ const VideoPlayerSection = () => {
               <div className="flex items-center rounded-lg border border-white/12 bg-white/[0.03] p-0.5">
                 <button
                   type="button"
+                  disabled={!canSelectSubAudio || streamSwitching}
                   onClick={() => handleStreamAudioChange("sub")}
-                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
+                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:pointer-events-none ${
                     streamAudio === "sub"
                       ? "bg-teal-500/25 text-teal-100 border border-teal-400/35"
                       : "text-white/40 hover:text-white/65"
@@ -665,8 +687,9 @@ const VideoPlayerSection = () => {
                 </button>
                 <button
                   type="button"
+                  disabled={!canSelectDubAudio || streamSwitching}
                   onClick={() => handleStreamAudioChange("dub")}
-                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
+                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:pointer-events-none ${
                     streamAudio === "dub"
                       ? "bg-amber-500/25 text-amber-100 border border-amber-400/35"
                       : "text-white/40 hover:text-white/65"
@@ -675,6 +698,9 @@ const VideoPlayerSection = () => {
                   <Mic className="w-3 h-3" />
                   {t("card.dub")}
                 </button>
+                {streamSwitching && (
+                  <Loader2 className="w-3.5 h-3.5 ml-1 animate-spin text-white/40" />
+                )}
               </div>
             )}
 

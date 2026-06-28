@@ -80,9 +80,10 @@ export const useGetKittyStream = (
     ],
     queryFn: () =>
       getKittyStream(anilistId!, episode!, audio, provider, miruroPipe, title, animexServer),
-    enabled: !!anilistId && !!episode && parseInt(episode) > 0,
+    enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
     retry: false,
+    keepPreviousData: true,
   });
 };

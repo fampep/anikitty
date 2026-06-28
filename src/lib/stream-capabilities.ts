@@ -215,6 +215,38 @@ export function providerVisibleInAudioMode(
   return providerHasStreamCapabilities(caps);
 }
 
+export function resolveActiveStreamCapabilities(
+  caps: EpisodeStreamCapabilities | undefined,
+  provider: KittyProvider,
+  audioMode: ProviderAudioMode,
+  animexServer?: AnimexServerId,
+  miruroPipe?: MiruroPipeProviderId,
+): StreamCapabilities | null | undefined {
+  if (!caps) return undefined;
+  if (audioMode === "multi") {
+    if (provider === "Miruro" && miruroPipe) return caps.miruroPipes[miruroPipe];
+    if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
+  }
+  return caps.providers[provider];
+}
+
+/** Whether this provider/pipe/server has a sub, soft-sub, or hard-sub stream for the episode. */
+export function supportsStreamAudioMode(
+  caps: StreamCapabilities | null | undefined,
+  audio: "sub" | "dub",
+): boolean {
+  if (!caps) return false;
+  if (audio === "dub") return caps.dub || caps.multi;
+  return caps.sub || caps.softSub || caps.hardSub || caps.multi;
+}
+
+/** SUB/DUB toggle is useful when both audio modes are available (separate streams or dual-audio). */
+export function canToggleStreamAudio(
+  caps: StreamCapabilities | null | undefined,
+): boolean {
+  return supportsStreamAudioMode(caps, "sub") && supportsStreamAudioMode(caps, "dub");
+}
+
 export function selectionSupportsBothStreamAudioFromCaps(
   provider: KittyProvider,
   audioMode: ProviderAudioMode,
@@ -222,21 +254,14 @@ export function selectionSupportsBothStreamAudioFromCaps(
   animexServer?: AnimexServerId,
   miruroPipe?: MiruroPipeProviderId,
 ): boolean {
-  if (audioMode === "multi") {
-    if (provider === "Miruro" && miruroPipe) {
-      const pipeCaps = caps?.miruroPipes[miruroPipe];
-      return Boolean(pipeCaps && (pipeCaps.multi || (pipeCaps.sub && pipeCaps.dub)));
-    }
-    if (provider === "Animex" && animexServer) {
-      const serverCaps = caps?.animexServers[animexServer];
-      return Boolean(serverCaps && (serverCaps.multi || (serverCaps.sub && serverCaps.dub)));
-    }
-    const providerCaps = caps?.providers[provider];
-    return Boolean(providerCaps && (providerCaps.multi || (providerCaps.sub && providerCaps.dub)));
-  }
-
-  const providerCaps = caps?.providers[provider];
-  return Boolean(providerCaps && providerCaps.sub && providerCaps.dub);
+  const active = resolveActiveStreamCapabilities(
+    caps,
+    provider,
+    audioMode,
+    animexServer,
+    miruroPipe,
+  );
+  return canToggleStreamAudio(active);
 }
 
 export function animexServerUsesInPlayerAudioFromCaps(
