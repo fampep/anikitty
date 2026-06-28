@@ -213,20 +213,23 @@ const NavBar = () => {
     if (user) return;
 
     let cancelled = false;
-    const refreshAuth = async () => {
-      try {
-        const me = await anisurgeAuth.me();
-        if (!cancelled) setAuth(authFromMeResponse(me));
-      } catch (e: any) {
-        if (!cancelled && e?.status === 401) {
-          clearAnisurgeToken();
-          clearAuth();
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const me = await anisurgeAuth.me();
+          if (!cancelled) setAuth(authFromMeResponse(me));
+        } catch (e: any) {
+          if (!cancelled && e?.status === 401) {
+            clearAnisurgeToken();
+            clearAuth();
+          }
         }
-      }
-    };
-    refreshAuth();
+      })();
+    }, 150);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [user, setAuth, clearAuth]);
 

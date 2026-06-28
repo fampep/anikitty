@@ -23,20 +23,10 @@ export default function LandingPage() {
   const [postersLoaded, setPosterLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/home")
+    fetch("/api/home/posters")
       .then((r) => r.json())
       .then((data) => {
-        const feed = data.data ?? data;
-        const imgs: string[] = [
-          ...(feed.trendingAnimes ?? []),
-          ...(feed.mostPopularAnimes ?? []),
-          ...(feed.mostFavoriteAnimes ?? []),
-          ...(feed.latestCompletedAnimes ?? []),
-        ]
-          .map((a: any) => a.poster)
-          .filter(Boolean);
-        // deduplicate
-        setPosters([...new Set(imgs)].slice(0, 20));
+        setPosters((data.posters ?? []).slice(0, 12));
         setPosterLoaded(true);
       })
       .catch(() => setPosterLoaded(true));
@@ -53,7 +43,7 @@ export default function LandingPage() {
         )}
       >
         <div className="grid grid-cols-3 sm:grid-cols-6 h-full gap-1 sm:gap-1.5">
-          {Array.from({ length: 18 }).map((_, i) => {
+          {Array.from({ length: 12 }).map((_, i) => {
             const src = posters[i % posters.length];
             return src ? (
               <div key={i} className="relative overflow-hidden rounded-md aspect-[2/3]">
@@ -71,7 +61,7 @@ export default function LandingPage() {
             );
           })}
         </div>
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-[3px]" />
+        <div className="absolute inset-0 bg-black/25 sm:bg-black/20 sm:backdrop-blur-[2px]" />
       </div>
 
       {/* ── Gradient vignettes ── */}

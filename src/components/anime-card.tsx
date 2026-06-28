@@ -9,6 +9,7 @@ import { Captions, Mic, Play, Star } from "lucide-react";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { Progress } from "./ui/progress";
 import { useT } from "@/providers/i18n-provider";
+import LazyPosterImage from "./lazy-poster-image";
 
 type Props = {
   className?: string;
@@ -28,6 +29,8 @@ type Props = {
   score?: number | null;
   year?: number | null;
   status?: string | null;
+  deferImage?: boolean;
+  imageRoot?: Element | null;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -96,13 +99,22 @@ const AnimeCard = ({
           props.className,
         )}
       >
-        <Image
-          src={props.poster}
-          alt=""
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
-          className="object-cover transition-transform duration-500 ease-out [@media(hover:hover)]:group-hover:scale-[1.06]"
-        />
+        {props.deferImage ? (
+          <LazyPosterImage
+            src={props.poster}
+            root={props.imageRoot}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
+            imageClassName="transition-transform duration-500 ease-out [@media(hover:hover)]:group-hover:scale-[1.06]"
+          />
+        ) : (
+          <Image
+            src={props.poster}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
+            className="object-cover transition-transform duration-500 ease-out [@media(hover:hover)]:group-hover:scale-[1.06]"
+          />
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/5 opacity-80 transition-opacity duration-300 [@media(hover:hover)]:group-hover:opacity-95" />
 

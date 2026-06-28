@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { dmApi, type InboxSummary } from "@/lib/dm";
 
-const POLL_MS = 5_000;
+const POLL_MS = 30_000;
 
 export function useInboxSummary(enabled = true) {
   const [summary, setSummary] = useState<InboxSummary>({

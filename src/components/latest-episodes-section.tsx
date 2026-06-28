@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Container from "./container";
 import AnimeCard from "./anime-card";
 import { ROUTES } from "@/constants/routes";
@@ -18,12 +18,12 @@ const CARD_W = 160;
 
 const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
   const t = useT();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const updateScroll = () => {
-    const el = scrollRef.current;
+    const el = scrollRoot;
     if (!el) return;
     setCanScrollLeft(el.scrollLeft > 8);
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
@@ -31,14 +31,14 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
 
   useEffect(() => {
     updateScroll();
-    const el = scrollRef.current;
+    const el = scrollRoot;
     if (!el) return;
     el.addEventListener("scroll", updateScroll, { passive: true });
     return () => el.removeEventListener("scroll", updateScroll);
-  }, [latestEpisodes]);
+  }, [latestEpisodes, scrollRoot]);
 
   const scroll = (dir: "left" | "right") => {
-    scrollRef.current?.scrollBy({ left: dir === "left" ? -400 : 400, behavior: "smooth" });
+    scrollRoot?.scrollBy({ left: dir === "left" ? -400 : 400, behavior: "smooth" });
   };
 
   if (loading) return <LoadingSkeleton />;
@@ -74,13 +74,19 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
           <div className="absolute right-0 top-0 bottom-2 w-14 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
         )}
         <div
-          ref={scrollRef}
+          ref={setScrollRoot}
           className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-momentum"
         >
           {latestEpisodes.map((anime, idx) => (
-            <div key={anime.id ?? idx} style={{ width: CARD_W }} className="shrink-0">
+            <div
+              key={anime.id ?? idx}
+              style={{ width: CARD_W, contentVisibility: "auto", containIntrinsicSize: "240px 360px" }}
+              className="shrink-0"
+            >
               <AnimeCard
                 compact
+                deferImage
+                imageRoot={scrollRoot}
                 title={anime.name}
                 subTitle={anime.type}
                 poster={anime.poster}

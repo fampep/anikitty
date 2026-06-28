@@ -77,19 +77,23 @@ export default function Home() {
         isDataLoading={isLoading}
       />
 
-      <LatestEpisodesAnime
-        loading={isLoading}
-        latestEpisodes={data?.latestEpisodeAnimes as LatestCompletedAnime[]}
-      />
+      <LazyMount minHeight={280}>
+        <LatestEpisodesAnime
+          loading={isLoading}
+          latestEpisodes={data?.latestEpisodeAnimes as LatestCompletedAnime[]}
+        />
+      </LazyMount>
 
-      <AnimeSections
-        title={t("home.recentlyAdded")}
-        icon={<Sparkles className="w-4 h-4" />}
-        trendingAnime={data?.recentlyAddedAnimes as IAnime[]}
-        loading={isLoading}
-        layout="row"
-        seeAllHref={`${ROUTES.SEARCH}?sort=recently-added&status=currently-airing`}
-      />
+      <LazyMount minHeight={280}>
+        <AnimeSections
+          title={t("home.recentlyAdded")}
+          icon={<Sparkles className="w-4 h-4" />}
+          trendingAnime={data?.recentlyAddedAnimes as IAnime[]}
+          loading={isLoading}
+          layout="row"
+          seeAllHref={`${ROUTES.SEARCH}?sort=recently-added&status=currently-airing`}
+        />
+      </LazyMount>
 
       <LazyMount minHeight={120}>
         <HomeWelcomeBar />
