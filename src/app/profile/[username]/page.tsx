@@ -41,10 +41,10 @@ import { RoleBadge } from "@/components/role-badge";
 import { LevelRoleBadge } from "@/components/user-badges";
 import ProfileBadgesRow from "@/components/profile-badges-row";
 import type { AccountBadges } from "@/lib/account-badges";
-import { useUserLevel } from "@/hooks/use-user-level";
+import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/level-progress-card";
 import AnimeLists from "./components/anime-lists";
-import type { UserLevelData } from "@/hooks/use-user-level";
+import { useT } from "@/providers/i18n-provider";
 
 type ProfileCounts = {
   watching: number;
@@ -211,6 +211,7 @@ function UserComments({ username }: { username: string }) {
 }
 
 function ProfilePage() {
+  const t = useT();
   const params = useParams();
   const profileUsername = decodeURIComponent((params.username as string) ?? "");
   const { auth, setAuth } = useAuthStore();
@@ -410,6 +411,15 @@ function ProfilePage() {
                   <Pencil className="w-3 h-3" />
                   Edit profile
                 </button>
+              )}
+              {!isOwn && auth && (
+                <Link
+                  href={`${ROUTES.MESSAGES}?user=${encodeURIComponent(profile.username)}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-500/25 bg-violet-500/10 text-violet-200/90 text-[12px] font-medium hover:bg-violet-500/20 transition-all self-center sm:self-auto sm:ml-auto"
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  {t("profile.message")}
+                </Link>
               )}
             </div>
 

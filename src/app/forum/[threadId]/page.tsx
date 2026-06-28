@@ -28,11 +28,13 @@ import { CategoryBadge, VoteButtons } from "@/components/forum/forum-ui";
 import { FormattedBody } from "@/components/forum/formatted-body";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { ROUTES } from "@/constants/routes";
-import { forumApi, forumTimeAgo, buildQuote, copyThreadLink, ForumThread, ForumPost } from "@/lib/forum";
+import { forumApi, forumTimeAgo, buildQuote, copyThreadLink, mergeForumPosts, ForumThread, ForumPost } from "@/lib/forum";
 import { useAuthStore } from "@/store/auth-store";
+import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/utils";
 
 export default function ThreadPage() {
+  const t = useT();
   const params = useParams<{ threadId: string }>();
   const threadId = params?.threadId;
   const router = useRouter();
@@ -50,6 +52,32 @@ export default function ThreadPage() {
   const [editThreadBody, setEditThreadBody] = useState("");
   const replyRef = React.useRef<HTMLTextAreaElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const wasNearBottom = React.useRef(true);
+  const prevPostCount = React.useRef(0);
+  const [unseenReplies, setUnseenReplies] = React.useState(0);
+
+  React.useEffect(() => {
+    const onScroll = () => {
+      wasNearBottom.current =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 120;
+      if (wasNearBottom.current) setUnseenReplies(0);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  React.useEffect(() => {
+    if (posts.length > prevPostCount.current && prevPostCount.current > 0) {
+      const added = posts.length - prevPostCount.current;
+      if (!wasNearBottom.current) {
+        setUnseenReplies((c) => c + added);
+      }
+    }
+    prevPostCount.current = posts.length;
+    if (wasNearBottom.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [posts.length]);
 
   const loadThread = React.useCallback(async (silent = false) => {
     if (!threadId) return;
@@ -59,17 +87,15 @@ export default function ThreadPage() {
       setThread(res.thread);
       setPosts((prev) => {
         if (prev.length === 0) return res.posts;
-        const seen = new Set(prev.map((p) => p.id));
-        const added = res.posts.filter((p) => !seen.has(p.id));
-        return added.length ? [...prev, ...added] : prev;
+        return mergeForumPosts(prev, res.posts);
       });
     } catch (e: any) {
       if (!silent) {
         if (e?.status === 404) {
-          toast.error("Thread not found");
+          toast.error(t("forum.thread.notFound"));
           router.replace(ROUTES.FORUM);
         } else {
-          toast.error(e?.message ?? "Failed to load thread");
+          toast.error(e?.message ?? t("forum.thread.loadFailed"));
         }
       }
     } finally {
@@ -89,7 +115,7 @@ export default function ThreadPage() {
   const handleThreadVote = async (vote: 1 | -1) => {
     if (!thread) return;
     if (!isLoggedIn) {
-      toast.error("Sign in to vote");
+      toast.error(t("forum.signInToVote"));
       return;
     }
     const prev = thread.myVote;
@@ -101,14 +127,14 @@ export default function ThreadPage() {
       await forumApi.voteThread(thread.id, vote);
     } catch (e: any) {
       setThread((t) => (t ? { ...t, myVote: prev, score: t.score - delta } : t));
-      toast.error(e?.message ?? "Vote failed");
+      toast.error(e?.message ?? t("forum.voteFailed"));
     }
   };
 
   const handlePostVote = async (post: ForumPost, vote: 1 | -1) => {
     if (!thread) return;
     if (!isLoggedIn) {
-      toast.error("Sign in to vote");
+      toast.error(t("forum.signInToVote"));
       return;
     }
     const prev = post.myVote;
@@ -128,7 +154,7 @@ export default function ThreadPage() {
           p.id === post.id ? { ...p, myVote: prev, score: p.score - delta } : p,
         ),
       );
-      toast.error(e?.message ?? "Vote failed");
+      toast.error(e?.message ?? t("forum.voteFailed"));
     }
   };
 
@@ -141,9 +167,9 @@ export default function ThreadPage() {
       const post = await forumApi.createPost(thread.id, body);
       setPosts((arr) => [...arr, post]);
       setReply("");
-      toast.success("Reply posted");
+      toast.success(t("forum.thread.replyPosted"));
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to post reply");
+      toast.error(e?.message ?? t("forum.thread.replyFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -211,7 +237,9 @@ export default function ThreadPage() {
   const shareThread = async () => {
     if (!thread) return;
     const ok = await copyThreadLink(thread.id);
-    toast[ok ? "success" : "error"](ok ? "Link copied!" : "Could not copy link");
+    toast[ok ? "success" : "error"](
+      ok ? t("forum.thread.linkCopied") : t("forum.thread.linkCopyFailed"),
+    );
   };
 
   const quotePost = (post: ForumPost) => {
@@ -221,6 +249,8 @@ export default function ThreadPage() {
   };
 
   const scrollToReplies = () => {
+    wasNearBottom.current = true;
+    setUnseenReplies(0);
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -261,7 +291,7 @@ export default function ThreadPage() {
           className="inline-flex items-center gap-1.5 text-[12px] font-mono text-white/35 hover:text-white/70 transition-colors w-fit"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Back to forum
+          {t("forum.thread.backToForum")}
         </Link>
 
         {/* ── Thread card ── */}
@@ -349,12 +379,13 @@ export default function ThreadPage() {
                   level={thread.level}
                   levelRole={thread.levelRole}
                   levelRoleColor={thread.levelRoleColor}
+                  levelTierIcon={thread.levelTierIcon}
                 />
                 <span className="text-[10.5px] font-mono text-white/30">
                   {forumTimeAgo(thread.createdAt)}
                 </span>
                 {thread.updatedAt && (
-                  <span className="text-[10.5px] font-mono text-white/25">(edited)</span>
+                  <span className="text-[10.5px] font-mono text-white/25">{t("forum.thread.edited")}</span>
                 )}
               </div>
 
@@ -362,23 +393,23 @@ export default function ThreadPage() {
                 <ActionButton
                   onClick={shareThread}
                   icon={<Share2 className="w-3.5 h-3.5" />}
-                  label="Share"
+                  label={t("forum.thread.share")}
                 />
                 {canEditThread && !editingThread && (
-                  <ActionButton onClick={startEditThread} icon={<Pencil className="w-3.5 h-3.5" />} label="Edit" />
+                  <ActionButton onClick={startEditThread} icon={<Pencil className="w-3.5 h-3.5" />} label={t("forum.thread.edit")} />
                 )}
                 {isMod && (
                   <>
                     <ActionButton
                       onClick={togglePin}
                       icon={<Pin className="w-3.5 h-3.5" />}
-                      label={thread.isPinned ? "Unpin" : "Pin"}
+                      label={thread.isPinned ? t("forum.thread.unpin") : t("forum.thread.pin")}
                       active={thread.isPinned}
                     />
                     <ActionButton
                       onClick={toggleLock}
                       icon={<Lock className="w-3.5 h-3.5" />}
-                      label={thread.isLocked ? "Unlock" : "Lock"}
+                      label={thread.isLocked ? t("forum.thread.unlock") : t("forum.thread.lock")}
                       active={thread.isLocked}
                     />
                   </>
@@ -387,7 +418,7 @@ export default function ThreadPage() {
                   <ActionButton
                     onClick={deleteThread}
                     icon={<Trash2 className="w-3.5 h-3.5" />}
-                    label="Delete"
+                    label={t("forum.thread.delete")}
                     danger
                   />
                 )}
@@ -401,7 +432,8 @@ export default function ThreadPage() {
           <div className="flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-white/40" />
             <h2 className="text-sm font-bold text-white/80">
-              {posts.length} {posts.length === 1 ? "Reply" : "Replies"}
+              {posts.length}{" "}
+              {posts.length === 1 ? t("forum.thread.reply") : t("forum.thread.replies")}
             </h2>
           </div>
           {posts.length > 0 && (
@@ -409,7 +441,7 @@ export default function ThreadPage() {
               onClick={scrollToReplies}
               className="flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-white/70 transition-colors"
             >
-              Jump to latest
+              {t("forum.thread.jumpToLatest")}
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
           )}
@@ -421,7 +453,7 @@ export default function ThreadPage() {
             <div className="flex flex-col items-center justify-center text-center py-10 px-6 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
               <MessageCircle className="w-8 h-8 text-white/15 mb-2" />
               <p className="text-[12.5px] text-white/40 font-mono">
-                No replies yet — be the first to respond.
+                {t("forum.thread.noReplies")}
               </p>
             </div>
           ) : (
@@ -443,11 +475,24 @@ export default function ThreadPage() {
           )}
         </div>
 
+        {unseenReplies > 0 && (
+          <div className="sticky bottom-24 z-20 flex justify-center pointer-events-none">
+            <button
+              type="button"
+              onClick={scrollToReplies}
+              className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-bold shadow-lg shadow-violet-900/40 hover:bg-violet-500 transition-colors"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+              {t("forum.thread.newReplies", { count: unseenReplies })}
+            </button>
+          </div>
+        )}
+
         {/* ── Reply composer ── */}
         {thread.isLocked ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-center">
             <Lock className="w-5 h-5 text-white/30 mx-auto mb-2" />
-            <p className="text-[13px] text-white/45 font-mono">This thread is locked.</p>
+            <p className="text-[13px] text-white/45 font-mono">{t("forum.thread.locked")}</p>
           </div>
         ) : isLoggedIn ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3 sticky bottom-4 backdrop-blur-md" ref={bottomRef}>
@@ -457,7 +502,7 @@ export default function ThreadPage() {
               onChange={(e) => setReply(e.target.value)}
               maxLength={1000}
               rows={3}
-              placeholder="Write a reply..."
+              placeholder={t("forum.thread.replyPlaceholder")}
               onKeyDown={(e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submitReply();
               }}
@@ -465,7 +510,7 @@ export default function ThreadPage() {
             />
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono text-white/25">
-                {reply.length}/1000 · Ctrl+Enter to post
+                {t("forum.thread.replyHint", { length: reply.length })}
               </span>
               <button
                 onClick={submitReply}
@@ -477,7 +522,7 @@ export default function ThreadPage() {
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
-                Reply
+                {t("forum.thread.postReply")}
               </button>
             </div>
           </div>
@@ -550,6 +595,7 @@ function PostRow({
   onQuote: () => void;
   onUpdate: (p: ForumPost) => void;
 }) {
+  const t = useT();
   const { auth } = useAuthStore();
   const isOwner = auth?.id === post.userId;
   const [editing, setEditing] = useState(false);
@@ -600,12 +646,13 @@ function PostRow({
               level={post.level}
               levelRole={post.levelRole}
               levelRoleColor={post.levelRoleColor}
+              levelTierIcon={post.levelTierIcon}
             />
             <span className="text-[10.5px] font-mono text-white/30">
               {forumTimeAgo(post.createdAt)}
             </span>
             {post.updatedAt && (
-              <span className="text-[10.5px] font-mono text-white/25">(edited)</span>
+              <span className="text-[10.5px] font-mono text-white/25">{t("forum.thread.edited")}</span>
             )}
           </div>
 
@@ -614,10 +661,10 @@ function PostRow({
               <button
                 onClick={onQuote}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-white/35 hover:text-white/70 hover:bg-white/6 transition-colors"
-                title="Quote reply"
+                title={t("forum.thread.quote")}
               >
                 <Quote className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Quote</span>
+                <span className="hidden sm:inline">{t("forum.thread.quote")}</span>
               </button>
             )}
             {isOwnerOrMod && !editing && (

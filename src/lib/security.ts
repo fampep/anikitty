@@ -152,6 +152,9 @@ export function getSecurityConfigStatus(): SecurityConfigStatus {
     if (!process.env.TOTP_ENCRYPTION_KEY) {
       warnings.push("Set TOTP_ENCRYPTION_KEY (recommended separate from JWT_SECRET)");
     }
+    if (!process.env.MESSAGE_ENCRYPTION_KEY) {
+      warnings.push("Set MESSAGE_ENCRYPTION_KEY (recommended separate from JWT_SECRET)");
+    }
   }
 
   return { jwtSecret, adminPassword, adminJwtSecret, databaseUrl, warnings };

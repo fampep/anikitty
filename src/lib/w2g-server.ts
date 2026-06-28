@@ -1,5 +1,6 @@
 import { getDb } from "@/db";
 import { w2gRooms, w2gMembers, w2gMessages, users } from "@/db/schema";
+import { decryptStoredMessage } from "@/lib/message-crypto";
 import { eq, desc, asc } from "drizzle-orm";
 
 export type W2gRoomRow = typeof w2gRooms.$inferSelect;
@@ -89,7 +90,7 @@ export async function getRoomPayload(code: string, viewerUserId?: string | null)
     })),
     messages: messages.map((m) => ({
       id: m.id,
-      body: m.body,
+      body: decryptStoredMessage(m.body),
       userId: m.userId,
       username: m.username,
       avatarUrl: m.avatarUrl,

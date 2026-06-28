@@ -78,8 +78,12 @@ export function folderToStatus(folder: string): string {
 
 // ── Auth ─────────────────────────────────────────────────────────────
 export const anisurgeAuth = {
+  login: (identifier: string, password: string) =>
+    bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
+
+  /** @deprecated Use login() — kept for compatibility */
   loginWithAnisurge: (identifier: string, password: string) =>
-    bff("/auth/anisurge-login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
+    bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
 
   verify2fa: (pendingToken: string, code: string) =>
     bff("/auth/2fa-verify", { method: "POST", body: JSON.stringify({ pendingToken, code }) }),
@@ -151,8 +155,12 @@ export const anisurgeAuth = {
       body: JSON.stringify({ allOthers: true }),
     }),
 
+  signup: (username: string, email: string, password: string) =>
+    bff("/auth/signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
+
+  /** @deprecated Use signup() — kept for compatibility */
   signupWithAnisurge: (username: string, email: string, password: string) =>
-    bff("/auth/anisurge-signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
+    bff("/auth/signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
 
   logout: () =>
     bff("/auth/logout", { method: "POST" }).catch(() => {}),

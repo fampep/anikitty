@@ -5,6 +5,11 @@ import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/comme
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 import { CHAT_MESSAGE_TTL_MS, getChatCutoffDate } from "@/lib/chat-config";
 import { maybeSweepChatMessages } from "@/lib/chat-sweep";
+import {
+  assertMessageEncryptionConfigured,
+  decryptStoredMessage,
+  encryptStoredMessage,
+} from "@/lib/message-crypto";
 import { eq, desc, gt, asc, and, or, isNotNull } from "drizzle-orm";
 
 const PAGE_LIMIT = 100;
@@ -43,6 +48,7 @@ async function enrichMessages(
     const enriched = attachLevelRole(r, xpStatsMap);
     return {
       ...enriched,
+      body: decryptStoredMessage(r.body),
       createdAt: r.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt: r.updatedAt?.toISOString() ?? null,
     };
@@ -115,6 +121,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "Slow down" }, { status: 429 });
   }
 
+  const misconfigured = assertMessageEncryptionConfigured();
+  if (misconfigured) {
+    return Response.json({ error: misconfigured }, { status: 503 });
+  }
+
   const raw = await req.json();
   const body = sanitizeBody(raw.body);
   const gifUrl = sanitizeGifUrl(raw.gifUrl);
@@ -127,7 +138,7 @@ export async function POST(req: Request) {
 
   const [row] = await db
     .insert(chatMessages)
-    .values({ userId: payload.userId, body: body || "", gifUrl })
+    .values({ userId: payload.userId, body: encryptStoredMessage(body || ""), gifUrl })
     .returning({
       id: chatMessages.id,
       body: chatMessages.body,
@@ -152,6 +163,7 @@ export async function POST(req: Request) {
   const [message] = await enrichMessages([
     {
       ...row,
+      body: body || "",
       username: user?.username ?? "",
       avatarUrl: user?.avatarUrl ?? null,
       role: user?.role ?? "user",

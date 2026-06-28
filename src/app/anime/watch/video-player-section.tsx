@@ -76,6 +76,13 @@ const VideoPlayerSection = () => {
   const { preferDub, setPreferDub, anime4kEnabled, setAnime4kEnabled, anime4kMode, setAnime4kMode } =
     useSettingsStore();
 
+  useEffect(() => {
+    const dubParam = searchParams.get("dub");
+    if (dubParam === "1" || dubParam === "true") {
+      setPreferDub(true);
+    }
+  }, [searchParams, setPreferDub]);
+
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kittyProvider");

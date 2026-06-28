@@ -465,3 +465,108 @@ export const subtitleLibraryAnime = pgTable(
     titleIdx: index("subtitle_library_anime_title_idx").on(t.animeTitle),
   }),
 );
+
+// ── Direct messages ────────────────────────────────────────────────────────
+export const dmConversations = pgTable(
+  "dm_conversations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    participantAId: uuid("participant_a_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    participantBId: uuid("participant_b_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lastActivityAt: timestamp("last_activity_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    pairUnique: unique("dm_conversations_pair").on(t.participantAId, t.participantBId),
+    activityIdx: index("dm_conversations_activity_idx").on(t.lastActivityAt),
+  }),
+);
+
+export const dmMessages = pgTable(
+  "dm_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => dmConversations.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    gifUrl: text("gif_url"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
+  },
+  (t) => ({
+    convCreatedIdx: index("dm_messages_conv_created_idx").on(t.conversationId, t.createdAt),
+  }),
+);
+
+export const dmReadState = pgTable(
+  "dm_read_state",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => dmConversations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lastReadAt: timestamp("last_read_at").defaultNow(),
+  },
+  (t) => ({
+    convUser: unique("dm_read_state_conv_user").on(t.conversationId, t.userId),
+  }),
+);
+
+// ── User notifications ─────────────────────────────────────────────────────
+export const userNotifications = pgTable(
+  "user_notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 30 }).notNull(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    title: varchar("title", { length: 200 }),
+    body: text("body"),
+    linkUrl: text("link_url"),
+    referenceType: varchar("reference_type", { length: 30 }),
+    referenceId: uuid("reference_id"),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userCreatedIdx: index("user_notifications_user_created_idx").on(t.userId, t.createdAt),
+    userUnreadIdx: index("user_notifications_user_unread_idx").on(t.userId, t.readAt),
+  }),
+);
+
+// User subscriptions for new episode alerts (sub/dub) on airing anime.
+export const animeEpisodeAlerts = pgTable(
+  "anime_episode_alerts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    anilistId: integer("anilist_id").notNull(),
+    animeTitle: text("anime_title"),
+    animeThumbnail: text("anime_thumbnail"),
+    notifySub: boolean("notify_sub").notNull().default(true),
+    notifyDub: boolean("notify_dub").notNull().default(false),
+    lastNotifiedSubEpisode: integer("last_notified_sub_episode").notNull().default(0),
+    lastNotifiedDubEpisode: integer("last_notified_dub_episode").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    userAnilist: unique("anime_episode_alerts_user_anilist").on(t.userId, t.anilistId),
+    anilistIdx: index("anime_episode_alerts_anilist_idx").on(t.anilistId),
+  }),
+);

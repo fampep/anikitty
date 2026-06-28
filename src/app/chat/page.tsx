@@ -13,15 +13,20 @@ import {
   Wifi,
   ImagePlay,
   X,
+  ChevronDown,
+  MessagesSquare,
 } from "lucide-react";
 import Container from "@/components/container";
 import Avatar from "@/components/common/avatar";
 import { UserBadges } from "@/components/user-badges";
 import { GifUrlPanel } from "@/components/gif-url-panel";
 import LoginPopoverButton from "@/components/login-popover-button";
+import CommunityHero from "@/components/community/community-hero";
+import { ROUTES } from "@/constants/routes";
 import { useLiveChat } from "@/hooks/use-live-chat";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
+import { useT } from "@/providers/i18n-provider";
 import { chatTimeAgo, formatChatTime, formatChatTtlLabel, isChatMessageEdited, type ChatMessage } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +37,7 @@ function ChatBubble({
   canEdit,
   onDelete,
   onEdit,
+  t,
 }: {
   message: ChatMessage;
   isOwn: boolean;
@@ -39,6 +45,7 @@ function ChatBubble({
   canEdit: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   return (
     <div
@@ -96,7 +103,7 @@ function ChatBubble({
             <p
               className={cn("whitespace-pre-wrap", canEdit && "cursor-text")}
               onDoubleClick={canEdit ? onEdit : undefined}
-              title={canEdit ? "Double-click to edit" : undefined}
+              title={canEdit ? t("chat.doubleClickEdit") : undefined}
             >
               {message.body}
             </p>
@@ -106,7 +113,7 @@ function ChatBubble({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={message.gifUrl}
-                alt="GIF"
+                alt={t("chat.gif")}
                 loading="lazy"
                 className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/10"
               />
@@ -121,7 +128,7 @@ function ChatBubble({
                 "p-1 rounded-md bg-black/80 border border-white/10 text-white/50 hover:text-red-400",
                 isOwn ? "-left-2" : "-right-2",
               )}
-              title="Delete message"
+              title={t("chat.deleteMessage")}
             >
               <Trash2 className="h-3 w-3" />
             </button>
@@ -133,7 +140,7 @@ function ChatBubble({
           title={new Date(message.createdAt).toLocaleString()}
         >
           {formatChatTime(message.createdAt)} · {chatTimeAgo(message.createdAt)}
-          {isChatMessageEdited(message) ? " · edited" : ""}
+          {isChatMessageEdited(message) ? ` · ${t("chat.edited")}` : ""}
         </span>
       </div>
     </div>
@@ -141,6 +148,7 @@ function ChatBubble({
 }
 
 export default function ChatPage() {
+  const t = useT();
   const { auth } = useAuthStore();
   const onlineCount = useOnlineCount();
   const { messages, messageTtlMs, loading, sending, error, sendMessage, editMessage, deleteMessage } =
@@ -152,6 +160,8 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
+  const prevMessageCount = useRef(0);
+  const [unseenCount, setUnseenCount] = useState(0);
 
   const isLoggedIn = !!auth;
   const isStaff = auth?.role === "admin" || auth?.role === "moderator";
@@ -176,18 +186,33 @@ export default function ChatPage() {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
-      wasAtBottom.current =
-        el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      wasAtBottom.current = atBottom;
+      if (atBottom) setUnseenCount(0);
     };
     el.addEventListener("scroll", onScroll);
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
+    if (messages.length > prevMessageCount.current && prevMessageCount.current > 0) {
+      const added = messages.length - prevMessageCount.current;
+      if (!wasAtBottom.current) {
+        setUnseenCount((c) => c + added);
+      }
+    }
+    prevMessageCount.current = messages.length;
     if (wasAtBottom.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      setUnseenCount(0);
     }
   }, [messages.length]);
+
+  const jumpToLatest = () => {
+    wasAtBottom.current = true;
+    setUnseenCount(0);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,7 +224,7 @@ export default function ChatPage() {
         cancelEditing();
         wasAtBottom.current = true;
       } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Failed to edit");
+        toast.error(err instanceof Error ? err.message : t("chat.editFailed"));
       }
       return;
     }
@@ -211,7 +236,7 @@ export default function ChatPage() {
       setShowGifPanel(false);
       wasAtBottom.current = true;
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send");
+      toast.error(err instanceof Error ? err.message : t("chat.sendFailed"));
     }
   };
 
@@ -219,38 +244,36 @@ export default function ChatPage() {
     try {
       await deleteMessage(message.id);
       if (editingMessageId === message.id) cancelEditing();
-      toast.success("Message deleted");
+      toast.success(t("chat.messageDeleted"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete");
+      toast.error(err instanceof Error ? err.message : t("chat.deleteFailed"));
     }
   };
 
   return (
     <div className="flex min-h-screen flex-col pb-4 pb-safe pt-page">
       <Container className="flex flex-col flex-1 max-w-3xl">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4 py-5 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-white/8 border border-white/10">
-              <MessageCircle className="h-5 w-5 text-violet-400" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Live Chat</h1>
-              <p className="text-xs text-white/40">
-                Chat with other AniKitty users in real time · messages disappear after{" "}
-                {formatChatTtlLabel(messageTtlMs)}
-              </p>
-            </div>
-          </div>
-
+        <CommunityHero
+          icon={<MessageCircle className="w-5 h-5" />}
+          title={t("chat.title")}
+          subtitle={t("chat.subtitle", { ttl: formatChatTtlLabel(messageTtlMs) })}
+          className="mb-5"
+        >
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/8 text-xs text-white/50">
             <Wifi className="h-3 w-3 text-emerald-400" />
             <Users className="h-3 w-3" />
             <span>
-              {onlineCount != null ? `${onlineCount} online` : "…"}
+              {onlineCount != null ? t("chat.online", { count: onlineCount }) : "…"}
             </span>
           </div>
-        </div>
+          <Link
+            href={ROUTES.FORUM}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white/60 bg-white/5 border border-white/10 hover:text-white hover:bg-white/8 transition-colors"
+          >
+            <MessagesSquare className="w-3 h-3" />
+            {t("chat.forumLink")}
+          </Link>
+        </CommunityHero>
 
         {/* Chat panel */}
         <div className="flex flex-col flex-1 min-h-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-sm overflow-hidden">
@@ -266,7 +289,7 @@ export default function ChatPage() {
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-center gap-2">
                 <MessageCircle className="h-8 w-8 text-white/20" />
-                <p className="text-sm text-white/40">No messages yet — say hi!</p>
+                <p className="text-sm text-white/40">{t("chat.empty")}</p>
               </div>
             ) : (
               messages.map((msg) => {
@@ -280,11 +303,25 @@ export default function ChatPage() {
                     canEdit={isOwn && !!msg.body}
                     onDelete={() => handleDelete(msg)}
                     onEdit={() => startEditing(msg)}
+                    t={t}
                   />
                 );
               })
             )}
             <div ref={bottomRef} />
+
+            {unseenCount > 0 && (
+              <div className="sticky bottom-3 flex justify-center pointer-events-none">
+                <button
+                  type="button"
+                  onClick={jumpToLatest}
+                  className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-bold shadow-lg shadow-violet-900/40 hover:bg-violet-500 transition-colors"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  {t("chat.newMessages", { count: unseenCount })}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Error banner */}
@@ -300,20 +337,20 @@ export default function ChatPage() {
               <form onSubmit={handleSend} className="flex flex-col gap-2">
                 {isEditing && (
                   <div className="flex items-center justify-between gap-2 px-1 text-xs text-violet-300/80">
-                    <span>Editing message — press Esc to cancel</span>
+                    <span>{t("chat.editing")}</span>
                     <button
                       type="button"
                       onClick={cancelEditing}
                       className="text-white/40 hover:text-white/70 transition-colors"
                     >
-                      Cancel
+                      {t("chat.cancel")}
                     </button>
                   </div>
                 )}
                 {selectedGif && !isEditing && (
                   <div className="relative inline-block self-start rounded-lg overflow-hidden ring-1 ring-white/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={selectedGif} alt="GIF" className="max-h-28 w-auto block" />
+                    <img src={selectedGif} alt={t("chat.gif")} className="max-h-28 w-auto block" />
                     <button
                       type="button"
                       onClick={() => setSelectedGif(null)}
@@ -335,7 +372,7 @@ export default function ChatPage() {
                           ? "bg-white/12 text-white border-white/20"
                           : "text-white/40 border-white/10 hover:text-white/70 hover:bg-white/5",
                       )}
-                      title="Attach GIF"
+                      title={t("chat.attachGif")}
                     >
                       <ImagePlay className="h-4 w-4" />
                     </button>
@@ -371,7 +408,7 @@ export default function ChatPage() {
                         handleSend(e);
                       }
                     }}
-                    placeholder={isEditing ? "Edit message…" : "Type a message…"}
+                    placeholder={isEditing ? t("chat.editPlaceholder") : t("chat.placeholder")}
                     rows={1}
                     maxLength={1000}
                     className={cn(
@@ -401,7 +438,7 @@ export default function ChatPage() {
               <div className="flex items-center justify-between gap-3 px-2 py-1">
                 <div className="flex items-center gap-2 text-sm text-white/45">
                   <LogIn className="h-4 w-4" />
-                  Log in to join the conversation
+                  {t("chat.signIn")}
                 </div>
                 <LoginPopoverButton />
               </div>

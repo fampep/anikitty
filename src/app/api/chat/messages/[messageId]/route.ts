@@ -3,6 +3,11 @@ import { chatMessages, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/comment-helpers";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
+import {
+  assertMessageEncryptionConfigured,
+  decryptStoredMessage,
+  encryptStoredMessage,
+} from "@/lib/message-crypto";
 import { eq } from "drizzle-orm";
 
 const EDIT_RATE = { windowMs: 30_000, max: 20 } as const;
@@ -18,6 +23,11 @@ export async function PATCH(
   maybeSweep();
   if (!rateLimit(`chat-edit:${payload.userId}`, EDIT_RATE)) {
     return Response.json({ error: "Slow down" }, { status: 429 });
+  }
+
+  const misconfigured = assertMessageEncryptionConfigured();
+  if (misconfigured) {
+    return Response.json({ error: misconfigured }, { status: 503 });
   }
 
   const { messageId } = await params;
@@ -46,7 +56,7 @@ export async function PATCH(
 
   const [row] = await db
     .update(chatMessages)
-    .set({ body, updatedAt: new Date() })
+    .set({ body: encryptStoredMessage(body), updatedAt: new Date() })
     .where(eq(chatMessages.id, messageId))
     .returning({
       id: chatMessages.id,
@@ -73,6 +83,7 @@ export async function PATCH(
   const enriched = attachLevelRole(
     {
       ...row,
+      body,
       username: user?.username ?? "",
       avatarUrl: user?.avatarUrl ?? null,
       role: user?.role ?? "user",

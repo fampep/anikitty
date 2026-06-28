@@ -29,6 +29,7 @@ import LoginPopoverButton from "./login-popover-button";
 import LanguageSwitcher from "./language-switcher";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
+import NotificationBell from "./notification-bell";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
@@ -304,11 +305,13 @@ const NavBar = () => {
             </button>
 
             <div className="hidden items-center gap-2 lg:flex">
+              {user && <NotificationBell />}
               <LanguageSwitcher compact />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
 
             <div className="flex items-center gap-1 lg:hidden">
+              {user && <NotificationBell />}
               <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />} />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>

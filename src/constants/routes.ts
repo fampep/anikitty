@@ -7,6 +7,7 @@ export const ROUTES = {
   TRENDING: "/trending",
   FORUM: "/forum",
   CHAT: "/chat",
+  MESSAGES: "/messages",
   WATCH_TOGETHER: "/watch-together",
   SETTINGS: "/settings",
   FAQ: "/faq",

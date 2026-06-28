@@ -6,6 +6,10 @@ import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/comment-helpers";
 import { normalizeW2gCode } from "@/lib/w2g-code";
 import { getRoomByCode } from "@/lib/w2g-server";
+import {
+  assertMessageEncryptionConfigured,
+  encryptStoredMessage,
+} from "@/lib/message-crypto";
 import { and, eq } from "drizzle-orm";
 
 const W2G_CHAT_RATE = { windowMs: 30_000, max: 20 } as const;
@@ -27,6 +31,11 @@ export async function POST(
     return NextResponse.json({ error: "Slow down" }, { status: 429 });
   }
 
+  const misconfigured = assertMessageEncryptionConfigured();
+  if (misconfigured) {
+    return NextResponse.json({ error: misconfigured }, { status: 503 });
+  }
+
   const room = await getRoomByCode(code);
   if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
@@ -45,7 +54,7 @@ export async function POST(
 
   const [row] = await db
     .insert(w2gMessages)
-    .values({ roomId: room.id, userId: payload.userId, body })
+    .values({ roomId: room.id, userId: payload.userId, body: encryptStoredMessage(body) })
     .returning({
       id: w2gMessages.id,
       body: w2gMessages.body,
@@ -62,7 +71,7 @@ export async function POST(
   return NextResponse.json(
     {
       id: row.id,
-      body: row.body,
+      body,
       userId: row.userId,
       username: user?.username ?? "",
       avatarUrl: user?.avatarUrl ?? null,

@@ -136,6 +136,19 @@ export async function storeAudioAvailability(
     const db = getDb();
     const now = new Date();
 
+    const [existing] = await db
+      .select({
+        subCount: animeAudioAvailability.subCount,
+        dubCount: animeAudioAvailability.dubCount,
+      })
+      .from(animeAudioAvailability)
+      .where(eq(animeAudioAvailability.anilistId, anilistId))
+      .limit(1);
+
+    const prev = existing
+      ? { sub: existing.subCount, dub: existing.dubCount }
+      : null;
+
     await db
       .insert(animeAudioAvailability)
       .values({
@@ -158,6 +171,12 @@ export async function storeAudioAvailability(
           updatedAt: now,
         },
       });
+
+    if (prev && (data.sub > prev.sub || data.dub > prev.dub)) {
+      void import("@/lib/episode-alerts")
+        .then((m) => m.processEpisodeCountChange(anilistId, prev, { sub: data.sub, dub: data.dub }))
+        .catch((err) => console.error("[episode-alerts] notify failed:", err));
+    }
   } catch (err) {
     console.error("[anime-audio-store] save failed:", err);
   }

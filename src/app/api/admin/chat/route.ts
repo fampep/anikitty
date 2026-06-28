@@ -8,6 +8,7 @@ import {
   isChatMessageActive,
 } from "@/lib/chat-config";
 import { purgeExpiredChatMessages } from "@/lib/chat-sweep";
+import { decryptStoredMessage } from "@/lib/message-crypto";
 import { desc, eq, sql } from "drizzle-orm";
 
 export async function GET(req: Request) {
@@ -57,6 +58,7 @@ export async function GET(req: Request) {
     expiredCount,
     messages: rows.map((r) => ({
       ...r,
+      body: decryptStoredMessage(r.body),
       createdAt: r.createdAt?.toISOString() ?? new Date().toISOString(),
       active: isChatMessageActive(r.createdAt ?? new Date()),
     })),

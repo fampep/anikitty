@@ -25,18 +25,16 @@ import NewThreadComposer from "@/components/forum/new-thread-composer";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { ROUTES } from "@/constants/routes";
 import { FORUM_CATEGORIES } from "@/constants/forum";
-import { forumApi, forumTimeAgo, ForumThread, ForumStats } from "@/lib/forum";
+import { forumApi, forumTimeAgo, forumBodyPreview, ForumThread, ForumStats } from "@/lib/forum";
 import { useAuthStore } from "@/store/auth-store";
+import { useT } from "@/providers/i18n-provider";
+import CommunityHero from "@/components/community/community-hero";
 import { cn } from "@/lib/utils";
 
-const SORTS = [
-  { id: "active", label: "Active" },
-  { id: "new", label: "New" },
-  { id: "top", label: "Top" },
-  { id: "unanswered", label: "Unanswered" },
-] as const;
+const SORT_IDS = ["active", "new", "top", "unanswered"] as const;
 
 export default function ForumPage() {
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const { auth } = useAuthStore();
@@ -106,7 +104,7 @@ export default function ForumPage() {
         setHasMore(res.hasMore);
       })
       .catch((e) => {
-        if (!cancelled) toast.error(e?.message ?? "Failed to load threads");
+        if (!cancelled) toast.error(e?.message ?? t("forum.loadFailed"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -139,7 +137,7 @@ export default function ForumPage() {
       setTotal(res.total);
       setPage(next);
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load more");
+      toast.error(e?.message ?? t("forum.loadMoreFailed"));
     } finally {
       setLoadingMore(false);
     }
@@ -147,7 +145,7 @@ export default function ForumPage() {
 
   const handleVote = async (thread: ForumThread, vote: 1 | -1) => {
     if (!isLoggedIn) {
-      toast.error("Sign in to vote");
+      toast.error(t("forum.signInToVote"));
       return;
     }
     const prevVote = thread.myVote;
@@ -168,8 +166,18 @@ export default function ForumPage() {
           t.id === thread.id ? { ...t, myVote: prevVote, score: t.score - delta } : t,
         ),
       );
-      toast.error(e?.message ?? "Vote failed");
+      toast.error(e?.message ?? t("forum.voteFailed"));
     }
+  };
+
+  const sortLabel = (id: string) => {
+    const labels: Record<string, string> = {
+      active: t("forum.sortActive"),
+      new: t("forum.sortNew"),
+      top: t("forum.sortTop"),
+      unanswered: t("forum.sortUnanswered"),
+    };
+    return labels[id] ?? id;
   };
 
   const statsMemo = useMemo(() => stats, [stats]);
@@ -177,34 +185,35 @@ export default function ForumPage() {
   return (
     <div className="min-h-screen pt-page pb-24">
       <Container className="flex flex-col gap-8">
-        {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-0.5 h-6 bg-white/35 shrink-0" />
-              <MessagesSquare className="w-5 h-5 text-white/50" />
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Forum</h1>
-            </div>
-            <p className="text-sm text-white/35 font-mono pl-[3.25rem]">
-              Discuss anime, share recommendations, meet the community.
-            </p>
-          </div>
-
+        <CommunityHero
+          icon={<MessagesSquare className="w-5 h-5" />}
+          title={t("forum.title")}
+          subtitle={t("forum.subtitle")}
+        >
           {statsMemo && (
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 pl-[3.25rem] sm:pl-0">
-              <StatPill icon={<MessagesSquare className="w-3 h-3" />} label={`${statsMemo.totalThreads} threads`} />
-              <StatPill icon={<MessageCircle className="w-3 h-3" />} label={`${statsMemo.totalReplies} replies`} />
-              <StatPill icon={<Flame className="w-3 h-3" />} label={`${statsMemo.activeToday} active today`} />
+            <>
+              <StatPill
+                icon={<MessagesSquare className="w-3 h-3" />}
+                label={t("forum.statsThreads", { count: statsMemo.totalThreads })}
+              />
+              <StatPill
+                icon={<MessageCircle className="w-3 h-3" />}
+                label={t("forum.statsReplies", { count: statsMemo.totalReplies })}
+              />
+              <StatPill
+                icon={<Flame className="w-3 h-3" />}
+                label={t("forum.statsActiveToday", { count: statsMemo.activeToday })}
+              />
               <Link
                 href={ROUTES.CHAT}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 transition-colors"
               >
                 <MessageCircle className="w-3 h-3" />
-                Live Chat
+                {t("forum.liveChat")}
               </Link>
-            </div>
+            </>
           )}
-        </div>
+        </CommunityHero>
 
         {/* ── Controls row ── */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
@@ -214,7 +223,7 @@ export default function ForumPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search threads..."
+              placeholder={t("forum.searchPlaceholder")}
               className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/25 focus:bg-white/[0.05] transition-colors"
             />
           </div>
@@ -232,22 +241,22 @@ export default function ForumPage() {
                 )}
               >
                 <User className="w-3.5 h-3.5" />
-                My threads
+                {t("forum.myThreads")}
               </button>
             )}
             <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/8">
-              {SORTS.map((s) => (
+              {SORT_IDS.map((s) => (
                 <button
-                  key={s.id}
-                  onClick={() => updateUrl({ sort: s.id })}
+                  key={s}
+                  onClick={() => updateUrl({ sort: s })}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors",
-                    sort === s.id
+                    sort === s
                       ? "bg-white/10 text-white"
                       : "text-white/45 hover:text-white/75",
                   )}
                 >
-                  {s.label}
+                  {sortLabel(s)}
                 </button>
               ))}
             </div>
@@ -260,14 +269,14 @@ export default function ForumPage() {
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-black text-sm font-bold rounded-xl hover:bg-white/90 active:scale-95 transition-all shrink-0"
             >
               <PenSquare className="w-4 h-4" />
-              New Thread
+              {t("forum.newThread")}
             </button>
           ) : (
             <LoginPopoverButton
               customTrigger={
                 <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/[0.05] text-white/70 border border-white/12 text-sm font-semibold rounded-xl hover:bg-white/8 hover:text-white transition-all shrink-0">
                   <LogIn className="w-4 h-4" />
-                  Sign in to post
+                  {t("forum.signInToPost")}
                 </button>
               }
             />
@@ -292,7 +301,7 @@ export default function ForumPage() {
           <aside className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 lg:sticky lg:top-24">
             <CategoryFilter
               active={category === "all" && !mine}
-              label="All Threads"
+              label={t("forum.allThreads")}
               count={statsMemo?.totalThreads}
               onClick={() => updateUrl({ category: "all", mine: false })}
             />
@@ -311,13 +320,13 @@ export default function ForumPage() {
             <div className="hidden lg:flex flex-col gap-2 mt-4 p-3.5 rounded-xl bg-white/[0.02] border border-white/8">
               <div className="flex items-center gap-2 text-[12px] font-semibold text-white/70">
                 <HelpCircle className="w-3.5 h-3.5" />
-                Community tips
+                {t("forum.communityTips")}
               </div>
               <ul className="text-[10.5px] text-white/35 font-mono space-y-1.5 leading-relaxed">
-                <li>· Use Recommendations for &quot;what should I watch?&quot;</li>
-                <li>· Search before posting — your question may exist</li>
-                <li>· Upvote helpful threads and replies</li>
-                <li>· Quote replies to keep context clear</li>
+                <li>· {t("forum.tipRecommendations")}</li>
+                <li>· {t("forum.tipSearch")}</li>
+                <li>· {t("forum.tipUpvote")}</li>
+                <li>· {t("forum.tipQuote")}</li>
               </ul>
             </div>
           </aside>
@@ -326,8 +335,8 @@ export default function ForumPage() {
           <div className="flex flex-col gap-2 min-w-0">
             {!loading && total > 0 && (
               <p className="text-[11px] font-mono text-white/30 px-1">
-                Showing {threads.length} of {total} thread{total !== 1 ? "s" : ""}
-                {mine ? " you started" : ""}
+                {t("forum.showingThreads", { shown: threads.length, total })}
+                {mine ? t("forum.showingMine") : ""}
               </p>
             )}
             {loading ? (
@@ -346,7 +355,7 @@ export default function ForumPage() {
                     className="mt-2 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/8 text-sm font-semibold text-white/55 hover:text-white hover:bg-white/[0.06] hover:border-white/15 transition-colors disabled:opacity-40"
                   >
                     {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Load more
+                    {t("forum.loadMore")}
                   </button>
                 )}
               </>
@@ -426,6 +435,7 @@ function ThreadRow({
   thread: ForumThread;
   onVote: (t: ForumThread, vote: 1 | -1) => void;
 }) {
+  const t = useT();
   return (
     <div className="group flex gap-3 sm:gap-4 p-4 rounded-xl bg-white/[0.025] border border-white/8 hover:border-white/15 hover:bg-white/[0.04] transition-colors">
       <VoteButtons
@@ -439,17 +449,17 @@ function ThreadRow({
           <CategoryBadge category={thread.category} />
           {thread.isPinned && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
-              <Pin className="w-2.5 h-2.5" /> Pinned
+              <Pin className="w-2.5 h-2.5" /> {t("forum.pinned")}
             </span>
           )}
           {thread.isLocked && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/40 bg-white/[0.04] border border-white/10 px-1.5 py-0.5 rounded-md">
-              <Lock className="w-2.5 h-2.5" /> Locked
+              <Lock className="w-2.5 h-2.5" /> {t("forum.locked")}
             </span>
           )}
           {thread.replyCount === 0 && (
             <span className="text-[10px] font-bold text-sky-300/80 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-md">
-              Needs replies
+              {t("forum.needsReplies")}
             </span>
           )}
         </div>
@@ -461,7 +471,7 @@ function ThreadRow({
         </Link>
 
         <p className="text-[12.5px] text-white/45 line-clamp-2 leading-relaxed">
-          {thread.body}
+          {forumBodyPreview(thread.body)}
         </p>
 
         <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -481,6 +491,7 @@ function ThreadRow({
             level={thread.level}
             levelRole={thread.levelRole}
             levelRoleColor={thread.levelRoleColor}
+            levelTierIcon={thread.levelTierIcon}
           />
           <span className="text-[10px] font-mono text-white/30">
             {forumTimeAgo(thread.createdAt)}
@@ -489,7 +500,7 @@ function ThreadRow({
             <>
               <span className="text-[10px] font-mono text-white/15">·</span>
               <span className="text-[10px] font-mono text-white/30">
-                active {forumTimeAgo(thread.lastActivityAt)}
+                {t("forum.activeAgo", { time: forumTimeAgo(thread.lastActivityAt) })}
               </span>
             </>
           )}
@@ -501,7 +512,7 @@ function ThreadRow({
           {thread.updatedAt && (
             <>
               <span className="text-[10px] font-mono text-white/15">·</span>
-              <span className="text-[10px] font-mono text-white/25">edited</span>
+              <span className="text-[10px] font-mono text-white/25">{t("forum.edited")}</span>
             </>
           )}
         </div>
@@ -532,18 +543,19 @@ function ThreadSkeleton({ count }: { count: number }) {
 }
 
 function EmptyState({ query, category }: { query: string; category: string }) {
+  const t = useT();
   return (
     <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
       <MessagesSquare className="w-10 h-10 text-white/15 mb-3" />
       <h3 className="text-base font-bold text-white/75 mb-1">
-        {query ? "No matching threads" : "No threads yet"}
+        {query ? t("forum.emptyQueryTitle") : t("forum.emptyTitle")}
       </h3>
       <p className="text-[12.5px] text-white/35 font-mono max-w-xs">
         {query
-          ? `Nothing matches "${query}".`
+          ? t("forum.emptySearch")
           : category !== "all"
-            ? "Be the first to start a discussion in this category."
-            : "Be the first to start a discussion."}
+            ? t("forum.emptyCategory")
+            : t("forum.emptyDefault")}
       </p>
     </div>
   );

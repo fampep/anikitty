@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { Loader2, LogIn, UserPlus, Zap, ShieldCheck, Fingerprint } from "lucide-react";
+import { Loader2, LogIn, UserPlus, ShieldCheck, Fingerprint } from "lucide-react";
 import { anisurgeAuth, authFromMeResponse } from "@/lib/anisurge";
 import { useT } from "@/providers/i18n-provider";
 import { DiscordIcon } from "@/components/discord-connect";
@@ -54,7 +54,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     }
     setLoading(true);
     try {
-      const data = await anisurgeAuth.loginWithAnisurge(identifier.trim(), password);
+      const data = await anisurgeAuth.login(identifier.trim(), password);
       if (data.requires2fa && data.pendingToken) {
         setPendingToken(data.pendingToken);
         setTab("2fa");
@@ -96,13 +96,17 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
       toast.error(t("auth.fillAllFields"));
       return;
     }
-    if (!/^[a-zA-Z0-9]{3,10}$/.test(username.trim())) {
+    if (!/^[a-zA-Z0-9_]{3,25}$/.test(username.trim())) {
       toast.error(t("auth.usernameRules"));
+      return;
+    }
+    if (signupPassword.length < 8) {
+      toast.error(t("auth.passwordMin"));
       return;
     }
     setLoading(true);
     try {
-      const data = await anisurgeAuth.signupWithAnisurge(username.trim(), email.trim(), signupPassword);
+      const data = await anisurgeAuth.signup(username.trim(), email.trim(), signupPassword);
       syncAuth(data);
       toast.success(t("auth.accountCreated"));
       setOpen(false);
@@ -174,13 +178,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
       >
         {/* Header */}
         <div className="px-5 pt-5 pb-0 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-white/60 text-xs font-mono">{t("auth.poweredBy")}</p>
-            <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/12 border border-violet-500/20 text-violet-400/70">
-              <Zap className="w-2.5 h-2.5" />
-              {t("nav.anisurge")}
-            </span>
-          </div>
+          <p className="text-white/50 text-xs font-mono">{t("auth.accountHint")}</p>
 
           {/* Tabs */}
           {tab !== "2fa" && (
@@ -268,8 +266,8 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {t("auth.signInAnisurge")}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+              {t("auth.signInSubmit")}
             </button>
             {(passkeySupported || discordEnabled) && (
               <>
@@ -337,7 +335,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              {t("auth.createAnisurge")}
+              {t("auth.createAccountSubmit")}
             </button>
             {discordEnabled && (
               <>

@@ -36,6 +36,9 @@ import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 
 const WatchTrailer = dynamic(() => import("@/components/watch-trailer"), { ssr: false });
+const AnimeEpisodeAlertButton = dynamic(() => import("@/components/anime-episode-alert-button"), {
+  ssr: false,
+});
 const CommentSection = dynamic(() => import("@/components/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
 });
@@ -222,6 +225,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap mt-1">
               <WatchButton />
+              <AnimeEpisodeAlertButton
+                anilistId={slug}
+                animeTitle={info.name}
+                animeThumbnail={info.poster}
+                japaneseTitle={moreInfo.japanese as string | undefined}
+                malId={mappings?.mal_id ?? null}
+                fallbackSub={stats?.episodes?.sub ?? undefined}
+                status={isAiring ? "RELEASING" : undefined}
+                hasDub={hasDub}
+                isAiring={isAiring}
+              />
               {auth && (
                 <Select
                   placeholder={t("anime.addToList")}

@@ -40,6 +40,7 @@ export interface ForumThread {
   level?: number;
   levelRole?: string;
   levelRoleColor?: string;
+  levelTierIcon?: string;
   score: number;
   myVote: 0 | 1 | -1;
   replyCount: number;
@@ -58,6 +59,7 @@ export interface ForumPost {
   level?: number;
   levelRole?: string;
   levelRoleColor?: string;
+  levelTierIcon?: string;
   score: number;
   myVote: 0 | 1 | -1;
 }
@@ -119,6 +121,26 @@ export const forumApi = {
   votePost: (threadId: string, postId: string, vote: 1 | -1) =>
     api(`/threads/${threadId}/posts/${postId}/vote`, { method: "POST", body: JSON.stringify({ vote }) }),
 };
+
+export function forumBodyPreview(text: string, maxLen = 160): string {
+  const stripped = text
+    .replace(/^>.*$/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (stripped.length <= maxLen) return stripped;
+  return `${stripped.slice(0, maxLen).trim()}…`;
+}
+
+export function mergeForumPosts(prev: ForumPost[], incoming: ForumPost[]): ForumPost[] {
+  if (incoming.length === 0) return prev;
+  const map = new Map(prev.map((p) => [p.id, p]));
+  for (const post of incoming) {
+    map.set(post.id, post);
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+}
 
 export function forumTimeAgo(dateStr: string | null) {
   if (!dateStr) return "";
