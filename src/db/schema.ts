@@ -52,6 +52,28 @@ export const userSessions = pgTable(
   }),
 );
 
+export const userPasskeys = pgTable(
+  "user_passkeys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credentialId: text("credential_id").notNull().unique(),
+    publicKey: text("public_key").notNull(),
+    counter: integer("counter").notNull().default(0),
+    deviceName: varchar("device_name", { length: 120 }).notNull().default("Passkey"),
+    transports: text("transports"),
+    backedUp: boolean("backed_up").notNull().default(false),
+    deviceType: varchar("device_type", { length: 20 }),
+    lastUsedAt: timestamp("last_used_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("user_passkeys_user_id_idx").on(t.userId),
+  }),
+);
+
 export const watchlist = pgTable(
   "watchlist",
   {

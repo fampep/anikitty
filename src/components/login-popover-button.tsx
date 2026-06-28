@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { Loader2, LogIn, UserPlus, Zap, ShieldCheck } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Zap, ShieldCheck, Fingerprint } from "lucide-react";
 import { anisurgeAuth, authFromMeResponse } from "@/lib/anisurge";
 import { useT } from "@/providers/i18n-provider";
 import { DiscordIcon } from "@/components/discord-connect";
+import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 
 type Tab = "login" | "signup" | "2fa";
 
@@ -25,6 +26,11 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
   const [signupPassword, setSignupPassword] = useState("");
   const [pendingToken, setPendingToken] = useState("");
   const [totpCode, setTotpCode] = useState("");
+  const [passkeySupported, setPasskeySupported] = useState(false);
+
+  useEffect(() => {
+    setPasskeySupported(browserSupportsWebAuthn());
+  }, []);
 
   const reset = () => {
     setIdentifier("");
@@ -117,6 +123,34 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
 
   const handleDiscordLogin = () => {
     window.location.href = "/api/account/auth/discord/start";
+  };
+
+  const handlePasskeyLogin = async () => {
+    setLoading(true);
+    try {
+      const { options, pendingToken } = await anisurgeAuth.passkeyLoginOptions();
+      const response = await startAuthentication({ optionsJSON: options });
+      const data = await anisurgeAuth.passkeyLoginVerify(pendingToken, response);
+      if (data.requires2fa && data.pendingToken) {
+        setPendingToken(data.pendingToken);
+        setTab("2fa");
+        setTotpCode("");
+        return;
+      }
+      syncAuth(data);
+      toast.success(t("auth.welcomeBack"));
+      setOpen(false);
+      reset();
+    } catch (e: unknown) {
+      const err = e as { name?: string; body?: { error?: string }; message?: string };
+      if (err?.name === "NotAllowedError") {
+        toast.error(t("auth.passkeyCancelled"));
+      } else {
+        toast.error(err?.body?.error ?? err?.message ?? t("auth.passkeyFailed"));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -237,22 +271,35 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {t("auth.signInAnisurge")}
             </button>
-            {discordEnabled && (
+            {(passkeySupported || discordEnabled) && (
               <>
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-white/8" />
                   <span className="text-[10px] font-mono text-white/25 uppercase">{t("auth.or")}</span>
                   <div className="h-px flex-1 bg-white/8" />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleDiscordLogin}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#dce0ff] font-semibold text-sm hover:bg-[#5865F2]/25 disabled:opacity-60 transition-colors"
-                >
-                  <DiscordIcon className="w-4 h-4" />
-                  {t("auth.continueWithDiscord")}
-                </button>
+                {passkeySupported && (
+                  <button
+                    type="button"
+                    onClick={handlePasskeyLogin}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white/[0.06] border border-white/12 text-white/85 font-semibold text-sm hover:bg-white/10 disabled:opacity-60 transition-colors"
+                  >
+                    <Fingerprint className="w-4 h-4" />
+                    {t("auth.signInWithPasskey")}
+                  </button>
+                )}
+                {discordEnabled && (
+                  <button
+                    type="button"
+                    onClick={handleDiscordLogin}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#dce0ff] font-semibold text-sm hover:bg-[#5865F2]/25 disabled:opacity-60 transition-colors"
+                  >
+                    <DiscordIcon className="w-4 h-4" />
+                    {t("auth.continueWithDiscord")}
+                  </button>
+                )}
               </>
             )}
           </div>

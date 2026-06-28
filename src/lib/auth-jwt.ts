@@ -83,6 +83,40 @@ export async function verify2faPendingToken(token: string): Promise<string | nul
   }
 }
 
+export type PasskeyChallengePurpose = "passkey_register" | "passkey_login";
+
+export async function signPasskeyChallengeToken(payload: {
+  purpose: PasskeyChallengePurpose;
+  challenge: string;
+  userId?: string;
+  deviceName?: string;
+}): Promise<string> {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(await secret());
+}
+
+export async function verifyPasskeyChallengeToken(
+  token: string,
+  expectedPurpose: PasskeyChallengePurpose,
+): Promise<{ challenge: string; userId?: string; deviceName?: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, await secret());
+    if (payload.purpose !== expectedPurpose) return null;
+    const challenge = payload.challenge as string | undefined;
+    if (!challenge) return null;
+    return {
+      challenge,
+      userId: payload.userId as string | undefined,
+      deviceName: payload.deviceName as string | undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function decodeAuthToken(token: string): Promise<AuthPayload | null> {
   try {
     const { payload } = await jwtVerify(token, await secret());

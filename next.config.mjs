@@ -24,11 +24,21 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  output: "standalone",
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   env: {
     NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ?? "",
   },
   experimental: {
     webpackMemoryOptimizations: true,
+    optimizePackageImports: [
+      "lucide-react",
+      "@radix-ui/react-icons",
+      "framer-motion",
+      "@vidstack/react",
+    ],
   },
   images: {
     remotePatterns: [
@@ -83,4 +93,6 @@ export default withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
+  buildExcludes: [/middleware-manifest\.json$/, /\.map$/],
+  maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
 })(nextConfig);

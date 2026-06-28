@@ -94,6 +94,39 @@ export const anisurgeAuth = {
   disable2fa: (code: string) =>
     bff("/2fa/disable", { method: "POST", body: JSON.stringify({ code }) }),
 
+  listPasskeys: () =>
+    bff<{
+      passkeys: {
+        id: string;
+        deviceName: string;
+        deviceType: string | null;
+        backedUp: boolean;
+        lastUsedAt: string | null;
+        createdAt: string | null;
+      }[];
+    }>("/passkeys"),
+
+  passkeyRegisterOptions: (deviceName: string) =>
+    bff("/passkeys/register/options", { method: "POST", body: JSON.stringify({ deviceName }) }),
+
+  passkeyRegisterVerify: (pendingToken: string, response: unknown) =>
+    bff("/passkeys/register/verify", {
+      method: "POST",
+      body: JSON.stringify({ pendingToken, response }),
+    }),
+
+  deletePasskey: (id: string) =>
+    bff(`/passkeys/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
+  passkeyLoginOptions: () =>
+    bff("/auth/passkey/options", { method: "POST", body: "{}" }),
+
+  passkeyLoginVerify: (pendingToken: string, response: unknown) =>
+    bff("/auth/passkey/verify", {
+      method: "POST",
+      body: JSON.stringify({ pendingToken, response }),
+    }),
+
   getSessions: () =>
     bff<{
       sessions: {

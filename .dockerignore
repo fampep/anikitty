@@ -23,10 +23,17 @@ yarn-error.log*
 .gitignore
 .husky
 .vscode
+.cursor
+.claude
 README.md
+*.md
 *.tsbuildinfo
 next-env.d.ts
 
 pocketbase
 wrangler.toml
 docs
+drizzle
+scripts
+add-tvdb-env.txt
+api-id-sources.txt

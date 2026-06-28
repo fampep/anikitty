@@ -36,6 +36,7 @@ import ProfileMediaPreview from "@/components/profile-media-preview";
 import { applyUserThemeColor } from "@/lib/theme-color";
 import { withAuth } from "@/lib/auth-fetch";
 import TwoFactorSection from "@/components/two-factor-section";
+import PasskeysSection from "@/components/passkeys-section";
 import ActiveSessionsSection from "@/components/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile-privacy-section";
 import AccountDeletionSection from "@/components/account-deletion-section";
@@ -833,6 +834,10 @@ export default function SettingsPage() {
                 />
                 <SectionBody className="flex flex-col gap-6">
                   <div>
+                    <SubSectionTitle>{t("settings.passkeys")}</SubSectionTitle>
+                    <PasskeysSection />
+                  </div>
+                  <div className="border-t border-white/6 pt-6">
                     <SubSectionTitle>{t("settings.twoFactor")}</SubSectionTitle>
                     <TwoFactorSection />
                   </div>
