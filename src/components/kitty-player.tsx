@@ -31,6 +31,7 @@ import {
   isElementFullscreen,
   requestElementFullscreen,
 } from "@/lib/fullscreen";
+import { bindPipCaptionSync } from "@/lib/pip-captions";
 
 interface W2gSyncState {
   version: number;
@@ -182,6 +183,14 @@ export default function KittyPlayer({
       document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
     };
   }, [anime4kEnabled, proxiedSrc]);
+
+  // Custom caption overlay stays on the page during video PiP — switch to native tracks.
+  useEffect(() => {
+    const player = playerRef.current;
+    const container = containerRef.current;
+    if (!player || !container) return;
+    return bindPipCaptionSync(container, player);
+  }, [proxiedSrc, anime4kEnabled]);
 
   const subTracks = useMemo(
     () =>

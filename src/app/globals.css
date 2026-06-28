@@ -478,6 +478,22 @@ button, a, [role="button"] {
   z-index: 3;
 }
 
+/* PiP uses the native <video> — show it and hide WebGPU canvas while popped out. */
+.vds-kitty[data-pip-active="true"][data-anime4k="true"] video {
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+.vds-kitty[data-pip-active="true"][data-anime4k="true"] .anime4k-canvas {
+  opacity: 0 !important;
+  visibility: hidden;
+}
+
+.vds-kitty media-player[data-pip] .vds-captions {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* User-selected accent theme */
 html[data-user-theme] .nav-link-active,
 html[data-user-theme] .user-accent-nav-active {

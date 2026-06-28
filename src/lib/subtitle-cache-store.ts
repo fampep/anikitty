@@ -4,6 +4,7 @@ import { episodeSubtitles } from "@/db/schema";
 import {
   getTrackFile,
   isOurSubtitleUrl,
+  isSubtitleCacheProvider,
   isSubtitleTrack,
   SUBTITLE_LIBRARY_PROVIDERS,
   SUBTITLE_SOURCE_PROVIDER,
@@ -13,10 +14,13 @@ import {
 } from "@/lib/subtitle-track-utils";
 import { sanitizeHeaderValue } from "@/lib/security";
 import {
+  RYUO_SYNC_DELAY_MS,
   SUBTITLE_API_INTERVAL_MS,
+  SUBTITLE_SYNC_BATCH_SIZE,
   sleep,
 } from "@/lib/subtitle-sync-config";
 import { fetchAnitakuSubtitleStreamFallback, fetchMiruroSubtitleStream } from "@/lib/miruro-api";
+import { fetchRyuoSubtitleTracks, isRyuoAvailable, RYUO_SOURCE_PROVIDER } from "@/lib/ryuo-subtitles";
 
 /** Subtitle VTT content is stable per episode — refresh weekly. */
 const SUBTITLE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -194,11 +198,22 @@ async function fetchMiruroSubtitleTracks(
   }
 }
 
-/** Fetch subtitle tracks from Miruro API and persist when cache is missing or stale. */
+/** Fetch subtitle tracks (Ryuo first, then Miruro) and persist when cache is missing or stale. */
 export async function ensureMiruroSubtitleCache(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
 ): Promise<StreamTrack[]> {
   if (await hasFreshCachedSubtitles(ctx)) return [];
+
+  if (await isRyuoAvailable()) {
+    const ryuoTracks = await fetchRyuoSubtitleTracks(ctx.anilistId, ctx.episode);
+    if (ryuoTracks.length > 0) {
+      return cacheStreamSubtitleTracks(ryuoTracks, {
+        ...ctx,
+        provider: RYUO_SOURCE_PROVIDER,
+        headers: {},
+      });
+    }
+  }
 
   let stream = await fetchMiruroSubtitleTracks(ctx);
   const hasSubs = stream?.tracks?.some(isSubtitleTrack);
@@ -245,7 +260,7 @@ async function upsertSubtitle(
         animeTitle: ctx.animeTitle ?? null,
         episode: ctx.episode,
         audio: ctx.audio,
-        provider: SUBTITLE_SOURCE_PROVIDER,
+        provider: ctx.provider,
         label,
         kind,
         isDefault,
@@ -374,7 +389,7 @@ export async function ensureIncrementalSubtitleCache(
   } = {},
 ): Promise<IncrementalSubtitleCacheResult> {
   const maxEpisodes = Math.max(1, opts.maxEpisodes ?? 1);
-  const delayMs = opts.delayMs ?? SUBTITLE_API_INTERVAL_MS;
+  const miruroDelayMs = opts.delayMs ?? SUBTITLE_API_INTERVAL_MS;
 
   if (fullShowPrefetchInProgress.has(anilistId)) {
     const existing = await listAnimeSubtitles(anilistId);
@@ -402,16 +417,30 @@ export async function ensureIncrementalSubtitleCache(
     let cachedEps = new Set(existing.map((r) => r.episode));
 
     let fetched = 0;
+    const batchSize = SUBTITLE_SYNC_BATCH_SIZE;
+    const ryuoUp = await isRyuoAvailable();
+    const delayMs = ryuoUp ? RYUO_SYNC_DELAY_MS : miruroDelayMs;
+
     if (count > 0) {
-      for (let ep = 1; ep <= count && fetched < maxEpisodes; ep++) {
-        if (cachedEps.has(ep)) continue;
+      const missing: number[] = [];
+      for (let ep = 1; ep <= count && missing.length < maxEpisodes; ep++) {
+        if (!cachedEps.has(ep)) missing.push(ep);
+      }
+
+      for (let i = 0; i < missing.length; i += batchSize) {
+        const batch = missing.slice(i, i + batchSize);
         const before = cachedEps.size;
-        await ensureMiruroSubtitleCache({ anilistId, episode: ep, audio: "sub" });
+
+        await Promise.all(
+          batch.map((ep) => ensureMiruroSubtitleCache({ anilistId, episode: ep, audio: "sub" })),
+        );
+
         cachedEps = await getCachedEpisodeNumbers(anilistId);
         if (cachedEps.size > before) {
-          fetched++;
+          fetched += cachedEps.size - before;
         }
-        if (fetched < maxEpisodes && ep < count) {
+
+        if (i + batchSize < missing.length) {
           await sleep(delayMs);
         }
       }
@@ -472,7 +501,7 @@ export async function cacheStreamSubtitleTracks(
   tracks: StreamTrack[] | undefined,
   ctx: SubtitleCacheContext,
 ): Promise<StreamTrack[]> {
-  if (ctx.provider !== SUBTITLE_SOURCE_PROVIDER) {
+  if (!isSubtitleCacheProvider(ctx.provider)) {
     return tracks ?? [];
   }
 

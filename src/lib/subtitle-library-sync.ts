@@ -32,18 +32,21 @@ export type SubtitleLibrarySyncOptions = {
   refreshLimit?: number;
 };
 
-const BACKGROUND_COOLDOWN_MS = 20_000;
+const BACKGROUND_COOLDOWN_MS = 6_000;
+const AUTO_SYNC_INTERVAL_MS = 8_000;
+
 let lastBackgroundSyncAt = 0;
 let backgroundSyncInFlight = false;
+let autoSyncLoopStarted = false;
 
 export async function runSubtitleLibrarySyncTick(
   opts: SubtitleLibrarySyncOptions = {},
 ): Promise<SubtitleLibrarySyncResult> {
-  const maxIncompleteAnime = Math.max(0, opts.maxIncompleteAnime ?? 2);
+  const maxIncompleteAnime = Math.max(0, opts.maxIncompleteAnime ?? 4);
   const episodesPerAnime = Math.max(1, opts.episodesPerAnime ?? SUBTITLE_SYNC_EPISODES_PER_TICK);
-  const maxDiscover = Math.max(0, opts.maxDiscover ?? 1);
-  const backfillLimit = Math.max(0, opts.backfillLimit ?? 15);
-  const refreshLimit = Math.max(0, opts.refreshLimit ?? 10);
+  const maxDiscover = Math.max(0, opts.maxDiscover ?? 2);
+  const backfillLimit = Math.max(0, opts.backfillLimit ?? 20);
+  const refreshLimit = Math.max(0, opts.refreshLimit ?? 15);
 
   const result: SubtitleLibrarySyncResult = {
     backfilled: 0,
@@ -68,18 +71,18 @@ export async function runSubtitleLibrarySyncTick(
   if (incompleteRemaining > 0 && maxIncompleteAnime > 0) {
     const incompleteIds = await listIncompleteSubtitleAnimesFromDb(maxIncompleteAnime);
 
-    for (let i = 0; i < incompleteIds.length; i++) {
-      const anilistId = incompleteIds[i];
-      const tick = await ensureIncrementalSubtitleCache(anilistId, {
-        maxEpisodes: episodesPerAnime,
-        delayMs: SUBTITLE_API_INTERVAL_MS,
-      });
+    const ticks = await Promise.all(
+      incompleteIds.map((anilistId) =>
+        ensureIncrementalSubtitleCache(anilistId, {
+          maxEpisodes: episodesPerAnime,
+          delayMs: SUBTITLE_API_INTERVAL_MS,
+        }),
+      ),
+    );
+
+    for (const tick of ticks) {
       result.episodesFetched += tick.fetched;
       if (tick.fetched > 0) result.animeUpdated++;
-
-      if (i < incompleteIds.length - 1) {
-        await sleep(SUBTITLE_API_INTERVAL_MS);
-      }
     }
 
     result.incompleteRemaining = await countIncompleteSubtitleAnimesFromDb();
@@ -92,20 +95,20 @@ export async function runSubtitleLibrarySyncTick(
       await fetchAnilistMetaBatch(candidates);
     }
 
-    for (let i = 0; i < candidates.length; i++) {
-      const anilistId = candidates[i];
-      const tick = await ensureIncrementalSubtitleCache(anilistId, {
-        maxEpisodes: episodesPerAnime,
-        delayMs: SUBTITLE_API_INTERVAL_MS,
-      });
+    const ticks = await Promise.all(
+      candidates.map((anilistId) =>
+        ensureIncrementalSubtitleCache(anilistId, {
+          maxEpisodes: episodesPerAnime,
+          delayMs: SUBTITLE_API_INTERVAL_MS,
+        }),
+      ),
+    );
+
+    for (const tick of ticks) {
       if (tick.fetched > 0 || tick.cachedEpisodes > 0) {
         result.animeDiscovered++;
         result.episodesFetched += tick.fetched;
         if (tick.fetched > 0) result.animeUpdated++;
-      }
-
-      if (i < candidates.length - 1) {
-        await sleep(SUBTITLE_API_INTERVAL_MS);
       }
     }
   }
@@ -126,11 +129,11 @@ export function triggerBackgroundSubtitleLibrarySync(
   backgroundSyncInFlight = true;
 
   void runSubtitleLibrarySyncTick({
-    maxIncompleteAnime: 1,
+    maxIncompleteAnime: 3,
     episodesPerAnime: SUBTITLE_SYNC_EPISODES_PER_TICK,
-    maxDiscover: 1,
-    backfillLimit: 10,
-    refreshLimit: 8,
+    maxDiscover: 2,
+    backfillLimit: 15,
+    refreshLimit: 12,
     ...opts,
   })
     .catch((err) => {
@@ -139,4 +142,22 @@ export function triggerBackgroundSubtitleLibrarySync(
     .finally(() => {
       backgroundSyncInFlight = false;
     });
+}
+
+/** Continuous background sync — starts automatically when the Node server boots. */
+export function startSubtitleLibraryAutoSync(): void {
+  if (autoSyncLoopStarted || !process.env.DATABASE_URL) return;
+  autoSyncLoopStarted = true;
+
+  const tick = () => {
+    if (backgroundSyncInFlight) return;
+    triggerBackgroundSubtitleLibrarySync({
+      maxIncompleteAnime: 4,
+      episodesPerAnime: SUBTITLE_SYNC_EPISODES_PER_TICK,
+      maxDiscover: 2,
+    });
+  };
+
+  tick();
+  setInterval(tick, AUTO_SYNC_INTERVAL_MS);
 }

@@ -1,13 +1,28 @@
-/** Primary provider for downloading and caching subtitle files (Miruro API). */
+import { RYUO_SOURCE_PROVIDER } from "@/lib/ryuo-subtitles";
+
+/** Primary provider for Miruro/Kitty stream subtitle tracks. */
 export const SUBTITLE_SOURCE_PROVIDER = "Miruro";
+
+/** Fast subtitle source scraped via sub.ryuo.to. */
+export { RYUO_SOURCE_PROVIDER };
 
 /** Legacy cached rows — still included in library stats and listings. */
 export const SUBTITLE_LEGACY_PROVIDERS = ["Anitaku"] as const;
 
 export const SUBTITLE_LIBRARY_PROVIDERS = [
+  RYUO_SOURCE_PROVIDER,
   SUBTITLE_SOURCE_PROVIDER,
   ...SUBTITLE_LEGACY_PROVIDERS,
 ] as const;
+
+export const SUBTITLE_CACHE_PROVIDERS = [
+  RYUO_SOURCE_PROVIDER,
+  SUBTITLE_SOURCE_PROVIDER,
+] as const;
+
+export function isSubtitleCacheProvider(provider: string): boolean {
+  return (SUBTITLE_CACHE_PROVIDERS as readonly string[]).includes(provider);
+}
 
 export type StreamTrack = {
   file?: string;

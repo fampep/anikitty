@@ -34,7 +34,7 @@ async function fetchSubtitleLibrary(opts: {
   return res.data;
 }
 
-const SUBTITLE_LIBRARY_POLL_MS = 25_000;
+const SUBTITLE_LIBRARY_POLL_MS = 10_000;
 
 export function useSubtitleLibrary(opts: {
   q?: string;
