@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { queryAniList } from "@/lib/anilist";
+import { watchEpisodeDescription } from "@/lib/site-seo";
 import VideoPlayerSection from "./video-player-section";
 
 const META_QUERY = `
@@ -29,7 +30,7 @@ export async function generateMetadata({
   if (isNaN(numId)) {
     return {
       title: "Watch | AniKitty",
-      description: "Stream anime with no ads ~ nya~",
+      description: "Watch anime free on AniKitty. No ads.",
     };
   }
 
@@ -43,9 +44,7 @@ export async function generateMetadata({
       ? `${animeName} — Episode ${epNum} | AniKitty`
       : `${animeName} | AniKitty`;
 
-    const desc = epNum
-      ? `Watch ${animeName} Episode ${epNum} on AniKitty. Stream for free with no ads.`
-      : `Watch ${animeName} on AniKitty. Stream for free with no ads.`;
+    const desc = watchEpisodeDescription(animeName, epNum);
 
     const image = m.bannerImage || m.coverImage?.extraLarge;
 

@@ -17,6 +17,12 @@ import UserThemeSync from "@/components/user-theme-sync";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
+import {
+  APP_DEFAULT_TITLE,
+  APP_DESCRIPTION,
+  APP_NAME,
+  APP_URL,
+} from "@/lib/site-seo";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,11 +34,6 @@ const geistSans = localFont({
 //   variable: "--font-geist-mono",
 //   weight: "100 900",
 // });
-
-const APP_NAME = "AniKitty";
-const APP_DEFAULT_TITLE = "AniKitty | Anime Streaming";
-const APP_DESCRIPTION = "Stream thousands of anime, completely free. No ads, no subscriptions, sub & dub.";
-const APP_URL = "https://anikitty.moe";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),

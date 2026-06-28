@@ -28,7 +28,7 @@ async function fetchPosters(): Promise<string[]> {
   }
 }
 
-const FEATURES = ["Zero Ads", "Fast Streams", "Sub & Dub", "Comments", "Community"];
+const FEATURES = ["Sub & Dub", "Subtitles", "Forum", "Live Chat", "Watch Together", "No Ads"];
 
 export default async function Image() {
   const [fontData, posters] = await Promise.all([
@@ -268,7 +268,7 @@ export default async function Image() {
               marginBottom: 8,
             }}
           >
-            Stream thousands of anime, completely free.
+            Free anime streaming. No ads.
           </div>
 
           <div
@@ -284,9 +284,9 @@ export default async function Image() {
           >
             <span>No ads</span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.15)" }} />
-            <span>No subscriptions</span>
+            <span>Sub &amp; dub</span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.15)" }} />
-            <span>Sub &amp; Dub</span>
+            <span>Community</span>
           </div>
 
           {/* CTAs */}

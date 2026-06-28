@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { queryAniList } from "@/lib/anilist";
+import { animeShareDescription } from "@/lib/site-seo";
 import AnimeDetail from "./anime-detail";
 
 const META_QUERY = `
@@ -31,11 +32,7 @@ export async function generateMetadata(
     if (!m) return { title: "Anime | AniKitty" };
 
     const title  = m.title.english || m.title.romaji || "Anime";
-    const desc   = (m.description ?? "")
-      .replace(/<[^>]*>/g, "")   // strip HTML tags
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 200);
+    const desc   = animeShareDescription(title);
 
     // Banner (wide) preferred for embeds, poster as fallback
     const image  = m.bannerImage || m.coverImage?.extraLarge;
