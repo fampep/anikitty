@@ -1,6 +1,9 @@
 export const KITTY_PROVIDERS = [
   "Miruro",
   "AnimeSogo",
+  "Anix",
+  "HiAnime",
+  "Anikoto",
   "Anitaku",
   "Anikage",
   "AnimeHeaven",
@@ -10,7 +13,6 @@ export const KITTY_PROVIDERS = [
   "Animetsu",
   "Animeverse",
   "AniZone",
-  "Anikoto",
   "AnimeGG",
   "AniDB",
   "Nyanime",
@@ -21,14 +23,16 @@ export const KITTY_PROVIDERS = [
 
 export type KittyProvider = (typeof KITTY_PROVIDERS)[number];
 
-export type KittyProviderGroup = "featured" | "other";
+export type KittyProviderGroup = "featured" | "subs" | "other";
 
 export type KittyProviderMeta = {
   id: KittyProvider;
   label: string;
   group: KittyProviderGroup;
-  /** Player embed includes subtitle tracks (e.g. AnimeSogo MegaPlay VTT). */
+  /** Player embed includes subtitle tracks from stream-direct. */
   nativeSubs?: boolean;
+  /** Kitty /subs endpoint supports this provider. */
+  kittySubs?: boolean;
   hint?: string;
 };
 
@@ -39,7 +43,32 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     label: "AnimeSogo",
     group: "featured",
     nativeSubs: true,
+    kittySubs: true,
     hint: "HD-1 / HD-2 · animesogo.to",
+  },
+  {
+    id: "Anix",
+    label: "Anix",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "anixtv.me · MegaPlay subs",
+  },
+  {
+    id: "HiAnime",
+    label: "HiAnime",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "hianimez.org · MegaPlay subs",
+  },
+  {
+    id: "Anikoto",
+    label: "Anikoto",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "anikototv.to · MegaPlay subs",
   },
   { id: "Anitaku", label: "Anitaku", group: "other" },
   { id: "Anikage", label: "Anikage", group: "other" },
@@ -50,7 +79,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   { id: "Animetsu", label: "Animetsu", group: "other" },
   { id: "Animeverse", label: "Animeverse", group: "other" },
   { id: "AniZone", label: "AniZone", group: "other" },
-  { id: "Anikoto", label: "Anikoto", group: "other" },
   { id: "AnimeGG", label: "AnimeGG", group: "other" },
   { id: "AniDB", label: "AniDB", group: "other" },
   { id: "Nyanime", label: "Nyanime", group: "other" },
@@ -61,7 +89,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = "Miruro";
 
-/** Providers removed from the picker — migrate saved prefs to default. */
 const DEPRECATED_PROVIDERS = new Set([
   "AllAnime",
   "AnimeParadise",
@@ -70,8 +97,13 @@ const DEPRECATED_PROVIDERS = new Set([
   "AniNeko",
 ]);
 
-/** Keep embed/player subtitle tracks from the upstream stream response. */
-export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>(["AnimeSogo"]);
+/** Stream providers whose embed tracks are kept from stream-direct. */
+export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
+  "AnimeSogo",
+  "Anix",
+  "HiAnime",
+  "Anikoto",
+]);
 
 export function isKittyProvider(value: string): value is KittyProvider {
   return (KITTY_PROVIDERS as readonly string[]).includes(value);
@@ -93,4 +125,8 @@ export function kittyProvidersByGroup(group: KittyProviderGroup): KittyProviderM
 
 export function providerHasNativeSubs(provider: KittyProvider): boolean {
   return KITTY_NATIVE_SUB_PROVIDERS.has(provider);
+}
+
+export function providerHasKittySubs(provider: KittyProvider): boolean {
+  return getKittyProviderMeta(provider).kittySubs === true;
 }

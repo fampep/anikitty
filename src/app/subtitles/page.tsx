@@ -158,7 +158,7 @@ export default function SubtitlesPage() {
             <div className="flex items-center gap-2">
               {!debouncedQ && (
                 <p className="text-[10px] font-mono text-teal-300/45 hidden sm:block">
-                  {t("subsLibrary.fetchOnWatch")}
+                  {t("subsLibrary.autoSyncing")}
                 </p>
               )}
               {isFetching && !isLoading && (

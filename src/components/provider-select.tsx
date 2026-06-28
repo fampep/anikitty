@@ -74,7 +74,12 @@ export default function ProviderSelect({
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{p.label}</span>
-                      {p.nativeSubs && (
+                      {p.kittySubs && (
+                        <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-mono uppercase bg-violet-500/15 border border-violet-500/25 text-violet-300/90">
+                          /subs
+                        </span>
+                      )}
+                      {(p.nativeSubs || p.kittySubs) && (
                         <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-mono uppercase bg-teal-500/15 border border-teal-500/25 text-teal-300/90">
                           <Captions className="w-2.5 h-2.5" />
                           {t("watch.providerSubsBadge")}
