@@ -11,7 +11,6 @@ import {
   Mic,
   Captions,
   Search,
-  Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
@@ -20,13 +19,14 @@ import {
   downloadEpisodeVideosBatch,
   VideoDownloadDisabledError,
 } from "@/query/download-episode-video";
-import { KITTY_PROVIDERS, type KittyProvider } from "@/query/get-kitty-stream";
+import { type KittyProvider } from "@/query/get-kitty-stream";
+import { DEFAULT_KITTY_PROVIDER, normalizeKittyProvider } from "@/lib/kitty-providers";
+import ProviderSelect from "@/components/provider-select";
 import { VIDEO_DOWNLOAD_ENABLED } from "@/lib/video-download-config";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 
 const EPISODES_PER_PAGE = 10;
-const DEFAULT_PROVIDER: KittyProvider = "Miruro";
 
 type Props = {
   anilistId: number;
@@ -43,7 +43,12 @@ export default function AnimeMediaDownloads({ anilistId, hasDub = false }: Props
   const t = useT();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [provider, setProvider] = useState<KittyProvider>(DEFAULT_PROVIDER);
+  const [provider, setProvider] = useState<KittyProvider>(() => {
+    if (typeof window !== "undefined") {
+      return normalizeKittyProvider(localStorage.getItem("kittyProvider"));
+    }
+    return DEFAULT_KITTY_PROVIDER;
+  });
   const [preferDub, setPreferDub] = useState(false);
   const [selectedEps, setSelectedEps] = useState<Set<number>>(() => new Set());
   const [downloadingEp, setDownloadingEp] = useState<number | null>(null);
@@ -174,21 +179,15 @@ export default function AnimeMediaDownloads({ anilistId, hasDub = false }: Props
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <Server className="w-3.5 h-3.5 text-white/30" />
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as KittyProvider)}
-              disabled={busy}
-              className="h-8 px-2 text-[11px] font-mono rounded-lg bg-white/4 border border-white/10 text-white/75 outline-none focus:border-white/25"
-            >
-              {KITTY_PROVIDERS.map((p) => (
-                <option key={p} value={p} className="bg-[#111]">
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ProviderSelect
+            value={provider}
+            onChange={(p) => {
+              setProvider(p);
+              localStorage.setItem("kittyProvider", p);
+            }}
+            disabled={busy}
+            compact
+          />
 
           <div className="flex items-center rounded-lg overflow-hidden border border-white/10 bg-white/[0.03]">
             <button

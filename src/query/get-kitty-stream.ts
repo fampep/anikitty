@@ -1,6 +1,14 @@
 import { useQuery } from "react-query";
 import { api } from "@/lib/api";
 import type { MiruroPipeProviderId } from "@/lib/miruro-api";
+import {
+  DEFAULT_KITTY_PROVIDER,
+  KITTY_PROVIDERS,
+  type KittyProvider,
+} from "@/lib/kitty-providers";
+
+export type { KittyProvider };
+export { KITTY_PROVIDERS, DEFAULT_KITTY_PROVIDER };
 
 export interface KittyTrack {
   file: string;
@@ -14,44 +22,17 @@ export interface KittySkipTimes {
   outro?: { start: number; end: number };
 }
 
-// Matches the Kitty API response: { file, headers, tracks }
 export interface KittyStreamResponse {
   file: string;
   headers: Record<string, string>;
   tracks: KittyTrack[];
   skipTimes?: KittySkipTimes;
   miruroPipe?: string;
+  server?: string | null;
   download?: string | null;
   subtitleSource?: string;
   error?: string;
 }
-
-export const KITTY_PROVIDERS = [
-  "Miruro",
-  "AllAnime",
-  "Anitaku",
-  "Anikage",
-  "AnimeHeaven",
-  "KaaLt",
-  "MKissa",
-  "Senshi",
-  "Animetsu",
-  "AnimeParadise",
-  "AniNeko",
-  "Animeverse",
-  "Animo",
-  "AniZone",
-  "Anikoto",
-  "AnimeGG",
-  "AniDB",
-  "Nyanime",
-  "AnimeOnsen",
-  "Animeya",
-  "AniWaves",
-  "Anizen",
-] as const;
-
-export type KittyProvider = (typeof KITTY_PROVIDERS)[number];
 
 const getKittyStream = async (
   anilistId: number,
@@ -59,6 +40,7 @@ const getKittyStream = async (
   audio: "sub" | "dub",
   provider: KittyProvider,
   miruroPipe?: MiruroPipeProviderId | null,
+  title?: string | null,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -66,6 +48,7 @@ const getKittyStream = async (
       episode,
       audio,
       provider,
+      ...(title ? { title } : {}),
       ...(provider === "Miruro" && miruroPipe ? { miruroPipe } : {}),
     },
   });
@@ -76,12 +59,13 @@ export const useGetKittyStream = (
   anilistId: number | undefined,
   episode: string | undefined,
   audio: "sub" | "dub" = "sub",
-  provider: KittyProvider = "Miruro",
+  provider: KittyProvider = DEFAULT_KITTY_PROVIDER,
   miruroPipe?: MiruroPipeProviderId | null,
+  title?: string | null,
 ) => {
   return useQuery({
-    queryKey: ["kitty-stream", anilistId, episode, audio, provider, miruroPipe ?? ""],
-    queryFn: () => getKittyStream(anilistId!, episode!, audio, provider, miruroPipe),
+    queryKey: ["kitty-stream", anilistId, episode, audio, provider, miruroPipe ?? "", title ?? ""],
+    queryFn: () => getKittyStream(anilistId!, episode!, audio, provider, miruroPipe, title),
     enabled: !!anilistId && !!episode && parseInt(episode) > 0,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,

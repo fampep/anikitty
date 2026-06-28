@@ -3,6 +3,12 @@ import {
   ensureMiruroSubtitleCache,
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitle-cache-store";
+import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty-api";
+import {
+  DEFAULT_KITTY_PROVIDER,
+  providerHasNativeSubs,
+  type KittyProvider,
+} from "@/lib/kitty-providers";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   fetchMiruroVideoStream,
@@ -16,10 +22,10 @@ import {
   type StreamTrack,
 } from "@/lib/subtitle-track-utils";
 
-const BASE = process.env.KITTY_API_BASE ?? "https://kittyapi.buzz";
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
 const SAFE_ID = /^\d{1,10}$/;
+const MAX_TITLE_LEN = 200;
 
 type StreamPayload = {
   file: string;
@@ -27,6 +33,7 @@ type StreamPayload = {
   tracks?: StreamTrack[];
   skipTimes?: MiruroSkipTimes;
   miruroPipe?: string;
+  server?: string | null;
   download?: string | null;
   subtitleSource?: string;
   error?: string;
@@ -37,8 +44,9 @@ export async function GET(req: Request) {
   const anilistId = searchParams.get("anilistId");
   const episode = searchParams.get("episode");
   const audio = searchParams.get("audio") || "sub";
-  const provider = searchParams.get("provider") || "Miruro";
+  const provider = (searchParams.get("provider") || DEFAULT_KITTY_PROVIDER) as KittyProvider;
   const miruroPipeParam = searchParams.get("miruroPipe");
+  const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
     return Response.json({ error: "anilistId and episode are required" }, { status: 400 });
@@ -65,12 +73,17 @@ export async function GET(req: Request) {
         ? DEFAULT_MIRURO_PIPE_PROVIDER
         : null;
 
-  async function finalizeStreamResponse(data: StreamPayload) {
+  async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
         if (!t.file && t.url) t.file = t.url;
       }
     }
+
+    const nativeSubs = providerHasNativeSubs(providerName);
+    const providerSubtitleTracks: StreamTrack[] = nativeSubs
+      ? (data.tracks ?? []).filter(isSubtitleTrack)
+      : [];
 
     data.tracks = stripSubtitleTracks(data.tracks);
     const fetchedSubs = await ensureMiruroSubtitleCache(subtitleCtx);
@@ -81,11 +94,15 @@ export async function GET(req: Request) {
       data.headers ?? {},
     );
 
-    if (!data.tracks.some(isSubtitleTrack) && fetchedSubs.length > 0) {
+    if (providerSubtitleTracks.length > 0) {
+      data.tracks = [...data.tracks, ...providerSubtitleTracks];
+      data.subtitleSource = providerName;
+    } else if (!data.tracks.some(isSubtitleTrack) && fetchedSubs.length > 0) {
       data.tracks = [...data.tracks, ...fetchedSubs];
+      data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
+    } else {
+      data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
     }
-
-    data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
 
     if (subtitleCtx.episode === 1) {
       void ensureFullShowSubtitleCache(subtitleCtx.anilistId);
@@ -104,31 +121,36 @@ export async function GET(req: Request) {
       });
 
       if (miruro?.file) {
-        return finalizeStreamResponse({
-          file: miruro.file,
-          headers: miruro.headers,
-          tracks: miruro.tracks,
-          skipTimes: miruro.skipTimes,
-          miruroPipe: miruro.provider,
-          download: miruro.download,
-        });
+        return finalizeStreamResponse(
+          {
+            file: miruro.file,
+            headers: miruro.headers,
+            tracks: miruro.tracks,
+            skipTimes: miruro.skipTimes,
+            miruroPipe: miruro.provider,
+            download: miruro.download,
+          },
+          "Miruro",
+        );
       }
     } catch (e) {
       console.error("[kitty/stream] Miruro pipe failed:", e);
     }
   }
 
-  const url = `${BASE}/provider/${encodeURIComponent(provider)}/stream-direct?anilistId=${anilistId}&episode=${episode}&audio=${audio}`;
-
-  const headers: HeadersInit = {};
-  const apiKey = process.env.KITTY_API_KEY;
-  if (apiKey) headers["x-api-key"] = apiKey;
+  const url = buildKittyStreamDirectUrl({
+    provider,
+    anilistId,
+    episode,
+    audio: audio as "sub" | "dub",
+    title: titleParam,
+  });
 
   try {
     const res = await fetch(url, {
       cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-      headers,
+      signal: AbortSignal.timeout(20_000),
+      headers: kittyApiHeaders(),
     });
 
     const data = await res.json();
@@ -140,7 +162,13 @@ export async function GET(req: Request) {
       );
     }
 
-    return finalizeStreamResponse(data as StreamPayload);
+    const payload = data as StreamPayload & { server?: string };
+    if (typeof payload.server === "string") {
+      const trimmed = payload.server.trim();
+      payload.server = trimmed || undefined;
+    }
+
+    return finalizeStreamResponse(payload, provider);
   } catch (e: unknown) {
     const err = e as { name?: string };
     const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";

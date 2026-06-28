@@ -779,6 +779,10 @@
       "chatPlaceholder": "Chat de la salle…"
     },
     "miruroPipe": "Miruro",
+    "providerSelect": "Source du flux",
+    "providerGroupFeatured": "Recommandés",
+    "providerGroupOther": "Autres sources",
+    "providerSubsBadge": "Sous-titres",
     "subtitlesAvailable": "Sous-titres disponibles — utilisez le bouton CC du lecteur",
     "subtitleTracks": "{count} piste(s) de sous-titres",
     "downloadEpisode": "Télécharger",

@@ -1,8 +1,8 @@
 import type { StreamTrack } from "@/lib/subtitle-track-utils";
 import { isSubtitleTrack } from "@/lib/subtitle-track-utils";
+import { kittyApiHeaders, getKittyApiBase } from "@/lib/kitty-api";
 
-const KITTY_API_BASE = process.env.KITTY_API_BASE ?? "https://kittyapi.buzz";
-const MIRURO_API_BASE = `${KITTY_API_BASE.replace(/\/$/, "")}/miruro`;
+const MIRURO_API_BASE = `${getKittyApiBase()}/miruro`;
 
 /** External VTT providers — bonk first (best subtitle support per Miruro pipe). */
 export const MIRURO_SUB_PROVIDERS = ["bonk", "ally", "kiwi", "moo", "pewe"] as const;
@@ -113,10 +113,7 @@ const episodeListCache = new Map<number, { payload: MiruroEpisodesPayload; at: n
 const EPISODE_LIST_TTL_MS = 5 * 60_000;
 
 function miruroHeaders(): HeadersInit {
-  const headers: HeadersInit = {};
-  const apiKey = process.env.KITTY_API_KEY;
-  if (apiKey) headers["x-api-key"] = apiKey;
-  return headers;
+  return kittyApiHeaders();
 }
 
 async function miruroFetch<T>(
@@ -619,7 +616,7 @@ export async function fetchAnitakuSubtitleStreamFallback(opts: {
   episode: number;
   audio: "sub" | "dub";
 }): Promise<MiruroStreamResult | null> {
-  const url = `${KITTY_API_BASE}/provider/${encodeURIComponent(ANITAKU_FALLBACK_PROVIDER)}/stream-direct?anilistId=${opts.anilistId}&episode=${opts.episode}&audio=${opts.audio}`;
+  const url = `${getKittyApiBase()}/provider/${encodeURIComponent(ANITAKU_FALLBACK_PROVIDER)}/stream-direct?anilistId=${opts.anilistId}&episode=${opts.episode}&audio=${opts.audio}`;
 
   try {
     const res = await fetch(url, {

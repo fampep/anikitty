@@ -10,9 +10,10 @@ import { anisurgeContinue } from "@/lib/anisurge";
 import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
-  KITTY_PROVIDERS,
-  KittyProvider,
+  type KittyProvider,
 } from "@/query/get-kitty-stream";
+import { normalizeKittyProvider } from "@/lib/kitty-providers";
+import ProviderSelect, { ProviderQuickPick } from "@/components/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   MIRURO_PIPE_PROVIDERS,
@@ -27,7 +28,6 @@ import {
   Loader2,
   AlertCircle,
   Cat,
-  Server,
   Users,
   SlidersHorizontal,
   Sparkles,
@@ -86,8 +86,7 @@ const VideoPlayerSection = () => {
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kittyProvider");
-      if (saved && KITTY_PROVIDERS.includes(saved as KittyProvider))
-        return saved as KittyProvider;
+      return normalizeKittyProvider(saved);
     }
     return DEFAULT_PROVIDER;
   });
@@ -305,6 +304,8 @@ const VideoPlayerSection = () => {
     return () => window.removeEventListener("beforeunload", onUnload);
   }, [saveProgress]);
 
+  const animeTitle = anime?.anime?.info?.name || undefined;
+
   const {
     data: streamData,
     isLoading,
@@ -316,6 +317,7 @@ const VideoPlayerSection = () => {
     audio,
     provider,
     provider === "Miruro" ? miruroPipe : null,
+    animeTitle,
   );
 
   const loadingThumbnail =
@@ -407,21 +409,7 @@ const VideoPlayerSection = () => {
           </AlertDescription>
         </Alert>
 
-        <div className="flex flex-wrap gap-1.5">
-          {KITTY_PROVIDERS.map((p) => (
-            <button
-              key={p}
-              onClick={() => handleProviderChange(p)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors ${
-                p === provider
-                  ? "bg-white/15 border-white/30 text-white"
-                  : "bg-transparent border-white/10 text-white/40 hover:border-white/25 hover:text-white/70"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+        <ProviderQuickPick value={provider} onChange={handleProviderChange} />
 
         <Button
           size="sm"
@@ -478,21 +466,7 @@ const VideoPlayerSection = () => {
         {/* Row 1 — stream source */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 mr-auto min-w-0">
-            <Server className="w-3.5 h-3.5 text-violet-400/50 shrink-0" />
-            <Select value={provider} onValueChange={(v) => handleProviderChange(v as KittyProvider)}>
-              <SelectTrigger className="h-8 w-[min(100%,130px)] text-[11px] font-mono bg-white/[0.04] border-white/12 text-white/70 hover:bg-white/[0.07]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0e0e0e] border-white/10">
-                <SelectGroup>
-                  {KITTY_PROVIDERS.map((p) => (
-                    <SelectItem key={p} value={p} className="text-xs font-mono text-white/75">
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            <ProviderSelect value={provider} onChange={handleProviderChange} compact />
 
             {provider === "Miruro" && (
               <Select value={miruroPipe} onValueChange={(v) => handleMiruroPipeChange(v as MiruroPipeProviderId)}>
@@ -548,6 +522,11 @@ const VideoPlayerSection = () => {
             {streamData?.miruroPipe && provider === "Miruro" && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300/70">
                 {streamData.miruroPipe}
+              </span>
+            )}
+            {streamData?.server && provider === "AnimeSogo" && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/70">
+                {streamData.server}
               </span>
             )}
             {subtitleTracks.length > 0 && (
