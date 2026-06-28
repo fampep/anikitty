@@ -832,6 +832,8 @@
     "providerGroupFeatured": "Anbefalet",
     "providerGroupOther": "Flere udbydere",
     "providerSubsBadge": "Undertekster",
+    "hardSubBadge": "Hard sub",
+    "softSubBadge": "Soft sub",
     "chapters": "kapitler",
     "subtitlesAvailable": "Undertekster tilgængelige — brug CC-knappen i afspilleren",
     "subtitleTracks": "{count} undertekstspor",

@@ -785,6 +785,8 @@
     "providerGroupFeatured": "Recommandés",
     "providerGroupOther": "Autres sources",
     "providerSubsBadge": "Sous-titres",
+    "hardSubBadge": "Hard sub",
+    "softSubBadge": "Soft sub",
     "subtitlesAvailable": "Sous-titres disponibles — utilisez le bouton CC du lecteur",
     "subtitleTracks": "{count} piste(s) de sous-titres",
     "downloadEpisode": "Télécharger",

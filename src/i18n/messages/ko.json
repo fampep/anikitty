@@ -832,6 +832,8 @@
     "providerGroupFeatured": "추천",
     "providerGroupOther": "기타 제공자",
     "providerSubsBadge": "자막",
+    "hardSubBadge": "하드 자막",
+    "softSubBadge": "소프트 자막",
     "chapters": "챕터",
     "subtitlesAvailable": "자막 사용 가능 — 플레이어의 CC 버튼을 사용하세요",
     "subtitleTracks": "자막 트랙 {count}개",

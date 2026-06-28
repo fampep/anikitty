@@ -831,6 +831,8 @@
     "providerGroupFeatured": "Recommended",
     "providerGroupOther": "More providers",
     "providerSubsBadge": "Subs",
+    "hardSubBadge": "Hard sub",
+    "softSubBadge": "Soft sub",
     "chapters": "chapters",
     "subtitlesAvailable": "Subtitles available — use the CC button in the player",
     "subtitleTracks": "{count} subtitle track(s)",

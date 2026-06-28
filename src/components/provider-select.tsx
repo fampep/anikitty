@@ -12,11 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/animex-api";
-import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/miruro-api";
+import { MIRURO_PIPE_PROVIDERS, MIRURO_SSUB_PROVIDERS, type MiruroPipeProviderId } from "@/lib/miruro-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   kittyProvidersByGroup,
   kittyProvidersForAudioMode,
+  type KittyProviderMeta,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty-providers";
@@ -153,6 +154,113 @@ export function ProviderQuickPick({
   );
 }
 
+const BADGE_STYLES = {
+  sub: "bg-teal-500/15 border-teal-500/25 text-teal-300/90",
+  dub: "bg-amber-500/15 border-amber-500/25 text-amber-300/90",
+  multi: "bg-violet-500/15 border-violet-500/25 text-violet-300/90",
+  subs: "bg-teal-500/15 border-teal-500/25 text-teal-300/90",
+  hsub: "bg-sky-500/15 border-sky-500/25 text-sky-300/90",
+  ssub: "bg-cyan-500/15 border-cyan-500/25 text-cyan-300/90",
+} as const;
+
+function CapabilityBadge({
+  label,
+  variant,
+  icon,
+}: {
+  label: string;
+  variant: keyof typeof BADGE_STYLES;
+  icon?: ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded px-1 py-px text-[8px] font-mono uppercase leading-none border",
+        BADGE_STYLES[variant],
+      )}
+    >
+      {icon}
+      {label}
+    </span>
+  );
+}
+
+function ProviderMetaBadges({
+  meta,
+  rowMode,
+}: {
+  meta: KittyProviderMeta;
+  rowMode: ProviderAudioMode;
+}) {
+  const t = useT();
+  const hasSubs = meta.nativeSubs || meta.kittySubs;
+
+  return (
+    <span className="inline-flex items-center gap-0.5 shrink-0">
+      {rowMode === "multi" && meta.supportsMulti && (
+        <>
+          <CapabilityBadge label={t("card.sub")} variant="sub" />
+          <CapabilityBadge label={t("card.dub")} variant="dub" />
+          <CapabilityBadge label={t("watch.multi")} variant="multi" />
+        </>
+      )}
+      {rowMode === "sub" && meta.supportsDub && (
+        <CapabilityBadge label={t("card.dub")} variant="dub" />
+      )}
+      {rowMode === "dub" && (
+        <CapabilityBadge label={t("card.sub")} variant="sub" />
+      )}
+      {hasSubs && (
+        <CapabilityBadge
+          label={t("watch.providerSubsBadge")}
+          variant="subs"
+          icon={<Captions className="w-2 h-2" />}
+        />
+      )}
+    </span>
+  );
+}
+
+function AnimexServerBadges({ server }: { server: (typeof ANIMEX_SERVERS)[number] }) {
+  const t = useT();
+  const hint = server.hint.toLowerCase();
+
+  return (
+    <span className="inline-flex items-center gap-0.5 shrink-0">
+      {(server.modes as readonly ProviderAudioMode[]).includes("multi") && (
+        <CapabilityBadge label={t("watch.multi")} variant="multi" />
+      )}
+      {(server.modes as readonly ProviderAudioMode[]).includes("sub") && (
+        <CapabilityBadge label={t("card.sub")} variant="sub" />
+      )}
+      {(server.modes as readonly ProviderAudioMode[]).includes("dub") && (
+        <CapabilityBadge label={t("card.dub")} variant="dub" />
+      )}
+      {hint.includes("hard sub") && (
+        <CapabilityBadge label={t("watch.hardSubBadge")} variant="hsub" />
+      )}
+      {hint.includes("soft sub") && (
+        <CapabilityBadge label={t("watch.softSubBadge")} variant="ssub" />
+      )}
+    </span>
+  );
+}
+
+function MiruroPipeBadges({ pipeId }: { pipeId: MiruroPipeProviderId }) {
+  const t = useT();
+  const hasSoftSub = (MIRURO_SSUB_PROVIDERS as readonly string[]).includes(pipeId);
+
+  if (!hasSoftSub) return null;
+
+  return (
+    <CapabilityBadge
+      label={t("watch.softSubBadge")}
+      variant="ssub"
+      icon={<Captions className="w-2 h-2" />}
+    />
+  );
+}
+
 const PROVIDER_ROW_STYLES: Record<
   ProviderAudioMode,
   { active: string; idle: string; label: string; expanded: string }
@@ -265,13 +373,14 @@ export function ProviderGrid({
                     }
                     title={p.hint}
                     className={cn(
-                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
+                      "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
                       isActive ? styles.active : styles.idle,
                       isExpanded && styles.expanded,
                       p.id === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
                     )}
                   >
-                    {p.label}
+                    <span className="truncate">{p.label}</span>
+                    <ProviderMetaBadges meta={p} rowMode={mode} />
                     {isMulti && mode === "multi" && (
                       <ChevronDown
                         className={cn(
@@ -299,13 +408,14 @@ export function ProviderGrid({
                 onClick={() => onMiruroPipeChange(p.id)}
                 title={p.native ? undefined : "embed"}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
                   miruroPipe === p.id
                     ? "bg-violet-500/25 border-violet-400/45 text-violet-100"
                     : "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
                 )}
               >
-                {p.native ? p.label : `${p.label}*`}
+                <span>{p.native ? p.label : `${p.label}*`}</span>
+                <MiruroPipeBadges pipeId={p.id} />
               </button>
             ))}
           </div>
@@ -323,13 +433,14 @@ export function ProviderGrid({
                 onClick={() => onAnimexServerChange(s.id)}
                 title={s.hint}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
                   animexServer === s.id
                     ? "bg-rose-500/25 border-rose-400/45 text-rose-100"
                     : "border-white/10 text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
                 )}
               >
-                {s.label}
+                <span>{s.label}</span>
+                <AnimexServerBadges server={s} />
               </button>
             ))}
           </div>

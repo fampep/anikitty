@@ -832,6 +832,8 @@
     "providerGroupFeatured": "Recomendados",
     "providerGroupOther": "Mais provedores",
     "providerSubsBadge": "Legendas",
+    "hardSubBadge": "Legenda fixa",
+    "softSubBadge": "Legenda soft",
     "chapters": "capítulos",
     "subtitlesAvailable": "Legendas disponíveis — use o botão CC no player",
     "subtitleTracks": "{count} faixa(s) de legenda",

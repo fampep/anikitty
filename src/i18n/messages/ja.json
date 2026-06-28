@@ -832,6 +832,8 @@
     "providerGroupFeatured": "おすすめ",
     "providerGroupOther": "その他",
     "providerSubsBadge": "字幕",
+    "hardSubBadge": "ハード字幕",
+    "softSubBadge": "ソフト字幕",
     "chapters": "チャプター",
     "subtitlesAvailable": "字幕あり — プレイヤーの CC ボタンを使用",
     "subtitleTracks": "{count} 字幕トラック",
