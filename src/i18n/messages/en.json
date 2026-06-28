@@ -37,6 +37,11 @@
     "signOut": "Sign out",
     "anisurge": "Anisurge"
   },
+  "site": {
+    "beta": "Beta",
+    "version": "v{version}",
+    "betaVersionAria": "AniKitty beta, version {version}"
+  },
   "footer": {
     "tagline": "Free anime streaming. No ads. No limits.",
     "online": "{count} online",

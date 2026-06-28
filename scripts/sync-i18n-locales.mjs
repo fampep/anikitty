@@ -800,6 +800,11 @@ const forumChatPatch = {
 /** Notifications, DMs, profile message, episode alerts — per-locale translations. */
 const inboxAlertsPatch = {
   de: {
+    site: {
+      beta: "Beta",
+      version: "v{version}",
+      betaVersionAria: "AniKitty Beta, Version {version}",
+    },
     notifications: {
       title: "Benachrichtigungen",
       empty: "Noch keine Benachrichtigungen",
@@ -837,6 +842,11 @@ const inboxAlertsPatch = {
     },
   },
   es: {
+    site: {
+      beta: "Beta",
+      version: "v{version}",
+      betaVersionAria: "AniKitty beta, versión {version}",
+    },
     notifications: {
       title: "Notificaciones",
       empty: "Aún no hay notificaciones",
@@ -874,6 +884,11 @@ const inboxAlertsPatch = {
     },
   },
   pt: {
+    site: {
+      beta: "Beta",
+      version: "v{version}",
+      betaVersionAria: "AniKitty beta, versão {version}",
+    },
     notifications: {
       title: "Notificações",
       empty: "Nenhuma notificação ainda",
@@ -911,6 +926,11 @@ const inboxAlertsPatch = {
     },
   },
   da: {
+    site: {
+      beta: "Beta",
+      version: "v{version}",
+      betaVersionAria: "AniKitty beta, version {version}",
+    },
     notifications: {
       title: "Notifikationer",
       empty: "Ingen notifikationer endnu",
@@ -948,6 +968,11 @@ const inboxAlertsPatch = {
     },
   },
   ja: {
+    site: {
+      beta: "ベータ",
+      version: "v{version}",
+      betaVersionAria: "AniKitty ベータ版、バージョン {version}",
+    },
     notifications: {
       title: "通知",
       empty: "通知はまだありません",
@@ -985,6 +1010,11 @@ const inboxAlertsPatch = {
     },
   },
   ko: {
+    site: {
+      beta: "베타",
+      version: "v{version}",
+      betaVersionAria: "AniKitty 베타, 버전 {version}",
+    },
     notifications: {
       title: "알림",
       empty: "알림이 아직 없습니다",
@@ -1022,6 +1052,11 @@ const inboxAlertsPatch = {
     },
   },
   zh: {
+    site: {
+      beta: "测试版",
+      version: "v{version}",
+      betaVersionAria: "AniKitty 测试版，版本 {version}",
+    },
     notifications: {
       title: "通知",
       empty: "暂无通知",

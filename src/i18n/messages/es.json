@@ -37,6 +37,11 @@
     "signOut": "Cerrar sesión",
     "anisurge": "Anisurge"
   },
+  "site": {
+    "beta": "Beta",
+    "version": "v{version}",
+    "betaVersionAria": "AniKitty beta, versión {version}"
+  },
   "footer": {
     "tagline": "Anime gratis. Sin anuncios. Sin límites.",
     "online": "{count} en línea",

@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
+import SiteBetaBadge from "@/components/site-beta-badge";
 import SiteAnnouncementBanner from "@/components/site-announcement-banner";
 import I18nRoot from "@/components/i18n-root";
 import Script from "next/script";
@@ -121,6 +122,7 @@ export default async function RootLayout({
               <SiteAnnouncementBanner />
               {children}
               <Footer />
+              <SiteBetaBadge />
             </QueryProvider>
           </ThemeProvider>
         </I18nRoot>

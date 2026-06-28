@@ -37,6 +37,11 @@
     "signOut": "로그아웃",
     "anisurge": "Anisurge"
   },
+  "site": {
+    "beta": "베타",
+    "version": "v{version}",
+    "betaVersionAria": "AniKitty 베타, 버전 {version}"
+  },
   "footer": {
     "tagline": "무료 애니 스트리밍. 광고 없음. 제한 없음.",
     "online": "{count}명 접속 중",

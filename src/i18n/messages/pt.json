@@ -37,6 +37,11 @@
     "signOut": "Sair",
     "anisurge": "Anisurge"
   },
+  "site": {
+    "beta": "Beta",
+    "version": "v{version}",
+    "betaVersionAria": "AniKitty beta, versão {version}"
+  },
   "footer": {
     "tagline": "Streaming de anime grátis. Sem anúncios. Sem limites.",
     "online": "{count} online",

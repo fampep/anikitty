@@ -37,6 +37,11 @@
     "signOut": "Log ud",
     "anisurge": "Anisurge"
   },
+  "site": {
+    "beta": "Beta",
+    "version": "v{version}",
+    "betaVersionAria": "AniKitty beta, version {version}"
+  },
   "footer": {
     "tagline": "Gratis anime-streaming. Ingen reklamer. Ingen grænser.",
     "online": "{count} online",

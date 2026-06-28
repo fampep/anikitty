@@ -37,6 +37,11 @@
     "anisurge": "Anisurge",
     "subtitles": "Sous-titres"
   },
+  "site": {
+    "beta": "Bêta",
+    "version": "v{version}",
+    "betaVersionAria": "AniKitty bêta, version {version}"
+  },
   "footer": {
     "tagline": "Anime en streaming gratuit. Sans pub. Sans limites.",
     "online": "{count} en ligne",

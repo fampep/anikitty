@@ -37,6 +37,11 @@
     "signOut": "退出登录",
     "anisurge": "Anisurge"
   },
+  "site": {
+    "beta": "测试版",
+    "version": "v{version}",
+    "betaVersionAria": "AniKitty 测试版，版本 {version}"
+  },
   "footer": {
     "tagline": "免费动漫流媒体。无广告。无限制。",
     "online": "{count} 人在线",
