@@ -2,7 +2,13 @@ import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty-api";
 import type { StreamTrack } from "@/lib/subtitle-track-utils";
 
 /** Kitty API /subs providers (MegaPlay embed subtitles). */
-export const KITTY_SUB_PROVIDERS = ["Anikoto", "AnimeSogo", "Anix", "HiAnime"] as const;
+export const KITTY_SUB_PROVIDERS = [
+  "Anikoto",
+  "AnimeSogo",
+  "Anix",
+  "HiAnime",
+  "Animepahe",
+] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS)[number];
 

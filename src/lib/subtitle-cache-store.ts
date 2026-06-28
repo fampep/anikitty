@@ -211,12 +211,21 @@ export async function ensureMiruroSubtitleCache(
 ): Promise<StreamTrack[]> {
   if (await hasFreshCachedSubtitles(ctx)) return [];
 
-  const kitty = await fetchKittySubsTracks({
+  let kitty = await fetchKittySubsTracks({
     anilistId: ctx.anilistId,
     episode: ctx.episode,
     audio: ctx.audio,
     title: ctx.animeTitle,
   });
+
+  if (!kitty?.tracks.length && ctx.audio === "dub") {
+    kitty = await fetchKittySubsTracks({
+      anilistId: ctx.anilistId,
+      episode: ctx.episode,
+      audio: "sub",
+      title: ctx.animeTitle,
+    });
+  }
 
   if (kitty?.tracks.length) {
     return cacheStreamSubtitleTracks(kitty.tracks, {

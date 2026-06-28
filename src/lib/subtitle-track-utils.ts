@@ -4,7 +4,7 @@ import { KITTY_SUB_PROVIDERS, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty-subs
 /** Primary provider for Miruro/Kitty stream subtitle tracks. */
 export const SUBTITLE_SOURCE_PROVIDER = "Miruro";
 
-/** Kitty API /subs (Anikoto, AnimeSogo, Anix, HiAnime). */
+/** Kitty API /subs (MegaPlay: Anikoto, AnimeSogo, Anix, HiAnime, Animepahe). */
 export { KITTY_SUB_SOURCE_PROVIDER };
 
 /** Fast subtitle source scraped via sub.ryuo.to. */

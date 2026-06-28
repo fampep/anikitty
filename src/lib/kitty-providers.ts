@@ -3,6 +3,7 @@ export const KITTY_PROVIDERS = [
   "AnimeSogo",
   "Anix",
   "HiAnime",
+  "Animepahe",
   "Anikoto",
   "Anitaku",
   "Anikage",
@@ -63,6 +64,14 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "hianimez.org · MegaPlay subs",
   },
   {
+    id: "Animepahe",
+    label: "Animepahe",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "animepahetv.to · Megaplay / Vidplay",
+  },
+  {
     id: "Anikoto",
     label: "Anikoto",
     group: "featured",
@@ -102,6 +111,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AnimeSogo",
   "Anix",
   "HiAnime",
+  "Animepahe",
   "Anikoto",
 ]);
 

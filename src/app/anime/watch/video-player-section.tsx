@@ -12,7 +12,7 @@ import {
   useGetKittyStream,
   type KittyProvider,
 } from "@/query/get-kitty-stream";
-import { normalizeKittyProvider } from "@/lib/kitty-providers";
+import { normalizeKittyProvider, providerHasNativeSubs } from "@/lib/kitty-providers";
 import ProviderSelect, { ProviderQuickPick } from "@/components/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
@@ -524,7 +524,7 @@ const VideoPlayerSection = () => {
                 {streamData.miruroPipe}
               </span>
             )}
-            {streamData?.server && provider === "AnimeSogo" && (
+            {streamData?.server && providerHasNativeSubs(provider) && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/70">
                 {streamData.server}
               </span>
