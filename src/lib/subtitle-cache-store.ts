@@ -383,19 +383,6 @@ function proxySubtitleTrack(
   return { ...track, file: subtitleProxyUrl(file, headers) };
 }
 
-/** Fetch all missing episodes — only via explicit user action (fetchAll API). */
-export async function ensureFullShowSubtitleCache(
-  anilistId: number,
-  episodeCount?: number,
-): Promise<void> {
-  await ensureIncrementalSubtitleCache(anilistId, {
-    maxEpisodes: Number.MAX_SAFE_INTEGER,
-    delayMs: SUBTITLE_API_INTERVAL_MS,
-    episodeCount,
-    force: true,
-  });
-}
-
 async function getCachedEpisodeNumbers(anilistId: number): Promise<Set<number>> {
   const rows = await listAnimeSubtitles(anilistId);
   return new Set(rows.map((row) => row.episode));
@@ -668,56 +655,6 @@ export async function getAnimeSubtitleEpisodeCoverage(
   }
 
   return { cachedEpisodes, missingEpisodes, totalEpisodes };
-}
-
-export type SubtitleArchiveRow = {
-  anilistId: number;
-  episode: number;
-  label: string;
-  content: string;
-};
-
-/** Subtitle file contents for ZIP batch downloads. */
-export async function getSubtitleArchiveRows(
-  anilistId: number,
-  episodes?: number[],
-): Promise<SubtitleArchiveRow[]> {
-  if (!dbAvailable()) return [];
-
-  try {
-    const db = getDb();
-    const conditions = [
-      eq(episodeSubtitles.anilistId, anilistId),
-      subtitleProviderFilter(),
-    ];
-
-    if (episodes && episodes.length > 0) {
-      conditions.push(inArray(episodeSubtitles.episode, episodes));
-    }
-
-    const rows = await db
-      .select({
-        anilistId: episodeSubtitles.anilistId,
-        episode: episodeSubtitles.episode,
-        label: episodeSubtitles.label,
-        content: episodeSubtitles.content,
-        fetchedAt: episodeSubtitles.fetchedAt,
-      })
-      .from(episodeSubtitles)
-      .where(and(...conditions))
-      .orderBy(asc(episodeSubtitles.episode), asc(episodeSubtitles.label));
-
-    return rows
-      .filter((row) => !isStale(row.fetchedAt) && row.content.trim())
-      .map(({ anilistId: aid, episode, label, content }) => ({
-        anilistId: aid,
-        episode,
-        label,
-        content,
-      }));
-  } catch {
-    return [];
-  }
 }
 
 export type SubtitleLibraryStats = {

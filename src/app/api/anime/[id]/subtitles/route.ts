@@ -1,11 +1,8 @@
 import {
   ensureMiruroSubtitleCache,
-  ensureFullShowSubtitleCache,
   getAnimeSubtitleEpisodeCoverage,
-  getSubtitleLibraryStats,
   listAnimeSubtitles,
 } from "@/lib/subtitle-cache-store";
-import { getEnrichedSubtitleLibraryEntriesByIds } from "@/lib/subtitle-library-enrich";
 import {
   buildSubtitleFilename,
   subtitleDownloadUrl,
@@ -27,19 +24,16 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const episodeParam = searchParams.get("episode");
   const fetch = searchParams.get("fetch") === "1";
-  const fetchAll = searchParams.get("fetchAll") === "1";
   const includeCoverage = searchParams.get("coverage") === "1";
   const audioParam = searchParams.get("audio");
   const fetchAudio = audioParam === "dub" ? "dub" : "sub";
 
-  if (fetchAll) {
-    await ensureFullShowSubtitleCache(anilistId);
-  } else if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
+  if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
     const episode = parseInt(episodeParam, 10);
     if (episode > 0) {
       await ensureMiruroSubtitleCache(
         { anilistId, episode, audio: fetchAudio },
-        { force: fetch || fetchAll },
+        { force: true },
       );
     }
   }
@@ -75,20 +69,11 @@ export async function GET(
       };
     });
 
-  let libraryEntry = null;
-  let stats = null;
   let coverage = null;
 
-  if (fetchAll) {
-    const entries = await getEnrichedSubtitleLibraryEntriesByIds([anilistId]);
-    libraryEntry = entries[0] ?? null;
-    stats = await getSubtitleLibraryStats();
-  }
-
   if (includeCoverage) {
-    const entries = libraryEntry
-      ? [libraryEntry]
-      : await getEnrichedSubtitleLibraryEntriesByIds([anilistId]);
+    const { getEnrichedSubtitleLibraryEntriesByIds } = await import("@/lib/subtitle-library-enrich");
+    const entries = await getEnrichedSubtitleLibraryEntriesByIds([anilistId]);
     coverage = await getAnimeSubtitleEpisodeCoverage(
       anilistId,
       entries[0]?.totalEpisodes ?? null,
@@ -97,10 +82,8 @@ export async function GET(
 
   return Response.json({
     data: tracks,
-    libraryEntry,
-    stats,
     coverage,
   });
 }
 
-export const maxDuration = 300;
+export const maxDuration = 60;

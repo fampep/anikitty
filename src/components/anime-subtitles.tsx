@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import {
@@ -16,9 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
-  fetchAllAnimeSubtitles,
   fetchAnimeEpisodeSubtitles,
-  downloadSubtitleEpisodesZip,
   useGetAnimeSubtitles,
   type AnimeSubtitleItem,
 } from "@/query/get-anime-subtitles";
@@ -48,10 +46,8 @@ export default function AnimeSubtitles({ anilistId }: Props) {
   const [showMissingOnly, setShowMissingOnly] = useState(
     () => searchParams.get("missing") === "1",
   );
-  const [fetchingEp, setFetchingEp] = useState<number | null>(null);
-  const [fetchingAll, setFetchingAll] = useState(false);
-  const [selectedEps, setSelectedEps] = useState<Set<number>>(() => new Set());
-  const [downloadingZip, setDownloadingZip] = useState(false);
+  const [fetchingEps, setFetchingEps] = useState<Set<number>>(() => new Set());
+  const autoFetchedEps = useRef<Set<number>>(new Set());
 
   const { data: episodesData, isLoading: episodesLoading } = useGetAllEpisodes(String(anilistId));
   const { data: subtitles = [], isLoading: subtitlesLoading, refetch } = useGetAnimeSubtitles(anilistId);
@@ -116,7 +112,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
 
   useEffect(() => {
     setPage(1);
-    setSelectedEps(new Set());
+    autoFetchedEps.current = new Set();
   }, [query, anilistId, showMissingOnly]);
 
   useEffect(() => {
@@ -172,68 +168,46 @@ export default function AnimeSubtitles({ anilistId }: Props) {
     return [...langs].sort((a, b) => a.localeCompare(b));
   }, [subtitles]);
 
-  const handleFetchEpisode = async (episode: number) => {
-    setFetchingEp(episode);
-    try {
-      const tracks = await fetchAnimeEpisodeSubtitles(anilistId, episode, "sub");
-      await refetch();
-      if (tracks.length === 0) {
-        toast.error(t("anime.subtitles.fetchEmpty"));
-      } else {
-        toast.success(t("anime.subtitles.fetchSuccess", { count: tracks.length }));
+  const handleFetchEpisode = useCallback(
+    async (episode: number, opts?: { silent?: boolean }) => {
+      setFetchingEps((prev) => new Set(prev).add(episode));
+      try {
+        const tracks = await fetchAnimeEpisodeSubtitles(anilistId, episode, "sub");
+        await refetch();
+        if (!opts?.silent) {
+          if (tracks.length === 0) {
+            toast.error(t("anime.subtitles.fetchEmpty"));
+          } else {
+            toast.success(t("anime.subtitles.fetchSuccess", { count: tracks.length }));
+          }
+        }
+      } catch {
+        autoFetchedEps.current.delete(episode);
+        if (!opts?.silent) {
+          toast.error(t("anime.subtitles.fetchError"));
+        }
+      } finally {
+        setFetchingEps((prev) => {
+          const next = new Set(prev);
+          next.delete(episode);
+          return next;
+        });
       }
-    } catch {
-      toast.error(t("anime.subtitles.fetchError"));
-    } finally {
-      setFetchingEp(null);
+    },
+    [anilistId, refetch, t],
+  );
+
+  useEffect(() => {
+    for (const group of pageEpisodes) {
+      if (group.tracks.length > 0) continue;
+      if (autoFetchedEps.current.has(group.number)) continue;
+
+      autoFetchedEps.current.add(group.number);
+      void handleFetchEpisode(group.number, { silent: true });
     }
-  };
+  }, [pageEpisodes, handleFetchEpisode]);
 
-  const handleFetchAll = async () => {
-    setFetchingAll(true);
-    try {
-      await fetchAllAnimeSubtitles(anilistId);
-      await refetch();
-      toast.success(t("anime.subtitles.fetchAllSuccess"));
-    } catch {
-      toast.error(t("anime.subtitles.fetchAllError"));
-    } finally {
-      setFetchingAll(false);
-    }
-  };
-
-  const handleDownloadEpisodes = async (episodes?: number[]) => {
-    if (episodes && episodes.length === 0) return;
-    setDownloadingZip(true);
-    try {
-      await downloadSubtitleEpisodesZip(anilistId, episodes);
-      toast.success(t("anime.subtitles.downloadZipSuccess"));
-    } catch {
-      toast.error(t("anime.subtitles.downloadZipError"));
-    } finally {
-      setDownloadingZip(false);
-    }
-  };
-
-  const toggleEpisodeSelection = (episode: number) => {
-    setSelectedEps((prev) => {
-      const next = new Set(prev);
-      if (next.has(episode)) next.delete(episode);
-      else next.add(episode);
-      return next;
-    });
-  };
-
-  const selectAllOnPage = () => {
-    const downloadable = pageEpisodes.filter((g) => g.tracks.length > 0).map((g) => g.number);
-    setSelectedEps((prev) => new Set([...prev, ...downloadable]));
-  };
-
-  const clearSelection = () => setSelectedEps(new Set());
-
-  const busy = fetchingEp !== null || fetchingAll || downloadingZip;
-  const selectedList = [...selectedEps].sort((a, b) => a - b);
-  const pageDownloadableCount = pageEpisodes.filter((g) => g.tracks.length > 0).length;
+  const busy = fetchingEps.size > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -255,22 +229,6 @@ export default function AnimeSubtitles({ anilistId }: Props) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {cachedEpisodes > 0 && (
-              <button
-                type="button"
-                onClick={() => handleDownloadEpisodes()}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold bg-white/8 border border-white/12 text-white/75 hover:bg-white/12 transition-colors disabled:opacity-50"
-              >
-                {downloadingZip ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Download className="w-3.5 h-3.5" />
-                )}
-                {t("anime.subtitles.downloadAllCached")}
-              </button>
-            )}
-
             {totalEpisodes > 0 && missingCount > 0 && (
               <button
                 type="button"
@@ -286,24 +244,6 @@ export default function AnimeSubtitles({ anilistId }: Props) {
                 {showMissingOnly
                   ? t("anime.subtitles.showAllEpisodes")
                   : t("anime.subtitles.showMissingOnly", { count: missingCount })}
-              </button>
-            )}
-
-            {totalEpisodes > 0 && missingCount > 0 && (
-              <button
-                type="button"
-                onClick={handleFetchAll}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold bg-teal-500/20 border border-teal-500/30 text-teal-200 hover:bg-teal-500/30 transition-colors disabled:opacity-50"
-              >
-                {fetchingAll ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                {fetchingAll
-                  ? t("anime.subtitles.fetchAllProgress")
-                  : t("anime.subtitles.fetchAll")}
               </button>
             )}
           </div>
@@ -418,30 +358,14 @@ export default function AnimeSubtitles({ anilistId }: Props) {
         <EpisodeThumbnailSkeletons />
       ) : pageEpisodes.length > 0 ? (
         <>
-          {pageDownloadableCount > 0 && (
-            <BatchDownloadBar
-              selectedCount={selectedEps.size}
-              pageDownloadableCount={pageDownloadableCount}
-              downloading={downloadingZip}
-              onSelectPage={selectAllOnPage}
-              onClear={clearSelection}
-              onDownloadSelected={() => handleDownloadEpisodes(selectedList)}
-            />
-          )}
-
           <div className="flex flex-col gap-3">
             {pageEpisodes.map((group) => (
               <EpisodeSubtitleCard
                 key={group.number}
                 group={group}
                 busy={busy}
-                fetchingEp={fetchingEp}
-                fetchingAll={fetchingAll}
-                selected={selectedEps.has(group.number)}
-                canSelect={group.tracks.length > 0}
-                onToggleSelect={() => toggleEpisodeSelection(group.number)}
+                fetching={fetchingEps.has(group.number)}
                 onFetch={() => handleFetchEpisode(group.number)}
-                onDownloadEpisode={() => handleDownloadEpisodes([group.number])}
               />
             ))}
           </div>
@@ -457,7 +381,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
       ) : (
         <EmptySubtitles
           totalEpisodes={totalEpisodes}
-          fetchingEp={fetchingEp}
+          fetching={fetchingEps.has(1)}
           onFetchEpisode={handleFetchEpisode}
         />
       )}
@@ -465,149 +389,32 @@ export default function AnimeSubtitles({ anilistId }: Props) {
   );
 }
 
-function BatchDownloadBar({
-  selectedCount,
-  pageDownloadableCount,
-  downloading,
-  onSelectPage,
-  onClear,
-  onDownloadSelected,
-}: {
-  selectedCount: number;
-  pageDownloadableCount: number;
-  downloading: boolean;
-  onSelectPage: () => void;
-  onClear: () => void;
-  onDownloadSelected: () => void;
-}) {
-  const t = useT();
-
-  return (
-    <div className="sticky top-16 z-20 flex items-center justify-between gap-3 flex-wrap rounded-xl border border-teal-500/15 bg-[#0a0a0a]/95 backdrop-blur-md px-4 py-2.5 shadow-lg shadow-black/30">
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={onSelectPage}
-          disabled={downloading || pageDownloadableCount === 0}
-          className="text-[11px] font-medium text-white/45 hover:text-white/70 transition-colors disabled:opacity-40"
-        >
-          {t("anime.subtitles.selectAllPage")}
-        </button>
-        {selectedCount > 0 && (
-          <>
-            <span className="text-white/15">·</span>
-            <button
-              type="button"
-              onClick={onClear}
-              disabled={downloading}
-              className="text-[11px] font-medium text-white/45 hover:text-white/70 transition-colors disabled:opacity-40"
-            >
-              {t("anime.subtitles.clearSelection")}
-            </button>
-            <span className="text-[10px] font-mono text-white/25">
-              {t("anime.subtitles.selectedCount", { count: selectedCount })}
-            </span>
-          </>
-        )}
-      </div>
-
-      {selectedCount > 0 && (
-        <button
-          type="button"
-          onClick={onDownloadSelected}
-          disabled={downloading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-teal-500/15 border border-teal-500/25 text-teal-300 hover:bg-teal-500/25 transition-colors disabled:opacity-50"
-        >
-          {downloading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Download className="w-3.5 h-3.5" />
-          )}
-          {t("anime.subtitles.downloadSelected", { count: selectedCount })}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function EpisodeThumbnail({ image, episode }: { image?: string | null; episode: number }) {
-  return (
-    <div className="absolute inset-0 bg-[#0d0d0d]">
-      {image ? (
-        <Image
-          src={image}
-          alt={`Episode ${episode}`}
-          fill
-          className="object-cover"
-          unoptimized
-          sizes="160px"
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-white/[0.02]">
-          <span className="text-2xl font-black font-mono text-white/10 select-none">
-            {String(episode).padStart(2, "0")}
-          </span>
-        </div>
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-    </div>
-  );
-}
-
 function EpisodeSubtitleCard({
   group,
   busy,
-  fetchingEp,
-  fetchingAll,
-  selected,
-  canSelect,
-  onToggleSelect,
+  fetching,
   onFetch,
-  onDownloadEpisode,
 }: {
   group: EpisodeRow;
   busy: boolean;
-  fetchingEp: number | null;
-  fetchingAll: boolean;
-  selected: boolean;
-  canSelect: boolean;
-  onToggleSelect: () => void;
+  fetching: boolean;
   onFetch: () => void;
-  onDownloadEpisode: () => void;
 }) {
   const t = useT();
-  const isFetching =
-    fetchingEp === group.number || (fetchingAll && group.tracks.length === 0);
 
   return (
     <div
       id={`ep-${group.number}`}
       className={cn(
         "rounded-xl border bg-white/[0.02] overflow-hidden transition-all hover:border-white/12 scroll-mt-24",
-        selected ? "border-teal-500/35 ring-1 ring-teal-500/15" : "border-white/8",
+        "border-white/8",
         group.tracks.length === 0 && "border-amber-500/15",
       )}
     >
       <div className="flex flex-col sm:flex-row gap-0">
         <div className="relative w-full sm:w-44 shrink-0 aspect-[16/9] sm:border-r border-white/6 overflow-hidden">
-          {canSelect && (
-            <button
-              type="button"
-              onClick={onToggleSelect}
-              disabled={busy}
-              className={cn(
-                "absolute top-2 left-2 z-20 w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                selected
-                  ? "bg-teal-500 border-teal-400 text-white"
-                  : "bg-black/55 border-white/25 text-transparent hover:border-white/45",
-              )}
-              aria-label={`Select episode ${group.number}`}
-            >
-              {selected && <span className="text-[10px] font-bold leading-none">✓</span>}
-            </button>
-          )}
           <EpisodeThumbnail image={group.image} episode={group.number} />
-          {isFetching && (
+          {fetching && (
             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 z-10">
               <Loader2 className="w-5 h-5 text-teal-300 animate-spin" />
             </div>
@@ -627,8 +434,8 @@ function EpisodeSubtitleCard({
                 )}
               </p>
               <p className="text-[10px] font-mono text-white/25 mt-0.5">
-                {isFetching
-                  ? t("anime.subtitles.fetchAllProgress")
+                {fetching
+                  ? t("subsLibrary.fetching")
                   : group.tracks.length > 0
                     ? t("anime.subtitles.trackCount", { count: group.tracks.length })
                     : t("anime.subtitles.noTracks")}
@@ -654,29 +461,18 @@ function EpisodeSubtitleCard({
               {group.tracks.length > 0 && (
                 <button
                   type="button"
-                  onClick={onDownloadEpisode}
+                  onClick={onFetch}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-teal-500/20 text-teal-300/90 hover:bg-teal-500/10 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/45 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50"
                 >
-                  <Download className="w-3 h-3" />
-                  {t("anime.subtitles.downloadEpisode")}
+                  {fetching ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3" />
+                  )}
+                  {t("anime.subtitles.refresh")}
                 </button>
               )}
-              <button
-                type="button"
-                onClick={onFetch}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/45 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50"
-              >
-                {fetchingEp === group.number ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3 h-3" />
-                )}
-                {group.tracks.length > 0
-                  ? t("anime.subtitles.refresh")
-                  : t("anime.subtitles.fetchEpisode", { n: group.number })}
-              </button>
             </div>
           </div>
 
@@ -686,13 +482,37 @@ function EpisodeSubtitleCard({
                 <SubtitleTrackRow key={track.id} track={track} />
               ))}
             </div>
-          ) : !isFetching ? (
+          ) : !fetching ? (
             <div className="flex-1 flex items-center justify-center px-4 py-5">
               <p className="text-xs text-white/35">{t("anime.subtitles.noTracks")}</p>
             </div>
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function EpisodeThumbnail({ image, episode }: { image?: string | null; episode: number }) {
+  return (
+    <div className="absolute inset-0 bg-[#0d0d0d]">
+      {image ? (
+        <Image
+          src={image}
+          alt={`Episode ${episode}`}
+          fill
+          className="object-cover"
+          unoptimized
+          sizes="160px"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-white/[0.02]">
+          <span className="text-2xl font-black font-mono text-white/10 select-none">
+            {String(episode).padStart(2, "0")}
+          </span>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
     </div>
   );
 }
@@ -861,11 +681,11 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
 
 function EmptySubtitles({
   totalEpisodes,
-  fetchingEp,
+  fetching,
   onFetchEpisode,
 }: {
   totalEpisodes: number;
-  fetchingEp: number | null;
+  fetching: boolean;
   onFetchEpisode: (episode: number) => void;
 }) {
   const t = useT();
@@ -876,22 +696,23 @@ function EmptySubtitles({
         <Captions className="w-7 h-7 text-teal-400/50" />
       </div>
       <p className="text-sm text-white/50 max-w-md mx-auto leading-relaxed">
-        {t("anime.subtitles.empty")}
+        {fetching ? t("subsLibrary.fetching") : t("anime.subtitles.empty")}
       </p>
-      {totalEpisodes > 0 && (
+      {totalEpisodes > 0 && !fetching && (
         <button
           type="button"
           onClick={() => onFetchEpisode(1)}
-          disabled={fetchingEp !== null}
+          disabled={fetching}
           className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-teal-500/20 border border-teal-500/30 text-teal-200 hover:bg-teal-500/30 transition-colors disabled:opacity-50"
         >
-          {fetchingEp === 1 ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-3.5 h-3.5" />
-          )}
+          <RefreshCw className="w-3.5 h-3.5" />
           {t("anime.subtitles.fetchEpisode", { n: 1 })}
         </button>
+      )}
+      {fetching && (
+        <div className="mt-6 flex justify-center">
+          <Loader2 className="w-5 h-5 text-teal-400/60 animate-spin" />
+        </div>
       )}
     </div>
   );
