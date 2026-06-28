@@ -332,7 +332,22 @@
       "discord": "Discord",
       "anisurge": "Anisurge",
       "twoFactor": "2FA",
-      "passkey": "パスキー"
+      "passkey": "パスキー",
+      "ranksLabel": "ランク",
+      "connectionsLabel": "連携",
+      "currentRank": "現在のランク"
+    },
+    "levelTiers": {
+      "newcomer": "新人",
+      "watcher": "Watcher",
+      "bingewatcher": "Bingewatcher",
+      "enthusiast": "熱心なファン",
+      "fan": "ファン",
+      "weeb": "Weeb",
+      "otaku": "オタク",
+      "senpai": "先輩",
+      "sensei": "先生",
+      "kage": "影"
     }
   },
   "faq": {

@@ -332,7 +332,22 @@
       "discord": "Discord",
       "anisurge": "Anisurge",
       "twoFactor": "2FA",
-      "passkey": "通行密钥"
+      "passkey": "通行密钥",
+      "ranksLabel": "等级",
+      "connectionsLabel": "关联",
+      "currentRank": "当前等级"
+    },
+    "levelTiers": {
+      "newcomer": "新人",
+      "watcher": "Watcher",
+      "bingewatcher": "Bingewatcher",
+      "enthusiast": "爱好者",
+      "fan": "粉丝",
+      "weeb": "Weeb",
+      "otaku": "御宅",
+      "senpai": "前辈",
+      "sensei": "老师",
+      "kage": "影"
     }
   },
   "faq": {

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Fingerprint, ShieldCheck, Zap } from "lucide-react";
 import AnilistIcon from "@/icons/anilist";
 import DiscordIcon from "@/icons/discord";
+import ProfileBadgePill from "@/components/profile-badge-pill";
 import type { AccountBadges } from "@/lib/account-badges";
 import { useT } from "@/providers/i18n-provider";
 
@@ -14,27 +15,6 @@ type BadgeSpec = {
   color: string;
   icon: ReactNode;
 };
-
-function AccountBadge({ label, title, color, icon }: Omit<BadgeSpec, "key">) {
-  const r = parseInt(color.slice(1, 3), 16);
-  const g = parseInt(color.slice(3, 5), 16);
-  const b = parseInt(color.slice(5, 7), 16);
-
-  return (
-    <span
-      className="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
-      style={{
-        color,
-        backgroundColor: `rgba(${r},${g},${b},0.14)`,
-        border: `1px solid rgba(${r},${g},${b},0.32)`,
-      }}
-      title={title ?? label}
-      aria-label={title ?? label}
-    >
-      {icon}
-    </span>
-  );
-}
 
 export default function ProfileAccountBadges({ badges }: { badges: AccountBadges }) {
   const t = useT();
@@ -101,9 +81,9 @@ export default function ProfileAccountBadges({ badges }: { badges: AccountBadges
   if (items.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+    <>
       {items.map((item) => (
-        <AccountBadge
+        <ProfileBadgePill
           key={item.key}
           label={item.label}
           title={item.title}
@@ -111,6 +91,6 @@ export default function ProfileAccountBadges({ badges }: { badges: AccountBadges
           icon={item.icon}
         />
       ))}
-    </div>
+    </>
   );
 }

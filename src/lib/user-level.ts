@@ -54,6 +54,12 @@ export function getTierForLevel(level: number): LevelTier {
   );
 }
 
+/** All rank tiers the user has unlocked by reaching each tier's minimum level. */
+export function getEarnedTiers(level: number): LevelTier[] {
+  const safeLevel = Math.max(1, Math.min(MAX_LEVEL, level));
+  return LEVEL_TIERS.filter((tier) => safeLevel >= tier.minLevel);
+}
+
 export function getNextTier(level: number): LevelTier | null {
   const current = getTierForLevel(level);
   const idx = LEVEL_TIERS.findIndex((t) => t.name === current.name);

@@ -332,7 +332,22 @@
       "discord": "Discord",
       "anisurge": "Anisurge",
       "twoFactor": "2FA",
-      "passkey": "Passkey"
+      "passkey": "Passkey",
+      "ranksLabel": "Ranks",
+      "connectionsLabel": "Connections",
+      "currentRank": "Current rank"
+    },
+    "levelTiers": {
+      "newcomer": "Newcomer",
+      "watcher": "Watcher",
+      "bingewatcher": "Bingewatcher",
+      "enthusiast": "Enthusiast",
+      "fan": "Fan",
+      "weeb": "Weeb",
+      "otaku": "Otaku",
+      "senpai": "Senpai",
+      "sensei": "Sensei",
+      "kage": "Kage"
     }
   },
   "faq": {

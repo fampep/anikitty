@@ -39,7 +39,7 @@ import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { RoleBadge } from "@/components/role-badge";
 import { LevelRoleBadge } from "@/components/user-badges";
-import ProfileAccountBadges from "@/components/profile-account-badges";
+import ProfileBadgesRow from "@/components/profile-badges-row";
 import type { AccountBadges } from "@/lib/account-badges";
 import { useUserLevel } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/level-progress-card";
@@ -413,7 +413,13 @@ function ProfilePage() {
               )}
             </div>
 
-            {accountBadges && <ProfileAccountBadges badges={accountBadges} />}
+            {(accountBadges || displayLevel) && (
+              <ProfileBadgesRow
+                accountBadges={accountBadges}
+                level={displayLevel?.level}
+                currentTierName={displayLevel?.tier.name ?? displayLevel?.levelRole}
+              />
+            )}
 
             {profile.bio && (
               <p className="text-sm text-white/45 mt-2 max-w-md">{profile.bio}</p>
