@@ -60,8 +60,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     group: "featured",
     nativeSubs: true,
     supportsDub: true,
-    supportsMulti: true,
-    hint: "Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi",
+    hint: "Auto · Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi",
   },
   {
     id: "AnimeSogo",

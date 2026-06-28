@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { animexServersForAudioMode, defaultAnimexServerForMode, type AnimexServerId } from "@/lib/animex-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   kittyProvidersByGroup,
@@ -111,18 +112,26 @@ export default function ProviderSelect({
 
 export function ProviderQuickPick({
   value,
-  onChange,
+  audioMode = "sub",
+  animexServer,
+  onSelect,
+  onAnimexSelect,
   className,
 }: {
   value: KittyProvider;
-  onChange: (provider: KittyProvider) => void;
+  audioMode?: ProviderAudioMode;
+  animexServer?: AnimexServerId;
+  onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
+  onAnimexSelect?: (server: AnimexServerId, mode: ProviderAudioMode) => void;
   className?: string;
 }) {
   return (
     <ProviderGrid
       provider={value}
-      audioMode="sub"
-      onSelect={(p) => onChange(p)}
+      audioMode={audioMode}
+      animexServer={animexServer}
+      onSelect={onSelect}
+      onAnimexSelect={onAnimexSelect}
       className={className}
       rows={["sub", "dub", "multi"]}
     />
@@ -154,16 +163,25 @@ type ProviderGridProps = {
   provider: KittyProvider;
   audioMode: ProviderAudioMode;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
+  animexServer?: AnimexServerId;
+  onAnimexSelect?: (server: AnimexServerId, mode: ProviderAudioMode) => void;
   disabled?: boolean;
   className?: string;
   /** Limit which rows render (default: all three). */
   rows?: ProviderAudioMode[];
 };
 
+const ANIMEX_PILL_ACTIVE =
+  "bg-rose-500/25 border-rose-400/45 text-rose-100 ring-1 ring-rose-400/20";
+const ANIMEX_PILL_IDLE =
+  "border-rose-500/20 text-rose-200/55 hover:border-rose-400/35 hover:text-rose-100/85 hover:bg-rose-500/[0.08]";
+
 export function ProviderGrid({
   provider,
   audioMode,
   onSelect,
+  animexServer,
+  onAnimexSelect,
   disabled,
   className,
   rows = ["sub", "dub", "multi"],
@@ -211,7 +229,10 @@ export function ProviderGrid({
                       <span className="w-full h-0 basis-full" aria-hidden />
                     )}
                     {groupItems.map((p) => {
-                      const isActive = provider === p.id && audioMode === mode;
+                      const isActive =
+                        provider === p.id &&
+                        audioMode === mode &&
+                        (p.id !== "Animex" || animexServer === defaultAnimexServerForMode(mode));
                       return (
                         <button
                           key={`${mode}-${p.id}`}
@@ -233,6 +254,26 @@ export function ProviderGrid({
                   </Fragment>
                 );
               })}
+              {onAnimexSelect &&
+                animexServersForAudioMode(mode).map((s) => {
+                  const isActive =
+                    provider === "Animex" && animexServer === s.id && audioMode === mode;
+                  return (
+                    <button
+                      key={`animex-${mode}-${s.id}`}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onAnimexSelect(s.id, mode)}
+                      title={s.hint}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
+                        isActive ? ANIMEX_PILL_ACTIVE : ANIMEX_PILL_IDLE,
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
             </div>
           </div>
         );

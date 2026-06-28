@@ -14,8 +14,8 @@ import {
 } from "@/query/get-kitty-stream";
 import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty-providers";
 import {
-  ANIMEX_SERVERS,
   DEFAULT_ANIMEX_SERVER,
+  defaultAnimexServerForMode,
   isAnimexServerId,
   type AnimexServerId,
 } from "@/lib/animex-api";
@@ -377,10 +377,22 @@ const VideoPlayerSection = () => {
     setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", mode);
-    if (mode === "multi" && p === "Animex") {
-      setAnimexServer("zen");
-      localStorage.setItem("animexServer", "zen");
+    if (p === "Animex") {
+      const server = defaultAnimexServerForMode(mode);
+      setAnimexServer(server);
+      localStorage.setItem("animexServer", server);
     }
+  };
+
+  const handleAnimexGridSelect = (server: AnimexServerId, mode: ProviderAudioMode) => {
+    const t = liveTimeRef.current;
+    if (t > 5) setStartTime(t);
+    setProvider("Animex");
+    setAudioMode(mode);
+    setAnimexServer(server);
+    localStorage.setItem("kittyProvider", "Animex");
+    localStorage.setItem("kittyAudioMode", mode);
+    localStorage.setItem("animexServer", server);
   };
 
   const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
@@ -388,20 +400,6 @@ const VideoPlayerSection = () => {
     if (t > 5) setStartTime(t);
     setMiruroPipe(pipe);
     localStorage.setItem("miruroPipe", pipe);
-  };
-
-  const handleAnimexServerChange = (server: AnimexServerId) => {
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
-    setAnimexServer(server);
-    localStorage.setItem("animexServer", server);
-    if (server === "zen") {
-      setAudioMode("multi");
-      localStorage.setItem("kittyAudioMode", "multi");
-    } else if (audioMode === "multi") {
-      setAudioMode("sub");
-      localStorage.setItem("kittyAudioMode", "sub");
-    }
   };
 
   const handleAnime4kToggle = () => {
@@ -450,7 +448,10 @@ const VideoPlayerSection = () => {
 
         <ProviderQuickPick
           value={provider}
-          onChange={(p) => handleProviderGridSelect(p, audioMode)}
+          audioMode={audioMode}
+          animexServer={animexServer}
+          onSelect={handleProviderGridSelect}
+          onAnimexSelect={handleAnimexGridSelect}
         />
 
         <Button
@@ -509,7 +510,9 @@ const VideoPlayerSection = () => {
         <ProviderGrid
           provider={provider}
           audioMode={audioMode}
+          animexServer={animexServer}
           onSelect={handleProviderGridSelect}
+          onAnimexSelect={handleAnimexGridSelect}
         />
 
         {provider === "Miruro" && (
@@ -523,16 +526,6 @@ const VideoPlayerSection = () => {
             }))}
             onChange={handleMiruroPipeChange}
             accent="violet"
-          />
-        )}
-
-        {provider === "Animex" && (
-          <ProviderChipRow
-            label={t("watch.animexServer")}
-            value={animexServer}
-            options={ANIMEX_SERVERS}
-            onChange={handleAnimexServerChange}
-            accent="rose"
           />
         )}
 

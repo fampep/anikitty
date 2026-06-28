@@ -1,20 +1,21 @@
 import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty-api";
+import type { ProviderAudioMode } from "@/lib/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/miruro-api";
 
 /** animex.one servers exposed by Kitty API (providerId / source). */
 export const ANIMEX_SERVERS = [
-  { id: "zen", label: "Zen", hint: "FlixCloud · dual audio" },
-  { id: "koto", label: "Koto", hint: "MegaPlay · sub/dub" },
-  { id: "beep", label: "Beep", hint: "Soft sub · CDN" },
-  { id: "mimi", label: "Mimi", hint: "Hard sub · fast" },
-  { id: "yuki", label: "Yuki", hint: "Soft sub · multi quality" },
-  { id: "uwu", label: "Uwu", hint: "Hard sub" },
-  { id: "mochi", label: "Mochi", hint: "Hard sub" },
-  { id: "neko", label: "Neko", hint: "MP4 / HLS · hard sub" },
-  { id: "sax", label: "Sax", hint: "ok.ru embed" },
-  { id: "yume", label: "Yume", hint: "mp4upload embed" },
-  { id: "kiwi", label: "Kiwi", hint: "Nekostream mapper" },
+  { id: "zen", label: "Zen", hint: "FlixCloud · dual audio", modes: ["multi"] as const },
+  { id: "koto", label: "Koto", hint: "MegaPlay · sub/dub", modes: ["sub", "dub"] as const },
+  { id: "beep", label: "Beep", hint: "pp.animex.one · soft sub", modes: ["sub", "dub"] as const },
+  { id: "mimi", label: "Mimi", hint: "Hawk CDN · hard sub", modes: ["sub", "dub"] as const },
+  { id: "yuki", label: "Yuki", hint: "Hawk CDN · soft sub", modes: ["sub", "dub"] as const },
+  { id: "uwu", label: "Uwu", hint: "Hawk CDN · hard sub", modes: ["sub", "dub"] as const },
+  { id: "mochi", label: "Mochi", hint: "Hawk CDN · hard sub", modes: ["sub", "dub"] as const },
+  { id: "neko", label: "Neko", hint: "Direct MP4/HLS · hard sub", modes: ["sub", "dub"] as const },
+  { id: "sax", label: "Sax", hint: "ok.ru embed", modes: ["sub", "dub"] as const },
+  { id: "yume", label: "Yume", hint: "mp4upload embed", modes: ["sub", "dub"] as const },
+  { id: "kiwi", label: "Kiwi", hint: "Nekostream mapper", modes: ["sub"] as const },
 ] as const;
 
 export type AnimexServerId = (typeof ANIMEX_SERVERS)[number]["id"];
@@ -41,6 +42,17 @@ function animexDataIds(anilistId: number, episode: number): string {
 
 export function isAnimexServerId(value: string): value is AnimexServerId {
   return ANIMEX_SERVERS.some((s) => s.id === value);
+}
+
+export function animexServersForAudioMode(mode: ProviderAudioMode) {
+  return ANIMEX_SERVERS.filter((s) => (s.modes as readonly ProviderAudioMode[]).includes(mode));
+}
+
+/** Default Animex server when entering a row from the generic Animex provider pill. */
+export function defaultAnimexServerForMode(mode: ProviderAudioMode): AnimexServerId {
+  if (mode === "multi") return "zen";
+  if (mode === "dub") return "koto";
+  return "beep";
 }
 
 type AnimexLinkId = {
