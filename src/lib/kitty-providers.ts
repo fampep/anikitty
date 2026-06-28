@@ -48,7 +48,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     group: "featured",
     nativeSubs: true,
     supportsDub: true,
-    hint: "Zen + MegaPlay · AniList ID · SUB · DUB",
+    hint: "Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi",
   },
   {
     id: "AnimeSogo",

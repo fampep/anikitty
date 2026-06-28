@@ -13,6 +13,12 @@ import {
   type KittyProvider,
 } from "@/query/get-kitty-stream";
 import { normalizeKittyProvider, providerHasNativeSubs } from "@/lib/kitty-providers";
+import {
+  ANIMEX_SERVERS,
+  DEFAULT_ANIMEX_SERVER,
+  isAnimexServerId,
+  type AnimexServerId,
+} from "@/lib/animex-api";
 import ProviderSelect, { ProviderQuickPick } from "@/components/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
@@ -99,6 +105,14 @@ const VideoPlayerSection = () => {
       }
     }
     return DEFAULT_MIRURO_PIPE_PROVIDER;
+  });
+
+  const [animexServer, setAnimexServer] = useState<AnimexServerId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("animexServer");
+      if (saved && isAnimexServerId(saved)) return saved;
+    }
+    return DEFAULT_ANIMEX_SERVER;
   });
 
   const audio: "sub" | "dub" = preferDub ? "dub" : "sub";
@@ -318,6 +332,7 @@ const VideoPlayerSection = () => {
     provider,
     provider === "Miruro" ? miruroPipe : null,
     animeTitle,
+    provider === "Animex" ? animexServer : null,
   );
 
   const loadingThumbnail =
@@ -356,6 +371,13 @@ const VideoPlayerSection = () => {
     if (t > 5) setStartTime(t);
     setMiruroPipe(pipe);
     localStorage.setItem("miruroPipe", pipe);
+  };
+
+  const handleAnimexServerChange = (server: AnimexServerId) => {
+    const t = liveTimeRef.current;
+    if (t > 5) setStartTime(t);
+    setAnimexServer(server);
+    localStorage.setItem("animexServer", server);
   };
 
   // Change audio track and resume from current position
@@ -478,6 +500,26 @@ const VideoPlayerSection = () => {
                     {MIRURO_PIPE_PROVIDERS.map((p) => (
                       <SelectItem key={p.id} value={p.id} className="text-xs font-mono text-white/75">
                         {p.label}{p.native ? "" : " (embed)"}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
+
+            {provider === "Animex" && (
+              <Select value={animexServer} onValueChange={(v) => handleAnimexServerChange(v as AnimexServerId)}>
+                <SelectTrigger className="h-8 w-[min(100%,120px)] text-[11px] font-mono bg-rose-500/[0.08] border-rose-500/25 text-rose-200/80 hover:bg-rose-500/[0.12]">
+                  <SelectValue placeholder={t("watch.animexServer")} />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0e0e0e] border-rose-500/20 max-h-[min(18rem,60vh)]">
+                  <SelectGroup>
+                    {ANIMEX_SERVERS.map((s) => (
+                      <SelectItem key={s.id} value={s.id} className="text-xs text-white/75 py-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold font-mono">{s.label}</span>
+                          <span className="text-[10px] text-white/35">{s.hint}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectGroup>

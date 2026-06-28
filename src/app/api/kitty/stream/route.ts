@@ -2,6 +2,12 @@ import {
   ensureMiruroSubtitleCache,
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitle-cache-store";
+import {
+  DEFAULT_ANIMEX_SERVER,
+  fetchAnimexVideoStream,
+  isAnimexServerId,
+  type AnimexServerId,
+} from "@/lib/animex-api";
 import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty-api";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -23,6 +29,7 @@ import {
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
+const SAFE_ANIMEX_SERVER = /^[a-z]{2,12}$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
@@ -45,6 +52,7 @@ export async function GET(req: Request) {
   const audio = searchParams.get("audio") || "sub";
   const provider = (searchParams.get("provider") || DEFAULT_KITTY_PROVIDER) as KittyProvider;
   const miruroPipeParam = searchParams.get("miruroPipe");
+  const animexServerParam = searchParams.get("animexServer");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -70,6 +78,15 @@ export async function GET(req: Request) {
       ? miruroPipeParam
       : provider === "Miruro"
         ? DEFAULT_MIRURO_PIPE_PROVIDER
+        : null;
+
+  const animexServer =
+    animexServerParam &&
+    SAFE_ANIMEX_SERVER.test(animexServerParam) &&
+    isAnimexServerId(animexServerParam)
+      ? animexServerParam
+      : provider === "Animex"
+        ? DEFAULT_ANIMEX_SERVER
         : null;
 
   async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
@@ -133,6 +150,34 @@ export async function GET(req: Request) {
       }
     } catch (e) {
       console.error("[kitty/stream] Miruro pipe failed:", e);
+    }
+  }
+
+  if (provider === "Animex") {
+    try {
+      const animex = await fetchAnimexVideoStream({
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        serverId: animexServer as AnimexServerId,
+        title: titleParam,
+      });
+
+      if (animex?.file) {
+        return finalizeStreamResponse(
+          {
+            file: animex.file,
+            headers: animex.headers,
+            tracks: animex.tracks,
+            skipTimes: animex.skipTimes,
+            server: animex.server,
+            download: animex.download,
+          },
+          "Animex",
+        );
+      }
+    } catch (e) {
+      console.error("[kitty/stream] Animex server failed:", e);
     }
   }
 
