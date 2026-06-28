@@ -826,6 +826,8 @@
     "streamNotFound": "Este proveedor no encontró el stream. Prueba otro abajo.",
     "retryWith": "Reintentar con {provider}",
     "miruroPipe": "Miruro",
+    "animexServer": "Animex server",
+    "multi": "MULTI",
     "providerSelect": "Fuente del stream",
     "providerGroupFeatured": "Recomendados",
     "providerGroupOther": "Más proveedores",

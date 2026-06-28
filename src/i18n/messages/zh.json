@@ -826,6 +826,8 @@
     "streamNotFound": "该提供方找不到流媒体，请尝试下方的其他提供方。",
     "retryWith": "使用 {provider} 重试",
     "miruroPipe": "Miruro",
+    "animexServer": "Animex server",
+    "multi": "MULTI",
     "providerSelect": "流媒体来源",
     "providerGroupFeatured": "推荐",
     "providerGroupOther": "更多源",

@@ -37,17 +37,30 @@ export type KittyProviderMeta = {
   kittySubs?: boolean;
   /** Provider exposes dub streams via Kitty API (audio=dub). */
   supportsDub?: boolean;
+  /** Dual-audio / multi-track embed (Miruro pipes, Animex Zen, etc.). */
+  supportsMulti?: boolean;
   hint?: string;
 };
 
+export type ProviderAudioMode = "sub" | "dub" | "multi";
+
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
-  { id: "Miruro", label: "Miruro", group: "featured", nativeSubs: true, supportsDub: true, hint: "Multi-pipe · SUB · DUB" },
+  {
+    id: "Miruro",
+    label: "Miruro",
+    group: "featured",
+    nativeSubs: true,
+    supportsDub: true,
+    supportsMulti: true,
+    hint: "Multi-pipe · SUB · DUB",
+  },
   {
     id: "Animex",
     label: "Animex",
     group: "featured",
     nativeSubs: true,
     supportsDub: true,
+    supportsMulti: true,
     hint: "Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi",
   },
   {
@@ -165,4 +178,16 @@ export function providerHasKittySubs(provider: KittyProvider): boolean {
 
 export function providerSupportsDub(provider: KittyProvider): boolean {
   return getKittyProviderMeta(provider).supportsDub === true;
+}
+
+export function providerSupportsMulti(provider: KittyProvider): boolean {
+  return getKittyProviderMeta(provider).supportsMulti === true;
+}
+
+export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
+  return KITTY_PROVIDER_META.filter((p) => {
+    if (mode === "dub") return p.supportsDub === true;
+    if (mode === "multi") return p.supportsMulti === true;
+    return true;
+  });
 }

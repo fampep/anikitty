@@ -12,14 +12,14 @@ import {
   useGetKittyStream,
   type KittyProvider,
 } from "@/query/get-kitty-stream";
-import { normalizeKittyProvider, providerHasNativeSubs } from "@/lib/kitty-providers";
+import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty-providers";
 import {
   ANIMEX_SERVERS,
   DEFAULT_ANIMEX_SERVER,
   isAnimexServerId,
   type AnimexServerId,
 } from "@/lib/animex-api";
-import ProviderSelect, { ProviderQuickPick } from "@/components/provider-select";
+import { ProviderGrid, ProviderChipRow, ProviderQuickPick } from "@/components/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   MIRURO_PIPE_PROVIDERS,
@@ -30,7 +30,6 @@ import { useSkipTimes } from "@/query/use-aniskip";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
   Captions,
-  Mic,
   Loader2,
   AlertCircle,
   Cat,
@@ -82,12 +81,24 @@ const VideoPlayerSection = () => {
   const { preferDub, setPreferDub, anime4kEnabled, setAnime4kEnabled, anime4kMode, setAnime4kMode } =
     useSettingsStore();
 
+  const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kittyAudioMode");
+      if (saved === "sub" || saved === "dub" || saved === "multi") return saved;
+    }
+    return "sub";
+  });
+
   useEffect(() => {
     const dubParam = searchParams.get("dub");
     if (dubParam === "1" || dubParam === "true") {
-      setPreferDub(true);
+      setAudioMode("dub");
     }
-  }, [searchParams, setPreferDub]);
+  }, [searchParams]);
+
+  useEffect(() => {
+    setPreferDub(audioMode === "dub");
+  }, [audioMode, setPreferDub]);
 
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
@@ -359,11 +370,17 @@ const VideoPlayerSection = () => {
   }, [streamData?.skipTimes, aniSkipTimes]);
 
   // Change provider but resume from current position, not original start
-  const handleProviderChange = (p: KittyProvider) => {
+  const handleProviderGridSelect = (p: KittyProvider, mode: ProviderAudioMode) => {
     const t = liveTimeRef.current;
     if (t > 5) setStartTime(t);
     setProvider(p);
+    setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
+    localStorage.setItem("kittyAudioMode", mode);
+    if (mode === "multi" && p === "Animex") {
+      setAnimexServer("zen");
+      localStorage.setItem("animexServer", "zen");
+    }
   };
 
   const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
@@ -378,13 +395,13 @@ const VideoPlayerSection = () => {
     if (t > 5) setStartTime(t);
     setAnimexServer(server);
     localStorage.setItem("animexServer", server);
-  };
-
-  // Change audio track and resume from current position
-  const handleAudioChange = (dub: boolean) => {
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
-    setPreferDub(dub);
+    if (server === "zen") {
+      setAudioMode("multi");
+      localStorage.setItem("kittyAudioMode", "multi");
+    } else if (audioMode === "multi") {
+      setAudioMode("sub");
+      localStorage.setItem("kittyAudioMode", "sub");
+    }
   };
 
   const handleAnime4kToggle = () => {
@@ -431,7 +448,10 @@ const VideoPlayerSection = () => {
           </AlertDescription>
         </Alert>
 
-        <ProviderQuickPick value={provider} onChange={handleProviderChange} />
+        <ProviderQuickPick
+          value={provider}
+          onChange={(p) => handleProviderGridSelect(p, audioMode)}
+        />
 
         <Button
           size="sm"
@@ -451,7 +471,7 @@ const VideoPlayerSection = () => {
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
-        key={`${anilistId}-${episodeNo}-${audio}-${provider}-${miruroPipe}`}
+        key={`${anilistId}-${episodeNo}-${audio}-${provider}-${miruroPipe}-${animexServer}`}
         src={streamData.file}
         poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
         tracks={streamData.tracks ?? []}
@@ -485,73 +505,36 @@ const VideoPlayerSection = () => {
 
       {/* Controls bar */}
       <div className="px-3 py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-white/8 space-y-2.5">
-        {/* Row 1 — stream source */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 mr-auto min-w-0">
-            <ProviderSelect value={provider} onChange={handleProviderChange} compact />
+        {/* Row 1 — SUB / DUB / MULTI provider grid */}
+        <ProviderGrid
+          provider={provider}
+          audioMode={audioMode}
+          onSelect={handleProviderGridSelect}
+        />
 
-            {provider === "Miruro" && (
-              <Select value={miruroPipe} onValueChange={(v) => handleMiruroPipeChange(v as MiruroPipeProviderId)}>
-                <SelectTrigger className="h-8 w-[min(100%,120px)] text-[11px] font-mono bg-violet-500/[0.08] border-violet-500/25 text-violet-200/80 hover:bg-violet-500/[0.12]">
-                  <SelectValue placeholder={t("watch.miruroPipe")} />
-                </SelectTrigger>
-                <SelectContent className="bg-[#0e0e0e] border-violet-500/20">
-                  <SelectGroup>
-                    {MIRURO_PIPE_PROVIDERS.map((p) => (
-                      <SelectItem key={p.id} value={p.id} className="text-xs font-mono text-white/75">
-                        {p.label}{p.native ? "" : " (embed)"}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            )}
+        {provider === "Miruro" && (
+          <ProviderChipRow
+            label={t("watch.miruroPipe")}
+            value={miruroPipe}
+            options={MIRURO_PIPE_PROVIDERS.map((p) => ({
+              id: p.id,
+              label: p.native ? p.label : `${p.label}*`,
+              hint: p.native ? undefined : "embed",
+            }))}
+            onChange={handleMiruroPipeChange}
+            accent="violet"
+          />
+        )}
 
-            {provider === "Animex" && (
-              <Select value={animexServer} onValueChange={(v) => handleAnimexServerChange(v as AnimexServerId)}>
-                <SelectTrigger className="h-8 w-[min(100%,120px)] text-[11px] font-mono bg-rose-500/[0.08] border-rose-500/25 text-rose-200/80 hover:bg-rose-500/[0.12]">
-                  <SelectValue placeholder={t("watch.animexServer")} />
-                </SelectTrigger>
-                <SelectContent className="bg-[#0e0e0e] border-rose-500/20 max-h-[min(18rem,60vh)]">
-                  <SelectGroup>
-                    {ANIMEX_SERVERS.map((s) => (
-                      <SelectItem key={s.id} value={s.id} className="text-xs text-white/75 py-2">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-semibold font-mono">{s.label}</span>
-                          <span className="text-[10px] text-white/35">{s.hint}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="flex items-center rounded-lg overflow-hidden border border-white/12 bg-white/[0.03] shrink-0">
-            <button
-              className={`flex items-center gap-1 h-8 px-3 text-[11px] font-bold transition-all ${
-                !preferDub
-                  ? "bg-white text-black"
-                  : "text-white/35 hover:text-white/60 hover:bg-white/6"
-              }`}
-              onClick={() => handleAudioChange(false)}
-            >
-              <Captions className="w-3 h-3" /> {t("card.sub")}
-            </button>
-            <div className="w-px h-4 bg-white/12" />
-            <button
-              className={`flex items-center gap-1 h-8 px-3 text-[11px] font-bold transition-all ${
-                preferDub
-                  ? "bg-white text-black"
-                  : "text-white/35 hover:text-white/60 hover:bg-white/6"
-              }`}
-              onClick={() => handleAudioChange(true)}
-            >
-              <Mic className="w-3 h-3" /> {t("card.dub")}
-            </button>
-          </div>
-        </div>
+        {provider === "Animex" && (
+          <ProviderChipRow
+            label={t("watch.animexServer")}
+            value={animexServer}
+            options={ANIMEX_SERVERS}
+            onChange={handleAnimexServerChange}
+            accent="rose"
+          />
+        )}
 
         {/* Row 2 — badges + actions */}
         <div className="flex flex-wrap items-center gap-2">

@@ -1,6 +1,7 @@
 "use client";
 
-import { Captions, Mic, Server } from "lucide-react";
+import { Fragment, type ReactNode } from "react";
+import { Captions, Mic, Server, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,7 +14,9 @@ import {
 import {
   DEFAULT_KITTY_PROVIDER,
   kittyProvidersByGroup,
+  kittyProvidersForAudioMode,
   type KittyProvider,
+  type ProviderAudioMode,
 } from "@/lib/kitty-providers";
 import { cn } from "@/lib/utils";
 import { useT } from "@/providers/i18n-provider";
@@ -115,25 +118,187 @@ export function ProviderQuickPick({
   onChange: (provider: KittyProvider) => void;
   className?: string;
 }) {
-  const featured = kittyProvidersByGroup("featured");
+  return (
+    <ProviderGrid
+      provider={value}
+      audioMode="sub"
+      onSelect={(p) => onChange(p)}
+      className={className}
+      rows={["sub", "dub", "multi"]}
+    />
+  );
+}
+
+const PROVIDER_ROW_STYLES: Record<
+  ProviderAudioMode,
+  { active: string; idle: string; label: string }
+> = {
+  sub: {
+    label: "text-teal-300/70",
+    active: "bg-teal-500/25 border-teal-400/45 text-teal-100",
+    idle: "border-white/10 text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+  },
+  dub: {
+    label: "text-amber-300/70",
+    active: "bg-amber-500/25 border-amber-400/45 text-amber-100",
+    idle: "border-white/10 text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+  },
+  multi: {
+    label: "text-violet-300/70",
+    active: "bg-violet-500/25 border-violet-400/45 text-violet-100",
+    idle: "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+  },
+};
+
+type ProviderGridProps = {
+  provider: KittyProvider;
+  audioMode: ProviderAudioMode;
+  onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
+  disabled?: boolean;
+  className?: string;
+  /** Limit which rows render (default: all three). */
+  rows?: ProviderAudioMode[];
+};
+
+export function ProviderGrid({
+  provider,
+  audioMode,
+  onSelect,
+  disabled,
+  className,
+  rows = ["sub", "dub", "multi"],
+}: ProviderGridProps) {
+  const t = useT();
+
+  const rowLabels: Record<ProviderAudioMode, string> = {
+    sub: t("card.sub"),
+    dub: t("card.dub"),
+    multi: t("watch.multi"),
+  };
+
+  const rowIcons: Record<ProviderAudioMode, ReactNode> = {
+    sub: <Captions className="w-3 h-3 shrink-0" />,
+    dub: <Mic className="w-3 h-3 shrink-0" />,
+    multi: <Sparkles className="w-3 h-3 shrink-0" />,
+  };
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5", className)}>
-      {featured.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          onClick={() => onChange(p.id)}
-          className={cn(
-            "px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors",
-            p.id === value
-              ? "bg-white/15 border-white/30 text-white"
-              : "bg-transparent border-white/10 text-white/40 hover:border-white/25 hover:text-white/70",
-          )}
-        >
-          {p.label}
-        </button>
-      ))}
+    <div className={cn("flex flex-col gap-2 w-full", className)}>
+      {rows.map((mode) => {
+        const items = kittyProvidersForAudioMode(mode);
+        if (items.length === 0) return null;
+        const styles = PROVIDER_ROW_STYLES[mode];
+
+        return (
+          <div key={mode} className="flex items-start gap-2 min-w-0">
+            <span
+              className={cn(
+                "flex items-center gap-1 w-14 shrink-0 pt-1.5 text-[10px] font-bold font-mono uppercase tracking-wide",
+                styles.label,
+              )}
+            >
+              {rowIcons[mode]}
+              {rowLabels[mode]}
+            </span>
+            <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
+              {(["featured", "other"] as const).map((group, groupIdx) => {
+                const groupItems = items.filter((p) => p.group === group);
+                if (groupItems.length === 0) return null;
+
+                return (
+                  <Fragment key={group}>
+                    {groupIdx > 0 && groupItems.length > 0 && (
+                      <span className="w-full h-0 basis-full" aria-hidden />
+                    )}
+                    {groupItems.map((p) => {
+                      const isActive = provider === p.id && audioMode === mode;
+                      return (
+                        <button
+                          key={`${mode}-${p.id}`}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => onSelect(p.id, mode)}
+                          title={p.hint}
+                          className={cn(
+                            "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
+                            isActive ? styles.active : styles.idle,
+                            p.group === "featured" && !isActive && "text-white/55",
+                            p.group === "other" && !isActive && "text-white/35",
+                          )}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </Fragment>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ProviderChipRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+  accent = "violet",
+  className,
+}: {
+  label: string;
+  value: T;
+  options: readonly { id: T; label: string; hint?: string }[];
+  onChange: (id: T) => void;
+  disabled?: boolean;
+  accent?: "violet" | "rose";
+  className?: string;
+}) {
+  const accentActive =
+    accent === "rose"
+      ? "bg-rose-500/25 border-rose-400/45 text-rose-100"
+      : "bg-violet-500/25 border-violet-400/45 text-violet-100";
+  const accentIdle =
+    accent === "rose"
+      ? "border-white/10 text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]"
+      : "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]";
+  const accentLabel = accent === "rose" ? "text-rose-300/70" : "text-violet-300/70";
+
+  return (
+    <div className={cn("flex items-start gap-2 min-w-0", className)}>
+      <span
+        className={cn(
+          "flex items-center gap-1 w-14 shrink-0 pt-1.5 text-[10px] font-bold font-mono uppercase tracking-wide",
+          accentLabel,
+        )}
+      >
+        <Server className="w-3 h-3 shrink-0" />
+        <span className="truncate">{label}</span>
+      </span>
+      <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
+        {options.map((opt) => {
+          const isActive = value === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(opt.id)}
+              title={opt.hint}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                isActive ? accentActive : accentIdle,
+              )}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
