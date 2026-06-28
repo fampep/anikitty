@@ -160,9 +160,10 @@ export async function GET(req: Request) {
       );
     }
 
-    const payload = data as StreamPayload & { server?: string };
-    if (typeof payload.server === "string") {
-      const trimmed = payload.server.trim();
+    const payload = data as StreamPayload & { server?: string; serverName?: string };
+    const serverLabel = payload.server ?? payload.serverName;
+    if (typeof serverLabel === "string") {
+      const trimmed = serverLabel.trim();
       payload.server = trimmed || undefined;
     }
 

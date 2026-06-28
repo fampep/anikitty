@@ -1,5 +1,6 @@
 export const KITTY_PROVIDERS = [
   "Miruro",
+  "Animex",
   "AnimeSogo",
   "Anix",
   "HiAnime",
@@ -41,6 +42,14 @@ export type KittyProviderMeta = {
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   { id: "Miruro", label: "Miruro", group: "featured", nativeSubs: true, supportsDub: true, hint: "Multi-pipe · SUB · DUB" },
+  {
+    id: "Animex",
+    label: "Animex",
+    group: "featured",
+    nativeSubs: true,
+    supportsDub: true,
+    hint: "Zen + MegaPlay · AniList ID · SUB · DUB",
+  },
   {
     id: "AnimeSogo",
     label: "AnimeSogo",
@@ -123,7 +132,10 @@ export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([
 ]);
 
 /** Stream providers whose embed tracks are kept from stream-direct. */
-export const KITTY_NATIVE_SUB_PROVIDERS = KITTY_MEGAPLAY_PROVIDERS;
+export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
+  ...KITTY_MEGAPLAY_PROVIDERS,
+  "Animex",
+]);
 
 export function isKittyProvider(value: string): value is KittyProvider {
   return (KITTY_PROVIDERS as readonly string[]).includes(value);
