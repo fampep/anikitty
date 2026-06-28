@@ -39,6 +39,8 @@ export type KittyProviderMeta = {
   supportsDub?: boolean;
   /** Dual-audio / multi-track embed (Miruro pipes, Animex Zen, etc.). */
   supportsMulti?: boolean;
+  /** Stream is hard-subbed (no separate subtitle tracks). */
+  hardSub?: boolean;
   hint?: string;
 };
 
@@ -108,21 +110,21 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsDub: true,
     hint: "Mirrors · SUB · DUB",
   },
-  { id: "Anitaku", label: "Anitaku", group: "other" },
-  { id: "Anikage", label: "Anikage", group: "other" },
-  { id: "AnimeHeaven", label: "AnimeHeaven", group: "other" },
-  { id: "KaaLt", label: "KaaLt", group: "other" },
-  { id: "MKissa", label: "MKissa", group: "other" },
-  { id: "Senshi", label: "Senshi", group: "other" },
-  { id: "Animetsu", label: "Animetsu", group: "other" },
-  { id: "Animeverse", label: "Animeverse", group: "other" },
-  { id: "AniZone", label: "AniZone", group: "other" },
-  { id: "AnimeGG", label: "AnimeGG", group: "other" },
-  { id: "AniDB", label: "AniDB", group: "other" },
-  { id: "Nyanime", label: "Nyanime", group: "other" },
-  { id: "AnimeOnsen", label: "AnimeOnsen", group: "other" },
-  { id: "Animeya", label: "Animeya", group: "other" },
-  { id: "AniWaves", label: "AniWaves", group: "other" },
+  { id: "Anitaku", label: "Anitaku", group: "other", nativeSubs: true, hint: "SUB · Soft sub tracks" },
+  { id: "Anikage", label: "Anikage", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "AnimeHeaven", label: "AnimeHeaven", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "KaaLt", label: "KaaLt", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "MKissa", label: "MKissa", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "Senshi", label: "Senshi", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "Animetsu", label: "Animetsu", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "Animeverse", label: "Animeverse", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "AniZone", label: "AniZone", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "AnimeGG", label: "AnimeGG", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "AniDB", label: "AniDB", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "Nyanime", label: "Nyanime", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "AnimeOnsen", label: "AnimeOnsen", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "Animeya", label: "Animeya", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "AniWaves", label: "AniWaves", group: "other", hardSub: true, hint: "SUB · Hard sub" },
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = "Miruro";

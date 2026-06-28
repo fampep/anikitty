@@ -15,8 +15,10 @@ import {
 import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty-providers";
 import {
   DEFAULT_ANIMEX_SERVER,
+  animexServerUsesInPlayerAudioSwitch,
   defaultAnimexServerForMode,
   isAnimexServerId,
+  selectionSupportsBothStreamAudio,
   type AnimexServerId,
 } from "@/lib/animex-api";
 import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/provider-select";
@@ -36,6 +38,7 @@ import {
   Users,
   SlidersHorizontal,
   Sparkles,
+  Mic,
 } from "lucide-react";
 import WatchDownloadPanel from "@/components/watch-download-panel";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -89,16 +92,27 @@ const VideoPlayerSection = () => {
     return "sub";
   });
 
+  const [streamAudio, setStreamAudio] = useState<"sub" | "dub">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kittyStreamAudio");
+      if (saved === "sub" || saved === "dub") return saved;
+      const savedMode = localStorage.getItem("kittyAudioMode");
+      if (savedMode === "dub") return "dub";
+    }
+    return "sub";
+  });
+
   useEffect(() => {
     const dubParam = searchParams.get("dub");
     if (dubParam === "1" || dubParam === "true") {
       setAudioMode("dub");
+      setStreamAudio("dub");
     }
   }, [searchParams]);
 
   useEffect(() => {
-    setPreferDub(audioMode === "dub");
-  }, [audioMode, setPreferDub]);
+    setPreferDub(streamAudio === "dub");
+  }, [streamAudio, setPreferDub]);
 
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
@@ -140,7 +154,22 @@ const VideoPlayerSection = () => {
     return null;
   });
 
-  const audio: "sub" | "dub" = preferDub ? "dub" : "sub";
+  const audio: "sub" | "dub" = streamAudio;
+
+  const canSwitchStreamAudio = useMemo(
+    () =>
+      selectionSupportsBothStreamAudio({
+        provider,
+        audioMode,
+        animexServer: provider === "Animex" ? animexServer : undefined,
+      }),
+    [provider, audioMode, animexServer],
+  );
+
+  const inPlayerAudioSwitch =
+    audioMode === "multi" &&
+    provider === "Animex" &&
+    animexServerUsesInPlayerAudioSwitch(animexServer);
   const anilistId = anime?.anime?.info?.anilistId;
   const malId     = anime?.anime?.info?.malId;
 
@@ -391,6 +420,13 @@ const VideoPlayerSection = () => {
     setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", mode);
+    if (mode === "dub") {
+      setStreamAudio("dub");
+      localStorage.setItem("kittyStreamAudio", "dub");
+    } else if (mode === "sub") {
+      setStreamAudio("sub");
+      localStorage.setItem("kittyStreamAudio", "sub");
+    }
     if (mode !== "multi" || (p !== "Miruro" && p !== "Animex")) {
       setMultiPanel(null);
     }
@@ -399,6 +435,14 @@ const VideoPlayerSection = () => {
       setAnimexServer(server);
       localStorage.setItem("animexServer", server);
     }
+  };
+
+  const handleStreamAudioChange = (next: "sub" | "dub") => {
+    if (next === streamAudio) return;
+    const t = liveTimeRef.current;
+    if (t > 5) setStartTime(t);
+    setStreamAudio(next);
+    localStorage.setItem("kittyStreamAudio", next);
   };
 
   const handleMultiToggle = (panel: MultiPanelProvider | null) => {
@@ -498,12 +542,13 @@ const VideoPlayerSection = () => {
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
-        key={`${anilistId}-${episodeNo}-${audio}-${provider}-${miruroPipe}-${animexServer}`}
+        key={`${anilistId}-${episodeNo}-${inPlayerAudioSwitch ? "multi-audio" : audio}-${provider}-${miruroPipe}-${animexServer}`}
         src={streamData.file}
         poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
         tracks={streamData.tracks ?? []}
         headers={streamData.headers ?? {}}
-        preferSubtitles={!preferDub || subtitleTracks.length > 0}
+        preferSubtitles={subtitleTracks.length > 0 || streamAudio !== "dub"}
+        preferDubAudio={streamAudio === "dub"}
         skipTimes={skipTimes}
         startTime={
           w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
@@ -585,6 +630,35 @@ const VideoPlayerSection = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            {canSwitchStreamAudio && (
+              <div className="flex items-center rounded-lg border border-white/12 bg-white/[0.03] p-0.5">
+                <button
+                  type="button"
+                  onClick={() => handleStreamAudioChange("sub")}
+                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
+                    streamAudio === "sub"
+                      ? "bg-teal-500/25 text-teal-100 border border-teal-400/35"
+                      : "text-white/40 hover:text-white/65"
+                  }`}
+                >
+                  <Captions className="w-3 h-3" />
+                  {t("card.sub")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleStreamAudioChange("dub")}
+                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
+                    streamAudio === "dub"
+                      ? "bg-amber-500/25 text-amber-100 border border-amber-400/35"
+                      : "text-white/40 hover:text-white/65"
+                  }`}
+                >
+                  <Mic className="w-3 h-3" />
+                  {t("card.dub")}
+                </button>
+              </div>
+            )}
+
             {anilistId && episodeNo && allEpisodes?.episodes && (
               <WatchDownloadPanel
                 anilistId={anilistId}

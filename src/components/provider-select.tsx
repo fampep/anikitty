@@ -80,25 +80,9 @@ export default function ProviderSelect({
                   className="text-xs text-white/80 focus:bg-white/[0.06] focus:text-white py-2.5"
                 >
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{p.label}</span>
-                      {p.kittySubs && (
-                        <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-mono uppercase bg-violet-500/15 border border-violet-500/25 text-violet-300/90">
-                          /subs
-                        </span>
-                      )}
-                      {(p.nativeSubs || p.kittySubs) && (
-                        <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-mono uppercase bg-teal-500/15 border border-teal-500/25 text-teal-300/90">
-                          <Captions className="w-2.5 h-2.5" />
-                          {t("watch.providerSubsBadge")}
-                        </span>
-                      )}
-                      {p.supportsDub && (
-                        <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-mono uppercase bg-amber-500/15 border border-amber-500/25 text-amber-300/90">
-                          <Mic className="w-2.5 h-2.5" />
-                          {t("card.dub")}
-                        </span>
-                      )}
+                      <ProviderMetaBadges meta={p} />
                     </div>
                     {p.hint && (
                       <span className="text-[10px] font-mono text-white/35 truncate">{p.hint}</span>
@@ -190,35 +174,54 @@ function ProviderMetaBadges({
   rowMode,
 }: {
   meta: KittyProviderMeta;
-  rowMode: ProviderAudioMode;
+  rowMode?: ProviderAudioMode;
 }) {
   const t = useT();
-  const hasSubs = meta.nativeSubs || meta.kittySubs;
+  const hasSoftSubs = meta.nativeSubs || meta.kittySubs;
+  const badges: ReactNode[] = [];
 
-  return (
-    <span className="inline-flex items-center gap-0.5 shrink-0">
-      {rowMode === "multi" && meta.supportsMulti && (
-        <>
-          <CapabilityBadge label={t("card.sub")} variant="sub" />
-          <CapabilityBadge label={t("card.dub")} variant="dub" />
-          <CapabilityBadge label={t("watch.multi")} variant="multi" />
-        </>
-      )}
-      {rowMode === "sub" && meta.supportsDub && (
-        <CapabilityBadge label={t("card.dub")} variant="dub" />
-      )}
-      {rowMode === "dub" && (
-        <CapabilityBadge label={t("card.sub")} variant="sub" />
-      )}
-      {hasSubs && (
-        <CapabilityBadge
-          label={t("watch.providerSubsBadge")}
-          variant="subs"
-          icon={<Captions className="w-2 h-2" />}
-        />
-      )}
-    </span>
-  );
+  if (rowMode === "multi" && meta.supportsMulti) {
+    badges.push(
+      <CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />,
+      <CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />,
+      <CapabilityBadge key="multi" label={t("watch.multi")} variant="multi" />,
+    );
+  } else if (rowMode === "sub") {
+    badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
+    if (meta.supportsDub) {
+      badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
+    }
+  } else if (rowMode === "dub") {
+    badges.push(
+      <CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />,
+      <CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />,
+    );
+  } else {
+    badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
+    if (meta.supportsDub) {
+      badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
+    }
+    if (meta.supportsMulti) {
+      badges.push(<CapabilityBadge key="multi" label={t("watch.multi")} variant="multi" />);
+    }
+  }
+
+  if (hasSoftSubs) {
+    badges.push(
+      <CapabilityBadge
+        key="subs"
+        label={t("watch.providerSubsBadge")}
+        variant="subs"
+        icon={<Captions className="w-2 h-2" />}
+      />,
+    );
+  } else if (meta.hardSub) {
+    badges.push(<CapabilityBadge key="hsub" label={t("watch.hardSubBadge")} variant="hsub" />);
+  }
+
+  if (badges.length === 0) return null;
+
+  return <span className="inline-flex items-center gap-0.5 shrink-0 flex-wrap">{badges}</span>;
 }
 
 function AnimexServerBadges({ server }: { server: (typeof ANIMEX_SERVERS)[number] }) {

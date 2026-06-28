@@ -21,9 +21,12 @@ import {
   type MiruroSkipTimes,
 } from "@/lib/miruro-api";
 import {
+  getTrackFile,
   isSubtitleTrack,
+  isOurSubtitleUrl,
   stripSubtitleTracks,
   SUBTITLE_SOURCE_PROVIDER,
+  subtitleProxyUrl,
   type StreamTrack,
 } from "@/lib/subtitle-track-utils";
 
@@ -96,9 +99,13 @@ export async function GET(req: Request) {
       }
     }
 
-    const nativeSubs = providerHasNativeSubs(providerName);
-    const providerSubtitleTracks: StreamTrack[] = nativeSubs
-      ? (data.tracks ?? []).filter(isSubtitleTrack)
+    const inlineSubtitleTracks = (data.tracks ?? []).filter(isSubtitleTrack);
+    const preserveInlineSubs =
+      providerHasNativeSubs(providerName) ||
+      providerName === "Miruro" ||
+      providerName === "Animex";
+    const providerSubtitleTracks: StreamTrack[] = preserveInlineSubs
+      ? inlineSubtitleTracks.map((track) => proxyInlineSubtitle(track, data.headers))
       : [];
 
     data.tracks = stripSubtitleTracks(data.tracks);
@@ -224,3 +231,12 @@ export async function GET(req: Request) {
 }
 
 export const maxDuration = 30;
+
+function proxyInlineSubtitle(
+  track: StreamTrack,
+  headers?: Record<string, string>,
+): StreamTrack {
+  const file = getTrackFile(track);
+  if (!file || isOurSubtitleUrl(file)) return track;
+  return { ...track, file: subtitleProxyUrl(file, headers) };
+}

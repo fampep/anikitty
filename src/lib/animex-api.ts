@@ -1,5 +1,5 @@
 import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty-api";
-import type { ProviderAudioMode } from "@/lib/kitty-providers";
+import { getKittyProviderMeta, type KittyProvider, type ProviderAudioMode } from "@/lib/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/miruro-api";
 
@@ -53,6 +53,36 @@ export function defaultAnimexServerForMode(mode: ProviderAudioMode): AnimexServe
   if (mode === "multi") return "zen";
   if (mode === "dub") return "koto";
   return "beep";
+}
+
+/** Dual-audio embed (e.g. Zen) — switch tracks in the player, not via stream refetch. */
+export function animexServerUsesInPlayerAudioSwitch(serverId: AnimexServerId): boolean {
+  const server = ANIMEX_SERVERS.find((s) => s.id === serverId);
+  return (server?.modes as readonly ProviderAudioMode[] | undefined)?.includes("multi") ?? false;
+}
+
+export function animexServerSupportsBothStreamAudio(serverId: AnimexServerId): boolean {
+  const server = ANIMEX_SERVERS.find((s) => s.id === serverId);
+  if (!server) return false;
+  const modes = server.modes as readonly ProviderAudioMode[];
+  if (modes.includes("multi")) return true;
+  return modes.includes("sub") && modes.includes("dub");
+}
+
+/** Current provider selection exposes both SUB and DUB (or dual-audio in one stream). */
+export function selectionSupportsBothStreamAudio(opts: {
+  provider: KittyProvider;
+  audioMode: ProviderAudioMode;
+  animexServer?: AnimexServerId;
+}): boolean {
+  if (opts.audioMode === "multi") {
+    if (opts.provider === "Miruro") return true;
+    if (opts.provider === "Animex" && opts.animexServer) {
+      return animexServerSupportsBothStreamAudio(opts.animexServer);
+    }
+    return false;
+  }
+  return getKittyProviderMeta(opts.provider).supportsDub === true;
 }
 
 type AnimexLinkId = {

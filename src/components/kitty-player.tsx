@@ -61,6 +61,8 @@ interface KittyPlayerProps {
   };
   /** Auto-select and show subtitles when tracks are available (default: sub mode). */
   preferSubtitles?: boolean;
+  /** Prefer English/dub HLS audio when the stream has multiple audio tracks. */
+  preferDubAudio?: boolean;
 }
 
 export default function KittyPlayer({
@@ -80,6 +82,7 @@ export default function KittyPlayer({
   onEnded: onEndedProp,
   w2g,
   preferSubtitles = true,
+  preferDubAudio = false,
 }: KittyPlayerProps) {
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
   const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
@@ -203,6 +206,8 @@ export default function KittyPlayer({
     [tracks],
   );
 
+  const activateSubtitlesRef = useRef<() => void>(() => {});
+
   const chapterTrack = tracks.find(
     (t) =>
       !!t.file &&
@@ -239,13 +244,22 @@ export default function KittyPlayer({
     let attempts = 0;
 
     const activate = (): boolean => {
-      if (!preferSubtitles) return true;
-
-      const preferred = subTracks.find((t) => t.default) ?? subTracks[0];
-      const preferredLang = labelToLanguage(preferred.label || "");
+      if (subTracks.length === 0) return true;
 
       const textTracks = player.textTracks;
       if (!textTracks?.length) return false;
+
+      if (!preferSubtitles) {
+        for (const track of textTracks) {
+          if (track.kind === "subtitles" || track.kind === "captions") {
+            track.setMode("disabled");
+          }
+        }
+        return true;
+      }
+
+      const preferred = subTracks.find((t) => t.default) ?? subTracks[0];
+      const preferredLang = labelToLanguage(preferred.label || "");
 
       for (const track of textTracks) {
         if (track.kind !== "subtitles" && track.kind !== "captions") continue;
@@ -276,10 +290,12 @@ export default function KittyPlayer({
 
     const tryActivate = () => {
       if (activate()) return;
-      if (attempts++ < 10) {
+      if (attempts++ < 16) {
         retryTimer = setTimeout(tryActivate, 350);
       }
     };
+
+    activateSubtitlesRef.current = tryActivate;
 
     const onTracksChange = () => tryActivate();
 
@@ -293,6 +309,85 @@ export default function KittyPlayer({
       if (retryTimer) clearTimeout(retryTimer);
     };
   }, [proxiedSrc, subTracks, preferSubtitles]);
+
+  // Select Japanese (sub) or English/dub HLS audio when multiple tracks exist.
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+
+    const pickAudioTrack = (): boolean => {
+      const tracks = player.audioTracks;
+      if (!tracks?.length || tracks.length < 2) return (tracks?.length ?? 0) >= 1;
+
+      type PlayerAudioTrack = { id: string; label?: string; language?: string };
+      const trackList: PlayerAudioTrack[] = Array.from(
+        { length: tracks.length },
+        (_, i) => tracks[i] as PlayerAudioTrack | undefined,
+      ).filter((t): t is PlayerAudioTrack => t != null);
+
+      const labelOf = (track: PlayerAudioTrack) =>
+        `${track.label ?? ""} ${track.language ?? ""}`.toLowerCase();
+
+      const isDubLike = (track: PlayerAudioTrack) => {
+        const text = labelOf(track);
+        return (
+          /\bdub\b/.test(text) ||
+          /\benglish\b/.test(text) ||
+          text === "en" ||
+          text.startsWith("en-") ||
+          text.includes(" eng")
+        );
+      };
+
+      const isSubLike = (track: PlayerAudioTrack) => {
+        const text = labelOf(track);
+        return (
+          /\bjapanese\b/.test(text) ||
+          /\bja\b/.test(text) ||
+          text === "ja" ||
+          text.startsWith("ja-") ||
+          /\bsub\b/.test(text)
+        );
+      };
+
+      const preferred = preferDubAudio
+        ? trackList.find(isDubLike) ??
+          trackList.find((t) => !isSubLike(t)) ??
+          trackList[trackList.length - 1]
+        : trackList.find(isSubLike) ??
+          trackList.find((t) => !isDubLike(t)) ??
+          trackList[0];
+
+      const playerWithAudio = player as MediaPlayerInstance & {
+        audioTrack?: PlayerAudioTrack;
+      };
+      if (preferred && playerWithAudio.audioTrack?.id !== preferred.id) {
+        playerWithAudio.audioTrack = preferred;
+      }
+      window.setTimeout(() => activateSubtitlesRef.current(), 150);
+      return true;
+    };
+
+    const tryPick = () => {
+      if (pickAudioTrack()) return;
+      if (attempts++ < 12) retryTimer = setTimeout(tryPick, 350);
+    };
+
+    const onAudioTracksChange = () => tryPick();
+
+    player.addEventListener("can-play", tryPick);
+    player.addEventListener("audio-tracks-change", onAudioTracksChange);
+    if (player.state.canPlay) tryPick();
+
+    return () => {
+      player.removeEventListener("can-play", tryPick);
+      player.removeEventListener("audio-tracks-change", onAudioTracksChange);
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [proxiedSrc, preferDubAudio]);
 
   // Track that fullscreen should be re-entered when the player is ready
   const autoFsRef = useRef(false);
