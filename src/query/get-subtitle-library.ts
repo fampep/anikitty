@@ -34,16 +34,26 @@ async function fetchSubtitleLibrary(opts: {
   return res.data;
 }
 
+const SUBTITLE_LIBRARY_POLL_MS = 25_000;
+
 export function useSubtitleLibrary(opts: {
   q?: string;
   page?: number;
   limit?: number;
   filter?: SubtitleLibraryFilter;
   sort?: SubtitleLibrarySort;
+  autoRefresh?: boolean;
 }) {
+  const autoRefresh = opts.autoRefresh ?? !opts.q?.trim();
+
   return useQuery(
     [GET_SUBTITLE_LIBRARY, opts.q ?? "", opts.page ?? 1, opts.filter ?? "all", opts.sort ?? "latest"],
     () => fetchSubtitleLibrary(opts),
-    { keepPreviousData: true, staleTime: 60_000 },
+    {
+      keepPreviousData: true,
+      staleTime: 15_000,
+      refetchInterval: autoRefresh ? SUBTITLE_LIBRARY_POLL_MS : false,
+      refetchIntervalInBackground: false,
+    },
   );
 }
