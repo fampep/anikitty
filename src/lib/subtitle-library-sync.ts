@@ -1,6 +1,7 @@
 import { ensureIncrementalSubtitleCache } from "@/lib/subtitle-cache-store";
 import {
   backfillSubtitleLibraryAnime,
+  countIncompleteSubtitleAnimesFromDb,
   listIncompleteSubtitleAnimesFromDb,
   refreshStaleCompletionStatuses,
 } from "@/lib/subtitle-library-db";
@@ -20,6 +21,7 @@ export type SubtitleLibrarySyncResult = {
   episodesFetched: number;
   animeUpdated: number;
   animeDiscovered: number;
+  incompleteRemaining: number;
 };
 
 export type SubtitleLibrarySyncOptions = {
@@ -49,6 +51,7 @@ export async function runSubtitleLibrarySyncTick(
     episodesFetched: 0,
     animeUpdated: 0,
     animeDiscovered: 0,
+    incompleteRemaining: 0,
   };
 
   if (backfillLimit > 0) {
@@ -59,20 +62,28 @@ export async function runSubtitleLibrarySyncTick(
     result.refreshed = await refreshStaleCompletionStatuses(refreshLimit);
   }
 
-  const incompleteIds = await listIncompleteSubtitleAnimesFromDb(maxIncompleteAnime);
+  const incompleteRemaining = await countIncompleteSubtitleAnimesFromDb();
+  result.incompleteRemaining = incompleteRemaining;
 
-  for (let i = 0; i < incompleteIds.length; i++) {
-    const anilistId = incompleteIds[i];
-    const tick = await ensureIncrementalSubtitleCache(anilistId, {
-      maxEpisodes: episodesPerAnime,
-      delayMs: SUBTITLE_API_INTERVAL_MS,
-    });
-    result.episodesFetched += tick.fetched;
-    if (tick.fetched > 0) result.animeUpdated++;
+  if (incompleteRemaining > 0 && maxIncompleteAnime > 0) {
+    const incompleteIds = await listIncompleteSubtitleAnimesFromDb(maxIncompleteAnime);
 
-    if (i < incompleteIds.length - 1) {
-      await sleep(SUBTITLE_API_INTERVAL_MS);
+    for (let i = 0; i < incompleteIds.length; i++) {
+      const anilistId = incompleteIds[i];
+      const tick = await ensureIncrementalSubtitleCache(anilistId, {
+        maxEpisodes: episodesPerAnime,
+        delayMs: SUBTITLE_API_INTERVAL_MS,
+      });
+      result.episodesFetched += tick.fetched;
+      if (tick.fetched > 0) result.animeUpdated++;
+
+      if (i < incompleteIds.length - 1) {
+        await sleep(SUBTITLE_API_INTERVAL_MS);
+      }
     }
+
+    result.incompleteRemaining = await countIncompleteSubtitleAnimesFromDb();
+    return result;
   }
 
   if (maxDiscover > 0) {

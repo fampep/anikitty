@@ -770,6 +770,27 @@ export async function listIncompleteSubtitleAnimesFromDb(limit: number): Promise
   return [];
 }
 
+export async function countIncompleteSubtitleAnimesFromDb(): Promise<number> {
+  if (!dbAvailable()) return 0;
+
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(subtitleLibraryAnime)
+      .where(
+        and(
+          eq(subtitleLibraryAnime.isComplete, false),
+          sql`${subtitleLibraryAnime.trackCount} > 0`,
+        ),
+      );
+
+    return row?.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function refreshStaleCompletionStatuses(limit = 40): Promise<number> {
   if (!dbAvailable()) return 0;
 
