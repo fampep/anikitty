@@ -8,6 +8,8 @@ export const KITTY_SUB_PROVIDERS = [
   "Anix",
   "HiAnime",
   "Animepahe",
+  "AllAnime",
+  "MKissa",
 ] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS)[number];

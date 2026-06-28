@@ -10,6 +10,7 @@ export const KITTY_PROVIDERS = [
   "Anikage",
   "AnimeHeaven",
   "KaaLt",
+  "AllAnime",
   "MKissa",
   "Senshi",
   "Animetsu",
@@ -114,7 +115,24 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   { id: "Anikage", label: "Anikage", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "AnimeHeaven", label: "AnimeHeaven", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "KaaLt", label: "KaaLt", group: "other", hardSub: true, hint: "SUB · Hard sub" },
-  { id: "MKissa", label: "MKissa", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  {
+    id: "AllAnime",
+    label: "AllAnime",
+    group: "other",
+    nativeSubs: true,
+    kittySubs: true,
+    supportsDub: true,
+    hint: "allmanga.to · Default · Ok · Mp4 · SUB · DUB",
+  },
+  {
+    id: "MKissa",
+    label: "MKissa",
+    group: "other",
+    nativeSubs: true,
+    kittySubs: true,
+    supportsDub: true,
+    hint: "mkissa.to · Ok · Uni · Fm-Hls · Mp4 · SUB · DUB",
+  },
   { id: "Senshi", label: "Senshi", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "Animetsu", label: "Animetsu", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "Animeverse", label: "Animeverse", group: "other", hardSub: true, hint: "SUB · Hard sub" },
@@ -130,7 +148,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = "Miruro";
 
 const DEPRECATED_PROVIDERS = new Set([
-  "AllAnime",
   "AnimeParadise",
   "Anizen",
   "Animo",
@@ -150,6 +167,8 @@ export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   ...KITTY_MEGAPLAY_PROVIDERS,
   "Animex",
+  "AllAnime",
+  "MKissa",
 ]);
 
 export function isKittyProvider(value: string): value is KittyProvider {
