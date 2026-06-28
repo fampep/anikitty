@@ -19,7 +19,7 @@ import {
   sleep,
 } from "@/lib/subtitle-sync-config";
 import { fetchAnitakuSubtitleStreamFallback, fetchMiruroSubtitleStream } from "@/lib/miruro-api";
-import { fetchKittySubsTracks } from "@/lib/kitty-subs-api";
+import { fetchKittySubsTracks, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty-subs-api";
 
 export type EpisodeSubtitleCacheContext = Pick<
   SubtitleCacheContext,
@@ -229,7 +229,7 @@ export async function ensureMiruroSubtitleCache(
   if (kitty?.tracks.length) {
     return cacheStreamSubtitleTracks(kitty.tracks, {
       ...ctx,
-      provider: kitty.provider,
+      provider: KITTY_SUB_SOURCE_PROVIDER,
       animeTitle: kitty.animeTitle,
       headers: {},
     });

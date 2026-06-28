@@ -11,6 +11,6 @@ export default function Image() {
     title: "Subtitle Library",
     subtitle: "Browse cached tracks, coverage stats, and downloads.",
     accent: "teal",
-    features: ["VTT downloads", "Episode coverage", "Miruro cache"],
+    features: ["VTT downloads", "Episode coverage", "Anikitty proxy"],
   });
 }

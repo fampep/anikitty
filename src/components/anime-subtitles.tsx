@@ -24,7 +24,6 @@ import {
 } from "@/query/get-anime-subtitles";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
-import { SUBTITLE_SOURCE_PROVIDER } from "@/lib/subtitle-track-utils";
 import { parseVttCues, formatCueTime } from "@/lib/vtt-parse";
 import { api } from "@/lib/api";
 
@@ -250,7 +249,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
                 {t("anime.subtitles.heading")}
               </h3>
               <p className="text-xs text-white/45 mt-1 max-w-xl leading-relaxed">
-                {t("anime.subtitles.description", { provider: SUBTITLE_SOURCE_PROVIDER })}
+                {t("anime.subtitles.description")}
               </p>
             </div>
           </div>

@@ -20,6 +20,7 @@ export const KITTY_PROVIDERS = [
   "AniDB",
   "Nyanime",
   "AnimeOnsen",
+  "AnimeNexus",
   "Animeya",
   "AniWaves",
 ] as const;
@@ -141,6 +142,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   { id: "AniDB", label: "AniDB", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "Nyanime", label: "Nyanime", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "AnimeOnsen", label: "AnimeOnsen", group: "other", hardSub: true, hint: "SUB · Hard sub" },
+  { id: "AnimeNexus", label: "AnimeNexus", group: "other", nativeSubs: true, kittySubs: true, hint: "SUB · Multi-language ASS" },
   { id: "Animeya", label: "Animeya", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "AniWaves", label: "AniWaves", group: "other", hardSub: true, hint: "SUB · Hard sub" },
 ];

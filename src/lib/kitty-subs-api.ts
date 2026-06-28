@@ -1,20 +1,46 @@
 import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty-api";
 import type { StreamTrack } from "@/lib/subtitle-track-utils";
 
-/** Kitty API /subs providers (MegaPlay embed subtitles). */
-export const KITTY_SUB_PROVIDERS = [
+/** User-facing label for cached / proxied subtitle tracks (not upstream provider names). */
+export const ANIKITTY_SUBTITLE_PROXY_LABEL = "Anikitty proxy";
+
+/** Stored in Postgres — maps to {@link ANIKITTY_SUBTITLE_PROXY_LABEL} in the UI. */
+export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
+
+/**
+ * Fallback order when GET /subs?list=providers is unavailable.
+ * Matches KittyAPI subs-capable providers (MegaPlay, Miruro, AllAnime, AnimeNexus, etc.).
+ */
+export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Anikoto",
   "AnimeSogo",
   "Anix",
   "HiAnime",
   "Animepahe",
+  "Animex",
+  "Miruro",
   "AllAnime",
   "MKissa",
+  "Animetsu",
+  "AnimeOnsen",
+  "AnimeNexus",
+  "AniWaves",
+  "Senshi",
+  "Animeya",
+  "Anitaku",
+  "Anizen",
+  "Nyanime",
+  "Animeverse",
+  "AniZone",
 ] as const;
 
-export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS)[number];
+export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];
 
-export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
+/** @deprecated Use KITTY_SUB_PROVIDERS_FALLBACK */
+export const KITTY_SUB_PROVIDERS = KITTY_SUB_PROVIDERS_FALLBACK;
+
+let subsProviderOrderCache: { providers: string[]; at: number } | null = null;
+const SUBS_PROVIDER_LIST_TTL_MS = 10 * 60_000;
 
 type KittySubsFile = {
   url: string;
@@ -43,7 +69,7 @@ export type KittySubsResponse = {
 };
 
 export function buildKittySubsUrl(opts: {
-  provider: KittySubProvider;
+  provider: string;
   anilistId?: number;
   episode?: number;
   audio?: "sub" | "dub";
@@ -86,22 +112,58 @@ function pickEpisodeSubs(data: KittySubsResponse, episode: number): StreamTrack[
   return subsFilesToTracks(row.files);
 }
 
+export async function listKittySubsProviders(): Promise<string[]> {
+  try {
+    const res = await fetch(`${getKittyApiBase()}/subs?list=providers`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
+      headers: kittyApiHeaders(),
+    });
+    if (!res.ok) return [...KITTY_SUB_PROVIDERS_FALLBACK];
+    const data = await res.json();
+    if (Array.isArray(data)) return data.map(String);
+    if (Array.isArray(data.providers)) return data.providers.map(String);
+    return [...KITTY_SUB_PROVIDERS_FALLBACK];
+  } catch {
+    return [...KITTY_SUB_PROVIDERS_FALLBACK];
+  }
+}
+
+/** Runtime provider order from KittyAPI, merged with static fallback. */
+export async function getKittySubsProviderOrder(
+  override?: readonly string[],
+): Promise<string[]> {
+  if (override?.length) return [...override];
+
+  if (
+    subsProviderOrderCache &&
+    Date.now() - subsProviderOrderCache.at < SUBS_PROVIDER_LIST_TTL_MS
+  ) {
+    return subsProviderOrderCache.providers;
+  }
+
+  const fromApi = await listKittySubsProviders();
+  const merged = [...new Set([...fromApi, ...KITTY_SUB_PROVIDERS_FALLBACK])];
+  subsProviderOrderCache = { providers: merged, at: Date.now() };
+  return merged;
+}
+
 /** Fetch subtitle tracks for one episode via GET /subs (tries each subs provider). */
 export async function fetchKittySubsTracks(opts: {
   anilistId: number;
   episode: number;
   audio?: "sub" | "dub";
   title?: string | null;
-  providers?: readonly KittySubProvider[];
+  providers?: readonly string[];
 }): Promise<{
   tracks: StreamTrack[];
-  provider: KittySubProvider;
+  provider: string;
   animeTitle: string | null;
 } | null> {
   if (opts.anilistId <= 0 || opts.episode <= 0) return null;
 
   const audio = opts.audio ?? "sub";
-  const order = opts.providers ?? KITTY_SUB_PROVIDERS;
+  const order = await getKittySubsProviderOrder(opts.providers);
 
   for (const provider of order) {
     try {
@@ -136,21 +198,4 @@ export async function fetchKittySubsTracks(opts: {
   }
 
   return null;
-}
-
-export async function listKittySubsProviders(): Promise<string[]> {
-  try {
-    const res = await fetch(`${getKittyApiBase()}/subs?list=providers`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(8_000),
-      headers: kittyApiHeaders(),
-    });
-    if (!res.ok) return [...KITTY_SUB_PROVIDERS];
-    const data = await res.json();
-    if (Array.isArray(data)) return data.map(String);
-    if (Array.isArray(data.providers)) return data.providers.map(String);
-    return [...KITTY_SUB_PROVIDERS];
-  } catch {
-    return [...KITTY_SUB_PROVIDERS];
-  }
 }
