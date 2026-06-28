@@ -8,6 +8,7 @@ export const ROUTES = {
   FORUM: "/forum",
   CHAT: "/chat",
   MESSAGES: "/messages",
+  SUBTITLES: "/subtitles",
   WATCH_TOGETHER: "/watch-together",
   SETTINGS: "/settings",
   FAQ: "/faq",

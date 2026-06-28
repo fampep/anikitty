@@ -8,6 +8,7 @@ export const SEARCH_ANIME = "search-anime";
 export const GET_EPISODE_SERVERS = "get-episode-servers";
 export const GET_ANIME_BANNER = "get-anime-banner";
 export const GET_ANIME_SCHEDULE = "get-anime-schedule";
+export const GET_SUBTITLE_LIBRARY = "get-subtitle-library";
 
 export const GET_HOME_PAGE_DATA = "get-home-page-data";
 export const GET_ANIME_MAPPINGS = "get-anime-mappings";
