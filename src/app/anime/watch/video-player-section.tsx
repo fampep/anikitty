@@ -19,7 +19,7 @@ import {
   isAnimexServerId,
   type AnimexServerId,
 } from "@/lib/animex-api";
-import { ProviderGrid, ProviderChipRow, ProviderQuickPick } from "@/components/provider-select";
+import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   MIRURO_PIPE_PROVIDERS,
@@ -124,6 +124,20 @@ const VideoPlayerSection = () => {
       if (saved && isAnimexServerId(saved)) return saved;
     }
     return DEFAULT_ANIMEX_SERVER;
+  });
+
+  const [multiPanel, setMultiPanel] = useState<MultiPanelProvider | null>(() => {
+    if (typeof window !== "undefined") {
+      const savedProvider = localStorage.getItem("kittyProvider");
+      const savedMode = localStorage.getItem("kittyAudioMode");
+      if (
+        savedMode === "multi" &&
+        (savedProvider === "Miruro" || savedProvider === "Animex")
+      ) {
+        return savedProvider;
+      }
+    }
+    return null;
   });
 
   const audio: "sub" | "dub" = preferDub ? "dub" : "sub";
@@ -377,6 +391,9 @@ const VideoPlayerSection = () => {
     setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", mode);
+    if (mode !== "multi" || (p !== "Miruro" && p !== "Animex")) {
+      setMultiPanel(null);
+    }
     if (p === "Animex") {
       const server = defaultAnimexServerForMode(mode);
       setAnimexServer(server);
@@ -384,14 +401,19 @@ const VideoPlayerSection = () => {
     }
   };
 
-  const handleAnimexGridSelect = (server: AnimexServerId, mode: ProviderAudioMode) => {
+  const handleMultiToggle = (panel: MultiPanelProvider | null) => {
+    setMultiPanel(panel);
+  };
+
+  const handleAnimexServerChange = (server: AnimexServerId) => {
     const t = liveTimeRef.current;
     if (t > 5) setStartTime(t);
     setProvider("Animex");
-    setAudioMode(mode);
+    setAudioMode("multi");
     setAnimexServer(server);
+    setMultiPanel("Animex");
     localStorage.setItem("kittyProvider", "Animex");
-    localStorage.setItem("kittyAudioMode", mode);
+    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("animexServer", server);
   };
 
@@ -449,9 +471,13 @@ const VideoPlayerSection = () => {
         <ProviderQuickPick
           value={provider}
           audioMode={audioMode}
+          multiPanel={multiPanel}
+          miruroPipe={miruroPipe}
           animexServer={animexServer}
           onSelect={handleProviderGridSelect}
-          onAnimexSelect={handleAnimexGridSelect}
+          onMultiToggle={handleMultiToggle}
+          onMiruroPipeChange={handleMiruroPipeChange}
+          onAnimexServerChange={handleAnimexServerChange}
         />
 
         <Button
@@ -510,24 +536,14 @@ const VideoPlayerSection = () => {
         <ProviderGrid
           provider={provider}
           audioMode={audioMode}
+          multiPanel={multiPanel}
+          miruroPipe={miruroPipe}
           animexServer={animexServer}
           onSelect={handleProviderGridSelect}
-          onAnimexSelect={handleAnimexGridSelect}
+          onMultiToggle={handleMultiToggle}
+          onMiruroPipeChange={handleMiruroPipeChange}
+          onAnimexServerChange={handleAnimexServerChange}
         />
-
-        {provider === "Miruro" && (
-          <ProviderChipRow
-            label={t("watch.miruroPipe")}
-            value={miruroPipe}
-            options={MIRURO_PIPE_PROVIDERS.map((p) => ({
-              id: p.id,
-              label: p.native ? p.label : `${p.label}*`,
-              hint: p.native ? undefined : "embed",
-            }))}
-            onChange={handleMiruroPipeChange}
-            accent="violet"
-          />
-        )}
 
         {/* Row 2 — badges + actions */}
         <div className="flex flex-wrap items-center gap-2">

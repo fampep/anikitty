@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
-import { Captions, Mic, Server, Sparkles } from "lucide-react";
+import { type ReactNode } from "react";
+import { Captions, ChevronDown, Mic, Server, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { animexServersForAudioMode, defaultAnimexServerForMode, type AnimexServerId } from "@/lib/animex-api";
+import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/animex-api";
+import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/miruro-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   kittyProvidersByGroup,
@@ -21,6 +22,8 @@ import {
 } from "@/lib/kitty-providers";
 import { cn } from "@/lib/utils";
 import { useT } from "@/providers/i18n-provider";
+
+export type MultiPanelProvider = "Miruro" | "Animex";
 
 type Props = {
   value: KittyProvider;
@@ -113,25 +116,37 @@ export default function ProviderSelect({
 export function ProviderQuickPick({
   value,
   audioMode = "sub",
+  multiPanel = null,
+  miruroPipe,
   animexServer,
   onSelect,
-  onAnimexSelect,
+  onMultiToggle,
+  onMiruroPipeChange,
+  onAnimexServerChange,
   className,
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
+  multiPanel?: MultiPanelProvider | null;
+  miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
-  onAnimexSelect?: (server: AnimexServerId, mode: ProviderAudioMode) => void;
+  onMultiToggle?: (panel: MultiPanelProvider | null) => void;
+  onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
+  onAnimexServerChange?: (server: AnimexServerId) => void;
   className?: string;
 }) {
   return (
     <ProviderGrid
       provider={value}
       audioMode={audioMode}
+      multiPanel={multiPanel}
+      miruroPipe={miruroPipe}
       animexServer={animexServer}
       onSelect={onSelect}
-      onAnimexSelect={onAnimexSelect}
+      onMultiToggle={onMultiToggle}
+      onMiruroPipeChange={onMiruroPipeChange}
+      onAnimexServerChange={onAnimexServerChange}
       className={className}
       rows={["sub", "dub", "multi"]}
     />
@@ -140,22 +155,25 @@ export function ProviderQuickPick({
 
 const PROVIDER_ROW_STYLES: Record<
   ProviderAudioMode,
-  { active: string; idle: string; label: string }
+  { active: string; idle: string; label: string; expanded: string }
 > = {
   sub: {
     label: "text-teal-300/70",
     active: "bg-teal-500/25 border-teal-400/45 text-teal-100",
     idle: "border-white/10 text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+    expanded: "",
   },
   dub: {
     label: "text-amber-300/70",
     active: "bg-amber-500/25 border-amber-400/45 text-amber-100",
     idle: "border-white/10 text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    expanded: "",
   },
   multi: {
     label: "text-violet-300/70",
     active: "bg-violet-500/25 border-violet-400/45 text-violet-100",
     idle: "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+    expanded: "ring-1 ring-violet-400/35",
   },
 };
 
@@ -163,25 +181,27 @@ type ProviderGridProps = {
   provider: KittyProvider;
   audioMode: ProviderAudioMode;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
+  multiPanel?: MultiPanelProvider | null;
+  onMultiToggle?: (panel: MultiPanelProvider | null) => void;
+  miruroPipe?: MiruroPipeProviderId;
+  onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   animexServer?: AnimexServerId;
-  onAnimexSelect?: (server: AnimexServerId, mode: ProviderAudioMode) => void;
+  onAnimexServerChange?: (server: AnimexServerId) => void;
   disabled?: boolean;
   className?: string;
-  /** Limit which rows render (default: all three). */
   rows?: ProviderAudioMode[];
 };
-
-const ANIMEX_PILL_ACTIVE =
-  "bg-rose-500/25 border-rose-400/45 text-rose-100 ring-1 ring-rose-400/20";
-const ANIMEX_PILL_IDLE =
-  "border-rose-500/20 text-rose-200/55 hover:border-rose-400/35 hover:text-rose-100/85 hover:bg-rose-500/[0.08]";
 
 export function ProviderGrid({
   provider,
   audioMode,
   onSelect,
+  multiPanel = null,
+  onMultiToggle,
+  miruroPipe,
+  onMiruroPipeChange,
   animexServer,
-  onAnimexSelect,
+  onAnimexServerChange,
   disabled,
   className,
   rows = ["sub", "dub", "multi"],
@@ -198,6 +218,15 @@ export function ProviderGrid({
     sub: <Captions className="w-3 h-3 shrink-0" />,
     dub: <Mic className="w-3 h-3 shrink-0" />,
     multi: <Sparkles className="w-3 h-3 shrink-0" />,
+  };
+
+  const handleMultiClick = (p: MultiPanelProvider) => {
+    if (provider === p && audioMode === "multi" && multiPanel === p) {
+      onMultiToggle?.(null);
+      return;
+    }
+    onSelect(p, "multi");
+    onMultiToggle?.(p);
   };
 
   return (
@@ -219,65 +248,114 @@ export function ProviderGrid({
               {rowLabels[mode]}
             </span>
             <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
-              {(["featured", "other"] as const).map((group, groupIdx) => {
-                const groupItems = items.filter((p) => p.group === group);
-                if (groupItems.length === 0) return null;
+              {items.map((p) => {
+                const isMulti = p.id === "Miruro" || p.id === "Animex";
+                const isActive = provider === p.id && audioMode === mode;
+                const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
 
                 return (
-                  <Fragment key={group}>
-                    {groupIdx > 0 && groupItems.length > 0 && (
-                      <span className="w-full h-0 basis-full" aria-hidden />
+                  <button
+                    key={`${mode}-${p.id}`}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() =>
+                      isMulti && mode === "multi"
+                        ? handleMultiClick(p.id as MultiPanelProvider)
+                        : onSelect(p.id, mode)
+                    }
+                    title={p.hint}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
+                      isActive ? styles.active : styles.idle,
+                      isExpanded && styles.expanded,
+                      p.id === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
                     )}
-                    {groupItems.map((p) => {
-                      const isActive =
-                        provider === p.id &&
-                        audioMode === mode &&
-                        (p.id !== "Animex" || animexServer === defaultAnimexServerForMode(mode));
-                      return (
-                        <button
-                          key={`${mode}-${p.id}`}
-                          type="button"
-                          disabled={disabled}
-                          onClick={() => onSelect(p.id, mode)}
-                          title={p.hint}
-                          className={cn(
-                            "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
-                            isActive ? styles.active : styles.idle,
-                            p.group === "featured" && !isActive && "text-white/55",
-                            p.group === "other" && !isActive && "text-white/35",
-                          )}
-                        >
-                          {p.label}
-                        </button>
-                      );
-                    })}
-                  </Fragment>
+                  >
+                    {p.label}
+                    {isMulti && mode === "multi" && (
+                      <ChevronDown
+                        className={cn(
+                          "w-3 h-3 opacity-60 transition-transform",
+                          isExpanded && "rotate-180",
+                        )}
+                      />
+                    )}
+                  </button>
                 );
               })}
-              {onAnimexSelect &&
-                animexServersForAudioMode(mode).map((s) => {
-                  const isActive =
-                    provider === "Animex" && animexServer === s.id && audioMode === mode;
-                  return (
-                    <button
-                      key={`animex-${mode}-${s.id}`}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => onAnimexSelect(s.id, mode)}
-                      title={s.hint}
-                      className={cn(
-                        "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
-                        isActive ? ANIMEX_PILL_ACTIVE : ANIMEX_PILL_IDLE,
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  );
-                })}
             </div>
           </div>
         );
       })}
+
+      {multiPanel === "Miruro" && provider === "Miruro" && onMiruroPipeChange && miruroPipe != null && (
+        <MultiServerPanel accent="violet" label={t("watch.miruroPipe")}>
+          <div className="flex flex-wrap gap-1.5">
+            {MIRURO_PIPE_PROVIDERS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => onMiruroPipeChange(p.id)}
+                title={p.native ? undefined : "embed"}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                  miruroPipe === p.id
+                    ? "bg-violet-500/25 border-violet-400/45 text-violet-100"
+                    : "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+                )}
+              >
+                {p.native ? p.label : `${p.label}*`}
+              </button>
+            ))}
+          </div>
+        </MultiServerPanel>
+      )}
+
+      {multiPanel === "Animex" && provider === "Animex" && onAnimexServerChange && animexServer != null && (
+        <MultiServerPanel accent="rose" label={t("watch.animexServer")}>
+          <div className="flex flex-wrap gap-1.5">
+            {ANIMEX_SERVERS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => onAnimexServerChange(s.id)}
+                title={s.hint}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                  animexServer === s.id
+                    ? "bg-rose-500/25 border-rose-400/45 text-rose-100"
+                    : "border-white/10 text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
+                )}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </MultiServerPanel>
+      )}
+    </div>
+  );
+}
+
+function MultiServerPanel({
+  label,
+  accent,
+  children,
+}: {
+  label: string;
+  accent: "violet" | "rose";
+  children: ReactNode;
+}) {
+  const border =
+    accent === "rose" ? "border-rose-500/25 bg-rose-500/[0.04]" : "border-violet-500/25 bg-violet-500/[0.04]";
+  const text = accent === "rose" ? "text-rose-300/70" : "text-violet-300/70";
+
+  return (
+    <div className={cn("ml-14 rounded-lg border px-2.5 py-2", border)}>
+      <p className={cn("text-[10px] font-mono uppercase tracking-wide mb-2", text)}>{label}</p>
+      {children}
     </div>
   );
 }

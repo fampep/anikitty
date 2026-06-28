@@ -60,7 +60,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     group: "featured",
     nativeSubs: true,
     supportsDub: true,
-    hint: "Auto · Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi",
+    supportsMulti: true,
+    hint: "Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi",
   },
   {
     id: "AnimeSogo",
@@ -183,10 +184,13 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
   return getKittyProviderMeta(provider).supportsMulti === true;
 }
 
+/** Providers that only appear in the MULTI row (server picker expands below). */
+export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>(["Miruro", "Animex"]);
+
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {
-    if (mode === "dub") return p.supportsDub === true;
     if (mode === "multi") return p.supportsMulti === true;
-    return true;
+    if (mode === "dub") return p.supportsDub === true && !MULTI_ROW_PROVIDERS.has(p.id);
+    return !MULTI_ROW_PROVIDERS.has(p.id);
   });
 }
