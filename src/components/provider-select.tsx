@@ -12,15 +12,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/animex-api";
-import { MIRURO_PIPE_PROVIDERS, MIRURO_SSUB_PROVIDERS, type MiruroPipeProviderId } from "@/lib/miruro-api";
+import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/miruro-api";
 import {
   DEFAULT_KITTY_PROVIDER,
+  KITTY_PROVIDER_META,
+  MULTI_ROW_PROVIDERS,
   kittyProvidersByGroup,
-  kittyProvidersForAudioMode,
   type KittyProviderMeta,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty-providers";
+import {
+  providerVisibleInAudioMode,
+  type EpisodeStreamCapabilities,
+  type StreamCapabilities,
+} from "@/lib/stream-capabilities";
 import { cn } from "@/lib/utils";
 import { useT } from "@/providers/i18n-provider";
 
@@ -82,7 +88,6 @@ export default function ProviderSelect({
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{p.label}</span>
-                      <ProviderMetaBadges meta={p} />
                     </div>
                     {p.hint && (
                       <span className="text-[10px] font-mono text-white/35 truncate">{p.hint}</span>
@@ -104,6 +109,8 @@ export function ProviderQuickPick({
   multiPanel = null,
   miruroPipe,
   animexServer,
+  capabilities,
+  capabilitiesLoading,
   onSelect,
   onMultiToggle,
   onMiruroPipeChange,
@@ -115,6 +122,8 @@ export function ProviderQuickPick({
   multiPanel?: MultiPanelProvider | null;
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
+  capabilities?: EpisodeStreamCapabilities;
+  capabilitiesLoading?: boolean;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
   onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
@@ -128,6 +137,8 @@ export function ProviderQuickPick({
       multiPanel={multiPanel}
       miruroPipe={miruroPipe}
       animexServer={animexServer}
+      capabilities={capabilities}
+      capabilitiesLoading={capabilitiesLoading}
       onSelect={onSelect}
       onMultiToggle={onMultiToggle}
       onMiruroPipeChange={onMiruroPipeChange}
@@ -169,53 +180,52 @@ function CapabilityBadge({
   );
 }
 
-function ProviderMetaBadges({
-  meta,
+function StreamCapabilityBadges({
+  caps,
   rowMode,
 }: {
-  meta: KittyProviderMeta;
+  caps: StreamCapabilities | null | undefined;
   rowMode?: ProviderAudioMode;
 }) {
   const t = useT();
-  const hasSoftSubs = meta.nativeSubs || meta.kittySubs;
+  if (!caps) return null;
+
   const badges: ReactNode[] = [];
 
-  if (rowMode === "multi" && meta.supportsMulti) {
+  if (rowMode === "multi" && caps.multi) {
     badges.push(
       <CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />,
       <CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />,
       <CapabilityBadge key="multi" label={t("watch.multi")} variant="multi" />,
     );
-  } else if (rowMode === "sub") {
+  } else if (rowMode === "sub" && caps.sub) {
     badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
-    if (meta.supportsDub) {
+    if (caps.dub) {
       badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
     }
-  } else if (rowMode === "dub") {
-    badges.push(
-      <CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />,
-      <CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />,
-    );
+  } else if (rowMode === "dub" && caps.dub) {
+    badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
+    if (caps.sub) {
+      badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
+    }
   } else {
-    badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
-    if (meta.supportsDub) {
-      badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
-    }
-    if (meta.supportsMulti) {
+    if (caps.sub) badges.push(<CapabilityBadge key="sub" label={t("card.sub")} variant="sub" />);
+    if (caps.dub) badges.push(<CapabilityBadge key="dub" label={t("card.dub")} variant="dub" />);
+    if (caps.multi) {
       badges.push(<CapabilityBadge key="multi" label={t("watch.multi")} variant="multi" />);
     }
   }
 
-  if (hasSoftSubs) {
+  if (caps.softSub) {
     badges.push(
       <CapabilityBadge
-        key="subs"
-        label={t("watch.providerSubsBadge")}
-        variant="subs"
+        key="ssub"
+        label={t("watch.softSubBadge")}
+        variant="ssub"
         icon={<Captions className="w-2 h-2" />}
       />,
     );
-  } else if (meta.hardSub) {
+  } else if (caps.hardSub) {
     badges.push(<CapabilityBadge key="hsub" label={t("watch.hardSubBadge")} variant="hsub" />);
   }
 
@@ -224,43 +234,28 @@ function ProviderMetaBadges({
   return <span className="inline-flex items-center gap-0.5 shrink-0 flex-wrap">{badges}</span>;
 }
 
-function AnimexServerBadges({ server }: { server: (typeof ANIMEX_SERVERS)[number] }) {
-  const t = useT();
-  const hint = server.hint.toLowerCase();
-
-  return (
-    <span className="inline-flex items-center gap-0.5 shrink-0">
-      {(server.modes as readonly ProviderAudioMode[]).includes("multi") && (
-        <CapabilityBadge label={t("watch.multi")} variant="multi" />
-      )}
-      {(server.modes as readonly ProviderAudioMode[]).includes("sub") && (
-        <CapabilityBadge label={t("card.sub")} variant="sub" />
-      )}
-      {(server.modes as readonly ProviderAudioMode[]).includes("dub") && (
-        <CapabilityBadge label={t("card.dub")} variant="dub" />
-      )}
-      {hint.includes("hard sub") && (
-        <CapabilityBadge label={t("watch.hardSubBadge")} variant="hsub" />
-      )}
-      {hint.includes("soft sub") && (
-        <CapabilityBadge label={t("watch.softSubBadge")} variant="ssub" />
-      )}
-    </span>
-  );
+function pipeHasEpisode(caps: StreamCapabilities | undefined): boolean {
+  return Boolean(caps && (caps.sub || caps.dub || caps.softSub || caps.hardSub));
 }
 
-function MiruroPipeBadges({ pipeId }: { pipeId: MiruroPipeProviderId }) {
-  const t = useT();
-  const hasSoftSub = (MIRURO_SSUB_PROVIDERS as readonly string[]).includes(pipeId);
+function serverHasEpisode(caps: StreamCapabilities | undefined): boolean {
+  return Boolean(caps && (caps.sub || caps.dub));
+}
 
-  if (!hasSoftSub) return null;
+function providersForRow(
+  mode: ProviderAudioMode,
+  capabilities: EpisodeStreamCapabilities | undefined,
+  loading: boolean,
+): KittyProviderMeta[] {
+  if (loading) {
+    return KITTY_PROVIDER_META.filter((p) => {
+      if (mode === "multi") return MULTI_ROW_PROVIDERS.has(p.id);
+      return !MULTI_ROW_PROVIDERS.has(p.id);
+    });
+  }
 
-  return (
-    <CapabilityBadge
-      label={t("watch.softSubBadge")}
-      variant="ssub"
-      icon={<Captions className="w-2 h-2" />}
-    />
+  return KITTY_PROVIDER_META.filter((p) =>
+    providerVisibleInAudioMode(p.id, mode, capabilities?.providers[p.id]),
   );
 }
 
@@ -298,6 +293,8 @@ type ProviderGridProps = {
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   animexServer?: AnimexServerId;
   onAnimexServerChange?: (server: AnimexServerId) => void;
+  capabilities?: EpisodeStreamCapabilities;
+  capabilitiesLoading?: boolean;
   disabled?: boolean;
   className?: string;
   rows?: ProviderAudioMode[];
@@ -313,11 +310,14 @@ export function ProviderGrid({
   onMiruroPipeChange,
   animexServer,
   onAnimexServerChange,
+  capabilities,
+  capabilitiesLoading = false,
   disabled,
   className,
   rows = ["sub", "dub", "multi"],
 }: ProviderGridProps) {
   const t = useT();
+  const capsReady = !capabilitiesLoading && !!capabilities;
 
   const rowLabels: Record<ProviderAudioMode, string> = {
     sub: t("card.sub"),
@@ -343,7 +343,7 @@ export function ProviderGrid({
   return (
     <div className={cn("flex flex-col gap-2 w-full", className)}>
       {rows.map((mode) => {
-        const items = kittyProvidersForAudioMode(mode);
+        const items = providersForRow(mode, capabilities, capabilitiesLoading);
         if (items.length === 0) return null;
         const styles = PROVIDER_ROW_STYLES[mode];
 
@@ -363,6 +363,7 @@ export function ProviderGrid({
                 const isMulti = p.id === "Miruro" || p.id === "Animex";
                 const isActive = provider === p.id && audioMode === mode;
                 const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
+                const providerCaps = capabilities?.providers[p.id];
 
                 return (
                   <button
@@ -379,11 +380,14 @@ export function ProviderGrid({
                       "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
                       isActive ? styles.active : styles.idle,
                       isExpanded && styles.expanded,
+                      capabilitiesLoading && "opacity-60 animate-pulse",
                       p.id === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
                     )}
                   >
                     <span className="truncate">{p.label}</span>
-                    <ProviderMetaBadges meta={p} rowMode={mode} />
+                    {capsReady && (
+                      <StreamCapabilityBadges caps={providerCaps} rowMode={mode} />
+                    )}
                     {isMulti && mode === "multi" && (
                       <ChevronDown
                         className={cn(
@@ -403,7 +407,9 @@ export function ProviderGrid({
       {multiPanel === "Miruro" && provider === "Miruro" && onMiruroPipeChange && miruroPipe != null && (
         <MultiServerPanel accent="violet" label={t("watch.miruroPipe")}>
           <div className="flex flex-wrap gap-1.5">
-            {MIRURO_PIPE_PROVIDERS.map((p) => (
+            {MIRURO_PIPE_PROVIDERS.filter((p) =>
+              capabilitiesLoading || pipeHasEpisode(capabilities?.miruroPipes[p.id]),
+            ).map((p) => (
               <button
                 key={p.id}
                 type="button"
@@ -415,10 +421,13 @@ export function ProviderGrid({
                   miruroPipe === p.id
                     ? "bg-violet-500/25 border-violet-400/45 text-violet-100"
                     : "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+                  capabilitiesLoading && "opacity-60 animate-pulse",
                 )}
               >
                 <span>{p.native ? p.label : `${p.label}*`}</span>
-                <MiruroPipeBadges pipeId={p.id} />
+                {capsReady && (
+                  <StreamCapabilityBadges caps={capabilities?.miruroPipes[p.id]} />
+                )}
               </button>
             ))}
           </div>
@@ -428,7 +437,9 @@ export function ProviderGrid({
       {multiPanel === "Animex" && provider === "Animex" && onAnimexServerChange && animexServer != null && (
         <MultiServerPanel accent="rose" label={t("watch.animexServer")}>
           <div className="flex flex-wrap gap-1.5">
-            {ANIMEX_SERVERS.map((s) => (
+            {ANIMEX_SERVERS.filter((s) =>
+              capabilitiesLoading || serverHasEpisode(capabilities?.animexServers[s.id]),
+            ).map((s) => (
               <button
                 key={s.id}
                 type="button"
@@ -440,10 +451,13 @@ export function ProviderGrid({
                   animexServer === s.id
                     ? "bg-rose-500/25 border-rose-400/45 text-rose-100"
                     : "border-white/10 text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
+                  capabilitiesLoading && "opacity-60 animate-pulse",
                 )}
               >
                 <span>{s.label}</span>
-                <AnimexServerBadges server={s} />
+                {capsReady && (
+                  <StreamCapabilityBadges caps={capabilities?.animexServers[s.id]} />
+                )}
               </button>
             ))}
           </div>

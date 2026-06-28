@@ -608,6 +608,78 @@ export function clearMiruroEpisodeCache(anilistId?: number): void {
   else episodeListCache.clear();
 }
 
+export type MiruroPipeCapabilities = {
+  sub: boolean;
+  dub: boolean;
+  multi: boolean;
+  softSub: boolean;
+  hardSub: boolean;
+};
+
+const EMPTY_MIRURO_CAPS: MiruroPipeCapabilities = {
+  sub: false,
+  dub: false,
+  multi: false,
+  softSub: false,
+  hardSub: false,
+};
+
+function mergeMiruroCaps(...items: MiruroPipeCapabilities[]): MiruroPipeCapabilities {
+  return {
+    sub: items.some((c) => c.sub),
+    dub: items.some((c) => c.dub),
+    multi: items.some((c) => c.multi),
+    softSub: items.some((c) => c.softSub),
+    hardSub: items.some((c) => c.hardSub),
+  };
+}
+
+function miruroPipeCapabilitiesFromPayload(
+  payload: MiruroEpisodesPayload,
+  pipe: MiruroPipeProviderId,
+  episode: number,
+): MiruroPipeCapabilities {
+  const episodes = payload.providers?.[pipe]?.episodes;
+  if (!episodes) return EMPTY_MIRURO_CAPS;
+
+  const hasSub = episodes.sub?.some((row) => row.number === episode) ?? false;
+  const hasSsub = episodes.ssub?.some((row) => row.number === episode) ?? false;
+  const hasDub = episodes.dub?.some((row) => row.number === episode) ?? false;
+
+  return {
+    sub: hasSub || hasSsub,
+    dub: hasDub,
+    multi: (hasSub || hasSsub) && hasDub,
+    softSub: hasSsub,
+    hardSub: hasSub && !hasSsub,
+  };
+}
+
+/** Per-pipe sub/dub/hardsub from Miruro episode lists (one Kitty API call). */
+export async function probeMiruroEpisodeCapabilities(
+  anilistId: number,
+  episode: number,
+): Promise<{
+  provider: MiruroPipeCapabilities;
+  pipes: Partial<Record<MiruroPipeProviderId, MiruroPipeCapabilities>>;
+}> {
+  const payload = await getMiruroEpisodesPayload(anilistId);
+  if (!payload?.providers) {
+    return { provider: EMPTY_MIRURO_CAPS, pipes: {} };
+  }
+
+  const pipes: Partial<Record<MiruroPipeProviderId, MiruroPipeCapabilities>> = {};
+  let provider = EMPTY_MIRURO_CAPS;
+
+  for (const pipe of MIRURO_PIPE_PROVIDERS) {
+    const caps = miruroPipeCapabilitiesFromPayload(payload, pipe.id, episode);
+    pipes[pipe.id] = caps;
+    provider = mergeMiruroCaps(provider, caps);
+  }
+
+  return { provider, pipes };
+}
+
 const ANITAKU_FALLBACK_PROVIDER = "Anitaku";
 
 /** Legacy stream-direct subtitle fetch when Miruro /stream returns no VTT tracks. */

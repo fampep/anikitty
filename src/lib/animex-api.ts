@@ -1,6 +1,6 @@
 import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty-api";
 import { getKittyProviderMeta, type KittyProvider, type ProviderAudioMode } from "@/lib/kitty-providers";
-import type { StreamTrack } from "@/lib/subtitle-track-utils";
+import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/miruro-api";
 
 /** animex.one servers exposed by Kitty API (providerId / source). */
@@ -231,4 +231,138 @@ export async function fetchAnimexVideoStream(opts: {
   }
 
   return fetchAnimexStreamDirect(opts);
+}
+
+export type AnimexServerCapabilities = {
+  sub: boolean;
+  dub: boolean;
+  multi: boolean;
+  softSub: boolean;
+  hardSub: boolean;
+};
+
+const EMPTY_ANIMEX_CAPS: AnimexServerCapabilities = {
+  sub: false,
+  dub: false,
+  multi: false,
+  softSub: false,
+  hardSub: false,
+};
+
+function mergeAnimexCaps(...items: AnimexServerCapabilities[]): AnimexServerCapabilities {
+  return {
+    sub: items.some((c) => c.sub),
+    dub: items.some((c) => c.dub),
+    multi: items.some((c) => c.multi),
+    softSub: items.some((c) => c.softSub),
+    hardSub: items.some((c) => c.hardSub),
+  };
+}
+
+function countSubtitleTracks(tracks: StreamTrack[] | undefined): number {
+  if (!tracks?.length) return 0;
+  return tracks.filter(isSubtitleTrack).length;
+}
+
+function serversByAnimexId(
+  rows: AnimexKittyServer[],
+): Partial<Record<AnimexServerId, string>> {
+  const map: Partial<Record<AnimexServerId, string>> = {};
+
+  for (const row of rows) {
+    try {
+      const link = JSON.parse(row.id) as AnimexLinkId;
+      for (const server of ANIMEX_SERVERS) {
+        if (serverMatchesLink(server.id, link) && !map[server.id]) {
+          map[server.id] = row.id;
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return map;
+}
+
+async function probeAnimexLinkStream(linkId: string): Promise<{
+  file?: string;
+  subtitleTracks: number;
+  multiAudio: boolean;
+} | null> {
+  const stream = await fetchAnimexStreamByLinkId(linkId);
+  if (!stream?.file) return null;
+
+  return {
+    file: stream.file,
+    subtitleTracks: countSubtitleTracks(stream.tracks),
+    multiAudio: false,
+  };
+}
+
+/** Per-server sub/dub/hardsub from Animex servers list + stream probes. */
+export async function probeAnimexEpisodeCapabilities(
+  anilistId: number,
+  episode: number,
+  _title?: string | null,
+): Promise<{
+  provider: AnimexServerCapabilities;
+  servers: Partial<Record<AnimexServerId, AnimexServerCapabilities>>;
+}> {
+  const [subLinks, dubLinks] = await Promise.all([
+    fetchAnimexServers({ anilistId, episode, audio: "sub" }).then(serversByAnimexId),
+    fetchAnimexServers({ anilistId, episode, audio: "dub" }).then(serversByAnimexId),
+  ]);
+
+  const serverResults = await Promise.all(
+    ANIMEX_SERVERS.map(async (server) => {
+      const subLinkId = subLinks[server.id];
+      const dubLinkId = dubLinks[server.id];
+      const inSub = Boolean(subLinkId);
+      const inDub = Boolean(dubLinkId);
+
+      if (!inSub && !inDub) return null;
+
+      let softSub = false;
+      let hardSub = false;
+      let multi = false;
+
+      const [subProbe, dubProbe] = await Promise.all([
+        inSub && subLinkId ? probeAnimexLinkStream(subLinkId) : Promise.resolve(null),
+        inDub && dubLinkId ? probeAnimexLinkStream(dubLinkId) : Promise.resolve(null),
+      ]);
+
+      if (subProbe) {
+        softSub = subProbe.subtitleTracks > 0;
+        hardSub = !softSub;
+      }
+
+      if (subProbe?.file && dubProbe?.file) {
+        multi = server.id === "zen" || subProbe.file === dubProbe.file;
+      } else if (server.id === "zen" && (subProbe?.file || dubProbe?.file)) {
+        multi = true;
+      }
+
+      const caps: AnimexServerCapabilities = {
+        sub: inSub,
+        dub: inDub,
+        multi: multi || (inSub && inDub),
+        softSub,
+        hardSub: inSub && !softSub,
+      };
+
+      return { id: server.id, caps };
+    }),
+  );
+
+  const servers: Partial<Record<AnimexServerId, AnimexServerCapabilities>> = {};
+  let provider = EMPTY_ANIMEX_CAPS;
+
+  for (const row of serverResults) {
+    if (!row) continue;
+    servers[row.id] = row.caps;
+    provider = mergeAnimexCaps(provider, row.caps);
+  }
+
+  return { provider, servers };
 }

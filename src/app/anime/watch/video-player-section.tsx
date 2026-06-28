@@ -15,12 +15,15 @@ import {
 import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty-providers";
 import {
   DEFAULT_ANIMEX_SERVER,
-  animexServerUsesInPlayerAudioSwitch,
   defaultAnimexServerForMode,
   isAnimexServerId,
-  selectionSupportsBothStreamAudio,
   type AnimexServerId,
 } from "@/lib/animex-api";
+import {
+  animexServerUsesInPlayerAudioFromCaps,
+  selectionSupportsBothStreamAudioFromCaps,
+} from "@/lib/stream-capabilities";
+import { useGetStreamCapabilities } from "@/query/get-stream-capabilities";
 import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
@@ -156,26 +159,34 @@ const VideoPlayerSection = () => {
 
   const audio: "sub" | "dub" = streamAudio;
 
+  const anilistId = anime?.anime?.info?.anilistId;
+  const malId = anime?.anime?.info?.malId;
+  const episodeNo = selectedEpisode?.startsWith("ep-")
+    ? selectedEpisode.replace("ep-", "")
+    : selectedEpisode ?? "";
+  const animeTitle = anime?.anime?.info?.name || undefined;
+
+  const {
+    data: streamCapabilities,
+    isLoading: capabilitiesLoading,
+  } = useGetStreamCapabilities(anilistId, episodeNo || undefined, animeTitle);
+
   const canSwitchStreamAudio = useMemo(
     () =>
-      selectionSupportsBothStreamAudio({
+      selectionSupportsBothStreamAudioFromCaps(
         provider,
         audioMode,
-        animexServer: provider === "Animex" ? animexServer : undefined,
-      }),
-    [provider, audioMode, animexServer],
+        streamCapabilities,
+        provider === "Animex" ? animexServer : undefined,
+        provider === "Miruro" ? miruroPipe : undefined,
+      ),
+    [provider, audioMode, animexServer, miruroPipe, streamCapabilities],
   );
 
   const inPlayerAudioSwitch =
     audioMode === "multi" &&
     provider === "Animex" &&
-    animexServerUsesInPlayerAudioSwitch(animexServer);
-  const anilistId = anime?.anime?.info?.anilistId;
-  const malId     = anime?.anime?.info?.malId;
-
-  const episodeNo = selectedEpisode?.startsWith("ep-")
-    ? selectedEpisode.replace("ep-", "")
-    : selectedEpisode ?? "";
+    animexServerUsesInPlayerAudioFromCaps(streamCapabilities?.animexServers[animexServer]);
 
   // ── Resume position ──────────────────────────────────────────────
   const [startTime, setStartTime] = useState(0);
@@ -372,8 +383,6 @@ const VideoPlayerSection = () => {
     return () => window.removeEventListener("beforeunload", onUnload);
   }, [saveProgress]);
 
-  const animeTitle = anime?.anime?.info?.name || undefined;
-
   const {
     data: streamData,
     isLoading,
@@ -518,6 +527,8 @@ const VideoPlayerSection = () => {
           multiPanel={multiPanel}
           miruroPipe={miruroPipe}
           animexServer={animexServer}
+          capabilities={streamCapabilities}
+          capabilitiesLoading={capabilitiesLoading}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
@@ -584,6 +595,8 @@ const VideoPlayerSection = () => {
           multiPanel={multiPanel}
           miruroPipe={miruroPipe}
           animexServer={animexServer}
+          capabilities={streamCapabilities}
+          capabilitiesLoading={capabilitiesLoading}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
