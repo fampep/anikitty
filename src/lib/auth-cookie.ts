@@ -42,3 +42,9 @@ export function clearAuthCookie(res: NextResponse) {
   res.cookies.set(AUTH_COOKIE_NAME, "", { ...authCookieOptions(), maxAge: 0 });
   return res;
 }
+
+export function redirectWithAuthCookie(url: string, token: string) {
+  const res = NextResponse.redirect(url);
+  res.cookies.set(AUTH_COOKIE_NAME, token, authCookieOptions());
+  return res;
+}

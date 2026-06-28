@@ -40,6 +40,7 @@ import ActiveSessionsSection from "@/components/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile-privacy-section";
 import AccountDeletionSection from "@/components/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitle-settings-panel";
+import DiscordConnect from "@/components/discord-connect";
 import { RoleBadge } from "@/components/role-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n, useT } from "@/providers/i18n-provider";
@@ -858,6 +859,10 @@ export default function SettingsPage() {
                   <div className="border-t border-white/6 pt-6">
                     <SubSectionTitle>{t("settings.anisurge")}</SubSectionTitle>
                     <AnisurgeSyncSection />
+                  </div>
+                  <div className="border-t border-white/6 pt-6">
+                    <SubSectionTitle>{t("settings.discord")}</SubSectionTitle>
+                    <DiscordConnect />
                   </div>
                 </SectionBody>
               </SectionCard>

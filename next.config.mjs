@@ -24,6 +24,9 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  env: {
+    NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ?? "",
+  },
   experimental: {
     webpackMemoryOptimizations: true,
   },

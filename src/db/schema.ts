@@ -25,6 +25,8 @@ export const users = pgTable("users", {
   anilistAccessToken: text("anilist_access_token"),
   anilistUserId: integer("anilist_user_id"),
   anilistUsername: varchar("anilist_username", { length: 100 }),
+  discordId: varchar("discord_id", { length: 32 }),
+  discordUsername: varchar("discord_username", { length: 100 }),
   totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   profilePrivate: boolean("profile_private").notNull().default(false),

@@ -222,7 +222,9 @@
     "fillAllFields": "すべての項目を入力してください",
     "usernameRules": "ユーザー名は英数字3〜10文字である必要があります",
     "usernameTaken": "ユーザー名またはメールは既に使用されています",
-    "signupFailed": "登録に失敗しました"
+    "signupFailed": "登録に失敗しました",
+    "continueWithDiscord": "Discordで続行",
+    "or": "または"
   },
   "settings": {
     "title": "設定",
@@ -251,6 +253,14 @@
     "connectedDesc": "他のサービスからウォッチリストと履歴を同期",
     "anilist": "AniList",
     "anisurge": "Anisurge",
+    "discord": "Discord",
+    "connectDiscord": "Discordを連携",
+    "discordLinkSuccess": "Discordアカウントを連携しました！",
+    "discordLinkFailed": "Discordの連携に失敗しました",
+    "discordTaken": "このDiscordアカウントは他のユーザーに連携されています",
+    "discordAlreadyLinked": "別のDiscordが既に連携されています",
+    "discordUnlinkSuccess": "Discordの連携を解除しました",
+    "discordUnlinkFailed": "Discordの連携解除に失敗しました",
     "episodeLayout": "エピソードリストのレイアウト",
     "episodeLayoutDesc": "視聴ページでのエピソード表示方法",
     "layoutList": "リスト",

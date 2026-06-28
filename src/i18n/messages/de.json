@@ -222,7 +222,9 @@
     "fillAllFields": "Fülle alle Felder aus",
     "usernameRules": "Benutzername muss 3–10 alphanumerische Zeichen haben",
     "usernameTaken": "Benutzername oder E-Mail bereits vergeben",
-    "signupFailed": "Registrierung fehlgeschlagen"
+    "signupFailed": "Registrierung fehlgeschlagen",
+    "continueWithDiscord": "Mit Discord fortfahren",
+    "or": "oder"
   },
   "settings": {
     "title": "Einstellungen",
@@ -251,6 +253,14 @@
     "connectedDesc": "Synchronisiere Watchlist und Verlauf von anderen Diensten",
     "anilist": "AniList",
     "anisurge": "Anisurge",
+    "discord": "Discord",
+    "connectDiscord": "Discord verbinden",
+    "discordLinkSuccess": "Discord-Konto verbunden!",
+    "discordLinkFailed": "Discord-Verbindung fehlgeschlagen",
+    "discordTaken": "Dieses Discord-Konto ist bereits mit einem anderen Benutzer verknüpft",
+    "discordAlreadyLinked": "Dein Konto hat bereits ein anderes Discord verknüpft",
+    "discordUnlinkSuccess": "Discord-Konto getrennt",
+    "discordUnlinkFailed": "Discord-Trennung fehlgeschlagen",
     "episodeLayout": "Episodenlisten-Layout",
     "episodeLayoutDesc": "Wie Episoden auf der Wiedergabeseite angezeigt werden",
     "layoutList": "Liste",

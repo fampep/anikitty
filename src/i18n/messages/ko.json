@@ -222,7 +222,9 @@
     "fillAllFields": "모든 항목을 입력하세요",
     "usernameRules": "사용자명은 영숫자 3–10자여야 합니다",
     "usernameTaken": "사용자명 또는 이메일이 이미 사용 중입니다",
-    "signupFailed": "회원가입 실패"
+    "signupFailed": "회원가입 실패",
+    "continueWithDiscord": "Discord로 계속",
+    "or": "또는"
   },
   "settings": {
     "title": "설정",
@@ -251,6 +253,14 @@
     "connectedDesc": "다른 서비스에서 보고 싶은 목록과 기록을 동기화",
     "anilist": "AniList",
     "anisurge": "Anisurge",
+    "discord": "Discord",
+    "connectDiscord": "Discord 연결",
+    "discordLinkSuccess": "Discord 계정이 연결되었습니다!",
+    "discordLinkFailed": "Discord 연결 실패",
+    "discordTaken": "이 Discord 계정은 다른 사용자에 연결되어 있습니다",
+    "discordAlreadyLinked": "이미 다른 Discord가 연결되어 있습니다",
+    "discordUnlinkSuccess": "Discord 연결이 해제되었습니다",
+    "discordUnlinkFailed": "Discord 연결 해제 실패",
     "episodeLayout": "에피소드 목록 레이아웃",
     "episodeLayoutDesc": "시청 페이지에서 에피소드 표시 방식",
     "layoutList": "목록",

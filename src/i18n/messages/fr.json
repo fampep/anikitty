@@ -222,7 +222,9 @@
     "fillAllFields": "Remplissez tous les champs",
     "usernameRules": "Le nom d'utilisateur doit comporter 3 à 10 caractères alphanumériques",
     "usernameTaken": "Nom d'utilisateur ou e-mail déjà utilisé",
-    "signupFailed": "Échec de l'inscription"
+    "signupFailed": "Échec de l'inscription",
+    "continueWithDiscord": "Continuer avec Discord",
+    "or": "ou"
   },
   "settings": {
     "title": "Paramètres",
@@ -251,6 +253,14 @@
     "connectedDesc": "Synchronisez votre liste et votre historique depuis d'autres services",
     "anilist": "AniList",
     "anisurge": "Anisurge",
+    "discord": "Discord",
+    "connectDiscord": "Connecter Discord",
+    "discordLinkSuccess": "Compte Discord connecté !",
+    "discordLinkFailed": "Échec de la connexion Discord",
+    "discordTaken": "Ce compte Discord est déjà lié à un autre utilisateur",
+    "discordAlreadyLinked": "Votre compte a déjà un autre Discord lié",
+    "discordUnlinkSuccess": "Compte Discord déconnecté",
+    "discordUnlinkFailed": "Échec de la déconnexion Discord",
     "episodeLayout": "Disposition de la liste d'épisodes",
     "episodeLayoutDesc": "Comment les épisodes sont affichés sur la page de visionnage",
     "layoutList": "Liste",

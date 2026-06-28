@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { Loader2, LogIn, UserPlus, Zap, ShieldCheck } from "lucide-react";
 import { anisurgeAuth, authFromMeResponse } from "@/lib/anisurge";
 import { useT } from "@/providers/i18n-provider";
+import { DiscordIcon } from "@/components/discord-connect";
 
 type Tab = "login" | "signup" | "2fa";
 
@@ -110,6 +111,12 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     } finally {
       setLoading(false);
     }
+  };
+
+  const discordEnabled = !!process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
+
+  const handleDiscordLogin = () => {
+    window.location.href = "/api/account/auth/discord/start";
   };
 
   return (
@@ -230,6 +237,24 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {t("auth.signInAnisurge")}
             </button>
+            {discordEnabled && (
+              <>
+                <div className="flex items-center gap-3 py-1">
+                  <div className="h-px flex-1 bg-white/8" />
+                  <span className="text-[10px] font-mono text-white/25 uppercase">{t("auth.or")}</span>
+                  <div className="h-px flex-1 bg-white/8" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDiscordLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#dce0ff] font-semibold text-sm hover:bg-[#5865F2]/25 disabled:opacity-60 transition-colors"
+                >
+                  <DiscordIcon className="w-4 h-4" />
+                  {t("auth.continueWithDiscord")}
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -267,6 +292,24 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
               {t("auth.createAnisurge")}
             </button>
+            {discordEnabled && (
+              <>
+                <div className="flex items-center gap-3 py-1">
+                  <div className="h-px flex-1 bg-white/8" />
+                  <span className="text-[10px] font-mono text-white/25 uppercase">{t("auth.or")}</span>
+                  <div className="h-px flex-1 bg-white/8" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDiscordLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#dce0ff] font-semibold text-sm hover:bg-[#5865F2]/25 disabled:opacity-60 transition-colors"
+                >
+                  <DiscordIcon className="w-4 h-4" />
+                  {t("auth.continueWithDiscord")}
+                </button>
+              </>
+            )}
           </div>
         )}
       </PopoverContent>

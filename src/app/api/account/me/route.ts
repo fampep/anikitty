@@ -27,6 +27,8 @@ export async function GET(req: Request) {
       anisurgeUsername: users.anisurgeUsername,
       anilistUsername: users.anilistUsername,
       anilistAccessToken: users.anilistAccessToken,
+      discordId: users.discordId,
+      discordUsername: users.discordUsername,
       totpEnabled: users.totpEnabled,
       profilePrivate: users.profilePrivate,
       createdAt: users.createdAt,
@@ -45,6 +47,8 @@ export async function GET(req: Request) {
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,
       anilistUsername: safeUser.anilistUsername ?? null,
+      discordLinked: !!safeUser.discordId,
+      discordUsername: safeUser.discordUsername ?? null,
       totpEnabled: safeUser.totpEnabled ?? false,
       profilePrivate: safeUser.profilePrivate ?? false,
       user: {

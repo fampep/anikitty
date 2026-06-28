@@ -202,6 +202,9 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_private BOOLEAN NOT NULL DEFAULT FALSE`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(32)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_username VARCHAR(100)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS users_discord_id_unique ON users (discord_id) WHERE discord_id IS NOT NULL`,
       `ALTER TABLE watch_progress ADD COLUMN IF NOT EXISTS anilist_synced_at TIMESTAMP`,
       `CREATE TABLE IF NOT EXISTS user_sessions (
         id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,

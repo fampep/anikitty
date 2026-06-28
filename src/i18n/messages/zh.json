@@ -222,7 +222,9 @@
     "fillAllFields": "请填写所有字段",
     "usernameRules": "用户名必须为 3–10 位字母或数字",
     "usernameTaken": "用户名或邮箱已被占用",
-    "signupFailed": "注册失败"
+    "signupFailed": "注册失败",
+    "continueWithDiscord": "使用 Discord 继续",
+    "or": "或"
   },
   "settings": {
     "title": "设置",
@@ -251,6 +253,14 @@
     "connectedDesc": "从其他服务同步你的观看列表和历史记录",
     "anilist": "AniList",
     "anisurge": "Anisurge",
+    "discord": "Discord",
+    "connectDiscord": "连接 Discord",
+    "discordLinkSuccess": "Discord 账户已连接！",
+    "discordLinkFailed": "连接 Discord 失败",
+    "discordTaken": "此 Discord 账户已绑定其他用户",
+    "discordAlreadyLinked": "您的账户已绑定其他 Discord",
+    "discordUnlinkSuccess": "Discord 账户已解除绑定",
+    "discordUnlinkFailed": "解除 Discord 绑定失败",
     "episodeLayout": "剧集列表布局",
     "episodeLayoutDesc": "观看页面上剧集的显示方式",
     "layoutList": "列表",

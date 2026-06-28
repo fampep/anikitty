@@ -29,22 +29,40 @@ export async function signToken(payload: {
     .sign(await secret());
 }
 
-export async function signOAuthState(userId: string): Promise<string> {
-  return new SignJWT({ userId, purpose: "anilist_oauth" })
+export type OAuthPurpose = "anilist_oauth" | "discord_login" | "discord_link";
+
+export async function signOAuthStateFor(
+  purpose: OAuthPurpose,
+  userId?: string,
+): Promise<string> {
+  return new SignJWT({ purpose, ...(userId ? { userId } : {}) })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(await secret());
 }
 
-export async function verifyOAuthState(state: string): Promise<string | null> {
+export async function verifyOAuthStateFor(
+  state: string,
+  expectedPurpose: OAuthPurpose,
+): Promise<{ userId?: string } | null> {
   try {
     const { payload } = await jwtVerify(state, await secret());
-    if (payload.purpose !== "anilist_oauth") return null;
-    return payload.userId as string;
+    if (payload.purpose !== expectedPurpose) return null;
+    const userId = payload.userId as string | undefined;
+    return userId ? { userId } : {};
   } catch {
     return null;
   }
+}
+
+export async function signOAuthState(userId: string): Promise<string> {
+  return signOAuthStateFor("anilist_oauth", userId);
+}
+
+export async function verifyOAuthState(state: string): Promise<string | null> {
+  const result = await verifyOAuthStateFor(state, "anilist_oauth");
+  return result?.userId ?? null;
 }
 
 export async function sign2faPendingToken(userId: string): Promise<string> {

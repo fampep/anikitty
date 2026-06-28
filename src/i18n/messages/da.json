@@ -222,7 +222,9 @@
     "fillAllFields": "Udfyld alle felter",
     "usernameRules": "Brugernavn skal være 3–10 alfanumeriske tegn",
     "usernameTaken": "Brugernavn eller e-mail er allerede i brug",
-    "signupFailed": "Oprettelse mislykkedes"
+    "signupFailed": "Oprettelse mislykkedes",
+    "continueWithDiscord": "Fortsæt med Discord",
+    "or": "eller"
   },
   "settings": {
     "title": "Indstillinger",
@@ -251,6 +253,14 @@
     "connectedDesc": "Synkronisér din watchlist og historik fra andre tjenester",
     "anilist": "AniList",
     "anisurge": "Anisurge",
+    "discord": "Discord",
+    "connectDiscord": "Forbind Discord",
+    "discordLinkSuccess": "Discord-konto forbundet!",
+    "discordLinkFailed": "Kunne ikke forbinde Discord",
+    "discordTaken": "Denne Discord-konto er allerede knyttet til en anden bruger",
+    "discordAlreadyLinked": "Din konto har allerede en anden Discord forbundet",
+    "discordUnlinkSuccess": "Discord-konto afkoblet",
+    "discordUnlinkFailed": "Kunne ikke afkoble Discord",
     "episodeLayout": "Afsnitsliste-layout",
     "episodeLayoutDesc": "Hvordan afsnit vises på afspilningssiden",
     "layoutList": "Liste",
