@@ -1,6 +1,6 @@
 "use client";
 
-import { Captions, Server } from "lucide-react";
+import { Captions, Mic, Server } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -83,6 +83,12 @@ export default function ProviderSelect({
                         <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-mono uppercase bg-teal-500/15 border border-teal-500/25 text-teal-300/90">
                           <Captions className="w-2.5 h-2.5" />
                           {t("watch.providerSubsBadge")}
+                        </span>
+                      )}
+                      {p.supportsDub && (
+                        <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-mono uppercase bg-amber-500/15 border border-amber-500/25 text-amber-300/90">
+                          <Mic className="w-2.5 h-2.5" />
+                          {t("card.dub")}
                         </span>
                       )}
                     </div>

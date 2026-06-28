@@ -1,8 +1,5 @@
-/** Minimum gap between Miruro/Kitty subtitle stream requests (Ryuo uses shorter gaps). */
+/** Minimum gap between Miruro/Kitty subtitle stream requests. */
 export const SUBTITLE_API_INTERVAL_MS = 800;
-
-/** Gap between parallel episode batches when syncing via sub.ryuo.to. */
-export const RYUO_SYNC_DELAY_MS = 150;
 
 /** Episodes fetched per background sync tick (one anime). */
 export const SUBTITLE_SYNC_EPISODES_PER_TICK = 6;

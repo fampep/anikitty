@@ -1,4 +1,3 @@
-import { RYUO_SOURCE_PROVIDER } from "@/lib/ryuo-subtitles";
 import { KITTY_SUB_PROVIDERS, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty-subs-api";
 
 /** Primary provider for Miruro/Kitty stream subtitle tracks. */
@@ -7,16 +6,12 @@ export const SUBTITLE_SOURCE_PROVIDER = "Miruro";
 /** Kitty API /subs (MegaPlay: Anikoto, AnimeSogo, Anix, HiAnime, Animepahe). */
 export { KITTY_SUB_SOURCE_PROVIDER };
 
-/** Fast subtitle source scraped via sub.ryuo.to. */
-export { RYUO_SOURCE_PROVIDER };
-
 /** Legacy cached rows — still included in library stats and listings. */
-export const SUBTITLE_LEGACY_PROVIDERS = ["Anitaku"] as const;
+export const SUBTITLE_LEGACY_PROVIDERS = ["Anitaku", "Ryuo"] as const;
 
 export const SUBTITLE_LIBRARY_PROVIDERS = [
   KITTY_SUB_SOURCE_PROVIDER,
   ...KITTY_SUB_PROVIDERS,
-  RYUO_SOURCE_PROVIDER,
   SUBTITLE_SOURCE_PROVIDER,
   ...SUBTITLE_LEGACY_PROVIDERS,
 ] as const;
@@ -24,7 +19,6 @@ export const SUBTITLE_LIBRARY_PROVIDERS = [
 export const SUBTITLE_CACHE_PROVIDERS = [
   KITTY_SUB_SOURCE_PROVIDER,
   ...KITTY_SUB_PROVIDERS,
-  RYUO_SOURCE_PROVIDER,
   SUBTITLE_SOURCE_PROVIDER,
 ] as const;
 

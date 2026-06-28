@@ -34,18 +34,21 @@ export type KittyProviderMeta = {
   nativeSubs?: boolean;
   /** Kitty /subs endpoint supports this provider. */
   kittySubs?: boolean;
+  /** Provider exposes dub streams via Kitty API (audio=dub). */
+  supportsDub?: boolean;
   hint?: string;
 };
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
-  { id: "Miruro", label: "Miruro", group: "featured", nativeSubs: true, hint: "Multi-pipe, best overall" },
+  { id: "Miruro", label: "Miruro", group: "featured", nativeSubs: true, supportsDub: true, hint: "Multi-pipe · SUB · DUB" },
   {
     id: "AnimeSogo",
     label: "AnimeSogo",
     group: "featured",
     nativeSubs: true,
     kittySubs: true,
-    hint: "HD-1 / HD-2 · animesogo.to",
+    supportsDub: true,
+    hint: "HD-1 / HD-2 · SUB · DUB",
   },
   {
     id: "Anix",
@@ -53,7 +56,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     group: "featured",
     nativeSubs: true,
     kittySubs: true,
-    hint: "anixtv.me · MegaPlay subs",
+    supportsDub: true,
+    hint: "MegaPlay · SUB · DUB",
   },
   {
     id: "HiAnime",
@@ -61,7 +65,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     group: "featured",
     nativeSubs: true,
     kittySubs: true,
-    hint: "hianimez.org · MegaPlay subs",
+    supportsDub: true,
+    hint: "MegaPlay · SUB · DUB",
   },
   {
     id: "Animepahe",
@@ -69,7 +74,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     group: "featured",
     nativeSubs: true,
     kittySubs: true,
-    hint: "animepahetv.to · Megaplay / Vidplay",
+    supportsDub: true,
+    hint: "Megaplay / Vidplay · SUB · DUB",
   },
   {
     id: "Anikoto",
@@ -77,7 +83,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     group: "featured",
     nativeSubs: true,
     kittySubs: true,
-    hint: "anikototv.to · MegaPlay subs",
+    supportsDub: true,
+    hint: "Mirrors · SUB · DUB",
   },
   { id: "Anitaku", label: "Anitaku", group: "other" },
   { id: "Anikage", label: "Anikage", group: "other" },
@@ -106,14 +113,17 @@ const DEPRECATED_PROVIDERS = new Set([
   "AniNeko",
 ]);
 
-/** Stream providers whose embed tracks are kept from stream-direct. */
-export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
+/** MegaPlay family — SUB and DUB via Kitty stream-direct + /subs. */
+export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([
   "AnimeSogo",
   "Anix",
   "HiAnime",
   "Animepahe",
   "Anikoto",
 ]);
+
+/** Stream providers whose embed tracks are kept from stream-direct. */
+export const KITTY_NATIVE_SUB_PROVIDERS = KITTY_MEGAPLAY_PROVIDERS;
 
 export function isKittyProvider(value: string): value is KittyProvider {
   return (KITTY_PROVIDERS as readonly string[]).includes(value);
@@ -139,4 +149,8 @@ export function providerHasNativeSubs(provider: KittyProvider): boolean {
 
 export function providerHasKittySubs(provider: KittyProvider): boolean {
   return getKittyProviderMeta(provider).kittySubs === true;
+}
+
+export function providerSupportsDub(provider: KittyProvider): boolean {
+  return getKittyProviderMeta(provider).supportsDub === true;
 }
