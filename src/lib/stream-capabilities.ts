@@ -1,15 +1,23 @@
 import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty-api";
 import {
-  KITTY_PROVIDERS,
+  DEFAULT_ANIMEX_SERVER,
+  isAnimexServerId,
+  probeAnimexServerCapabilities,
+  type AnimexServerId,
+} from "@/lib/animex-api";
+import {
+  DEFAULT_MIRURO_PIPE_PROVIDER,
+  isMiruroPipeProviderId,
+  probeMiruroPipeCapabilities,
+  type MiruroPipeProviderId,
+} from "@/lib/miruro-api";
+import {
+  isKittyProvider,
   MULTI_ROW_PROVIDERS,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty-providers";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitle-track-utils";
-import { probeAnimexEpisodeCapabilities } from "@/lib/animex-api";
-import { probeMiruroEpisodeCapabilities } from "@/lib/miruro-api";
-import type { AnimexServerId } from "@/lib/animex-api";
-import type { MiruroPipeProviderId } from "@/lib/miruro-api";
 
 export type StreamCapabilities = {
   sub: boolean;
@@ -25,6 +33,12 @@ export type EpisodeStreamCapabilities = {
   animexServers: Partial<Record<AnimexServerId, StreamCapabilities>>;
 };
 
+export type StreamCapabilityTarget = {
+  provider: KittyProvider;
+  miruroPipe?: MiruroPipeProviderId;
+  animexServer?: AnimexServerId;
+};
+
 export const EMPTY_STREAM_CAPABILITIES: StreamCapabilities = {
   sub: false,
   dub: false,
@@ -34,7 +48,6 @@ export const EMPTY_STREAM_CAPABILITIES: StreamCapabilities = {
 };
 
 const PROBE_TIMEOUT_MS = 8_000;
-const DIRECT_PROBE_CONCURRENCY = 6;
 
 type StreamProbeResult = {
   hasFile: boolean;
@@ -128,59 +141,60 @@ async function probeDirectProviderCapabilities(
   return capabilitiesFromProbes(subProbe, dubProbe);
 }
 
-async function mapPool<T, R>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let index = 0;
-
-  async function worker() {
-    while (index < items.length) {
-      const i = index++;
-      results[i] = await fn(items[i]!);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
-  return results;
-}
-
-const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(
-  (p) => p !== "Miruro" && p !== "Animex",
-);
-
-/** Probe Kitty/Miruro/Animex sources for real sub, dub, and subtitle type on one episode. */
-export async function fetchEpisodeStreamCapabilities(
+/** Probe sub/dub/hardsub for the provider the user is currently watching. */
+export async function fetchActiveProviderStreamCapabilities(
   anilistId: number,
   episode: number,
+  target: StreamCapabilityTarget,
   title?: string | null,
 ): Promise<EpisodeStreamCapabilities> {
-  const [miruro, animex, directCaps] = await Promise.all([
-    probeMiruroEpisodeCapabilities(anilistId, episode),
-    probeAnimexEpisodeCapabilities(anilistId, episode, title),
-    mapPool(DIRECT_PROBE_PROVIDERS, DIRECT_PROBE_CONCURRENCY, (provider) =>
-      probeDirectProviderCapabilities(provider, anilistId, episode, title).then(
-        (capabilities) => ({ provider, capabilities }),
-      ),
-    ),
-  ]);
+  const { provider } = target;
 
-  const providers: Partial<Record<KittyProvider, StreamCapabilities>> = {
-    Miruro: miruro.provider,
-    Animex: animex.provider,
-  };
-
-  for (const row of directCaps) {
-    providers[row.provider] = row.capabilities;
+  if (provider === "Miruro") {
+    const pipe = target.miruroPipe ?? DEFAULT_MIRURO_PIPE_PROVIDER;
+    const caps = await probeMiruroPipeCapabilities(anilistId, episode, pipe);
+    return {
+      providers: { Miruro: caps },
+      miruroPipes: { [pipe]: caps },
+      animexServers: {},
+    };
   }
 
+  if (provider === "Animex") {
+    const server = target.animexServer ?? DEFAULT_ANIMEX_SERVER;
+    const caps = await probeAnimexServerCapabilities(anilistId, episode, server);
+    return {
+      providers: { Animex: caps },
+      miruroPipes: {},
+      animexServers: { [server]: caps },
+    };
+  }
+
+  const caps = await probeDirectProviderCapabilities(provider, anilistId, episode, title);
   return {
-    providers,
-    miruroPipes: miruro.pipes,
-    animexServers: animex.servers,
+    providers: { [provider]: caps },
+    miruroPipes: {},
+    animexServers: {},
   };
+}
+
+export function parseStreamCapabilityTarget(searchParams: URLSearchParams): StreamCapabilityTarget | null {
+  const provider = searchParams.get("provider");
+  if (!provider || !isKittyProvider(provider)) return null;
+
+  const target: StreamCapabilityTarget = { provider };
+
+  const miruroPipe = searchParams.get("miruroPipe");
+  if (miruroPipe && isMiruroPipeProviderId(miruroPipe)) {
+    target.miruroPipe = miruroPipe;
+  }
+
+  const animexServer = searchParams.get("animexServer");
+  if (animexServer && isAnimexServerId(animexServer)) {
+    target.animexServer = animexServer;
+  }
+
+  return target;
 }
 
 export function getProviderCapabilities(

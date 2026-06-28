@@ -300,6 +300,62 @@ async function probeAnimexLinkStream(linkId: string): Promise<{
   };
 }
 
+async function buildAnimexServerCapabilities(
+  serverId: AnimexServerId,
+  subLinks: Partial<Record<AnimexServerId, string>>,
+  dubLinks: Partial<Record<AnimexServerId, string>>,
+): Promise<AnimexServerCapabilities | null> {
+  const subLinkId = subLinks[serverId];
+  const dubLinkId = dubLinks[serverId];
+  const inSub = Boolean(subLinkId);
+  const inDub = Boolean(dubLinkId);
+
+  if (!inSub && !inDub) return null;
+
+  let softSub = false;
+  let hardSub = false;
+  let multi = false;
+
+  const [subProbe, dubProbe] = await Promise.all([
+    inSub && subLinkId ? probeAnimexLinkStream(subLinkId) : Promise.resolve(null),
+    inDub && dubLinkId ? probeAnimexLinkStream(dubLinkId) : Promise.resolve(null),
+  ]);
+
+  if (subProbe) {
+    softSub = subProbe.subtitleTracks > 0;
+    hardSub = !softSub;
+  }
+
+  if (subProbe?.file && dubProbe?.file) {
+    multi = serverId === "zen" || subProbe.file === dubProbe.file;
+  } else if (serverId === "zen" && (subProbe?.file || dubProbe?.file)) {
+    multi = true;
+  }
+
+  return {
+    sub: inSub,
+    dub: inDub,
+    multi: multi || (inSub && inDub),
+    softSub,
+    hardSub: inSub && !softSub,
+  };
+}
+
+/** Probe one Animex server for sub/dub/hardsub on an episode. */
+export async function probeAnimexServerCapabilities(
+  anilistId: number,
+  episode: number,
+  serverId: AnimexServerId,
+): Promise<AnimexServerCapabilities> {
+  const [subLinks, dubLinks] = await Promise.all([
+    fetchAnimexServers({ anilistId, episode, audio: "sub" }).then(serversByAnimexId),
+    fetchAnimexServers({ anilistId, episode, audio: "dub" }).then(serversByAnimexId),
+  ]);
+
+  const caps = await buildAnimexServerCapabilities(serverId, subLinks, dubLinks);
+  return caps ?? EMPTY_ANIMEX_CAPS;
+}
+
 /** Per-server sub/dub/hardsub from Animex servers list + stream probes. */
 export async function probeAnimexEpisodeCapabilities(
   anilistId: number,
@@ -316,41 +372,8 @@ export async function probeAnimexEpisodeCapabilities(
 
   const serverResults = await Promise.all(
     ANIMEX_SERVERS.map(async (server) => {
-      const subLinkId = subLinks[server.id];
-      const dubLinkId = dubLinks[server.id];
-      const inSub = Boolean(subLinkId);
-      const inDub = Boolean(dubLinkId);
-
-      if (!inSub && !inDub) return null;
-
-      let softSub = false;
-      let hardSub = false;
-      let multi = false;
-
-      const [subProbe, dubProbe] = await Promise.all([
-        inSub && subLinkId ? probeAnimexLinkStream(subLinkId) : Promise.resolve(null),
-        inDub && dubLinkId ? probeAnimexLinkStream(dubLinkId) : Promise.resolve(null),
-      ]);
-
-      if (subProbe) {
-        softSub = subProbe.subtitleTracks > 0;
-        hardSub = !softSub;
-      }
-
-      if (subProbe?.file && dubProbe?.file) {
-        multi = server.id === "zen" || subProbe.file === dubProbe.file;
-      } else if (server.id === "zen" && (subProbe?.file || dubProbe?.file)) {
-        multi = true;
-      }
-
-      const caps: AnimexServerCapabilities = {
-        sub: inSub,
-        dub: inDub,
-        multi: multi || (inSub && inDub),
-        softSub,
-        hardSub: inSub && !softSub,
-      };
-
+      const caps = await buildAnimexServerCapabilities(server.id, subLinks, dubLinks);
+      if (!caps) return null;
       return { id: server.id, caps };
     }),
   );

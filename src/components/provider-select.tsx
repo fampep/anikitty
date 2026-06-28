@@ -213,14 +213,6 @@ function StreamCapabilityBadges({
   return <span className="inline-flex items-center gap-0.5 shrink-0 flex-wrap">{badges}</span>;
 }
 
-function pipeHasEpisode(caps: StreamCapabilities | undefined): boolean {
-  return Boolean(caps && (caps.sub || caps.dub || caps.softSub || caps.hardSub));
-}
-
-function serverHasEpisode(caps: StreamCapabilities | undefined): boolean {
-  return Boolean(caps && (caps.sub || caps.dub));
-}
-
 function providersForRow(
   mode: ProviderAudioMode,
   capabilities: EpisodeStreamCapabilities | undefined,
@@ -386,9 +378,7 @@ export function ProviderGrid({
       {multiPanel === "Miruro" && provider === "Miruro" && onMiruroPipeChange && miruroPipe != null && (
         <MultiServerPanel accent="violet" label={t("watch.miruroPipe")}>
           <div className="flex flex-wrap gap-1.5">
-            {MIRURO_PIPE_PROVIDERS.filter((p) =>
-              capabilitiesLoading || pipeHasEpisode(capabilities?.miruroPipes[p.id]),
-            ).map((p) => (
+            {MIRURO_PIPE_PROVIDERS.map((p) => (
               <button
                 key={p.id}
                 type="button"
@@ -416,9 +406,7 @@ export function ProviderGrid({
       {multiPanel === "Animex" && provider === "Animex" && onAnimexServerChange && animexServer != null && (
         <MultiServerPanel accent="rose" label={t("watch.animexServer")}>
           <div className="flex flex-wrap gap-1.5">
-            {ANIMEX_SERVERS.filter((s) =>
-              capabilitiesLoading || serverHasEpisode(capabilities?.animexServers[s.id]),
-            ).map((s) => (
+            {ANIMEX_SERVERS.map((s) => (
               <button
                 key={s.id}
                 type="button"

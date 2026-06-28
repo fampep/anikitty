@@ -1,4 +1,5 @@
-import { fetchEpisodeStreamCapabilities } from "@/lib/stream-capabilities";
+import { fetchActiveProviderStreamCapabilities, parseStreamCapabilityTarget } from "@/lib/stream-capabilities";
+import { isKittyProvider } from "@/lib/kitty-providers";
 
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
@@ -8,12 +9,16 @@ export async function GET(req: Request) {
   const anilistIdRaw = searchParams.get("anilistId");
   const episodeRaw = searchParams.get("episode");
   const title = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
+  const provider = searchParams.get("provider");
 
   if (!anilistIdRaw || !SAFE_ID.test(anilistIdRaw)) {
     return Response.json({ error: "Invalid anilistId" }, { status: 400 });
   }
   if (!episodeRaw || !SAFE_ID.test(episodeRaw)) {
     return Response.json({ error: "Invalid episode" }, { status: 400 });
+  }
+  if (!provider || !isKittyProvider(provider)) {
+    return Response.json({ error: "Invalid provider" }, { status: 400 });
   }
 
   const anilistId = parseInt(anilistIdRaw, 10);
@@ -22,8 +27,18 @@ export async function GET(req: Request) {
     return Response.json({ error: "Invalid episode" }, { status: 400 });
   }
 
+  const target = parseStreamCapabilityTarget(searchParams);
+  if (!target) {
+    return Response.json({ error: "Invalid provider" }, { status: 400 });
+  }
+
   try {
-    const capabilities = await fetchEpisodeStreamCapabilities(anilistId, episode, title);
+    const capabilities = await fetchActiveProviderStreamCapabilities(
+      anilistId,
+      episode,
+      target,
+      title,
+    );
     return Response.json(capabilities, {
       headers: { "Cache-Control": "private, max-age=300" },
     });

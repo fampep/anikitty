@@ -168,10 +168,24 @@ const VideoPlayerSection = () => {
     : selectedEpisode ?? "";
   const animeTitle = anime?.anime?.info?.name || undefined;
 
+  const capabilityTarget = useMemo(
+    () => ({
+      provider,
+      ...(provider === "Miruro" ? { miruroPipe } : {}),
+      ...(provider === "Animex" ? { animexServer } : {}),
+    }),
+    [provider, miruroPipe, animexServer],
+  );
+
   const {
     data: streamCapabilities,
     isLoading: capabilitiesLoading,
-  } = useGetStreamCapabilities(anilistId, episodeNo || undefined, animeTitle);
+  } = useGetStreamCapabilities(
+    anilistId,
+    episodeNo || undefined,
+    capabilityTarget,
+    animeTitle,
+  );
 
   const activeStreamCaps = useMemo(
     () =>

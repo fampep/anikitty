@@ -656,6 +656,17 @@ function miruroPipeCapabilitiesFromPayload(
 }
 
 /** Per-pipe sub/dub/hardsub from Miruro episode lists (one Kitty API call). */
+export async function probeMiruroPipeCapabilities(
+  anilistId: number,
+  episode: number,
+  pipeId: MiruroPipeProviderId,
+): Promise<MiruroPipeCapabilities> {
+  const payload = await getMiruroEpisodesPayload(anilistId);
+  if (!payload?.providers) return EMPTY_MIRURO_CAPS;
+  return miruroPipeCapabilitiesFromPayload(payload, pipeId, episode);
+}
+
+/** Per-pipe sub/dub/hardsub from Miruro episode lists (one Kitty API call). */
 export async function probeMiruroEpisodeCapabilities(
   anilistId: number,
   episode: number,
