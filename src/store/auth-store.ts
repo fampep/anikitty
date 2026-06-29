@@ -10,6 +10,7 @@ export type IAuth = {
   bio?: string | null;
   themeColor?: string | null;
   role?: string | null;
+  permissions?: string[];
 };
 
 export interface IAuthStore {
@@ -28,7 +29,7 @@ export const useAuthStore = create<IAuthStore>()(
     {
       name: "auth",
       partialize: (state) => ({ auth: state.auth }),
-      version: 2,
+      version: 3,
     },
   ),
 );

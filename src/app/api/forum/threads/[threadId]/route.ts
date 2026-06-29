@@ -5,6 +5,7 @@ import { and, eq, asc, sql, inArray } from "drizzle-orm";
 import { sanitizeBody } from "@/lib/comment-helpers";
 import { isValidCategory } from "@/constants/forum";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
+import { roleHasPermission } from "@/lib/permissions";
 
 const THREAD_SELECT = {
   id: forumThreads.id,
@@ -155,7 +156,7 @@ export async function PATCH(
     .limit(1);
   if (!thread) return Response.json({ error: "Thread not found" }, { status: 404 });
 
-  const isMod = payload.role === "admin" || payload.role === "moderator";
+  const isMod = await roleHasPermission(db, payload.role, "forum.moderate");
   const isOwner = thread.userId === payload.userId;
 
   const raw = await req.json();
@@ -207,7 +208,7 @@ export async function DELETE(
     .limit(1);
   if (!thread) return Response.json({ error: "Thread not found" }, { status: 404 });
 
-  const isMod = payload.role === "admin" || payload.role === "moderator";
+  const isMod = await roleHasPermission(db, payload.role, "forum.moderate");
   if (thread.userId !== payload.userId && !isMod)
     return Response.json({ error: "Forbidden" }, { status: 403 });
 

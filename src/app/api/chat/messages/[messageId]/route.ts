@@ -10,6 +10,7 @@ import {
 } from "@/lib/message-crypto";
 import { eq } from "drizzle-orm";
 import { blockIfCannotInteract } from "@/lib/moderation";
+import { roleHasPermission } from "@/lib/permissions";
 
 const EDIT_RATE = { windowMs: 30_000, max: 20 } as const;
 
@@ -125,7 +126,7 @@ export async function DELETE(
 
   if (!existing) return Response.json({ error: "Not found" }, { status: 404 });
 
-  const isStaff = payload.role === "admin" || payload.role === "moderator";
+  const isStaff = await roleHasPermission(db, payload.role, "chat.moderate");
   const isOwner = existing.userId === payload.userId;
   if (!isStaff && !isOwner) {
     return Response.json({ error: "Forbidden" }, { status: 403 });

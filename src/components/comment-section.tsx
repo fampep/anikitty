@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { withAuth } from "@/lib/auth-fetch";
 import {
   MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
@@ -213,6 +214,7 @@ export default function CommentSection({
 }: CommentSectionProps) {
   const t = useT();
   const { auth } = useAuthStore();
+  const { canModerateComments } = usePermissions();
 
   const hasEpisodePicker = !!episodes?.length;
   const [pickedEpisodeId, setPickedEpisodeId] = useState<string | "all">("all");
@@ -970,15 +972,17 @@ export default function CommentSection({
                       )}
                     </span>
 
-                    {isOwn && !isEditing && (
+                    {(isOwn || canModerateComments) && !isEditing && (
                       <div className="ml-auto flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
-                          className="p-1.5 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"
-                          title="Edit"
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </button>
+                        {isOwn && (
+                          <button
+                            onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
+                            className="p-1.5 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"
+                            title="Edit"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDelete(c.id)}
                           className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400/70 transition-all"
@@ -1211,18 +1215,20 @@ export default function CommentSection({
                                         <span className="ml-1 text-white/15">(edited)</span>
                                       )}
                                     </span>
-                                    {replyOwn && !replyEditing && (
+                                    {(replyOwn || canModerateComments) && !replyEditing && (
                                       <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/reply:opacity-100 transition-opacity">
-                                        <button
-                                          onClick={() => {
-                                            setEditingId(reply.id);
-                                            setEditDraft(reply.body);
-                                          }}
-                                          className="p-1 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"
-                                          title="Edit"
-                                        >
-                                          <Pencil className="w-3 h-3" />
-                                        </button>
+                                        {replyOwn && (
+                                          <button
+                                            onClick={() => {
+                                              setEditingId(reply.id);
+                                              setEditDraft(reply.body);
+                                            }}
+                                            className="p-1 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"
+                                            title="Edit"
+                                          >
+                                            <Pencil className="w-3 h-3" />
+                                          </button>
+                                        )}
                                         <button
                                           onClick={() => handleDelete(reply.id)}
                                           className="p-1 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400/70 transition-all"

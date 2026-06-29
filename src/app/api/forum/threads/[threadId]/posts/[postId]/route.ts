@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { forumPosts } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { sanitizeBody } from "@/lib/comment-helpers";
+import { roleHasPermission } from "@/lib/permissions";
 import { and, eq } from "drizzle-orm";
 
 export async function PATCH(
@@ -45,7 +46,7 @@ export async function DELETE(
     .limit(1);
   if (!post) return Response.json({ error: "Not found" }, { status: 404 });
 
-  const isMod = payload.role === "admin" || payload.role === "moderator";
+  const isMod = await roleHasPermission(db, payload.role, "forum.moderate");
   if (post.userId !== payload.userId && !isMod)
     return Response.json({ error: "Forbidden" }, { status: 403 });
 

@@ -30,6 +30,7 @@ import LoginPopoverButton from "@/components/login-popover-button";
 import { ROUTES } from "@/constants/routes";
 import { forumApi, forumTimeAgo, buildQuote, copyThreadLink, mergeForumPosts, ForumThread, ForumPost } from "@/lib/forum";
 import { useAuthStore } from "@/store/auth-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,9 @@ export default function ThreadPage() {
   const threadId = params?.threadId;
   const router = useRouter();
   const { auth } = useAuthStore();
+  const { canModerateForum } = usePermissions();
   const isLoggedIn = !!auth;
-  const isMod = auth?.role === "admin" || auth?.role === "moderator";
+  const isMod = canModerateForum;
 
   const [thread, setThread] = useState<ForumThread | null>(null);
   const [posts, setPosts] = useState<ForumPost[]>([]);

@@ -1,5 +1,7 @@
 import { createSession } from "@/lib/user-sessions";
 import { signToken } from "@/lib/auth-jwt";
+import { getDb } from "@/db";
+import { getRolePermissions } from "@/lib/permissions";
 
 type UserRow = {
   id: string;
@@ -27,9 +29,14 @@ export async function buildAuthResponse(user: UserRow, req: Request) {
     throw new Error(message);
   }
 
+  const role = user.role ?? "user";
+  const db = getDb();
+  const permissions = await getRolePermissions(db, role);
+
   return {
     anisurgeToken: token,
     anisurgeUserId: user.id,
+    permissions,
     user: {
       username: user.username,
       email: user.email,
@@ -37,7 +44,7 @@ export async function buildAuthResponse(user: UserRow, req: Request) {
       bannerUrl: user.bannerUrl ?? null,
       bio: user.bio ?? null,
       themeColor: user.themeColor ?? null,
-      role: user.role ?? "user",
+      role,
     },
   };
 }

@@ -10,6 +10,7 @@ import {
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
+  VolumeX, Ban, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/chat-config";
@@ -118,6 +119,28 @@ interface AdminUser {
   createdAt: string;
   lastActiveAt?: string | null;
   totpEnabled?: boolean;
+  moderation?: {
+    banned: boolean;
+    banReason: string | null;
+    muted: boolean;
+    mutedUntil: string | null;
+    muteReason: string | null;
+  };
+}
+
+interface PermissionDef {
+  id: string;
+  label: string;
+  description: string;
+  group: "content" | "users";
+}
+
+interface Role {
+  id: string;
+  name: string;
+  color: string;
+  permissions: string[];
+  builtin?: boolean;
 }
 
 interface DeletionRequest {
@@ -128,12 +151,6 @@ interface DeletionRequest {
   role: string;
   reason: string | null;
   requestedAt: string | null;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  color: string;
 }
 
 interface ActivityEntry {
@@ -242,11 +259,71 @@ function fmtSecs(s: number): string {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
-const BUILTIN_ROLES = [
-  { id: "__admin", name: "admin",     color: "#ff4d6d" },
-  { id: "__mod",   name: "moderator", color: "#4d9fff" },
-  { id: "__user",  name: "user",      color: "#888888" },
-];
+const BUILTIN_ROLE_NAMES = new Set(["admin", "moderator", "user"]);
+
+function RolePermissionEditor({
+  role,
+  permissionDefs,
+  onToggle,
+  readOnly,
+}: {
+  role: Role;
+  permissionDefs: PermissionDef[];
+  onToggle: (role: Role, permId: string, enabled: boolean) => void;
+  readOnly?: boolean;
+}) {
+  const hasAll = role.permissions.includes("*");
+  const groups: Array<{ key: PermissionDef["group"]; label: string }> = [
+    { key: "content", label: "Content" },
+    { key: "users", label: "Users" },
+  ];
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/8 space-y-3">
+      {role.name === "admin" ? (
+        <p className="text-[11px] text-white/35 font-mono">Admins always have full access.</p>
+      ) : role.name === "user" ? (
+        <p className="text-[11px] text-white/35 font-mono">Regular users have no staff permissions.</p>
+      ) : (
+        groups.map((group) => {
+          const perms = permissionDefs.filter((p) => p.group === group.key);
+          if (!perms.length) return null;
+          return (
+            <div key={group.key}>
+              <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-2">{group.label}</p>
+              <div className="flex flex-col gap-2">
+                {perms.map((perm) => {
+                  const checked = hasAll || role.permissions.includes(perm.id);
+                  return (
+                    <label
+                      key={perm.id}
+                      className={cn(
+                        "flex items-start gap-2.5 text-xs cursor-pointer",
+                        readOnly && "opacity-60 cursor-default",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={readOnly || hasAll}
+                        onChange={(e) => onToggle(role, perm.id, e.target.checked)}
+                        className="mt-0.5 rounded border-white/20 bg-transparent"
+                      />
+                      <span>
+                        <span className="text-white/75 font-medium">{perm.label}</span>
+                        <span className="block text-white/30 text-[10px] mt-0.5">{perm.description}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin panel
@@ -269,12 +346,17 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   // Roles
   const [roles, setRoles]             = useState<Role[]>([]);
+  const [permissionDefs, setPermissionDefs] = useState<PermissionDef[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [newRoleName, setNewRoleName]  = useState("");
   const [newRoleColor, setNewRoleColor] = useState("#a855f7");
+  const [newRolePermissions, setNewRolePermissions] = useState<string[]>([]);
   const [creatingRole, setCreatingRole] = useState(false);
   const [editingRole, setEditingRole]  = useState<Role | null>(null);
+  const [editingPermissionsRole, setEditingPermissionsRole] = useState<Role | null>(null);
+  const [savingPermissions, setSavingPermissions] = useState<string | null>(null);
   const [deletingRole, setDeletingRole] = useState<string | null>(null);
+  const [moderatingUserId, setModeratingUserId] = useState<string | null>(null);
 
   // Activity
   const [activity, setActivity]         = useState<ActivityEntry[]>([]);
@@ -319,6 +401,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       if (res.status === 403) { onLogout(); return; }
       const data = await res.json();
       setRoles(data.roles ?? []);
+      setPermissionDefs(data.permissionDefs ?? []);
     } catch { toast.error("Failed to load roles"); }
     finally { setRolesLoading(false); }
   }, [onLogout]);
@@ -414,10 +497,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     searchTimer.current = setTimeout(() => fetchUsers(v), 350);
   };
 
-  const allRoleOptions = [
-    ...BUILTIN_ROLES,
-    ...roles.filter((r) => !["admin", "moderator", "user"].includes(r.name)),
-  ];
+  const allRoleOptions = roles;
 
   const filteredUsers = roleFilter === "all"
     ? users
@@ -564,13 +644,18 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       const res = await fetch("/api/admin/roles", {
         method: "POST",
         headers: adminHeaders(),
-        body: JSON.stringify({ name: newRoleName.trim(), color: newRoleColor }),
+        body: JSON.stringify({
+          name: newRoleName.trim(),
+          color: newRoleColor,
+          permissions: newRolePermissions,
+        }),
       });
       if (!res.ok) throw new Error();
       const role = await res.json();
       setRoles((prev) => [...prev, role]);
       setNewRoleName("");
       setNewRoleColor("#a855f7");
+      setNewRolePermissions([]);
       toast.success(`Role "${role.name}" created`);
     } catch { toast.error("Failed to create role"); }
     finally { setCreatingRole(false); }
@@ -582,14 +667,104 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       const res = await fetch("/api/admin/roles", {
         method: "PATCH",
         headers: adminHeaders(),
-        body: JSON.stringify({ id: editingRole.id, name: editingRole.name, color: editingRole.color }),
+        body: JSON.stringify({
+          id: editingRole.builtin ? undefined : editingRole.id,
+          roleName: editingRole.builtin ? editingRole.name : undefined,
+          name: editingRole.name,
+          color: editingRole.color,
+          permissions: editingRole.permissions,
+        }),
       });
       if (!res.ok) throw new Error();
       const updated = await res.json();
-      setRoles((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setRoles((prev) => prev.map((r) => (r.id === editingRole.id ? { ...updated, id: editingRole.id } : r)));
       setEditingRole(null);
       toast.success("Role updated");
     } catch { toast.error("Failed to update role"); }
+  };
+
+  const handleSavePermissions = async (role: Role) => {
+    setSavingPermissions(role.id);
+    try {
+      const res = await fetch("/api/admin/roles", {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify(
+          role.builtin
+            ? { roleName: role.name, permissions: role.permissions }
+            : { id: role.id, permissions: role.permissions },
+        ),
+      });
+      if (!res.ok) throw new Error();
+      const updated = await res.json();
+      setRoles((prev) => prev.map((r) => (r.id === role.id ? { ...updated, id: role.id } : r)));
+      setEditingPermissionsRole(null);
+      toast.success(`Permissions saved for ${role.name}`);
+    } catch {
+      toast.error("Failed to save permissions");
+    } finally {
+      setSavingPermissions(null);
+    }
+  };
+
+  const toggleRolePermission = (role: Role, permId: string, enabled: boolean) => {
+    const next = { ...role };
+    if (permId === "*") {
+      next.permissions = enabled ? ["*"] : [];
+    } else if (enabled) {
+      const withoutWildcard = role.permissions.filter((p) => p !== "*");
+      next.permissions = withoutWildcard.includes(permId)
+        ? withoutWildcard
+        : [...withoutWildcard, permId];
+    } else {
+      next.permissions = role.permissions.filter((p) => p !== permId && p !== "*");
+    }
+    if (editingPermissionsRole?.id === role.id) {
+      setEditingPermissionsRole(next);
+    }
+    setRoles((prev) => prev.map((r) => (r.id === role.id ? next : r)));
+  };
+
+  const handleModerateUser = async (
+    user: AdminUser,
+    action: "mute" | "unmute" | "ban" | "unban",
+    opts?: { reason?: string; durationHours?: number },
+  ) => {
+    const labels = { mute: "mute", unmute: "unmute", ban: "ban", unban: "unban" };
+    if (action === "ban" && !confirm(`Ban @${user.username}? They will be signed out immediately.`)) return;
+    if (action === "mute" && !confirm(`Mute @${user.username} for ${opts?.durationHours ?? 24} hours?`)) return;
+
+    setModeratingUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ action, ...opts }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `Failed to ${labels[action]} user`);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, moderation: data.moderation } : u)),
+      );
+      toast.success(`@${user.username} ${labels[action]}d`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : `Failed to ${labels[action]} user`);
+    } finally {
+      setModeratingUserId(null);
+    }
+  };
+
+  const handleMuteUser = (user: AdminUser) => {
+    const hoursStr = prompt(`Mute @${user.username} for how many hours?`, "24");
+    if (hoursStr === null) return;
+    const hours = Math.min(8760, Math.max(1, parseInt(hoursStr, 10) || 24));
+    const reason = prompt("Reason (optional):") ?? "";
+    void handleModerateUser(user, "mute", { durationHours: hours, reason: reason || undefined });
+  };
+
+  const handleBanUser = (user: AdminUser) => {
+    const reason = prompt(`Ban reason for @${user.username} (optional):`) ?? "";
+    void handleModerateUser(user, "ban", { reason: reason || undefined });
   };
 
   const handleDeleteRole = async (id: string) => {
@@ -607,7 +782,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setDeletingRole(null); }
   };
 
-  const customRoles = roles.filter((r) => !["admin", "moderator", "user"].includes(r.name));
+  const customRoles = roles.filter((r) => !r.builtin && !BUILTIN_ROLE_NAMES.has(r.name));
+  const builtinRoles = roles.filter((r) => r.builtin);
 
   // ── Announcement handlers ────────────────────────────────────────────────
   const handleCreateAnn = async () => {
@@ -969,6 +1145,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">User</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Email</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Role</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Status</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">2FA</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Joined</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden lg:table-cell">Last active</th>
@@ -1011,6 +1188,19 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             </select>
                           </td>
                           <td className="px-4 py-3 hidden md:table-cell">
+                            {u.moderation?.banned ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-red-400/90">
+                                <Ban className="w-3 h-3" /> Banned
+                              </span>
+                            ) : u.moderation?.muted ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400/90" title={u.moderation.mutedUntil ?? undefined}>
+                                <VolumeX className="w-3 h-3" /> Muted
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono text-white/20">OK</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
                             {u.totpEnabled ? (
                               <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400/80">
                                 <ShieldCheck className="w-3 h-3" /> On
@@ -1026,7 +1216,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             {u.lastActiveAt ? timeAgo(u.lastActiveAt) : "—"}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
                               {dirty && (
                                 <button
                                   onClick={() => handleRoleChange(u.id, selected)}
@@ -1036,6 +1226,52 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                   {savingRole === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                                   Save
                                 </button>
+                              )}
+                              {u.role !== "admin" && (
+                                <>
+                                  {u.moderation?.muted ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleModerateUser(u, "unmute")}
+                                      disabled={moderatingUserId === u.id}
+                                      title="Unmute"
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-500/20 text-emerald-300/70 text-[11px] hover:bg-emerald-500/10 disabled:opacity-40 transition-all"
+                                    >
+                                      {moderatingUserId === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <VolumeX className="w-3 h-3" />}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMuteUser(u)}
+                                      disabled={moderatingUserId === u.id || u.moderation?.banned}
+                                      title="Mute / timeout"
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-amber-500/20 text-amber-300/70 text-[11px] hover:bg-amber-500/10 disabled:opacity-40 transition-all"
+                                    >
+                                      <Clock className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                  {u.moderation?.banned ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleModerateUser(u, "unban")}
+                                      disabled={moderatingUserId === u.id}
+                                      title="Unban"
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-500/20 text-emerald-300/70 text-[11px] hover:bg-emerald-500/10 disabled:opacity-40 transition-all"
+                                    >
+                                      {moderatingUserId === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Ban className="w-3 h-3" />}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleBanUser(u)}
+                                      disabled={moderatingUserId === u.id}
+                                      title="Ban user"
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-red-500/20 text-red-300/70 text-[11px] hover:bg-red-500/10 disabled:opacity-40 transition-all"
+                                    >
+                                      <Ban className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </>
                               )}
                               {u.totpEnabled && (
                                 <button
@@ -1095,105 +1331,208 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
         {/* ── ROLES ──────────────────────────────────────────────── */}
         {tab === "roles" && (
-          <div className="flex flex-col gap-8 max-w-lg">
-            <div>
-              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Built-in</p>
-              <div className="flex flex-col gap-2">
-                {BUILTIN_ROLES.map((r) => (
-                  <div key={r.id} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
-                    <RoleBadge role={r.name} color={r.color} size="sm" />
-                    <span className="text-[10px] text-white/20 font-mono ml-auto">{r.color} · cannot edit</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="flex flex-col gap-8 max-w-2xl">
+            <p className="text-sm text-white/40 leading-relaxed">
+              Assign roles to users on the Users tab. Customize what each role can do — e.g. a comments-only mod with just comment moderation, or full mods who can mute, timeout, and ban.
+            </p>
 
-            <div>
-              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Custom</p>
-              {rolesLoading ? (
-                <div className="flex items-center gap-2 py-4 text-white/25"><Loader2 className="w-4 h-4 animate-spin" /></div>
-              ) : (
-                <div className="flex flex-col gap-2 mb-4">
-                  {customRoles.length === 0 && (
-                    <p className="text-sm text-white/20 font-mono mb-2">No custom roles yet.</p>
-                  )}
-                  {customRoles.map((r) => (
-                    <div key={r.id} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
-                      {editingRole?.id === r.id ? (
-                        <>
-                          <input
-                            type="color"
-                            value={editingRole.color}
-                            onChange={(e) => setEditingRole({ ...editingRole, color: e.target.value })}
-                            className="w-7 h-7 rounded-lg cursor-pointer border border-white/15 p-0.5 bg-transparent shrink-0"
-                          />
-                          <input
-                            value={editingRole.name}
-                            onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
-                            className="flex-1 bg-white/5 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-white/30"
-                          />
-                          <div className="shrink-0"><RoleBadge role={editingRole.name} color={editingRole.color} size="sm" /></div>
-                          <button onClick={handleSaveRole} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/18 text-white/60 hover:text-white transition-all">
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => setEditingRole(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/30 hover:text-white/60 transition-all">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
-                          <RoleBadge role={r.name} color={r.color} size="sm" />
-                          <span className="text-[10px] text-white/25 font-mono">{r.color}</span>
-                          <div className="ml-auto flex items-center gap-1">
-                            <button onClick={() => setEditingRole(r)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/25 hover:text-white/60 transition-all">
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteRole(r.id)}
-                              disabled={deletingRole === r.id}
-                              className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
-                            >
-                              {deletingRole === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                            </button>
+            {rolesLoading ? (
+              <div className="flex items-center gap-2 py-4 text-white/25"><Loader2 className="w-4 h-4 animate-spin" /></div>
+            ) : (
+              <>
+                <div>
+                  <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Built-in roles</p>
+                  <div className="flex flex-col gap-3">
+                    {builtinRoles.map((r) => {
+                      const editing = editingPermissionsRole?.id === r.id;
+                      const roleState = editing ? editingPermissionsRole! : r;
+                      const canEditPerms = r.name === "moderator";
+                      return (
+                        <div key={r.id} className="px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
+                            <RoleBadge role={r.name} color={r.color} size="sm" />
+                            <span className="text-[10px] text-white/20 font-mono">{r.color}</span>
+                            {canEditPerms && (
+                              <div className="ml-auto flex items-center gap-1">
+                                {editing ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleSavePermissions(roleState)}
+                                      disabled={savingPermissions === r.id}
+                                      className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/70 hover:bg-white/18 disabled:opacity-40"
+                                    >
+                                      {savingPermissions === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
+                                    </button>
+                                    <button onClick={() => setEditingPermissionsRole(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/30">
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => setEditingPermissionsRole(r)}
+                                    className="px-2.5 py-1 rounded-lg border border-white/12 text-[11px] text-white/45 hover:text-white/70"
+                                  >
+                                    Edit permissions
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                          {(editing || r.name === "moderator") && (
+                            <RolePermissionEditor
+                              role={roleState}
+                              permissionDefs={permissionDefs}
+                              onToggle={(role, permId, enabled) => {
+                                toggleRolePermission(role, permId, enabled);
+                                if (editing) setEditingPermissionsRole((prev) => {
+                                  if (!prev || prev.id !== role.id) return prev;
+                                  const next = { ...prev };
+                                  if (permId === "*") next.permissions = enabled ? ["*"] : [];
+                                  else if (enabled) next.permissions = [...prev.permissions.filter((p) => p !== "*"), permId];
+                                  else next.permissions = prev.permissions.filter((p) => p !== permId);
+                                  return next;
+                                });
+                              }}
+                              readOnly={!editing && !canEditPerms}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
 
-              {/* Create */}
-              <div className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-white/12">
-                <input
-                  type="color"
-                  value={newRoleColor}
-                  onChange={(e) => setNewRoleColor(e.target.value)}
-                  className="w-8 h-8 rounded-lg cursor-pointer border border-white/15 p-0.5 bg-transparent shrink-0"
-                  title="Pick color"
-                />
-                <input
-                  value={newRoleName}
-                  onChange={(e) => setNewRoleName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleCreateRole()}
-                  placeholder="New role name…"
-                  className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
-                />
-                {newRoleName.trim() && (
-                  <div className="shrink-0"><RoleBadge role={newRoleName} color={newRoleColor} size="sm" /></div>
-                )}
-                <button
-                  onClick={handleCreateRole}
-                  disabled={!newRoleName.trim() || creatingRole}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 border border-white/15 text-white/70 text-xs font-semibold hover:bg-white/18 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all shrink-0"
-                >
-                  {creatingRole ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  Create
-                </button>
-              </div>
-            </div>
+                <div>
+                  <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Custom roles</p>
+                  <div className="flex flex-col gap-3 mb-4">
+                    {customRoles.length === 0 && (
+                      <p className="text-sm text-white/20 font-mono mb-2">No custom roles yet. Create one below — e.g. <span className="text-white/40">comments_mod</span>.</p>
+                    )}
+                    {customRoles.map((r) => {
+                      const editing = editingPermissionsRole?.id === r.id;
+                      const roleState = editing ? editingPermissionsRole! : r;
+                      return (
+                        <div key={r.id} className="px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
+                          {editingRole?.id === r.id ? (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <input
+                                type="color"
+                                value={editingRole.color}
+                                onChange={(e) => setEditingRole({ ...editingRole, color: e.target.value })}
+                                className="w-7 h-7 rounded-lg cursor-pointer border border-white/15 p-0.5 bg-transparent shrink-0"
+                              />
+                              <input
+                                value={editingRole.name}
+                                onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
+                                className="flex-1 bg-white/5 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-white/30"
+                              />
+                              <button onClick={handleSaveRole} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/18 text-white/60 hover:text-white transition-all">
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => setEditingRole(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/30 hover:text-white/60 transition-all">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
+                              <RoleBadge role={r.name} color={r.color} size="sm" />
+                              <span className="text-[10px] text-white/25 font-mono">{r.color}</span>
+                              <div className="ml-auto flex items-center gap-1">
+                                <button
+                                  onClick={() => setEditingPermissionsRole(r)}
+                                  className="px-2 py-1 rounded-lg border border-white/12 text-[10px] text-white/45 hover:text-white/70"
+                                >
+                                  Permissions
+                                </button>
+                                <button onClick={() => setEditingRole(r)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/25 hover:text-white/60 transition-all">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteRole(r.id)}
+                                  disabled={deletingRole === r.id}
+                                  className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
+                                >
+                                  {deletingRole === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {editing && (
+                            <>
+                              <RolePermissionEditor
+                                role={roleState}
+                                permissionDefs={permissionDefs}
+                                onToggle={(role, permId, enabled) => {
+                                  toggleRolePermission(role, permId, enabled);
+                                  setEditingPermissionsRole((prev) => {
+                                    if (!prev || prev.id !== role.id) return prev;
+                                    const next = { ...prev };
+                                    if (permId === "*") next.permissions = enabled ? ["*"] : [];
+                                    else if (enabled) next.permissions = [...prev.permissions.filter((p) => p !== "*"), permId];
+                                    else next.permissions = prev.permissions.filter((p) => p !== permId);
+                                    return next;
+                                  });
+                                }}
+                              />
+                              <button
+                                onClick={() => handleSavePermissions(roleState)}
+                                disabled={savingPermissions === r.id}
+                                className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 text-xs text-white/70 hover:bg-white/18 disabled:opacity-40"
+                              >
+                                {savingPermissions === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin inline" /> : "Save permissions"}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-dashed border-white/12 space-y-3">
+                    <p className="text-[11px] font-mono text-white/30 uppercase tracking-widest">Create role</p>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <input
+                        type="color"
+                        value={newRoleColor}
+                        onChange={(e) => setNewRoleColor(e.target.value)}
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-white/15 p-0.5 bg-transparent shrink-0"
+                      />
+                      <input
+                        value={newRoleName}
+                        onChange={(e) => setNewRoleName(e.target.value)}
+                        placeholder="e.g. comments_mod"
+                        className="flex-1 min-w-[140px] bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
+                      />
+                      {newRoleName.trim() && (
+                        <RoleBadge role={newRoleName} color={newRoleColor} size="sm" />
+                      )}
+                      <button
+                        onClick={handleCreateRole}
+                        disabled={!newRoleName.trim() || creatingRole}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 border border-white/15 text-white/70 text-xs font-semibold hover:bg-white/18 hover:text-white disabled:opacity-25 transition-all"
+                      >
+                        {creatingRole ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                        Create
+                      </button>
+                    </div>
+                    {newRoleName.trim() && permissionDefs.length > 0 && (
+                      <RolePermissionEditor
+                        role={{ id: "__new", name: newRoleName, color: newRoleColor, permissions: newRolePermissions }}
+                        permissionDefs={permissionDefs}
+                        onToggle={(_role, permId, enabled) => {
+                          setNewRolePermissions((prev) => {
+                            if (enabled) return prev.includes(permId) ? prev : [...prev, permId];
+                            return prev.filter((p) => p !== permId);
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 

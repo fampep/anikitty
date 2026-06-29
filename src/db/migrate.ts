@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { LEVEL_TIERS } from "@/lib/user-level";
+import { DEFAULT_BUILTIN_PERMISSIONS, ROLE_PERMISSIONS_KEY } from "@/lib/permissions";
 
 export async function migrateDb() {
   const url = process.env.DATABASE_URL;
@@ -67,6 +68,7 @@ export async function migrateDb() {
         id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         name       VARCHAR(50) NOT NULL UNIQUE,
         color      VARCHAR(20) NOT NULL DEFAULT '#ffffff',
+        permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
         created_at TIMESTAMP DEFAULT NOW()
       )
     `;
@@ -210,6 +212,7 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS muted_until TIMESTAMP`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS mute_reason TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS muted_by UUID REFERENCES users(id) ON DELETE SET NULL`,
+      `ALTER TABLE roles ADD COLUMN IF NOT EXISTS permissions JSONB NOT NULL DEFAULT '[]'::jsonb`,
       `CREATE UNIQUE INDEX IF NOT EXISTS users_discord_id_unique ON users (discord_id) WHERE discord_id IS NOT NULL`,
       `CREATE TABLE IF NOT EXISTS user_passkeys (
         id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -404,6 +407,15 @@ export async function migrateDb() {
 
     // Ensure the site owner always has admin role
     await client`UPDATE users SET role = 'admin' WHERE username = 'fampep' AND role != 'admin'`;
+
+    const defaultRolePerms = JSON.stringify(DEFAULT_BUILTIN_PERMISSIONS);
+    await client`
+      INSERT INTO app_settings (key, value)
+      VALUES (${ROLE_PERMISSIONS_KEY}, ${defaultRolePerms})
+      ON CONFLICT (key) DO NOTHING
+    `.catch((e: unknown) =>
+      console.error("[migrate] role permissions seed failed:", e),
+    );
   } finally {
     await client.end();
   }

@@ -27,6 +27,9 @@ export function authFromMeResponse(data: Record<string, unknown>): IAuth {
     bio: (user.bio as string | null) ?? null,
     themeColor: (user.themeColor as string | null) ?? null,
     role: (user.role as string | null) ?? "user",
+    permissions: Array.isArray(data.permissions)
+      ? (data.permissions as string[])
+      : [],
   };
 }
 

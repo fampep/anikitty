@@ -1,6 +1,7 @@
 import type { getDb } from "@/db";
 import { userSessions, users } from "@/db/schema";
 import { countAdmins } from "@/lib/delete-user";
+import { canStaffTargetRole } from "@/lib/permissions";
 import { and, eq, isNull } from "drizzle-orm";
 
 type Db = ReturnType<typeof getDb>;
@@ -34,6 +35,8 @@ export function isStaffRole(role: string): boolean {
   return role === "admin" || role === "moderator";
 }
 
+/** @deprecated Prefer permission checks via getRolePermissions / roleHasAnyStaffPermission */
+
 export function isUserBanned(user: Pick<ModerationFields, "bannedAt">): boolean {
   return user.bannedAt != null;
 }
@@ -61,6 +64,14 @@ export function canStaffTarget(actorRole: string, targetRole: string): boolean {
   if (targetRole === "admin") return false;
   if (actorRole === "moderator" && targetRole === "moderator") return false;
   return true;
+}
+
+export async function canStaffTargetAsync(
+  db: Db,
+  actorRole: string,
+  targetRole: string,
+): Promise<boolean> {
+  return canStaffTargetRole(db, actorRole, targetRole);
 }
 
 const MAX_MUTE_HOURS = 24 * 365;
@@ -161,7 +172,7 @@ export async function applyModerationAction(
 
   if (!target) throw new ModerationError("User not found", "NOT_FOUND");
 
-  if (!bypassTargetCheck && !canStaffTarget(actorRole, target.role)) {
+  if (!bypassTargetCheck && !(await canStaffTargetRole(db, actorRole, target.role))) {
     throw new ModerationError("You cannot moderate this user", "FORBIDDEN");
   }
 

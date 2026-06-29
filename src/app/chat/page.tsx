@@ -26,6 +26,7 @@ import { ROUTES } from "@/constants/routes";
 import { useLiveChat } from "@/hooks/use-live-chat";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import { chatTimeAgo, formatChatTime, formatChatTtlLabel, isChatMessageEdited, type ChatMessage } from "@/lib/chat";
 import { cn } from "@/lib/utils";
@@ -150,6 +151,7 @@ function ChatBubble({
 export default function ChatPage() {
   const t = useT();
   const { auth } = useAuthStore();
+  const { canModerateChat } = usePermissions();
   const onlineCount = useOnlineCount();
   const { messages, messageTtlMs, loading, sending, error, sendMessage, editMessage, deleteMessage } =
     useLiveChat();
@@ -164,7 +166,7 @@ export default function ChatPage() {
   const [unseenCount, setUnseenCount] = useState(0);
 
   const isLoggedIn = !!auth;
-  const isStaff = auth?.role === "admin" || auth?.role === "moderator";
+  const isStaff = canModerateChat;
   const isEditing = !!editingMessageId;
   const canSend =
     (draft.trim().length > 0 || (!isEditing && !!selectedGif)) && !sending;

@@ -8,6 +8,7 @@ import {
   timestamp,
   unique,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -129,6 +130,7 @@ export const roles = pgTable("roles", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 50 }).notNull().unique(),
   color: varchar("color", { length: 20 }).notNull().default("#ffffff"),
+  permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

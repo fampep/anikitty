@@ -1,22 +1,27 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { applyModerationAction, ModerationError } from "@/lib/moderation";
-import { requireStaff } from "@/lib/staff-auth";
+import { permissionForModerationAction } from "@/lib/permissions";
+import { requirePermission } from "@/lib/staff-auth";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
-  const staff = await requireStaff(req);
+  const body = await req.json().catch(() => ({}));
+  const action = typeof body.action === "string" ? body.action : "";
+  const needed = permissionForModerationAction(action);
+  if (!needed) {
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  }
+
+  const staff = await requirePermission(req, needed);
   if (!staff) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { userId } = await params;
   if (!userId) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const body = await req.json().catch(() => ({}));
-  const action = typeof body.action === "string" ? body.action : "";
 
   const db = getDb();
   try {

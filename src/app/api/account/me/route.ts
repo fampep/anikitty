@@ -5,6 +5,7 @@ import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { eq } from "drizzle-orm";
 import { isSafeHttpsUrl } from "@/lib/security";
 import { isValidThemeColor, normalizeThemeColor } from "@/lib/theme-color";
+import { getRolePermissions } from "@/lib/permissions";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -43,10 +44,13 @@ export async function GET(req: Request) {
 
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  const permissions = await getRolePermissions(db, user.role ?? "user");
+
   const { anilistAccessToken: _token, ...safeUser } = user;
 
   return NextResponse.json({
     anisurgeUserId: safeUser.id,
+    permissions,
     anisurgeLinked: !!safeUser.anisurgeUsername,
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,

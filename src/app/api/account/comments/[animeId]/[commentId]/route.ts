@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import { comments, users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { roleHasPermission } from "@/lib/permissions";
 import { and, eq } from "drizzle-orm";
 
 export async function PATCH(
@@ -43,7 +44,9 @@ export async function DELETE(
     .where(eq(users.id, payload.userId))
     .limit(1);
 
-  const isMod = caller?.role === "admin" || caller?.role === "moderator";
+  const isMod = caller
+    ? await roleHasPermission(db, caller.role, "comments.moderate")
+    : false;
 
   const condition = isMod
     ? eq(comments.id, commentId)
