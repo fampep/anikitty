@@ -7,7 +7,7 @@ import {
 } from "@/lib/subtitle-settings";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
-import { RotateCcw } from "lucide-react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 
 type Props = {
   compact?: boolean;
@@ -58,6 +58,8 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
     setSubtitleBackgroundOpacity,
     setSubtitleFontWeight,
     setSubtitleBottomOffset,
+    adjustSubtitleTimeOffset,
+    setSubtitleTimeOffset,
     resetSubtitleSettings,
   } = useSettingsStore();
 
@@ -132,6 +134,62 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         value={subtitleSettings.bottomOffset}
         onChange={setSubtitleBottomOffset}
       />
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-white/70">{t("settings.subtitleSync")}</span>
+          <span className="text-[11px] font-mono text-white/35 tabular-nums">
+            {subtitleSettings.timeOffsetSec > 0 ? "+" : ""}
+            {subtitleSettings.timeOffsetSec.toFixed(1)}s
+          </span>
+        </div>
+        <p className="text-[11px] text-white/30 leading-relaxed">{t("settings.subtitleSyncHint")}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest mr-1">
+            {t("settings.subtitleSyncCoarse")}
+          </span>
+          <button
+            type="button"
+            onClick={() => adjustSubtitleTimeOffset(-0.5)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/12 text-white/55 text-xs hover:bg-white/8"
+          >
+            <Minus className="w-3 h-3" /> 0.5s
+          </button>
+          <button
+            type="button"
+            onClick={() => adjustSubtitleTimeOffset(0.5)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/12 text-white/55 text-xs hover:bg-white/8"
+          >
+            <Plus className="w-3 h-3" /> 0.5s
+          </button>
+          <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest mx-1">
+            {t("settings.subtitleSyncFine")}
+          </span>
+          <button
+            type="button"
+            onClick={() => adjustSubtitleTimeOffset(-0.1)}
+            className="px-2 py-1.5 rounded-lg border border-white/12 text-white/45 text-[11px] hover:bg-white/8"
+          >
+            −0.1
+          </button>
+          <button
+            type="button"
+            onClick={() => adjustSubtitleTimeOffset(0.1)}
+            className="px-2 py-1.5 rounded-lg border border-white/12 text-white/45 text-[11px] hover:bg-white/8"
+          >
+            +0.1
+          </button>
+          {subtitleSettings.timeOffsetSec !== 0 && (
+            <button
+              type="button"
+              onClick={() => setSubtitleTimeOffset(0)}
+              className="ml-auto text-[11px] text-violet-300/70 hover:text-violet-200"
+            >
+              {t("settings.subtitleSyncReset")}
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2">
         <span className="text-sm text-white/70">{t("settings.subtitleFontWeight")}</span>

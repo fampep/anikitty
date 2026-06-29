@@ -333,7 +333,12 @@
     "subtitleWeightBold": "Gras",
     "subtitlePreview": "Aperçu",
     "subtitlePreviewText": "Exemple de ligne de sous-titre",
-    "subtitleReset": "Réinitialiser par défaut"
+    "subtitleReset": "Réinitialiser par défaut",
+    "subtitleSync": "Synchronisation",
+    "subtitleSyncHint": "Décale les sous-titres s'ils ne suivent pas l'audio. Re-sync lors des sauts ou changement SUB/DUB.",
+    "subtitleSyncFine": "Fin",
+    "subtitleSyncCoarse": "Gros",
+    "subtitleSyncReset": "Réinitialiser sync"
   },
   "profile": {
     "badges": {
@@ -787,6 +792,7 @@
     "miruroPipe": "Miruro",
     "animexServer": "Serveur Animex",
     "animoServer": "Serveur Animo",
+    "animestreamLocale": "Audio doublé",
     "multi": "MULTI",
     "providerSelect": "Source du flux",
     "providerGroupFeatured": "Recommandés",

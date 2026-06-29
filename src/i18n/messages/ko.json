@@ -333,7 +333,12 @@
     "subtitleWeightBold": "굵게",
     "subtitlePreview": "미리보기",
     "subtitlePreviewText": "자막 예시 줄",
-    "subtitleReset": "기본값으로 재설정"
+    "subtitleReset": "기본값으로 재설정",
+    "subtitleSync": "타이밍 동기화",
+    "subtitleSyncHint": "자막이 음성과 맞지 않으면 조정하세요. 탐색 또는 SUB/DUB 전환 시 다시 동기화됩니다.",
+    "subtitleSyncFine": "미세",
+    "subtitleSyncCoarse": "크게",
+    "subtitleSyncReset": "동기화 초기화"
   },
   "profile": {
     "badges": {
@@ -828,6 +833,7 @@
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
     "animoServer": "Animo server",
+    "animestreamLocale": "Dub audio",
     "multi": "MULTI",
     "providerSelect": "스트림 소스",
     "providerGroupFeatured": "추천",

@@ -3,6 +3,13 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitle-cache-store";
 import {
+  ANIMESTREAM_SUB_LOCALE,
+  DEFAULT_ANIMESTREAM_DUB_LOCALE,
+  fetchAnimeStreamVideoStream,
+  isAnimeStreamLocale,
+  type AnimeStreamLocale,
+} from "@/lib/animestream-api";
+import {
   DEFAULT_ANIMEX_SERVER,
   fetchAnimexVideoStream,
   isAnimexServerId,
@@ -40,6 +47,7 @@ const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
 const SAFE_ANIMEX_SERVER = /^[a-z]{2,12}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
+const SAFE_ANIMESTREAM_LOCALE = /^[a-z]{2,3}(-[A-Za-z0-9]+)?$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
@@ -64,6 +72,7 @@ export async function GET(req: Request) {
   const miruroPipeParam = searchParams.get("miruroPipe");
   const animexServerParam = searchParams.get("animexServer");
   const animoServerParam = searchParams.get("animoServer");
+  const animestreamLocaleParam = searchParams.get("animestreamLocale");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -109,6 +118,17 @@ export async function GET(req: Request) {
         ? DEFAULT_ANIMO_SERVER
         : null;
 
+  const animestreamLocale: AnimeStreamLocale | null =
+    animestreamLocaleParam &&
+    SAFE_ANIMESTREAM_LOCALE.test(animestreamLocaleParam) &&
+    isAnimeStreamLocale(animestreamLocaleParam)
+      ? animestreamLocaleParam
+      : provider === "AnimeStream"
+        ? subtitleCtx.audio === "sub"
+          ? ANIMESTREAM_SUB_LOCALE
+          : DEFAULT_ANIMESTREAM_DUB_LOCALE
+        : null;
+
   async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
@@ -121,7 +141,8 @@ export async function GET(req: Request) {
       providerHasNativeSubs(providerName) ||
       providerName === "Miruro" ||
       providerName === "Animex" ||
-      providerName === "Animo";
+      providerName === "Animo" ||
+      providerName === "AnimeStream";
     const providerSubtitleTracks: StreamTrack[] = preserveInlineSubs
       ? inlineSubtitleTracks.map((track) => proxyInlineSubtitle(track, data.headers))
       : [];
@@ -234,6 +255,34 @@ export async function GET(req: Request) {
       }
     } catch (e) {
       console.error("[kitty/stream] Animo server failed:", e);
+    }
+  }
+
+  if (provider === "AnimeStream") {
+    try {
+      const animestream = await fetchAnimeStreamVideoStream({
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        locale: animestreamLocale,
+        title: titleParam,
+      });
+
+      if (animestream?.file) {
+        return finalizeStreamResponse(
+          {
+            file: animestream.file,
+            headers: animestream.headers,
+            tracks: animestream.tracks,
+            skipTimes: animestream.skipTimes,
+            server: animestream.server,
+            download: animestream.download,
+          },
+          "AnimeStream",
+        );
+      }
+    } catch (e) {
+      console.error("[kitty/stream] AnimeStream locale failed:", e);
     }
   }
 

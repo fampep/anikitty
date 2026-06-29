@@ -9,6 +9,12 @@ import {
   fetchAnimoVideoStream,
   isAnimoServerId,
 } from "@/lib/animo-api";
+import {
+  ANIMESTREAM_SUB_LOCALE,
+  DEFAULT_ANIMESTREAM_DUB_LOCALE,
+  fetchAnimeStreamVideoStream,
+  isAnimeStreamLocale,
+} from "@/lib/animestream-api";
 import type { KittyProvider } from "@/lib/kitty-providers";
 
 export type KittyRawStream = {
@@ -27,6 +33,7 @@ export async function fetchKittyStreamRaw(
   miruroPipe?: string | null,
   title?: string | null,
   animoServer?: string | null,
+  animestreamLocale?: string | null,
 ): Promise<KittyRawStream | null> {
   if (provider === "Miruro") {
     const pipe =
@@ -70,6 +77,33 @@ export async function fetchKittyStreamRaw(
         download: animo.download,
         tracks: animo.tracks,
         server: animo.server,
+      };
+    }
+  }
+
+  if (provider === "AnimeStream") {
+    const locale =
+      animestreamLocale && isAnimeStreamLocale(animestreamLocale)
+        ? animestreamLocale
+        : audio === "sub"
+          ? ANIMESTREAM_SUB_LOCALE
+          : DEFAULT_ANIMESTREAM_DUB_LOCALE;
+
+    const animestream = await fetchAnimeStreamVideoStream({
+      anilistId,
+      episode,
+      audio,
+      locale,
+      title,
+    });
+
+    if (animestream?.file) {
+      return {
+        file: animestream.file,
+        headers: animestream.headers,
+        download: animestream.download,
+        tracks: animestream.tracks,
+        server: animestream.server,
       };
     }
   }

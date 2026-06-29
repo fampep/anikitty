@@ -1,5 +1,13 @@
 import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty-api";
 import {
+  ANIMESTREAM_SUB_LOCALE,
+  DEFAULT_ANIMESTREAM_DUB_LOCALE,
+  isAnimeStreamLocale,
+  probeAnimeStreamEpisodeCapabilities,
+  type AnimeStreamLocale,
+  type AnimeStreamServerOption,
+} from "@/lib/animestream-api";
+import {
   DEFAULT_ANIMEX_SERVER,
   isAnimexServerId,
   probeAnimexServerCapabilities,
@@ -38,6 +46,8 @@ export type EpisodeStreamCapabilities = {
   miruroPipes: Partial<Record<MiruroPipeProviderId, StreamCapabilities>>;
   animexServers: Partial<Record<AnimexServerId, StreamCapabilities>>;
   animoServers: Partial<Record<AnimoServerId, StreamCapabilities>>;
+  animestreamLocales: Partial<Record<string, StreamCapabilities>>;
+  animestreamServers: AnimeStreamServerOption[];
 };
 
 export type StreamCapabilityTarget = {
@@ -45,6 +55,7 @@ export type StreamCapabilityTarget = {
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
   animoServer?: AnimoServerId;
+  animestreamLocale?: AnimeStreamLocale;
 };
 
 export const EMPTY_STREAM_CAPABILITIES: StreamCapabilities = {
@@ -166,6 +177,8 @@ export async function fetchActiveProviderStreamCapabilities(
       miruroPipes: { [pipe]: caps },
       animexServers: {},
       animoServers: {},
+      animestreamLocales: {},
+      animestreamServers: [],
     };
   }
 
@@ -177,6 +190,8 @@ export async function fetchActiveProviderStreamCapabilities(
       miruroPipes: {},
       animexServers: { [server]: caps },
       animoServers: {},
+      animestreamLocales: {},
+      animestreamServers: [],
     };
   }
 
@@ -188,6 +203,30 @@ export async function fetchActiveProviderStreamCapabilities(
       miruroPipes: {},
       animexServers: {},
       animoServers: { [server]: caps },
+      animestreamLocales: {},
+      animestreamServers: [],
+    };
+  }
+
+  if (provider === "AnimeStream") {
+    const episodeCaps = await probeAnimeStreamEpisodeCapabilities(anilistId, episode, title);
+    const requested = target.animestreamLocale;
+    const activeLocale =
+      requested && isAnimeStreamLocale(requested) && episodeCaps.locales[requested]
+        ? requested
+        : episodeCaps.locales[ANIMESTREAM_SUB_LOCALE]
+          ? ANIMESTREAM_SUB_LOCALE
+          : episodeCaps.servers[0]?.locale ?? DEFAULT_ANIMESTREAM_DUB_LOCALE;
+
+    return {
+      providers: {
+        AnimeStream: episodeCaps.locales[activeLocale] ?? episodeCaps.provider,
+      },
+      miruroPipes: {},
+      animexServers: {},
+      animoServers: {},
+      animestreamLocales: episodeCaps.locales,
+      animestreamServers: episodeCaps.servers,
     };
   }
 
@@ -197,6 +236,8 @@ export async function fetchActiveProviderStreamCapabilities(
     miruroPipes: {},
     animexServers: {},
     animoServers: {},
+    animestreamLocales: {},
+    animestreamServers: [],
   };
 }
 
@@ -219,6 +260,11 @@ export function parseStreamCapabilityTarget(searchParams: URLSearchParams): Stre
   const animoServer = searchParams.get("animoServer");
   if (animoServer && isAnimoServerId(animoServer)) {
     target.animoServer = animoServer;
+  }
+
+  const animestreamLocale = searchParams.get("animestreamLocale");
+  if (animestreamLocale && isAnimeStreamLocale(animestreamLocale)) {
+    target.animestreamLocale = animestreamLocale;
   }
 
   return target;
@@ -263,6 +309,8 @@ export function resolveActiveStreamCapabilities(
   animexServer?: AnimexServerId,
   miruroPipe?: MiruroPipeProviderId,
   animoServer?: AnimoServerId,
+  animestreamLocale?: AnimeStreamLocale,
+  streamAudio?: "sub" | "dub",
 ): StreamCapabilities | null | undefined {
   if (!caps) return undefined;
   if (audioMode === "multi") {
@@ -270,6 +318,13 @@ export function resolveActiveStreamCapabilities(
     if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
   }
   if (provider === "Animo" && animoServer) return caps.animoServers[animoServer] ?? caps.providers[provider];
+  if (provider === "AnimeStream") {
+    const locale =
+      streamAudio === "dub" && animestreamLocale
+        ? animestreamLocale
+        : ANIMESTREAM_SUB_LOCALE;
+    return caps.animestreamLocales[locale] ?? caps.providers[provider];
+  }
   return caps.providers[provider];
 }
 
@@ -297,6 +352,8 @@ export function selectionSupportsBothStreamAudioFromCaps(
   animexServer?: AnimexServerId,
   miruroPipe?: MiruroPipeProviderId,
   animoServer?: AnimoServerId,
+  animestreamLocale?: AnimeStreamLocale,
+  streamAudio?: "sub" | "dub",
 ): boolean {
   const active = resolveActiveStreamCapabilities(
     caps,
@@ -305,6 +362,8 @@ export function selectionSupportsBothStreamAudioFromCaps(
     animexServer,
     miruroPipe,
     animoServer,
+    animestreamLocale,
+    streamAudio,
   );
   return canToggleStreamAudio(active);
 }

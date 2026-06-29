@@ -333,7 +333,12 @@
     "subtitleWeightBold": "粗体",
     "subtitlePreview": "预览",
     "subtitlePreviewText": "示例字幕行",
-    "subtitleReset": "恢复默认设置"
+    "subtitleReset": "恢复默认设置",
+    "subtitleSync": "时间同步",
+    "subtitleSyncHint": "若字幕与音频不同步可微调。拖动进度条或切换 SUB/DUB 时会自动重新同步。",
+    "subtitleSyncFine": "微调",
+    "subtitleSyncCoarse": "粗调",
+    "subtitleSyncReset": "重置同步"
   },
   "profile": {
     "badges": {
@@ -828,6 +833,7 @@
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
     "animoServer": "Animo server",
+    "animestreamLocale": "Dub audio",
     "multi": "MULTI",
     "providerSelect": "流媒体来源",
     "providerGroupFeatured": "推荐",

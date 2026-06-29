@@ -333,7 +333,12 @@
     "subtitleWeightBold": "太字",
     "subtitlePreview": "プレビュー",
     "subtitlePreviewText": "字幕のサンプル行",
-    "subtitleReset": "デフォルトに戻す"
+    "subtitleReset": "デフォルトに戻す",
+    "subtitleSync": "タイミング同期",
+    "subtitleSyncHint": "音声とずれたら字幕を調整。シークやSUB/DUB切替時に再同期します。",
+    "subtitleSyncFine": "微調整",
+    "subtitleSyncCoarse": "粗調整",
+    "subtitleSyncReset": "同期をリセット"
   },
   "profile": {
     "badges": {
@@ -828,6 +833,7 @@
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
     "animoServer": "Animo server",
+    "animestreamLocale": "Dub audio",
     "multi": "MULTI",
     "providerSelect": "配信ソース",
     "providerGroupFeatured": "おすすめ",

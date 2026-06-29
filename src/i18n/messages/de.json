@@ -333,7 +333,12 @@
     "subtitleWeightBold": "Fett",
     "subtitlePreview": "Vorschau",
     "subtitlePreviewText": "Beispiel-Untertitelzeile",
-    "subtitleReset": "Auf Standard zurücksetzen"
+    "subtitleReset": "Auf Standard zurücksetzen",
+    "subtitleSync": "Timing-Sync",
+    "subtitleSyncHint": "Verschiebe Untertitel, wenn sie nicht zum Audio passen. Sync bei Suche oder SUB/DUB-Wechsel.",
+    "subtitleSyncFine": "Fein",
+    "subtitleSyncCoarse": "Grob",
+    "subtitleSyncReset": "Sync zurücksetzen"
   },
   "profile": {
     "badges": {
@@ -828,6 +833,7 @@
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
     "animoServer": "Animo server",
+    "animestreamLocale": "Dub audio",
     "multi": "MULTI",
     "providerSelect": "Stream-Quelle",
     "providerGroupFeatured": "Empfohlen",

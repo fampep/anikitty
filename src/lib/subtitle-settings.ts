@@ -6,6 +6,8 @@ export type SubtitleSettings = {
   backgroundOpacity: number;
   fontWeight: SubtitleFontWeight;
   bottomOffset: number;
+  /** Shift subtitles earlier (−) or later (+) vs stream audio, in seconds. */
+  timeOffsetSec: number;
 };
 
 export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
@@ -14,7 +16,11 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   backgroundOpacity: 78,
   fontWeight: 600,
   bottomOffset: 4.5,
+  timeOffsetSec: 0,
 };
+
+export const SUBTITLE_TIME_OFFSET_MIN = -30;
+export const SUBTITLE_TIME_OFFSET_MAX = 30;
 
 export const SUBTITLE_COLOR_PRESETS = [
   { id: "white", value: "#ffffff", label: "White" },

@@ -333,7 +333,12 @@
     "subtitleWeightBold": "Negrito",
     "subtitlePreview": "Pré-visualização",
     "subtitlePreviewText": "Linha de legenda de exemplo",
-    "subtitleReset": "Restaurar padrões"
+    "subtitleReset": "Restaurar padrões",
+    "subtitleSync": "Sincronização",
+    "subtitleSyncHint": "Ajuste as legendas se estiverem fora do áudio. Re-sincroniza ao buscar ou mudar SUB/DUB.",
+    "subtitleSyncFine": "Fino",
+    "subtitleSyncCoarse": "Grosso",
+    "subtitleSyncReset": "Redefinir sync"
   },
   "profile": {
     "badges": {
@@ -828,6 +833,7 @@
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
     "animoServer": "Animo server",
+    "animestreamLocale": "Dub audio",
     "multi": "MULTI",
     "providerSelect": "Fonte do stream",
     "providerGroupFeatured": "Recomendados",

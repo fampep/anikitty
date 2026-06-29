@@ -32,6 +32,7 @@ import {
   requestElementFullscreen,
 } from "@/lib/fullscreen";
 import { bindPipCaptionSync } from "@/lib/pip-captions";
+import { bindSubtitlePlaybackSync } from "@/lib/subtitle-playback-sync";
 
 interface W2gSyncState {
   version: number;
@@ -85,6 +86,10 @@ export default function KittyPlayer({
   preferDubAudio = false,
 }: KittyPlayerProps) {
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
+  const subtitleOffsetRef = useRef(subtitleSettings.timeOffsetSec);
+  useEffect(() => {
+    subtitleOffsetRef.current = subtitleSettings.timeOffsetSec;
+  }, [subtitleSettings.timeOffsetSec]);
   const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -129,6 +134,20 @@ export default function KittyPlayer({
   // Derived early so effects can reference them
   const referer = headers?.Referer ?? headers?.referer ?? "";
   const proxiedSrc = buildKittyHlsUrl(src, headers);
+
+  const subTracks = useMemo(
+    () =>
+      tracks
+        .filter(isSubtitleTrack)
+        .map((track) => ({
+          ...track,
+          file: resolveTrackSrc(track.file),
+        })),
+    [tracks],
+  );
+
+  const activateSubtitlesRef = useRef<() => void>(() => {});
+  const resyncSubtitlesRef = useRef<() => void>(() => {});
 
   useAnime4KUpscaler(
     containerRef,
@@ -194,19 +213,6 @@ export default function KittyPlayer({
     if (!player || !container) return;
     return bindPipCaptionSync(container, player);
   }, [proxiedSrc, anime4kEnabled]);
-
-  const subTracks = useMemo(
-    () =>
-      tracks
-        .filter(isSubtitleTrack)
-        .map((track) => ({
-          ...track,
-          file: resolveTrackSrc(track.file),
-        })),
-    [tracks],
-  );
-
-  const activateSubtitlesRef = useRef<() => void>(() => {});
 
   const chapterTrack = tracks.find(
     (t) =>
@@ -310,6 +316,26 @@ export default function KittyPlayer({
     };
   }, [proxiedSrc, subTracks, preferSubtitles]);
 
+  // Keep subtitle cues locked to the stream playback clock (seek / audio-track / offset).
+  useEffect(() => {
+    const player = playerRef.current;
+    const container = containerRef.current;
+    if (!player || !container || subTracks.length === 0) {
+      resyncSubtitlesRef.current = () => {};
+      return;
+    }
+    const { cleanup, resync } = bindSubtitlePlaybackSync(
+      container,
+      player,
+      () => subtitleOffsetRef.current,
+    );
+    resyncSubtitlesRef.current = resync;
+    return () => {
+      resyncSubtitlesRef.current = () => {};
+      cleanup();
+    };
+  }, [proxiedSrc, subTracks.length, preferDubAudio]);
+
   // Select Japanese (sub) or English/dub HLS audio when multiple tracks exist.
   useEffect(() => {
     const player = playerRef.current;
@@ -367,7 +393,10 @@ export default function KittyPlayer({
       if (preferred && playerWithAudio.audioTrack?.id !== preferred.id) {
         playerWithAudio.audioTrack = preferred;
       }
-      window.setTimeout(() => activateSubtitlesRef.current(), 150);
+      window.setTimeout(() => {
+        activateSubtitlesRef.current();
+        resyncSubtitlesRef.current();
+      }, 150);
       return true;
     };
 
@@ -572,6 +601,7 @@ export default function KittyPlayer({
     const player = playerRef.current;
     if (player) { player.currentTime = time; player.play(); }
     setActiveSkip(null);
+    window.setTimeout(() => resyncSubtitlesRef.current(), 80);
   }, []);
 
   const onProviderChange = useCallback((provider: MediaProviderAdapter | null) => {
