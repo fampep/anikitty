@@ -96,7 +96,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.anime4kEnabled ??= false;
           next.anime4kMode ??= "A";
         }
-        if (next.subtitleSettings) {
+        if (version < 5 && next.subtitleSettings) {
           const { timeOffsetSec: _removed, ...subtitleSettings } = next.subtitleSettings as SubtitleSettings & {
             timeOffsetSec?: number;
           };

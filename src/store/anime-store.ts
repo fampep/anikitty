@@ -10,7 +10,11 @@ interface IAnimeStore {
 
 export const useAnimeStore = create<IAnimeStore>((set, get) => ({
     anime: {} as IAnimeDetails,
-    setAnime: (state: IAnimeDetails) => set({ anime: state }),
+    setAnime: (state: IAnimeDetails) => {
+        const prev = get().anime;
+        if (prev?.anime?.info?.id === state?.anime?.info?.id) return;
+        set({ anime: state });
+    },
 
     selectedEpisode: '',
     setSelectedEpisode: (state: string) => {
