@@ -12,6 +12,7 @@ import LoginPopoverButton from "@/components/login-popover-button";
 import LanguageSwitcher from "@/components/language-switcher";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useT } from "@/providers/i18n-provider";
+import { SITE_LOGO } from "@/lib/site-seo";
 
 export default function LandingPage() {
   const t = useT();
@@ -76,13 +77,16 @@ export default function LandingPage() {
 
       {/* ── Navigation ── */}
       <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5">
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
-          <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden ring-1 ring-white/15 group-hover:ring-white/40 transition-all duration-200">
-            <Image src="/jiji.jpg" alt="AniKitty" fill className="object-cover object-top" unoptimized />
-          </div>
-          <span className={cn(nightTokyo.className, "text-base sm:text-lg font-bold tracking-widest text-white/90 group-hover:text-white transition-colors")}>
-            AniKitty
-          </span>
+        <Link href="/" className="flex items-center group">
+          <Image
+            src={SITE_LOGO}
+            alt="AniKitty"
+            width={140}
+            height={52}
+            className="h-9 sm:h-10 w-auto object-contain transition-opacity group-hover:opacity-95"
+            priority
+            unoptimized
+          />
         </Link>
 
         <div className="flex items-center gap-2">

@@ -4,6 +4,7 @@ export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.moe";
+const SITE_LOGO_URL = `${APP_URL}/anikitty-logo.png`;
 
 export type OgAccent = "violet" | "teal" | "sky" | "emerald" | "rose";
 
@@ -103,37 +104,14 @@ export function renderOgCard(config: OgCardConfig) {
           zIndex: 1,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.15)",
-              display: "flex",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${APP_URL}/jiji.jpg`}
-              alt=""
-              width={36}
-              height={36}
-              style={{ objectFit: "cover", objectPosition: "top" }}
-            />
-          </div>
-          <span
-            style={{
-              fontFamily: "NightTokyo",
-              fontSize: 22,
-              fontWeight: 700,
-              letterSpacing: "4px",
-              color: "rgba(255,255,255,0.9)",
-            }}
-          >
-            AniKitty
-          </span>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={SITE_LOGO_URL}
+            alt="AniKitty"
+            height={44}
+            style={{ objectFit: "contain" }}
+          />
         </div>
         <div
           style={{

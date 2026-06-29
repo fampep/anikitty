@@ -5,6 +5,12 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.moe"
 export const APP_DESCRIPTION = "Free anime streaming. No ads. Sub & dub.";
 export const APP_DEFAULT_TITLE = "AniKitty — Free Anime Streaming";
 
+/** Primary brand mark (navbar, favicon source, OG cards). */
+export const SITE_LOGO = "/anikitty-logo.png";
+export const SITE_LOGO_OG = "/og-share.png";
+export const SITE_FAVICON = "/favicon.png";
+export const SITE_APPLE_ICON = "/icon-192x192.png";
+
 export type PageSeo = {
   title: string;
   description: string;

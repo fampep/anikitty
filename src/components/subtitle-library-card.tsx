@@ -7,6 +7,7 @@ import { ROUTES } from "@/constants/routes";
 import type { SubtitleLibraryEntry } from "@/lib/subtitle-cache-store";
 import { fetchAnimeSubtitleCoverage } from "@/query/get-anime-subtitles";
 import { useT } from "@/providers/i18n-provider";
+import { SITE_LOGO } from "@/lib/site-seo";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 
@@ -70,7 +71,7 @@ export default function SubtitleLibraryCard({ entry }: Props) {
       <div className="relative">
         <AnimeCard
           compact
-          poster={entry.poster || "/jiji.jpg"}
+          poster={entry.poster || SITE_LOGO}
           title={title}
           href={href}
           episodeCard

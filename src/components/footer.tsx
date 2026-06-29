@@ -9,8 +9,7 @@ import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
 import LanguageSwitcher from "@/components/language-switcher";
-
-const KITTY_ICON = "/jiji.jpg";
+import { SITE_LOGO } from "@/lib/site-seo";
 
 const Footer = () => {
   const t = useT();
@@ -28,12 +27,14 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-white/[0.06]">
 
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-violet-400/25 shadow-[0_0_12px_rgba(124,58,237,0.12)]">
-                <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
-              </div>
-              <p className="text-base font-bold text-white/90 tracking-widest">AniKitty</p>
-            </div>
+            <Image
+              src={SITE_LOGO}
+              alt="AniKitty"
+              width={120}
+              height={44}
+              className="h-8 w-auto object-contain"
+              unoptimized
+            />
             <p className="text-[11px] text-white/20 font-mono leading-relaxed max-w-[180px]">
               {t("footer.tagline")}
             </p>

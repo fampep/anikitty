@@ -22,6 +22,9 @@ import {
   APP_DESCRIPTION,
   APP_NAME,
   APP_URL,
+  SITE_APPLE_ICON,
+  SITE_FAVICON,
+  SITE_LOGO,
 } from "@/lib/site-seo";
 
 const geistSans = localFont({
@@ -41,8 +44,11 @@ export const metadata: Metadata = {
   title: APP_DEFAULT_TITLE,
   description: APP_DESCRIPTION,
   icons: {
-    icon: "/jiji.jpg",
-    apple: "/jiji.jpg",
+    icon: [
+      { url: SITE_FAVICON, type: "image/png" },
+      { url: SITE_LOGO, type: "image/png" },
+    ],
+    apple: SITE_APPLE_ICON,
   },
   appleWebApp: {
     capable: true,
@@ -104,8 +110,8 @@ export default async function RootLayout({
           gtag('config', 'G-X9RZ58XPH1');`}
         </Script>
         <PublicEnvScript />
-        <link rel="icon" href="/jiji.jpg" type="image/jpeg" />
-        <link rel="apple-touch-icon" href="/jiji.jpg" />
+        <link rel="icon" href={SITE_FAVICON} type="image/png" />
+        <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}

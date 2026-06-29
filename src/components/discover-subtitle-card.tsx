@@ -4,6 +4,7 @@ import AnimeCard from "@/components/anime-card";
 import { ROUTES } from "@/constants/routes";
 import type { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
+import { SITE_LOGO } from "@/lib/site-seo";
 import { Loader2, Plus } from "lucide-react";
 
 type Props = {
@@ -19,7 +20,7 @@ export default function DiscoverSubtitleCard({ anime, fetching, onFetch }: Props
     <div className="flex flex-col gap-2 w-full max-w-[12.625rem] mx-auto">
       <AnimeCard
         compact
-        poster={anime.poster || "/jiji.jpg"}
+        poster={anime.poster || SITE_LOGO}
         title={anime.name}
         href={`${ROUTES.ANIME_DETAILS}/${anime.id}?tab=subtitles`}
         episodeCard

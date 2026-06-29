@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import Container from "./container";
-import { nightTokyo } from "@/utils/fonts";
 import { ROUTES } from "@/constants/routes";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import SearchBar from "./search-bar";
@@ -35,8 +34,7 @@ import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anis
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
-
-const KITTY_ICON = "/jiji.jpg";
+import { SITE_LOGO } from "@/lib/site-seo";
 
 const MENU_DEFS = [
   { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home" },
@@ -315,18 +313,16 @@ const NavBar = () => {
 
         <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-4">
           {/* Brand */}
-          <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center gap-2.5 lg:min-w-0">
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full shadow-[0_0_12px_rgba(124,58,237,0.15)] ring-1 ring-violet-400/20 transition-all duration-200 group-hover:ring-violet-400/45">
-              <Image src={KITTY_ICON} alt="AniKitty" fill className="object-cover object-top" unoptimized />
-            </div>
-            <span
-              className={cn(
-                nightTokyo.className,
-                "hidden text-[1.05rem] font-bold tracking-[0.22em] text-white/90 transition-colors group-hover:text-white sm:block",
-              )}
-            >
-              AniKitty
-            </span>
+          <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center lg:min-w-0">
+            <Image
+              src={SITE_LOGO}
+              alt="AniKitty"
+              width={132}
+              height={48}
+              className="h-9 w-auto object-contain transition-opacity group-hover:opacity-95"
+              priority
+              unoptimized
+            />
           </Link>
 
           {/* Centered desktop navigation */}
@@ -382,14 +378,14 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
-            <div className="flex items-center gap-2.5">
-              <div className="relative h-8 w-8 overflow-hidden rounded-full ring-1 ring-violet-400/25">
-                <Image src={KITTY_ICON} alt="" fill className="object-cover object-top" unoptimized />
-              </div>
-              <span className={cn(nightTokyo.className, "text-lg font-bold tracking-[0.18em] text-white")}>
-                AniKitty
-              </span>
-            </div>
+            <Image
+              src={SITE_LOGO}
+              alt="AniKitty"
+              width={120}
+              height={44}
+              className="h-8 w-auto object-contain"
+              unoptimized
+            />
             <SheetClose className="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white">
               <X className="h-4 w-4" />
             </SheetClose>
