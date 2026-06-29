@@ -663,27 +663,38 @@ export default function KittyPlayer({
 
   const nearEnd  = duration > 60 && currentTime >= duration - 90;
   const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
-  const skipOffset = showNext ? "bottom-[8.5rem]" : "bottom-[4.5rem]";
+  const overlayBottom = showNext ? "kitty-overlay--stacked" : "kitty-overlay--base";
 
   return (
     <div
       ref={containerRef}
-      className="vds-kitty relative w-full bg-black overflow-hidden ring-1 ring-white/[0.08] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)]"
+      className="vds-kitty kitty-stage group/stage relative w-full overflow-hidden rounded-xl bg-[#030303] shadow-[0_32px_100px_-24px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.06]"
       style={{ aspectRatio: "16/9" }}
       data-anime4k={anime4kEnabled ? "true" : undefined}
     >
-      <div
-        className="kitty-player-logo pointer-events-none absolute top-3 right-3 z-[25] select-none"
-        aria-hidden
-      >
-        <Image
-          src={SITE_LOGO}
-          alt=""
-          width={80}
-          height={30}
-          className="h-5 w-auto object-contain opacity-60 drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]"
-          unoptimized
-        />
+      <div className="kitty-stage__glow pointer-events-none absolute -inset-px rounded-xl bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent opacity-80" aria-hidden />
+      <div className="kitty-stage__vignette pointer-events-none absolute inset-0 z-[4]" aria-hidden />
+      <div className="kitty-stage__scanline pointer-events-none absolute inset-0 z-[4] opacity-[0.03]" aria-hidden />
+
+      <div className="kitty-stage__brand pointer-events-none absolute top-0 inset-x-0 z-[25] flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="kitty-brand-pill">AniKitty</span>
+          {anime4kEnabled && (
+            <span className="kitty-meta-pill text-violet-200/80 border-violet-400/20 bg-violet-500/10">
+              4K
+            </span>
+          )}
+        </div>
+        <div className="kitty-player-logo shrink-0 select-none opacity-70 transition-opacity duration-300 group-hover/stage:opacity-90">
+          <Image
+            src={SITE_LOGO}
+            alt=""
+            width={88}
+            height={32}
+            className="h-[18px] w-auto object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+            unoptimized
+          />
+        </div>
       </div>
 
       <MediaPlayer
@@ -744,7 +755,7 @@ export default function KittyPlayer({
             type={activeSkip}
             interval={activeInterval}
             currentTime={currentTime}
-            bottomClass={skipOffset}
+            stackClass={overlayBottom}
             onSkip={() => seekTo(activeInterval.end)}
           />
         )}
@@ -777,13 +788,13 @@ function SkipButton({
   type,
   interval,
   currentTime,
-  bottomClass = "bottom-[4.5rem]",
+  stackClass = "kitty-overlay--base",
   onSkip,
 }: {
   type: "intro" | "outro";
   interval: SkipInterval;
   currentTime: number;
-  bottomClass?: string;
+  stackClass?: string;
   onSkip: () => void;
 }) {
   const t = useT();
@@ -795,24 +806,32 @@ function SkipButton({
 
   return (
     <button
+      type="button"
       onClick={onSkip}
-      className={`absolute ${bottomClass} right-4 z-50 group flex flex-col overflow-hidden rounded-2xl border border-violet-400/25 bg-black/75 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-200 hover:border-violet-400/45 hover:bg-black/85 active:scale-[0.98] animate-in slide-in-from-right-4 fade-in duration-200`}
-      style={{ minWidth: 156 }}
+      className={`kitty-overlay kitty-skip-card ${stackClass} group absolute left-4 z-50 flex max-w-[min(100%,280px)] items-stretch overflow-hidden text-left animate-in slide-in-from-left-4 fade-in duration-300`}
     >
-      <div className="flex items-center gap-2.5 px-4 py-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/20 ring-1 ring-violet-400/30 shrink-0">
-          <SkipForward className="w-3.5 h-3.5 text-violet-200 group-hover:text-white transition-colors" />
-        </span>
-        <span className="text-sm font-semibold text-white leading-none">{label}</span>
-        <span className="ml-auto text-[11px] font-mono text-white/40 group-hover:text-violet-200/70 transition-colors shrink-0 leading-none tabular-nums">
-          {remaining}s
-        </span>
-      </div>
-      <div className="relative h-1 w-full bg-white/[0.06]">
-        <div
-          className="absolute left-0 top-0 h-full bg-gradient-to-r from-violet-600 to-violet-400 transition-none"
-          style={{ width: `${progress * 100}%` }}
-        />
+      <div className="flex w-1 shrink-0 bg-gradient-to-b from-violet-400 via-violet-500 to-violet-700" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center gap-3 px-3.5 py-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-400/25">
+            <SkipForward className="h-4 w-4 text-violet-200 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">
+              {type === "intro" ? "Opening" : "Credits"}
+            </p>
+            <p className="truncate text-sm font-semibold text-white">{label}</p>
+          </div>
+          <span className="shrink-0 rounded-lg bg-white/[0.05] px-2 py-1 text-[11px] font-mono tabular-nums text-white/45 ring-1 ring-white/10">
+            {remaining}s
+          </span>
+        </div>
+        <div className="relative h-1 bg-black/40">
+          <div
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-600 via-violet-400 to-fuchsia-300"
+            style={{ width: `${progress * 100}%` }}
+          />
+        </div>
       </div>
     </button>
   );
@@ -835,20 +854,18 @@ function NextEpisodeButton({
 
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="absolute bottom-[4.5rem] right-4 z-50 group flex items-center gap-3 pl-3 pr-4 py-2.5 rounded-2xl border border-white/15 bg-black/75 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-200 hover:border-violet-400/35 hover:bg-black/85 active:scale-[0.98] animate-in slide-in-from-right-4 fade-in duration-200"
-      style={{ maxWidth: 280 }}
+      className="kitty-overlay kitty-overlay--base kitty-next-card group absolute right-4 z-50 flex max-w-[min(100%,300px)] items-center gap-3 px-3 py-2.5 text-left animate-in slide-in-from-right-4 fade-in duration-300"
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-400/25 shrink-0">
-        <ChevronRight className="w-4 h-4 text-violet-300 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 ring-1 ring-violet-400/20">
+        <ChevronRight className="h-4 w-4 text-violet-200 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
       </span>
-      <div className="flex flex-col items-start min-w-0">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300/60 group-hover:text-violet-200/80 transition-colors leading-none mb-1">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">
           {t("watch.nextEpisode")}
-        </span>
-        <span className="text-sm font-semibold text-white leading-tight truncate w-full">
-          {title}
-        </span>
+        </p>
+        <p className="truncate text-sm font-semibold leading-tight text-white">{title}</p>
       </div>
     </button>
   );
@@ -877,48 +894,55 @@ function CountdownOverlay({
   const dashOffset = circumference * (1 - countdown / 5);
 
   return (
-    <div className="absolute inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
-      <div className="pointer-events-auto flex items-center gap-4 pl-4 pr-5 py-4 rounded-2xl border border-white/15 bg-black/80 backdrop-blur-xl shadow-[0_12px_48px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)] animate-in slide-in-from-right-6 fade-in duration-300">
-        <div className="relative w-12 h-12 shrink-0">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px] pointer-events-none animate-in fade-in duration-300">
+      <div className="kitty-overlay pointer-events-auto flex w-full max-w-md flex-col gap-4 p-5 sm:flex-row sm:items-center">
+        <div className="relative mx-auto h-16 w-16 shrink-0 sm:mx-0">
+          <svg className="h-full w-full -rotate-90" viewBox="0 0 48 48" aria-hidden>
             <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
             <circle
               cx="24" cy="24" r="20" fill="none"
-              stroke="url(#countdown-gradient)" strokeWidth="3"
+              stroke="url(#kitty-countdown-gradient)" strokeWidth="3"
               strokeDasharray={circumference}
               strokeDashoffset={dashOffset}
               strokeLinecap="round"
               className="transition-[stroke-dashoffset] duration-1000 ease-linear"
             />
             <defs>
-              <linearGradient id="countdown-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient id="kitty-countdown-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#7c3aed" />
                 <stop offset="100%" stopColor="#c084fc" />
               </linearGradient>
             </defs>
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white tabular-nums">
+          <span className="absolute inset-0 flex items-center justify-center text-lg font-bold tabular-nums text-white">
             {countdown}
           </span>
         </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300/60 leading-none mb-1">{t("watch.upNext")}</span>
-          <span className="text-sm font-semibold text-white leading-tight truncate max-w-[180px]">
-            {title}
-          </span>
+
+        <div className="min-w-0 flex-1 text-center sm:text-left">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">
+            {t("watch.upNext")}
+          </p>
+          <p className="mt-1 truncate text-base font-semibold text-white">{title}</p>
+          <p className="mt-1 text-xs text-white/40">Auto-playing when the timer ends</p>
         </div>
-        <div className="flex flex-col gap-1.5 shrink-0">
+
+        <div className="flex shrink-0 flex-col gap-2 sm:items-stretch">
           <button
+            type="button"
             onClick={onSkip}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 text-white text-xs font-bold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-900/40"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-violet-900/35 transition hover:from-violet-500 hover:to-violet-400"
           >
-            {t("watch.playNow")} <ChevronRight className="w-3 h-3" />
+            {t("watch.playNow")}
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
           <button
+            type="button"
             onClick={onCancel}
-            className="flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-xl bg-white/[0.06] text-white/50 text-xs font-medium hover:bg-white/10 hover:text-white/80 transition-colors ring-1 ring-white/10"
+            className="inline-flex items-center justify-center gap-1 rounded-xl bg-white/[0.05] px-4 py-2 text-xs font-medium text-white/55 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white/80"
           >
-            <X className="w-3 h-3" /> {t("watch.cancel")}
+            <X className="h-3.5 w-3.5" />
+            {t("watch.cancel")}
           </button>
         </div>
       </div>
