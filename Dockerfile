@@ -3,8 +3,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package*.json ./
 # npm install (not ci) so a stale package-lock.json on the branch still builds in Coolify/Docker.
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-fund --no-audit
+RUN npm install --no-fund --no-audit
 
 FROM node:24-alpine AS builder
 WORKDIR /app
@@ -17,8 +16,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-RUN --mount=type=cache,target=/app/.next/cache \
-    npm run build
+RUN npm run build
 
 FROM node:24-alpine AS runner
 WORKDIR /app
