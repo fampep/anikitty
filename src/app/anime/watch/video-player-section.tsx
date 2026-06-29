@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
   type KittyProvider,
+  type KittyTrack,
 } from "@/query/get-kitty-stream";
 import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty-providers";
 import {
@@ -87,6 +88,8 @@ const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
 });
 
 const DEFAULT_PROVIDER: KittyProvider = "Miruro";
+const EMPTY_PLAYER_TRACKS: KittyTrack[] = [];
+const EMPTY_PLAYER_HEADERS: Record<string, string> = {};
 
 const VideoPlayerSection = () => {
   const t = useT();
@@ -520,6 +523,33 @@ const VideoPlayerSection = () => {
   const hasStreamFile = Boolean(streamData?.file);
   const streamSwitching = isFetching && hasStreamFile;
 
+  const playerTracks = useMemo(
+    () => streamData?.tracks ?? EMPTY_PLAYER_TRACKS,
+    [streamData?.tracks],
+  );
+  const playerHeaders = useMemo(
+    () => streamData?.headers ?? EMPTY_PLAYER_HEADERS,
+    [streamData?.headers],
+  );
+  const playerNextEpisode = useMemo(
+    () =>
+      nextEpisode
+        ? { id: nextEpisode.episodeId, number: nextEpisode.number, title: nextEpisode.title }
+        : undefined,
+    [nextEpisode],
+  );
+  const playerW2g = useMemo(
+    () =>
+      w2gCode && w2g.isMember
+        ? {
+            isHost: w2g.isHost,
+            syncState: w2g.syncState,
+            onPlaybackSync: w2g.onPlaybackSync,
+          }
+        : undefined,
+    [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
+  );
+
   const loadingThumbnail =
     currentEpisodeInfo?.image ?? anime?.anime?.info?.poster ?? null;
 
@@ -676,7 +706,7 @@ const VideoPlayerSection = () => {
 
   const upstreamError = (streamError as { response?: { data?: { error?: string } } })?.response?.data?.error;
 
-  const subtitleTracks = (streamData?.tracks ?? []).filter(isSubtitleTrack);
+  const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
   if (!isFetching && (streamError || !streamData?.file)) {
     return (
@@ -741,8 +771,8 @@ const VideoPlayerSection = () => {
         key={`${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}-${animestreamLocale}`}
         src={streamData.file}
         poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
-        tracks={streamData.tracks ?? []}
-        headers={streamData.headers ?? {}}
+        tracks={playerTracks}
+        headers={playerHeaders}
         preferSubtitles={subtitleTracks.length > 0 || streamAudio !== "dub"}
         preferDubAudio={streamAudio === "dub"}
         skipTimes={skipTimes}
@@ -752,22 +782,14 @@ const VideoPlayerSection = () => {
             : startTime
         }
         autoFullscreen={autoFullscreen}
-        nextEpisode={nextEpisode ? { id: nextEpisode.episodeId, number: nextEpisode.number, title: nextEpisode.title } : undefined}
+        nextEpisode={playerNextEpisode}
         onStart={handleStart}
         onProgress={handleProgress}
         onLiveTime={handleLiveTime}
         onNextEpisode={handleNextEpisode}
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
-        w2g={
-          w2gCode && w2g.isMember
-            ? {
-                isHost: w2g.isHost,
-                syncState: w2g.syncState,
-                onPlaybackSync: w2g.onPlaybackSync,
-              }
-            : undefined
-        }
+        w2g={playerW2g}
       />
       </div>
 

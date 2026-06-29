@@ -143,7 +143,19 @@ export default function KittyPlayer({
     [tracks],
   );
 
+  const subTracksKey = useMemo(
+    () => subTracks.map((t) => `${t.file}|${t.label ?? ""}`).join("\n"),
+    [subTracks],
+  );
+
+  const subTracksRef = useRef(subTracks);
+  useEffect(() => {
+    subTracksRef.current = subTracks;
+  }, [subTracksKey, subTracks]);
+
   const activateSubtitlesRef = useRef<() => void>(() => {});
+  const subtitleCooldownRef = useRef(false);
+  const subtitleActivationKeyRef = useRef("");
 
   useAnime4KUpscaler(
     containerRef,
@@ -235,12 +247,15 @@ export default function KittyPlayer({
     lastUiTimeRef.current = 0;
     setCurrentTime(0);
     setCountdown(null);
+    durationRef.current = 0;
+    setDuration(0);
+    subtitleActivationKeyRef.current = "";
   }, [src]);
 
   // Enable default subtitle track when available (Vidstack CC menu still allows switching/off).
   useEffect(() => {
     const player = playerRef.current;
-    if (!player || subTracks.length === 0) return;
+    if (!player || subTracksKey.length === 0) return;
 
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
@@ -248,8 +263,11 @@ export default function KittyPlayer({
     const isSubtitleTrack = (track: { kind?: string }) =>
       track.kind === "subtitles" || track.kind === "captions";
 
+    const activationKey = `${subTracksKey}|${preferSubtitles ? "on" : "off"}`;
+
     const activate = (): boolean => {
-      if (subTracks.length === 0) return true;
+      const configuredTracks = subTracksRef.current;
+      if (configuredTracks.length === 0) return true;
 
       const textTracks = player.textTracks;
       if (!textTracks?.length) return false;
@@ -262,14 +280,22 @@ export default function KittyPlayer({
             break;
           }
         }
-        if (alreadyOff) return true;
+        if (alreadyOff) {
+          subtitleActivationKeyRef.current = activationKey;
+          return true;
+        }
+        subtitleCooldownRef.current = true;
         for (const track of textTracks) {
           if (isSubtitleTrack(track)) track.setMode("disabled");
         }
+        subtitleActivationKeyRef.current = activationKey;
+        window.setTimeout(() => {
+          subtitleCooldownRef.current = false;
+        }, 400);
         return true;
       }
 
-      const preferred = subTracks.find((t) => t.default) ?? subTracks[0];
+      const preferred = configuredTracks.find((t) => t.default) ?? configuredTracks[0];
       const preferredLang = labelToLanguage(preferred.label || "");
 
       let target: (typeof textTracks)[number] | undefined;
@@ -299,16 +325,23 @@ export default function KittyPlayer({
           }
         }
       }
-      if (alreadyActive) return true;
+      if (alreadyActive && subtitleActivationKeyRef.current === activationKey) return true;
 
+      subtitleCooldownRef.current = true;
       for (const track of textTracks) {
         if (isSubtitleTrack(track)) track.setMode("disabled");
       }
       target.setMode("showing");
+      subtitleActivationKeyRef.current = activationKey;
+      window.setTimeout(() => {
+        subtitleCooldownRef.current = false;
+      }, 400);
       return true;
     };
 
     const tryActivate = () => {
+      if (subtitleCooldownRef.current) return;
+      if (subtitleActivationKeyRef.current === activationKey) return;
       if (activate()) return;
       if (attempts++ < 16) {
         retryTimer = setTimeout(tryActivate, 350);
@@ -319,21 +352,26 @@ export default function KittyPlayer({
 
     let tracksChangeTimer: ReturnType<typeof setTimeout> | undefined;
     const onTracksChange = () => {
+      if (subtitleCooldownRef.current) return;
+      if (subtitleActivationKeyRef.current === activationKey) return;
       if (tracksChangeTimer) clearTimeout(tracksChangeTimer);
-      tracksChangeTimer = setTimeout(() => tryActivate(), 50);
+      tracksChangeTimer = setTimeout(tryActivate, 200);
     };
 
     player.addEventListener("can-play", tryActivate);
     player.addEventListener("vds-text-tracks-change", onTracksChange);
-    if (player.state.canPlay) tryActivate();
+    if (player.state.canPlay && subtitleActivationKeyRef.current !== activationKey) {
+      tryActivate();
+    }
 
     return () => {
       player.removeEventListener("can-play", tryActivate);
       player.removeEventListener("vds-text-tracks-change", onTracksChange);
       if (retryTimer) clearTimeout(retryTimer);
       if (tracksChangeTimer) clearTimeout(tracksChangeTimer);
+      subtitleActivationKeyRef.current = "";
     };
-  }, [proxiedSrc, subTracks, preferSubtitles]);
+  }, [proxiedSrc, subTracksKey, preferSubtitles]);
 
   // Select Japanese (sub) or English/dub HLS audio when multiple tracks exist.
   useEffect(() => {
@@ -389,10 +427,14 @@ export default function KittyPlayer({
       const playerWithAudio = player as MediaPlayerInstance & {
         audioTrack?: PlayerAudioTrack;
       };
+      let audioChanged = false;
       if (preferred && playerWithAudio.audioTrack?.id !== preferred.id) {
         playerWithAudio.audioTrack = preferred;
+        audioChanged = true;
       }
-      window.setTimeout(() => activateSubtitlesRef.current(), 150);
+      if (audioChanged) {
+        window.setTimeout(() => activateSubtitlesRef.current(), 150);
+      }
       return true;
     };
 
@@ -401,7 +443,10 @@ export default function KittyPlayer({
       if (attempts++ < 12) retryTimer = setTimeout(tryPick, 350);
     };
 
-    const onAudioTracksChange = () => tryPick();
+    const onAudioTracksChange = () => {
+      if (subtitleCooldownRef.current) return;
+      tryPick();
+    };
 
     player.addEventListener("can-play", tryPick);
     player.addEventListener("audio-tracks-change", onAudioTracksChange);
@@ -499,6 +544,8 @@ export default function KittyPlayer({
     }, 600);
   }, [w2g?.syncState]);
 
+  const durationRef = useRef(0);
+
   const handleTimeUpdate = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
@@ -508,7 +555,8 @@ export default function KittyPlayer({
 
     onLiveTimeRef.current?.(t, dur);
 
-    if (dur > 0 && Math.abs(dur - duration) > 0.5) {
+    if (dur > 0 && Math.abs(dur - durationRef.current) > 0.5) {
+      durationRef.current = dur;
       setDuration(dur);
     }
 
@@ -545,7 +593,7 @@ export default function KittyPlayer({
     if (cfg?.isHost && !applyingW2gRef.current && Math.abs(t - lastW2gReportRef.current) > 2.5) {
       reportW2g(!player.paused, t);
     }
-  }, [duration, reportW2g]);
+  }, [reportW2g]);
 
   const handleCanPlay = useCallback(() => {
     const t = startTimeRef.current;
