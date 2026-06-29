@@ -13,6 +13,15 @@ import Link from "next/link";
 import { cn, formatSecondsToMMSS } from "@/lib/utils";
 import LoginPopoverButton from "./login-popover-button";
 import { useT } from "@/providers/i18n-provider";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface ContinueItem {
   id: string;
@@ -26,11 +35,11 @@ type Props = { loading: boolean };
 
 function ContinueCard({
   item,
-  onRemove,
+  onRequestRemove,
   removing,
 }: {
   item: ContinueItem;
-  onRemove: (item: ContinueItem) => void;
+  onRequestRemove: (item: ContinueItem) => void;
   removing: boolean;
 }) {
   const t = useT();
@@ -42,8 +51,7 @@ function ContinueCard({
   const handleRemove = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(t("home.removeContinueConfirm", { title: item.name }))) return;
-    onRemove(item);
+    onRequestRemove(item);
   };
 
   return (
@@ -109,15 +117,69 @@ function ContinueCard({
         disabled={removing}
         aria-label={t("home.removeContinue")}
         className={cn(
-          "absolute top-1.5 right-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full",
-          "bg-red-600 text-white shadow-lg ring-1 ring-black/30",
-          "opacity-90 hover:opacity-100 hover:bg-red-500 transition-all",
-          "disabled:opacity-40 disabled:pointer-events-none",
+          "absolute top-2 right-2 z-20 flex h-6 w-6 items-center justify-center rounded-lg",
+          "bg-black/60 backdrop-blur-md text-white/45 ring-1 ring-white/10",
+          "opacity-80 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+          "hover:bg-rose-500/15 hover:text-rose-300 hover:ring-rose-400/25",
+          "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-violet-400/40",
+          "transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none",
         )}
       >
-        <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+        <X className="h-3.5 w-3.5" strokeWidth={2.25} />
       </button>
     </div>
+  );
+}
+
+function RemoveContinueDialog({
+  item,
+  open,
+  removing,
+  onClose,
+  onConfirm,
+}: {
+  item: ContinueItem | null;
+  open: boolean;
+  removing: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const t = useT();
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !removing) onClose(); }}>
+      <DialogContent className="border border-white/10 bg-[#0a0a0f] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-violet-950/30 [&>button:last-child]:hidden">
+        <DialogHeader className="px-5 pt-5 pb-4 border-b border-white/8 text-left space-y-2">
+          <DialogTitle className="text-white font-semibold text-base tracking-tight">
+            {t("home.removeContinueTitle")}
+          </DialogTitle>
+          <DialogDescription className="text-white/45 text-sm leading-relaxed">
+            {item
+              ? t("home.removeContinueConfirm", { title: item.name })
+              : t("home.removeContinue")}
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className="px-5 py-4 gap-2 sm:gap-2 sm:justify-end border-t border-white/8 bg-white/[0.02]">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={removing}
+            className="px-4 py-2 rounded-xl border border-white/10 text-white/65 text-xs font-semibold hover:bg-white/5 hover:text-white/85 transition-colors disabled:opacity-40"
+          >
+            {t("settings.cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={removing}
+            className="px-4 py-2 rounded-xl bg-rose-500/15 text-rose-300 text-xs font-bold ring-1 ring-rose-400/25 hover:bg-rose-500/25 hover:text-rose-200 transition-colors disabled:opacity-40"
+          >
+            {removing ? t("common.loading") : t("home.removeContinueAction")}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -132,6 +194,7 @@ const ContinueWatching = ({ loading }: Props) => {
   const [loadError, setLoadError] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<ContinueItem | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -209,12 +272,18 @@ const ContinueWatching = ({ loading }: Props) => {
     try {
       await anisurgeContinue.remove(item.id, item.episodeId);
       removeProgress(item.id, item.episodeId);
+      setPendingRemove(null);
     } catch {
       setItems(prev);
-      alert(t("home.removeContinueFailed"));
+      toast.error(t("home.removeContinueFailed"));
     } finally {
       setRemovingKey(null);
     }
+  };
+
+  const confirmRemove = () => {
+    if (!pendingRemove || removingKey) return;
+    void handleRemove(pendingRemove);
   };
 
   if (loading) return <LoadingSkeleton />;
@@ -270,7 +339,8 @@ const ContinueWatching = ({ loading }: Props) => {
   if (!items.length) return null;
 
   return (
-    <Container className="flex flex-col gap-4 py-8 items-start">
+    <>
+      <Container className="flex flex-col gap-4 py-8 items-start">
       <div className="flex items-center gap-3 w-full">
         <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-white/70 to-white/20 shrink-0" />
         <History className="text-white/45 w-4 h-4" />
@@ -307,14 +377,23 @@ const ContinueWatching = ({ loading }: Props) => {
               <ContinueCard
                 key={key}
                 item={item}
-                onRemove={handleRemove}
+                onRequestRemove={setPendingRemove}
                 removing={removingKey === key}
               />
             );
           })}
         </div>
       </div>
-    </Container>
+      </Container>
+
+      <RemoveContinueDialog
+        item={pendingRemove}
+        open={!!pendingRemove}
+        removing={!!removingKey}
+        onClose={() => setPendingRemove(null)}
+        onConfirm={confirmRemove}
+      />
+    </>
   );
 };
 
