@@ -880,7 +880,7 @@ function CountdownOverlay({
   const dashOffset = circumference * (1 - countdown / 5);
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px] pointer-events-none animate-in fade-in duration-300">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/55 p-4 pointer-events-none animate-in fade-in duration-300">
       <div className="kitty-overlay pointer-events-auto flex w-full max-w-md flex-col gap-4 p-5 sm:flex-row sm:items-center">
         <div className="relative mx-auto h-16 w-16 shrink-0 sm:mx-0">
           <svg className="h-full w-full -rotate-90" viewBox="0 0 48 48" aria-hidden>

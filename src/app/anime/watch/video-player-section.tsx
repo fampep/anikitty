@@ -83,6 +83,11 @@ const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
   loading: () => <PlayerSkeleton />,
 });
 
+const ArtKittyPlayer = dynamic(() => import("@/components/art-kitty-player"), {
+  ssr: false,
+  loading: () => <PlayerSkeleton />,
+});
+
 const DEFAULT_PROVIDER: KittyProvider = "Miruro";
 const EMPTY_PLAYER_TRACKS: KittyTrack[] = [];
 const EMPTY_PLAYER_HEADERS: Record<string, string> = {};
@@ -97,7 +102,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { preferDub, setPreferDub, anime4kEnabled, setAnime4kEnabled, anime4kMode, setAnime4kMode } =
+  const { preferDub, setPreferDub, anime4kEnabled, setAnime4kEnabled, anime4kMode, setAnime4kMode, videoPlayer, setVideoPlayer } =
     useSettingsStore();
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
@@ -516,6 +521,9 @@ const VideoPlayerSection = () => {
   const playerPoster =
     anime?.anime?.info?.banner ?? anime?.anime?.info?.poster ?? undefined;
 
+  const PlayerComponent = videoPlayer === "art" ? ArtKittyPlayer : KittyPlayer;
+  const playerKey = `${videoPlayer}-${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`;
+
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
     streamData?.file,
@@ -713,8 +721,8 @@ const VideoPlayerSection = () => {
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
-      <KittyPlayer
-        key={`${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`}
+      <PlayerComponent
+        key={playerKey}
         src={streamData.file}
         poster={playerPoster}
         tracks={playerTracks}
@@ -844,6 +852,35 @@ const VideoPlayerSection = () => {
             )}
 
             <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center rounded-lg border border-white/12 bg-white/[0.03] p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setVideoPlayer("kitty")}
+                  title={t("watch.playerKittyHint")}
+                  className={`h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
+                    videoPlayer === "kitty"
+                      ? "bg-violet-500/25 text-violet-100 border border-violet-400/35"
+                      : "text-white/40 hover:text-white/65"
+                  }`}
+                >
+                  {t("watch.playerKitty")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVideoPlayer("art")}
+                  title={t("watch.playerArtHint")}
+                  className={`h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
+                    videoPlayer === "art"
+                      ? "bg-violet-500/25 text-violet-100 border border-violet-400/35"
+                      : "text-white/40 hover:text-white/65"
+                  }`}
+                >
+                  {t("watch.playerArt")}
+                </button>
+              </div>
+
+              {videoPlayer === "kitty" && (
+              <>
               <button
                 type="button"
                 onClick={handleAnime4kToggle}
@@ -880,6 +917,8 @@ const VideoPlayerSection = () => {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+              )}
+              </>
               )}
             </div>
 

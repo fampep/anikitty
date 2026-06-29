@@ -5,9 +5,11 @@ import {
   type SubtitleFontWeight,
   type SubtitleSettings,
 } from "@/lib/subtitle-settings";
+import type { VideoPlayerEngine } from "@/lib/video-player-types";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 export type Anime4KMode = "A" | "B" | "C";
+export type { VideoPlayerEngine };
 
 interface ISettingsStore {
   episodeLayout: EpisodeLayout;
@@ -18,6 +20,9 @@ interface ISettingsStore {
 
   autoPlay: boolean;
   setAutoPlay: (val: boolean) => void;
+
+  videoPlayer: VideoPlayerEngine;
+  setVideoPlayer: (engine: VideoPlayerEngine) => void;
 
   anime4kEnabled: boolean;
   setAnime4kEnabled: (val: boolean) => void;
@@ -52,6 +57,9 @@ export const useSettingsStore = create<ISettingsStore>()(
       autoPlay: false,
       setAutoPlay: (autoPlay) => set({ autoPlay }),
 
+      videoPlayer: "kitty",
+      setVideoPlayer: (videoPlayer) => set({ videoPlayer }),
+
       anime4kEnabled: false,
       setAnime4kEnabled: (anime4kEnabled) => set({ anime4kEnabled }),
       anime4kMode: "A",
@@ -83,7 +91,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
           subtitleSettings?: SubtitleSettings & { timeOffsetSec?: number };
@@ -104,6 +112,9 @@ export const useSettingsStore = create<ISettingsStore>()(
             ...DEFAULT_SUBTITLE_SETTINGS,
             ...subtitleSettings,
           };
+        }
+        if (version < 6) {
+          next.videoPlayer ??= "kitty";
         }
         return next as ISettingsStore;
       },

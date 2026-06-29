@@ -278,7 +278,6 @@ button, a, [role="button"] {
   box-shadow:
     0 18px 50px rgba(0, 0, 0, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(18px);
   transition:
     border-color 0.2s ease,
     background-color 0.2s ease,
@@ -347,7 +346,6 @@ button, a, [role="button"] {
   box-shadow:
     0 16px 40px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(18px);
 }
 
 .vds-kitty .vds-controls-group {
@@ -421,7 +419,6 @@ button, a, [role="button"] {
 .vds-kitty .vds-menu {
   border-radius: 14px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.58);
-  backdrop-filter: blur(16px);
 }
 
 .vds-kitty .vds-menu-item {
@@ -627,5 +624,55 @@ html[data-user-theme] .user-accent-btn:hover {
 
 .subs-feed-grid > * {
   animation: fadeInUp 0.35s ease both;
+}
+
+/* ArtPlayer — default layout, dark glass controls */
+.art-kitty-player .artplayer-app {
+  background: #000;
+}
+
+.art-kitty-player .artplayer {
+  width: 100%;
+  height: 100%;
+}
+
+.art-kitty-player .art-video-player {
+  background: #000;
+}
+
+.art-kitty-player .art-controls {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+}
+
+.art-kitty-player .art-progress {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.art-kitty-player .art-control-progress-inner {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.art-kitty-player .art-control-highlight {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.art-kitty-player .art-auto-playback {
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+}
+
+.art-kitty-player .art-auto-playback .art-auto-playback-close {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.art-kitty-player .art-auto-playback .art-auto-playback-jump {
+  color: #5eb3ff;
+}
+
+.art-kitty-player .art-settings,
+.art-kitty-player .art-info-panel {
+  background: rgba(18, 18, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
