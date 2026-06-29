@@ -19,7 +19,6 @@ const getStreamCapabilities = async (
       ...(target.miruroPipe ? { miruroPipe: target.miruroPipe } : {}),
       ...(target.animexServer ? { animexServer: target.animexServer } : {}),
       ...(target.animoServer ? { animoServer: target.animoServer } : {}),
-      ...(target.animestreamLocale ? { animestreamLocale: target.animestreamLocale } : {}),
       ...(title ? { title } : {}),
     },
   });
@@ -42,7 +41,6 @@ export const useGetStreamCapabilities = (
       target?.miruroPipe ?? "",
       target?.animexServer ?? "",
       target?.animoServer ?? "",
-      target?.animestreamLocale ?? "",
     ],
     queryFn: () => getStreamCapabilities(anilistId!, episode!, target!, title),
     enabled:

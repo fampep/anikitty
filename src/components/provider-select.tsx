@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/animex-api";
 import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/animo-api";
-import { type AnimeStreamLocale } from "@/lib/animestream-api";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/miruro-api";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -60,7 +59,6 @@ export default function ProviderSelect({
           value === "Miruro" && "border-violet-500/25 bg-violet-500/[0.06] text-violet-100/85",
           value === "AnimeSogo" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
           value === "Animo" && "border-cyan-500/25 bg-cyan-500/[0.06] text-cyan-100/85",
-          value === "AnimeStream" && "border-indigo-500/25 bg-indigo-500/[0.06] text-indigo-100/85",
           className,
         )}
       >
@@ -113,7 +111,6 @@ export function ProviderQuickPick({
   miruroPipe,
   animexServer,
   animoServer,
-  animestreamLocale,
   streamAudio = "sub",
   capabilities,
   capabilitiesLoading,
@@ -122,7 +119,6 @@ export function ProviderQuickPick({
   onMiruroPipeChange,
   onAnimexServerChange,
   onAnimoServerChange,
-  onAnimestreamLocaleChange,
   className,
 }: {
   value: KittyProvider;
@@ -131,7 +127,6 @@ export function ProviderQuickPick({
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
   animoServer?: AnimoServerId;
-  animestreamLocale?: AnimeStreamLocale;
   streamAudio?: "sub" | "dub";
   capabilities?: EpisodeStreamCapabilities;
   capabilitiesLoading?: boolean;
@@ -140,7 +135,6 @@ export function ProviderQuickPick({
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
-  onAnimestreamLocaleChange?: (locale: AnimeStreamLocale) => void;
   className?: string;
 }) {
   return (
@@ -151,7 +145,6 @@ export function ProviderQuickPick({
       miruroPipe={miruroPipe}
       animexServer={animexServer}
       animoServer={animoServer}
-      animestreamLocale={animestreamLocale}
       streamAudio={streamAudio}
       capabilities={capabilities}
       capabilitiesLoading={capabilitiesLoading}
@@ -160,7 +153,6 @@ export function ProviderQuickPick({
       onMiruroPipeChange={onMiruroPipeChange}
       onAnimexServerChange={onAnimexServerChange}
       onAnimoServerChange={onAnimoServerChange}
-      onAnimestreamLocaleChange={onAnimestreamLocaleChange}
       className={className}
       rows={["sub", "multi"]}
     />
@@ -274,8 +266,6 @@ type ProviderGridProps = {
   onAnimexServerChange?: (server: AnimexServerId) => void;
   animoServer?: AnimoServerId;
   onAnimoServerChange?: (server: AnimoServerId) => void;
-  animestreamLocale?: AnimeStreamLocale;
-  onAnimestreamLocaleChange?: (locale: AnimeStreamLocale) => void;
   streamAudio?: "sub" | "dub";
   capabilities?: EpisodeStreamCapabilities;
   capabilitiesLoading?: boolean;
@@ -296,8 +286,6 @@ export function ProviderGrid({
   onAnimexServerChange,
   animoServer,
   onAnimoServerChange,
-  animestreamLocale,
-  onAnimestreamLocaleChange,
   streamAudio = "sub",
   capabilities,
   capabilitiesLoading = false,
@@ -374,7 +362,6 @@ export function ProviderGrid({
                       capabilitiesLoading && "opacity-60 animate-pulse",
                       p.id === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
                       p.id === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
-                      p.id === "AnimeStream" && isActive && "border-indigo-400/40 bg-indigo-500/20 text-indigo-100",
                     )}
                   >
                     <span className="truncate">{p.label}</span>
@@ -479,37 +466,6 @@ export function ProviderGrid({
         </MultiServerPanel>
       )}
 
-      {provider === "AnimeStream" &&
-        streamAudio === "dub" &&
-        onAnimestreamLocaleChange &&
-        animestreamLocale != null &&
-        (capabilities?.animestreamServers?.length ?? 0) > 0 && (
-        <MultiServerPanel accent="indigo" label={t("watch.animestreamLocale")}>
-          <div className="flex flex-wrap gap-1.5">
-            {capabilities!.animestreamServers.map((s) => (
-              <button
-                key={s.locale}
-                type="button"
-                disabled={disabled}
-                onClick={() => onAnimestreamLocaleChange(s.locale)}
-                title={s.locale}
-                className={cn(
-                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
-                  animestreamLocale === s.locale
-                    ? "bg-indigo-500/25 border-indigo-400/45 text-indigo-100"
-                    : "border-white/10 text-white/45 hover:border-indigo-500/30 hover:text-indigo-200/80 hover:bg-indigo-500/[0.06]",
-                  capabilitiesLoading && "opacity-60 animate-pulse",
-                )}
-              >
-                <span>{s.label}</span>
-                {capsReady && animestreamLocale === s.locale && (
-                  <StreamCapabilityBadges caps={capabilities?.animestreamLocales[s.locale]} />
-                )}
-              </button>
-            ))}
-          </div>
-        </MultiServerPanel>
-      )}
     </div>
   );
 }
@@ -520,7 +476,7 @@ function MultiServerPanel({
   children,
 }: {
   label: string;
-  accent: "violet" | "rose" | "cyan" | "indigo";
+  accent: "violet" | "rose" | "cyan";
   children: ReactNode;
 }) {
   const border =
@@ -528,17 +484,13 @@ function MultiServerPanel({
       ? "border-rose-500/25 bg-rose-500/[0.04]"
       : accent === "cyan"
         ? "border-cyan-500/25 bg-cyan-500/[0.04]"
-        : accent === "indigo"
-          ? "border-indigo-500/25 bg-indigo-500/[0.04]"
-          : "border-violet-500/25 bg-violet-500/[0.04]";
+        : "border-violet-500/25 bg-violet-500/[0.04]";
   const text =
     accent === "rose"
       ? "text-rose-300/70"
       : accent === "cyan"
         ? "text-cyan-300/70"
-        : accent === "indigo"
-          ? "text-indigo-300/70"
-          : "text-violet-300/70";
+        : "text-violet-300/70";
 
   return (
     <div className={cn("ml-14 rounded-lg border px-2.5 py-2", border)}>

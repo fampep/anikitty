@@ -13,7 +13,6 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
  * Matches KittyAPI subs-capable providers (MegaPlay, Miruro, AllAnime, AnimeNexus, etc.).
  */
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
-  "AnimeStream",
   "AnimeNexus",
   "AnimeOnsen",
   "AllAnime",

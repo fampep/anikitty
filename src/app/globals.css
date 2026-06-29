@@ -271,30 +271,6 @@ button, a, [role="button"] {
   );
 }
 
-.kitty-brand-pill,
-.kitty-meta-pill {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.3rem 0.65rem;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.kitty-brand-pill {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.42);
-  color: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(10px);
-}
-
-.kitty-meta-pill {
-  font-size: 9px;
-  letter-spacing: 0.14em;
-}
-
 .kitty-overlay {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
@@ -511,10 +487,6 @@ button, a, [role="button"] {
   max-width: 100%;
 }
 
-.vds-kitty .kitty-player-logo {
-  transition: opacity 0.2s ease;
-}
-
 .vds-kitty[data-anime4k="true"] {
   position: relative;
 }
@@ -591,15 +563,6 @@ button, a, [role="button"] {
   .vds-kitty {
     --kitty-dock-offset: 10px;
     --kitty-dock-height: 54px;
-  }
-
-  .kitty-stage__brand {
-    padding-inline: 10px;
-    padding-top: 10px;
-  }
-
-  .kitty-brand-pill {
-    display: none;
   }
 
   .kitty-overlay--base,

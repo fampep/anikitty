@@ -2,7 +2,6 @@ export const KITTY_PROVIDERS = [
   "Miruro",
   "Animex",
   "Animo",
-  "AnimeStream",
   "AnimeSogo",
   "Anix",
   "HiAnime",
@@ -77,15 +76,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     supportsDub: true,
     hint: "4animo.xyz · HD-1 / HD-2 / HD-3 · SUB · DUB",
-  },
-  {
-    id: "AnimeStream",
-    label: "AnimeStream",
-    group: "featured",
-    nativeSubs: true,
-    kittySubs: true,
-    supportsDub: true,
-    hint: "uniquestream.net · U/S · SUB · multi-locale DUB",
   },
   {
     id: "AnimeSogo",
@@ -173,6 +163,7 @@ const DEPRECATED_PROVIDERS = new Set([
   "AnimeParadise",
   "Anizen",
   "AniNeko",
+  "AnimeStream",
 ]);
 
 /** MegaPlay family — SUB and DUB via Kitty stream-direct + /subs. */
@@ -189,7 +180,6 @@ export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   ...KITTY_MEGAPLAY_PROVIDERS,
   "Animex",
-  "AnimeStream",
   "AllAnime",
   "MKissa",
 ]);
