@@ -249,6 +249,9 @@ export default function KittyPlayer({
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
 
+    const isSubtitleTrack = (track: { kind?: string }) =>
+      track.kind === "subtitles" || track.kind === "captions";
+
     const activate = (): boolean => {
       if (subTracks.length === 0) return true;
 
@@ -256,10 +259,16 @@ export default function KittyPlayer({
       if (!textTracks?.length) return false;
 
       if (!preferSubtitles) {
+        let alreadyOff = true;
         for (const track of textTracks) {
-          if (track.kind === "subtitles" || track.kind === "captions") {
-            track.setMode("disabled");
+          if (isSubtitleTrack(track) && track.mode !== "disabled") {
+            alreadyOff = false;
+            break;
           }
+        }
+        if (alreadyOff) return true;
+        for (const track of textTracks) {
+          if (isSubtitleTrack(track)) track.setMode("disabled");
         }
         return true;
       }
@@ -267,31 +276,40 @@ export default function KittyPlayer({
       const preferred = subTracks.find((t) => t.default) ?? subTracks[0];
       const preferredLang = labelToLanguage(preferred.label || "");
 
+      let target: (typeof textTracks)[number] | undefined;
       for (const track of textTracks) {
-        if (track.kind !== "subtitles" && track.kind !== "captions") continue;
-        track.setMode("disabled");
-      }
-
-      for (const track of textTracks) {
-        if (track.kind !== "subtitles" && track.kind !== "captions") continue;
+        if (!isSubtitleTrack(track)) continue;
         const labelMatch =
           track.label === preferred.label ||
           track.language === preferredLang ||
           (preferred.label && track.label?.toLowerCase().includes(preferred.label.toLowerCase()));
         if (labelMatch) {
-          track.setMode("showing");
-          return true;
+          target = track;
+          break;
         }
       }
-
-      const fallback = [...textTracks].find(
-        (t) => t.kind === "subtitles" || t.kind === "captions",
-      );
-      if (fallback) {
-        fallback.setMode("showing");
-        return true;
+      if (!target) {
+        target = [...textTracks].find(isSubtitleTrack);
       }
-      return false;
+      if (!target) return false;
+
+      let alreadyActive = target.mode === "showing";
+      if (alreadyActive) {
+        for (const track of textTracks) {
+          if (!isSubtitleTrack(track) || track === target) continue;
+          if (track.mode !== "disabled") {
+            alreadyActive = false;
+            break;
+          }
+        }
+      }
+      if (alreadyActive) return true;
+
+      for (const track of textTracks) {
+        if (isSubtitleTrack(track)) track.setMode("disabled");
+      }
+      target.setMode("showing");
+      return true;
     };
 
     const tryActivate = () => {

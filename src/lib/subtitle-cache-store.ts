@@ -10,6 +10,8 @@ import {
   SUBTITLE_LIBRARY_PROVIDERS,
   SUBTITLE_SOURCE_PROVIDER,
   normalizeSubtitleLabel,
+  normalizeSubtitleLanguage,
+  dedupeSubtitleTracks,
   subtitleProviderRank,
   subtitleProxyUrl,
   subtitleServeUrl,
@@ -23,6 +25,7 @@ import {
 } from "@/lib/subtitle-sync-config";
 import { fetchAnitakuSubtitleStreamFallback, fetchMiruroSubtitleStream } from "@/lib/miruro-api";
 import { fetchKittySubsTracks, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty-subs-api";
+import { fetchRyuoSubtitleTracks, isRyuoAvailable, RYUO_SOURCE_PROVIDER } from "@/lib/ryuo-subtitles";
 
 export type EpisodeSubtitleCacheContext = Pick<
   SubtitleCacheContext,
@@ -208,7 +211,7 @@ function dedupeSubtitleRows<T extends SubtitleRowForDedupe>(rows: T[]): T[] {
   const best = new Map<string, T>();
 
   for (const row of rows) {
-    const key = `${row.episode}|${row.audio}|${normalizeSubtitleLabel(row.label)}`;
+    const key = `${row.episode}|${row.audio}|${normalizeSubtitleLanguage(row.label)}`;
     const prev = best.get(key);
     if (!prev || subtitleRowPrefers(row, prev)) {
       best.set(key, row);
@@ -248,12 +251,26 @@ async function fetchMiruroSubtitleTracks(
   }
 }
 
-/** Fetch subtitle tracks (Kitty /subs) and persist when cache is missing or stale. */
+/** Fetch subtitle tracks on demand (Ryuo → Kitty /subs → Miruro) for one episode. */
 export async function ensureMiruroSubtitleCache(
   ctx: EpisodeSubtitleCacheContext,
   opts?: EnsureSubtitleCacheOptions,
 ): Promise<StreamTrack[]> {
   if (!opts?.force && (await hasFreshCachedSubtitles(ctx))) return [];
+
+  if (await isRyuoAvailable()) {
+    const ryuoTracks = dedupeSubtitleTracks(
+      await fetchRyuoSubtitleTracks(ctx.anilistId, ctx.episode),
+    );
+    if (ryuoTracks.length > 0) {
+      return cacheStreamSubtitleTracks(ryuoTracks, {
+        ...ctx,
+        provider: RYUO_SOURCE_PROVIDER,
+        animeTitle: ctx.animeTitle,
+        headers: {},
+      });
+    }
+  }
 
   let kitty = await fetchKittySubsTracks({
     anilistId: ctx.anilistId,
@@ -272,7 +289,7 @@ export async function ensureMiruroSubtitleCache(
   }
 
   if (kitty?.tracks.length) {
-    return cacheStreamSubtitleTracks(kitty.tracks, {
+    return cacheStreamSubtitleTracks(dedupeSubtitleTracks(kitty.tracks), {
       ...ctx,
       provider: KITTY_SUB_SOURCE_PROVIDER,
       animeTitle: kitty.animeTitle,
@@ -290,7 +307,7 @@ export async function ensureMiruroSubtitleCache(
   if (!stream?.tracks?.length) return [];
 
   return cacheStreamSubtitleTracks(
-    stream.tracks.filter(isSubtitleTrack),
+    dedupeSubtitleTracks(stream.tracks.filter(isSubtitleTrack)),
     {
       ...ctx,
       provider: SUBTITLE_SOURCE_PROVIDER,
@@ -316,10 +333,39 @@ async function upsertSubtitle(
   const label = (track.label ?? "Unknown").trim().slice(0, 100) || "Unknown";
   const kind = (track.kind ?? "subtitles").slice(0, 30);
   const isDefault = Boolean(track.default);
+  const langKey = normalizeSubtitleLanguage(label);
 
   try {
     const db = getDb();
     const now = new Date();
+
+    const peers = await db
+      .select({
+        id: episodeSubtitles.id,
+        label: episodeSubtitles.label,
+        provider: episodeSubtitles.provider,
+      })
+      .from(episodeSubtitles)
+      .where(
+        and(
+          eq(episodeSubtitles.anilistId, ctx.anilistId),
+          eq(episodeSubtitles.episode, ctx.episode),
+          eq(episodeSubtitles.audio, ctx.audio),
+          inArray(episodeSubtitles.provider, [...SUBTITLE_CACHE_PROVIDERS]),
+        ),
+      );
+
+    const staleIds = peers
+      .filter(
+        (row) =>
+          row.provider !== ctx.provider &&
+          normalizeSubtitleLanguage(row.label) === langKey,
+      )
+      .map((row) => row.id);
+
+    if (staleIds.length > 0) {
+      await db.delete(episodeSubtitles).where(inArray(episodeSubtitles.id, staleIds));
+    }
 
     await db
       .delete(episodeSubtitles)
@@ -627,11 +673,11 @@ export async function mergeCachedSubtitleTracks(
     cached = await getStoredSubtitleTracks({ ...ctx, audio: "sub" });
   }
   if (cached.length > 0) {
-    return [...nonSubs, ...cached];
+    return dedupeSubtitleTracks([...nonSubs, ...cached]);
   }
 
   const subs = all.filter(isSubtitleTrack).map((t) => proxySubtitleTrack(t, headers));
-  return [...nonSubs, ...subs];
+  return dedupeSubtitleTracks([...nonSubs, ...subs]);
 }
 
 export type ListedSubtitle = {

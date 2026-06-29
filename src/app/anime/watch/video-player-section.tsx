@@ -94,6 +94,8 @@ const VideoPlayerSection = () => {
   const router = useRouter();
   const episodeId = searchParams.get("episode");
   const w2gCode = searchParams.get("w2g");
+  const dubSearchParam = searchParams.get("dub");
+  const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
   const { preferDub, setPreferDub, anime4kEnabled, setAnime4kEnabled, anime4kMode, setAnime4kMode } =
@@ -119,21 +121,21 @@ const VideoPlayerSection = () => {
   });
 
   useEffect(() => {
-    const dubParam = searchParams.get("dub");
-    if (dubParam === "1" || dubParam === "true") {
-      setStreamAudio("dub");
-      setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
-    }
-  }, [searchParams]);
+    if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
+    setStreamAudio((prev) => (prev === "dub" ? prev : "dub"));
+    setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
+  }, [dubSearchParam]);
 
   const syncDubSearchParam = useCallback(
     (dub: boolean) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParamsKey);
+      const hasDub = params.get("dub") === "1" || params.get("dub") === "true";
+      if (dub === hasDub) return;
       if (dub) params.set("dub", "1");
       else params.delete("dub");
       router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams],
+    [router, searchParamsKey],
   );
 
   useEffect(() => {
@@ -269,13 +271,13 @@ const VideoPlayerSection = () => {
   useEffect(() => {
     if (!capsForAudioAvailability) return;
     if (streamAudio === "dub" && !canSelectDubAudio && canSelectSubAudio) {
-      setStreamAudio("sub");
       localStorage.setItem("kittyStreamAudio", "sub");
       syncDubSearchParam(false);
+      setStreamAudio("sub");
     } else if (streamAudio === "sub" && !canSelectSubAudio && canSelectDubAudio) {
-      setStreamAudio("dub");
       localStorage.setItem("kittyStreamAudio", "dub");
       syncDubSearchParam(true);
+      setStreamAudio("dub");
     }
   }, [capsForAudioAvailability, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
 

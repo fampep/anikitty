@@ -44,11 +44,6 @@ function applyOffsetToTrack(track: SyncTextTrack, offsetSec: number) {
   }
 }
 
-function setTrackMode(track: SyncTextTrack, mode: string) {
-  if (track.setMode) track.setMode(mode);
-  else track.mode = mode;
-}
-
 function getVideo(container: HTMLElement): HTMLVideoElement | null {
   return container.querySelector("video");
 }
@@ -57,18 +52,29 @@ function isSubtitleKind(track: SyncTextTrack): boolean {
   return track.kind === "subtitles" || track.kind === "captions";
 }
 
-/** Force the active subtitle track to re-evaluate cues at the current playback time. */
+function nudgeVideoClock(container: HTMLElement) {
+  const video = getVideo(container);
+  if (!video || !Number.isFinite(video.currentTime) || video.currentTime <= 0) return;
+  const t = video.currentTime;
+  try {
+    video.currentTime = Math.max(0, t - 0.001);
+    video.currentTime = t;
+  } catch {
+    /* ignored */
+  }
+}
+
+/** Re-apply cue offsets and nudge the video clock so active cues re-evaluate. */
 export function resyncShowingSubtitleTrack(
   player: MediaPlayerInstance,
   offsetSec: number,
+  container?: HTMLElement,
 ) {
   for (const track of player.textTracks as unknown as SyncTextTrack[]) {
     if (!isSubtitleKind(track)) continue;
     if (track.mode !== "showing") continue;
     applyOffsetToTrack(track, offsetSec);
-    const mode = track.mode ?? "showing";
-    setTrackMode(track, "hidden");
-    setTrackMode(track, mode);
+    if (container) nudgeVideoClock(container);
     return;
   }
 }
@@ -101,7 +107,7 @@ export function bindSubtitlePlaybackSync(
     if (resyncInFlight) return;
     resyncInFlight = true;
     try {
-      resyncShowingSubtitleTrack(player, getOffsetSec());
+      resyncShowingSubtitleTrack(player, getOffsetSec(), container);
     } finally {
       queueMicrotask(() => {
         resyncInFlight = false;
@@ -120,7 +126,6 @@ export function bindSubtitlePlaybackSync(
 
   const onTrackLoad = (track: SyncTextTrack) => {
     applyOffsetToTrack(track, getOffsetSec());
-    if (track.mode === "showing") scheduleResync();
   };
 
   const applyOffsetToAllTracks = (offsetSec: number) => {
@@ -149,7 +154,6 @@ export function bindSubtitlePlaybackSync(
   };
 
   player.addEventListener("vds-text-tracks-change", onTracksChange);
-  player.addEventListener("can-play", onPlaybackResync);
   player.addEventListener("seeked", onPlaybackResync);
   player.addEventListener("ratechange", onPlaybackResync);
   player.addEventListener("audio-tracks-change", onPlaybackResync);
@@ -159,13 +163,11 @@ export function bindSubtitlePlaybackSync(
   video?.addEventListener("seeked", onVideoSeeked);
 
   const offsetPoll = window.setInterval(onOffsetChange, 400);
-  scheduleResync();
 
   const cleanup = () => {
     if (resyncTimer) clearTimeout(resyncTimer);
     window.clearInterval(offsetPoll);
     player.removeEventListener("vds-text-tracks-change", onTracksChange);
-    player.removeEventListener("can-play", onPlaybackResync);
     player.removeEventListener("seeked", onPlaybackResync);
     player.removeEventListener("ratechange", onPlaybackResync);
     player.removeEventListener("audio-tracks-change", onPlaybackResync);

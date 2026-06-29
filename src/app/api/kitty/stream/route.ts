@@ -38,6 +38,7 @@ import {
   isSubtitleTrack,
   isOurSubtitleUrl,
   stripSubtitleTracks,
+  dedupeSubtitleTracks,
   SUBTITLE_SOURCE_PROVIDER,
   subtitleProxyUrl,
   type StreamTrack,
@@ -148,13 +149,10 @@ export async function GET(req: Request) {
       : [];
 
     data.tracks = stripSubtitleTracks(data.tracks);
-    const fetchedSubs =
-      subtitleCtx.audio === "sub"
-        ? await ensureMiruroSubtitleCache({
-            ...subtitleCtx,
-            animeTitle: titleParam,
-          })
-        : [];
+    const fetchedSubs = await ensureMiruroSubtitleCache({
+      ...subtitleCtx,
+      animeTitle: titleParam,
+    });
 
     data.tracks = await mergeCachedSubtitleTracks(
       data.tracks,
@@ -163,12 +161,13 @@ export async function GET(req: Request) {
     );
 
     if (providerSubtitleTracks.length > 0) {
-      data.tracks = [...data.tracks, ...providerSubtitleTracks];
+      data.tracks = dedupeSubtitleTracks([...data.tracks, ...providerSubtitleTracks]);
       data.subtitleSource = providerName;
     } else if (!data.tracks.some(isSubtitleTrack) && fetchedSubs.length > 0) {
-      data.tracks = [...data.tracks, ...fetchedSubs];
+      data.tracks = dedupeSubtitleTracks([...data.tracks, ...fetchedSubs]);
       data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
     } else {
+      data.tracks = dedupeSubtitleTracks(data.tracks);
       data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
     }
 

@@ -1,5 +1,6 @@
 import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty-api";
 import type { StreamTrack } from "@/lib/subtitle-track-utils";
+import { dedupeSubtitleTracks } from "@/lib/subtitle-track-utils";
 
 /** User-facing label for cached / proxied subtitle tracks (not upstream provider names). */
 export const ANIKITTY_SUBTITLE_PROXY_LABEL = "Anikitty proxy";
@@ -112,43 +113,6 @@ function subsFilesToTracks(files: KittySubsFile[]): StreamTrack[] {
     });
 }
 
-function trackMergeKey(track: StreamTrack): string {
-  const label = (track.label ?? "").trim().toLowerCase();
-  const file = (track.file ?? track.url ?? "").trim();
-  return label || file;
-}
-
-function mergeSubtitleTracks(...lists: StreamTrack[][]): StreamTrack[] {
-  const merged = new Map<string, StreamTrack>();
-  for (const list of lists) {
-    for (const track of list) {
-      const key = trackMergeKey(track);
-      if (!key || merged.has(key)) continue;
-      merged.set(key, track);
-    }
-  }
-  return [...merged.values()];
-}
-
-async function mapPool<T, R>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let index = 0;
-
-  async function worker() {
-    while (index < items.length) {
-      const i = index++;
-      results[i] = await fn(items[i]!);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
-  return results;
-}
-
 function pickEpisodeSubs(data: KittySubsResponse, episode: number): StreamTrack[] {
   const entries = data.subtitles;
   if (!Array.isArray(entries)) return [];
@@ -157,6 +121,43 @@ function pickEpisodeSubs(data: KittySubsResponse, episode: number): StreamTrack[
   if (!row?.files?.length) return [];
 
   return subsFilesToTracks(row.files);
+}
+
+async function fetchKittySubsFromProvider(opts: {
+  provider: string;
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  title?: string | null;
+}): Promise<{ tracks: StreamTrack[]; animeTitle: string | null } | null> {
+  try {
+    const url = buildKittySubsUrl({
+      provider: opts.provider,
+      anilistId: opts.anilistId,
+      episode: opts.episode,
+      audio: opts.audio,
+      title: opts.title,
+    });
+
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(35_000),
+      headers: kittyApiHeaders(),
+    });
+
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as KittySubsResponse;
+    const tracks = pickEpisodeSubs(data, opts.episode);
+    if (tracks.length === 0) return null;
+
+    return {
+      tracks: dedupeSubtitleTracks(tracks),
+      animeTitle: data.title?.trim() || opts.title?.trim() || null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function listKittySubsProviders(): Promise<string[]> {
@@ -195,7 +196,7 @@ export async function getKittySubsProviderOrder(
   return merged;
 }
 
-/** Fetch subtitle tracks for one episode via GET /subs (merges all providers). */
+/** Fetch subtitle tracks for one episode via GET /subs (first provider with tracks). */
 export async function fetchKittySubsTracks(opts: {
   anilistId: number;
   episode: number;
@@ -212,52 +213,26 @@ export async function fetchKittySubsTracks(opts: {
   const audio = opts.audio ?? "sub";
   const order = await getKittySubsProviderOrder(opts.providers);
 
-  const probeResults = await mapPool(order, 4, async (provider) => {
-    try {
-      const url = buildKittySubsUrl({
-        provider,
-        anilistId: opts.anilistId,
-        episode: opts.episode,
-        audio,
-        title: opts.title,
-      });
-
-      const res = await fetch(url, {
-        cache: "no-store",
-        signal: AbortSignal.timeout(35_000),
-        headers: kittyApiHeaders(),
-      });
-
-      if (!res.ok) return null;
-
-      const data = (await res.json()) as KittySubsResponse;
-      const tracks = pickEpisodeSubs(data, opts.episode);
-      if (tracks.length === 0) return null;
-
-      return {
-        tracks,
-        animeTitle: data.title?.trim() || opts.title?.trim() || null,
-      };
-    } catch {
-      return null;
-    }
-  });
-
-  const trackLists = probeResults.filter(Boolean).map((r) => r!.tracks);
-  const tracks = mergeSubtitleTracks(...trackLists);
-  if (tracks.length === 0) return null;
-
   let animeTitle = opts.title?.trim() || null;
-  for (const row of probeResults) {
-    if (row?.animeTitle) {
-      animeTitle = row.animeTitle;
-      break;
-    }
+
+  for (const provider of order) {
+    const result = await fetchKittySubsFromProvider({
+      provider,
+      anilistId: opts.anilistId,
+      episode: opts.episode,
+      audio,
+      title: opts.title,
+    });
+    if (!result?.tracks.length) continue;
+
+    if (result.animeTitle) animeTitle = result.animeTitle;
+
+    return {
+      tracks: result.tracks,
+      provider: KITTY_SUB_SOURCE_PROVIDER,
+      animeTitle,
+    };
   }
 
-  return {
-    tracks,
-    provider: KITTY_SUB_SOURCE_PROVIDER,
-    animeTitle,
-  };
+  return null;
 }

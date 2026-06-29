@@ -156,11 +156,6 @@ export default function SubtitlesPage() {
               {isLoading ? t("subsLibrary.loading") : t("subsLibrary.resultsCount", { count: total })}
             </p>
             <div className="flex items-center gap-2">
-              {!debouncedQ && (
-                <p className="text-[10px] font-mono text-teal-300/45 hidden sm:block">
-                  {t("subsLibrary.autoSyncing")}
-                </p>
-              )}
               {isFetching && !isLoading && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-white/30" />
               )}

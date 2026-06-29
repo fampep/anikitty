@@ -34,7 +34,7 @@ async function fetchSubtitleLibrary(opts: {
   return res.data;
 }
 
-const SUBTITLE_LIBRARY_POLL_MS = 10_000;
+const SUBTITLE_LIBRARY_POLL_MS = 60_000;
 
 export function useSubtitleLibrary(opts: {
   q?: string;
@@ -44,7 +44,7 @@ export function useSubtitleLibrary(opts: {
   sort?: SubtitleLibrarySort;
   autoRefresh?: boolean;
 }) {
-  const autoRefresh = opts.autoRefresh ?? !opts.q?.trim();
+  const autoRefresh = opts.autoRefresh ?? false;
 
   return useQuery(
     [GET_SUBTITLE_LIBRARY, opts.q ?? "", opts.page ?? 1, opts.filter ?? "all", opts.sort ?? "latest"],
