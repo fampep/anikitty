@@ -1,4 +1,4 @@
-import { isAllowedMediaProxyUrl } from "@/lib/security";
+import { isAllowedMediaProxyUrl } from "@/lib/security/security";
 import { NextResponse } from "next/server";
 
 // ── HLS attribute parser ──────────────────────────────────────────────

@@ -16,11 +16,11 @@ import {
   ChevronDown,
   MessagesSquare,
 } from "lucide-react";
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
-import { UserBadges } from "@/components/user-badges";
-import { GifUrlPanel } from "@/components/gif-url-panel";
-import LoginPopoverButton from "@/components/login-popover-button";
+import { UserBadges } from "@/components/profile/user-badges";
+import { GifUrlPanel } from "@/components/shared/gif-url-panel";
+import LoginPopoverButton from "@/components/auth/login-popover-button";
 import CommunityHero from "@/components/community/community-hero";
 import { ROUTES } from "@/constants/routes";
 import { useLiveChat } from "@/hooks/use-live-chat";
@@ -28,8 +28,8 @@ import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
-import { chatTimeAgo, formatChatTime, formatChatTtlLabel, isChatMessageEdited, type ChatMessage } from "@/lib/chat";
-import { cn } from "@/lib/utils";
+import { chatTimeAgo, formatChatTime, formatChatTtlLabel, isChatMessageEdited, type ChatMessage } from "@/lib/social/chat";
+import { cn } from "@/lib/core/utils";
 
 function ChatBubble({
   message,

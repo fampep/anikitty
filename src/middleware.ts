@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { checkAntiScrape, isProtectedContentApi } from "@/lib/anti-scrape";
+import { checkAntiScrape, isProtectedContentApi } from "@/lib/security/anti-scrape";
 
 const BLOCKED_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 const isProd = process.env.NODE_ENV === "production";

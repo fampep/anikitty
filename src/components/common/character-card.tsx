@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 import { CharactersVoiceActor } from "@/types/anime-details";
 

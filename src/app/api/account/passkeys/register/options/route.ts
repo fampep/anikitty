@@ -3,9 +3,9 @@ import { eq } from "drizzle-orm";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { getDb } from "@/db";
 import { userPasskeys } from "@/db/schema";
-import { requireUser, unauthorized } from "@/lib/require-user";
-import { signPasskeyChallengeToken } from "@/lib/auth-jwt";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { requireUser, unauthorized } from "@/lib/auth/require-user";
+import { signPasskeyChallengeToken } from "@/lib/auth/auth-jwt";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import {
   defaultPasskeyDeviceName,
   getWebAuthnOrigin,
@@ -13,7 +13,7 @@ import {
   getWebAuthnRpName,
   parsePasskeyTransports,
   webAuthnUserId,
-} from "@/lib/webauthn";
+} from "@/lib/auth/webauthn";
 
 export async function POST(req: Request) {
   const user = await requireUser(req);

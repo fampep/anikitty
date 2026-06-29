@@ -4,14 +4,14 @@ import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { getDb } from "@/db";
 import { users, userPasskeys } from "@/db/schema";
-import { verifyPasskeyChallengeToken, sign2faPendingToken } from "@/lib/auth-jwt";
-import { buildAuthResponse } from "@/lib/auth-response";
-import { jsonWithAuthCookie } from "@/lib/auth-cookie";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { assertAuthSecretsConfigured } from "@/lib/security";
-import { getWebAuthnOrigin, getWebAuthnRpId, passkeyRowToCredential } from "@/lib/webauthn";
-import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
-import { isUserBanned } from "@/lib/moderation";
+import { verifyPasskeyChallengeToken, sign2faPendingToken } from "@/lib/auth/auth-jwt";
+import { buildAuthResponse } from "@/lib/auth/auth-response";
+import { jsonWithAuthCookie } from "@/lib/auth/auth-cookie";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { assertAuthSecretsConfigured } from "@/lib/security/security";
+import { getWebAuthnOrigin, getWebAuthnRpId, passkeyRowToCredential } from "@/lib/auth/webauthn";
+import { shouldPromptForTwoFactor } from "@/lib/auth/totp-reactive";
+import { isUserBanned } from "@/lib/security/moderation";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();

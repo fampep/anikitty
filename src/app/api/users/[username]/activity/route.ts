@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchProgress } from "@/db/schema";
-import { requireVisibleProfileUser } from "@/lib/public-profile-access";
+import { requireVisibleProfileUser } from "@/lib/user/public-profile-access";
 import { eq, sql } from "drizzle-orm";
 
 export async function GET(

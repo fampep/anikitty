@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchlist } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { eq, and, sql } from "drizzle-orm";
 
 const VALID_FOLDERS = ["WATCHING", "PLANNING", "COMPLETED", "PAUSED", "DROPPED"];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { dmApi, type InboxSummary } from "@/lib/dm";
+import { dmApi, type InboxSummary } from "@/lib/social/dm";
 
 const POLL_MS = 30_000;
 

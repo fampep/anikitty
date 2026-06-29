@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { Send, X, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { FORUM_CATEGORIES } from "@/constants/forum";
-import { forumApi, ForumThread } from "@/lib/forum";
+import { forumApi, ForumThread } from "@/lib/social/forum";
 
 export default function NewThreadComposer({
   defaultCategory,

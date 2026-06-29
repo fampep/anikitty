@@ -1,4 +1,4 @@
-import { proxyMiruroRequest } from "@/lib/miruro-api";
+import { proxyMiruroRequest } from "@/lib/providers/miruro-api";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 

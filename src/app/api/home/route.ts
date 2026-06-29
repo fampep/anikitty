@@ -1,4 +1,4 @@
-import { getHomePageData } from "@/lib/home-data";
+import { getHomePageData } from "@/lib/core/home-data";
 
 export async function GET() {
   try {

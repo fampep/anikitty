@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Users, Tv, ArrowRight, Loader2, LogIn } from "lucide-react";
-import Container from "@/components/container";
-import LoginPopoverButton from "@/components/login-popover-button";
+import Container from "@/components/layout/container";
+import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { ROUTES } from "@/constants/routes";
 import { useAuthStore } from "@/store/auth-store";
-import { w2gApi, w2gWatchUrl } from "@/lib/w2g";
-import { normalizeW2gCode } from "@/lib/w2g-code";
-import { cn } from "@/lib/utils";
+import { w2gApi, w2gWatchUrl } from "@/lib/social/w2g";
+import { normalizeW2gCode } from "@/lib/social/w2g-code";
+import { cn } from "@/lib/core/utils";
 
 export default function WatchTogetherPage() {
   const router = useRouter();

@@ -1,5 +1,5 @@
-import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/anilist";
-import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/anikoto-availability";
+import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/oauth/anilist";
+import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/providers/anikoto-availability";
 
 const DETAIL_QUERY = `
   query ($id: Int) {

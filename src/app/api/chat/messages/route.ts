@@ -1,16 +1,16 @@
 import { getDb } from "@/db";
 import { chatMessages, users, roles } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/comment-helpers";
-import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
-import { CHAT_MESSAGE_TTL_MS, getChatCutoffDate } from "@/lib/chat-config";
-import { maybeSweepChatMessages } from "@/lib/chat-sweep";
-import { blockIfCannotInteract } from "@/lib/moderation";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/social/comment-helpers";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
+import { CHAT_MESSAGE_TTL_MS, getChatCutoffDate } from "@/lib/social/chat-config";
+import { maybeSweepChatMessages } from "@/lib/social/chat-sweep";
+import { blockIfCannotInteract } from "@/lib/security/moderation";
 import {
   assertMessageEncryptionConfigured,
   decryptStoredMessage,
   encryptStoredMessage,
-} from "@/lib/message-crypto";
+} from "@/lib/security/message-crypto";
 import { eq, desc, gt, asc, and, or, isNotNull } from "drizzle-orm";
 
 const PAGE_LIMIT = 100;

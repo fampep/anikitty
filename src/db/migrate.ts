@@ -1,6 +1,6 @@
 import postgres from "postgres";
-import { LEVEL_TIERS } from "@/lib/user-level";
-import { DEFAULT_BUILTIN_PERMISSIONS, ROLE_PERMISSIONS_KEY } from "@/lib/permissions";
+import { LEVEL_TIERS } from "@/lib/user/user-level";
+import { DEFAULT_BUILTIN_PERMISSIONS, ROLE_PERMISSIONS_KEY } from "@/lib/security/permissions";
 
 export async function migrateDb() {
   const url = process.env.DATABASE_URL;

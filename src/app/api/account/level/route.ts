@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { getUserXpStats } from "@/lib/user-xp";
-import { getLevelProgress } from "@/lib/user-level";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { getUserXpStats } from "@/lib/user/user-xp";
+import { getLevelProgress } from "@/lib/user/user-level";
 
 export async function GET(req: Request) {
   const token = extractToken(req);

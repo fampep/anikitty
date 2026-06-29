@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { runSubtitleLibrarySyncTick } from "@/lib/subtitle-library-sync";
-import { safeEqual } from "@/lib/security";
+import { runSubtitleLibrarySyncTick } from "@/lib/subtitles/subtitle-library-sync";
+import { safeEqual } from "@/lib/security/security";
 
 function authorizeCron(req: Request): boolean {
   const secret = process.env.CRON_SECRET;

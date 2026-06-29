@@ -1,5 +1,5 @@
-import { queryAniList, toTitle } from "@/lib/anilist";
-import { getAudioAvailability } from "@/lib/anikoto-availability";
+import { queryAniList, toTitle } from "@/lib/oauth/anilist";
+import { getAudioAvailability } from "@/lib/providers/anikoto-availability";
 
 const TITLE_QUERY = `
   query ($id: Int) {

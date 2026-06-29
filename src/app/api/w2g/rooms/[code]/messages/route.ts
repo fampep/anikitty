@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { w2gMessages, w2gMembers } from "@/db/schema";
 import { users } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/comment-helpers";
-import { normalizeW2gCode } from "@/lib/w2g-code";
-import { getRoomByCode } from "@/lib/w2g-server";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/social/comment-helpers";
+import { normalizeW2gCode } from "@/lib/social/w2g-code";
+import { getRoomByCode } from "@/lib/social/w2g-server";
 import {
   assertMessageEncryptionConfigured,
   encryptStoredMessage,
-} from "@/lib/message-crypto";
+} from "@/lib/security/message-crypto";
 import { and, eq } from "drizzle-orm";
 
 const W2G_CHAT_RATE = { windowMs: 30_000, max: 20 } as const;

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { queryAniList } from "@/lib/anilist";
-import { animeShareDescription } from "@/lib/site-seo";
-import AnimeDetail from "./anime-detail";
+import { queryAniList } from "@/lib/oauth/anilist";
+import { animeShareDescription } from "@/lib/seo/site-seo";
+import AnimeDetail from "@/components/anime/anime-detail";
 
 const META_QUERY = `
   query ($id: Int) {

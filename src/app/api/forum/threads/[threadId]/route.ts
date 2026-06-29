@@ -1,11 +1,11 @@
 import { getDb } from "@/db";
 import { forumThreads, forumPosts, forumThreadVotes, forumPostVotes, users, roles } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { and, eq, asc, sql, inArray } from "drizzle-orm";
-import { sanitizeBody } from "@/lib/comment-helpers";
+import { sanitizeBody } from "@/lib/social/comment-helpers";
 import { isValidCategory } from "@/constants/forum";
-import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
-import { roleHasPermission } from "@/lib/permissions";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
+import { roleHasPermission } from "@/lib/security/permissions";
 
 const THREAD_SELECT = {
   id: forumThreads.id,

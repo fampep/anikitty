@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { accountDeletionRequests } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { rateLimit } from "@/lib/rate-limit";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { eq } from "drizzle-orm";
 
 const REQUEST_RATE = { limit: 3, windowMs: 60 * 60 * 1000 };

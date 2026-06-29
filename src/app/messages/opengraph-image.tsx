@@ -1,4 +1,4 @@
-import { createOgImageResponse, OG_CONTENT_TYPE, OG_SIZE } from "@/lib/og-card-image";
+import { createOgImageResponse, OG_CONTENT_TYPE, OG_SIZE } from "@/lib/seo/og-card-image";
 
 export const runtime = "edge";
 export const alt = "AniKitty Messages";

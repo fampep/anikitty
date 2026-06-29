@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchProgress } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { eq, sql, desc, and } from "drizzle-orm";
 
 export async function GET(req: Request) {

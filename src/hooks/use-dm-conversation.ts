@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { dmApi, mergeDmMessages, type DmConversation, type DmMessage } from "@/lib/dm";
+import { dmApi, mergeDmMessages, type DmConversation, type DmMessage } from "@/lib/social/dm";
 
 const POLL_MS = 3_000;
 

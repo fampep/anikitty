@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq, asc } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userPasskeys } from "@/db/schema";
-import { requireUser, unauthorized } from "@/lib/require-user";
+import { requireUser, unauthorized } from "@/lib/auth/require-user";
 
 export async function GET(req: Request) {
   const user = await requireUser(req);

@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verify2faPendingToken } from "@/lib/auth-jwt";
-import { buildAuthResponse } from "@/lib/auth-response";
-import { jsonWithAuthCookie } from "@/lib/auth-cookie";
-import { decryptTotpSecretForUser, verifyTotpCode } from "@/lib/totp";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { assertAuthSecretsConfigured } from "@/lib/security";
-import { isUserBanned } from "@/lib/moderation";
+import { verify2faPendingToken } from "@/lib/auth/auth-jwt";
+import { buildAuthResponse } from "@/lib/auth/auth-response";
+import { jsonWithAuthCookie } from "@/lib/auth/auth-cookie";
+import { decryptTotpSecretForUser, verifyTotpCode } from "@/lib/auth/totp";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { assertAuthSecretsConfigured } from "@/lib/security/security";
+import { isUserBanned } from "@/lib/security/moderation";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();

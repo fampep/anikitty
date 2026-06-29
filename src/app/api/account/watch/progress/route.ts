@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users, watchProgress } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { parseEpisodeNumber, updateAniListProgress } from "@/lib/anilist-sync";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { parseEpisodeNumber, updateAniListProgress } from "@/lib/oauth/anilist-sync";
 import { and, eq, isNull } from "drizzle-orm";
 
 function isWatchedEnough(current: number, duration: number): boolean {

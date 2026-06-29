@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/store/auth-store";
-import { hasAnyPermission, hasPermission, type PermissionId } from "@/lib/permissions";
+import { hasAnyPermission, hasPermission, type PermissionId } from "@/lib/security/permissions";
 
 export function usePermissions() {
   const permissions = useAuthStore((s) => s.auth?.permissions ?? []);

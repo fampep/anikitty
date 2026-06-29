@@ -1,6 +1,6 @@
 import { getDb } from "@/db";
 import { commentVotes } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { and, eq } from "drizzle-orm";
 
 export async function POST(

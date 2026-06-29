@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { w2gRooms } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { normalizeW2gCode } from "@/lib/w2g-code";
-import { getRoomByCode, serializeRoom } from "@/lib/w2g-server";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { normalizeW2gCode } from "@/lib/social/w2g-code";
+import { getRoomByCode, serializeRoom } from "@/lib/social/w2g-server";
 import { eq, sql } from "drizzle-orm";
 
 export async function POST(

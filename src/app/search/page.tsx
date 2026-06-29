@@ -1,6 +1,6 @@
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import React from "react";
-import SearchResults from "./search-results";
+import SearchResults from "@/components/search/search-results";
 
 const page = () => {
   return (

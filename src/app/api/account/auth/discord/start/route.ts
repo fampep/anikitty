@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { extractToken, signOAuthStateFor, verifyToken } from "@/lib/auth-jwt";
+import { extractToken, signOAuthStateFor, verifyToken } from "@/lib/auth/auth-jwt";
 import {
   buildDiscordAuthorizeUrl,
   discordLoginErrorRedirect,
   getDiscordRedirectUri,
   isDiscordOAuthConfigured,
-} from "@/lib/discord-oauth";
-import { assertAuthSecretsConfigured } from "@/lib/security";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+} from "@/lib/oauth/discord-oauth";
+import { assertAuthSecretsConfigured } from "@/lib/security/security";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
 
 /** Start Discord OAuth for login (GET) or account linking (POST). */
 export async function GET(req: Request) {

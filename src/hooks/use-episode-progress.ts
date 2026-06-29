@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { useProgressStore } from "@/store/progress-store";
-import { anisurgeContinue } from "@/lib/anisurge";
+import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import type { WatchHistory } from "@/hooks/use-get-bookmark";
 
 export function useEpisodeProgress(animeId: string | null): WatchHistory[] {

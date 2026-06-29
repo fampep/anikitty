@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { Captions, Loader2, Search } from "lucide-react";
-import Container from "@/components/container";
-import SubtitleLibraryCard from "@/components/subtitle-library-card";
+import Container from "@/components/layout/container";
+import SubtitleLibraryCard from "@/components/subtitles/subtitle-library-card";
 import CommunityHero from "@/components/community/community-hero";
-import { useSubtitleLibrary, type SubtitleLibraryFilter } from "@/query/get-subtitle-library";
-import type { SubtitleLibrarySort } from "@/lib/subtitle-library-db";
+import { useSubtitleLibrary, type SubtitleLibraryFilter } from "@/query/subtitles/get-subtitle-library";
+import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
 import { useT } from "@/providers/i18n-provider";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 const SORT_OPTIONS: SubtitleLibrarySort[] = ["latest", "tracks", "progress", "az"];
 

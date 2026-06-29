@@ -1,11 +1,11 @@
 "use client";
 
-import ContinueWatching from "@/components/continue-watching";
-import FeaturedCollection from "@/components/featured-collection";
-import HomeGenreBar from "@/components/home-genre-bar";
-import HomeScheduleStrip from "@/components/home-schedule-strip";
-import HomeWelcomeBar from "@/components/home-welcome-bar";
-import { useGetHomePageData } from "@/query/get-home-page-data";
+import ContinueWatching from "@/components/home/continue-watching";
+import FeaturedCollection from "@/components/home/featured-collection";
+import HomeGenreBar from "@/components/home/home-genre-bar";
+import HomeScheduleStrip from "@/components/home/home-schedule-strip";
+import HomeWelcomeBar from "@/components/home/home-welcome-bar";
+import { useGetHomePageData } from "@/query/home/get-home-page-data";
 import { IAnime, LatestCompletedAnime, SpotlightAnime } from "@/types/anime";
 import dynamic from "next/dynamic";
 import React from "react";
@@ -22,17 +22,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import { useQueryClient } from "react-query";
 import { GET_HOME_PAGE_DATA } from "@/constants/query-keys";
-import LazyMount from "@/components/lazy-mount";
+import LazyMount from "@/components/shared/lazy-mount";
 import { useAuthStore } from "@/store/auth-store";
 import { useT } from "@/providers/i18n-provider";
 
-const HeroSection = dynamic(() => import("@/components/hero-section"));
-const LatestEpisodesAnime = dynamic(() => import("@/components/latest-episodes-section"));
-const AnimeSections = dynamic(() => import("@/components/anime-sections"));
-const LatestComments = dynamic(() => import("@/components/latest-comments"));
+const HeroSection = dynamic(() => import("@/components/home/hero-section"));
+const LatestEpisodesAnime = dynamic(() => import("@/components/home/latest-episodes-section"));
+const AnimeSections = dynamic(() => import("@/components/home/anime-sections"));
+const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
 
 function HomeSectionDivider() {
   return (

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchlist } from "@/db/schema";
-import { getUserXpStats } from "@/lib/user-xp";
-import { getLevelProgress } from "@/lib/user-level";
-import { folderCountsFromRows } from "@/lib/watchlist-response";
-import { getAccountBadgesForUser } from "@/lib/account-badges";
+import { getUserXpStats } from "@/lib/user/user-xp";
+import { getLevelProgress } from "@/lib/user/user-level";
+import { folderCountsFromRows } from "@/lib/watch/watchlist-response";
+import { getAccountBadgesForUser } from "@/lib/user/account-badges";
 import {
   publicUserFields,
   resolveVisibleProfileUser,
-} from "@/lib/public-profile-access";
+} from "@/lib/user/public-profile-access";
 import { eq, sql } from "drizzle-orm";
 
 export async function GET(

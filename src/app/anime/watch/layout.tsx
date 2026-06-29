@@ -4,13 +4,13 @@ import Loading from "@/app/loading";
 import parse from "html-react-parser";
 import { ROUTES } from "@/constants/routes";
 
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import { useAnimeStore } from "@/store/anime-store";
 
-import EpisodePlaylist from "@/components/episode-playlist";
-import WatchCommentsPreview from "@/components/watch-comments-preview";
+import EpisodePlaylist from "@/components/watch/episode-playlist";
+import WatchCommentsPreview from "@/components/watch/watch-comments-preview";
 import Select from "@/components/common/select";
-import AnimeCarousel from "@/components/anime-carousel";
+import AnimeCarousel from "@/components/anime/anime-carousel";
 import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -21,21 +21,21 @@ import {
   Info,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useGetAnimeDetails } from "@/query/get-anime-details";
+import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import { IAnime } from "@/types/anime";
 import useBookMarks from "@/hooks/use-get-bookmark";
-import { anisurgeContinue } from "@/lib/anisurge";
+import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
-import { useGetAllEpisodes } from "@/query/get-all-episodes";
+import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { useGetAnimeMappings } from "@/query/get-anime-mappings";
+import { cn } from "@/lib/core/utils";
+import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 
-const CommentSection = dynamic(() => import("@/components/comment-section"), {
+const CommentSection = dynamic(() => import("@/components/comments/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
 });
 

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { useAuthHydrated, useAuthStore } from "@/store/auth-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -13,15 +13,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useParams } from "next/navigation";
-import { applyUserThemeColor } from "@/lib/theme-color";
-import { withAuth } from "@/lib/auth-fetch";
+import { applyUserThemeColor } from "@/lib/core/theme-color";
+import { withAuth } from "@/lib/auth/auth-fetch";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
-} from "@/components/profile-customization-form";
-import ProfileMediaPreview from "@/components/profile-media-preview";
+} from "@/components/profile/profile-customization-form";
+import ProfileMediaPreview from "@/components/profile/profile-media-preview";
 import { useWatchlistStore } from "@/store/watchlist-store";
-import AnimeHeatmap from "./components/anime-heatmap";
-import ContinueWatching from "@/components/continue-watching";
+import AnimeHeatmap from "@/components/profile/anime-heatmap";
+import ContinueWatching from "@/components/home/continue-watching";
 import Loading from "@/app/loading";
 import {
   Clock,
@@ -37,13 +37,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
-import { RoleBadge } from "@/components/role-badge";
-import { LevelRoleBadge } from "@/components/user-badges";
-import ProfileBadgesRow from "@/components/profile-badges-row";
-import type { AccountBadges } from "@/lib/account-badges";
+import { RoleBadge } from "@/components/profile/role-badge";
+import { LevelRoleBadge } from "@/components/profile/user-badges";
+import ProfileBadgesRow from "@/components/profile/profile-badges-row";
+import type { AccountBadges } from "@/lib/user/account-badges";
 import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
-import LevelProgressCard from "@/components/level-progress-card";
-import AnimeLists from "./components/anime-lists";
+import LevelProgressCard from "@/components/profile/level-progress-card";
+import AnimeLists from "@/components/profile/anime-lists";
 import { useT } from "@/providers/i18n-provider";
 
 type ProfileCounts = {

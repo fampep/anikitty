@@ -4,15 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Tv2, Shield, MessageSquare, Users, LogIn, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { nightTokyo } from "@/utils/fonts";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
-import LoginPopoverButton from "@/components/login-popover-button";
-import LanguageSwitcher from "@/components/language-switcher";
+import LoginPopoverButton from "@/components/auth/login-popover-button";
+import LanguageSwitcher from "@/components/layout/language-switcher";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useT } from "@/providers/i18n-provider";
-import { SITE_LOGO } from "@/lib/site-seo";
+import { SITE_LOGO } from "@/lib/seo/site-seo";
 
 export default function LandingPage() {
   const t = useT();

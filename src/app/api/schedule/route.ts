@@ -1,4 +1,4 @@
-import { queryAniList, toTitle } from "@/lib/anilist";
+import { queryAniList, toTitle } from "@/lib/oauth/anilist";
 
 const QUERY = `
   query ($airingAt_greater: Int, $airingAt_lesser: Int) {

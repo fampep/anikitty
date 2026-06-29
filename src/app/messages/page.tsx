@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import MessagesPage from "./messages-content";
+import MessagesPage from "@/components/messages/messages-content";
 import { Loader2 } from "lucide-react";
 
 export default function Page() {

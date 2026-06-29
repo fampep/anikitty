@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { signAdminToken } from "@/lib/admin-auth";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { safeEqual } from "@/lib/security";
+import { signAdminToken } from "@/lib/auth/admin-auth";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { safeEqual } from "@/lib/security/security";
 
 export async function POST(req: Request) {
   const adminPassword = process.env.ADMIN_PASSWORD;

@@ -1,5 +1,5 @@
-import { isAllowedMediaProxyUrl, sanitizeHeaderValue } from "@/lib/security";
-import { detectSubtitleFormat, subtitleContentType } from "@/lib/subtitle-track-utils";
+import { isAllowedMediaProxyUrl, sanitizeHeaderValue } from "@/lib/security/security";
+import { detectSubtitleFormat, subtitleContentType } from "@/lib/subtitles/subtitle-track-utils";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

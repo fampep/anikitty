@@ -2,10 +2,10 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { anisurgeAuth, authFromMeResponse } from "@/lib/anisurge";
+import { anisurgeAuth, authFromMeResponse } from "@/lib/oauth/anisurge";
 import { useAuthStore } from "@/store/auth-store";
 import { useT } from "@/providers/i18n-provider";
 

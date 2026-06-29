@@ -1,11 +1,11 @@
 import { getDb } from "@/db";
 import { forumThreads, forumPosts, forumThreadVotes, users, roles } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { and, eq, desc, sql, inArray, ilike, or } from "drizzle-orm";
-import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/comment-helpers";
+import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/social/comment-helpers";
 import { isValidCategory } from "@/constants/forum";
-import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
-import { blockIfCannotInteract } from "@/lib/moderation";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
+import { blockIfCannotInteract } from "@/lib/security/moderation";
 
 const PAGE_SIZE = 20;
 const MAX_TITLE = 200;

@@ -1,0 +1,61 @@
+"use client";
+
+import Link from "next/link";
+import Container from "@/components/layout/container";
+import { useAuthStore } from "@/store/auth-store";
+import { ROUTES } from "@/constants/routes";
+import { Play, Settings, User } from "lucide-react";
+import { useUserLevel } from "@/hooks/use-user-level";
+import LevelProgressCard from "@/components/profile/level-progress-card";
+import { useT } from "@/providers/i18n-provider";
+
+export default function HomeWelcomeBar() {
+  const t = useT();
+  const { auth } = useAuthStore();
+  const level = useUserLevel();
+  if (!auth) return null;
+
+  return (
+    <Container className="pt-3 pb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 site-panel">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-white/80 truncate">
+            {t("home.welcomeBack")} <span className="text-violet-200">{auth.username}</span>
+          </p>
+          {level ? (
+            <div className="mt-1.5">
+              <LevelProgressCard level={level} compact />
+            </div>
+          ) : (
+            <p className="text-[10px] text-white/30 font-mono mt-0.5">{t("home.pickUp")}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Link
+            href={`/profile/${auth.username}`}
+            className="site-ghost-btn"
+            aria-label={t("nav.profile")}
+          >
+            <User className="w-3 h-3" />
+            <span className="hidden xs:inline">{t("nav.profile")}</span>
+          </Link>
+          <Link
+            href={ROUTES.SETTINGS}
+            className="site-ghost-btn"
+            aria-label={t("nav.settings")}
+          >
+            <Settings className="w-3 h-3" />
+            <span className="hidden xs:inline">{t("nav.settings")}</span>
+          </Link>
+          <Link
+            href={`/profile/${auth.username}#watchlist`}
+            className="site-brand-btn"
+          >
+            <Play className="w-3 h-3 fill-current" />
+            {t("nav.watchlist")}
+          </Link>
+        </div>
+      </div>
+    </Container>
+  );
+}

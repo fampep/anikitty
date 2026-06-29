@@ -4,7 +4,7 @@ import {
   ButtonProps as IButtonProps,
 } from "@/components/ui/button";
 import { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { SpinnerIcon } from "@/icons/spinner";
 
 interface ButtonProps extends IButtonProps {

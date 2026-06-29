@@ -13,8 +13,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import Avatar from "@/components/common/avatar";
-import { cn } from "@/lib/utils";
-import { formatW2gTime, w2gInviteUrl, type W2gMember, type W2gMessage } from "@/lib/w2g";
+import { cn } from "@/lib/core/utils";
+import { formatW2gTime, w2gInviteUrl, type W2gMember, type W2gMessage } from "@/lib/social/w2g";
 import { useT } from "@/providers/i18n-provider";
 
 type Props = {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { decodeAuthToken, extractToken } from "@/lib/auth-jwt";
-import { clearAuthCookie } from "@/lib/auth-cookie";
-import { revokeSessionById } from "@/lib/user-sessions";
+import { decodeAuthToken, extractToken } from "@/lib/auth/auth-jwt";
+import { clearAuthCookie } from "@/lib/auth/auth-cookie";
+import { revokeSessionById } from "@/lib/user/user-sessions";
 
 export async function POST(req: Request) {
   const token = extractToken(req);

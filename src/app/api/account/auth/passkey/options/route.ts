@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
-import { signPasskeyChallengeToken } from "@/lib/auth-jwt";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { assertAuthSecretsConfigured } from "@/lib/security";
-import { getWebAuthnRpId } from "@/lib/webauthn";
+import { signPasskeyChallengeToken } from "@/lib/auth/auth-jwt";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { assertAuthSecretsConfigured } from "@/lib/security/security";
+import { getWebAuthnRpId } from "@/lib/auth/webauthn";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();

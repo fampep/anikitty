@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { refreshAllEpisodeAlerts } from "@/lib/episode-alerts";
-import { safeEqual } from "@/lib/security";
+import { refreshAllEpisodeAlerts } from "@/lib/watch/episode-alerts";
+import { safeEqual } from "@/lib/security/security";
 
 function authorizeCron(req: Request): boolean {
   const secret = process.env.CRON_SECRET;

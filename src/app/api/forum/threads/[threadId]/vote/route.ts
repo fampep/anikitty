@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { forumThreadVotes } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { rateLimit, maybeSweep, VOTE_RATE } from "@/lib/comment-helpers";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { rateLimit, maybeSweep, VOTE_RATE } from "@/lib/social/comment-helpers";
 import { and, eq } from "drizzle-orm";
 
 export async function POST(

@@ -7,7 +7,7 @@ import {
   anisurgeProgress,
   statusToFolder,
   folderToStatus,
-} from "@/lib/anisurge";
+} from "@/lib/oauth/anisurge";
 import { useProgressStore } from "@/store/progress-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
 

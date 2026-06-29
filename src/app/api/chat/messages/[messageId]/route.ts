@@ -1,16 +1,16 @@
 import { getDb } from "@/db";
 import { chatMessages, users, roles } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/comment-helpers";
-import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/social/comment-helpers";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import {
   assertMessageEncryptionConfigured,
   decryptStoredMessage,
   encryptStoredMessage,
-} from "@/lib/message-crypto";
+} from "@/lib/security/message-crypto";
 import { eq } from "drizzle-orm";
-import { blockIfCannotInteract } from "@/lib/moderation";
-import { roleHasPermission } from "@/lib/permissions";
+import { blockIfCannotInteract } from "@/lib/security/moderation";
+import { roleHasPermission } from "@/lib/security/permissions";
 
 const EDIT_RATE = { windowMs: 30_000, max: 20 } as const;
 

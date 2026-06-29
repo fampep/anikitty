@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users, watchlist } from "@/db/schema";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
-import { getAniListMediaLists } from "@/lib/anilist-sync";
-import { mapAniListLists } from "@/lib/anilist-import";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
+import { getAniListMediaLists } from "@/lib/oauth/anilist-sync";
+import { mapAniListLists } from "@/lib/oauth/anilist-import";
 import { eq, and } from "drizzle-orm";
 
 export const maxDuration = 120;

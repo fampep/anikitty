@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { dmConversations, dmMessages, users } from "@/db/schema";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
-import { createDmNotification } from "@/lib/dm-server";
-import { sanitizeBody, sanitizeGifUrl, rateLimit } from "@/lib/comment-helpers";
-import { assertMessageEncryptionConfigured, encryptStoredMessage } from "@/lib/message-crypto";
-import { blockIfCannotInteract } from "@/lib/moderation";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
+import { createDmNotification } from "@/lib/social/dm-server";
+import { sanitizeBody, sanitizeGifUrl, rateLimit } from "@/lib/social/comment-helpers";
+import { assertMessageEncryptionConfigured, encryptStoredMessage } from "@/lib/security/message-crypto";
+import { blockIfCannotInteract } from "@/lib/security/moderation";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ id: string }> };

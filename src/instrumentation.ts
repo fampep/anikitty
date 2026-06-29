@@ -8,12 +8,12 @@ export async function register() {
     const { migrateDb } = await import("./db/migrate");
     await migrateDb().catch((e) => console.error("[auto-migrate] failed:", e));
 
-    const { ensureDataEncryptionKey } = await import("./lib/data-encryption-key");
+    const { ensureDataEncryptionKey } = await import("./lib/security/data-encryption-key");
     await ensureDataEncryptionKey().catch((e) =>
       console.error("[data-encryption-key] init failed:", e),
     );
 
-    const { runReactiveTwoFactorMaintenance } = await import("./lib/totp-reactive");
+    const { runReactiveTwoFactorMaintenance } = await import("./lib/auth/totp-reactive");
     await runReactiveTwoFactorMaintenance().catch((e) =>
       console.error("[2fa-reactive] maintenance failed:", e),
     );

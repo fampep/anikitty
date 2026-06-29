@@ -1,13 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import { Flame, CalendarClock, TrendingUp } from "lucide-react";
-import { useGetHomePageData } from "@/query/get-home-page-data";
+import { useGetHomePageData } from "@/query/home/get-home-page-data";
 import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 
-const AnimeSections = dynamic(() => import("@/components/anime-sections"), { ssr: false });
+const AnimeSections = dynamic(() => import("@/components/home/anime-sections"), { ssr: false });
 
 export default function TrendingPage() {
   const t = useT();

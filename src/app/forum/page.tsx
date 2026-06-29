@@ -17,19 +17,19 @@ import {
   Flame,
   HelpCircle,
 } from "lucide-react";
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
-import { UserBadges } from "@/components/user-badges";
+import { UserBadges } from "@/components/profile/user-badges";
 import { CategoryBadge, VoteButtons } from "@/components/forum/forum-ui";
 import NewThreadComposer from "@/components/forum/new-thread-composer";
-import LoginPopoverButton from "@/components/login-popover-button";
+import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { ROUTES } from "@/constants/routes";
 import { FORUM_CATEGORIES } from "@/constants/forum";
-import { forumApi, forumTimeAgo, forumBodyPreview, ForumThread, ForumStats } from "@/lib/forum";
+import { forumApi, forumTimeAgo, forumBodyPreview, ForumThread, ForumStats } from "@/lib/social/forum";
 import { useAuthStore } from "@/store/auth-store";
 import { useT } from "@/providers/i18n-provider";
 import CommunityHero from "@/components/community/community-hero";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 const SORT_IDS = ["active", "new", "top", "unanswered"] as const;
 

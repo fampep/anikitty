@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { verifyToken, extractToken, signToken } from "@/lib/auth-jwt";
-import { createSession } from "@/lib/user-sessions";
+import { verifyToken, extractToken, signToken } from "@/lib/auth/auth-jwt";
+import { createSession } from "@/lib/user/user-sessions";
 import { eq } from "drizzle-orm";
-import { safeEqual, isProduction } from "@/lib/security";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { safeEqual, isProduction } from "@/lib/security/security";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 
 const ADMIN_KEY = process.env.ADMIN_KEY ?? "";
 

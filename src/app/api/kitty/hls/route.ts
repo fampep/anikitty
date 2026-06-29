@@ -1,4 +1,4 @@
-import { isAllowedMediaProxyUrl } from "@/lib/security";
+import { isAllowedMediaProxyUrl } from "@/lib/security/security";
 
 function isM3u8ByUrl(url: string): boolean {
   return url.endsWith(".m3u8") || url.includes(".m3u8?") || url.includes(".m3u8&");

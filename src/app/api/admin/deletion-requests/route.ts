@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { accountDeletionRequests, users } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin-auth";
-import { deleteUserAccount, DeleteUserError } from "@/lib/delete-user";
+import { requireAdmin } from "@/lib/auth/admin-auth";
+import { deleteUserAccount, DeleteUserError } from "@/lib/user/delete-user";
 import { desc, eq } from "drizzle-orm";
 
 export async function GET(req: Request) {

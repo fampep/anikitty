@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { eq } from "drizzle-orm";
 
 export async function DELETE(req: Request) {

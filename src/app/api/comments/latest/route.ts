@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { comments, users, roles } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 
 export async function GET() {
   const db = getDb();

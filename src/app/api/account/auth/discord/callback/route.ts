@@ -5,8 +5,8 @@ import {
   discordLoginErrorRedirect,
   discordLoginSuccessRedirect,
   discordSettingsRedirect,
-} from "@/lib/discord-oauth";
-import { verifyOAuthStateFor } from "@/lib/auth-jwt";
+} from "@/lib/oauth/discord-oauth";
+import { verifyOAuthStateFor } from "@/lib/auth/auth-jwt";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

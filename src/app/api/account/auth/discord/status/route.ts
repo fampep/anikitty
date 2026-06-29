@@ -1,4 +1,4 @@
-import { isDiscordOAuthConfigured } from "@/lib/discord-oauth";
+import { isDiscordOAuthConfigured } from "@/lib/oauth/discord-oauth";
 
 export async function GET() {
   return Response.json(

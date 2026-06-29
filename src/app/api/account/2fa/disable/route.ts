@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { requireUser, unauthorized } from "@/lib/require-user";
-import { decryptTotpSecretForUser, verifyTotpCode } from "@/lib/totp";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { requireUser, unauthorized } from "@/lib/auth/require-user";
+import { decryptTotpSecretForUser, verifyTotpCode } from "@/lib/auth/totp";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 export async function POST(req: Request) {
   const user = await requireUser(req);

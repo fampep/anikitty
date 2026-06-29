@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSubtitleLibraryStats } from "@/lib/subtitle-cache-store";
-import { searchEnrichedSubtitleLibrary } from "@/lib/subtitle-library-enrich";
-import type { SubtitleLibrarySort } from "@/lib/subtitle-library-db";
+import { getSubtitleLibraryStats } from "@/lib/subtitles/subtitle-cache-store";
+import { searchEnrichedSubtitleLibrary } from "@/lib/subtitles/subtitle-library-enrich";
+import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
 
 const VALID_SORTS = new Set<SubtitleLibrarySort>(["latest", "tracks", "progress", "az"]);
 

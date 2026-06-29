@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { w2gRooms, w2gMembers } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
-import { generateW2gCode } from "@/lib/w2g-code";
-import { serializeRoom } from "@/lib/w2g-server";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { generateW2gCode } from "@/lib/social/w2g-code";
+import { serializeRoom } from "@/lib/social/w2g-server";
 
 const MAX_CREATE_ATTEMPTS = 5;
 

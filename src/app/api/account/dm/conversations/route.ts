@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { dmConversations } from "@/db/schema";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import {
   buildConversationSummary,
   canInitiateDm,
   findOrCreateConversation,
   getUserByUsername,
-} from "@/lib/dm-server";
+} from "@/lib/social/dm-server";
 import { desc, eq, or } from "drizzle-orm";
 
 export async function GET(req: Request) {

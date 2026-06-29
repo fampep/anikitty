@@ -1,6 +1,6 @@
 import { getDb } from "@/db";
 import { comments } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { desc, eq } from "drizzle-orm";
 
 export async function GET(req: Request) {

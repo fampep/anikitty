@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { eq } from "drizzle-orm";
-import { isSafeHttpsUrl } from "@/lib/security";
-import { isValidThemeColor, normalizeThemeColor } from "@/lib/theme-color";
-import { getRolePermissions } from "@/lib/permissions";
+import { isSafeHttpsUrl } from "@/lib/security/security";
+import { isValidThemeColor, normalizeThemeColor } from "@/lib/core/theme-color";
+import { getRolePermissions } from "@/lib/security/permissions";
 
 export async function GET(req: Request) {
   const token = extractToken(req);

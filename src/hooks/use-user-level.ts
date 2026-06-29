@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/store/auth-store";
-import type { LevelTier } from "@/lib/user-level";
-import { withAuth } from "@/lib/auth-fetch";
+import type { LevelTier } from "@/lib/user/user-level";
+import { withAuth } from "@/lib/auth/auth-fetch";
 
 export type UserLevelData = {
   xp: number;

@@ -2,12 +2,12 @@ import {
   ensureMiruroSubtitleCache,
   getAnimeSubtitleEpisodeCoverage,
   listAnimeSubtitles,
-} from "@/lib/subtitle-cache-store";
+} from "@/lib/subtitles/subtitle-cache-store";
 import {
   buildSubtitleFilename,
   subtitleDownloadUrl,
   subtitleServeUrl,
-} from "@/lib/subtitle-track-utils";
+} from "@/lib/subtitles/subtitle-track-utils";
 
 const SAFE_ID = /^\d{1,10}$/;
 
@@ -72,7 +72,7 @@ export async function GET(
   let coverage = null;
 
   if (includeCoverage) {
-    const { getEnrichedSubtitleLibraryEntriesByIds } = await import("@/lib/subtitle-library-enrich");
+    const { getEnrichedSubtitleLibraryEntriesByIds } = await import("@/lib/subtitles/subtitle-library-enrich");
     const entries = await getEnrichedSubtitleLibraryEntriesByIds([anilistId]);
     coverage = await getAnimeSubtitleEpisodeCoverage(
       anilistId,

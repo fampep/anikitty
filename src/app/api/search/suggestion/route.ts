@@ -1,5 +1,5 @@
-import { queryAniList, toTitle, toFormat } from "@/lib/anilist";
-import { enrichAnimeListWithAudio } from "@/lib/anikoto-availability";
+import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
+import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 
 const QUERY = `
   query ($search: String) {

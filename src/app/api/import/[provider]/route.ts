@@ -1,8 +1,8 @@
 import { AnilistMediaList } from "@/types/anilist-animes";
 import { NextRequest, NextResponse } from "next/server";
-import { mapAniListLists } from "@/lib/anilist-import";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { mapAniListLists } from "@/lib/oauth/anilist-import";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 const MAX_IMPORT_ITEMS = 500;
 

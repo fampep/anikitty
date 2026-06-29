@@ -1,11 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import { CalendarDays } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 
-const AnimeSchedule = dynamic(() => import("@/components/anime-schedule"), { ssr: false });
+const AnimeSchedule = dynamic(() => import("@/components/anime/anime-schedule"), { ssr: false });
 
 export default function SchedulePage() {
   const t = useT();

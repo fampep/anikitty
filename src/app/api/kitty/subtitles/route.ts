@@ -1,9 +1,9 @@
-import { getStoredSubtitleById } from "@/lib/subtitle-cache-store";
+import { getStoredSubtitleById } from "@/lib/subtitles/subtitle-cache-store";
 import {
   buildSubtitleFilename,
   detectSubtitleFormat,
   subtitleContentType,
-} from "@/lib/subtitle-track-utils";
+} from "@/lib/subtitles/subtitle-track-utils";
 
 const SAFE_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

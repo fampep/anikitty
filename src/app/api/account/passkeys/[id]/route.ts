@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { userPasskeys } from "@/db/schema";
-import { requireUser, unauthorized } from "@/lib/require-user";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { requireUser, unauthorized } from "@/lib/auth/require-user";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 export async function DELETE(
   req: Request,

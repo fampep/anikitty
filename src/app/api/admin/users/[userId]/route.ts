@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { userSessions, users } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin-auth";
-import { deleteUserAccount, DeleteUserError } from "@/lib/delete-user";
-import { hashPassword, validatePassword } from "@/lib/local-auth";
-import { applyModerationAction, ModerationError } from "@/lib/moderation";
+import { requireAdmin } from "@/lib/auth/admin-auth";
+import { deleteUserAccount, DeleteUserError } from "@/lib/user/delete-user";
+import { hashPassword, validatePassword } from "@/lib/auth/local-auth";
+import { applyModerationAction, ModerationError } from "@/lib/security/moderation";
 import { and, eq, isNull } from "drizzle-orm";
 
 export async function PATCH(

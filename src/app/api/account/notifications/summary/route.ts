@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
-import { countUnreadDm, countUnreadNotifications } from "@/lib/dm-server";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
+import { countUnreadDm, countUnreadNotifications } from "@/lib/social/dm-server";
 
 export async function GET(req: Request) {
   const token = extractToken(req);

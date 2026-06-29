@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { extractToken, signOAuthState, verifyToken } from "@/lib/auth-jwt";
-import { buildAniListAuthorizeUrl, getAniListClientId, getAniListRedirectUri } from "@/lib/anilist-oauth";
+import { extractToken, signOAuthState, verifyToken } from "@/lib/auth/auth-jwt";
+import { buildAniListAuthorizeUrl, getAniListClientId, getAniListRedirectUri } from "@/lib/oauth/anilist-oauth";
 
 export async function POST(req: Request) {
   const token = extractToken(req);

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { requireAdmin } from "@/lib/admin-auth";
-import { getSecurityConfigStatus } from "@/lib/security";
-import { getChatCutoffDate } from "@/lib/chat-config";
+import { requireAdmin } from "@/lib/auth/admin-auth";
+import { getSecurityConfigStatus } from "@/lib/security/security";
+import { getChatCutoffDate } from "@/lib/social/chat-config";
 import { sql } from "drizzle-orm";
 
 export async function GET(req: Request) {

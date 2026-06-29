@@ -1,31 +1,31 @@
 import {
   ensureMiruroSubtitleCache,
   mergeCachedSubtitleTracks,
-} from "@/lib/subtitle-cache-store";
+} from "@/lib/subtitles/subtitle-cache-store";
 import {
   DEFAULT_ANIMEX_SERVER,
   fetchAnimexVideoStream,
   isAnimexServerId,
   type AnimexServerId,
-} from "@/lib/animex-api";
+} from "@/lib/providers/animex-api";
 import {
   DEFAULT_ANIMO_SERVER,
   fetchAnimoVideoStream,
   isAnimoServerId,
   type AnimoServerId,
-} from "@/lib/animo-api";
-import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty-api";
+} from "@/lib/providers/animo-api";
+import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
   type KittyProvider,
-} from "@/lib/kitty-providers";
+} from "@/lib/kitty/kitty-providers";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   fetchMiruroVideoStream,
   isMiruroPipeProviderId,
   type MiruroSkipTimes,
-} from "@/lib/miruro-api";
+} from "@/lib/providers/miruro-api";
 import {
   getTrackFile,
   isSubtitleTrack,
@@ -35,7 +35,7 @@ import {
   SUBTITLE_SOURCE_PROVIDER,
   subtitleProxyUrl,
   type StreamTrack,
-} from "@/lib/subtitle-track-utils";
+} from "@/lib/subtitles/subtitle-track-utils";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;

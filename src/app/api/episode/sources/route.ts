@@ -1,4 +1,4 @@
-import { hianime } from "@/lib/hianime";
+import { hianime } from "@/lib/providers/hianime";
 
 export async function GET(req: Request) {
   try {

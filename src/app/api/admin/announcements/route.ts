@@ -1,6 +1,6 @@
 import { getDb } from "@/db";
 import { announcements } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/auth/admin-auth";
 import { and, eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 

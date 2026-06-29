@@ -1,4 +1,4 @@
-import { anilistSettingsRedirect, completeAniListOAuth } from "@/lib/anilist-oauth";
+import { anilistSettingsRedirect, completeAniListOAuth } from "@/lib/oauth/anilist-oauth";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

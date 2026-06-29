@@ -1,6 +1,6 @@
 import { getDb } from "@/db";
 import { comments, users, roles, commentVotes, commentReactions } from "@/db/schema";
-import { verifyToken, extractToken } from "@/lib/auth-jwt";
+import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { and, eq, desc, asc, sql, isNull, inArray } from "drizzle-orm";
 import {
   sanitizeBody,
@@ -8,9 +8,9 @@ import {
   rateLimit,
   maybeSweep,
   COMMENT_RATE,
-} from "@/lib/comment-helpers";
-import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
-import { blockIfCannotInteract } from "@/lib/moderation";
+} from "@/lib/social/comment-helpers";
+import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
+import { blockIfCannotInteract } from "@/lib/security/moderation";
 
 const PAGE_SIZE = 20;
 

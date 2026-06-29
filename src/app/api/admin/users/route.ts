@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users, watchProgress } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/auth/admin-auth";
 import { eq, desc, ilike, or, sql, inArray, max } from "drizzle-orm";
-import { toModerationStatus } from "@/lib/moderation";
+import { toModerationStatus } from "@/lib/security/moderation";
 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

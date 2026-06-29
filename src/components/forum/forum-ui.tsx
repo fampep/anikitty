@@ -2,7 +2,7 @@
 
 import React from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { getCategory } from "@/constants/forum";
 
 const CATEGORY_STYLES: Record<string, string> = {

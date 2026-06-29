@@ -1,0 +1,971 @@
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAnimeStore } from "@/store/anime-store";
+import { useAuthStore } from "@/store/auth-store";
+import { useSettingsStore } from "@/store/settings-store";
+import { useProgressStore } from "@/store/progress-store";
+import useBookMarks from "@/hooks/use-get-bookmark";
+import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import dynamic from "next/dynamic";
+import {
+  useGetKittyStream,
+  type KittyProvider,
+  type KittyTrack,
+} from "@/query/stream/get-kitty-stream";
+import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import {
+  DEFAULT_ANIMEX_SERVER,
+  defaultAnimexServerForMode,
+  isAnimexServerId,
+  type AnimexServerId,
+} from "@/lib/providers/animex-api";
+import {
+  DEFAULT_ANIMO_SERVER,
+  isAnimoServerId,
+  type AnimoServerId,
+} from "@/lib/providers/animo-api";
+import {
+  canToggleStreamAudio,
+  resolveActiveStreamCapabilities,
+  supportsStreamAudioMode,
+} from "@/lib/kitty/stream-capabilities";
+
+import { useGetStreamCapabilities } from "@/query/stream/get-stream-capabilities";
+import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
+import {
+  DEFAULT_MIRURO_PIPE_PROVIDER,
+  MIRURO_PIPE_PROVIDERS,
+  type MiruroPipeProviderId,
+} from "@/lib/providers/miruro-api";
+import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
+
+import { useSkipTimes } from "@/hooks/use-aniskip";
+import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
+import {
+  Captions,
+  Loader2,
+  AlertCircle,
+  Cat,
+  Users,
+  SlidersHorizontal,
+  Mic,
+} from "lucide-react";
+import WatchDownloadPanel from "@/components/watch/watch-download-panel";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
+import { toast } from "sonner";
+import { useW2g } from "@/hooks/use-w2g";
+import W2gPanel from "@/components/w2g/w2g-panel";
+import LoginPopoverButton from "@/components/auth/login-popover-button";
+import { useT } from "@/providers/i18n-provider";
+
+const ArtKittyPlayer = dynamic(() => import("@/components/player/art-kitty-player"), {
+  ssr: false,
+  loading: () => <PlayerSkeleton />,
+});
+
+const DEFAULT_PROVIDER: KittyProvider = "Miruro";
+const EMPTY_PLAYER_TRACKS: KittyTrack[] = [];
+const EMPTY_PLAYER_HEADERS: Record<string, string> = {};
+
+function parseResumeTimeParam(raw: string | null): number {
+  if (!raw) return 0;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+const VideoPlayerSection = () => {
+  const t = useT();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const episodeId = searchParams.get("episode");
+  const w2gCode = searchParams.get("w2g");
+  const dubSearchParam = searchParams.get("dub");
+  const timeFromUrl = searchParams.get("t");
+  const searchParamsKey = searchParams.toString();
+  const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
+
+  const { preferDub, setPreferDub } = useSettingsStore();
+
+  const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kittyAudioMode");
+      if (saved === "multi") return "multi";
+      if (saved === "sub" || saved === "dub") return "sub";
+    }
+    return "sub";
+  });
+
+  const [streamAudio, setStreamAudio] = useState<"sub" | "dub">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kittyStreamAudio");
+      if (saved === "sub" || saved === "dub") return saved;
+      const savedMode = localStorage.getItem("kittyAudioMode");
+      if (savedMode === "dub") return "dub";
+    }
+    return "sub";
+  });
+
+  useEffect(() => {
+    if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
+    setStreamAudio((prev) => (prev === "dub" ? prev : "dub"));
+    setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
+  }, [dubSearchParam]);
+
+  const syncDubSearchParam = useCallback(
+    (dub: boolean) => {
+      const params = new URLSearchParams(searchParamsKey);
+      const hasDub = params.get("dub") === "1" || params.get("dub") === "true";
+      if (dub === hasDub) return;
+      if (dub) params.set("dub", "1");
+      else params.delete("dub");
+      router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParamsKey],
+  );
+
+  useEffect(() => {
+    setPreferDub(streamAudio === "dub");
+  }, [streamAudio, setPreferDub]);
+
+  const [provider, setProvider] = useState<KittyProvider>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kittyProvider");
+      return normalizeKittyProvider(saved);
+    }
+    return DEFAULT_PROVIDER;
+  });
+
+  const [miruroPipe, setMiruroPipe] = useState<MiruroPipeProviderId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("miruroPipe");
+      if (saved && MIRURO_PIPE_PROVIDERS.some((p) => p.id === saved)) {
+        return saved as MiruroPipeProviderId;
+      }
+    }
+    return DEFAULT_MIRURO_PIPE_PROVIDER;
+  });
+
+  const [animexServer, setAnimexServer] = useState<AnimexServerId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("animexServer");
+      if (saved && isAnimexServerId(saved)) return saved;
+    }
+    return DEFAULT_ANIMEX_SERVER;
+  });
+
+  const [animoServer, setAnimoServer] = useState<AnimoServerId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("animoServer");
+      if (saved && isAnimoServerId(saved)) return saved;
+    }
+    return DEFAULT_ANIMO_SERVER;
+  });
+
+  const [multiPanel, setMultiPanel] = useState<MultiPanelProvider | null>(() => {
+    if (typeof window !== "undefined") {
+      const savedProvider = localStorage.getItem("kittyProvider");
+      const savedMode = localStorage.getItem("kittyAudioMode");
+      if (
+        savedMode === "multi" &&
+        (savedProvider === "Miruro" || savedProvider === "Animex")
+      ) {
+        return savedProvider;
+      }
+    }
+    return null;
+  });
+
+  const audio: "sub" | "dub" = streamAudio;
+
+  const animeSlug = anime?.anime?.info?.id ?? null;
+  const anilistId = anime?.anime?.info?.anilistId;
+  const malId = anime?.anime?.info?.malId;
+  const animeTitle = anime?.anime?.info?.name || undefined;
+
+  // Episode list for next-episode navigation (also resolves episode number for stream API)
+  const { data: allEpisodes } = useGetAllEpisodes(animeSlug ?? "");
+  const currentEpisodeInfo = React.useMemo(() => {
+    if (!allEpisodes?.episodes || !episodeId) return undefined;
+    return allEpisodes.episodes.find((e) => e.episodeId === episodeId);
+  }, [allEpisodes, episodeId]);
+
+  const episodeNo = useMemo(() => {
+    if (currentEpisodeInfo?.number != null) return String(currentEpisodeInfo.number);
+    if (episodeId?.startsWith("ep-")) return episodeId.replace("ep-", "");
+    if (episodeId && /^\d+$/.test(episodeId)) return episodeId;
+    if (selectedEpisode?.startsWith("ep-")) return selectedEpisode.replace("ep-", "");
+    return selectedEpisode ?? "";
+  }, [currentEpisodeInfo?.number, episodeId, selectedEpisode]);
+
+  const capabilityTarget = useMemo(
+    () => ({
+      provider,
+      ...(provider === "Miruro" ? { miruroPipe } : {}),
+      ...(provider === "Animex" ? { animexServer } : {}),
+      ...(provider === "Animo" ? { animoServer } : {}),
+    }),
+    [provider, miruroPipe, animexServer, animoServer],
+  );
+
+  const {
+    data: streamCapabilities,
+    isLoading: capabilitiesLoading,
+  } = useGetStreamCapabilities(
+    anilistId,
+    episodeNo || undefined,
+    capabilityTarget,
+    animeTitle,
+  );
+
+  const activeStreamCaps = useMemo(
+    () =>
+      resolveActiveStreamCapabilities(
+        streamCapabilities,
+        provider,
+        audioMode,
+        provider === "Animex" ? animexServer : undefined,
+        provider === "Miruro" ? miruroPipe : undefined,
+        provider === "Animo" ? animoServer : undefined,
+      ),
+    [
+      streamCapabilities,
+      provider,
+      audioMode,
+      animexServer,
+      miruroPipe,
+      animoServer,
+    ],
+  );
+
+  const providerStreamCaps = streamCapabilities?.providers[provider] ?? null;
+  const capsForAudioAvailability = providerStreamCaps ?? activeStreamCaps;
+
+  const canSwitchStreamAudio = useMemo(
+    () => canToggleStreamAudio(capsForAudioAvailability),
+    [capsForAudioAvailability],
+  );
+
+  const canSelectSubAudio = supportsStreamAudioMode(capsForAudioAvailability, "sub");
+  const canSelectDubAudio = supportsStreamAudioMode(capsForAudioAvailability, "dub");
+
+  useEffect(() => {
+    if (!capsForAudioAvailability) return;
+    if (streamAudio === "dub" && !canSelectDubAudio && canSelectSubAudio) {
+      localStorage.setItem("kittyStreamAudio", "sub");
+      syncDubSearchParam(false);
+      setStreamAudio("sub");
+    } else if (streamAudio === "sub" && !canSelectSubAudio && canSelectDubAudio) {
+      localStorage.setItem("kittyStreamAudio", "dub");
+      syncDubSearchParam(true);
+      setStreamAudio("dub");
+    }
+  }, [capsForAudioAvailability, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
+
+  // ── Resume position ──────────────────────────────────────────────
+  const [startTime, setStartTime] = useState(0);
+
+  // Live position tracking — updated every timeupdate event (no re-render)
+  const liveTimeRef = useRef(0);
+  const liveDurationRef = useRef(0);
+
+  // ── Progress tracking ────────────────────────────────────────────
+  const { auth } = useAuthStore();
+  const { createOrUpdateBookMark, syncWatchProgress } = useBookMarks({ populate: false });
+  const bookmarkIdRef = useRef<string | null>(null);
+  const watchedIdRef  = useRef<string | null>(null);
+
+  const w2g = useW2g({
+    code: w2gCode,
+    animeId: animeSlug,
+    episodeId,
+    provider,
+    audio,
+    enabled: !!w2gCode && !!auth,
+    onEpisodeChange: (epId) => {
+      if (!animeSlug || !w2gCode) return;
+      setSelectedEpisode(epId);
+      router.push(
+        `/anime/watch?anime=${encodeURIComponent(animeSlug)}&episode=${encodeURIComponent(epId)}&w2g=${w2gCode}`,
+      );
+    },
+  });
+
+  const [creatingW2g, setCreatingW2g] = useState(false);
+
+  const handleCreateW2g = async () => {
+    if (!auth) {
+      toast.error(t("watch.w2gSignIn"));
+      return;
+    }
+    if (!animeSlug || !episodeId) return;
+    setCreatingW2g(true);
+    try {
+      const room = await w2g.createRoom({
+        animeId: animeSlug,
+        animeTitle: anime?.anime?.info?.name,
+        animeThumbnail: anime?.anime?.info?.poster,
+        episodeId,
+        episodeNumber: parseInt(episodeNo) || 0,
+        currentTime: Math.floor(liveTimeRef.current),
+      });
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("w2g", room.code);
+      router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
+      toast.success(t("watch.w2gRoomCreated", { code: room.code }));
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : t("watch.w2gCreateFailed"));
+    } finally {
+      setCreatingW2g(false);
+    }
+  };
+
+  const handleLeaveW2g = async () => {
+    await w2g.leave();
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("w2g");
+    router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
+  };
+
+  // Episode list moved above for episodeNo resolution
+  const nextEpisode = React.useMemo(() => {
+    if (!allEpisodes?.episodes || !episodeId) return undefined;
+    const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
+    return idx >= 0 && idx < allEpisodes.episodes.length - 1
+      ? allEpisodes.episodes[idx + 1]
+      : undefined;
+  }, [allEpisodes, episodeId]);
+
+  const [autoFullscreen, setAutoFullscreen] = useState(false);
+  const playerWrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleNextEpisode = useCallback(() => {
+    if (!nextEpisode || !animeSlug) return;
+    const isFs = !!document.fullscreenElement;
+    if (isFs && playerWrapperRef.current) {
+      // Synchronously transfer fullscreen to the persistent wrapper before
+      // ArtKittyPlayer unmounts. This keeps
+      // the user in fullscreen through the episode transition.
+      playerWrapperRef.current.requestFullscreen().catch(() => {});
+    }
+    setAutoFullscreen(isFs);
+    setSelectedEpisode(nextEpisode.episodeId);
+    if (w2g.isHost && w2gCode) {
+      w2g.syncEpisode(
+        nextEpisode.episodeId,
+        nextEpisode.number,
+        Math.floor(liveTimeRef.current),
+        true,
+      );
+    }
+    router.push(
+      `/anime/watch?anime=${animeSlug}&episode=${nextEpisode.episodeId}${w2gCode ? `&w2g=${w2gCode}` : ""}`,
+    );
+  }, [nextEpisode, animeSlug, setSelectedEpisode, router, w2g, w2gCode]);
+
+  // Reset refs when episode changes so we don't cross-contaminate
+  useEffect(() => {
+    bookmarkIdRef.current = null;
+    watchedIdRef.current = null;
+    liveTimeRef.current = 0;
+    liveDurationRef.current = 0;
+  }, [episodeId]);
+
+  // Fetch saved resume position when the episode changes
+  useEffect(() => {
+    const urlTime = parseResumeTimeParam(timeFromUrl);
+    const cached =
+      animeSlug && episodeId
+        ? useProgressStore.getState().getProgress(animeSlug, episodeId)
+        : null;
+    const localTime = Math.max(urlTime, cached?.current ?? 0);
+    setStartTime(localTime > 10 ? localTime : 0);
+
+    if (!auth || !animeSlug || !episodeId) return;
+    anisurgeContinue
+      .getEpisode(animeSlug, episodeId)
+      .then((r: { currentTime?: number; duration?: number }) => {
+        const saved = r?.currentTime ?? 0;
+        const dur = r?.duration ?? 0;
+        if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+          setStartTime((prev) => Math.max(prev, saved));
+        }
+      })
+      .catch(() => {});
+  }, [auth, animeSlug, episodeId, timeFromUrl]);
+
+  const handleStart = useCallback(async () => {
+    if (!auth || !anime?.anime?.info) return;
+    const { id: slug, name, poster } = anime.anime.info;
+    // Add to watchlist silently — doesn't gate progress saving
+    createOrUpdateBookMark(slug, name, poster, "watching", false)
+      .then((bId) => { bookmarkIdRef.current = bId; })
+      .catch(() => {});
+  }, [auth, anime, createOrUpdateBookMark]);
+
+  // Save progress directly — watchlist entry is not required
+  const saveProgress = useCallback(async (current: number, duration: number) => {
+    if (!auth || !episodeId || !episodeNo || !animeSlug) return;
+    if (!current || !duration) return;
+    watchedIdRef.current = await syncWatchProgress(
+      animeSlug,
+      watchedIdRef.current,
+      {
+        episodeId,
+        episodeNumber: parseInt(episodeNo) || 0,
+        current,
+        duration,
+        language: audio,
+        server: provider,
+      },
+    );
+  }, [auth, episodeId, episodeNo, audio, provider, animeSlug, syncWatchProgress]);
+
+  // Track live position in ref (fires every timeupdate — no state update)
+  const handleLiveTime = useCallback((t: number, dur: number) => {
+    liveTimeRef.current = t;
+    liveDurationRef.current = dur;
+    if (animeSlug && episodeId && t > 5 && dur > 0) {
+      useProgressStore.getState().setProgress(animeSlug, episodeId, t, dur);
+    }
+  }, [animeSlug, episodeId]);
+
+  // Save on pauses as well as on the 10s interval
+  const handleProgress = useCallback((current: number, duration: number) => {
+    saveProgress(current, duration);
+  }, [saveProgress]);
+
+  const preservePlaybackPosition = useCallback(() => {
+    const current = liveTimeRef.current;
+    const dur = liveDurationRef.current;
+    if (current <= 5) return;
+    setStartTime(current);
+    if (animeSlug && episodeId) {
+      useProgressStore.getState().setProgress(
+        animeSlug,
+        episodeId,
+        current,
+        dur > 0 ? dur : current,
+      );
+      useProgressStore.getState().flush();
+    }
+    if (dur > 0) void saveProgress(current, dur);
+  }, [animeSlug, episodeId, saveProgress]);
+
+  // Credits started → mark episode as fully watched
+  const handleOutroStart = useCallback((duration: number) => {
+    saveProgress(duration, duration);
+  }, [saveProgress]);
+
+  // Video ended → also mark as fully watched (covers episodes with no AniSkip data)
+  const handleEnded = useCallback(() => {
+    const dur = liveDurationRef.current;
+    if (dur > 0) saveProgress(dur, dur);
+  }, [saveProgress]);
+
+  // Save progress on tab close / navigation away
+  useEffect(() => {
+    const onUnload = () => {
+      const t = liveTimeRef.current;
+      const dur = liveDurationRef.current;
+      if (t > 5 && dur > 0) {
+        saveProgress(t, dur);
+      }
+      useProgressStore.getState().flush();
+    };
+    window.addEventListener("beforeunload", onUnload);
+    return () => window.removeEventListener("beforeunload", onUnload);
+  }, [saveProgress]);
+
+  const {
+    data: streamData,
+    isLoading,
+    isFetching,
+    error: streamError,
+    refetch: retryStream,
+  } = useGetKittyStream(
+    anilistId,
+    episodeNo || undefined,
+    audio,
+    provider,
+    provider === "Miruro" ? miruroPipe : null,
+    animeTitle,
+    provider === "Animex" ? animexServer : null,
+    provider === "Animo" ? animoServer : null,
+  );
+
+  const hasStreamFile = Boolean(streamData?.file);
+  const streamSwitching = isFetching && hasStreamFile;
+
+  const playerTracks = useMemo(
+    () => streamData?.tracks ?? EMPTY_PLAYER_TRACKS,
+    [streamData?.tracks],
+  );
+  const playerHeaders = useMemo(
+    () => streamData?.headers ?? EMPTY_PLAYER_HEADERS,
+    [streamData?.headers],
+  );
+  const playerNextEpisode = useMemo(
+    () =>
+      nextEpisode
+        ? { id: nextEpisode.episodeId, number: nextEpisode.number, title: nextEpisode.title }
+        : undefined,
+    [nextEpisode],
+  );
+  const playerW2g = useMemo(
+    () =>
+      w2gCode && w2g.isMember
+        ? {
+            isHost: w2g.isHost,
+            syncState: w2g.syncState,
+            onPlaybackSync: w2g.onPlaybackSync,
+          }
+        : undefined,
+    [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
+  );
+
+  const loadingThumbnail =
+    anime?.anime?.info?.banner ?? anime?.anime?.info?.poster ?? null;
+
+  const playerPoster =
+    anime?.anime?.info?.banner ?? anime?.anime?.info?.poster ?? undefined;
+
+  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`;
+
+  const { data: aniSkipTimes } = useSkipTimes(
+    streamData?.tracks,
+    streamData?.file,
+    streamData?.headers?.Referer ?? streamData?.headers?.referer ?? "",
+    malId,
+    anilistId,
+    parseInt(episodeNo) || undefined,
+  );
+
+  const skipTimes = useMemo(() => {
+    const fromMiruro = streamData?.skipTimes;
+    if (fromMiruro?.intro || fromMiruro?.outro) {
+      return {
+        intro: fromMiruro.intro ?? aniSkipTimes?.intro,
+        outro: fromMiruro.outro ?? aniSkipTimes?.outro,
+      };
+    }
+    return aniSkipTimes;
+  }, [streamData?.skipTimes, aniSkipTimes]);
+
+  // Change provider but resume from current position, not original start
+  const handleProviderGridSelect = (p: KittyProvider, mode: ProviderAudioMode) => {
+    preservePlaybackPosition();
+    setProvider(p);
+    setAudioMode(mode);
+    localStorage.setItem("kittyProvider", p);
+    localStorage.setItem("kittyAudioMode", mode);
+    if (mode === "multi") {
+      // Keep streamAudio — SUB/DUB toggle handles audio for multi providers.
+    } else if (mode === "sub") {
+      const caps = streamCapabilities?.providers[p];
+      if (caps?.dub && !caps.sub) {
+        setStreamAudio("dub");
+        localStorage.setItem("kittyStreamAudio", "dub");
+        syncDubSearchParam(true);
+      } else {
+        setStreamAudio("sub");
+        localStorage.setItem("kittyStreamAudio", "sub");
+        syncDubSearchParam(false);
+      }
+    } else {
+      const caps = streamCapabilities?.providers[p];
+      if (caps?.dub && !caps.sub && streamAudio === "sub") {
+        setStreamAudio("dub");
+        localStorage.setItem("kittyStreamAudio", "dub");
+        syncDubSearchParam(true);
+      } else if (caps?.sub && !caps.dub && streamAudio === "dub") {
+        setStreamAudio("sub");
+        localStorage.setItem("kittyStreamAudio", "sub");
+        syncDubSearchParam(false);
+      }
+    }
+    if (mode !== "multi" || (p !== "Miruro" && p !== "Animex")) {
+      setMultiPanel(null);
+    }
+    if (p === "Animex") {
+      const server = defaultAnimexServerForMode(mode);
+      setAnimexServer(server);
+      localStorage.setItem("animexServer", server);
+    }
+    if (p === "Animo") {
+      setAnimoServer(DEFAULT_ANIMO_SERVER);
+      localStorage.setItem("animoServer", DEFAULT_ANIMO_SERVER);
+    }
+  };
+
+  const handleStreamAudioChange = (next: "sub" | "dub") => {
+    if (next === streamAudio) return;
+    if (next === "sub" && !canSelectSubAudio) return;
+    if (next === "dub" && !canSelectDubAudio) return;
+    preservePlaybackPosition();
+    setStreamAudio(next);
+    localStorage.setItem("kittyStreamAudio", next);
+    syncDubSearchParam(next === "dub");
+  };
+
+  const handleMultiToggle = (panel: MultiPanelProvider | null) => {
+    setMultiPanel(panel);
+  };
+
+  const handleAnimexServerChange = (server: AnimexServerId) => {
+    preservePlaybackPosition();
+    setProvider("Animex");
+    setAudioMode("multi");
+    setAnimexServer(server);
+    setMultiPanel("Animex");
+    localStorage.setItem("kittyProvider", "Animex");
+    localStorage.setItem("kittyAudioMode", "multi");
+    localStorage.setItem("animexServer", server);
+  };
+
+  const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
+    preservePlaybackPosition();
+    setMiruroPipe(pipe);
+    localStorage.setItem("miruroPipe", pipe);
+  };
+
+  const handleAnimoServerChange = (server: AnimoServerId) => {
+    preservePlaybackPosition();
+    setProvider("Animo");
+    setAnimoServer(server);
+    localStorage.setItem("kittyProvider", "Animo");
+    localStorage.setItem("animoServer", server);
+  };
+
+  if (!episodeId && !selectedEpisode) {
+    return (
+      <div className="w-full aspect-video bg-black flex flex-col items-center justify-center gap-3 rounded-xl border border-white/10">
+        <Cat className="text-white/20 w-12 h-12" />
+        <p className="text-white/30 text-sm font-mono">{t("watch.selectEpisode")}</p>
+      </div>
+    );
+  }
+
+  if ((isLoading || isFetching) && !hasStreamFile) {
+    return (
+      <PlayerSkeleton
+        label={t("watch.loadingStream")}
+        thumbnail={loadingThumbnail}
+      />
+    );
+  }
+
+  const upstreamError = (streamError as { response?: { data?: { error?: string } } })?.response?.data?.error;
+
+  const subtitleTracks = playerTracks.filter(isSubtitleTrack);
+
+  if (!isFetching && (streamError || !streamData?.file)) {
+    return (
+      <div className="flex flex-col gap-3">
+        <PlayerSkeleton dim label={t("watch.loadingStream")} thumbnail={loadingThumbnail} />
+        <Alert className="border-white/10 bg-white/5 rounded-xl">
+          <AlertCircle className="h-4 w-4 text-white/60" />
+          <AlertTitle className="text-white/80 font-semibold">
+            {t("watch.streamUnavailable", { provider })}
+          </AlertTitle>
+          <AlertDescription className="text-white/40 text-xs mt-1">
+            {upstreamError ?? streamData?.error ?? t("watch.streamNotFound")}
+          </AlertDescription>
+        </Alert>
+
+        <ProviderQuickPick
+          value={provider}
+          audioMode={audioMode}
+          multiPanel={multiPanel}
+          miruroPipe={miruroPipe}
+          animexServer={animexServer}
+          animoServer={animoServer}
+          streamAudio={streamAudio}
+          capabilities={streamCapabilities}
+          capabilitiesLoading={capabilitiesLoading}
+          onSelect={handleProviderGridSelect}
+          onMultiToggle={handleMultiToggle}
+          onMiruroPipeChange={handleMiruroPipeChange}
+          onAnimexServerChange={handleAnimexServerChange}
+          onAnimoServerChange={handleAnimoServerChange}
+        />
+
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/15 text-white/60 hover:bg-white/10 w-fit text-xs"
+          onClick={() => retryStream()}
+        >
+          {t("watch.retryWith", { provider })}
+        </Button>
+      </div>
+    );
+  }
+
+  if (!streamData?.file) {
+    return (
+      <PlayerSkeleton
+        label={t("watch.loadingStream")}
+        thumbnail={loadingThumbnail}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+    <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60 bg-black">
+      {/* Persistent wrapper — fullscreen is held here during episode transitions */}
+      <div ref={playerWrapperRef} className="contents">
+      <ArtKittyPlayer
+        key={playerKey}
+        src={streamData.file}
+        poster={playerPoster}
+        tracks={playerTracks}
+        headers={playerHeaders}
+        preferSubtitles={subtitleTracks.length > 0 || streamAudio !== "dub"}
+        preferDubAudio={streamAudio === "dub"}
+        skipTimes={skipTimes}
+        startTime={
+          w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
+            ? w2g.syncState.currentTime
+            : startTime
+        }
+        autoFullscreen={autoFullscreen}
+        nextEpisode={playerNextEpisode}
+        onStart={handleStart}
+        onProgress={handleProgress}
+        onLiveTime={handleLiveTime}
+        onNextEpisode={handleNextEpisode}
+        onOutroStart={handleOutroStart}
+        onEnded={handleEnded}
+        w2g={playerW2g}
+      />
+      </div>
+
+      {/* Controls bar */}
+      <div className="px-3 py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-white/8 space-y-2.5">
+        {/* Row 1 — SUB / DUB / MULTI provider grid */}
+        <ProviderGrid
+          provider={provider}
+          audioMode={audioMode}
+          multiPanel={multiPanel}
+          miruroPipe={miruroPipe}
+          animexServer={animexServer}
+          animoServer={animoServer}
+          streamAudio={streamAudio}
+          capabilities={streamCapabilities}
+          capabilitiesLoading={capabilitiesLoading}
+          onSelect={handleProviderGridSelect}
+          onMultiToggle={handleMultiToggle}
+          onMiruroPipeChange={handleMiruroPipeChange}
+          onAnimexServerChange={handleAnimexServerChange}
+          onAnimoServerChange={handleAnimoServerChange}
+        />
+
+        {/* Row 2 — badges + actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 mr-auto min-w-0">
+            {(skipTimes?.intro || skipTimes?.outro) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-white/[0.04] border border-white/10 text-white/35">
+                {t("watch.chapters")}
+              </span>
+            )}
+            {streamData?.miruroPipe && provider === "Miruro" && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300/70">
+                {streamData.miruroPipe}
+              </span>
+            )}
+            {streamData?.server && providerHasNativeSubs(provider) && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/70">
+                {streamData.server}
+              </span>
+            )}
+            {subtitleTracks.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 max-w-full">
+                {subtitleTracks.slice(0, 3).map((track, i) => (
+                  <span
+                    key={`${track.label ?? "sub"}-${i}`}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-teal-500/10 border border-teal-500/20 text-teal-300/80 truncate max-w-[120px]"
+                    title={track.label}
+                  >
+                    <Captions className="w-2.5 h-2.5 shrink-0" />
+                    {track.label}
+                  </span>
+                ))}
+                {subtitleTracks.length > 3 && (
+                  <span className="text-[10px] font-mono text-white/25">
+                    +{subtitleTracks.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            {canSwitchStreamAudio && (
+              <div className="flex items-center rounded-lg border border-white/12 bg-white/[0.03] p-0.5">
+                <button
+                  type="button"
+                  disabled={!canSelectSubAudio || streamSwitching}
+                  onClick={() => handleStreamAudioChange("sub")}
+                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:pointer-events-none ${
+                    streamAudio === "sub"
+                      ? "bg-teal-500/25 text-teal-100 border border-teal-400/35"
+                      : "text-white/40 hover:text-white/65"
+                  }`}
+                >
+                  <Captions className="w-3 h-3" />
+                  {t("card.sub")}
+                </button>
+                <button
+                  type="button"
+                  disabled={!canSelectDubAudio || streamSwitching}
+                  onClick={() => handleStreamAudioChange("dub")}
+                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:pointer-events-none ${
+                    streamAudio === "dub"
+                      ? "bg-amber-500/25 text-amber-100 border border-amber-400/35"
+                      : "text-white/40 hover:text-white/65"
+                  }`}
+                >
+                  <Mic className="w-3 h-3" />
+                  {t("card.dub")}
+                </button>
+                {streamSwitching && (
+                  <Loader2 className="w-3.5 h-3.5 ml-1 animate-spin text-white/40" />
+                )}
+              </div>
+            )}
+
+            {anilistId && episodeNo && allEpisodes?.episodes && (
+              <WatchDownloadPanel
+                anilistId={anilistId}
+                currentEpisodeNumber={parseInt(episodeNo, 10)}
+                episodes={allEpisodes.episodes}
+                audio={audio}
+                provider={provider}
+              />
+            )}
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-teal-500/20 bg-teal-500/[0.08] text-teal-200/80 hover:bg-teal-500/[0.12] transition-colors"
+                  title={t("watch.subtitleSettings")}
+                >
+                  <SlidersHorizontal className="w-3 h-3" />
+                  <span className="hidden sm:inline">{t("watch.subtitleSettings")}</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                className="w-[min(92vw,360px)] p-4 bg-[#0c0c0c] border-white/10"
+              >
+                <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
+                  {t("settings.subtitleAppearance")}
+                </p>
+                <SubtitleSettingsPanel compact />
+              </PopoverContent>
+            </Popover>
+
+            {w2gCode && w2g.isMember ? (
+              <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
+                {t("watch.room", { code: w2gCode })}
+              </span>
+            ) : auth ? (
+              <button
+                type="button"
+                onClick={handleCreateW2g}
+                disabled={creatingW2g}
+                className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 transition-colors disabled:opacity-50"
+              >
+                {creatingW2g ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Users className="w-3 h-3" />
+                )}
+                <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
+              </button>
+            ) : (
+              <LoginPopoverButton
+                customTrigger={
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-white/12 text-white/45 hover:text-white/70 transition-colors"
+                  >
+                    <Users className="w-3 h-3" />
+                    <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
+                  </button>
+                }
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {w2gCode && w2g.isMember && (
+      <W2gPanel
+        code={w2gCode}
+        isHost={w2g.isHost}
+        members={w2g.members}
+        messages={w2g.messages}
+        loading={w2g.loading}
+        onSendMessage={w2g.sendMessage}
+        onLeave={handleLeaveW2g}
+      />
+    )}
+    </div>
+  );
+};
+
+const PlayerSkeleton = ({
+  dim = false,
+  label = "Loading stream",
+  thumbnail,
+}: {
+  dim?: boolean;
+  label?: string;
+  thumbnail?: string | null;
+}) => (
+  <div
+    className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
+  >
+    {thumbnail && (
+      <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={thumbnail}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/65" />
+      </>
+    )}
+    {!thumbnail && (
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
+    )}
+    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+    <div className="absolute inset-x-4 bottom-4 flex flex-col gap-2 pointer-events-none">
+      <div className="h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-violet-600/40 to-violet-400/40 animate-pulse" />
+      </div>
+      <div className="flex justify-between">
+        <div className="h-2 w-16 rounded bg-white/[0.05] animate-pulse" />
+        <div className="h-2 w-10 rounded bg-white/[0.05] animate-pulse" />
+      </div>
+    </div>
+    <Loader2 className="w-7 h-7 text-violet-400/50 animate-spin relative z-10" />
+    <p className="text-white/30 text-[11px] font-medium tracking-widest uppercase animate-pulse relative z-10">{label}</p>
+  </div>
+);
+
+export default VideoPlayerSection;

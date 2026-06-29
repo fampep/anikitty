@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { applyModerationAction, ModerationError } from "@/lib/moderation";
-import { permissionForModerationAction } from "@/lib/permissions";
-import { requirePermission } from "@/lib/staff-auth";
+import { applyModerationAction, ModerationError } from "@/lib/security/moderation";
+import { permissionForModerationAction } from "@/lib/security/permissions";
+import { requirePermission } from "@/lib/auth/staff-auth";
 
 export async function PATCH(
   req: Request,

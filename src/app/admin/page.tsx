@@ -3,8 +3,8 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Container from "@/components/container";
-import { RoleBadge } from "@/components/role-badge";
+import Container from "@/components/layout/container";
+import { RoleBadge } from "@/components/profile/role-badge";
 import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
@@ -13,8 +13,8 @@ import {
   VolumeX, Ban, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/chat-config";
-import { cn } from "@/lib/utils";
+import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
+import { cn } from "@/lib/core/utils";
 
 const ADMIN_TOKEN_KEY = "adminToken";
 

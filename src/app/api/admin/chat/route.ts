@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { chatMessages, users, roles } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/auth/admin-auth";
 import {
   CHAT_MESSAGE_TTL_MS,
   getChatCutoffDate,
   isChatMessageActive,
-} from "@/lib/chat-config";
-import { purgeExpiredChatMessages } from "@/lib/chat-sweep";
-import { decryptStoredMessage } from "@/lib/message-crypto";
+} from "@/lib/social/chat-config";
+import { purgeExpiredChatMessages } from "@/lib/social/chat-sweep";
+import { decryptStoredMessage } from "@/lib/security/message-crypto";
 import { desc, eq, sql } from "drizzle-orm";
 
 export async function GET(req: Request) {

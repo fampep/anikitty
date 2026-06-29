@@ -1,4 +1,4 @@
-import { queryAniList } from "@/lib/anilist";
+import { queryAniList } from "@/lib/oauth/anilist";
 
 export const revalidate = 3600;
 

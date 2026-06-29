@@ -6,8 +6,8 @@ import {
   chatMessageActivityAt,
   filterActiveChatMessages,
   type ChatMessage,
-} from "@/lib/chat";
-import { CHAT_MESSAGE_TTL_MS } from "@/lib/chat-config";
+} from "@/lib/social/chat";
+import { CHAT_MESSAGE_TTL_MS } from "@/lib/social/chat-config";
 
 const POLL_MS = 3_000;
 const PRUNE_MS = 30_000;

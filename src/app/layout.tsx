@@ -3,17 +3,17 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 
-import NavBar from "@/components/navbar";
-import Footer from "@/components/footer";
-import SiteBetaBadge from "@/components/site-beta-badge";
-import SiteAnnouncementBanner from "@/components/site-announcement-banner";
-import I18nRoot from "@/components/i18n-root";
+import NavBar from "@/components/layout/navbar";
+import Footer from "@/components/layout/footer";
+import SiteBetaBadge from "@/components/layout/site-beta-badge";
+import SiteAnnouncementBanner from "@/components/layout/site-announcement-banner";
+import I18nRoot from "@/components/layout/i18n-root";
 import Script from "next/script";
 import QueryProvider from "@/providers/query-provider";
 import { PublicEnvScript } from "next-runtime-env";
 
-import { ThemeProvider } from "@/components/theme-provider";
-import UserThemeSync from "@/components/user-theme-sync";
+import { ThemeProvider } from "@/components/layout/theme-provider";
+import UserThemeSync from "@/components/layout/user-theme-sync";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -25,7 +25,7 @@ import {
   SITE_APPLE_ICON,
   SITE_FAVICON,
   SITE_LOGO,
-} from "@/lib/site-seo";
+} from "@/lib/seo/site-seo";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

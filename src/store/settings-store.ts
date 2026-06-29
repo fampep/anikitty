@@ -4,7 +4,7 @@ import {
   DEFAULT_SUBTITLE_SETTINGS,
   type SubtitleFontWeight,
   type SubtitleSettings,
-} from "@/lib/subtitle-settings";
+} from "@/lib/subtitles/subtitle-settings";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 

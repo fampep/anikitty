@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { buildPageMetadata, PAGE_SEO } from "@/lib/site-seo";
+import { buildPageMetadata, PAGE_SEO } from "@/lib/seo/site-seo";
 
 export const metadata: Metadata = buildPageMetadata(PAGE_SEO.schedule);
 

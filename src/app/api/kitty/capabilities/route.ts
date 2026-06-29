@@ -1,5 +1,5 @@
-import { fetchActiveProviderStreamCapabilities, parseStreamCapabilityTarget } from "@/lib/stream-capabilities";
-import { isKittyProvider } from "@/lib/kitty-providers";
+import { fetchActiveProviderStreamCapabilities, parseStreamCapabilityTarget } from "@/lib/kitty/stream-capabilities";
+import { isKittyProvider } from "@/lib/kitty/kitty-providers";
 
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;

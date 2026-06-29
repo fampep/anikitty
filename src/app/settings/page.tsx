@@ -1,10 +1,10 @@
 "use client";
 
-import Container from "@/components/container";
+import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import {
   Settings,
   LayoutList,
@@ -26,22 +26,22 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import AnilistConnect from "@/app/profile/[username]/components/anilist-connect";
+import AnilistConnect from "@/components/profile/anilist-connect";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
-} from "@/components/profile-customization-form";
-import ProfileMediaPreview from "@/components/profile-media-preview";
-import { applyUserThemeColor } from "@/lib/theme-color";
-import { withAuth } from "@/lib/auth-fetch";
-import TwoFactorSection from "@/components/two-factor-section";
-import PasskeysSection from "@/components/passkeys-section";
-import ActiveSessionsSection from "@/components/active-sessions-section";
-import ProfilePrivacySection from "@/components/profile-privacy-section";
-import AccountDeletionSection from "@/components/account-deletion-section";
-import SubtitleSettingsPanel from "@/components/subtitle-settings-panel";
-import DiscordConnect from "@/components/discord-connect";
-import AnisurgeConnect from "@/components/anisurge-connect";
-import { RoleBadge } from "@/components/role-badge";
+} from "@/components/profile/profile-customization-form";
+import ProfileMediaPreview from "@/components/profile/profile-media-preview";
+import { applyUserThemeColor } from "@/lib/core/theme-color";
+import { withAuth } from "@/lib/auth/auth-fetch";
+import TwoFactorSection from "@/components/auth/two-factor-section";
+import PasskeysSection from "@/components/auth/passkeys-section";
+import ActiveSessionsSection from "@/components/auth/active-sessions-section";
+import ProfilePrivacySection from "@/components/profile/profile-privacy-section";
+import AccountDeletionSection from "@/components/auth/account-deletion-section";
+import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
+import DiscordConnect from "@/components/auth/discord-connect";
+import AnisurgeConnect from "@/components/auth/anisurge-connect";
+import { RoleBadge } from "@/components/profile/role-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n, useT } from "@/providers/i18n-provider";
 import { locales, localeLabels, type Locale } from "@/i18n/config";

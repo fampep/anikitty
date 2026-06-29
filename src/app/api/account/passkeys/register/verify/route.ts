@@ -4,14 +4,14 @@ import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import { getDb } from "@/db";
 import { userPasskeys } from "@/db/schema";
-import { requireUser, unauthorized } from "@/lib/require-user";
-import { verifyPasskeyChallengeToken } from "@/lib/auth-jwt";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { requireUser, unauthorized } from "@/lib/auth/require-user";
+import { verifyPasskeyChallengeToken } from "@/lib/auth/auth-jwt";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import {
   getWebAuthnOrigin,
   getWebAuthnRpId,
   serializePasskeyTransports,
-} from "@/lib/webauthn";
+} from "@/lib/auth/webauthn";
 
 export async function POST(req: Request) {
   const user = await requireUser(req);

@@ -1,7 +1,7 @@
-import { fetchKittyStreamRaw } from "@/lib/kitty-stream-fetch";
-import { fetchSegment, resolveVideoDownload } from "@/lib/hls-download";
-import { buildVideoDownloadFilename } from "@/lib/video-download-utils";
-import { VIDEO_DOWNLOAD_ENABLED } from "@/lib/video-download-config";
+import { fetchKittyStreamRaw } from "@/lib/kitty/kitty-stream-fetch";
+import { fetchSegment, resolveVideoDownload } from "@/lib/kitty/hls-download";
+import { buildVideoDownloadFilename } from "@/lib/kitty/video-download-utils";
+import { VIDEO_DOWNLOAD_ENABLED } from "@/lib/kitty/video-download-config";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ID = /^\d{1,10}$/;

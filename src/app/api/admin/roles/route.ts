@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { roles } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/auth/admin-auth";
 import {
   BUILTIN_ROLE_COLORS,
   BUILTIN_ROLE_NAMES,
@@ -11,7 +11,7 @@ import {
   PERMISSION_DEFS,
   saveBuiltinRolePermissions,
   type BuiltinRoleName,
-} from "@/lib/permissions";
+} from "@/lib/security/permissions";
 import { eq } from "drizzle-orm";
 
 function builtinRoleRow(name: BuiltinRoleName, permissions: string[]) {

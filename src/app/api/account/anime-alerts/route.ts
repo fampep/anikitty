@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
-import { getUserEpisodeAlert, upsertEpisodeAlert } from "@/lib/episode-alerts";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
+import { getUserEpisodeAlert, upsertEpisodeAlert } from "@/lib/watch/episode-alerts";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -70,7 +70,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "anilistId required" }, { status: 400 });
   }
 
-  const { removeEpisodeAlert } = await import("@/lib/episode-alerts");
+  const { removeEpisodeAlert } = await import("@/lib/watch/episode-alerts");
   await removeEpisodeAlert(payload.userId, anilistId);
   return NextResponse.json({ ok: true });
 }

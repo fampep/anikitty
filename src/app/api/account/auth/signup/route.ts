@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { buildAuthResponse } from "@/lib/auth-response";
-import { jsonWithAuthCookie } from "@/lib/auth-cookie";
+import { buildAuthResponse } from "@/lib/auth/auth-response";
+import { jsonWithAuthCookie } from "@/lib/auth/auth-cookie";
 import {
   findSignupConflict,
   hashPassword,
   validateEmail,
   validatePassword,
   validateUsername,
-} from "@/lib/local-auth";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { assertAuthSecretsConfigured } from "@/lib/security";
+} from "@/lib/auth/local-auth";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { assertAuthSecretsConfigured } from "@/lib/security/security";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();

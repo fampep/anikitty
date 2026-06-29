@@ -1,4 +1,4 @@
-import { getHomePosterUrls } from "@/lib/home-data";
+import { getHomePosterUrls } from "@/lib/core/home-data";
 
 export async function GET() {
   try {

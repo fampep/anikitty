@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { userNotifications, users } from "@/db/schema";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
-import { decryptStoredMessage } from "@/lib/message-crypto";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
+import { decryptStoredMessage } from "@/lib/security/message-crypto";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 export async function GET(req: Request) {

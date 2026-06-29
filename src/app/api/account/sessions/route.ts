@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { extractToken, verifyToken } from "@/lib/auth-jwt";
+import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import {
   listUserSessions,
   revokeOtherSessions,
   revokeSessions,
-} from "@/lib/user-sessions";
-import { checkRateLimit } from "@/lib/rate-limit";
+} from "@/lib/user/user-sessions";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 export async function GET(req: Request) {
   const token = extractToken(req);

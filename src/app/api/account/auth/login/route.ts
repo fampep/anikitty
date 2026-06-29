@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { sign2faPendingToken } from "@/lib/auth-jwt";
-import { buildAuthResponse } from "@/lib/auth-response";
-import { jsonWithAuthCookie } from "@/lib/auth-cookie";
+import { sign2faPendingToken } from "@/lib/auth/auth-jwt";
+import { buildAuthResponse } from "@/lib/auth/auth-response";
+import { jsonWithAuthCookie } from "@/lib/auth/auth-cookie";
 import {
   findUserByIdentifier,
   verifyUserPassword,
-} from "@/lib/local-auth";
-import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
-import { isUserBanned } from "@/lib/moderation";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { assertAuthSecretsConfigured } from "@/lib/security";
+} from "@/lib/auth/local-auth";
+import { shouldPromptForTwoFactor } from "@/lib/auth/totp-reactive";
+import { isUserBanned } from "@/lib/security/moderation";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { assertAuthSecretsConfigured } from "@/lib/security/security";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();

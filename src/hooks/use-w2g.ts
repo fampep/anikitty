@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { w2gApi, type W2gMessage, type W2gMember, type W2gRoom } from "@/lib/w2g";
+import { w2gApi, type W2gMessage, type W2gMember, type W2gRoom } from "@/lib/social/w2g";
 
 const POLL_MS = 2_000;
 

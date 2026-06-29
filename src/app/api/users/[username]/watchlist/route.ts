@@ -4,8 +4,8 @@ import { watchlist } from "@/db/schema";
 import {
   mapWatchlistItem,
   WATCHLIST_FOLDERS,
-} from "@/lib/watchlist-response";
-import { requireVisibleProfileUser } from "@/lib/public-profile-access";
+} from "@/lib/watch/watchlist-response";
+import { requireVisibleProfileUser } from "@/lib/user/public-profile-access";
 import { and, eq, sql } from "drizzle-orm";
 
 export async function GET(
