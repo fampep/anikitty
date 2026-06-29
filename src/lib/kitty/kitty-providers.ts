@@ -12,6 +12,7 @@ export const KITTY_PROVIDERS = [
   "AnimeHeaven",
   "AnimeHub",
   "ReAnime",
+  "2Dhive",
   "KaaLt",
   "AllAnime",
   "MKissa",
@@ -143,6 +144,14 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsDub: true,
     hint: "reanime.to · FlixCloud · HD-1 / HD-2 · SUB · DUB (when available)",
   },
+  {
+    id: "2Dhive",
+    label: "2Dhive",
+    group: "featured",
+    nativeSubs: true,
+    supportsDub: true,
+    hint: "2dhive.com · HAdfree · HLS · hiAnime · MegaPlay · SUB · DUB",
+  },
   { id: "Anitaku", label: "Anitaku", group: "other", nativeSubs: true, hint: "SUB · Soft sub tracks" },
   { id: "Anikage", label: "Anikage", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "AnimeHeaven", label: "AnimeHeaven", group: "other", hardSub: true, hint: "SUB · Hard sub" },
@@ -212,6 +221,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "MKissa",
   "AnimeHub",
   "ReAnime",
+  "2Dhive",
 ]);
 
 export function isKittyProvider(value: string): value is KittyProvider {
