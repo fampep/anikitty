@@ -110,10 +110,20 @@ const VideoPlayerSection = () => {
   useEffect(() => {
     const dubParam = searchParams.get("dub");
     if (dubParam === "1" || dubParam === "true") {
-      setAudioMode("sub");
       setStreamAudio("dub");
+      setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
     }
   }, [searchParams]);
+
+  const syncDubSearchParam = useCallback(
+    (dub: boolean) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (dub) params.set("dub", "1");
+      else params.delete("dub");
+      router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   useEffect(() => {
     setPreferDub(streamAudio === "dub");
@@ -212,11 +222,13 @@ const VideoPlayerSection = () => {
     if (streamAudio === "dub" && !canSelectDubAudio && canSelectSubAudio) {
       setStreamAudio("sub");
       localStorage.setItem("kittyStreamAudio", "sub");
+      syncDubSearchParam(false);
     } else if (streamAudio === "sub" && !canSelectSubAudio && canSelectDubAudio) {
       setStreamAudio("dub");
       localStorage.setItem("kittyStreamAudio", "dub");
+      syncDubSearchParam(true);
     }
-  }, [activeStreamCaps, streamAudio, canSelectSubAudio, canSelectDubAudio]);
+  }, [activeStreamCaps, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
 
   // ── Resume position ──────────────────────────────────────────────
   const [startTime, setStartTime] = useState(0);
@@ -465,14 +477,27 @@ const VideoPlayerSection = () => {
     localStorage.setItem("kittyAudioMode", mode);
     if (mode === "multi") {
       // Keep streamAudio — SUB/DUB toggle handles audio for multi providers.
+    } else if (mode === "sub") {
+      const caps = streamCapabilities?.providers[p];
+      if (caps?.dub && !caps.sub) {
+        setStreamAudio("dub");
+        localStorage.setItem("kittyStreamAudio", "dub");
+        syncDubSearchParam(true);
+      } else {
+        setStreamAudio("sub");
+        localStorage.setItem("kittyStreamAudio", "sub");
+        syncDubSearchParam(false);
+      }
     } else {
       const caps = streamCapabilities?.providers[p];
       if (caps?.dub && !caps.sub && streamAudio === "sub") {
         setStreamAudio("dub");
         localStorage.setItem("kittyStreamAudio", "dub");
+        syncDubSearchParam(true);
       } else if (caps?.sub && !caps.dub && streamAudio === "dub") {
         setStreamAudio("sub");
         localStorage.setItem("kittyStreamAudio", "sub");
+        syncDubSearchParam(false);
       }
     }
     if (mode !== "multi" || (p !== "Miruro" && p !== "Animex")) {
@@ -493,6 +518,7 @@ const VideoPlayerSection = () => {
     if (t > 5) setStartTime(t);
     setStreamAudio(next);
     localStorage.setItem("kittyStreamAudio", next);
+    syncDubSearchParam(next === "dub");
   };
 
   const handleMultiToggle = (panel: MultiPanelProvider | null) => {
