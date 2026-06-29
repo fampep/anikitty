@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Container from "./container";
 import { nightTokyo } from "@/utils/fonts";
 import { ROUTES } from "@/constants/routes";
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useRef, useState } from "react";
 import SearchBar from "./search-bar";
 import {
   CalendarDays,
@@ -234,12 +234,16 @@ const NavBar = () => {
     };
   }, [user, setAuth, clearAuth]);
 
+  const discordHandledRef = useRef(false);
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || discordHandledRef.current) return;
 
     const params = new URLSearchParams(window.location.search);
     const discord = params.get("discord");
     if (!discord) return;
+
+    discordHandledRef.current = true;
 
     const errorKeys: Record<string, string> = {
       cancelled: "auth.discordCancelled",

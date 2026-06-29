@@ -303,7 +303,11 @@ export default function KittyPlayer({
 
     activateSubtitlesRef.current = tryActivate;
 
-    const onTracksChange = () => tryActivate();
+    let tracksChangeTimer: ReturnType<typeof setTimeout> | undefined;
+    const onTracksChange = () => {
+      if (tracksChangeTimer) clearTimeout(tracksChangeTimer);
+      tracksChangeTimer = setTimeout(() => tryActivate(), 50);
+    };
 
     player.addEventListener("can-play", tryActivate);
     player.addEventListener("vds-text-tracks-change", onTracksChange);
@@ -313,6 +317,7 @@ export default function KittyPlayer({
       player.removeEventListener("can-play", tryActivate);
       player.removeEventListener("vds-text-tracks-change", onTracksChange);
       if (retryTimer) clearTimeout(retryTimer);
+      if (tracksChangeTimer) clearTimeout(tracksChangeTimer);
     };
   }, [proxiedSrc, subTracks, preferSubtitles]);
 

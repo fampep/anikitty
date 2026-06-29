@@ -95,8 +95,18 @@ export function bindSubtitlePlaybackSync(
   let lastOffset = getOffsetSec();
   let resyncTimer: ReturnType<typeof setTimeout> | undefined;
 
+  let resyncInFlight = false;
+
   const resync = () => {
-    resyncShowingSubtitleTrack(player, getOffsetSec());
+    if (resyncInFlight) return;
+    resyncInFlight = true;
+    try {
+      resyncShowingSubtitleTrack(player, getOffsetSec());
+    } finally {
+      queueMicrotask(() => {
+        resyncInFlight = false;
+      });
+    }
   };
 
   const scheduleResync = () => {
@@ -135,7 +145,7 @@ export function bindSubtitlePlaybackSync(
   const onTracksChange = () => {
     attachTrackLoadListeners(player, onTrackLoad);
     applyOffsetToAllTracks(getOffsetSec());
-    scheduleResync();
+    // Avoid toggling track mode here — resync on text-tracks-change loops with Vidstack.
   };
 
   player.addEventListener("vds-text-tracks-change", onTracksChange);

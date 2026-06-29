@@ -255,16 +255,19 @@ const VideoPlayerSection = () => {
     ],
   );
 
+  const providerStreamCaps = streamCapabilities?.providers[provider] ?? null;
+  const capsForAudioAvailability = providerStreamCaps ?? activeStreamCaps;
+
   const canSwitchStreamAudio = useMemo(
-    () => canToggleStreamAudio(activeStreamCaps),
-    [activeStreamCaps],
+    () => canToggleStreamAudio(capsForAudioAvailability),
+    [capsForAudioAvailability],
   );
 
-  const canSelectSubAudio = supportsStreamAudioMode(activeStreamCaps, "sub");
-  const canSelectDubAudio = supportsStreamAudioMode(activeStreamCaps, "dub");
+  const canSelectSubAudio = supportsStreamAudioMode(capsForAudioAvailability, "sub");
+  const canSelectDubAudio = supportsStreamAudioMode(capsForAudioAvailability, "dub");
 
   useEffect(() => {
-    if (!activeStreamCaps) return;
+    if (!capsForAudioAvailability) return;
     if (streamAudio === "dub" && !canSelectDubAudio && canSelectSubAudio) {
       setStreamAudio("sub");
       localStorage.setItem("kittyStreamAudio", "sub");
@@ -274,21 +277,24 @@ const VideoPlayerSection = () => {
       localStorage.setItem("kittyStreamAudio", "dub");
       syncDubSearchParam(true);
     }
-  }, [activeStreamCaps, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
+  }, [capsForAudioAvailability, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
+
+  const animestreamDubLocales = useMemo(
+    () => (streamCapabilities?.animestreamServers ?? []).map((s) => s.locale).join("\0"),
+    [streamCapabilities?.animestreamServers],
+  );
 
   useEffect(() => {
     if (provider !== "AnimeStream" || streamAudio !== "dub") return;
-    const servers = streamCapabilities?.animestreamServers ?? [];
-    if (servers.length === 0) return;
-    const known = servers.some((s) => s.locale === animestreamLocale);
-    if (!known) {
-      const fallback =
-        servers.find((s) => s.locale === DEFAULT_ANIMESTREAM_DUB_LOCALE)?.locale ??
-        servers[0]!.locale;
-      setAnimestreamLocale(fallback);
-      localStorage.setItem("animestreamLocale", fallback);
-    }
-  }, [provider, streamAudio, streamCapabilities?.animestreamServers, animestreamLocale]);
+    if (!animestreamDubLocales) return;
+    const locales = animestreamDubLocales.split("\0");
+    if (locales.includes(animestreamLocale)) return;
+    const fallback =
+      locales.find((l) => l === DEFAULT_ANIMESTREAM_DUB_LOCALE) ?? locales[0];
+    if (!fallback || fallback === animestreamLocale) return;
+    setAnimestreamLocale(fallback);
+    localStorage.setItem("animestreamLocale", fallback);
+  }, [provider, streamAudio, animestreamDubLocales, animestreamLocale]);
 
   // ── Resume position ──────────────────────────────────────────────
   const [startTime, setStartTime] = useState(0);
