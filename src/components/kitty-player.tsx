@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import Image from "next/image";
-import { SITE_LOGO } from "@/lib/site-seo";
 import type { KittyTrack } from "@/query/get-kitty-stream";
 import type { SkipTimes, SkipInterval } from "@/query/use-aniskip";
 import { isSubtitleTrack, labelToLanguage } from "@/lib/subtitle-track-utils";
@@ -681,26 +679,6 @@ export default function KittyPlayer({
       data-anime4k={anime4kEnabled ? "true" : undefined}
     >
       <div className="kitty-stage__glow pointer-events-none absolute -inset-px rounded-xl bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent opacity-80" aria-hidden />
-
-      <div className="kitty-stage__brand pointer-events-none absolute top-0 inset-x-0 z-[25] flex items-center justify-between gap-3 px-4 py-3">
-        {anime4kEnabled ? (
-          <span className="kitty-meta-pill text-violet-200/80 border-violet-400/20 bg-violet-500/10">
-            4K
-          </span>
-        ) : (
-          <span aria-hidden />
-        )}
-        <div className="kitty-player-logo shrink-0 select-none opacity-70 transition-opacity duration-300 group-hover/stage:opacity-90">
-          <Image
-            src={SITE_LOGO}
-            alt=""
-            width={88}
-            height={32}
-            className="h-[18px] w-auto object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
-            unoptimized
-          />
-        </div>
-      </div>
 
       <MediaPlayer
         ref={playerRef}

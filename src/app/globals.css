@@ -271,17 +271,6 @@ button, a, [role="button"] {
   );
 }
 
-.kitty-meta-pill {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.3rem 0.65rem;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 .kitty-overlay {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
@@ -464,10 +453,6 @@ button, a, [role="button"] {
   pointer-events: none !important;
 }
 
-.vds-kitty .kitty-player-logo {
-  transition: opacity 0.2s ease;
-}
-
 .vds-kitty .kitty-skip-marker {
   border-radius: 999px;
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.45), rgba(192, 132, 252, 0.42)) !important;
@@ -587,11 +572,6 @@ button, a, [role="button"] {
   .vds-kitty {
     --kitty-dock-offset: 10px;
     --kitty-dock-height: 54px;
-  }
-
-  .kitty-stage__brand {
-    padding-inline: 10px;
-    padding-top: 10px;
   }
 
   .kitty-overlay--base,

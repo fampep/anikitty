@@ -113,6 +113,7 @@ export async function GET(
           malId: m.idMal ?? 0,
           name: toTitle(m.title),
           poster: m.coverImage?.extraLarge ?? "",
+          banner: m.bannerImage ?? m.coverImage?.extraLarge ?? "",
           description: (m.description ?? "").replace(/<[^>]*>/g, ""),
           stats: {
             rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
