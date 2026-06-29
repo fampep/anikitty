@@ -160,7 +160,7 @@ export default function FaqContent() {
           <p className="text-sm text-white/45 leading-relaxed mb-4">{t("faq.contactDesc")}</p>
           <div className="flex flex-wrap gap-3">
             <a
-              href="https://discord.gg/AWpSHbEDZ2"
+              href="https://discord.gg/gD8QTfkhHq"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/12 text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors"

@@ -213,7 +213,7 @@ export default function LandingPage() {
         </p>
         <div className="flex items-center gap-4">
           <a
-            href="https://discord.gg/AWpSHbEDZ2"
+            href="https://discord.gg/gD8QTfkhHq"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white/20 hover:text-white/55 transition-colors"

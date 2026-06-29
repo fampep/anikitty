@@ -60,7 +60,7 @@ const Footer = () => {
                 <GitHubLogoIcon width="14" height="14" />
               </a>
               <a
-                href="https://discord.gg/AWpSHbEDZ2"
+                href="https://discord.gg/gD8QTfkhHq"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 rounded-lg border border-white/10 text-white/30 hover:text-white/70 hover:border-white/25 transition-all"
@@ -87,7 +87,7 @@ const Footer = () => {
               <LanguageSwitcher compact />
             </div>
             <a
-              href="https://anisurge.me"
+              href="https://www.anisurge.lol/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-white/35 hover:text-white/65 transition-colors"
@@ -109,7 +109,7 @@ const Footer = () => {
               {t("footer.github")}
             </a>
             <a
-              href="https://discord.gg/AWpSHbEDZ2"
+              href="https://discord.gg/gD8QTfkhHq"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-white/35 hover:text-white/65 transition-colors"
