@@ -20,6 +20,7 @@ import {
 import {
   isKittyProvider,
   MULTI_ROW_PROVIDERS,
+  providerSupportsDub,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty-providers";
@@ -142,10 +143,10 @@ async function probeDirectProviderCapabilities(
   episode: number,
   title?: string | null,
 ): Promise<StreamCapabilities> {
-  const [subProbe, dubProbe] = await Promise.all([
-    probeStreamDirect(provider, anilistId, episode, "sub", title),
-    probeStreamDirect(provider, anilistId, episode, "dub", title),
-  ]);
+  const subProbe = await probeStreamDirect(provider, anilistId, episode, "sub", title);
+  const dubProbe = providerSupportsDub(provider)
+    ? await probeStreamDirect(provider, anilistId, episode, "dub", title)
+    : null;
   return capabilitiesFromProbes(subProbe, dubProbe);
 }
 
