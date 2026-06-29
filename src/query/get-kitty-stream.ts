@@ -1,6 +1,7 @@
 import { useQuery } from "react-query";
 import { api } from "@/lib/api";
 import type { AnimexServerId } from "@/lib/animex-api";
+import type { AnimoServerId } from "@/lib/animo-api";
 import type { MiruroPipeProviderId } from "@/lib/miruro-api";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -43,6 +44,7 @@ const getKittyStream = async (
   miruroPipe?: MiruroPipeProviderId | null,
   title?: string | null,
   animexServer?: AnimexServerId | null,
+  animoServer?: AnimoServerId | null,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -53,6 +55,7 @@ const getKittyStream = async (
       ...(title ? { title } : {}),
       ...(provider === "Miruro" && miruroPipe ? { miruroPipe } : {}),
       ...(provider === "Animex" && animexServer ? { animexServer } : {}),
+      ...(provider === "Animo" && animoServer ? { animoServer } : {}),
     },
   });
   return res.data;
@@ -66,6 +69,7 @@ export const useGetKittyStream = (
   miruroPipe?: MiruroPipeProviderId | null,
   title?: string | null,
   animexServer?: AnimexServerId | null,
+  animoServer?: AnimoServerId | null,
 ) => {
   return useQuery({
     queryKey: [
@@ -76,10 +80,11 @@ export const useGetKittyStream = (
       provider,
       miruroPipe ?? "",
       animexServer ?? "",
+      animoServer ?? "",
       title ?? "",
     ],
     queryFn: () =>
-      getKittyStream(anilistId!, episode!, audio, provider, miruroPipe, title, animexServer),
+      getKittyStream(anilistId!, episode!, audio, provider, miruroPipe, title, animexServer, animoServer),
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,

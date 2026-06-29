@@ -7,6 +7,7 @@ import {
   verifyUserPassword,
 } from "@/lib/local-auth";
 import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
+import { isUserBanned } from "@/lib/moderation";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security";
 
@@ -35,6 +36,13 @@ export async function POST(req: Request) {
     const user = await findUserByIdentifier(identifier);
     if (!user || !(await verifyUserPassword(user, password))) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    if (isUserBanned(user)) {
+      return NextResponse.json(
+        { error: user.banReason ? `Account banned: ${user.banReason}` : "This account is banned." },
+        { status: 403 },
+      );
     }
 
     if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {

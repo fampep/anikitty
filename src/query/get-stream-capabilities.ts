@@ -18,6 +18,7 @@ const getStreamCapabilities = async (
       provider: target.provider,
       ...(target.miruroPipe ? { miruroPipe: target.miruroPipe } : {}),
       ...(target.animexServer ? { animexServer: target.animexServer } : {}),
+      ...(target.animoServer ? { animoServer: target.animoServer } : {}),
       ...(title ? { title } : {}),
     },
   });
@@ -39,6 +40,7 @@ export const useGetStreamCapabilities = (
       target?.provider,
       target?.miruroPipe ?? "",
       target?.animexServer ?? "",
+      target?.animoServer ?? "",
     ],
     queryFn: () => getStreamCapabilities(anilistId!, episode!, target!, title),
     enabled:

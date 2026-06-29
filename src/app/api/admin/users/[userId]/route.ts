@@ -4,6 +4,7 @@ import { userSessions, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-auth";
 import { deleteUserAccount, DeleteUserError } from "@/lib/delete-user";
 import { hashPassword, validatePassword } from "@/lib/local-auth";
+import { applyModerationAction, ModerationError } from "@/lib/moderation";
 import { and, eq, isNull } from "drizzle-orm";
 
 export async function PATCH(
@@ -53,6 +54,28 @@ export async function PATCH(
       .where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
 
     return NextResponse.json({ ok: true });
+  }
+
+  if (action === "mute" || action === "unmute" || action === "ban" || action === "unban") {
+    try {
+      const moderation = await applyModerationAction(db, {
+        targetUserId: userId,
+        actorUserId: null,
+        actorRole: "admin",
+        action,
+        reason: body.reason,
+        durationHours: body.durationHours,
+        bypassTargetCheck: true,
+      });
+      return NextResponse.json({ ok: true, moderation });
+    } catch (e) {
+      if (e instanceof ModerationError) {
+        const status =
+          e.code === "NOT_FOUND" ? 404 : e.code === "LAST_ADMIN" || e.code === "INVALID" ? 400 : 403;
+        return NextResponse.json({ error: e.message }, { status });
+      }
+      throw e;
+    }
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

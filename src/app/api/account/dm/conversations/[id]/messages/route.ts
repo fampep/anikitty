@@ -5,6 +5,7 @@ import { extractToken, verifyToken } from "@/lib/auth-jwt";
 import { createDmNotification } from "@/lib/dm-server";
 import { sanitizeBody, sanitizeGifUrl, rateLimit } from "@/lib/comment-helpers";
 import { assertMessageEncryptionConfigured, encryptStoredMessage } from "@/lib/message-crypto";
+import { blockIfCannotInteract } from "@/lib/moderation";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ id: string }> };
@@ -28,6 +29,8 @@ export async function POST(req: Request, { params }: Params) {
 
   const { id } = await params;
   const db = getDb();
+  const blocked = await blockIfCannotInteract(db, payload.userId);
+  if (blocked) return NextResponse.json({ error: blocked.error }, { status: blocked.status });
 
   const [conv] = await db.select().from(dmConversations).where(eq(dmConversations.id, id)).limit(1);
   if (!conv) return NextResponse.json({ error: "Not found" }, { status: 404 });

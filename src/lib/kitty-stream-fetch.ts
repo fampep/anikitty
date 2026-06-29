@@ -4,6 +4,11 @@ import {
   fetchMiruroVideoStream,
   isMiruroPipeProviderId,
 } from "@/lib/miruro-api";
+import {
+  DEFAULT_ANIMO_SERVER,
+  fetchAnimoVideoStream,
+  isAnimoServerId,
+} from "@/lib/animo-api";
 import type { KittyProvider } from "@/lib/kitty-providers";
 
 export type KittyRawStream = {
@@ -21,6 +26,7 @@ export async function fetchKittyStreamRaw(
   audio: "sub" | "dub",
   miruroPipe?: string | null,
   title?: string | null,
+  animoServer?: string | null,
 ): Promise<KittyRawStream | null> {
   if (provider === "Miruro") {
     const pipe =
@@ -41,6 +47,29 @@ export async function fetchKittyStreamRaw(
         headers: miruro.headers,
         download: miruro.download,
         tracks: miruro.tracks,
+      };
+    }
+  }
+
+  if (provider === "Animo") {
+    const server =
+      animoServer && isAnimoServerId(animoServer) ? animoServer : DEFAULT_ANIMO_SERVER;
+
+    const animo = await fetchAnimoVideoStream({
+      anilistId,
+      episode,
+      audio,
+      serverId: server,
+      title,
+    });
+
+    if (animo?.file) {
+      return {
+        file: animo.file,
+        headers: animo.headers,
+        download: animo.download,
+        tracks: animo.tracks,
+        server: animo.server,
       };
     }
   }

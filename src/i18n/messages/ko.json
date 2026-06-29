@@ -827,6 +827,7 @@
     "retryWith": "{provider}(으)로 다시 시도",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "스트림 소스",
     "providerGroupFeatured": "추천",

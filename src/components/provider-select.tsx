@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/animex-api";
+import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/animo-api";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/miruro-api";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -57,6 +58,7 @@ export default function ProviderSelect({
             : "h-9 min-w-[11rem] text-xs font-mono bg-white/[0.04] border-white/12 text-white/75 hover:bg-white/[0.07]",
           value === "Miruro" && "border-violet-500/25 bg-violet-500/[0.06] text-violet-100/85",
           value === "AnimeSogo" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
+          value === "Animo" && "border-cyan-500/25 bg-cyan-500/[0.06] text-cyan-100/85",
           className,
         )}
       >
@@ -108,12 +110,14 @@ export function ProviderQuickPick({
   multiPanel = null,
   miruroPipe,
   animexServer,
+  animoServer,
   capabilities,
   capabilitiesLoading,
   onSelect,
   onMultiToggle,
   onMiruroPipeChange,
   onAnimexServerChange,
+  onAnimoServerChange,
   className,
 }: {
   value: KittyProvider;
@@ -121,12 +125,14 @@ export function ProviderQuickPick({
   multiPanel?: MultiPanelProvider | null;
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
+  animoServer?: AnimoServerId;
   capabilities?: EpisodeStreamCapabilities;
   capabilitiesLoading?: boolean;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
   onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
+  onAnimoServerChange?: (server: AnimoServerId) => void;
   className?: string;
 }) {
   return (
@@ -136,12 +142,14 @@ export function ProviderQuickPick({
       multiPanel={multiPanel}
       miruroPipe={miruroPipe}
       animexServer={animexServer}
+      animoServer={animoServer}
       capabilities={capabilities}
       capabilitiesLoading={capabilitiesLoading}
       onSelect={onSelect}
       onMultiToggle={onMultiToggle}
       onMiruroPipeChange={onMiruroPipeChange}
       onAnimexServerChange={onAnimexServerChange}
+      onAnimoServerChange={onAnimoServerChange}
       className={className}
       rows={["sub", "multi"]}
     />
@@ -253,6 +261,8 @@ type ProviderGridProps = {
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   animexServer?: AnimexServerId;
   onAnimexServerChange?: (server: AnimexServerId) => void;
+  animoServer?: AnimoServerId;
+  onAnimoServerChange?: (server: AnimoServerId) => void;
   capabilities?: EpisodeStreamCapabilities;
   capabilitiesLoading?: boolean;
   disabled?: boolean;
@@ -270,6 +280,8 @@ export function ProviderGrid({
   onMiruroPipeChange,
   animexServer,
   onAnimexServerChange,
+  animoServer,
+  onAnimoServerChange,
   capabilities,
   capabilitiesLoading = false,
   disabled,
@@ -344,6 +356,7 @@ export function ProviderGrid({
                       isExpanded && styles.expanded,
                       capabilitiesLoading && "opacity-60 animate-pulse",
                       p.id === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
+                      p.id === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
                     )}
                   >
                     <span className="truncate">{p.label}</span>
@@ -419,6 +432,34 @@ export function ProviderGrid({
           </div>
         </MultiServerPanel>
       )}
+
+      {provider === "Animo" && onAnimoServerChange && animoServer != null && (
+        <MultiServerPanel accent="cyan" label={t("watch.animoServer")}>
+          <div className="flex flex-wrap gap-1.5">
+            {ANIMO_SERVERS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => onAnimoServerChange(s.id)}
+                title={s.hint}
+                className={cn(
+                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                  animoServer === s.id
+                    ? "bg-cyan-500/25 border-cyan-400/45 text-cyan-100"
+                    : "border-white/10 text-white/45 hover:border-cyan-500/30 hover:text-cyan-200/80 hover:bg-cyan-500/[0.06]",
+                  capabilitiesLoading && "opacity-60 animate-pulse",
+                )}
+              >
+                <span>{s.label}</span>
+                {capsReady && animoServer === s.id && (
+                  <StreamCapabilityBadges caps={capabilities?.animoServers[s.id]} />
+                )}
+              </button>
+            ))}
+          </div>
+        </MultiServerPanel>
+      )}
     </div>
   );
 }
@@ -429,12 +470,21 @@ function MultiServerPanel({
   children,
 }: {
   label: string;
-  accent: "violet" | "rose";
+  accent: "violet" | "rose" | "cyan";
   children: ReactNode;
 }) {
   const border =
-    accent === "rose" ? "border-rose-500/25 bg-rose-500/[0.04]" : "border-violet-500/25 bg-violet-500/[0.04]";
-  const text = accent === "rose" ? "text-rose-300/70" : "text-violet-300/70";
+    accent === "rose"
+      ? "border-rose-500/25 bg-rose-500/[0.04]"
+      : accent === "cyan"
+        ? "border-cyan-500/25 bg-cyan-500/[0.04]"
+        : "border-violet-500/25 bg-violet-500/[0.04]";
+  const text =
+    accent === "rose"
+      ? "text-rose-300/70"
+      : accent === "cyan"
+        ? "text-cyan-300/70"
+        : "text-violet-300/70";
 
   return (
     <div className={cn("ml-14 rounded-lg border px-2.5 py-2", border)}>

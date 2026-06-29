@@ -5,6 +5,7 @@ import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/comme
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 import { CHAT_MESSAGE_TTL_MS, getChatCutoffDate } from "@/lib/chat-config";
 import { maybeSweepChatMessages } from "@/lib/chat-sweep";
+import { blockIfCannotInteract } from "@/lib/moderation";
 import {
   assertMessageEncryptionConfigured,
   decryptStoredMessage,
@@ -134,6 +135,9 @@ export async function POST(req: Request) {
   }
 
   const db = getDb();
+  const blocked = await blockIfCannotInteract(db, payload.userId);
+  if (blocked) return Response.json({ error: blocked.error }, { status: blocked.status });
+
   await maybeSweepChatMessages(db);
 
   const [row] = await db

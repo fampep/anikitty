@@ -204,6 +204,12 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_private BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(32)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_username VARCHAR(100)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_by UUID REFERENCES users(id) ON DELETE SET NULL`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS muted_until TIMESTAMP`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS mute_reason TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS muted_by UUID REFERENCES users(id) ON DELETE SET NULL`,
       `CREATE UNIQUE INDEX IF NOT EXISTS users_discord_id_unique ON users (discord_id) WHERE discord_id IS NOT NULL`,
       `CREATE TABLE IF NOT EXISTS user_passkeys (
         id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,

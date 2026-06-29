@@ -6,6 +6,12 @@ import {
   type AnimexServerId,
 } from "@/lib/animex-api";
 import {
+  DEFAULT_ANIMO_SERVER,
+  isAnimoServerId,
+  probeAnimoServerCapabilities,
+  type AnimoServerId,
+} from "@/lib/animo-api";
+import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   isMiruroPipeProviderId,
   probeMiruroPipeCapabilities,
@@ -31,12 +37,14 @@ export type EpisodeStreamCapabilities = {
   providers: Partial<Record<KittyProvider, StreamCapabilities>>;
   miruroPipes: Partial<Record<MiruroPipeProviderId, StreamCapabilities>>;
   animexServers: Partial<Record<AnimexServerId, StreamCapabilities>>;
+  animoServers: Partial<Record<AnimoServerId, StreamCapabilities>>;
 };
 
 export type StreamCapabilityTarget = {
   provider: KittyProvider;
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
+  animoServer?: AnimoServerId;
 };
 
 export const EMPTY_STREAM_CAPABILITIES: StreamCapabilities = {
@@ -157,6 +165,7 @@ export async function fetchActiveProviderStreamCapabilities(
       providers: { Miruro: caps },
       miruroPipes: { [pipe]: caps },
       animexServers: {},
+      animoServers: {},
     };
   }
 
@@ -167,6 +176,18 @@ export async function fetchActiveProviderStreamCapabilities(
       providers: { Animex: caps },
       miruroPipes: {},
       animexServers: { [server]: caps },
+      animoServers: {},
+    };
+  }
+
+  if (provider === "Animo") {
+    const server = target.animoServer ?? DEFAULT_ANIMO_SERVER;
+    const caps = await probeAnimoServerCapabilities(anilistId, episode, server, title);
+    return {
+      providers: { Animo: caps },
+      miruroPipes: {},
+      animexServers: {},
+      animoServers: { [server]: caps },
     };
   }
 
@@ -175,6 +196,7 @@ export async function fetchActiveProviderStreamCapabilities(
     providers: { [provider]: caps },
     miruroPipes: {},
     animexServers: {},
+    animoServers: {},
   };
 }
 
@@ -192,6 +214,11 @@ export function parseStreamCapabilityTarget(searchParams: URLSearchParams): Stre
   const animexServer = searchParams.get("animexServer");
   if (animexServer && isAnimexServerId(animexServer)) {
     target.animexServer = animexServer;
+  }
+
+  const animoServer = searchParams.get("animoServer");
+  if (animoServer && isAnimoServerId(animoServer)) {
+    target.animoServer = animoServer;
   }
 
   return target;
@@ -235,12 +262,14 @@ export function resolveActiveStreamCapabilities(
   audioMode: ProviderAudioMode,
   animexServer?: AnimexServerId,
   miruroPipe?: MiruroPipeProviderId,
+  animoServer?: AnimoServerId,
 ): StreamCapabilities | null | undefined {
   if (!caps) return undefined;
   if (audioMode === "multi") {
     if (provider === "Miruro" && miruroPipe) return caps.miruroPipes[miruroPipe];
     if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
   }
+  if (provider === "Animo" && animoServer) return caps.animoServers[animoServer] ?? caps.providers[provider];
   return caps.providers[provider];
 }
 
@@ -267,6 +296,7 @@ export function selectionSupportsBothStreamAudioFromCaps(
   caps: EpisodeStreamCapabilities | undefined,
   animexServer?: AnimexServerId,
   miruroPipe?: MiruroPipeProviderId,
+  animoServer?: AnimoServerId,
 ): boolean {
   const active = resolveActiveStreamCapabilities(
     caps,
@@ -274,6 +304,7 @@ export function selectionSupportsBothStreamAudioFromCaps(
     audioMode,
     animexServer,
     miruroPipe,
+    animoServer,
   );
   return canToggleStreamAudio(active);
 }

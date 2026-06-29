@@ -7,6 +7,7 @@ import { verifyOAuthStateFor, sign2faPendingToken } from "@/lib/auth-jwt";
 import { buildAuthResponse } from "@/lib/auth-response";
 import { redirectWithAuthCookie } from "@/lib/auth-cookie";
 import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
+import { isUserBanned } from "@/lib/moderation";
 
 const DISCORD_AUTHORIZE = "https://discord.com/api/oauth2/authorize";
 const DISCORD_TOKEN = "https://discord.com/api/oauth2/token";
@@ -269,6 +270,10 @@ export async function completeDiscordLogin(
     }
 
     const { user } = result;
+
+    if (isUserBanned(user)) {
+      return { type: "error", reason: "banned" };
+    }
 
     if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {
       const pendingToken = await sign2faPendingToken(user.id);

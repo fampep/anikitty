@@ -3,6 +3,7 @@ import { forumThreads, forumPosts, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth-jwt";
 import { eq } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/comment-helpers";
+import { blockIfCannotInteract } from "@/lib/moderation";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
 
 export async function POST(
@@ -23,6 +24,8 @@ export async function POST(
   if (!body) return Response.json({ error: "Reply cannot be empty" }, { status: 400 });
 
   const db = getDb();
+  const blocked = await blockIfCannotInteract(db, payload.userId);
+  if (blocked) return Response.json({ error: blocked.error }, { status: blocked.status });
 
   const [thread] = await db
     .select({ id: forumThreads.id, isLocked: forumThreads.isLocked })

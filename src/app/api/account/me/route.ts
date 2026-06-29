@@ -31,6 +31,10 @@ export async function GET(req: Request) {
       discordUsername: users.discordUsername,
       totpEnabled: users.totpEnabled,
       profilePrivate: users.profilePrivate,
+      bannedAt: users.bannedAt,
+      banReason: users.banReason,
+      mutedUntil: users.mutedUntil,
+      muteReason: users.muteReason,
       createdAt: users.createdAt,
     })
     .from(users)

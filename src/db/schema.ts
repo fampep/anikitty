@@ -30,6 +30,12 @@ export const users = pgTable("users", {
   totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   profilePrivate: boolean("profile_private").notNull().default(false),
+  bannedAt: timestamp("banned_at"),
+  banReason: text("ban_reason"),
+  bannedBy: uuid("banned_by"),
+  mutedUntil: timestamp("muted_until"),
+  muteReason: text("mute_reason"),
+  mutedBy: uuid("muted_by"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

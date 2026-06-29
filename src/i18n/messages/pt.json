@@ -827,6 +827,7 @@
     "retryWith": "Tentar novamente com {provider}",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "Fonte do stream",
     "providerGroupFeatured": "Recomendados",

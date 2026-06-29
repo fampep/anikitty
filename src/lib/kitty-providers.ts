@@ -1,6 +1,7 @@
 export const KITTY_PROVIDERS = [
   "Miruro",
   "Animex",
+  "Animo",
   "AnimeSogo",
   "Anix",
   "HiAnime",
@@ -66,6 +67,15 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsDub: true,
     supportsMulti: true,
     hint: "Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi",
+  },
+  {
+    id: "Animo",
+    label: "Animo",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    supportsDub: true,
+    hint: "4animo.xyz · HD-1 / HD-2 / HD-3 · SUB · DUB",
   },
   {
     id: "AnimeSogo",
@@ -152,12 +162,12 @@ export const DEFAULT_KITTY_PROVIDER: KittyProvider = "Miruro";
 const DEPRECATED_PROVIDERS = new Set([
   "AnimeParadise",
   "Anizen",
-  "Animo",
   "AniNeko",
 ]);
 
 /** MegaPlay family — SUB and DUB via Kitty stream-direct + /subs. */
 export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([
+  "Animo",
   "AnimeSogo",
   "Anix",
   "HiAnime",

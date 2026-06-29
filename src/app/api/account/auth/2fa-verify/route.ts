@@ -8,6 +8,7 @@ import { jsonWithAuthCookie } from "@/lib/auth-cookie";
 import { decryptTotpSecretForUser, verifyTotpCode } from "@/lib/totp";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security";
+import { isUserBanned } from "@/lib/moderation";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();
@@ -44,6 +45,13 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Session expired. Please sign in again." }, { status: 401 });
+    }
+
+    if (isUserBanned(user)) {
+      return NextResponse.json(
+        { error: user.banReason ? `Account banned: ${user.banReason}` : "This account is banned." },
+        { status: 403 },
+      );
     }
 
     if (!user.totpEnabled || !user.totpSecret) {

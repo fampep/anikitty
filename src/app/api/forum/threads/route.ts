@@ -5,6 +5,7 @@ import { and, eq, desc, sql, inArray, ilike, or } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/comment-helpers";
 import { isValidCategory } from "@/constants/forum";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
+import { blockIfCannotInteract } from "@/lib/moderation";
 
 const PAGE_SIZE = 20;
 const MAX_TITLE = 200;
@@ -176,6 +177,8 @@ export async function POST(req: Request) {
     return Response.json({ error: "Body cannot be empty" }, { status: 400 });
 
   const db = getDb();
+  const blocked = await blockIfCannotInteract(db, payload.userId);
+  if (blocked) return Response.json({ error: blocked.error }, { status: blocked.status });
 
   const [row] = await db
     .insert(forumThreads)

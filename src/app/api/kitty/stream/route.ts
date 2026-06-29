@@ -8,6 +8,12 @@ import {
   isAnimexServerId,
   type AnimexServerId,
 } from "@/lib/animex-api";
+import {
+  DEFAULT_ANIMO_SERVER,
+  fetchAnimoVideoStream,
+  isAnimoServerId,
+  type AnimoServerId,
+} from "@/lib/animo-api";
 import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty-api";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -33,6 +39,7 @@ import {
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
 const SAFE_ANIMEX_SERVER = /^[a-z]{2,12}$/;
+const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
@@ -56,6 +63,7 @@ export async function GET(req: Request) {
   const provider = (searchParams.get("provider") || DEFAULT_KITTY_PROVIDER) as KittyProvider;
   const miruroPipeParam = searchParams.get("miruroPipe");
   const animexServerParam = searchParams.get("animexServer");
+  const animoServerParam = searchParams.get("animoServer");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -92,6 +100,15 @@ export async function GET(req: Request) {
         ? DEFAULT_ANIMEX_SERVER
         : null;
 
+  const animoServer =
+    animoServerParam &&
+    SAFE_ANIMO_SERVER.test(animoServerParam) &&
+    isAnimoServerId(animoServerParam)
+      ? animoServerParam
+      : provider === "Animo"
+        ? DEFAULT_ANIMO_SERVER
+        : null;
+
   async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
@@ -103,7 +120,8 @@ export async function GET(req: Request) {
     const preserveInlineSubs =
       providerHasNativeSubs(providerName) ||
       providerName === "Miruro" ||
-      providerName === "Animex";
+      providerName === "Animex" ||
+      providerName === "Animo";
     const providerSubtitleTracks: StreamTrack[] = preserveInlineSubs
       ? inlineSubtitleTracks.map((track) => proxyInlineSubtitle(track, data.headers))
       : [];
@@ -188,6 +206,34 @@ export async function GET(req: Request) {
       }
     } catch (e) {
       console.error("[kitty/stream] Animex server failed:", e);
+    }
+  }
+
+  if (provider === "Animo") {
+    try {
+      const animo = await fetchAnimoVideoStream({
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        serverId: animoServer as AnimoServerId,
+        title: titleParam,
+      });
+
+      if (animo?.file) {
+        return finalizeStreamResponse(
+          {
+            file: animo.file,
+            headers: animo.headers,
+            tracks: animo.tracks,
+            skipTimes: animo.skipTimes,
+            server: animo.server,
+            download: animo.download,
+          },
+          "Animo",
+        );
+      }
+    } catch (e) {
+      console.error("[kitty/stream] Animo server failed:", e);
     }
   }
 

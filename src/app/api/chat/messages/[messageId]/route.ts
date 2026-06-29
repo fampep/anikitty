@@ -9,6 +9,7 @@ import {
   encryptStoredMessage,
 } from "@/lib/message-crypto";
 import { eq } from "drizzle-orm";
+import { blockIfCannotInteract } from "@/lib/moderation";
 
 const EDIT_RATE = { windowMs: 30_000, max: 20 } as const;
 
@@ -40,6 +41,9 @@ export async function PATCH(
   }
 
   const db = getDb();
+  const blocked = await blockIfCannotInteract(db, payload.userId);
+  if (blocked) return Response.json({ error: blocked.error }, { status: blocked.status });
+
   const [existing] = await db
     .select({
       userId: chatMessages.userId,

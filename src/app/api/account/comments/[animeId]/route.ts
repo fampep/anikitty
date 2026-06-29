@@ -10,6 +10,7 @@ import {
   COMMENT_RATE,
 } from "@/lib/comment-helpers";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user-xp";
+import { blockIfCannotInteract } from "@/lib/moderation";
 
 const PAGE_SIZE = 20;
 
@@ -249,6 +250,8 @@ export async function POST(
     return Response.json({ error: "Comment cannot be empty" }, { status: 400 });
 
   const db = getDb();
+  const blocked = await blockIfCannotInteract(db, payload.userId);
+  if (blocked) return Response.json({ error: blocked.error }, { status: blocked.status });
 
   let resolvedEpisodeId = episodeId;
   let resolvedEpisodeNumber = episodeNumber;

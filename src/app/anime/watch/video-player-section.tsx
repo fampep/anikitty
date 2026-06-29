@@ -20,6 +20,11 @@ import {
   type AnimexServerId,
 } from "@/lib/animex-api";
 import {
+  DEFAULT_ANIMO_SERVER,
+  isAnimoServerId,
+  type AnimoServerId,
+} from "@/lib/animo-api";
+import {
   canToggleStreamAudio,
   resolveActiveStreamCapabilities,
   supportsStreamAudioMode,
@@ -155,6 +160,14 @@ const VideoPlayerSection = () => {
     return DEFAULT_ANIMEX_SERVER;
   });
 
+  const [animoServer, setAnimoServer] = useState<AnimoServerId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("animoServer");
+      if (saved && isAnimoServerId(saved)) return saved;
+    }
+    return DEFAULT_ANIMO_SERVER;
+  });
+
   const [multiPanel, setMultiPanel] = useState<MultiPanelProvider | null>(() => {
     if (typeof window !== "undefined") {
       const savedProvider = localStorage.getItem("kittyProvider");
@@ -183,8 +196,9 @@ const VideoPlayerSection = () => {
       provider,
       ...(provider === "Miruro" ? { miruroPipe } : {}),
       ...(provider === "Animex" ? { animexServer } : {}),
+      ...(provider === "Animo" ? { animoServer } : {}),
     }),
-    [provider, miruroPipe, animexServer],
+    [provider, miruroPipe, animexServer, animoServer],
   );
 
   const {
@@ -205,8 +219,9 @@ const VideoPlayerSection = () => {
         audioMode,
         provider === "Animex" ? animexServer : undefined,
         provider === "Miruro" ? miruroPipe : undefined,
+        provider === "Animo" ? animoServer : undefined,
       ),
-    [streamCapabilities, provider, audioMode, animexServer, miruroPipe],
+    [streamCapabilities, provider, audioMode, animexServer, miruroPipe, animoServer],
   );
 
   const canSwitchStreamAudio = useMemo(
@@ -439,6 +454,7 @@ const VideoPlayerSection = () => {
     provider === "Miruro" ? miruroPipe : null,
     animeTitle,
     provider === "Animex" ? animexServer : null,
+    provider === "Animo" ? animoServer : null,
   );
 
   const hasStreamFile = Boolean(streamData?.file);
@@ -508,6 +524,10 @@ const VideoPlayerSection = () => {
       setAnimexServer(server);
       localStorage.setItem("animexServer", server);
     }
+    if (p === "Animo") {
+      setAnimoServer(DEFAULT_ANIMO_SERVER);
+      localStorage.setItem("animoServer", DEFAULT_ANIMO_SERVER);
+    }
   };
 
   const handleStreamAudioChange = (next: "sub" | "dub") => {
@@ -542,6 +562,15 @@ const VideoPlayerSection = () => {
     if (t > 5) setStartTime(t);
     setMiruroPipe(pipe);
     localStorage.setItem("miruroPipe", pipe);
+  };
+
+  const handleAnimoServerChange = (server: AnimoServerId) => {
+    const t = liveTimeRef.current;
+    if (t > 5) setStartTime(t);
+    setProvider("Animo");
+    setAnimoServer(server);
+    localStorage.setItem("kittyProvider", "Animo");
+    localStorage.setItem("animoServer", server);
   };
 
   const handleAnime4kToggle = () => {
@@ -594,12 +623,14 @@ const VideoPlayerSection = () => {
           multiPanel={multiPanel}
           miruroPipe={miruroPipe}
           animexServer={animexServer}
+          animoServer={animoServer}
           capabilities={streamCapabilities}
           capabilitiesLoading={capabilitiesLoading}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
           onAnimexServerChange={handleAnimexServerChange}
+          onAnimoServerChange={handleAnimoServerChange}
         />
 
         <Button
@@ -629,7 +660,7 @@ const VideoPlayerSection = () => {
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
-        key={`${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}`}
+        key={`${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`}
         src={streamData.file}
         poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
         tracks={streamData.tracks ?? []}
@@ -671,12 +702,14 @@ const VideoPlayerSection = () => {
           multiPanel={multiPanel}
           miruroPipe={miruroPipe}
           animexServer={animexServer}
+          animoServer={animoServer}
           capabilities={streamCapabilities}
           capabilitiesLoading={capabilitiesLoading}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
           onAnimexServerChange={handleAnimexServerChange}
+          onAnimoServerChange={handleAnimoServerChange}
         />
 
         {/* Row 2 — badges + actions */}

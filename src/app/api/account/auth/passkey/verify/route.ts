@@ -11,6 +11,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security";
 import { getWebAuthnOrigin, getWebAuthnRpId, passkeyRowToCredential } from "@/lib/webauthn";
 import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
+import { isUserBanned } from "@/lib/moderation";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();
@@ -88,6 +89,13 @@ export async function POST(req: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
+  }
+
+  if (isUserBanned(user)) {
+    return NextResponse.json(
+      { error: user.banReason ? `Account banned: ${user.banReason}` : "This account is banned." },
+      { status: 403 },
+    );
   }
 
   if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {

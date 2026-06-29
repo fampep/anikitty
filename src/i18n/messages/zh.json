@@ -827,6 +827,7 @@
     "retryWith": "使用 {provider} 重试",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "流媒体来源",
     "providerGroupFeatured": "推荐",

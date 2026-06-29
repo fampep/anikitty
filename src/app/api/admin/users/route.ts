@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { users, watchProgress } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-auth";
 import { eq, desc, ilike, or, sql, inArray, max } from "drizzle-orm";
+import { toModerationStatus } from "@/lib/moderation";
 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -22,6 +23,10 @@ export async function GET(req: Request) {
         avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
         totpEnabled: users.totpEnabled,
+        bannedAt: users.bannedAt,
+        banReason: users.banReason,
+        mutedUntil: users.mutedUntil,
+        muteReason: users.muteReason,
       })
       .from(users)
       .where(or(ilike(users.username, `%${q}%`), ilike(users.email, `%${q}%`)))
@@ -55,6 +60,7 @@ export async function GET(req: Request) {
         createdAt: u.createdAt?.toISOString?.() ?? u.createdAt,
         totpEnabled: u.totpEnabled ?? false,
         lastActiveAt: lastActiveMap.get(u.id) ?? null,
+        moderation: toModerationStatus(u),
       })),
     });
   }
@@ -68,6 +74,10 @@ export async function GET(req: Request) {
       u.avatar_url AS "avatarUrl",
       u.created_at AS "createdAt",
       u.totp_enabled AS "totpEnabled",
+      u.banned_at AS "bannedAt",
+      u.ban_reason AS "banReason",
+      u.muted_until AS "mutedUntil",
+      u.mute_reason AS "muteReason",
       MAX(wp.updated_at) AS "lastActiveAt"
     FROM users u
     LEFT JOIN watch_progress wp ON wp.user_id = u.id
@@ -86,6 +96,12 @@ export async function GET(req: Request) {
       createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
       totpEnabled: Boolean(u.totpEnabled),
       lastActiveAt: u.lastActiveAt instanceof Date ? u.lastActiveAt.toISOString() : (u.lastActiveAt ?? null),
+      moderation: toModerationStatus({
+        bannedAt: u.bannedAt instanceof Date ? u.bannedAt : (u.bannedAt ? new Date(String(u.bannedAt)) : null),
+        banReason: (u.banReason as string | null) ?? null,
+        mutedUntil: u.mutedUntil instanceof Date ? u.mutedUntil : (u.mutedUntil ? new Date(String(u.mutedUntil)) : null),
+        muteReason: (u.muteReason as string | null) ?? null,
+      }),
     })),
   });
 }

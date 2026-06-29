@@ -17,6 +17,7 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "AllAnime",
   "MKissa",
   "Anikoto",
+  "Animo",
   "AnimeSogo",
   "Anix",
   "HiAnime",
