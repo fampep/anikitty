@@ -100,7 +100,21 @@ Production deploys use **Railpack** (not Docker). In Coolify:
 3. Expose port **3000**
 4. Add env vars from your `.env.local` / production secrets (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.)
 
-Config lives in `coolify.json` and `railpack.json`. If Railpack fails with a cgroup slice error on the VPS, run `scripts/fix-coolify-railpack-cgroup.sh` once on the host.
+Config lives in `coolify.json` and `railpack.json`.
+
+#### Railpack cgroup error
+
+If deploy fails with:
+
+`cgroup-parent for systemd cgroup should be a valid slice named as "xxx.slice"`
+
+that is a **Coolify host Docker** issue (not this repo). SSH into the VPS that runs Coolify and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fampep/anikitty/dev/scripts/fix-coolify-railpack-cgroup.sh | sudo bash
+```
+
+Then redeploy in Coolify. Confirm the service **Build Pack** is **Railpack**, not Dockerfile.
 
 ### Database
 
