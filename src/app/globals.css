@@ -247,54 +247,72 @@ button, a, [role="button"] {
 .react-calendar-heatmap .color-scale-4 { fill: #666; }
 .react-calendar-heatmap .color-scale-5 { fill: #999; }
 
-/* Video.js player — cinematic black theme */
-.kitty-player .video-js {
-  width: 100%;
-  height: 100%;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  --vjs-theme-primary: #a855f7;
-}
-
-.kitty-player .vjs-control-bar {
-  background: linear-gradient(
+/* Vidstack player — cinematic black theme */
+.vds-kitty media-player,
+.vds-kitty .vds-video-layout {
+  --media-brand: #c084fc;
+  --media-focus-ring-color: rgba(192, 132, 252, 0.5);
+  --media-controls-bg: linear-gradient(
     to top,
     rgba(0, 0, 0, 0.95) 0%,
     rgba(0, 0, 0, 0.55) 45%,
     rgba(0, 0, 0, 0.12) 75%,
     transparent 100%
   );
-  padding: 0 8px 8px;
+  --media-menu-bg: rgba(6, 6, 8, 0.97);
+  --media-menu-border: rgba(255, 255, 255, 0.08);
+  --media-tooltip-bg: rgba(6, 6, 8, 0.97);
+  --media-slider-track-bg: rgba(255, 255, 255, 0.14);
+  --media-slider-track-fill-bg: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+  --media-slider-thumb-bg: #ffffff;
+  --media-slider-thumb-size: 0px;
+  --media-time-slider-height: 36px;
+  --media-time-slider-track-height: 4px;
+  --media-time-slider-track-fill-border-radius: 999px;
+  --media-time-slider-track-border-radius: 999px;
+  --media-volume-slider-track-height: 4px;
+  border-radius: 0;
 }
 
-.kitty-player .vjs-progress-holder {
-  height: 4px;
-  margin: 0 8px 6px;
-  border-radius: 999px;
+.vds-kitty .vds-video-layout {
+  backdrop-filter: blur(0);
+}
+
+.vds-kitty .vds-controls {
+  padding: 0 12px 10px;
+}
+
+.vds-kitty .vds-time-slider {
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+
+.vds-kitty .vds-time-slider:hover {
+  --media-time-slider-track-height: 6px;
+  --media-slider-thumb-size: 13px;
+}
+
+.vds-kitty .vds-slider-track {
   transition: height 0.15s ease;
 }
 
-.kitty-player .vjs-progress-control:hover .vjs-progress-holder {
-  height: 6px;
-}
-
-.kitty-player .vjs-play-progress {
-  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+.vds-kitty .vds-slider-track-fill {
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
-  border-radius: 999px;
 }
 
-.kitty-player .vjs-load-progress {
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
+.vds-kitty .vds-slider-thumb {
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
 }
 
-.kitty-player .vjs-play-progress .vjs-time-tooltip,
-.kitty-player .vjs-mouse-display {
-  display: none !important;
+.vds-kitty .vds-time-slider:hover .vds-slider-thumb,
+.vds-kitty .vds-time-slider:focus-visible .vds-slider-thumb {
+  opacity: 1;
 }
 
-.kitty-player .vjs-current-time,
-.kitty-player .vjs-duration {
+.vds-kitty .vds-time,
+.vds-kitty .vds-duration {
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
@@ -303,69 +321,123 @@ button, a, [role="button"] {
   font-weight: 500;
 }
 
-.kitty-player .vjs-button > .vjs-icon-placeholder:before {
-  font-size: 1.55em;
+.vds-kitty .vds-button {
+  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
-.kitty-player .vjs-menu-button-popup .vjs-menu {
+.vds-kitty .vds-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.vds-kitty .vds-button[data-active] {
+  color: #c084fc;
+}
+
+.vds-kitty .vds-controls-group {
+  gap: 2px;
+}
+
+.vds-kitty .vds-chapter-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.01em;
+}
+
+.vds-kitty .vds-menu {
   border-radius: 14px;
-  background: rgba(6, 6, 8, 0.97);
-  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(16px);
 }
 
-.kitty-player .vjs-menu li.vjs-selected,
-.kitty-player .vjs-menu li.vjs-selected:focus,
-.kitty-player .vjs-menu li.vjs-selected:hover {
+.vds-kitty .vds-menu-item {
+  border-radius: 8px;
+  margin: 2px 4px;
+}
+
+.vds-kitty .vds-menu-item[aria-checked="true"] {
   background: rgba(168, 85, 247, 0.18);
   color: #e9d5ff;
 }
 
-.kitty-player .kitty-skip-marker {
+.vds-kitty .vds-slider-preview {
+  display: none !important;
+}
+
+.vds-kitty .vds-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vds-kitty .kitty-skip-marker {
   border-radius: 999px;
   background: rgba(251, 191, 36, 0.55) !important;
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.25);
 }
 
-.kitty-player .vjs-text-track-display {
-  bottom: var(--kitty-sub-bottom, 4.5rem);
-  font-size: var(--kitty-sub-font-size, 18px);
-  font-weight: var(--kitty-sub-font-weight, 600);
+.vds-kitty .vds-google-cast-button,
+.vds-kitty .vds-cast-button,
+.vds-kitty [data-media-google-cast-button] {
+  display: none !important;
+}
+
+.vds-kitty media-player .vds-captions {
+  --overlay-padding: 0;
+  margin: 0.5% 3% var(--kitty-sub-bottom, 4.5rem) 3%;
   z-index: 10;
 }
 
-.kitty-player[data-fullscreen] .vjs-text-track-display {
-  bottom: calc(var(--kitty-sub-bottom, 4.5rem) + 0.75rem);
-  font-size: calc(var(--kitty-sub-font-size, 18px) * 1.1);
+.vds-kitty media-player[data-fullscreen] .vds-captions {
+  margin-bottom: calc(var(--kitty-sub-bottom, 4.5rem) + 0.75rem);
+  --media-cue-font-size: calc(var(--kitty-sub-font-size, 18px) * 1.1);
 }
 
-.kitty-player .vjs-text-track-cue {
-  color: var(--media-cue-color, #fff) !important;
-  background-color: var(--media-cue-bg, rgba(0, 0, 0, 0.78)) !important;
-  border-radius: 6px;
-  line-height: 1.45;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+.vds-kitty media-player[data-view-type="video"] .vds-captions [data-part="cue-display"] {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: max-content !important;
+  max-width: min(92%, 720px);
+  --cue-text-align: center;
   text-align: center;
-  padding: 0.15em 0.45em;
 }
 
-/* Anime4K WebGPU upscale overlay */
-.kitty-player[data-anime4k="true"] {
+.vds-kitty media-player .vds-captions [data-part="cue"] {
+  font-weight: var(--kitty-sub-font-weight, 600);
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: center;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.vds-kitty .kitty-player-logo {
+  transition: opacity 0.2s ease;
+}
+
+.vds-kitty:hover .kitty-player-logo {
+  opacity: 0.85;
+}
+
+.vds-kitty[data-anime4k="true"] {
   position: relative;
 }
 
-.kitty-player[data-anime4k="true"] .video-js {
+.vds-kitty[data-anime4k="true"] media-player {
   position: relative;
-  z-index: 0;
 }
 
-.kitty-player[data-anime4k="true"] video {
+.vds-kitty[data-anime4k="true"] video {
   opacity: 0;
   pointer-events: none;
 }
 
-.kitty-player .anime4k-canvas {
+.vds-kitty .anime4k-canvas {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -376,8 +448,8 @@ button, a, [role="button"] {
   pointer-events: none;
 }
 
-.kitty-player[data-anime4k="true"]:fullscreen,
-.kitty-player[data-anime4k="true"]:-webkit-full-screen {
+.vds-kitty[data-anime4k="true"]:fullscreen,
+.vds-kitty[data-anime4k="true"]:-webkit-full-screen {
   width: 100%;
   height: 100%;
   max-width: none;
@@ -386,34 +458,40 @@ button, a, [role="button"] {
   background: #000;
 }
 
-.kitty-player[data-anime4k="true"]:fullscreen .anime4k-canvas,
-.kitty-player[data-anime4k="true"]:-webkit-full-screen .anime4k-canvas,
-.kitty-player[data-anime4k="true"][data-fullscreen] .anime4k-canvas {
+.vds-kitty[data-anime4k="true"]:fullscreen media-player,
+.vds-kitty[data-anime4k="true"]:-webkit-full-screen media-player {
+  width: 100%;
+  height: 100%;
+}
+
+.vds-kitty[data-anime4k="true"]:fullscreen .anime4k-canvas,
+.vds-kitty[data-anime4k="true"]:-webkit-full-screen .anime4k-canvas,
+.vds-kitty[data-anime4k="true"] media-player[data-fullscreen] .anime4k-canvas {
   position: absolute;
   inset: 0;
   width: 100% !important;
   height: 100% !important;
 }
 
-.kitty-player[data-anime4k="true"] .vjs-text-track-display {
+.vds-kitty[data-anime4k="true"] .vds-captions {
   z-index: 2;
 }
 
-.kitty-player[data-anime4k="true"] .vjs-control-bar {
+.vds-kitty[data-anime4k="true"] .vds-video-layout {
   z-index: 3;
 }
 
-.kitty-player[data-pip-active="true"][data-anime4k="true"] video {
+.vds-kitty[data-pip-active="true"][data-anime4k="true"] video {
   opacity: 1 !important;
   pointer-events: auto;
 }
 
-.kitty-player[data-pip-active="true"][data-anime4k="true"] .anime4k-canvas {
+.vds-kitty[data-pip-active="true"][data-anime4k="true"] .anime4k-canvas {
   opacity: 0 !important;
   visibility: hidden;
 }
 
-.kitty-player[data-pip-active="true"] .vjs-text-track-display {
+.vds-kitty media-player[data-pip] .vds-captions {
   visibility: hidden !important;
   pointer-events: none !important;
 }

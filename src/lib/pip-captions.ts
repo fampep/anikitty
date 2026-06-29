@@ -1,23 +1,25 @@
-import type Player from "video.js/dist/types/player";
+import type { MediaPlayerInstance } from "@vidstack/react";
 
 function getVideo(container: HTMLElement): HTMLVideoElement | null {
   return container.querySelector("video");
 }
 
 function getCaptionsEl(container: HTMLElement): HTMLElement | null {
-  return container.querySelector(".vjs-text-track-display");
+  return container.querySelector(".vds-captions");
 }
 
-function getActiveCaptionLabel(player: Player): string | null {
-  const tracks = Array.from(player.textTracks() as unknown as TextTrack[]);
-  for (const track of tracks) {
+function getActiveCaptionLabel(player: MediaPlayerInstance): string | null {
+  for (const track of player.textTracks) {
     if (track.kind !== "subtitles" && track.kind !== "captions") continue;
     if (track.mode === "showing") return track.label ?? null;
   }
   return null;
 }
 
-function matchNativeTrack(track: TextTrack, activeLabel: string | null): boolean {
+function matchNativeTrack(
+  track: TextTrack,
+  activeLabel: string | null,
+): boolean {
   if (!activeLabel) return false;
   const label = track.label?.toLowerCase() ?? "";
   const lang = track.language?.toLowerCase() ?? "";
@@ -25,13 +27,22 @@ function matchNativeTrack(track: TextTrack, activeLabel: string | null): boolean
   return label === want || lang === want || label.includes(want) || want.includes(label);
 }
 
-/** Route captions into the PiP video via native text tracks. */
-export function enablePipCaptions(container: HTMLElement, player: Player): void {
+function getMediaPlayerEl(container: HTMLElement): HTMLElement | null {
+  return container.querySelector("media-player");
+}
+
+/** Route captions into the PiP video via native text tracks (custom overlay stays on page). */
+export function enablePipCaptions(
+  container: HTMLElement,
+  player: MediaPlayerInstance,
+): void {
   const video = getVideo(container);
   const captionsEl = getCaptionsEl(container);
+  const mediaPlayerEl = getMediaPlayerEl(container);
   if (!video) return;
 
   container.setAttribute("data-pip-active", "true");
+  mediaPlayerEl?.setAttribute("data-pip", "");
 
   if (captionsEl) {
     captionsEl.style.visibility = "hidden";
@@ -56,12 +67,14 @@ export function enablePipCaptions(container: HTMLElement, player: Player): void 
   }
 }
 
-/** Restore Video.js caption overlay after PiP closes. */
-export function disablePipCaptions(container: HTMLElement): void {
+/** Restore Vidstack custom caption overlay after PiP closes. */
+export function disablePipCaptions(container: HTMLElement, player: MediaPlayerInstance): void {
   const video = getVideo(container);
   const captionsEl = getCaptionsEl(container);
+  const mediaPlayerEl = getMediaPlayerEl(container);
 
   container.removeAttribute("data-pip-active");
+  mediaPlayerEl?.removeAttribute("data-pip");
 
   if (captionsEl) {
     captionsEl.style.visibility = "";
@@ -72,13 +85,24 @@ export function disablePipCaptions(container: HTMLElement): void {
 
   for (const track of Array.from(video.textTracks)) {
     if (track.kind !== "subtitles" && track.kind !== "captions") continue;
-    if (track.mode === "showing") track.mode = "hidden";
+    track.mode = "hidden";
   }
 }
 
-export function bindPipCaptionSync(container: HTMLElement, player: Player): () => void {
+export function bindPipCaptionSync(
+  container: HTMLElement,
+  player: MediaPlayerInstance,
+): () => void {
+  const onPipChange = (event: Event) => {
+    const active = (event as CustomEvent<boolean>).detail ?? player.state.pictureInPicture;
+    if (active) enablePipCaptions(container, player);
+    else disablePipCaptions(container, player);
+  };
+
   const onVideoEnter = () => enablePipCaptions(container, player);
-  const onVideoLeave = () => disablePipCaptions(container);
+  const onVideoLeave = () => disablePipCaptions(container, player);
+
+  player.addEventListener("media-pip-change", onPipChange);
 
   let videoCleanup: (() => void) | undefined;
   const attachVideo = () => {
@@ -100,11 +124,12 @@ export function bindPipCaptionSync(container: HTMLElement, player: Player): () =
   };
 
   attachVideo();
-  player.on("canplay", attachVideo);
+  player.addEventListener("can-play", attachVideo);
 
   return () => {
-    player.off("canplay", attachVideo);
+    player.removeEventListener("media-pip-change", onPipChange);
+    player.removeEventListener("can-play", attachVideo);
     videoCleanup?.();
-    disablePipCaptions(container);
+    disablePipCaptions(container, player);
   };
 }

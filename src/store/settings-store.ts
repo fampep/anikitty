@@ -2,8 +2,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
-  SUBTITLE_TIME_OFFSET_MAX,
-  SUBTITLE_TIME_OFFSET_MIN,
   type SubtitleFontWeight,
   type SubtitleSettings,
 } from "@/lib/subtitle-settings";
@@ -32,8 +30,6 @@ interface ISettingsStore {
   setSubtitleBackgroundOpacity: (backgroundOpacity: number) => void;
   setSubtitleFontWeight: (fontWeight: SubtitleFontWeight) => void;
   setSubtitleBottomOffset: (bottomOffset: number) => void;
-  adjustSubtitleTimeOffset: (deltaSec: number) => void;
-  setSubtitleTimeOffset: (timeOffsetSec: number) => void;
   resetSubtitleSettings: () => void;
 }
 
@@ -82,34 +78,16 @@ export const useSettingsStore = create<ISettingsStore>()(
         set((s) => ({
           subtitleSettings: { ...s.subtitleSettings, bottomOffset },
         })),
-      adjustSubtitleTimeOffset: (deltaSec) =>
-        set((s) => {
-          const next = Math.min(
-            SUBTITLE_TIME_OFFSET_MAX,
-            Math.max(SUBTITLE_TIME_OFFSET_MIN, s.subtitleSettings.timeOffsetSec + deltaSec),
-          );
-          return {
-            subtitleSettings: { ...s.subtitleSettings, timeOffsetSec: next },
-          };
-        }),
-      setSubtitleTimeOffset: (timeOffsetSec) =>
-        set((s) => ({
-          subtitleSettings: {
-            ...s.subtitleSettings,
-            timeOffsetSec: Math.min(
-              SUBTITLE_TIME_OFFSET_MAX,
-              Math.max(SUBTITLE_TIME_OFFSET_MIN, timeOffsetSec),
-            ),
-          },
-        })),
       resetSubtitleSettings: () =>
         set({ subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } }),
     }),
     {
       name: "kitty-settings",
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
-        const state = persisted as Partial<ISettingsStore>;
+        const state = persisted as Partial<ISettingsStore> & {
+          subtitleSettings?: SubtitleSettings & { timeOffsetSec?: number };
+        };
         let next = { ...state } as Partial<ISettingsStore>;
         if (version < 2 || !next.subtitleSettings) {
           next = { ...next, subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } };
@@ -118,11 +96,13 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.anime4kEnabled ??= false;
           next.anime4kMode ??= "A";
         }
-        if (version < 4 && next.subtitleSettings) {
+        if (next.subtitleSettings) {
+          const { timeOffsetSec: _removed, ...subtitleSettings } = next.subtitleSettings as SubtitleSettings & {
+            timeOffsetSec?: number;
+          };
           next.subtitleSettings = {
             ...DEFAULT_SUBTITLE_SETTINGS,
-            ...next.subtitleSettings,
-            timeOffsetSec: next.subtitleSettings.timeOffsetSec ?? 0,
+            ...subtitleSettings,
           };
         }
         return next as ISettingsStore;
