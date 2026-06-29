@@ -63,7 +63,7 @@ import {
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
-import W2gPanel from "@/components/w2g/w2g-panel";
+import W2gPanel from "@/components/watch-together/w2g-panel";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
 
