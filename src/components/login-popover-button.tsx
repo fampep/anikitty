@@ -8,6 +8,7 @@ import { Loader2, LogIn, UserPlus, ShieldCheck, Fingerprint } from "lucide-react
 import { anisurgeAuth, authFromMeResponse } from "@/lib/anisurge";
 import { useT } from "@/providers/i18n-provider";
 import { DiscordIcon } from "@/components/discord-connect";
+import { useDiscordAuthEnabled } from "@/hooks/use-discord-auth-enabled";
 import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 
 type Tab = "login" | "signup" | "2fa";
@@ -123,7 +124,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     }
   };
 
-  const discordEnabled = !!process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
+  const discordEnabled = useDiscordAuthEnabled();
 
   const handleDiscordLogin = () => {
     window.location.href = "/api/account/auth/discord/start";

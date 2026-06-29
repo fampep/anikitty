@@ -34,6 +34,7 @@ import NotificationBell from "./notification-bell";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anisurge";
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
+import { toast } from "sonner";
 
 const KITTY_ICON = "/jiji.jpg";
 
@@ -232,6 +233,37 @@ const NavBar = () => {
       window.clearTimeout(timer);
     };
   }, [user, setAuth, clearAuth]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const discord = params.get("discord");
+    if (!discord) return;
+
+    const errorKeys: Record<string, string> = {
+      cancelled: "auth.discordCancelled",
+      not_configured: "auth.discordNotConfigured",
+      banned: "auth.discordBanned",
+      email_conflict: "auth.discordEmailConflict",
+      invalid_state: "auth.discordLoginFailed",
+      token_exchange: "auth.discordLoginFailed",
+      user_fetch: "auth.discordLoginFailed",
+      server: "auth.discordLoginFailed",
+    };
+
+    if (discord === "welcome") {
+      toast.success(t("auth.discordWelcome"));
+      void anisurgeAuth.me().then((me) => setAuth(authFromMeResponse(me))).catch(() => {});
+    } else {
+      const key = errorKeys[discord] ?? "auth.discordLoginFailed";
+      toast.error(t(key));
+    }
+
+    params.delete("discord");
+    const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", next);
+  }, [setAuth, t]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

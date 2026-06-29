@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { extractToken, signOAuthStateFor, verifyToken } from "@/lib/auth-jwt";
 import {
   buildDiscordAuthorizeUrl,
+  discordLoginErrorRedirect,
   getDiscordRedirectUri,
   isDiscordOAuthConfigured,
 } from "@/lib/discord-oauth";
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
   }
 
   if (!isDiscordOAuthConfigured()) {
-    return NextResponse.json({ error: "Discord OAuth is not configured" }, { status: 503 });
+    return discordLoginErrorRedirect(req, "not_configured");
   }
 
   const ip = getClientIp(req);
