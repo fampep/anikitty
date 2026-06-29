@@ -5,8 +5,13 @@
     "node": "24"
   },
   "steps": {
+    "install": {
+      "commands": ["npm install --no-fund --no-audit"]
+    },
     "build": {
+      "commands": ["npm run build"],
       "variables": {
+        "NODE_ENV": "production",
         "NODE_OPTIONS": "--max-old-space-size=4096"
       }
     }
@@ -15,6 +20,7 @@
     "startCommand": "npm start",
     "variables": {
       "HOSTNAME": "0.0.0.0",
+      "NODE_ENV": "production",
       "PORT": "3000"
     }
   }

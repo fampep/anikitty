@@ -47,7 +47,7 @@ Anikitty is a free, open-source anime streaming site built with **Next.js 14 App
 | Anime data | AniList GraphQL API |
 | Streaming | KittyAPI |
 | Skip times | AniSkip API |
-| Deployment | Coolify (Docker / Railpack) |
+| Deployment | Coolify (Railpack) |
 
 ---
 
@@ -90,6 +90,17 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Deploy (Coolify + Railpack)
+
+Production deploys use **Railpack** (not Docker). In Coolify:
+
+1. Set the app **Build Pack** to **Railpack**
+2. Point the service at this repo (`dev` or `master` branch)
+3. Expose port **3000**
+4. Add env vars from your `.env.local` / production secrets (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.)
+
+Config lives in `coolify.json` and `railpack.json`. If Railpack fails with a cgroup slice error on the VPS, run `scripts/fix-coolify-railpack-cgroup.sh` once on the host.
 
 ### Database
 
