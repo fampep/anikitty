@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { getErrorMessage } from "@/lib/error-message";
 
 export default function GlobalError({
   error,
@@ -12,6 +13,8 @@ export default function GlobalError({
   useEffect(() => {
     console.error(error);
   }, [error]);
+
+  const detail = getErrorMessage(error) ?? error.digest;
 
   return (
     <html lang="en" className="dark">
@@ -43,6 +46,20 @@ export default function GlobalError({
           <h1 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 8px" }}>
             Something went wrong
           </h1>
+          {detail ? (
+            <p
+              style={{
+                fontSize: 13,
+                color: "rgba(255,255,255,0.55)",
+                margin: "0 0 12px",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                wordBreak: "break-word",
+                lineHeight: 1.5,
+              }}
+            >
+              {detail}
+            </p>
+          ) : null}
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", marginBottom: 24 }}>
             The site hit an unexpected error. Try reloading or head back home.
           </p>

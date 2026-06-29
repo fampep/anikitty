@@ -13,6 +13,7 @@ import {
   type KittyProvider,
 } from "@/query/get-kitty-stream";
 import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty-providers";
+import { getErrorMessage } from "@/lib/error-message";
 import {
   DEFAULT_ANIMEX_SERVER,
   defaultAnimexServerForMode,
@@ -58,7 +59,6 @@ import {
 import WatchDownloadPanel from "@/components/watch-download-panel";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Popover,
   PopoverContent,
@@ -674,23 +674,31 @@ const VideoPlayerSection = () => {
     );
   }
 
-  const upstreamError = (streamError as any)?.response?.data?.error as string | undefined;
+  const streamErrorDetail =
+    getErrorMessage(streamError) ?? streamData?.error ?? t("watch.streamNotFound");
 
   const subtitleTracks = (streamData?.tracks ?? []).filter(isSubtitleTrack);
 
   if (!isFetching && (streamError || !streamData?.file)) {
     return (
       <div className="flex flex-col gap-3">
-        <PlayerSkeleton dim label={t("watch.loadingStream")} thumbnail={loadingThumbnail} />
-        <Alert className="border-white/10 bg-white/5 rounded-xl">
-          <AlertCircle className="h-4 w-4 text-white/60" />
-          <AlertTitle className="text-white/80 font-semibold">
-            {t("watch.streamUnavailable", { provider })}
-          </AlertTitle>
-          <AlertDescription className="text-white/40 text-xs mt-1">
-            {upstreamError ?? streamData?.error ?? t("watch.streamNotFound")}
-          </AlertDescription>
-        </Alert>
+        <div className="w-full aspect-video bg-black flex flex-col items-center justify-center gap-3 rounded-xl border border-white/10 px-6 text-center">
+          <AlertCircle className="text-white/25 w-10 h-10" />
+          <div>
+            <p className="font-semibold text-white/80">{t("common.error")}</p>
+            <p className="text-sm text-white/45 mt-2 font-mono break-words max-w-md leading-relaxed">
+              {streamErrorDetail}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-white/15 text-white/60 hover:bg-white/10 text-xs"
+            onClick={() => retryStream()}
+          >
+            {t("watch.retryWith", { provider })}
+          </Button>
+        </div>
 
         <ProviderQuickPick
           value={provider}
@@ -710,15 +718,6 @@ const VideoPlayerSection = () => {
           onAnimoServerChange={handleAnimoServerChange}
           onAnimestreamLocaleChange={handleAnimestreamLocaleChange}
         />
-
-        <Button
-          size="sm"
-          variant="outline"
-          className="border-white/15 text-white/60 hover:bg-white/10 w-fit text-xs"
-          onClick={() => retryStream()}
-        >
-          {t("watch.retryWith", { provider })}
-        </Button>
       </div>
     );
   }
