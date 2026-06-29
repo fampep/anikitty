@@ -1,8 +1,7 @@
 {
   "build": {
-    "build_pack": "dockerfile",
-    "base_directory": "/",
-    "dockerfile_location": "/Dockerfile"
+    "build_pack": "railpack",
+    "base_directory": "/"
   },
   "network": {
     "ports": {

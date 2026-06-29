@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "24"
+  },
+  "steps": {
+    "build": {
+      "variables": {
+        "NODE_OPTIONS": "--max-old-space-size=4096"
+      }
+    }
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "variables": {
+      "HOSTNAME": "0.0.0.0",
+      "PORT": "3000"
+    }
+  }
+}
