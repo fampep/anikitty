@@ -45,6 +45,7 @@ interface ProgressStore {
   notify: () => void;
   setProgress: (animeId: string, episodeId: string, current: number, duration: number) => void;
   getProgress: (animeId: string, episodeId: string) => ProgressEntry | null;
+  removeProgress: (animeId: string, episodeId: string) => void;
   flush: () => void;
 }
 
@@ -75,6 +76,15 @@ export const useProgressStore = create<ProgressStore>((set) => ({
   getProgress: (animeId, episodeId) => {
     const cache = loadCache();
     return cache[`${animeId}:${episodeId}`] ?? null;
+  },
+
+  removeProgress: (animeId, episodeId) => {
+    const cache = loadCache();
+    const key = `${animeId}:${episodeId}`;
+    if (!cache[key]) return;
+    delete cache[key];
+    flushCache();
+    set({ lastSaved: Date.now() });
   },
 
   flush: () => {

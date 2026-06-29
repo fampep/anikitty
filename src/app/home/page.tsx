@@ -85,19 +85,11 @@ export default function Home() {
       </LazyMount>
 
       <LazyMount minHeight={280}>
-        <AnimeSections
-          title={t("home.recentlyAdded")}
-          icon={<Sparkles className="w-4 h-4" />}
-          trendingAnime={data?.recentlyAddedAnimes as IAnime[]}
-          loading={isLoading}
-          layout="row"
-          seeAllHref={`${ROUTES.SEARCH}?sort=recently-added&status=currently-airing`}
-        />
+        <ContinueWatching loading={isLoading && !!auth} />
       </LazyMount>
 
       <LazyMount minHeight={120}>
         <HomeWelcomeBar />
-        <ContinueWatching loading={isLoading && !!auth} />
         <HomeScheduleStrip />
         <HomeGenreBar />
       </LazyMount>

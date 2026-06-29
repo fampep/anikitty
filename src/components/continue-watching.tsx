@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Container from "./container";
 import { ROUTES } from "@/constants/routes";
-import { ChevronLeft, ChevronRight, History, Play, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, History, Play, RefreshCw, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { anisurgeContinue } from "@/lib/anisurge";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
@@ -24,68 +24,100 @@ interface ContinueItem {
 
 type Props = { loading: boolean };
 
-function ContinueCard({ item }: { item: ContinueItem }) {
+function ContinueCard({
+  item,
+  onRemove,
+  removing,
+}: {
+  item: ContinueItem;
+  onRemove: (item: ContinueItem) => void;
+  removing: boolean;
+}) {
   const t = useT();
   const { current, timestamp: duration, episodeNumber } = item.watchDetail;
   const pct = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
   const remaining = duration > current ? duration - current : 0;
   const href = `${ROUTES.WATCH}?anime=${item.id}&episode=${item.episodeId}${current > 10 ? `&t=${Math.floor(current)}` : ""}`;
 
+  const handleRemove = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(t("home.removeContinueConfirm", { title: item.name }))) return;
+    onRemove(item);
+  };
+
   return (
-    <Link href={href} className="block shrink-0 w-[160px] sm:w-[200px] group">
-      {/* Thumbnail area */}
-      <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover:ring-violet-400/20 transition-all" style={{ aspectRatio: "16/9" }}>
-        <Image
-          src={item.poster}
-          alt={item.name}
-          fill
-          unoptimized
-          className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
-          sizes="200px"
-        />
-        {/* Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+    <div className="relative shrink-0 w-[160px] sm:w-[200px] group">
+      <Link href={href} className="block">
+        {/* Thumbnail area */}
+        <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover:ring-violet-400/20 transition-all" style={{ aspectRatio: "16/9" }}>
+          <Image
+            src={item.poster}
+            alt={item.name}
+            fill
+            unoptimized
+            className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
+            sizes="200px"
+          />
+          {/* Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* Play button on hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <div className="bg-white/90 backdrop-blur-sm rounded-full p-2.5 shadow-xl">
-            <Play className="w-4 h-4 text-black fill-black" />
+          {/* Play button on hover */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2.5 shadow-xl">
+              <Play className="w-4 h-4 text-black fill-black" />
+            </div>
           </div>
-        </div>
 
-        {/* Episode badge */}
-        <div className="absolute bottom-2 left-2">
-          <span className="text-[10px] font-mono font-bold bg-black/70 text-white/90 px-1.5 py-0.5 rounded backdrop-blur-sm">
-            {t("common.ep")} {episodeNumber}
-          </span>
-        </div>
-
-        {/* Time remaining */}
-        {remaining > 30 && (
-          <div className="absolute bottom-2 right-2">
-            <span className="text-[9px] font-mono text-white/55 bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm">
-              {t("home.epLeft", { time: formatSecondsToMMSS(remaining) })}
+          {/* Episode badge */}
+          <div className="absolute bottom-2 left-2">
+            <span className="text-[10px] font-mono font-bold bg-black/70 text-white/90 px-1.5 py-0.5 rounded backdrop-blur-sm">
+              {t("common.ep")} {episodeNumber}
             </span>
           </div>
-        )}
 
-        {/* Progress bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10">
-          <div
-            className="h-full bg-white/70 transition-none"
-            style={{ width: `${pct}%` }}
-          />
+          {/* Time remaining */}
+          {remaining > 30 && (
+            <div className="absolute bottom-2 right-2">
+              <span className="text-[9px] font-mono text-white/55 bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm">
+                {t("home.epLeft", { time: formatSecondsToMMSS(remaining) })}
+              </span>
+            </div>
+          )}
+
+          {/* Progress bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10">
+            <div
+              className="h-full bg-white/70 transition-none"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Title */}
-      <p className={cn(
-        "mt-2 text-[12px] font-semibold leading-tight line-clamp-1 transition-colors",
-        "text-white/60 group-hover:text-white/90",
-      )}>
-        {item.name}
-      </p>
-    </Link>
+        {/* Title */}
+        <p className={cn(
+          "mt-2 text-[12px] font-semibold leading-tight line-clamp-1 transition-colors",
+          "text-white/60 group-hover:text-white/90",
+        )}>
+          {item.name}
+        </p>
+      </Link>
+
+      <button
+        type="button"
+        onClick={handleRemove}
+        disabled={removing}
+        aria-label={t("home.removeContinue")}
+        className={cn(
+          "absolute top-1.5 right-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full",
+          "bg-red-600 text-white shadow-lg ring-1 ring-black/30",
+          "opacity-90 hover:opacity-100 hover:bg-red-500 transition-all",
+          "disabled:opacity-40 disabled:pointer-events-none",
+        )}
+      >
+        <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+      </button>
+    </div>
   );
 }
 
@@ -94,10 +126,12 @@ const ContinueWatching = ({ loading }: Props) => {
   const { auth } = useAuthStore();
   const lastSaved = useProgressStore((s) => s.lastSaved);
   const getProgress = useProgressStore((s) => s.getProgress);
+  const removeProgress = useProgressStore((s) => s.removeProgress);
   const [items, setItems] = useState<ContinueItem[]>([]);
   const [fetched, setFetched] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
+  const [removingKey, setRemovingKey] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -166,6 +200,22 @@ const ContinueWatching = ({ loading }: Props) => {
 
   const scroll = (dir: "left" | "right") =>
     scrollRef.current?.scrollBy({ left: dir === "left" ? -440 : 440, behavior: "smooth" });
+
+  const handleRemove = async (item: ContinueItem) => {
+    const key = `${item.id}:${item.episodeId}`;
+    setRemovingKey(key);
+    const prev = items;
+    setItems((list) => list.filter((i) => `${i.id}:${i.episodeId}` !== key));
+    try {
+      await anisurgeContinue.remove(item.id, item.episodeId);
+      removeProgress(item.id, item.episodeId);
+    } catch {
+      setItems(prev);
+      alert(t("home.removeContinueFailed"));
+    } finally {
+      setRemovingKey(null);
+    }
+  };
 
   if (loading) return <LoadingSkeleton />;
 
@@ -251,9 +301,17 @@ const ContinueWatching = ({ loading }: Props) => {
           <div className="absolute right-0 top-0 bottom-6 w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
         )}
         <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide scroll-momentum">
-          {items.map((item) => (
-            <ContinueCard key={item.id + item.episodeId} item={item} />
-          ))}
+          {items.map((item) => {
+            const key = `${item.id}:${item.episodeId}`;
+            return (
+              <ContinueCard
+                key={key}
+                item={item}
+                onRemove={handleRemove}
+                removing={removingKey === key}
+              />
+            );
+          })}
         </div>
       </div>
     </Container>

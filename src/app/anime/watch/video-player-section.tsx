@@ -26,16 +26,11 @@ import {
   type AnimoServerId,
 } from "@/lib/animo-api";
 import {
-  ANIMESTREAM_SUB_LOCALE,
-  DEFAULT_ANIMESTREAM_DUB_LOCALE,
-  isAnimeStreamLocale,
-  type AnimeStreamLocale,
-} from "@/lib/animestream-api";
-import {
   canToggleStreamAudio,
   resolveActiveStreamCapabilities,
   supportsStreamAudioMode,
 } from "@/lib/stream-capabilities";
+
 import { useGetStreamCapabilities } from "@/query/get-stream-capabilities";
 import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/provider-select";
 import {
@@ -44,6 +39,7 @@ import {
   type MiruroPipeProviderId,
 } from "@/lib/miruro-api";
 import { isSubtitleTrack } from "@/lib/subtitle-track-utils";
+
 import { useSkipTimes } from "@/query/use-aniskip";
 import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import {
@@ -179,14 +175,6 @@ const VideoPlayerSection = () => {
     return DEFAULT_ANIMO_SERVER;
   });
 
-  const [animestreamLocale, setAnimestreamLocale] = useState<AnimeStreamLocale>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("animestreamLocale");
-      if (saved && isAnimeStreamLocale(saved)) return saved;
-    }
-    return DEFAULT_ANIMESTREAM_DUB_LOCALE;
-  });
-
   const [multiPanel, setMultiPanel] = useState<MultiPanelProvider | null>(() => {
     if (typeof window !== "undefined") {
       const savedProvider = localStorage.getItem("kittyProvider");
@@ -229,14 +217,8 @@ const VideoPlayerSection = () => {
       ...(provider === "Miruro" ? { miruroPipe } : {}),
       ...(provider === "Animex" ? { animexServer } : {}),
       ...(provider === "Animo" ? { animoServer } : {}),
-      ...(provider === "AnimeStream"
-        ? {
-            animestreamLocale:
-              streamAudio === "dub" ? animestreamLocale : ANIMESTREAM_SUB_LOCALE,
-          }
-        : {}),
     }),
-    [provider, miruroPipe, animexServer, animoServer, animestreamLocale, streamAudio],
+    [provider, miruroPipe, animexServer, animoServer],
   );
 
   const {
@@ -258,8 +240,6 @@ const VideoPlayerSection = () => {
         provider === "Animex" ? animexServer : undefined,
         provider === "Miruro" ? miruroPipe : undefined,
         provider === "Animo" ? animoServer : undefined,
-        provider === "AnimeStream" ? animestreamLocale : undefined,
-        streamAudio,
       ),
     [
       streamCapabilities,
@@ -268,8 +248,6 @@ const VideoPlayerSection = () => {
       animexServer,
       miruroPipe,
       animoServer,
-      animestreamLocale,
-      streamAudio,
     ],
   );
 
@@ -296,23 +274,6 @@ const VideoPlayerSection = () => {
       setStreamAudio("dub");
     }
   }, [capsForAudioAvailability, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
-
-  const animestreamDubLocales = useMemo(
-    () => (streamCapabilities?.animestreamServers ?? []).map((s) => s.locale).join("\0"),
-    [streamCapabilities?.animestreamServers],
-  );
-
-  useEffect(() => {
-    if (provider !== "AnimeStream" || streamAudio !== "dub") return;
-    if (!animestreamDubLocales) return;
-    const locales = animestreamDubLocales.split("\0");
-    if (locales.includes(animestreamLocale)) return;
-    const fallback =
-      locales.find((l) => l === DEFAULT_ANIMESTREAM_DUB_LOCALE) ?? locales[0];
-    if (!fallback || fallback === animestreamLocale) return;
-    setAnimestreamLocale(fallback);
-    localStorage.setItem("animestreamLocale", fallback);
-  }, [provider, streamAudio, animestreamDubLocales, animestreamLocale]);
 
   // ── Resume position ──────────────────────────────────────────────
   const [startTime, setStartTime] = useState(0);
@@ -517,7 +478,6 @@ const VideoPlayerSection = () => {
     animeTitle,
     provider === "Animex" ? animexServer : null,
     provider === "Animo" ? animoServer : null,
-    provider === "AnimeStream" && streamAudio === "dub" ? animestreamLocale : null,
   );
 
   const hasStreamFile = Boolean(streamData?.file);
@@ -618,12 +578,6 @@ const VideoPlayerSection = () => {
       setAnimoServer(DEFAULT_ANIMO_SERVER);
       localStorage.setItem("animoServer", DEFAULT_ANIMO_SERVER);
     }
-    if (p === "AnimeStream") {
-      const locale =
-        streamAudio === "dub" ? DEFAULT_ANIMESTREAM_DUB_LOCALE : ANIMESTREAM_SUB_LOCALE;
-      setAnimestreamLocale(locale);
-      localStorage.setItem("animestreamLocale", locale);
-    }
   };
 
   const handleStreamAudioChange = (next: "sub" | "dub") => {
@@ -667,15 +621,6 @@ const VideoPlayerSection = () => {
     setAnimoServer(server);
     localStorage.setItem("kittyProvider", "Animo");
     localStorage.setItem("animoServer", server);
-  };
-
-  const handleAnimestreamLocaleChange = (locale: AnimeStreamLocale) => {
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
-    setProvider("AnimeStream");
-    setAnimestreamLocale(locale);
-    localStorage.setItem("kittyProvider", "AnimeStream");
-    localStorage.setItem("animestreamLocale", locale);
   };
 
   const handleAnime4kToggle = () => {
@@ -729,7 +674,6 @@ const VideoPlayerSection = () => {
           miruroPipe={miruroPipe}
           animexServer={animexServer}
           animoServer={animoServer}
-          animestreamLocale={animestreamLocale}
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
           capabilitiesLoading={capabilitiesLoading}
@@ -738,7 +682,6 @@ const VideoPlayerSection = () => {
           onMiruroPipeChange={handleMiruroPipeChange}
           onAnimexServerChange={handleAnimexServerChange}
           onAnimoServerChange={handleAnimoServerChange}
-          onAnimestreamLocaleChange={handleAnimestreamLocaleChange}
         />
 
         <Button
@@ -768,7 +711,7 @@ const VideoPlayerSection = () => {
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <KittyPlayer
-        key={`${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}-${animestreamLocale}`}
+        key={`${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`}
         src={streamData.file}
         poster={currentEpisodeInfo?.image ?? anime?.anime?.info?.poster}
         tracks={playerTracks}
@@ -803,7 +746,6 @@ const VideoPlayerSection = () => {
           miruroPipe={miruroPipe}
           animexServer={animexServer}
           animoServer={animoServer}
-          animestreamLocale={animestreamLocale}
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
           capabilitiesLoading={capabilitiesLoading}
@@ -812,7 +754,6 @@ const VideoPlayerSection = () => {
           onMiruroPipeChange={handleMiruroPipeChange}
           onAnimexServerChange={handleAnimexServerChange}
           onAnimoServerChange={handleAnimoServerChange}
-          onAnimestreamLocaleChange={handleAnimestreamLocaleChange}
         />
 
         {/* Row 2 — badges + actions */}
