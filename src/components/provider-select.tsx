@@ -23,7 +23,6 @@ import {
   type ProviderAudioMode,
 } from "@/lib/kitty-providers";
 import {
-  providerVisibleInAudioMode,
   type EpisodeStreamCapabilities,
   type StreamCapabilities,
 } from "@/lib/stream-capabilities";
@@ -213,21 +212,11 @@ function StreamCapabilityBadges({
   return <span className="inline-flex items-center gap-0.5 shrink-0 flex-wrap">{badges}</span>;
 }
 
-function providersForRow(
-  mode: ProviderAudioMode,
-  capabilities: EpisodeStreamCapabilities | undefined,
-  loading: boolean,
-): KittyProviderMeta[] {
-  if (loading) {
-    return KITTY_PROVIDER_META.filter((p) => {
-      if (mode === "multi") return MULTI_ROW_PROVIDERS.has(p.id);
-      return !MULTI_ROW_PROVIDERS.has(p.id);
-    });
-  }
-
-  return KITTY_PROVIDER_META.filter((p) =>
-    providerVisibleInAudioMode(p.id, mode, capabilities?.providers[p.id]),
-  );
+function providersForRow(mode: ProviderAudioMode): KittyProviderMeta[] {
+  return KITTY_PROVIDER_META.filter((p) => {
+    if (mode === "multi") return MULTI_ROW_PROVIDERS.has(p.id);
+    return !MULTI_ROW_PROVIDERS.has(p.id);
+  });
 }
 
 const PROVIDER_ROW_STYLES: Record<
@@ -314,7 +303,7 @@ export function ProviderGrid({
   return (
     <div className={cn("flex flex-col gap-2 w-full", className)}>
       {rows.map((mode) => {
-        const items = providersForRow(mode, capabilities, capabilitiesLoading);
+        const items = providersForRow(mode);
         if (items.length === 0) return null;
         const styles = PROVIDER_ROW_STYLES[mode];
 
@@ -336,7 +325,7 @@ export function ProviderGrid({
                   provider === p.id &&
                   (mode === "multi" ? audioMode === "multi" : audioMode !== "multi");
                 const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
-                const providerCaps = capabilities?.providers[p.id];
+                const providerCaps = isActive ? capabilities?.providers[p.id] : undefined;
 
                 return (
                   <button
@@ -358,7 +347,7 @@ export function ProviderGrid({
                     )}
                   >
                     <span className="truncate">{p.label}</span>
-                    {capsReady && <StreamCapabilityBadges caps={providerCaps} />}
+                    {capsReady && isActive && <StreamCapabilityBadges caps={providerCaps} />}
                     {isMulti && mode === "multi" && (
                       <ChevronDown
                         className={cn(
@@ -394,7 +383,7 @@ export function ProviderGrid({
                 )}
               >
                 <span>{p.native ? p.label : `${p.label}*`}</span>
-                {capsReady && (
+                {capsReady && miruroPipe === p.id && (
                   <StreamCapabilityBadges caps={capabilities?.miruroPipes[p.id]} />
                 )}
               </button>
@@ -422,7 +411,7 @@ export function ProviderGrid({
                 )}
               >
                 <span>{s.label}</span>
-                {capsReady && (
+                {capsReady && animexServer === s.id && (
                   <StreamCapabilityBadges caps={capabilities?.animexServers[s.id]} />
                 )}
               </button>

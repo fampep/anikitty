@@ -535,7 +535,7 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if (isLoading && !hasStreamFile) {
+  if ((isLoading || isFetching) && !hasStreamFile) {
     return (
       <PlayerSkeleton
         label={t("watch.loadingStream")}
@@ -548,7 +548,7 @@ const VideoPlayerSection = () => {
 
   const subtitleTracks = (streamData?.tracks ?? []).filter(isSubtitleTrack);
 
-  if (streamError || !streamData?.file) {
+  if (!isFetching && (streamError || !streamData?.file)) {
     return (
       <div className="flex flex-col gap-3">
         <PlayerSkeleton dim label={t("watch.loadingStream")} thumbnail={loadingThumbnail} />
@@ -585,6 +585,15 @@ const VideoPlayerSection = () => {
           {t("watch.retryWith", { provider })}
         </Button>
       </div>
+    );
+  }
+
+  if (!streamData?.file) {
+    return (
+      <PlayerSkeleton
+        label={t("watch.loadingStream")}
+        thumbnail={loadingThumbnail}
+      />
     );
   }
 
