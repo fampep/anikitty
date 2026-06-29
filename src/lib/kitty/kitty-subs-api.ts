@@ -15,6 +15,7 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "AnimeNexus",
   "AnimeHub",
+  "ReAnime",
   "AnimeOnsen",
   "AllAnime",
   "MKissa",
