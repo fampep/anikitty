@@ -1,4 +1,5 @@
 import { isAllowedMediaProxyUrl, sanitizeHeaderValue } from "@/lib/security";
+import { detectSubtitleFormat, subtitleContentType } from "@/lib/subtitle-track-utils";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -34,12 +35,15 @@ export async function GET(req: Request) {
       return new Response("Empty subtitle", { status: 404 });
     }
 
+    const format = detectSubtitleFormat({ url, content: text });
+
     return new Response(text, {
       status: 200,
       headers: {
-        "Content-Type": "text/vtt; charset=utf-8",
+        "Content-Type": subtitleContentType(format),
         "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
         "Access-Control-Allow-Origin": "*",
+        "X-Subtitle-Format": format,
       },
     });
   } catch {

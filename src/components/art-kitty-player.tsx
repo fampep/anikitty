@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Artplayer from "artplayer";
 import type { Option } from "artplayer";
 import Hls from "hls.js";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
 import { createHlsConfig } from "@/lib/hls-config";
-import { isSubtitleTrack, labelToLanguage } from "@/lib/subtitle-track-utils";
+import {
+  detectSubtitleFormat,
+  isSubtitleTrack,
+  labelToLanguage,
+} from "@/lib/subtitle-track-utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import type { VideoPlayerProps } from "@/lib/video-player-types";
-import artplayerPluginSkip from "@/lib/art-player-skip";
+import type { SkipInterval } from "@/query/use-aniskip";
+import { PlayerSkipButton } from "@/components/player-skip-button";
 
 function resolveTrackSrc(file: string): string {
   if (!file) return file;
@@ -35,6 +40,11 @@ function generateHighlights(
   return highlights;
 }
 
+function hideArtPoster(art: Artplayer) {
+  const poster = art.template?.$poster as HTMLElement | undefined;
+  if (poster) poster.style.display = "none";
+}
+
 export default function ArtKittyPlayer({
   src,
   poster,
@@ -53,9 +63,12 @@ export default function ArtKittyPlayer({
 }: VideoPlayerProps) {
   const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
+  const artRef = useRef<Artplayer | null>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const skipPluginRef = useRef<{ update?: (ranges: unknown) => void } | null>(null);
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
+
+  const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
@@ -67,6 +80,8 @@ export default function ArtKittyPlayer({
   const startFiredRef = useRef(false);
   const outroFiredRef = useRef(false);
   const lastProgressTs = useRef(0);
+  const skipUiRef = useRef<"intro" | "outro" | null>(null);
+  const lastUiTimeRef = useRef(0);
 
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
@@ -78,22 +93,23 @@ export default function ArtKittyPlayer({
 
   const proxiedSrc = buildKittyHlsUrl(src, headers);
 
-  const buildSkipRanges = useCallback((): [number, number | typeof Infinity][] => {
-    const ranges: [number, number | typeof Infinity][] = [];
-    const st = skipTimesRef.current;
-    if (st?.intro && st.intro.end > st.intro.start) {
-      ranges.push([st.intro.start, st.intro.end]);
+  const seekTo = useCallback((time: number) => {
+    const art = artRef.current;
+    if (art) {
+      art.seek = time;
+      art.play();
     }
-    if (st?.outro && st.outro.end > st.outro.start) {
-      ranges.push([st.outro.start, st.outro.end === 0 ? Infinity : st.outro.end]);
-    }
-    return ranges;
+    setActiveSkip(null);
+    skipUiRef.current = null;
   }, []);
 
   useEffect(() => {
     startFiredRef.current = false;
     outroFiredRef.current = false;
     lastProgressTs.current = 0;
+    skipUiRef.current = null;
+    setActiveSkip(null);
+    setCurrentTime(0);
   }, [proxiedSrc]);
 
   useEffect(() => {
@@ -106,11 +122,15 @@ export default function ArtKittyPlayer({
     }));
 
     const defaultSub = subTracks.find((tr) => tr.default) ?? subTracks[0];
+    const defaultSubType = defaultSub
+      ? detectSubtitleFormat({ url: defaultSub.file, label: defaultSub.label })
+      : "vtt";
+
     const subtitleOption: Option["subtitle"] =
       preferSubtitles && defaultSub
         ? {
             url: defaultSub.file,
-            type: "vtt",
+            type: defaultSubType,
             style: {
               color: "#FFFFFF",
               fontSize: "22px",
@@ -122,10 +142,10 @@ export default function ArtKittyPlayer({
     const subtitleSelector = subTracks.map((track) => ({
       html: track.label || labelToLanguage(track.label || ""),
       url: track.file,
+      type: detectSubtitleFormat({ url: track.file, label: track.label }),
     }));
 
     let hlsForCleanup: Hls | null = null;
-    let autoSkipEnabled = true;
 
     const art = new Artplayer({
       container,
@@ -143,7 +163,7 @@ export default function ArtKittyPlayer({
       fullscreenWeb: true,
       subtitleOffset: true,
       screenshot: true,
-      backdrop: true,
+      backdrop: false,
       autoPlayback: true,
       autoSize: false,
       autoMini: false,
@@ -194,23 +214,12 @@ export default function ArtKittyPlayer({
             auto: "Auto",
           },
         }),
-        artplayerPluginSkip(buildSkipRanges()),
       ],
       highlight: [
         ...generateHighlights(skipTimes?.intro?.start, skipTimes?.intro?.end, "Intro"),
         ...generateHighlights(skipTimes?.outro?.start, skipTimes?.outro?.end, "Outro"),
       ],
       settings: [
-        {
-          html: t("watch.artAutoSkip"),
-          tooltip: t("watch.artAutoSkipHint"),
-          switch: true,
-          onSwitch(item) {
-            autoSkipEnabled = item.switch;
-            skipPluginRef.current?.update?.(autoSkipEnabled ? buildSkipRanges() : []);
-            return item.switch;
-          },
-        },
         {
           html: t("watch.artAutoNext"),
           tooltip: t("watch.artAutoNextHint"),
@@ -238,9 +247,11 @@ export default function ArtKittyPlayer({
             },
             ...subtitleSelector,
           ],
-          onSelect(item: { html?: string; url?: string }) {
+          onSelect(item: { html?: string; url?: string; type?: string }) {
             if (item.url) {
-              art.subtitle.switch(item.url, { name: item.html });
+              const type = (item.type as "vtt" | "srt" | "ass" | undefined)
+                ?? detectSubtitleFormat({ url: item.url, label: item.html });
+              art.subtitle.switch(item.url, { name: item.html, type });
             }
             return item.html ?? "Subtitle";
           },
@@ -248,11 +259,10 @@ export default function ArtKittyPlayer({
       ],
     });
 
+    artRef.current = art;
+
     art.on("ready", () => {
-      const plugin = (art as Artplayer & {
-        plugins?: Record<string, { update?: (o: unknown) => void }>;
-      }).plugins?.artplayerPluginSkip;
-      skipPluginRef.current = plugin ?? null;
+      hideArtPoster(art);
 
       art.subtitle.style({
         fontSize: `${Math.max(14, Math.min(32, art.height * 0.04))}px`,
@@ -270,6 +280,7 @@ export default function ArtKittyPlayer({
     });
 
     art.on("play", () => {
+      hideArtPoster(art);
       if (!startFiredRef.current) {
         startFiredRef.current = true;
         onStartRef.current?.();
@@ -282,15 +293,27 @@ export default function ArtKittyPlayer({
       onLiveTimeRef.current?.(current, duration);
 
       const st = skipTimesRef.current;
-      if (
-        !outroFiredRef.current &&
-        st?.outro &&
-        duration > 0 &&
-        current >= st.outro.start &&
-        current < (st.outro.end || duration)
-      ) {
-        outroFiredRef.current = true;
-        onOutroStartRef.current?.(duration);
+      let nextSkip: "intro" | "outro" | null = null;
+      if (st?.intro && current >= st.intro.start && current < st.intro.end) {
+        nextSkip = "intro";
+      } else if (st?.outro && current >= st.outro.start && current < st.outro.end) {
+        nextSkip = "outro";
+        if (!outroFiredRef.current && duration > 0) {
+          outroFiredRef.current = true;
+          onOutroStartRef.current?.(duration);
+        }
+      }
+
+      const skipChanged = nextSkip !== skipUiRef.current;
+      if (skipChanged) {
+        skipUiRef.current = nextSkip;
+        setActiveSkip(nextSkip);
+      }
+
+      const uiInterval = nextSkip ? 0.25 : 1;
+      if (skipChanged || current - lastUiTimeRef.current >= uiInterval) {
+        lastUiTimeRef.current = current;
+        setCurrentTime(current);
       }
 
       if (current > 5 && duration > 0) {
@@ -311,21 +334,38 @@ export default function ArtKittyPlayer({
 
     return () => {
       art.destroy();
+      artRef.current = null;
       if (hlsForCleanup) {
         hlsForCleanup.destroy();
         hlsForCleanup = null;
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, poster, tracks, preferSubtitles, startTime, nextEpisode, buildSkipRanges, skipTimes, t]);
+  }, [proxiedSrc, poster, tracks, preferSubtitles, startTime, nextEpisode, skipTimes, t]);
 
   if (!proxiedSrc) return null;
 
+  const activeInterval: SkipInterval | undefined =
+    activeSkip === "intro"
+      ? skipTimes?.intro
+      : activeSkip === "outro"
+        ? skipTimes?.outro
+        : undefined;
+
   return (
     <div
-      ref={containerRef}
       className="art-kitty-player relative w-full overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.06]"
       style={{ aspectRatio: "16/9" }}
-    />
+    >
+      <div ref={containerRef} className="absolute inset-0" />
+      {activeSkip && activeInterval && (
+        <PlayerSkipButton
+          type={activeSkip}
+          interval={activeInterval}
+          currentTime={currentTime}
+          onSkip={() => seekTo(activeInterval.end)}
+        />
+      )}
+    </div>
   );
 }

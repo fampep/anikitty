@@ -1,5 +1,9 @@
 import { getStoredSubtitleById } from "@/lib/subtitle-cache-store";
-import { buildSubtitleFilename } from "@/lib/subtitle-track-utils";
+import {
+  buildSubtitleFilename,
+  detectSubtitleFormat,
+  subtitleContentType,
+} from "@/lib/subtitle-track-utils";
 
 const SAFE_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -22,13 +26,17 @@ export async function GET(req: Request) {
     anilistId: row.anilistId,
     episode: row.episode,
     label: row.label,
+    content: row.content,
   });
 
+  const format = detectSubtitleFormat({ label: row.label, content: row.content });
+
   const headers: Record<string, string> = {
-    "Content-Type": "text/vtt; charset=utf-8",
+    "Content-Type": subtitleContentType(format),
     "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     "Access-Control-Allow-Origin": "*",
     "X-Subtitle-Filename": filename,
+    "X-Subtitle-Format": format,
   };
 
   if (download) {

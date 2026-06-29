@@ -165,12 +165,75 @@ function sanitizeFilenamePart(value: string, maxLen: number): string {
   );
 }
 
-/** Download filename keyed by AniList ID: `{anilistId}-ep{n}-{label}.vtt` */
+export type SubtitleFormat = "vtt" | "srt" | "ass";
+
+export function detectSubtitleFormat(source: {
+  url?: string;
+  label?: string;
+  content?: string;
+}): SubtitleFormat {
+  const url = (source.url ?? "").toLowerCase();
+  const label = (source.label ?? "").toLowerCase();
+
+  if (
+    url.includes(".ass") ||
+    url.includes(".ssa") ||
+    label.includes(".ass") ||
+    label.includes(".ssa") ||
+    /\bass\b/.test(label) ||
+    /\bssa\b/.test(label)
+  ) {
+    return "ass";
+  }
+
+  if (url.includes(".srt") || label.includes(".srt")) return "srt";
+  if (url.includes(".vtt") || label.includes(".vtt")) return "vtt";
+
+  const head = source.content?.trimStart().slice(0, 600) ?? "";
+  if (
+    /^\[Script Info\]/im.test(head) ||
+    /\[V4\+?\s*Styles\]/i.test(head) ||
+    /^Format:\s*Layer,\s*Start,\s*End/im.test(head)
+  ) {
+    return "ass";
+  }
+  if (/^WEBVTT/i.test(head)) return "vtt";
+
+  return "vtt";
+}
+
+export function subtitleContentType(format: SubtitleFormat): string {
+  switch (format) {
+    case "ass":
+      return "text/x-ssa; charset=utf-8";
+    case "srt":
+      return "application/x-subrip; charset=utf-8";
+    default:
+      return "text/vtt; charset=utf-8";
+  }
+}
+
+export function subtitleFileExtension(format: SubtitleFormat): string {
+  switch (format) {
+    case "ass":
+      return "ass";
+    case "srt":
+      return "srt";
+    default:
+      return "vtt";
+  }
+}
+
+/** Download filename keyed by AniList ID: `{anilistId}-ep{n}-{label}.{ext}` */
 export function buildSubtitleFilename(row: {
   anilistId: number;
   episode: number;
   label: string;
+  content?: string;
 }): string {
   const label = sanitizeFilenamePart(row.label, 30);
-  return `${row.anilistId}-ep${row.episode}-${label}.vtt`;
+  const ext = subtitleFileExtension(
+    detectSubtitleFormat({ label: row.label, content: row.content }),
+  );
+  return `${row.anilistId}-ep${row.episode}-${label}.${ext}`;
 }
