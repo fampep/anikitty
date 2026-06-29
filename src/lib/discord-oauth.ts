@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import { verifyOAuthStateFor, sign2faPendingToken } from "@/lib/auth-jwt";
 import { buildAuthResponse } from "@/lib/auth-response";
 import { redirectWithAuthCookie } from "@/lib/auth-cookie";
+import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
 
 const DISCORD_AUTHORIZE = "https://discord.com/api/oauth2/authorize";
 const DISCORD_TOKEN = "https://discord.com/api/oauth2/token";
@@ -269,7 +270,7 @@ export async function completeDiscordLogin(
 
     const { user } = result;
 
-    if (user.totpEnabled && user.totpSecret) {
+    if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {
       const pendingToken = await sign2faPendingToken(user.id);
       return { type: "2fa", pendingToken };
     }

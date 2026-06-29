@@ -6,6 +6,7 @@ import {
   findUserByIdentifier,
   verifyUserPassword,
 } from "@/lib/local-auth";
+import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security";
 
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    if (user.totpEnabled && user.totpSecret) {
+    if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {
       const pendingToken = await sign2faPendingToken(user.id);
       return NextResponse.json({
         requires2fa: true,

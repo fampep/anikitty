@@ -9,7 +9,7 @@ import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
-  AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle,
+  AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/chat-config";
@@ -117,6 +117,7 @@ interface AdminUser {
   avatarUrl?: string | null;
   createdAt: string;
   lastActiveAt?: string | null;
+  totpEnabled?: boolean;
 }
 
 interface DeletionRequest {
@@ -263,6 +264,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
   const [deletionLoading, setDeletionLoading] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [disabling2faUserId, setDisabling2faUserId] = useState<string | null>(null);
+  const [resettingPasswordUserId, setResettingPasswordUserId] = useState<string | null>(null);
 
   // Roles
   const [roles, setRoles]             = useState<Role[]>([]);
@@ -506,6 +509,51 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       toast.error(e instanceof Error ? e.message : "Failed to delete user");
     } finally {
       setDeletingUserId(null);
+    }
+  };
+
+  const handleDisable2fa = async (user: Pick<AdminUser, "id" | "username">) => {
+    if (!confirm(`Disable two-factor authentication for @${user.username}?`)) return;
+    setDisabling2faUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ action: "disable2fa" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to disable 2FA");
+      toast.success(`2FA disabled for @${user.username}`);
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, totpEnabled: false } : u)));
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to disable 2FA");
+    } finally {
+      setDisabling2faUserId(null);
+    }
+  };
+
+  const handleResetPassword = async (user: Pick<AdminUser, "id" | "username">) => {
+    const password = prompt(`Set a new password for @${user.username} (min. 8 characters):`);
+    if (password === null) return;
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (!confirm(`Reset password for @${user.username}? All active sessions will be signed out.`)) return;
+    setResettingPasswordUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ action: "resetPassword", password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to reset password");
+      toast.success(`Password reset for @${user.username}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to reset password");
+    } finally {
+      setResettingPasswordUserId(null);
     }
   };
 
@@ -915,15 +963,16 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               </div>
             ) : (
               <div className="rounded-xl border border-white/10 overflow-x-auto">
-                <table className="w-full text-sm min-w-[540px]">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr className="border-b border-white/8 bg-white/[0.02]">
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">User</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Email</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Role</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">2FA</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Joined</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden lg:table-cell">Last active</th>
-                      <th className="px-4 py-3 w-32" />
+                      <th className="px-4 py-3 w-40" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.05]">
@@ -961,6 +1010,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                               ))}
                             </select>
                           </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            {u.totpEnabled ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400/80">
+                                <ShieldCheck className="w-3 h-3" /> On
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-mono text-white/25">Off</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-white/25 text-xs hidden md:table-cell">
                             {new Date(u.createdAt).toLocaleDateString()}
                           </td>
@@ -979,6 +1037,34 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                   Save
                                 </button>
                               )}
+                              {u.totpEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDisable2fa(u)}
+                                  disabled={disabling2faUserId === u.id}
+                                  title="Disable 2FA"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-amber-500/20 text-amber-300/70 text-[11px] hover:bg-amber-500/10 hover:text-amber-300 disabled:opacity-40 transition-all"
+                                >
+                                  {disabling2faUserId === u.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <ShieldOff className="w-3 h-3" />
+                                  )}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleResetPassword(u)}
+                                disabled={resettingPasswordUserId === u.id}
+                                title="Reset password"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/15 text-white/45 text-[11px] hover:bg-white/8 hover:text-white/70 disabled:opacity-40 transition-all"
+                              >
+                                {resettingPasswordUserId === u.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Key className="w-3 h-3" />
+                                )}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteUser(u)}

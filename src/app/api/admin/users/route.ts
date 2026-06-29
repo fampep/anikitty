@@ -21,6 +21,7 @@ export async function GET(req: Request) {
         role: users.role,
         avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
+        totpEnabled: users.totpEnabled,
       })
       .from(users)
       .where(or(ilike(users.username, `%${q}%`), ilike(users.email, `%${q}%`)))
@@ -52,6 +53,7 @@ export async function GET(req: Request) {
       users: rows.map((u) => ({
         ...u,
         createdAt: u.createdAt?.toISOString?.() ?? u.createdAt,
+        totpEnabled: u.totpEnabled ?? false,
         lastActiveAt: lastActiveMap.get(u.id) ?? null,
       })),
     });
@@ -65,6 +67,7 @@ export async function GET(req: Request) {
       u.role,
       u.avatar_url AS "avatarUrl",
       u.created_at AS "createdAt",
+      u.totp_enabled AS "totpEnabled",
       MAX(wp.updated_at) AS "lastActiveAt"
     FROM users u
     LEFT JOIN watch_progress wp ON wp.user_id = u.id
@@ -81,6 +84,7 @@ export async function GET(req: Request) {
       role: u.role,
       avatarUrl: u.avatarUrl ?? null,
       createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
+      totpEnabled: Boolean(u.totpEnabled),
       lastActiveAt: u.lastActiveAt instanceof Date ? u.lastActiveAt.toISOString() : (u.lastActiveAt ?? null),
     })),
   });

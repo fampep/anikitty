@@ -42,13 +42,19 @@ export async function POST(req: Request) {
       .where(eq(users.id, userId))
       .limit(1);
 
-    if (!user?.totpEnabled || !user.totpSecret) {
-      return NextResponse.json({ error: "Two-factor authentication is not enabled" }, { status: 400 });
+    if (!user) {
+      return NextResponse.json({ error: "Session expired. Please sign in again." }, { status: 401 });
+    }
+
+    if (!user.totpEnabled || !user.totpSecret) {
+      const authData = await buildAuthResponse(user, req);
+      return jsonWithAuthCookie(authData, authData.anisurgeToken);
     }
 
     const decrypted = await decryptTotpSecretForUser(user.id, user.totpSecret);
     if (!decrypted.ok) {
-      return NextResponse.json({ error: decrypted.message }, { status: 400 });
+      const authData = await buildAuthResponse(user, req);
+      return jsonWithAuthCookie(authData, authData.anisurgeToken);
     }
 
     if (!verifyTotpCode(decrypted.secret, String(code))) {

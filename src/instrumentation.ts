@@ -12,5 +12,10 @@ export async function register() {
     await ensureDataEncryptionKey().catch((e) =>
       console.error("[data-encryption-key] init failed:", e),
     );
+
+    const { runReactiveTwoFactorMaintenance } = await import("./lib/totp-reactive");
+    await runReactiveTwoFactorMaintenance().catch((e) =>
+      console.error("[2fa-reactive] maintenance failed:", e),
+    );
   }
 }

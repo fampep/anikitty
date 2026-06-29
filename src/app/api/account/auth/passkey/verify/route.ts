@@ -10,6 +10,7 @@ import { jsonWithAuthCookie } from "@/lib/auth-cookie";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security";
 import { getWebAuthnOrigin, getWebAuthnRpId, passkeyRowToCredential } from "@/lib/webauthn";
+import { shouldPromptForTwoFactor } from "@/lib/totp-reactive";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  if (user.totpEnabled && user.totpSecret) {
+  if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {
     const token = await sign2faPendingToken(user.id);
     return NextResponse.json({ requires2fa: true, pendingToken: token });
   }
