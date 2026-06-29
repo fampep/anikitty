@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
+import { SITE_LOGO } from "@/lib/site-seo";
 import type { KittyTrack } from "@/query/get-kitty-stream";
 import type { SkipTimes, SkipInterval } from "@/query/use-aniskip";
 import { isSubtitleTrack, labelToLanguage } from "@/lib/subtitle-track-utils";
@@ -117,6 +119,7 @@ export default function KittyPlayer({
   const lastUiTimeRef = useRef(0);
   const skipUiRef = useRef<"intro" | "outro" | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [posterVisible, setPosterVisible] = useState(!!poster);
   const onNextEpisodeRef = useRef(onNextEpisode);
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
   const onOutroStartRef = useRef(onOutroStart);
@@ -245,10 +248,11 @@ export default function KittyPlayer({
     lastUiTimeRef.current = 0;
     setCurrentTime(0);
     setCountdown(null);
+    setPosterVisible(!!poster);
     durationRef.current = 0;
     setDuration(0);
     subtitleActivationKeyRef.current = "";
-  }, [src]);
+  }, [src, poster]);
 
   // Enable default subtitle track when available (Vidstack CC menu still allows switching/off).
   useEffect(() => {
@@ -593,7 +597,12 @@ export default function KittyPlayer({
     }
   }, [reportW2g]);
 
+  const dismissPoster = useCallback(() => {
+    setPosterVisible(false);
+  }, []);
+
   const handleCanPlay = useCallback(() => {
+    dismissPoster();
     const t = startTimeRef.current;
     if (t > 10 && playerRef.current) playerRef.current.currentTime = t;
 
@@ -611,16 +620,17 @@ export default function KittyPlayer({
         });
       }
     }
-  }, [anime4kEnabled]);
+  }, [anime4kEnabled, dismissPoster]);
 
   const handlePlay = useCallback(() => {
+    dismissPoster();
     if (!startFiredRef.current) {
       startFiredRef.current = true;
       onStartRef.current?.();
     }
     const player = playerRef.current;
     if (player) reportW2g(true, player.currentTime);
-  }, [reportW2g]);
+  }, [reportW2g, dismissPoster]);
 
   const handlePause = useCallback(() => {
     const player = playerRef.current;
@@ -671,14 +681,32 @@ export default function KittyPlayer({
       data-anime4k={anime4kEnabled ? "true" : undefined}
     >
       <div className="kitty-stage__glow pointer-events-none absolute -inset-px rounded-xl bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent opacity-80" aria-hidden />
-      <div className="kitty-stage__vignette pointer-events-none absolute inset-0 z-[4]" aria-hidden />
-      <div className="kitty-stage__scanline pointer-events-none absolute inset-0 z-[4] opacity-[0.03]" aria-hidden />
+
+      <div className="kitty-stage__brand pointer-events-none absolute top-0 inset-x-0 z-[25] flex items-center justify-between gap-3 px-4 py-3">
+        {anime4kEnabled ? (
+          <span className="kitty-meta-pill text-violet-200/80 border-violet-400/20 bg-violet-500/10">
+            4K
+          </span>
+        ) : (
+          <span aria-hidden />
+        )}
+        <div className="kitty-player-logo shrink-0 select-none opacity-70 transition-opacity duration-300 group-hover/stage:opacity-90">
+          <Image
+            src={SITE_LOGO}
+            alt=""
+            width={88}
+            height={32}
+            className="h-[18px] w-auto object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+            unoptimized
+          />
+        </div>
+      </div>
 
       <MediaPlayer
         ref={playerRef}
         src={{ src: proxiedSrc, type: "application/x-mpegurl" }}
         streamType="on-demand"
-        poster={poster}
+        poster={posterVisible ? poster : undefined}
         playsInline
         crossOrigin="anonymous"
         load="eager"
@@ -693,7 +721,7 @@ export default function KittyPlayer({
         onEnded={handleEnded}
       >
         <MediaProvider>
-          {poster && <Poster className="vds-poster" src={poster} alt="" />}
+          {posterVisible && poster && <Poster className="vds-poster" src={poster} alt="" />}
           {effectiveChapterUrl && (
             <Track src={effectiveChapterUrl} kind="chapters" default />
           )}
@@ -720,6 +748,9 @@ export default function KittyPlayer({
             aria-hidden
           />
         )}
+
+        <div className="kitty-stage__vignette pointer-events-none absolute inset-0 z-[2]" aria-hidden />
+        <div className="kitty-stage__scanline pointer-events-none absolute inset-0 z-[2] opacity-[0.03]" aria-hidden />
 
         <DefaultVideoLayout icons={defaultLayoutIcons} />
 
