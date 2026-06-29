@@ -872,8 +872,14 @@
       "episode": "Folge",
       "episodes": "Folgen",
       "searchPlaceholder": "Nach Titel oder Nummer suchen…",
+      "filterPlaceholder": "Episoden filtern…",
+      "hideWatched": "Gesehene ausblenden",
+      "showAll": "Alle Episoden anzeigen",
       "noEpisodes": "Keine Episoden gefunden"
     },
+    "commentsPreview": "EP {ep} · {count} Kommentare · Tippen zum Mitmachen",
+    "commentsPreviewEmpty": "EP {ep} · Noch keine Kommentare · Tippen zum Starten",
+    "commentsPreviewLoading": "EP {ep} · Kommentare werden geladen…",
     "w2g": {
       "title": "Gemeinsam schauen",
       "host": "Host",

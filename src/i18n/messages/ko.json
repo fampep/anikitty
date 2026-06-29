@@ -872,8 +872,14 @@
       "episode": "화",
       "episodes": "화",
       "searchPlaceholder": "제목 또는 화수로 검색…",
+      "filterPlaceholder": "에피소드 필터…",
+      "hideWatched": "시청한 에피소드 숨기기",
+      "showAll": "전체 표시",
       "noEpisodes": "에피소드를 찾을 수 없습니다"
     },
+    "commentsPreview": "EP {ep} · 댓글 {count}개 · 탭하여 참여",
+    "commentsPreviewEmpty": "EP {ep} · 댓글 없음 · 탭하여 시작",
+    "commentsPreviewLoading": "EP {ep} · 댓글 불러오는 중…",
     "w2g": {
       "title": "함께 보기",
       "host": "호스트",

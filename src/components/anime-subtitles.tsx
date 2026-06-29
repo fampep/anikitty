@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import {
@@ -47,7 +47,6 @@ export default function AnimeSubtitles({ anilistId }: Props) {
     () => searchParams.get("missing") === "1",
   );
   const [fetchingEps, setFetchingEps] = useState<Set<number>>(() => new Set());
-  const autoFetchedEps = useRef<Set<number>>(new Set());
 
   const { data: episodesData, isLoading: episodesLoading } = useGetAllEpisodes(String(anilistId));
   const { data: subtitles = [], isLoading: subtitlesLoading, refetch } = useGetAnimeSubtitles(anilistId);
@@ -112,7 +111,6 @@ export default function AnimeSubtitles({ anilistId }: Props) {
 
   useEffect(() => {
     setPage(1);
-    autoFetchedEps.current = new Set();
   }, [query, anilistId, showMissingOnly]);
 
   useEffect(() => {
@@ -182,7 +180,6 @@ export default function AnimeSubtitles({ anilistId }: Props) {
           }
         }
       } catch {
-        autoFetchedEps.current.delete(episode);
         if (!opts?.silent) {
           toast.error(t("anime.subtitles.fetchError"));
         }
@@ -196,16 +193,6 @@ export default function AnimeSubtitles({ anilistId }: Props) {
     },
     [anilistId, refetch, t],
   );
-
-  useEffect(() => {
-    for (const group of pageEpisodes) {
-      if (group.tracks.length > 0) continue;
-      if (autoFetchedEps.current.has(group.number)) continue;
-
-      autoFetchedEps.current.add(group.number);
-      void handleFetchEpisode(group.number, { silent: true });
-    }
-  }, [pageEpisodes, handleFetchEpisode]);
 
   const busy = fetchingEps.size > 0;
 

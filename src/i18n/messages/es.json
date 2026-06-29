@@ -872,8 +872,14 @@
       "episode": "episodio",
       "episodes": "episodios",
       "searchPlaceholder": "Buscar por título o número…",
+      "filterPlaceholder": "Filtrar episodios…",
+      "hideWatched": "Ocultar vistos",
+      "showAll": "Mostrar todos",
       "noEpisodes": "No se encontraron episodios"
     },
+    "commentsPreview": "EP {ep} · {count} comentarios · Toca para unirte",
+    "commentsPreviewEmpty": "EP {ep} · Sin comentarios · Toca para empezar",
+    "commentsPreviewLoading": "EP {ep} · Cargando comentarios…",
     "w2g": {
       "title": "Ver juntos",
       "host": "Anfitrión",

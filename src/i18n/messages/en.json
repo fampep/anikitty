@@ -871,8 +871,14 @@
       "episode": "episode",
       "episodes": "episodes",
       "searchPlaceholder": "Search by title or number…",
+      "filterPlaceholder": "Filter episodes…",
+      "hideWatched": "Hide watched episodes",
+      "showAll": "Show all episodes",
       "noEpisodes": "No episodes found"
     },
+    "commentsPreview": "EP {ep} · {count} comments · Tap to join the discussion",
+    "commentsPreviewEmpty": "EP {ep} · No comments yet · Tap to start the discussion",
+    "commentsPreviewLoading": "EP {ep} · Loading comments…",
     "w2g": {
       "title": "Watch Together",
       "host": "Host",

@@ -754,8 +754,14 @@
       "episode": "épisode",
       "episodes": "épisodes",
       "searchPlaceholder": "Rechercher par titre ou numéro…",
+      "filterPlaceholder": "Filtrer les épisodes…",
+      "hideWatched": "Masquer les vus",
+      "showAll": "Tout afficher",
       "noEpisodes": "Aucun épisode trouvé"
     },
+    "commentsPreview": "EP {ep} · {count} commentaires · Appuyez pour rejoindre",
+    "commentsPreviewEmpty": "EP {ep} · Aucun commentaire · Appuyez pour commencer",
+    "commentsPreviewLoading": "EP {ep} · Chargement des commentaires…",
     "w2g": {
       "title": "Regarder ensemble",
       "host": "Hôte",

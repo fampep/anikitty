@@ -20,6 +20,7 @@ type Props = {
   subOrDub?: { sub: number; dub: number };
   watchedEpisodes?: WatchHistory[] | null;
   animePoster?: string;
+  activeStyle?: "default" | "play";
 };
 
 const EpisodeCard = ({
@@ -43,19 +44,29 @@ const EpisodeCard = ({
 
   // ── Compact number grid cell ──────────────────────────────────────
   if (!showCard && variant === "card") {
+    const playActive = isActive && props.activeStyle === "play";
+
     return (
       <Link href={href}>
         <div
           className={cn(
-            "h-[5.25rem] rounded-lg cursor-pointer w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-all",
-            isActive
-              ? "bg-white/15 ring-1 ring-white/30 text-white"
-              : "bg-white/5 hover:bg-white/10 text-white/60",
+            "aspect-square rounded-lg cursor-pointer w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-all",
+            playActive
+              ? "bg-violet-600 ring-1 ring-violet-400/50 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)]"
+              : isActive
+                ? "bg-white/15 ring-1 ring-white/30 text-white"
+                : "bg-white/[0.06] hover:bg-white/10 text-white/60",
             hasWatchedEpisode && !isActive && "opacity-50",
           )}
         >
-          <span className="font-mono font-bold">{props.episode.number}</span>
-          {hasWatchedEpisode && <Check className="w-3 h-3 opacity-50" />}
+          {playActive ? (
+            <Play className="w-4 h-4 fill-white text-white" />
+          ) : (
+            <>
+              <span className="font-mono font-bold text-[11px]">{props.episode.number}</span>
+              {hasWatchedEpisode && <Check className="w-3 h-3 opacity-50" />}
+            </>
+          )}
         </div>
       </Link>
     );

@@ -872,8 +872,14 @@
       "episode": "集",
       "episodes": "集",
       "searchPlaceholder": "按标题或集数搜索…",
+      "filterPlaceholder": "筛选剧集…",
+      "hideWatched": "隐藏已看",
+      "showAll": "显示全部",
       "noEpisodes": "未找到剧集"
     },
+    "commentsPreview": "第{ep}集 · {count}条评论 · 点击参与讨论",
+    "commentsPreviewEmpty": "第{ep}集 · 暂无评论 · 点击开始讨论",
+    "commentsPreviewLoading": "第{ep}集 · 加载评论中…",
     "w2g": {
       "title": "一起看",
       "host": "主持人",

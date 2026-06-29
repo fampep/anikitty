@@ -8,14 +8,13 @@ import Container from "@/components/container";
 import { useAnimeStore } from "@/store/anime-store";
 
 import EpisodePlaylist from "@/components/episode-playlist";
+import WatchCommentsPreview from "@/components/watch-comments-preview";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime-carousel";
 import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Play,
   ChevronRight,
-  ChevronLeft,
   MessageSquare,
   Tv2,
   ExternalLink,
@@ -33,7 +32,6 @@ import { useGetAllEpisodes } from "@/query/get-all-episodes";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useGetAnimeMappings } from "@/query/get-anime-mappings";
-import { ChevronDown } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 
@@ -91,7 +89,6 @@ const Layout = (props: Props) => {
     per_page: 1,
   });
   const [selected, setSelected] = useState("");
-  const [playlistOpen, setPlaylistOpen] = useState(false);
 
   const handleSelect = async (value: string) => {
     const prev = selected;
@@ -167,31 +164,17 @@ const Layout = (props: Props) => {
     if (value === "comments") params.delete("tab");
     else params.set("tab", value);
     router.replace(`${ROUTES.WATCH}?${params.toString()}`, { scroll: false });
+    if (value === "comments") {
+      requestAnimationFrame(() => {
+        document.getElementById("watch-comments-panel")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
   };
 
-  const prevEpisode = useMemo(() => {
-    if (!episodes || !currentEpisode) return null;
-    const idx = episodes.episodes.findIndex((ep) => ep.episodeId === currentEpisode.episodeId);
-    return idx > 0 ? episodes.episodes[idx - 1] : null;
-  }, [episodes, currentEpisode]);
-
-  const nextEpisode = useMemo(() => {
-    if (!episodes || !currentEpisode) return null;
-    const idx = episodes.episodes.findIndex((ep) => ep.episodeId === currentEpisode.episodeId);
-    return idx >= 0 && idx < episodes.episodes.length - 1 ? episodes.episodes[idx + 1] : null;
-  }, [episodes, currentEpisode]);
-
-  const handlePrev = () => {
-    if (!prevEpisode) return;
-    setSelectedEpisode(prevEpisode.episodeId as string);
-    router.push(`${ROUTES.WATCH}?anime=${animeId}&episode=${prevEpisode.episodeId}`);
-  };
-
-  const handleNext = () => {
-    if (!nextEpisode) return;
-    setSelectedEpisode(nextEpisode.episodeId as string);
-    router.push(`${ROUTES.WATCH}?anime=${animeId}&episode=${nextEpisode.episodeId}`);
-  };
+  const openComments = () => handleWatchTabChange("comments");
 
   // Update browser title instantly when episode changes (no server round-trip)
   useEffect(() => {
@@ -208,9 +191,6 @@ const Layout = (props: Props) => {
   if (!info) return null;
 
   const stats = info.stats;
-  const hasMeaningfulTitle =
-    currentEpisode?.title &&
-    currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.number}`;
 
   return (
     <Container className="mt-16 sm:mt-20 pb-16 pb-safe">
@@ -246,83 +226,27 @@ const Layout = (props: Props) => {
         <div className="flex flex-col gap-3 min-w-0">
           <div>{props.children}</div>
 
-          {/* Episode info bar with prev/next navigation */}
-          {currentEpisode && (
-            <div className="flex items-center gap-2 px-3 py-3 rounded-xl bg-gradient-to-r from-white/[0.05] to-white/[0.02] border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <button
-                onClick={handlePrev}
-                disabled={!prevEpisode}
-                title={prevEpisode ? t("watch.episodeShort", { n: prevEpisode.number }) : undefined}
-                className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-lg border transition-all shrink-0",
-                  prevEpisode
-                    ? "border-white/12 text-white/50 hover:text-white hover:border-white/25 hover:bg-white/6"
-                    : "border-white/6 text-white/15 cursor-not-allowed",
-                )}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/6 shrink-0">
-                  <Play className="w-3 h-3 text-white/50 fill-white/50" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-mono text-white/30 leading-none mb-0.5 flex items-center gap-1.5">
-                    {t("watch.episode", { n: currentEpisode.number })}
-                    {currentEpisode.isFiller && (
-                      <span className="px-1.5 py-px text-[9px] rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/60">
-                        {t("watch.filler")}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs sm:text-[13px] font-semibold text-white leading-tight truncate">
-                    {hasMeaningfulTitle
-                      ? currentEpisode.title
-                      : t("watch.episodeTitle", { name: info.name, n: currentEpisode.number })}
-                  </p>
-                </div>
-              </div>
-
-              {/* Mobile: episode list toggle */}
-              {episodes && (
-                <button
-                  onClick={() => setPlaylistOpen((o) => !o)}
-                  className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/12 text-white/40 hover:text-white/70 hover:border-white/25 transition-all shrink-0 text-[11px] font-mono"
-                >
-                  {t("anime.episodes.title")}
-                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", playlistOpen && "rotate-180")} />
-                </button>
-              )}
-
-              <button
-                onClick={handleNext}
-                disabled={!nextEpisode}
-                title={nextEpisode ? t("watch.episodeShort", { n: nextEpisode.number }) : undefined}
-                className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-lg border transition-all shrink-0",
-                  nextEpisode
-                    ? "border-white/12 text-white/50 hover:text-white hover:border-white/25 hover:bg-white/6"
-                    : "border-white/6 text-white/15 cursor-not-allowed",
-                )}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Mobile: collapsible episode playlist */}
-          {episodes && playlistOpen && (
-            <div className="lg:hidden">
+          {/* Mobile: Miruro-style comments card + episode grid */}
+          <div className="flex flex-col gap-3 lg:hidden">
+            {currentEpisode && currentAnimeId && (
+              <WatchCommentsPreview
+                animeId={currentAnimeId}
+                episodeId={episodeId}
+                episodeNumber={currentEpisode.number}
+                onOpen={openComments}
+              />
+            )}
+            {episodes && (
               <EpisodePlaylist
+                variant="watch"
                 animeId={animeId as string}
                 title={info.name ?? (moreInfo?.japanese as string)}
                 subOrDub={stats?.episodes}
                 episodes={episodes}
                 isLoading={episodeLoading}
               />
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Tabs: Comments | Info | Related */}
           <Tabs value={watchTab} onValueChange={handleWatchTabChange} className="w-full">
@@ -343,7 +267,7 @@ const Layout = (props: Props) => {
               ))}
             </TabsList>
 
-            <TabsContent value="comments" className="mt-4">
+            <TabsContent value="comments" className="mt-4" id="watch-comments-panel">
               {currentAnimeId && (
                 <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
                   <CommentSection
@@ -454,6 +378,7 @@ const Layout = (props: Props) => {
         {episodes && (
           <div className="hidden lg:block">
             <EpisodePlaylist
+              variant="sidebar"
               animeId={animeId as string}
               title={info.name ?? (moreInfo?.japanese as string)}
               subOrDub={stats?.episodes}

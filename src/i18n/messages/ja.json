@@ -872,8 +872,14 @@
       "episode": "話",
       "episodes": "話",
       "searchPlaceholder": "タイトルまたは話数で検索…",
+      "filterPlaceholder": "エピソードを絞り込み…",
+      "hideWatched": "視聴済みを非表示",
+      "showAll": "すべて表示",
       "noEpisodes": "エピソードが見つかりません"
     },
+    "commentsPreview": "第{ep}話 · {count}件のコメント · タップして参加",
+    "commentsPreviewEmpty": "第{ep}話 · コメントなし · タップして投稿",
+    "commentsPreviewLoading": "第{ep}話 · コメントを読み込み中…",
     "w2g": {
       "title": "一緒に視聴",
       "host": "ホスト",

@@ -872,8 +872,14 @@
       "episode": "afsnit",
       "episodes": "afsnit",
       "searchPlaceholder": "Søg efter titel eller nummer…",
+      "filterPlaceholder": "Filtrer afsnit…",
+      "hideWatched": "Skjul sete afsnit",
+      "showAll": "Vis alle",
       "noEpisodes": "Ingen afsnit fundet"
     },
+    "commentsPreview": "EP {ep} · {count} kommentarer · Tryk for at deltage",
+    "commentsPreviewEmpty": "EP {ep} · Ingen kommentarer endnu · Tryk for at starte",
+    "commentsPreviewLoading": "EP {ep} · Indlæser kommentarer…",
     "w2g": {
       "title": "Se sammen",
       "host": "Vært",

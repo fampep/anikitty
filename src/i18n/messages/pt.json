@@ -872,8 +872,14 @@
       "episode": "episódio",
       "episodes": "episódios",
       "searchPlaceholder": "Buscar por título ou número…",
+      "filterPlaceholder": "Filtrar episódios…",
+      "hideWatched": "Ocultar assistidos",
+      "showAll": "Mostrar todos",
       "noEpisodes": "Nenhum episódio encontrado"
     },
+    "commentsPreview": "EP {ep} · {count} comentários · Toque para participar",
+    "commentsPreviewEmpty": "EP {ep} · Sem comentários · Toque para começar",
+    "commentsPreviewLoading": "EP {ep} · Carregando comentários…",
     "w2g": {
       "title": "Assistir juntos",
       "host": "Anfitrião",
