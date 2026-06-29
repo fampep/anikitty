@@ -5,7 +5,6 @@ import Artplayer from "artplayer";
 import type { Option } from "artplayer";
 import Hls from "hls.js";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
-import "artplayer/dist/artplayer.css";
 import { buildKittyHlsUrl } from "@/lib/kitty-hls-url";
 import { createHlsConfig } from "@/lib/hls-config";
 import { isSubtitleTrack, labelToLanguage } from "@/lib/subtitle-track-utils";
@@ -55,7 +54,7 @@ export default function ArtKittyPlayer({
   const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const skipPluginRef = useRef<{ update: (ranges: unknown) => void } | null>(null);
+  const skipPluginRef = useRef<{ update?: (ranges: unknown) => void } | null>(null);
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
 
   const onStartRef = useRef(onStart);
@@ -179,7 +178,7 @@ export default function ArtKittyPlayer({
           quality: {
             control: true,
             setting: true,
-            getName: (level) => {
+            getName: (level: { height?: number; bitrate?: number }) => {
               if (!level.height) return "Auto";
               const tier = level.height <= 480 ? "SD" : level.height <= 720 ? "HD" : "FHD";
               return `${tier} ${level.height}P`;
@@ -190,7 +189,7 @@ export default function ArtKittyPlayer({
           audio: {
             control: true,
             setting: true,
-            getName: (track) => track.name ?? "Audio",
+            getName: (track: { name?: string }) => track.name ?? "Audio",
             title: "Audio",
             auto: "Auto",
           },
@@ -208,7 +207,7 @@ export default function ArtKittyPlayer({
           switch: true,
           onSwitch(item) {
             autoSkipEnabled = item.switch;
-            skipPluginRef.current?.update(autoSkipEnabled ? buildSkipRanges() : []);
+            skipPluginRef.current?.update?.(autoSkipEnabled ? buildSkipRanges() : []);
             return item.switch;
           },
         },

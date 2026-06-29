@@ -314,6 +314,8 @@
     "preferDubDesc": "Utiliser la version française par défaut lorsqu'elle est disponible",
     "autoPlay": "Lecture automatique de l'épisode suivant",
     "autoPlayDesc": "Lire automatiquement l'épisode suivant à la fin du précédent",
+    "videoPlayer": "Lecteur vidéo",
+    "videoPlayerDesc": "Choisissez la disposition du lecteur sur la page de visionnage",
     "audioSubtitles": "Audio et sous-titres",
     "audioSubtitlesDesc": "Indicateurs visuels sur les cartes d'anime",
     "audioHelp": "Les cartes avec une icône de sous-titres et un chiffre proposent des épisodes sous-titrés. Les cartes avec une icône de microphone et un chiffre proposent des épisodes en version française.",
@@ -830,7 +832,15 @@
     "anime4k": "Anime4K",
     "anime4kHint": "Upscale anime en temps réel via WebGPU (Anime4K)",
     "anime4kUnsupported": "Anime4K nécessite WebGPU (Chrome ou Edge 113+)",
-    "anime4kMode": "Mode {mode}"
+    "anime4kMode": "Mode {mode}",
+    "playerKitty": "Kitty",
+    "playerArt": "ArtPlayer",
+    "playerKittyHint": "Lecteur AniKitty avec cartes de saut et Anime4K",
+    "playerArtHint": "Disposition ArtPlayer classique avec contrôles de qualité",
+    "artAutoSkip": "Saut automatique",
+    "artAutoSkipHint": "Sauter automatiquement l'intro et le générique",
+    "artAutoNext": "Suivant automatique",
+    "artAutoNextHint": "Lire l'épisode suivant à la fin de celui-ci"
   },
   "comments": {
     "title": "Commentaires",
