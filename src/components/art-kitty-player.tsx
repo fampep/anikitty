@@ -17,6 +17,11 @@ import { useT } from "@/providers/i18n-provider";
 import type { VideoPlayerProps } from "@/lib/video-player-types";
 import type { SkipInterval } from "@/query/use-aniskip";
 import { PlayerSkipButton } from "@/components/player-skip-button";
+import { CountdownOverlay, NextEpisodeButton } from "@/components/player-overlays";
+
+function isArtPaused(art: Artplayer): boolean {
+  return art.video?.paused ?? true;
+}
 
 function resolveTrackSrc(file: string): string {
   if (!file) return file;
@@ -45,6 +50,38 @@ function hideArtPoster(art: Artplayer) {
   if (poster) poster.style.display = "none";
 }
 
+function applySubtitleStyles(
+  art: Artplayer,
+  settings: {
+    fontSize: number;
+    color: string;
+    fontWeight: number;
+    backgroundOpacity: number;
+    bottomOffset: number;
+  },
+) {
+  const scaled = Math.max(14, Math.min(32, art.height * 0.04, settings.fontSize + 4));
+  art.subtitle.style({
+    color: settings.color,
+    fontSize: `${scaled}px`,
+    fontWeight: String(settings.fontWeight),
+    textShadow: "2px 2px 4px rgba(0,0,0,0.85)",
+  });
+
+  const root = art.template?.$player as HTMLElement | undefined;
+  if (root) {
+    root.style.setProperty("--art-subtitle-bottom", `${settings.bottomOffset * 16}px`);
+  }
+
+  const subEl = art.template?.$subtitle as HTMLElement | undefined;
+  if (subEl && settings.backgroundOpacity > 0) {
+    subEl.style.setProperty(
+      "--art-subtitle-bg",
+      `rgba(0,0,0,${settings.backgroundOpacity / 100})`,
+    );
+  }
+}
+
 export default function ArtKittyPlayer({
   src,
   poster,
@@ -52,6 +89,7 @@ export default function ArtKittyPlayer({
   headers = {},
   skipTimes,
   startTime = 0,
+  autoFullscreen = false,
   nextEpisode,
   onStart,
   onProgress,
@@ -59,16 +97,21 @@ export default function ArtKittyPlayer({
   onNextEpisode,
   onOutroStart,
   onEnded,
+  w2g,
   preferSubtitles = true,
 }: VideoPlayerProps) {
   const t = useT();
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const artRef = useRef<Artplayer | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
+  const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
 
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
@@ -77,11 +120,17 @@ export default function ArtKittyPlayer({
   const onOutroStartRef = useRef(onOutroStart);
   const onEndedRef = useRef(onEnded);
   const skipTimesRef = useRef(skipTimes);
+  const w2gRef = useRef(w2g);
   const startFiredRef = useRef(false);
   const outroFiredRef = useRef(false);
   const lastProgressTs = useRef(0);
   const skipUiRef = useRef<"intro" | "outro" | null>(null);
   const lastUiTimeRef = useRef(0);
+  const lastW2gReportRef = useRef(0);
+  const lastAppliedW2gVersion = useRef(0);
+  const applyingW2gRef = useRef(false);
+  const autoFsRef = useRef(false);
+  const durationRef = useRef(0);
 
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
@@ -90,8 +139,31 @@ export default function ArtKittyPlayer({
   useEffect(() => { onOutroStartRef.current = onOutroStart; }, [onOutroStart]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
   useEffect(() => { skipTimesRef.current = skipTimes; }, [skipTimes]);
+  useEffect(() => { w2gRef.current = w2g; }, [w2g]);
+
+  useEffect(() => {
+    if (autoFullscreen) autoFsRef.current = true;
+  }, [autoFullscreen]);
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      setCountdown(null);
+      onNextEpisodeRef.current?.();
+      return;
+    }
+    const timer = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const proxiedSrc = buildKittyHlsUrl(src, headers);
+
+  const reportW2g = useCallback((isPlaying: boolean, time: number) => {
+    const cfg = w2gRef.current;
+    if (!cfg?.isHost || applyingW2gRef.current) return;
+    cfg.onPlaybackSync?.({ isPlaying, currentTime: time });
+    lastW2gReportRef.current = time;
+  }, []);
 
   const seekTo = useCallback((time: number) => {
     const art = artRef.current;
@@ -110,7 +182,41 @@ export default function ArtKittyPlayer({
     skipUiRef.current = null;
     setActiveSkip(null);
     setCurrentTime(0);
+    setCountdown(null);
+    durationRef.current = 0;
+    setDuration(0);
   }, [proxiedSrc]);
+
+  useEffect(() => {
+    const art = artRef.current;
+    if (!art) return;
+    applySubtitleStyles(art, subtitleSettings);
+  }, [subtitleSettings]);
+
+  useEffect(() => {
+    const cfg = w2gRef.current;
+    if (!cfg || cfg.isHost || !cfg.syncState) return;
+    const art = artRef.current;
+    if (!art) return;
+
+    const { version, isPlaying, currentTime: syncTime } = cfg.syncState;
+    if (version === lastAppliedW2gVersion.current) return;
+    lastAppliedW2gVersion.current = version;
+    applyingW2gRef.current = true;
+
+    if (Math.abs(art.currentTime - syncTime) > 2.5) {
+      art.seek = syncTime;
+    }
+    if (isPlaying && isArtPaused(art)) {
+      art.play();
+    } else if (!isPlaying && !isArtPaused(art)) {
+      art.pause();
+    }
+
+    window.setTimeout(() => {
+      applyingW2gRef.current = false;
+    }, 600);
+  }, [w2g?.syncState]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -132,8 +238,8 @@ export default function ArtKittyPlayer({
             url: defaultSub.file,
             type: defaultSubType,
             style: {
-              color: "#FFFFFF",
-              fontSize: "22px",
+              color: subtitleSettings.color,
+              fontSize: `${subtitleSettings.fontSize}px`,
               textShadow: "2px 2px 4px rgba(0,0,0,0.85)",
             },
           }
@@ -169,7 +275,7 @@ export default function ArtKittyPlayer({
       autoMini: false,
       mutex: true,
       playsInline: true,
-      theme: "#ffffff",
+      theme: "#c084fc",
       lang: "en",
       moreVideoAttr: { crossOrigin: "anonymous" },
       subtitle: subtitleOption,
@@ -263,20 +369,26 @@ export default function ArtKittyPlayer({
 
     art.on("ready", () => {
       hideArtPoster(art);
+      applySubtitleStyles(art, subtitleSettings);
 
-      art.subtitle.style({
-        fontSize: `${Math.max(14, Math.min(32, art.height * 0.04))}px`,
-      });
+      const resumeAt = startTime > 10 && art.duration > startTime + 5 ? startTime : 0;
+      if (resumeAt > 0) art.seek = resumeAt;
 
-      if (startTime > 10 && art.duration > startTime + 5) {
-        art.seek = startTime;
+      if (autoFsRef.current) {
+        autoFsRef.current = false;
+        const target = wrapperRef.current ?? container;
+        if (target?.requestFullscreen) {
+          target.requestFullscreen().catch(() => {
+            art.fullscreen = true;
+          });
+        } else {
+          art.fullscreen = true;
+        }
       }
     });
 
     art.on("resize", () => {
-      art.subtitle.style({
-        fontSize: `${Math.max(14, Math.min(32, art.height * 0.04))}px`,
-      });
+      applySubtitleStyles(art, subtitleSettings);
     });
 
     art.on("play", () => {
@@ -285,12 +397,25 @@ export default function ArtKittyPlayer({
         startFiredRef.current = true;
         onStartRef.current?.();
       }
+      reportW2g(true, art.currentTime);
+    });
+
+    art.on("pause", () => {
+      const current = art.currentTime;
+      const dur = art.duration;
+      if (current > 5 && dur > 0) onProgressRef.current?.(current, dur);
+      reportW2g(false, current);
     });
 
     art.on("video:timeupdate", () => {
       const current = art.currentTime;
-      const duration = art.duration;
-      onLiveTimeRef.current?.(current, duration);
+      const dur = art.duration;
+      onLiveTimeRef.current?.(current, dur);
+
+      if (dur > 0 && Math.abs(dur - durationRef.current) > 0.5) {
+        durationRef.current = dur;
+        setDuration(dur);
+      }
 
       const st = skipTimesRef.current;
       let nextSkip: "intro" | "outro" | null = null;
@@ -298,9 +423,9 @@ export default function ArtKittyPlayer({
         nextSkip = "intro";
       } else if (st?.outro && current >= st.outro.start && current < st.outro.end) {
         nextSkip = "outro";
-        if (!outroFiredRef.current && duration > 0) {
+        if (!outroFiredRef.current && dur > 0) {
           outroFiredRef.current = true;
-          onOutroStartRef.current?.(duration);
+          onOutroStartRef.current?.(dur);
         }
       }
 
@@ -316,18 +441,25 @@ export default function ArtKittyPlayer({
         setCurrentTime(current);
       }
 
-      if (current > 5 && duration > 0) {
+      if (current > 5 && dur > 0) {
         const now = Date.now();
         if (now - lastProgressTs.current >= 10_000) {
           lastProgressTs.current = now;
-          onProgressRef.current?.(current, duration);
+          onProgressRef.current?.(current, dur);
         }
+      }
+
+      const cfg = w2gRef.current;
+      if (cfg?.isHost && !applyingW2gRef.current && Math.abs(current - lastW2gReportRef.current) > 2.5) {
+        reportW2g(!isArtPaused(art), current);
       }
     });
 
     art.on("video:ended", () => {
       onEndedRef.current?.();
-      if (autoNextRef.current && nextEpisode) {
+      if (nextEpisode) {
+        setCountdown(5);
+      } else if (autoNextRef.current) {
         onNextEpisodeRef.current?.();
       }
     });
@@ -341,7 +473,18 @@ export default function ArtKittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, poster, tracks, preferSubtitles, startTime, nextEpisode, skipTimes, t]);
+  }, [
+    proxiedSrc,
+    poster,
+    tracks,
+    preferSubtitles,
+    startTime,
+    nextEpisode,
+    skipTimes,
+    subtitleSettings,
+    t,
+    reportW2g,
+  ]);
 
   if (!proxiedSrc) return null;
 
@@ -352,18 +495,49 @@ export default function ArtKittyPlayer({
         ? skipTimes?.outro
         : undefined;
 
+  const nearEnd = duration > 60 && currentTime >= duration - 90;
+  const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
+  const overlayBottom = showNext ? "kitty-overlay--stacked" : "kitty-overlay--base";
+
   return (
     <div
-      className="art-kitty-player relative w-full overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.06]"
+      ref={wrapperRef}
+      className="art-kitty-player kitty-stage relative w-full overflow-hidden rounded-xl bg-[#030303] shadow-[0_32px_100px_-24px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.06]"
       style={{ aspectRatio: "16/9" }}
     >
+      <div
+        className="kitty-stage__glow pointer-events-none absolute -inset-px rounded-xl bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent opacity-80"
+        aria-hidden
+      />
       <div ref={containerRef} className="absolute inset-0" />
-      {activeSkip && activeInterval && (
+
+      {showNext && nextEpisode && (
+        <NextEpisodeButton
+          episode={nextEpisode}
+          stackClass={overlayBottom}
+          onClick={() => onNextEpisodeRef.current?.()}
+        />
+      )}
+
+      {activeSkip && activeInterval && countdown === null && (
         <PlayerSkipButton
           type={activeSkip}
           interval={activeInterval}
           currentTime={currentTime}
+          stackClass={overlayBottom}
           onSkip={() => seekTo(activeInterval.end)}
+        />
+      )}
+
+      {countdown !== null && nextEpisode && (
+        <CountdownOverlay
+          episode={nextEpisode}
+          countdown={countdown}
+          onSkip={() => {
+            setCountdown(null);
+            onNextEpisodeRef.current?.();
+          }}
+          onCancel={() => setCountdown(null)}
         />
       )}
     </div>

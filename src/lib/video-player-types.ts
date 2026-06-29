@@ -1,8 +1,6 @@
 import type { KittyTrack } from "@/query/get-kitty-stream";
 import type { SkipTimes } from "@/query/use-aniskip";
 
-export type VideoPlayerEngine = "kitty" | "art";
-
 export interface W2gSyncState {
   version: number;
   isPlaying: boolean;

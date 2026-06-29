@@ -49,7 +49,6 @@ import {
   Cat,
   Users,
   SlidersHorizontal,
-  Sparkles,
   Mic,
 } from "lucide-react";
 import WatchDownloadPanel from "@/components/watch-download-panel";
@@ -61,27 +60,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import SubtitleSettingsPanel from "@/components/subtitle-settings-panel";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/w2g/w2g-panel";
 import LoginPopoverButton from "@/components/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
-import { isAnime4KSupported } from "@/hooks/use-anime4k-upscaler";
-import type { Anime4KMode } from "@/store/settings-store";
-
-const KittyPlayer = dynamic(() => import("@/components/kitty-player"), {
-  ssr: false,
-  loading: () => <PlayerSkeleton />,
-});
 
 const ArtKittyPlayer = dynamic(() => import("@/components/art-kitty-player"), {
   ssr: false,
@@ -102,8 +86,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { preferDub, setPreferDub, anime4kEnabled, setAnime4kEnabled, anime4kMode, setAnime4kMode, videoPlayer, setVideoPlayer } =
-    useSettingsStore();
+  const { preferDub, setPreferDub } = useSettingsStore();
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
@@ -362,7 +345,7 @@ const VideoPlayerSection = () => {
     const isFs = !!document.fullscreenElement;
     if (isFs && playerWrapperRef.current) {
       // Synchronously transfer fullscreen to the persistent wrapper before
-      // KittyPlayer (the current fullscreen element) unmounts. This keeps
+      // ArtKittyPlayer unmounts. This keeps
       // the user in fullscreen through the episode transition.
       playerWrapperRef.current.requestFullscreen().catch(() => {});
     }
@@ -521,8 +504,7 @@ const VideoPlayerSection = () => {
   const playerPoster =
     anime?.anime?.info?.banner ?? anime?.anime?.info?.poster ?? undefined;
 
-  const PlayerComponent = videoPlayer === "art" ? ArtKittyPlayer : KittyPlayer;
-  const playerKey = `${videoPlayer}-${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
@@ -634,14 +616,6 @@ const VideoPlayerSection = () => {
     localStorage.setItem("animoServer", server);
   };
 
-  const handleAnime4kToggle = () => {
-    if (!anime4kEnabled && !isAnime4KSupported()) {
-      toast.error(t("watch.anime4kUnsupported"));
-      return;
-    }
-    setAnime4kEnabled(!anime4kEnabled);
-  };
-
   if (!episodeId && !selectedEpisode) {
     return (
       <div className="w-full aspect-video bg-black flex flex-col items-center justify-center gap-3 rounded-xl border border-white/10">
@@ -721,7 +695,7 @@ const VideoPlayerSection = () => {
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
-      <PlayerComponent
+      <ArtKittyPlayer
         key={playerKey}
         src={streamData.file}
         poster={playerPoster}
@@ -850,77 +824,6 @@ const VideoPlayerSection = () => {
                 provider={provider}
               />
             )}
-
-            <div className="flex items-center gap-1 shrink-0">
-              <div className="flex items-center rounded-lg border border-white/12 bg-white/[0.03] p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setVideoPlayer("kitty")}
-                  title={t("watch.playerKittyHint")}
-                  className={`h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
-                    videoPlayer === "kitty"
-                      ? "bg-violet-500/25 text-violet-100 border border-violet-400/35"
-                      : "text-white/40 hover:text-white/65"
-                  }`}
-                >
-                  {t("watch.playerKitty")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoPlayer("art")}
-                  title={t("watch.playerArtHint")}
-                  className={`h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors ${
-                    videoPlayer === "art"
-                      ? "bg-violet-500/25 text-violet-100 border border-violet-400/35"
-                      : "text-white/40 hover:text-white/65"
-                  }`}
-                >
-                  {t("watch.playerArt")}
-                </button>
-              </div>
-
-              {videoPlayer === "kitty" && (
-              <>
-              <button
-                type="button"
-                onClick={handleAnime4kToggle}
-                title={t("watch.anime4kHint")}
-                className={`flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-colors ${
-                  anime4kEnabled
-                    ? "border-fuchsia-500/40 bg-fuchsia-500/20 text-fuchsia-200"
-                    : "border-white/12 bg-white/[0.03] text-white/45 hover:text-white/70 hover:bg-white/6"
-                }`}
-              >
-                <Sparkles className="w-3 h-3" />
-                <span className="hidden sm:inline">{t("watch.anime4k")}</span>
-              </button>
-
-              {anime4kEnabled && (
-                <Select
-                  value={anime4kMode}
-                  onValueChange={(v) => setAnime4kMode(v as Anime4KMode)}
-                >
-                  <SelectTrigger className="h-8 w-[52px] text-[10px] font-mono px-2 bg-fuchsia-500/10 border-fuchsia-500/25 text-fuchsia-200/90">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0e0e0e] border-fuchsia-500/20">
-                    <SelectGroup>
-                      {(["A", "B", "C"] as const).map((mode) => (
-                        <SelectItem
-                          key={mode}
-                          value={mode}
-                          className="text-xs font-mono text-white/75"
-                        >
-                          {t("watch.anime4kMode", { mode })}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              )}
-              </>
-              )}
-            </div>
 
             <Popover>
               <PopoverTrigger asChild>

@@ -31,8 +31,6 @@
     "@radix-ui/react-tooltip": "^1.2.0",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.2",
-    "@vidstack/react": "^1.15.6",
-    "anime4k-webgpu": "^1.0.0",
     "artplayer": "^5.4.0",
     "artplayer-plugin-ambilight": "^1.0.0",
     "artplayer-plugin-hls-control": "^1.0.1",

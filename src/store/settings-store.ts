@@ -5,11 +5,8 @@ import {
   type SubtitleFontWeight,
   type SubtitleSettings,
 } from "@/lib/subtitle-settings";
-import type { VideoPlayerEngine } from "@/lib/video-player-types";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
-export type Anime4KMode = "A" | "B" | "C";
-export type { VideoPlayerEngine };
 
 interface ISettingsStore {
   episodeLayout: EpisodeLayout;
@@ -20,14 +17,6 @@ interface ISettingsStore {
 
   autoPlay: boolean;
   setAutoPlay: (val: boolean) => void;
-
-  videoPlayer: VideoPlayerEngine;
-  setVideoPlayer: (engine: VideoPlayerEngine) => void;
-
-  anime4kEnabled: boolean;
-  setAnime4kEnabled: (val: boolean) => void;
-  anime4kMode: Anime4KMode;
-  setAnime4kMode: (mode: Anime4KMode) => void;
 
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
@@ -57,14 +46,6 @@ export const useSettingsStore = create<ISettingsStore>()(
       autoPlay: false,
       setAutoPlay: (autoPlay) => set({ autoPlay }),
 
-      videoPlayer: "kitty",
-      setVideoPlayer: (videoPlayer) => set({ videoPlayer }),
-
-      anime4kEnabled: false,
-      setAnime4kEnabled: (anime4kEnabled) => set({ anime4kEnabled }),
-      anime4kMode: "A",
-      setAnime4kMode: (anime4kMode) => set({ anime4kMode }),
-
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
         set((s) => ({
@@ -91,18 +72,17 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 6,
+      version: 7,
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
           subtitleSettings?: SubtitleSettings & { timeOffsetSec?: number };
+          videoPlayer?: string;
+          anime4kEnabled?: boolean;
+          anime4kMode?: string;
         };
         let next = { ...state } as Partial<ISettingsStore>;
         if (version < 2 || !next.subtitleSettings) {
           next = { ...next, subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } };
-        }
-        if (version < 3) {
-          next.anime4kEnabled ??= false;
-          next.anime4kMode ??= "A";
         }
         if (version < 5 && next.subtitleSettings) {
           const { timeOffsetSec: _removed, ...subtitleSettings } = next.subtitleSettings as SubtitleSettings & {
@@ -113,8 +93,10 @@ export const useSettingsStore = create<ISettingsStore>()(
             ...subtitleSettings,
           };
         }
-        if (version < 6) {
-          next.videoPlayer ??= "kitty";
+        if (version < 7) {
+          delete (next as Record<string, unknown>).videoPlayer;
+          delete (next as Record<string, unknown>).anime4kEnabled;
+          delete (next as Record<string, unknown>).anime4kMode;
         }
         return next as ISettingsStore;
       },

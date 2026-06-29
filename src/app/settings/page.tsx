@@ -2,7 +2,7 @@
 
 import Container from "@/components/container";
 import Avatar from "@/components/common/avatar";
-import { useSettingsStore, EpisodeLayout, type VideoPlayerEngine } from "@/store/settings-store";
+import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 import {
@@ -434,15 +434,11 @@ function PlaybackSection({
   setPreferDub,
   autoPlay,
   setAutoPlay,
-  videoPlayer,
-  setVideoPlayer,
 }: {
   preferDub: boolean;
   setPreferDub: (v: boolean) => void;
   autoPlay: boolean;
   setAutoPlay: (v: boolean) => void;
-  videoPlayer: VideoPlayerEngine;
-  setVideoPlayer: (v: VideoPlayerEngine) => void;
 }) {
   const t = useT();
 
@@ -454,31 +450,6 @@ function PlaybackSection({
         description={t("settings.playbackDesc")}
       />
       <SectionBody className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-white/75">{t("settings.videoPlayer")}</p>
-          <p className="text-xs text-white/35">{t("settings.videoPlayerDesc")}</p>
-          <div className="flex gap-2">
-            {(["kitty", "art"] as const).map((engine) => (
-              <button
-                key={engine}
-                type="button"
-                onClick={() => setVideoPlayer(engine)}
-                className={`flex-1 rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                  videoPlayer === engine
-                    ? "border-violet-400/35 bg-violet-500/15 text-white"
-                    : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.05]"
-                }`}
-              >
-                <span className="text-sm font-semibold block">
-                  {engine === "kitty" ? t("watch.playerKitty") : t("watch.playerArt")}
-                </span>
-                <span className="text-[11px] text-white/35 mt-0.5 block">
-                  {engine === "kitty" ? t("watch.playerKittyHint") : t("watch.playerArtHint")}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
         <ToggleRow
           icon={<Mic className="w-4 h-4" />}
           label={t("settings.preferDub")}
@@ -623,7 +594,7 @@ export default function SettingsPage() {
   const pathname = usePathname();
   const episodeLayouts = useEpisodeLayouts(t);
   const { auth } = useAuthStore();
-  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, videoPlayer, setVideoPlayer } =
+  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay } =
     useSettingsStore();
 
   const defaultTab = useMemo((): SettingsTab => {
@@ -690,8 +661,6 @@ export default function SettingsPage() {
                 setPreferDub={setPreferDub}
                 autoPlay={autoPlay}
                 setAutoPlay={setAutoPlay}
-                videoPlayer={videoPlayer}
-                setVideoPlayer={setVideoPlayer}
               />
               <EpisodeLayoutSection
                 episodeLayouts={episodeLayouts}
@@ -787,8 +756,6 @@ export default function SettingsPage() {
               setPreferDub={setPreferDub}
               autoPlay={autoPlay}
               setAutoPlay={setAutoPlay}
-              videoPlayer={videoPlayer}
-              setVideoPlayer={setVideoPlayer}
             />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}

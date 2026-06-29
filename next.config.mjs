@@ -37,7 +37,6 @@ const nextConfig = {
       "lucide-react",
       "@radix-ui/react-icons",
       "framer-motion",
-      "@vidstack/react",
     ],
   },
   images: {
