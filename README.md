@@ -47,7 +47,7 @@ Anikitty is a free, open-source anime streaming site built with **Next.js 14 App
 | Anime data | AniList GraphQL API |
 | Streaming | KittyAPI |
 | Skip times | AniSkip API |
-| Deployment | Coolify (Railpack) |
+| Deployment | Coolify (Docker / Railpack) |
 
 ---
 
@@ -91,16 +91,25 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Deploy (Coolify + Railpack)
+### Deploy (Coolify)
 
-Production deploys use **Railpack** (not Docker). In Coolify:
+Production deploys on Coolify support **Docker** or **Railpack**:
 
-1. Set the app **Build Pack** to **Railpack**
-2. Point the service at this repo (`dev` or `master` branch)
-3. Expose port **3000**
-4. Add env vars from your `.env.local` / production secrets (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.)
+**Dockerfile** (recommended if Railpack cgroup issues persist):
+1. Set **Build Pack** to **Dockerfile**
+2. Expose port **3000**
+3. Add production env vars (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.)
 
-Config lives in `coolify.json` and `railpack.json`.
+**Railpack** (faster builds when the host is configured):
+1. Set **Build Pack** to **Railpack**
+2. Config in `coolify.json` and `railpack.json`
+
+Local Docker build:
+
+```bash
+docker build -t anikitty .
+docker run -p 3000:3000 --env-file .env.local anikitty
+```
 
 #### Railpack cgroup error
 
@@ -108,10 +117,47 @@ If deploy fails with:
 
 `cgroup-parent for systemd cgroup should be a valid slice named as "xxx.slice"`
 
-that is a **Coolify host Docker** issue (not this repo). SSH into the VPS that runs Coolify and run:
+that is a **Coolify host Docker** issue (not this repo). SSH into the VPS that runs Coolify.
+
+**Option A — copy from your machine** (repo is private, so use SCP):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/fampep/anikitty/dev/scripts/fix-coolify-railpack-cgroup.sh | sudo bash
+scp scripts/fix-coolify-railpack-cgroup.sh root@YOUR_VPS:/tmp/
+ssh root@YOUR_VPS "sudo bash /tmp/fix-coolify-railpack-cgroup.sh"
+```
+
+**Option B — paste on the server** (no GitHub access needed):
+
+```bash
+sudo bash -s <<'EOF'
+set -euo pipefail
+DAEMON_JSON="/etc/docker/daemon.json"
+SLICE_UNIT="/etc/systemd/system/docker.slice"
+mkdir -p "$(dirname "$SLICE_UNIT")"
+[ -f "$SLICE_UNIT" ] || printf '%s\n' '[Unit]' 'Description=Docker cgroup slice' 'Before=slices.target' >"$SLICE_UNIT" && systemctl daemon-reload
+python3 - <<'PY'
+import json, pathlib
+path = pathlib.Path("/etc/docker/daemon.json")
+data = json.loads(path.read_text()) if path.exists() else {}
+parent = data.get("cgroup-parent") or data.get("cgroupParent")
+if parent and not str(parent).endswith(".slice"):
+    data.pop("cgroup-parent", None); data.pop("cgroupParent", None)
+data["cgroup-parent"] = "docker.slice"
+opts = list(data.get("exec-opts") or [])
+if not any("native.cgroupdriver=systemd" in o for o in opts):
+    opts.append("native.cgroupdriver=systemd")
+data["exec-opts"] = opts
+path.write_text(json.dumps(data, indent=2) + "\n")
+PY
+systemctl restart docker
+sleep 4
+docker buildx rm coolify-railpack 2>/dev/null || true
+docker ps -aq --filter "name=buildx_buildkit_coolify-railpack" | xargs -r docker rm -f
+docker buildx create --name coolify-railpack --driver docker-container --use 2>/dev/null || true
+docker buildx inspect coolify-railpack --bootstrap
+docker buildx du >/dev/null
+echo "Done — redeploy in Coolify."
+EOF
 ```
 
 Then redeploy in Coolify. Confirm the service **Build Pack** is **Railpack**, not Dockerfile.

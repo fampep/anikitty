@@ -3,9 +3,10 @@
 #   cgroup-parent for systemd cgroup should be a valid slice named as "xxx.slice"
 #
 # Usage (on the Coolify VPS, as root):
-#   curl -fsSL https://raw.githubusercontent.com/fampep/anikitty/dev/scripts/fix-coolify-railpack-cgroup.sh | sudo bash
+#   scp scripts/fix-coolify-railpack-cgroup.sh root@YOUR_VPS:/tmp/
+#   ssh root@YOUR_VPS "sudo bash /tmp/fix-coolify-railpack-cgroup.sh"
 #
-# Or from a cloned repo:
+# Or from a clone already on the server:
 #   sudo bash scripts/fix-coolify-railpack-cgroup.sh
 
 set -euo pipefail

@@ -24,6 +24,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  output: "standalone",
   eslint: {
     ignoreDuringBuilds: true,
   },
