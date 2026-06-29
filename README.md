@@ -72,13 +72,16 @@ Copy the example env file and fill in your values:
 cp .env.example .env.local
 ```
 
-Required environment variables:
+See `.env.example` for the full list with comments. Minimum for local dev:
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/anikitty
-JWT_SECRET=your-secret-here
-ANISURGE_API_URL=https://...
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+JWT_SECRET=                          # openssl rand -base64 48
+KITTY_API_KEY=                       # from KittyAPI
 ```
+
+Production also needs `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `MESSAGE_ENCRYPTION_KEY` (see `.env.example`).
 
 The database schema is created automatically on first startup via the instrumentation hook — no manual migrations needed.
 
