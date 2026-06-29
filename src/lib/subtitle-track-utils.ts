@@ -31,6 +31,19 @@ export function isSubtitleCacheProvider(provider: string): boolean {
   return (SUBTITLE_CACHE_PROVIDERS as readonly string[]).includes(provider);
 }
 
+/** Stable key for deduplicating the same language across provider rows. */
+export function normalizeSubtitleLabel(label: string): string {
+  return label.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Lower rank = preferred when the same label exists under multiple providers. */
+export function subtitleProviderRank(provider: string): number {
+  if (provider === KITTY_SUB_SOURCE_PROVIDER) return 0;
+  if (provider === SUBTITLE_SOURCE_PROVIDER) return 1;
+  if ((SUBTITLE_LEGACY_PROVIDERS as readonly string[]).includes(provider)) return 2;
+  return 3;
+}
+
 export type StreamTrack = {
   file?: string;
   url?: string;

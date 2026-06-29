@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { episodeSubtitles } from "@/db/schema";
 import {
@@ -6,8 +6,11 @@ import {
   isOurSubtitleUrl,
   isSubtitleCacheProvider,
   isSubtitleTrack,
+  SUBTITLE_CACHE_PROVIDERS,
   SUBTITLE_LIBRARY_PROVIDERS,
   SUBTITLE_SOURCE_PROVIDER,
+  normalizeSubtitleLabel,
+  subtitleProviderRank,
   subtitleProxyUrl,
   subtitleServeUrl,
   type StreamTrack,
@@ -163,7 +166,7 @@ export async function getStoredSubtitleTracks(
         ),
       );
 
-    return rows.filter((row) => !isStale(row.fetchedAt)).map(rowToTrack);
+    return dedupeSubtitleRows(rows.filter((row) => !isStale(row.fetchedAt))).map(rowToTrack);
   } catch {
     return [];
   }
@@ -177,6 +180,42 @@ function hasFreshCachedSubtitles(
 
 function subtitleProviderFilter() {
   return inArray(episodeSubtitles.provider, [...SUBTITLE_LIBRARY_PROVIDERS]);
+}
+
+type SubtitleRowForDedupe = {
+  episode: number;
+  audio: string;
+  label: string;
+  provider: string;
+  isDefault: boolean;
+  fetchedAt: Date | null;
+};
+
+function subtitleRowPrefers<T extends SubtitleRowForDedupe>(candidate: T, current: T): boolean {
+  const rankA = subtitleProviderRank(candidate.provider);
+  const rankB = subtitleProviderRank(current.provider);
+  if (rankA !== rankB) return rankA < rankB;
+
+  const timeA = candidate.fetchedAt?.getTime() ?? 0;
+  const timeB = current.fetchedAt?.getTime() ?? 0;
+  if (timeA !== timeB) return timeA > timeB;
+
+  if (candidate.isDefault !== current.isDefault) return candidate.isDefault;
+  return false;
+}
+
+function dedupeSubtitleRows<T extends SubtitleRowForDedupe>(rows: T[]): T[] {
+  const best = new Map<string, T>();
+
+  for (const row of rows) {
+    const key = `${row.episode}|${row.audio}|${normalizeSubtitleLabel(row.label)}`;
+    const prev = best.get(key);
+    if (!prev || subtitleRowPrefers(row, prev)) {
+      best.set(key, row);
+    }
+  }
+
+  return [...best.values()];
 }
 
 async function fetchMiruroSubtitleTracks(
@@ -281,6 +320,19 @@ async function upsertSubtitle(
   try {
     const db = getDb();
     const now = new Date();
+
+    await db
+      .delete(episodeSubtitles)
+      .where(
+        and(
+          eq(episodeSubtitles.anilistId, ctx.anilistId),
+          eq(episodeSubtitles.episode, ctx.episode),
+          eq(episodeSubtitles.audio, ctx.audio),
+          eq(episodeSubtitles.label, label),
+          ne(episodeSubtitles.provider, ctx.provider),
+          inArray(episodeSubtitles.provider, [...SUBTITLE_CACHE_PROVIDERS]),
+        ),
+      );
 
     const [row] = await db
       .insert(episodeSubtitles)
@@ -598,7 +650,7 @@ export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubti
 
   try {
     const db = getDb();
-    return await db
+    const rows = await db
       .select({
         id: episodeSubtitles.id,
         anilistId: episodeSubtitles.anilistId,
@@ -608,6 +660,7 @@ export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubti
         label: episodeSubtitles.label,
         isDefault: episodeSubtitles.isDefault,
         fetchedAt: episodeSubtitles.fetchedAt,
+        provider: episodeSubtitles.provider,
       })
       .from(episodeSubtitles)
       .where(
@@ -617,6 +670,8 @@ export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubti
         ),
       )
       .orderBy(asc(episodeSubtitles.episode), asc(episodeSubtitles.label));
+
+    return dedupeSubtitleRows(rows).map(({ provider: _provider, ...row }) => row);
   } catch {
     return [];
   }
