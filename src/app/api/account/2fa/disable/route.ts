@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireUser, unauthorized } from "@/lib/require-user";
-import { decryptTotpSecret, verifyTotpCode } from "@/lib/totp";
+import { decryptTotpSecretForUser, verifyTotpCode } from "@/lib/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
@@ -22,8 +22,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Verification code is required" }, { status: 400 });
   }
 
-  const secret = decryptTotpSecret(user.totpSecret);
-  if (!verifyTotpCode(secret, String(code))) {
+  const decrypted = await decryptTotpSecretForUser(user.id, user.totpSecret);
+  if (!decrypted.ok) {
+    return NextResponse.json({ error: decrypted.message }, { status: 400 });
+  }
+
+  if (!verifyTotpCode(decrypted.secret, String(code))) {
     await new Promise((r) => setTimeout(r, 400));
     return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
   }

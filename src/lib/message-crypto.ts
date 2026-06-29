@@ -1,20 +1,13 @@
 import crypto from "crypto";
 import { isProduction } from "@/lib/security";
+import { encryptionKeyBuffer } from "@/lib/data-encryption-key";
 
 const ALGO = "aes-256-gcm";
 const ENCRYPTED_PREFIX = "enc1:";
 
-function encryptionKey(): Buffer {
-  const material =
-    process.env.MESSAGE_ENCRYPTION_KEY ??
-    process.env.JWT_SECRET ??
-    "dev-secret-change-in-production-please";
-  return crypto.createHash("sha256").update(material).digest();
-}
-
 function encryptPayload(plain: string): string {
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALGO, encryptionKey(), iv);
+  const cipher = crypto.createCipheriv(ALGO, encryptionKeyBuffer(), iv);
   const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return Buffer.concat([iv, tag, enc]).toString("base64");
@@ -25,7 +18,7 @@ function decryptPayload(encoded: string): string {
   const iv = buf.subarray(0, 12);
   const tag = buf.subarray(12, 28);
   const data = buf.subarray(28);
-  const decipher = crypto.createDecipheriv(ALGO, encryptionKey(), iv);
+  const decipher = crypto.createDecipheriv(ALGO, encryptionKeyBuffer(), iv);
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
 }

@@ -373,6 +373,11 @@ export async function migrateDb() {
         CONSTRAINT anime_episode_alerts_user_anilist UNIQUE (user_id, anilist_id)
       )`,
       `CREATE INDEX IF NOT EXISTS anime_episode_alerts_anilist_idx ON anime_episode_alerts (anilist_id)`,
+      `CREATE TABLE IF NOT EXISTS app_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

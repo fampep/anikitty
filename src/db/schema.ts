@@ -547,6 +547,13 @@ export const userNotifications = pgTable(
   }),
 );
 
+/** Server-wide secrets that must survive VPS redeploys (same Postgres). */
+export const appSettings = pgTable("app_settings", {
+  key: varchar("key", { length: 100 }).primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // User subscriptions for new episode alerts (sub/dub) on airing anime.
 export const animeEpisodeAlerts = pgTable(
   "anime_episode_alerts",

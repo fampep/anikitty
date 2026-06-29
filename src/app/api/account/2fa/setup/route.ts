@@ -9,6 +9,7 @@ import {
   createTotpSecret,
   qrDataUrlForOtpAuth,
 } from "@/lib/totp";
+import { ensureDataEncryptionKey } from "@/lib/data-encryption-key";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
@@ -25,6 +26,8 @@ export async function POST(req: Request) {
   const secret = createTotpSecret();
   const otpauthUrl = buildOtpAuthUrl(user.email, secret);
   const qrDataUrl = await qrDataUrlForOtpAuth(otpauthUrl);
+
+  await ensureDataEncryptionKey();
 
   const db = getDb();
   await db

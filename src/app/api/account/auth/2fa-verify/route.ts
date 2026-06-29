@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { verify2faPendingToken } from "@/lib/auth-jwt";
 import { buildAuthResponse } from "@/lib/auth-response";
 import { jsonWithAuthCookie } from "@/lib/auth-cookie";
-import { decryptTotpSecret, verifyTotpCode } from "@/lib/totp";
+import { decryptTotpSecretForUser, verifyTotpCode } from "@/lib/totp";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security";
 
@@ -46,8 +46,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Two-factor authentication is not enabled" }, { status: 400 });
     }
 
-    const secret = decryptTotpSecret(user.totpSecret);
-    if (!verifyTotpCode(secret, String(code))) {
+    const decrypted = await decryptTotpSecretForUser(user.id, user.totpSecret);
+    if (!decrypted.ok) {
+      return NextResponse.json({ error: decrypted.message }, { status: 400 });
+    }
+
+    if (!verifyTotpCode(decrypted.secret, String(code))) {
       return NextResponse.json({ error: "Invalid verification code" }, { status: 401 });
     }
 
