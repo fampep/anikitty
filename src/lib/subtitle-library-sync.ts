@@ -108,12 +108,55 @@ export async function runSubtitleLibrarySyncTick(
   return result;
 }
 
-/** Background library sync is disabled — subtitles are fetched on-demand when watching. */
-export function triggerBackgroundSubtitleLibrarySync(_opts: SubtitleLibrarySyncOptions = {}): void {
-  // no-op
+const BACKGROUND_COOLDOWN_MS = 6_000;
+const AUTO_SYNC_INTERVAL_MS = 8_000;
+
+let lastBackgroundSyncAt = 0;
+let backgroundSyncInFlight = false;
+let autoSyncLoopStarted = false;
+
+/** Fire-and-forget sync while someone browses the library (throttled per instance). */
+export function triggerBackgroundSubtitleLibrarySync(
+  opts: SubtitleLibrarySyncOptions = {},
+): void {
+  const now = Date.now();
+  if (backgroundSyncInFlight || now - lastBackgroundSyncAt < BACKGROUND_COOLDOWN_MS) {
+    return;
+  }
+
+  lastBackgroundSyncAt = now;
+  backgroundSyncInFlight = true;
+
+  void runSubtitleLibrarySyncTick({
+    maxIncompleteAnime: 3,
+    episodesPerAnime: SUBTITLE_SYNC_EPISODES_PER_TICK,
+    maxDiscover: 2,
+    backfillLimit: 15,
+    refreshLimit: 12,
+    ...opts,
+  })
+    .catch((err) => {
+      console.error("[subtitle-library-sync] background tick failed:", err);
+    })
+    .finally(() => {
+      backgroundSyncInFlight = false;
+    });
 }
 
-/** @deprecated Background auto-sync disabled — use watch-time fetch instead. */
+/** Continuous background sync — starts when the Node server boots. */
 export function startSubtitleLibraryAutoSync(): void {
-  // no-op
+  if (autoSyncLoopStarted || !process.env.DATABASE_URL) return;
+  autoSyncLoopStarted = true;
+
+  const tick = () => {
+    if (backgroundSyncInFlight) return;
+    triggerBackgroundSubtitleLibrarySync({
+      maxIncompleteAnime: 4,
+      episodesPerAnime: SUBTITLE_SYNC_EPISODES_PER_TICK,
+      maxDiscover: 2,
+    });
+  };
+
+  tick();
+  setInterval(tick, AUTO_SYNC_INTERVAL_MS);
 }

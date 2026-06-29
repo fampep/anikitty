@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { runSubtitleLibrarySyncTick } from "@/lib/subtitle-library-sync";
 import { safeEqual } from "@/lib/security";
 
 function authorizeCron(req: Request): boolean {
@@ -14,12 +15,25 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Subtitles are fetched on-demand when a user watches an episode (sub audio).
-  return NextResponse.json({
-    ok: true,
-    disabled: true,
-    message: "Background subtitle library sync is disabled; subs fetch on watch.",
+  const url = new URL(req.url);
+  const incomplete = Math.min(
+    8,
+    Math.max(0, parseInt(url.searchParams.get("incomplete") ?? "4", 10) || 4),
+  );
+  const discover = Math.min(
+    8,
+    Math.max(0, parseInt(url.searchParams.get("discover") ?? "2", 10) || 2),
+  );
+
+  const result = await runSubtitleLibrarySyncTick({
+    maxIncompleteAnime: incomplete,
+    maxDiscover: discover,
+    episodesPerAnime: 8,
+    backfillLimit: 50,
+    refreshLimit: 30,
   });
+
+  return NextResponse.json({ ok: true, ...result });
 }
 
 export const maxDuration = 120;
