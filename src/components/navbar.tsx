@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import Container from "./container";
 import { ROUTES } from "@/constants/routes";
@@ -34,6 +33,7 @@ import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/anis
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
+import Image from "next/image";
 import { SITE_LOGO } from "@/lib/site-seo";
 
 const MENU_DEFS = [

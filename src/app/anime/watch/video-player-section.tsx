@@ -200,12 +200,25 @@ const VideoPlayerSection = () => {
 
   const audio: "sub" | "dub" = streamAudio;
 
+  const animeSlug = anime?.anime?.info?.id ?? null;
   const anilistId = anime?.anime?.info?.anilistId;
   const malId = anime?.anime?.info?.malId;
-  const episodeNo = selectedEpisode?.startsWith("ep-")
-    ? selectedEpisode.replace("ep-", "")
-    : selectedEpisode ?? "";
   const animeTitle = anime?.anime?.info?.name || undefined;
+
+  // Episode list for next-episode navigation (also resolves episode number for stream API)
+  const { data: allEpisodes } = useGetAllEpisodes(animeSlug ?? "");
+  const currentEpisodeInfo = React.useMemo(() => {
+    if (!allEpisodes?.episodes || !episodeId) return undefined;
+    return allEpisodes.episodes.find((e) => e.episodeId === episodeId);
+  }, [allEpisodes, episodeId]);
+
+  const episodeNo = useMemo(() => {
+    if (currentEpisodeInfo?.number != null) return String(currentEpisodeInfo.number);
+    if (episodeId?.startsWith("ep-")) return episodeId.replace("ep-", "");
+    if (episodeId && /^\d+$/.test(episodeId)) return episodeId;
+    if (selectedEpisode?.startsWith("ep-")) return selectedEpisode.replace("ep-", "");
+    return selectedEpisode ?? "";
+  }, [currentEpisodeInfo?.number, episodeId, selectedEpisode]);
 
   const capabilityTarget = useMemo(
     () => ({
@@ -311,8 +324,6 @@ const VideoPlayerSection = () => {
   const bookmarkIdRef = useRef<string | null>(null);
   const watchedIdRef  = useRef<string | null>(null);
 
-  const animeSlug = anime?.anime?.info?.id ?? null;
-
   const w2g = useW2g({
     code: w2gCode,
     animeId: animeSlug,
@@ -365,12 +376,7 @@ const VideoPlayerSection = () => {
     router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
   };
 
-  // Episode list for next-episode navigation
-  const { data: allEpisodes } = useGetAllEpisodes(animeSlug ?? "");
-  const currentEpisodeInfo = React.useMemo(() => {
-    if (!allEpisodes?.episodes || !episodeId) return undefined;
-    return allEpisodes.episodes.find((e) => e.episodeId === episodeId);
-  }, [allEpisodes, episodeId]);
+  // Episode list moved above for episodeNo resolution
   const nextEpisode = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
     const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);

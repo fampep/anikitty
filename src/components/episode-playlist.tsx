@@ -77,15 +77,12 @@ const EpisodePlaylist = ({
   const [filteredEpisodes, setFilteredEpisodes] = useState<Episode[]>(baseFiltered);
 
   useEffect(() => {
-    if ((!episodeId || !episodeId.includes("ep")) && !!episodes?.episodes.length) {
-      if (isLatestEpisode) {
-        setSelectedEpisode(episodes.episodes[episodes.episodes.length - 1].episodeId as string);
-      } else {
-        setSelectedEpisode(episodes.episodes[0].episodeId as string);
-      }
-    }
-    // eslint-disable-next-line
-  }, [episodes]);
+    if (episodeId || !episodes?.episodes.length) return;
+    const target = isLatestEpisode
+      ? episodes.episodes[episodes.episodes.length - 1].episodeId
+      : episodes.episodes[0].episodeId;
+    setSelectedEpisode(target as string);
+  }, [episodeId, episodes, isLatestEpisode, setSelectedEpisode]);
 
   useEffect(() => {
     if (!episodeId || !episodes?.episodes.length || total <= 0) return;

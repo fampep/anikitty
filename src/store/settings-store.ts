@@ -45,9 +45,12 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       preferDub: false,
       setPreferDub: (preferDub) => {
-        set({ preferDub });
-        if (typeof window !== "undefined")
-          localStorage.setItem("preferDub", String(preferDub));
+        set((s) => {
+          if (s.preferDub === preferDub) return s;
+          if (typeof window !== "undefined")
+            localStorage.setItem("preferDub", String(preferDub));
+          return { preferDub };
+        });
       },
 
       autoPlay: false,

@@ -8,10 +8,13 @@ interface IAnimeStore {
     setSelectedEpisode: (state: string) => void
 }
 
-export const useAnimeStore = create<IAnimeStore>((set) => ({
+export const useAnimeStore = create<IAnimeStore>((set, get) => ({
     anime: {} as IAnimeDetails,
     setAnime: (state: IAnimeDetails) => set({ anime: state }),
 
     selectedEpisode: '',
-    setSelectedEpisode: (state: string) => set({ selectedEpisode: state }),
+    setSelectedEpisode: (state: string) => {
+        if (get().selectedEpisode === state) return;
+        set({ selectedEpisode: state });
+    },
 }))
