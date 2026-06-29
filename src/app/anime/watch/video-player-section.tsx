@@ -76,6 +76,12 @@ const DEFAULT_PROVIDER: KittyProvider = "Miruro";
 const EMPTY_PLAYER_TRACKS: KittyTrack[] = [];
 const EMPTY_PLAYER_HEADERS: Record<string, string> = {};
 
+function parseResumeTimeParam(raw: string | null): number {
+  if (!raw) return 0;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 const VideoPlayerSection = () => {
   const t = useT();
   const searchParams = useSearchParams();
@@ -83,6 +89,7 @@ const VideoPlayerSection = () => {
   const episodeId = searchParams.get("episode");
   const w2gCode = searchParams.get("w2g");
   const dubSearchParam = searchParams.get("dub");
+  const timeFromUrl = searchParams.get("t");
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
@@ -372,18 +379,28 @@ const VideoPlayerSection = () => {
     liveDurationRef.current = 0;
   }, [episodeId]);
 
-  // Fetch saved resume position (only when episode actually changes)
+  // Fetch saved resume position when the episode changes
   useEffect(() => {
-    setStartTime(0);
+    const urlTime = parseResumeTimeParam(timeFromUrl);
+    const cached =
+      animeSlug && episodeId
+        ? useProgressStore.getState().getProgress(animeSlug, episodeId)
+        : null;
+    const localTime = Math.max(urlTime, cached?.current ?? 0);
+    setStartTime(localTime > 10 ? localTime : 0);
+
     if (!auth || !animeSlug || !episodeId) return;
-    anisurgeContinue.getEpisode(animeSlug, episodeId)
-      .then((r: any) => {
-        const t = r?.currentTime ?? 0;
+    anisurgeContinue
+      .getEpisode(animeSlug, episodeId)
+      .then((r: { currentTime?: number; duration?: number }) => {
+        const saved = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
-        if (t > 10 && (dur <= 0 || t < dur - 30)) setStartTime(t);
+        if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+          setStartTime((prev) => Math.max(prev, saved));
+        }
       })
       .catch(() => {});
-  }, [auth, animeSlug, episodeId]);
+  }, [auth, animeSlug, episodeId, timeFromUrl]);
 
   const handleStart = useCallback(async () => {
     if (!auth || !anime?.anime?.info) return;
@@ -425,6 +442,23 @@ const VideoPlayerSection = () => {
   const handleProgress = useCallback((current: number, duration: number) => {
     saveProgress(current, duration);
   }, [saveProgress]);
+
+  const preservePlaybackPosition = useCallback(() => {
+    const current = liveTimeRef.current;
+    const dur = liveDurationRef.current;
+    if (current <= 5) return;
+    setStartTime(current);
+    if (animeSlug && episodeId) {
+      useProgressStore.getState().setProgress(
+        animeSlug,
+        episodeId,
+        current,
+        dur > 0 ? dur : current,
+      );
+      useProgressStore.getState().flush();
+    }
+    if (dur > 0) void saveProgress(current, dur);
+  }, [animeSlug, episodeId, saveProgress]);
 
   // Credits started → mark episode as fully watched
   const handleOutroStart = useCallback((duration: number) => {
@@ -528,8 +562,7 @@ const VideoPlayerSection = () => {
 
   // Change provider but resume from current position, not original start
   const handleProviderGridSelect = (p: KittyProvider, mode: ProviderAudioMode) => {
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
+    preservePlaybackPosition();
     setProvider(p);
     setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
@@ -577,8 +610,7 @@ const VideoPlayerSection = () => {
     if (next === streamAudio) return;
     if (next === "sub" && !canSelectSubAudio) return;
     if (next === "dub" && !canSelectDubAudio) return;
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
+    preservePlaybackPosition();
     setStreamAudio(next);
     localStorage.setItem("kittyStreamAudio", next);
     syncDubSearchParam(next === "dub");
@@ -589,8 +621,7 @@ const VideoPlayerSection = () => {
   };
 
   const handleAnimexServerChange = (server: AnimexServerId) => {
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
+    preservePlaybackPosition();
     setProvider("Animex");
     setAudioMode("multi");
     setAnimexServer(server);
@@ -601,15 +632,13 @@ const VideoPlayerSection = () => {
   };
 
   const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
+    preservePlaybackPosition();
     setMiruroPipe(pipe);
     localStorage.setItem("miruroPipe", pipe);
   };
 
   const handleAnimoServerChange = (server: AnimoServerId) => {
-    const t = liveTimeRef.current;
-    if (t > 5) setStartTime(t);
+    preservePlaybackPosition();
     setProvider("Animo");
     setAnimoServer(server);
     localStorage.setItem("kittyProvider", "Animo");

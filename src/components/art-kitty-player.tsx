@@ -23,6 +23,12 @@ function isArtPaused(art: Artplayer): boolean {
   return art.video?.paused ?? true;
 }
 
+function shouldResumeAt(time: number, duration: number): boolean {
+  if (time <= 10) return false;
+  if (duration > 0 && time >= duration - 30) return false;
+  return true;
+}
+
 function resolveTrackSrc(file: string): string {
   if (!file) return file;
   if (/^https?:\/\//i.test(file)) return file;
@@ -131,10 +137,13 @@ export default function ArtKittyPlayer({
   const applyingW2gRef = useRef(false);
   const autoFsRef = useRef(false);
   const durationRef = useRef(0);
+  const startTimeRef = useRef(startTime);
+  const resumeAppliedRef = useRef(false);
 
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
   useEffect(() => { onLiveTimeRef.current = onLiveTime; }, [onLiveTime]);
+  useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
   useEffect(() => { onOutroStartRef.current = onOutroStart; }, [onOutroStart]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
@@ -175,17 +184,40 @@ export default function ArtKittyPlayer({
     skipUiRef.current = null;
   }, []);
 
+  const applyResume = useCallback((art: Artplayer) => {
+    const resumeAt = startTimeRef.current;
+    const dur = art.duration || durationRef.current;
+    if (!shouldResumeAt(resumeAt, dur)) {
+      resumeAppliedRef.current = true;
+      return;
+    }
+    if (resumeAppliedRef.current) return;
+    if (Math.abs(art.currentTime - resumeAt) <= 2) {
+      resumeAppliedRef.current = true;
+      return;
+    }
+    art.seek = resumeAt;
+  }, []);
+
   useEffect(() => {
     startFiredRef.current = false;
     outroFiredRef.current = false;
     lastProgressTs.current = 0;
     skipUiRef.current = null;
+    resumeAppliedRef.current = false;
     setActiveSkip(null);
     setCurrentTime(0);
     setCountdown(null);
     durationRef.current = 0;
     setDuration(0);
   }, [proxiedSrc]);
+
+  useEffect(() => {
+    const art = artRef.current;
+    if (!art) return;
+    resumeAppliedRef.current = false;
+    applyResume(art);
+  }, [startTime, applyResume]);
 
   useEffect(() => {
     const art = artRef.current;
@@ -370,9 +402,7 @@ export default function ArtKittyPlayer({
     art.on("ready", () => {
       hideArtPoster(art);
       applySubtitleStyles(art, subtitleSettings);
-
-      const resumeAt = startTime > 10 && art.duration > startTime + 5 ? startTime : 0;
-      if (resumeAt > 0) art.seek = resumeAt;
+      applyResume(art);
 
       if (autoFsRef.current) {
         autoFsRef.current = false;
@@ -389,6 +419,14 @@ export default function ArtKittyPlayer({
 
     art.on("resize", () => {
       applySubtitleStyles(art, subtitleSettings);
+    });
+
+    art.on("video:canplay", () => {
+      applyResume(art);
+    });
+
+    art.on("video:loadedmetadata", () => {
+      applyResume(art);
     });
 
     art.on("play", () => {
@@ -449,6 +487,10 @@ export default function ArtKittyPlayer({
         }
       }
 
+      if (!resumeAppliedRef.current) {
+        applyResume(art);
+      }
+
       const cfg = w2gRef.current;
       if (cfg?.isHost && !applyingW2gRef.current && Math.abs(current - lastW2gReportRef.current) > 2.5) {
         reportW2g(!isArtPaused(art), current);
@@ -478,12 +520,12 @@ export default function ArtKittyPlayer({
     poster,
     tracks,
     preferSubtitles,
-    startTime,
     nextEpisode,
     skipTimes,
     subtitleSettings,
     t,
     reportW2g,
+    applyResume,
   ]);
 
   if (!proxiedSrc) return null;
