@@ -148,8 +148,14 @@ export default function KittyPlayer({
     [subTracks],
   );
 
+  const subTracksRef = useRef(subTracks);
+  useEffect(() => {
+    subTracksRef.current = subTracks;
+  }, [subTracksKey, subTracks]);
+
   const activateSubtitlesRef = useRef<() => void>(() => {});
   const subtitleCooldownRef = useRef(false);
+  const subtitleActivationKeyRef = useRef("");
 
   useAnime4KUpscaler(
     containerRef,
@@ -243,6 +249,7 @@ export default function KittyPlayer({
     setCountdown(null);
     durationRef.current = 0;
     setDuration(0);
+    subtitleActivationKeyRef.current = "";
   }, [src]);
 
   // Enable default subtitle track when available (Vidstack CC menu still allows switching/off).
@@ -256,8 +263,11 @@ export default function KittyPlayer({
     const isSubtitleTrack = (track: { kind?: string }) =>
       track.kind === "subtitles" || track.kind === "captions";
 
+    const activationKey = `${subTracksKey}|${preferSubtitles ? "on" : "off"}`;
+
     const activate = (): boolean => {
-      if (subTracks.length === 0) return true;
+      const configuredTracks = subTracksRef.current;
+      if (configuredTracks.length === 0) return true;
 
       const textTracks = player.textTracks;
       if (!textTracks?.length) return false;
@@ -270,14 +280,22 @@ export default function KittyPlayer({
             break;
           }
         }
-        if (alreadyOff) return true;
+        if (alreadyOff) {
+          subtitleActivationKeyRef.current = activationKey;
+          return true;
+        }
+        subtitleCooldownRef.current = true;
         for (const track of textTracks) {
           if (isSubtitleTrack(track)) track.setMode("disabled");
         }
+        subtitleActivationKeyRef.current = activationKey;
+        window.setTimeout(() => {
+          subtitleCooldownRef.current = false;
+        }, 400);
         return true;
       }
 
-      const preferred = subTracks.find((t) => t.default) ?? subTracks[0];
+      const preferred = configuredTracks.find((t) => t.default) ?? configuredTracks[0];
       const preferredLang = labelToLanguage(preferred.label || "");
 
       let target: (typeof textTracks)[number] | undefined;
@@ -307,21 +325,23 @@ export default function KittyPlayer({
           }
         }
       }
-      if (alreadyActive) return true;
+      if (alreadyActive && subtitleActivationKeyRef.current === activationKey) return true;
 
       subtitleCooldownRef.current = true;
       for (const track of textTracks) {
         if (isSubtitleTrack(track)) track.setMode("disabled");
       }
       target.setMode("showing");
+      subtitleActivationKeyRef.current = activationKey;
       window.setTimeout(() => {
         subtitleCooldownRef.current = false;
-      }, 200);
+      }, 400);
       return true;
     };
 
     const tryActivate = () => {
       if (subtitleCooldownRef.current) return;
+      if (subtitleActivationKeyRef.current === activationKey) return;
       if (activate()) return;
       if (attempts++ < 16) {
         retryTimer = setTimeout(tryActivate, 350);
@@ -334,20 +354,21 @@ export default function KittyPlayer({
     const onTracksChange = () => {
       if (subtitleCooldownRef.current) return;
       if (tracksChangeTimer) clearTimeout(tracksChangeTimer);
-      tracksChangeTimer = setTimeout(tryActivate, 120);
+      tracksChangeTimer = setTimeout(tryActivate, 200);
     };
 
     player.addEventListener("can-play", tryActivate);
     player.addEventListener("vds-text-tracks-change", onTracksChange);
-    if (player.state.canPlay) tryActivate();
+    if (player.state.canPlay && subtitleActivationKeyRef.current !== activationKey) tryActivate();
 
     return () => {
       player.removeEventListener("can-play", tryActivate);
       player.removeEventListener("vds-text-tracks-change", onTracksChange);
       if (retryTimer) clearTimeout(retryTimer);
       if (tracksChangeTimer) clearTimeout(tracksChangeTimer);
+      subtitleActivationKeyRef.current = "";
     };
-  }, [proxiedSrc, subTracksKey, preferSubtitles, subTracks]);
+  }, [proxiedSrc, subTracksKey, preferSubtitles]);
 
   // Select Japanese (sub) or English/dub HLS audio when multiple tracks exist.
   useEffect(() => {

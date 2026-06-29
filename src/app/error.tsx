@@ -7,7 +7,6 @@ import { ROUTES } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/common/button-link";
 import { useT } from "@/providers/i18n-provider";
-import { getErrorMessage } from "@/lib/error-message";
 
 export default function Error({
   error,
@@ -22,8 +21,6 @@ export default function Error({
     console.error(error);
   }, [error]);
 
-  const detail = getErrorMessage(error) ?? error.digest;
-
   return (
     <div className="min-h-[100dvh] w-full bg-black flex items-center justify-center px-6">
       <div className="flex flex-col items-center gap-5 text-center max-w-md">
@@ -36,11 +33,6 @@ export default function Error({
         />
         <div>
           <p className="font-bold text-2xl text-white">{t("common.error")}</p>
-          {detail ? (
-            <p className="text-sm text-white/55 mt-3 font-mono break-words max-w-lg leading-relaxed">
-              {detail}
-            </p>
-          ) : null}
           <p className="text-sm text-white/35 mt-2 font-mono">{t("common.tryAgain")}</p>
         </div>
         <div className="flex gap-3 items-center flex-wrap justify-center">
