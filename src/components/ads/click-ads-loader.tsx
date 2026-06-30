@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import { CLICK_AD_SCRIPT_SRC, isPlayerSurfaceTarget, isProfilePath } from "@/lib/ads/click-ads-config";
-import { hasAdFreePerk } from "@/lib/social/supporter-access";
 
 const SCRIPT_ID = "anikitty-click-ads";
 
@@ -15,11 +14,9 @@ export default function ClickAdsLoader() {
   const showAds = useSettingsStore((s) => s.showAds);
   const loadedRef = useRef(false);
 
-  const adFree = hasAdFreePerk(auth?.role, auth?.permissions);
-
   const shouldRun =
     !isProfilePath(pathname ?? "") &&
-    (auth ? showAds && !adFree : true);
+    (auth ? showAds : true);
 
   useEffect(() => {
     if (!shouldRun) return;

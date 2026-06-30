@@ -98,7 +98,7 @@
     "upcomingDesc": "Coming soon",
     "trendingDesc": "What everyone is watching",
     "forumDesc": "Discuss anime with the community",
-    "donateDesc": "Donate on Ko-fi for ad-free viewing",
+    "donateDesc": "Love the site? Chip in on Ko-fi to help with server costs",
     "browseAll": "Browse All",
     "browseAllDesc": "Search thousands of titles",
     "watchNow": "Watch Now",
@@ -319,14 +319,12 @@
       "desc": "Lightweight click ads help pay for servers",
       "showAds": "Show click ads",
       "showAdsDesc": "Disable only for your account on this device",
-      "signInHint": "Sign in to manage click ads.",
-      "donatorActive": "You have ad-free viewing as a supporter. Thank you for supporting AniKitty!",
-      "donationHint": "Donate on Ko-fi (€{amount} ≈ {days} days ad-free) — include @username, then",
-      "donationLink": "how it works",
-      "dmLink": "message @{username}",
+      "signInHint": "Sign in to turn click ads off for your account.",
+      "donationHint": "Love AniKitty?",
+      "donationLink": "Donate on Ko-fi",
       "disableTitle": "Turn off ads?",
       "disableBody": "Click ads on AniKitty are lightweight and help cover hosting, streaming, and database costs so the site stays free for everyone.",
-      "disableWarning": "Turning ads off means less support for keeping AniKitty online. Consider donating on Ko-fi for ad-free viewing instead.",
+      "disableWarning": "Turning ads off means less support for keeping AniKitty online. If you can, consider donating on Ko-fi.",
       "keepAds": "Keep ads on",
       "disableConfirm": "Turn off anyway"
     },
@@ -966,47 +964,12 @@
   },
   "donate": {
     "title": "Support AniKitty",
-    "subtitle": "Donate any amount on Ko-fi for ad-free viewing — more you give, longer it lasts.",
+    "subtitle": "Donate here if you love the site — it helps keep AniKitty online.",
+    "body": "AniKitty is free for everyone. If you enjoy watching here, a tip on Ko-fi helps pay for servers and streaming. Every bit helps, and it is completely optional.",
     "kofiCta": "Ko-fi",
     "donateCta": "Donate on Ko-fi",
-    "donationTitle": "Ad-free donations",
-    "rateLine": "€{amount} ≈ {days} days ad-free",
-    "donationDesc": "Donate on Ko-fi with your AniKitty @username in the message. Time scales with your tip — e.g. €1.50 → 7 days, €2 → 9, €3 → 14, €9 → 42.",
-    "dmCta": "DM @{username}",
-    "claimCta": "Activate ad-free",
-    "claimSignIn": "Sign in to activate ad-free access.",
-    "claimSuccess": "Ad-free activated for {days} days — thank you for supporting AniKitty!",
-    "claimNotFound": "No matching Ko-fi donation found yet. Include your @username in the Ko-fi message, wait a minute, then try again or DM @fampep.",
-    "claimFeedUnavailable": "Auto-activation is temporarily unavailable — DM @fampep and we will help manually.",
-    "claimAmountTooSmall": "That donation is too small to activate ad-free access.",
-    "claimFailed": "Could not activate ad-free access. Try again or DM @fampep.",
-    "stepsTitle": "How to get ad-free",
-    "steps": {
-      "pay": "Donate any amount on Ko-fi. Put {username} in the Ko-fi message field so we can match your tip.",
-      "dm": "Send @{username} a DM containing {mention} (your own AniKitty username) — or tap Activate ad-free on this page.",
-      "auto": "We read recent Ko-fi donations and add ad-free time based on the amount you sent.",
-      "help": "Something wrong? DM @{username} and we will sort it out manually."
-    },
-    "activeSupporter": "Your supporter access is active — click ads are off for your account. Thank you!",
     "supportOnKofi": "Donate on Ko-fi",
     "readFaq": "Read FAQ",
-    "faqTitle": "Good to know",
-    "faqClickAds": "We use lightweight click ads (not video ads) on pages outside the player. They never run on profile pages or inside the video player.",
-    "faqKoFi": "Donations go through Ko-fi (ko-fi.com/fampep). Include your AniKitty @username in the Ko-fi message when you pay.",
-    "faqDonation": "After donating, DM @fampep with @yourusername or tap Activate ad-free here. Days are calculated from your amount (€1.50 → 7, €2 → 9, €3 → 14, €9 → 42). Each donation can only be claimed once; donate again to extend.",
-    "faqVoluntary": "Supporting is completely optional. AniKitty stays free whether you donate or not — ads and tips help cover server costs.",
-    "banner": {
-      "donation": "Donate on Ko-fi — €{amount} ≈ {days} days ad-free. Include @username, then DM @fampep",
-      "learnMore": "How it works",
-      "kofiCta": "Ko-fi"
-    },
-    "perks": {
-      "adFree": "Ad-free for you",
-      "adFreeDesc": "No click ads on your account while your supporter access is active.",
-      "uptime": "Keeps streams fast",
-      "uptimeDesc": "Your support pays for the servers that power playback.",
-      "community": "Built for fans",
-      "communityDesc": "Run by enthusiasts who want a better free anime site."
-    }
+    "faqVoluntary": "Supporting is completely optional. AniKitty stays free whether you donate or not — ads and tips help cover server costs."
   }
 }

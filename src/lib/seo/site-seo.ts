@@ -75,7 +75,7 @@ export const PAGE_SEO = {
   },
   donate: {
     title: "Support AniKitty | Donate",
-    description: "Donate on Ko-fi for ad-free viewing. Time scales with your donation amount.",
+    description: "Donate on Ko-fi if you love AniKitty — tips help cover server costs.",
     path: "/donate",
   },
 } as const satisfies Record<string, PageSeo>;

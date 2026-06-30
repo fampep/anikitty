@@ -8,13 +8,6 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
 import { ROUTES } from "@/constants/routes";
-import { hasAdFreePerk } from "@/lib/social/supporter-access";
-import {
-  KOFI_DONATION_UNIT_DAYS,
-  KOFI_DONATION_UNIT_EUR,
-  SITE_OWNER_USERNAME,
-  siteOwnerDmHref,
-} from "@/lib/social/donation-config";
 
 function ToggleRow({
   icon,
@@ -110,10 +103,8 @@ export default function AdsSettingsSection() {
   const setShowAds = useSettingsStore((s) => s.setShowAds);
   const [disableOpen, setDisableOpen] = useState(false);
 
-  const adFree = hasAdFreePerk(auth?.role, auth?.permissions);
-
   const handleToggle = (next: boolean) => {
-    if (adFree) return;
+    if (!auth) return;
     if (!next && showAds) {
       setDisableOpen(true);
       return;
@@ -131,40 +122,24 @@ export default function AdsSettingsSection() {
         />
         <SectionBody>
           {auth ? (
-            adFree ? (
-              <p className="text-sm text-emerald-200/80 leading-relaxed">
-                {t("settings.ads.donatorActive")}
+            <>
+              <ToggleRow
+                icon={<Megaphone className="w-4 h-4" />}
+                label={t("settings.ads.showAds")}
+                description={t("settings.ads.showAdsDesc")}
+                value={showAds}
+                onChange={handleToggle}
+              />
+              <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
+                {t("settings.ads.donationHint")}{" "}
+                <Link
+                  href={ROUTES.DONATE}
+                  className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
+                >
+                  {t("settings.ads.donationLink")}
+                </Link>
               </p>
-            ) : (
-              <>
-                <ToggleRow
-                  icon={<Megaphone className="w-4 h-4" />}
-                  label={t("settings.ads.showAds")}
-                  description={t("settings.ads.showAdsDesc")}
-                  value={showAds}
-                  onChange={handleToggle}
-                />
-                <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
-                  {t("settings.ads.donationHint", {
-                    amount: KOFI_DONATION_UNIT_EUR,
-                    days: KOFI_DONATION_UNIT_DAYS,
-                  })}{" "}
-                  <Link
-                    href={ROUTES.DONATE}
-                    className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
-                  >
-                    {t("settings.ads.donationLink")}
-                  </Link>
-                  {" · "}
-                  <Link
-                    href={siteOwnerDmHref()}
-                    className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
-                  >
-                    {t("settings.ads.dmLink", { username: SITE_OWNER_USERNAME })}
-                  </Link>
-                </p>
-              </>
-            )
+            </>
           ) : (
             <p className="text-sm text-white/45 leading-relaxed">
               {t("settings.ads.signInHint")}{" "}
