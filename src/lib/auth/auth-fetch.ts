@@ -1,4 +1,10 @@
 /** Same-origin fetch with session cookie; legacy Bearer header if localStorage token exists. */
+export function hasLikelyAuthSession(): boolean {
+  if (typeof window === "undefined") return false;
+  if (localStorage.getItem("anisurgeToken")) return true;
+  return document.cookie.split(";").some((c) => c.trim().startsWith("ak_session="));
+}
+
 export function withAuth(init: RequestInit = {}): RequestInit {
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> | undefined),

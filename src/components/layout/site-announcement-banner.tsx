@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Info, AlertTriangle, AlertOctagon, CheckCircle2, X, MessageSquare, ArrowRight } from "lucide-react";
@@ -74,11 +74,16 @@ export default function SiteAnnouncementBanner() {
   };
 
   const hideOnPage = !hydrated || pathname === "/" || pathname?.startsWith("/anime/watch");
-  const visible = hideOnPage ? [] : items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
+  const visible = useMemo(() => {
+    if (hideOnPage) return [];
+    return items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
+  }, [hideOnPage, items, dismissed]);
+
+  const visibleKey = useMemo(() => visible.map((a) => a.id).join(","), [visible]);
 
   useEffect(() => {
     if (visible.length === 0) {
-      setSpacerHeight(0);
+      setSpacerHeight((prev) => (prev === 0 ? prev : 0));
       document.documentElement.style.setProperty("--banner-offset", "0px");
       return;
     }
@@ -86,7 +91,7 @@ export default function SiteAnnouncementBanner() {
     const measure = () => {
       const h = bannerRef.current?.offsetHeight ?? 0;
       const offset = h + 8;
-      setSpacerHeight(offset);
+      setSpacerHeight((prev) => (prev === offset ? prev : offset));
       document.documentElement.style.setProperty("--banner-offset", `${offset}px`);
     };
 
@@ -97,7 +102,7 @@ export default function SiteAnnouncementBanner() {
       ro.disconnect();
       document.documentElement.style.setProperty("--banner-offset", "0px");
     };
-  }, [visible]);
+  }, [visibleKey, visible.length]);
 
   if (hideOnPage || visible.length === 0) return null;
 

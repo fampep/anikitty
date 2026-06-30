@@ -66,12 +66,12 @@ export function useT() {
 }
 
 export function useClientLocaleBootstrap() {
-  const { setLocale } = useI18n();
+  const { locale, setLocale } = useI18n();
   React.useEffect(() => {
     const fromCookie = readCookieLocale();
-    if (fromCookie) {
+    if (fromCookie && fromCookie !== locale) {
       setLocale(fromCookie);
       document.documentElement.lang = fromCookie;
     }
-  }, [setLocale]);
+  }, [locale, setLocale]);
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import LoadingGirl from "@/components/common/loading-girl";
 import { useT } from "@/providers/i18n-provider";
 
-/** Recover silently from transient player/runtime errors instead of flashing the global error page. */
+/** Recover once from transient player errors instead of looping the error boundary. */
 export default function WatchError({
   error,
   reset,
@@ -13,9 +13,12 @@ export default function WatchError({
   reset: () => void;
 }) {
   const t = useT();
+  const retriedRef = useRef(false);
 
   useEffect(() => {
-    console.error("[watch] auto-recovering from error:", error);
+    console.error("[watch] error:", error);
+    if (retriedRef.current) return;
+    retriedRef.current = true;
     reset();
   }, [error, reset]);
 

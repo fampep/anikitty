@@ -31,6 +31,7 @@ import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import NotificationBell from "./notification-bell";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/oauth/anisurge";
+import { hasLikelyAuthSession } from "@/lib/auth/auth-fetch";
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
@@ -210,8 +211,18 @@ const NavBar = () => {
     [user, setAuth, clearAuth],
   );
 
+  const meProbeRef = useRef(false);
+
   useEffect(() => {
-    if (user) return;
+    if (user) {
+      meProbeRef.current = false;
+      return;
+    }
+    if (meProbeRef.current) return;
+    if (!hasLikelyAuthSession()) {
+      meProbeRef.current = true;
+      return;
+    }
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
@@ -219,11 +230,14 @@ const NavBar = () => {
         try {
           const me = await anisurgeAuth.me();
           if (!cancelled) setAuth(authFromMeResponse(me));
-        } catch (e: any) {
-          if (!cancelled && e?.status === 401) {
+        } catch (e: unknown) {
+          const status = (e as { status?: number })?.status;
+          if (!cancelled && status === 401) {
             clearAnisurgeToken();
             clearAuth();
           }
+        } finally {
+          if (!cancelled) meProbeRef.current = true;
         }
       })();
     }, 150);
