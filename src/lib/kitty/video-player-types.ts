@@ -9,7 +9,6 @@ export interface W2gSyncState {
 
 export interface VideoPlayerProps {
   src: string;
-  poster?: string;
   tracks?: KittyTrack[];
   headers?: Record<string, string>;
   skipTimes?: SkipTimes;

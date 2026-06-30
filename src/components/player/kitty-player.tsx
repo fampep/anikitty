@@ -26,19 +26,8 @@ import Hls from "hls.js";
 import { bindPipCaptionSync } from "@/lib/kitty/pip-captions";
 import type { VideoPlayerProps } from "@/lib/kitty/video-player-types";
 
-function hideVidstackPoster(root: HTMLElement | null) {
-  if (!root) return;
-  root.querySelectorAll(".vds-poster").forEach((node) => {
-    if (!(node instanceof HTMLElement)) return;
-    node.style.display = "none";
-    node.removeAttribute("data-visible");
-    node.setAttribute("data-hidden", "");
-  });
-}
-
 export default function KittyPlayer({
   src,
-  poster,
   tracks = [],
   headers = {},
   skipTimes,
@@ -85,7 +74,6 @@ export default function KittyPlayer({
   const lastUiTimeRef = useRef(0);
   const skipUiRef = useRef<"intro" | "outro" | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [posterVisible, setPosterVisible] = useState(!!poster);
   const onNextEpisodeRef = useRef(onNextEpisode);
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
   const onOutroStartRef = useRef(onOutroStart);
@@ -156,11 +144,10 @@ export default function KittyPlayer({
     lastUiTimeRef.current = 0;
     setCurrentTime(0);
     setCountdown(null);
-    setPosterVisible(!!poster);
     durationRef.current = 0;
     setDuration(0);
     subtitleActivationKeyRef.current = "";
-  }, [src, poster]);
+  }, [src]);
 
   // Enable default subtitle track when available (Vidstack CC menu still allows switching/off).
   useEffect(() => {
@@ -456,19 +443,12 @@ export default function KittyPlayer({
 
   const durationRef = useRef(0);
 
-  const dismissPoster = useCallback(() => {
-    setPosterVisible(false);
-    hideVidstackPoster(containerRef.current);
-  }, []);
-
   const handleTimeUpdate = useCallback(() => {
     const player = playerRef.current;
     if (!player) return;
     const t   = player.currentTime;
     const dur = player.duration;
     const st  = skipRef.current;
-
-    if (t > 0.25) dismissPoster();
 
     onLiveTimeRef.current?.(t, dur);
 
@@ -510,10 +490,9 @@ export default function KittyPlayer({
     if (cfg?.isHost && !applyingW2gRef.current && Math.abs(t - lastW2gReportRef.current) > 2.5) {
       reportW2g(!player.paused, t);
     }
-  }, [reportW2g, dismissPoster]);
+  }, [reportW2g]);
 
   const handleCanPlay = useCallback(() => {
-    dismissPoster();
     const t = startTimeRef.current;
     if (t > 10 && playerRef.current) playerRef.current.currentTime = t;
 
@@ -527,17 +506,16 @@ export default function KittyPlayer({
         stage?.requestFullscreen().catch(() => {});
       });
     }
-  }, [dismissPoster]);
+  }, []);
 
   const handlePlay = useCallback(() => {
-    dismissPoster();
     if (!startFiredRef.current) {
       startFiredRef.current = true;
       onStartRef.current?.();
     }
     const player = playerRef.current;
     if (player) reportW2g(true, player.currentTime);
-  }, [reportW2g, dismissPoster]);
+  }, [reportW2g]);
 
   const handlePause = useCallback(() => {
     const player = playerRef.current;
@@ -592,7 +570,6 @@ export default function KittyPlayer({
         ref={playerRef}
         src={{ src: proxiedSrc, type: "application/x-mpegurl" }}
         streamType="on-demand"
-        poster={posterVisible ? poster : undefined}
         playsInline
         crossOrigin="anonymous"
         load="eager"
@@ -600,8 +577,6 @@ export default function KittyPlayer({
         className="w-full h-full"
         style={subtitleCssVars as React.CSSProperties & Record<string, string>}
         onProviderChange={onProviderChange}
-        onStarted={dismissPoster}
-        onLoadedData={dismissPoster}
         onCanPlay={handleCanPlay}
         onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}

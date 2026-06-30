@@ -534,9 +534,6 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const loadingThumbnail =
-    anime?.anime?.info?.banner ?? anime?.anime?.info?.poster ?? null;
-
   const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
@@ -655,10 +652,7 @@ const VideoPlayerSection = () => {
 
   if ((isLoading || isFetching) && !hasStreamFile) {
     return (
-      <PlayerSkeleton
-        label={t("watch.loadingStream")}
-        thumbnail={loadingThumbnail}
-      />
+      <PlayerSkeleton label={t("watch.loadingStream")} />
     );
   }
 
@@ -711,10 +705,7 @@ const VideoPlayerSection = () => {
 
   if (!streamData?.file) {
     return (
-      <PlayerSkeleton
-        label={t("watch.loadingStream")}
-        thumbnail={loadingThumbnail}
-      />
+      <PlayerSkeleton label={t("watch.loadingStream")} />
     );
   }
 
@@ -930,29 +921,14 @@ const VideoPlayerSection = () => {
 const PlayerSkeleton = ({
   dim = false,
   label = "Loading stream",
-  thumbnail,
 }: {
   dim?: boolean;
   label?: string;
-  thumbnail?: string | null;
 }) => (
   <div
     className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
-    {thumbnail && (
-      <>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={thumbnail}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/65" />
-      </>
-    )}
-    {!thumbnail && (
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
-    )}
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
     <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
     <div className="absolute inset-x-4 bottom-4 flex flex-col gap-2 pointer-events-none">
       <div className="h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">

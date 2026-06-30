@@ -388,22 +388,13 @@ button, a, [role="button"] {
   display: none !important;
 }
 
-.vds-kitty .vds-poster {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
+.vds-kitty [data-media-player][data-layout="video"] {
+  --video-bg: transparent;
+  background-color: transparent !important;
 }
 
-/* Poster must not sit above playing video (Vidstack keeps data-visible + black bg). */
-.vds-kitty media-player[data-can-play] .vds-poster,
-.vds-kitty [data-media-player][data-can-play] .vds-poster,
-.vds-kitty media-player[data-started] .vds-poster,
-.vds-kitty [data-media-player][data-started] .vds-poster,
-.vds-kitty media-player[data-playing] .vds-poster,
-.vds-kitty [data-media-player][data-playing] .vds-poster,
-.vds-kitty media-player:not([data-paused]) .vds-poster,
-.vds-kitty [data-media-player]:not([data-paused]) .vds-poster {
+.vds-kitty .vds-poster,
+.vds-kitty media-poster {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;

@@ -64,11 +64,6 @@ function generateHighlights(
   return highlights;
 }
 
-function hideArtPoster(art: Artplayer) {
-  const poster = art.template?.$poster as HTMLElement | undefined;
-  if (poster) poster.style.display = "none";
-}
-
 function disableNativeTextTracks(video: HTMLVideoElement | null | undefined) {
   if (!video?.textTracks) return;
   for (let i = 0; i < video.textTracks.length; i++) {
@@ -110,7 +105,6 @@ function applySubtitleStyles(
 
 export default function ArtKittyPlayer({
   src,
-  poster,
   tracks = [],
   headers = {},
   skipTimes,
@@ -348,7 +342,6 @@ export default function ArtKittyPlayer({
       container,
       url: proxiedSrc,
       type: "m3u8",
-      poster,
       volume: 0.85,
       autoplay: true,
       muted: false,
@@ -461,7 +454,6 @@ export default function ArtKittyPlayer({
     artRef.current = art;
 
     art.on("ready", () => {
-      hideArtPoster(art);
       applySubtitleStyles(art, subtitleSettings);
       applyResume(art);
 
@@ -512,7 +504,6 @@ export default function ArtKittyPlayer({
     });
 
     art.on("play", () => {
-      hideArtPoster(art);
       if (!startFiredRef.current) {
         startFiredRef.current = true;
         onStartRef.current?.();
@@ -599,7 +590,6 @@ export default function ArtKittyPlayer({
     };
   }, [
     proxiedSrc,
-    poster,
     tracks,
     preferSubtitles,
     nextEpisode,
