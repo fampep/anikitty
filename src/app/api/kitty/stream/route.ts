@@ -3,11 +3,12 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitles/subtitle-cache-store";
 import {
-  DEFAULT_LUNAR_SERVER,
-  fetchLunarVideoStream,
-  isLunarServerId,
-  type LunarServerId,
-} from "@/lib/providers/lunar-api";
+  DEFAULT_ALLANIME_MIRROR,
+  DEFAULT_MKISSA_MIRROR,
+  fetchAllanimeVideoStream,
+  isAllanimeMirrorId,
+  type AllanimeMirrorId,
+} from "@/lib/providers/allanime-api";
 import {
   DEFAULT_ANISNATCH_SERVER,
   fetchAnisnatchVideoStream,
@@ -26,6 +27,12 @@ import {
   isAnimoServerId,
   type AnimoServerId,
 } from "@/lib/providers/animo-api";
+import {
+  DEFAULT_LUNAR_SERVER,
+  fetchLunarVideoStream,
+  isLunarServerId,
+  type LunarServerId,
+} from "@/lib/providers/lunar-api";
 import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -54,6 +61,7 @@ const SAFE_PIPE = /^[a-z]{2,12}$/;
 const SAFE_ANIMEX_SERVER = /^[a-z]{2,12}$/;
 const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
 const SAFE_LUNAR_SERVER = /^[a-z0-9-]{2,12}$/;
+const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
@@ -80,6 +88,8 @@ export async function GET(req: Request) {
   const animexServerParam = searchParams.get("animexServer");
   const anisnatchServerParam = searchParams.get("anisnatchServer");
   const lunarServerParam = searchParams.get("lunarServer");
+  const allanimeMirrorParam = searchParams.get("allanimeMirror");
+  const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const animoServerParam = searchParams.get("animoServer");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
@@ -133,6 +143,24 @@ export async function GET(req: Request) {
       ? lunarServerParam
       : provider === "Lunar"
         ? DEFAULT_LUNAR_SERVER
+        : null;
+
+  const allanimeMirror =
+    allanimeMirrorParam &&
+    SAFE_ALLANIME_MIRROR.test(allanimeMirrorParam) &&
+    isAllanimeMirrorId(allanimeMirrorParam)
+      ? allanimeMirrorParam
+      : provider === "AllAnime"
+        ? DEFAULT_ALLANIME_MIRROR
+        : null;
+
+  const mkissaMirror =
+    mkissaMirrorParam &&
+    SAFE_ALLANIME_MIRROR.test(mkissaMirrorParam) &&
+    isAllanimeMirrorId(mkissaMirrorParam)
+      ? mkissaMirrorParam
+      : provider === "MKissa"
+        ? DEFAULT_MKISSA_MIRROR
         : null;
 
   const animoServer =
@@ -295,6 +323,64 @@ export async function GET(req: Request) {
       }
     } catch (e) {
       console.error("[kitty/stream] Lunar server failed:", e);
+    }
+  }
+
+  if (provider === "AllAnime") {
+    try {
+      const allanime = await fetchAllanimeVideoStream({
+        provider: "AllAnime",
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        mirror: allanimeMirror as AllanimeMirrorId,
+        title: titleParam,
+      });
+
+      if (allanime?.file) {
+        return finalizeStreamResponse(
+          {
+            file: allanime.file,
+            headers: allanime.headers,
+            tracks: allanime.tracks,
+            skipTimes: allanime.skipTimes,
+            server: allanime.server,
+            download: allanime.download,
+          },
+          "AllAnime",
+        );
+      }
+    } catch (e) {
+      console.error("[kitty/stream] AllAnime mirror failed:", e);
+    }
+  }
+
+  if (provider === "MKissa") {
+    try {
+      const mkissa = await fetchAllanimeVideoStream({
+        provider: "MKissa",
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        mirror: mkissaMirror as AllanimeMirrorId,
+        title: titleParam,
+      });
+
+      if (mkissa?.file) {
+        return finalizeStreamResponse(
+          {
+            file: mkissa.file,
+            headers: mkissa.headers,
+            tracks: mkissa.tracks,
+            skipTimes: mkissa.skipTimes,
+            server: mkissa.server,
+            download: mkissa.download,
+          },
+          "MKissa",
+        );
+      }
+    } catch (e) {
+      console.error("[kitty/stream] MKissa mirror failed:", e);
     }
   }
 

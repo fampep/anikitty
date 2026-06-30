@@ -138,6 +138,26 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "lunaranime.ru · Beep · Mimi · Yuki · Miku · Vee · FlixCloud · SUB · DUB",
   },
   {
+    id: "AllAnime",
+    label: "AllAnime",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    supportsDub: true,
+    supportsMulti: true,
+    hint: "allmanga.to · Default · Ok · Mp4 · dynamic mirrors · SUB · DUB",
+  },
+  {
+    id: "MKissa",
+    label: "MKissa",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    supportsDub: true,
+    supportsMulti: true,
+    hint: "mkissa.to · Ok · Uni · Fm-Hls · dynamic mirrors · SUB · DUB",
+  },
+  {
     id: "Animepahe",
     label: "Animepahe",
     group: "featured",
@@ -185,24 +205,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   { id: "Anikage", label: "Anikage", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "AnimeHeaven", label: "AnimeHeaven", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "KaaLt", label: "KaaLt", group: "other", hardSub: true, hint: "SUB · Hard sub" },
-  {
-    id: "AllAnime",
-    label: "AllAnime",
-    group: "other",
-    nativeSubs: true,
-    kittySubs: true,
-    supportsDub: true,
-    hint: "allmanga.to · Default · Ok · Mp4 · SUB · DUB",
-  },
-  {
-    id: "MKissa",
-    label: "MKissa",
-    group: "other",
-    nativeSubs: true,
-    kittySubs: true,
-    supportsDub: true,
-    hint: "mkissa.to · Ok · Uni · Fm-Hls · Mp4 · SUB · DUB",
-  },
   { id: "Senshi", label: "Senshi", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "Animetsu", label: "Animetsu", group: "other", hardSub: true, hint: "SUB · Hard sub" },
   { id: "Animeverse", label: "Animeverse", group: "other", hardSub: true, hint: "SUB · Hard sub" },
@@ -289,7 +291,14 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
 }
 
 /** Providers that only appear in the MULTI row (server picker expands below). */
-export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>(["Miruro", "Animex", "AniSnatch", "Lunar"]);
+export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([
+  "Miruro",
+  "Animex",
+  "AniSnatch",
+  "Lunar",
+  "AllAnime",
+  "MKissa",
+]);
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {

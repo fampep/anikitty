@@ -2,6 +2,7 @@ import { useQuery } from "react-query";
 import { api } from "@/lib/core/api";
 import type { AnimexServerId } from "@/lib/providers/animex-api";
 import type { AnisnatchServerId } from "@/lib/providers/anisnatch-api";
+import type { AllanimeMirrorId } from "@/lib/providers/allanime-api";
 import type { LunarServerId } from "@/lib/providers/lunar-api";
 import type { AnimoServerId } from "@/lib/providers/animo-api";
 import type { MiruroPipeProviderId } from "@/lib/providers/miruro-api";
@@ -48,6 +49,8 @@ const getKittyStream = async (
   animexServer?: AnimexServerId | null,
   anisnatchServer?: AnisnatchServerId | null,
   lunarServer?: LunarServerId | null,
+  allanimeMirror?: AllanimeMirrorId | null,
+  mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
@@ -61,6 +64,8 @@ const getKittyStream = async (
       ...(provider === "Animex" && animexServer ? { animexServer } : {}),
       ...(provider === "AniSnatch" && anisnatchServer ? { anisnatchServer } : {}),
       ...(provider === "Lunar" && lunarServer ? { lunarServer } : {}),
+      ...(provider === "AllAnime" && allanimeMirror ? { allanimeMirror } : {}),
+      ...(provider === "MKissa" && mkissaMirror ? { mkissaMirror } : {}),
       ...(provider === "Animo" && animoServer ? { animoServer } : {}),
     },
   });
@@ -77,6 +82,8 @@ export const useGetKittyStream = (
   animexServer?: AnimexServerId | null,
   anisnatchServer?: AnisnatchServerId | null,
   lunarServer?: LunarServerId | null,
+  allanimeMirror?: AllanimeMirrorId | null,
+  mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
 ) => {
   return useQuery({
@@ -90,6 +97,8 @@ export const useGetKittyStream = (
       animexServer ?? "",
       anisnatchServer ?? "",
       lunarServer ?? "",
+      allanimeMirror ?? "",
+      mkissaMirror ?? "",
       animoServer ?? "",
       title ?? "",
     ],
@@ -104,6 +113,8 @@ export const useGetKittyStream = (
         animexServer,
         anisnatchServer,
         lunarServer,
+        allanimeMirror,
+        mkissaMirror,
         animoServer,
       ),
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,

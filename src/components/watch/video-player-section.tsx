@@ -33,6 +33,14 @@ import {
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
 import {
+  DEFAULT_ALLANIME_MIRROR,
+  DEFAULT_MKISSA_MIRROR,
+  defaultAllanimeMirrorForMode,
+  isAllanimeMirrorId,
+  pickDefaultAllanimeMirror,
+  type AllanimeMirrorId,
+} from "@/lib/providers/allanime-api";
+import {
   DEFAULT_ANIMO_SERVER,
   isAnimoServerId,
   type AnimoServerId,
@@ -190,6 +198,22 @@ const VideoPlayerSection = () => {
     return DEFAULT_LUNAR_SERVER;
   });
 
+  const [allanimeMirror, setAllanimeMirror] = useState<AllanimeMirrorId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("allanimeMirror");
+      if (saved && isAllanimeMirrorId(saved)) return saved;
+    }
+    return DEFAULT_ALLANIME_MIRROR;
+  });
+
+  const [mkissaMirror, setMkissaMirror] = useState<AllanimeMirrorId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("mkissaMirror");
+      if (saved && isAllanimeMirrorId(saved)) return saved;
+    }
+    return DEFAULT_MKISSA_MIRROR;
+  });
+
   const [animoServer, setAnimoServer] = useState<AnimoServerId>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("animoServer");
@@ -204,12 +228,10 @@ const VideoPlayerSection = () => {
       const savedMode = localStorage.getItem("kittyAudioMode");
       if (
         savedMode === "multi" &&
-        (savedProvider === "Miruro" ||
-          savedProvider === "Animex" ||
-          savedProvider === "AniSnatch" ||
-          savedProvider === "Lunar")
+        savedProvider &&
+        MULTI_ROW_PROVIDERS.has(savedProvider as KittyProvider)
       ) {
-        return savedProvider;
+        return savedProvider as MultiPanelProvider;
       }
     }
     return null;
@@ -250,9 +272,11 @@ const VideoPlayerSection = () => {
       ...(provider === "Animex" ? { animexServer } : {}),
       ...(provider === "AniSnatch" ? { anisnatchServer } : {}),
       ...(provider === "Lunar" ? { lunarServer } : {}),
+      ...(provider === "AllAnime" ? { allanimeMirror } : {}),
+      ...(provider === "MKissa" ? { mkissaMirror } : {}),
       ...(provider === "Animo" ? { animoServer } : {}),
     }),
-    [provider, miruroPipe, animexServer, anisnatchServer, lunarServer, animoServer],
+    [provider, miruroPipe, animexServer, anisnatchServer, lunarServer, allanimeMirror, mkissaMirror, animoServer],
   );
 
   const {
@@ -276,6 +300,8 @@ const VideoPlayerSection = () => {
         provider === "Animo" ? animoServer : undefined,
         provider === "AniSnatch" ? anisnatchServer : undefined,
         provider === "Lunar" ? lunarServer : undefined,
+        provider === "AllAnime" ? allanimeMirror : undefined,
+        provider === "MKissa" ? mkissaMirror : undefined,
       ),
     [
       streamCapabilities,
@@ -286,6 +312,8 @@ const VideoPlayerSection = () => {
       animoServer,
       anisnatchServer,
       lunarServer,
+      allanimeMirror,
+      mkissaMirror,
     ],
   );
 
@@ -544,6 +572,8 @@ const VideoPlayerSection = () => {
     provider === "Animex" ? animexServer : null,
     provider === "AniSnatch" ? anisnatchServer : null,
     provider === "Lunar" ? lunarServer : null,
+    provider === "AllAnime" ? allanimeMirror : null,
+    provider === "MKissa" ? mkissaMirror : null,
     provider === "Animo" ? animoServer : null,
   );
 
@@ -579,7 +609,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${animoServer}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
@@ -633,7 +663,7 @@ const VideoPlayerSection = () => {
         syncDubSearchParam(false);
       }
     }
-    if (mode !== "multi" || (p !== "Miruro" && p !== "Animex" && p !== "AniSnatch" && p !== "Lunar")) {
+    if (mode !== "multi" || !MULTI_ROW_PROVIDERS.has(p)) {
       setMultiPanel(null);
     }
     if (p === "Animex") {
@@ -650,6 +680,16 @@ const VideoPlayerSection = () => {
       const server = defaultLunarServerForMode(mode);
       setLunarServer(server);
       localStorage.setItem("lunarServer", server);
+    }
+    if (p === "AllAnime") {
+      const mirror = defaultAllanimeMirrorForMode("AllAnime", mode);
+      setAllanimeMirror(mirror);
+      localStorage.setItem("allanimeMirror", mirror);
+    }
+    if (p === "MKissa") {
+      const mirror = defaultAllanimeMirrorForMode("MKissa", mode);
+      setMkissaMirror(mirror);
+      localStorage.setItem("mkissaMirror", mirror);
     }
     if (p === "Animo") {
       setAnimoServer(DEFAULT_ANIMO_SERVER);
@@ -704,6 +744,28 @@ const VideoPlayerSection = () => {
     localStorage.setItem("lunarServer", server);
   };
 
+  const handleAllanimeMirrorChange = (mirror: AllanimeMirrorId) => {
+    preservePlaybackPosition();
+    setProvider("AllAnime");
+    setAudioMode("multi");
+    setAllanimeMirror(mirror);
+    setMultiPanel("AllAnime");
+    localStorage.setItem("kittyProvider", "AllAnime");
+    localStorage.setItem("kittyAudioMode", "multi");
+    localStorage.setItem("allanimeMirror", mirror);
+  };
+
+  const handleMkissaMirrorChange = (mirror: AllanimeMirrorId) => {
+    preservePlaybackPosition();
+    setProvider("MKissa");
+    setAudioMode("multi");
+    setMkissaMirror(mirror);
+    setMultiPanel("MKissa");
+    localStorage.setItem("kittyProvider", "MKissa");
+    localStorage.setItem("kittyAudioMode", "multi");
+    localStorage.setItem("mkissaMirror", mirror);
+  };
+
   const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
     preservePlaybackPosition();
     setMiruroPipe(pipe);
@@ -717,6 +779,32 @@ const VideoPlayerSection = () => {
     localStorage.setItem("kittyProvider", "Animo");
     localStorage.setItem("animoServer", server);
   };
+
+  useEffect(() => {
+    if (provider !== "AllAnime" || !streamCapabilities?.allanimeServerRows?.length) return;
+    const rows = streamCapabilities.allanimeServerRows;
+    const mirrors = rows.map((row) => row.mirror);
+    if (!mirrors.includes(allanimeMirror)) {
+      const next = pickDefaultAllanimeMirror(rows, "AllAnime");
+      if (next) {
+        setAllanimeMirror(next);
+        localStorage.setItem("allanimeMirror", next);
+      }
+    }
+  }, [provider, streamCapabilities?.allanimeServerRows, allanimeMirror]);
+
+  useEffect(() => {
+    if (provider !== "MKissa" || !streamCapabilities?.mkissaServerRows?.length) return;
+    const rows = streamCapabilities.mkissaServerRows;
+    const mirrors = rows.map((row) => row.mirror);
+    if (!mirrors.includes(mkissaMirror)) {
+      const next = pickDefaultAllanimeMirror(rows, "MKissa");
+      if (next) {
+        setMkissaMirror(next);
+        localStorage.setItem("mkissaMirror", next);
+      }
+    }
+  }, [provider, streamCapabilities?.mkissaServerRows, mkissaMirror]);
 
   if (!episodeId && !selectedEpisode) {
     return (
@@ -776,6 +864,8 @@ const VideoPlayerSection = () => {
           animexServer={animexServer}
           anisnatchServer={anisnatchServer}
           lunarServer={lunarServer}
+          allanimeMirror={allanimeMirror}
+          mkissaMirror={mkissaMirror}
           animoServer={animoServer}
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
@@ -786,6 +876,8 @@ const VideoPlayerSection = () => {
           onAnimexServerChange={handleAnimexServerChange}
           onAnisnatchServerChange={handleAnisnatchServerChange}
           onLunarServerChange={handleLunarServerChange}
+          onAllanimeMirrorChange={handleAllanimeMirrorChange}
+          onMkissaMirrorChange={handleMkissaMirrorChange}
           onAnimoServerChange={handleAnimoServerChange}
         />
 
@@ -850,6 +942,8 @@ const VideoPlayerSection = () => {
           animexServer={animexServer}
           anisnatchServer={anisnatchServer}
           lunarServer={lunarServer}
+          allanimeMirror={allanimeMirror}
+          mkissaMirror={mkissaMirror}
           animoServer={animoServer}
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
@@ -860,6 +954,8 @@ const VideoPlayerSection = () => {
           onAnimexServerChange={handleAnimexServerChange}
           onAnisnatchServerChange={handleAnisnatchServerChange}
           onLunarServerChange={handleLunarServerChange}
+          onAllanimeMirrorChange={handleAllanimeMirrorChange}
+          onMkissaMirrorChange={handleMkissaMirrorChange}
           onAnimoServerChange={handleAnimoServerChange}
         />
 

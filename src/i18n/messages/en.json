@@ -865,6 +865,8 @@
     "animexServer": "Animex server",
     "anisnatchServer": "AniSnatch server",
     "lunarServer": "Lunar server",
+    "allAnimeMirror": "AllAnime mirror",
+    "mkissaMirror": "MKissa mirror",
     "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "Stream source",

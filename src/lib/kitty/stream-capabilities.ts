@@ -6,6 +6,12 @@ import {
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
 import {
+  isAllanimeMirrorId,
+  probeAllanimeEpisodeCapabilities,
+  type AllanimeKittyServer,
+  type AllanimeMirrorId,
+} from "@/lib/providers/allanime-api";
+import {
   DEFAULT_ANISNATCH_SERVER,
   isAnisnatchServerId,
   probeAnisnatchServerCapabilities,
@@ -53,6 +59,10 @@ export type EpisodeStreamCapabilities = {
   animoServers: Partial<Record<AnimoServerId, StreamCapabilities>>;
   anisnatchServers: Partial<Record<AnisnatchServerId, StreamCapabilities>>;
   lunarServers: Partial<Record<LunarServerId, StreamCapabilities>>;
+  allanimeServers: Partial<Record<AllanimeMirrorId, StreamCapabilities>>;
+  mkissaServers: Partial<Record<AllanimeMirrorId, StreamCapabilities>>;
+  allanimeServerRows: AllanimeKittyServer[];
+  mkissaServerRows: AllanimeKittyServer[];
 };
 
 export type StreamCapabilityTarget = {
@@ -62,6 +72,8 @@ export type StreamCapabilityTarget = {
   animoServer?: AnimoServerId;
   anisnatchServer?: AnisnatchServerId;
   lunarServer?: LunarServerId;
+  allanimeMirror?: AllanimeMirrorId;
+  mkissaMirror?: AllanimeMirrorId;
 };
 
 export const EMPTY_STREAM_CAPABILITIES: StreamCapabilities = {
@@ -70,6 +82,13 @@ export const EMPTY_STREAM_CAPABILITIES: StreamCapabilities = {
   multi: false,
   softSub: false,
   hardSub: false,
+};
+
+const EMPTY_MULTI_SERVER_FIELDS = {
+  allanimeServers: {},
+  mkissaServers: {},
+  allanimeServerRows: [] as AllanimeKittyServer[],
+  mkissaServerRows: [] as AllanimeKittyServer[],
 };
 
 const PROBE_TIMEOUT_MS = 8_000;
@@ -164,7 +183,7 @@ async function probeDirectProviderCapabilities(
     ? await probeStreamDirect(provider, anilistId, episode, "dub", title)
     : null;
   const caps = capabilitiesFromProbes(subProbe, dubProbe);
-  if (MULTI_ROW_PROVIDERS.has(provider) && provider !== "AniSnatch" && provider !== "Lunar" && caps.sub && caps.dub) {
+  if (MULTI_ROW_PROVIDERS.has(provider) && provider !== "AniSnatch" && provider !== "Lunar" && provider !== "AllAnime" && provider !== "MKissa" && caps.sub && caps.dub) {
     return { ...caps, multi: true };
   }
   return caps;
@@ -189,6 +208,7 @@ export async function fetchActiveProviderStreamCapabilities(
       animoServers: {},
       anisnatchServers: {},
       lunarServers: {},
+      ...EMPTY_MULTI_SERVER_FIELDS,
     };
   }
 
@@ -202,6 +222,7 @@ export async function fetchActiveProviderStreamCapabilities(
       animoServers: {},
       anisnatchServers: {},
       lunarServers: {},
+      ...EMPTY_MULTI_SERVER_FIELDS,
     };
   }
 
@@ -215,6 +236,7 @@ export async function fetchActiveProviderStreamCapabilities(
       animoServers: {},
       anisnatchServers: { [server]: caps },
       lunarServers: {},
+      ...EMPTY_MULTI_SERVER_FIELDS,
     };
   }
 
@@ -228,6 +250,49 @@ export async function fetchActiveProviderStreamCapabilities(
       animoServers: {},
       anisnatchServers: {},
       lunarServers: { [server]: caps },
+      ...EMPTY_MULTI_SERVER_FIELDS,
+    };
+  }
+
+  if (provider === "AllAnime") {
+    const episodeCaps = await probeAllanimeEpisodeCapabilities(
+      "AllAnime",
+      anilistId,
+      episode,
+      title,
+    );
+    return {
+      providers: { AllAnime: episodeCaps.provider },
+      miruroPipes: {},
+      animexServers: {},
+      animoServers: {},
+      anisnatchServers: {},
+      lunarServers: {},
+      allanimeServers: episodeCaps.servers,
+      mkissaServers: {},
+      allanimeServerRows: episodeCaps.serverRows,
+      mkissaServerRows: [],
+    };
+  }
+
+  if (provider === "MKissa") {
+    const episodeCaps = await probeAllanimeEpisodeCapabilities(
+      "MKissa",
+      anilistId,
+      episode,
+      title,
+    );
+    return {
+      providers: { MKissa: episodeCaps.provider },
+      miruroPipes: {},
+      animexServers: {},
+      animoServers: {},
+      anisnatchServers: {},
+      lunarServers: {},
+      allanimeServers: {},
+      mkissaServers: episodeCaps.servers,
+      allanimeServerRows: [],
+      mkissaServerRows: episodeCaps.serverRows,
     };
   }
 
@@ -241,6 +306,7 @@ export async function fetchActiveProviderStreamCapabilities(
       animoServers: { [server]: caps },
       anisnatchServers: {},
       lunarServers: {},
+      ...EMPTY_MULTI_SERVER_FIELDS,
     };
   }
 
@@ -252,6 +318,7 @@ export async function fetchActiveProviderStreamCapabilities(
     animoServers: {},
     anisnatchServers: {},
     lunarServers: {},
+    ...EMPTY_MULTI_SERVER_FIELDS,
   };
 }
 
@@ -284,6 +351,16 @@ export function parseStreamCapabilityTarget(searchParams: URLSearchParams): Stre
   const lunarServer = searchParams.get("lunarServer");
   if (lunarServer && isLunarServerId(lunarServer)) {
     target.lunarServer = lunarServer;
+  }
+
+  const allanimeMirror = searchParams.get("allanimeMirror");
+  if (allanimeMirror && isAllanimeMirrorId(allanimeMirror)) {
+    target.allanimeMirror = allanimeMirror;
+  }
+
+  const mkissaMirror = searchParams.get("mkissaMirror");
+  if (mkissaMirror && isAllanimeMirrorId(mkissaMirror)) {
+    target.mkissaMirror = mkissaMirror;
   }
 
   return target;
@@ -330,6 +407,8 @@ export function resolveActiveStreamCapabilities(
   animoServer?: AnimoServerId,
   anisnatchServer?: AnisnatchServerId,
   lunarServer?: LunarServerId,
+  allanimeMirror?: AllanimeMirrorId,
+  mkissaMirror?: AllanimeMirrorId,
 ): StreamCapabilities | null | undefined {
   if (!caps) return undefined;
   if (audioMode === "multi") {
@@ -337,6 +416,8 @@ export function resolveActiveStreamCapabilities(
     if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
     if (provider === "AniSnatch" && anisnatchServer) return caps.anisnatchServers[anisnatchServer];
     if (provider === "Lunar" && lunarServer) return caps.lunarServers[lunarServer];
+    if (provider === "AllAnime" && allanimeMirror) return caps.allanimeServers[allanimeMirror];
+    if (provider === "MKissa" && mkissaMirror) return caps.mkissaServers[mkissaMirror];
   }
   if (provider === "Animo" && animoServer) return caps.animoServers[animoServer] ?? caps.providers[provider];
   return caps.providers[provider];
@@ -368,6 +449,8 @@ export function selectionSupportsBothStreamAudioFromCaps(
   animoServer?: AnimoServerId,
   anisnatchServer?: AnisnatchServerId,
   lunarServer?: LunarServerId,
+  allanimeMirror?: AllanimeMirrorId,
+  mkissaMirror?: AllanimeMirrorId,
 ): boolean {
   const active = resolveActiveStreamCapabilities(
     caps,
@@ -378,6 +461,8 @@ export function selectionSupportsBothStreamAudioFromCaps(
     animoServer,
     anisnatchServer,
     lunarServer,
+    allanimeMirror,
+    mkissaMirror,
   );
   return canToggleStreamAudio(active);
 }

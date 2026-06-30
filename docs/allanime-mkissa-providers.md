@@ -9,7 +9,7 @@ Logic lives in `lib/allanime-api.js`; each provider is a thin wrapper with a dif
 | **AllAnime** | allmanga.to | `https://allmanga.to/` |
 | **MKissa** | mkissa.to | `https://mkissa.to/` |
 
-Anikitty exposes both via KittyAPI on the watch page (`stream-direct` + live capability probes). Subtitle tracks can also be fetched through KittyAPI `/subs`.
+Anikitty exposes both via KittyAPI on the watch page under the **MULTI** row with a **dynamic mirror picker** (servers fetched per episode from `/provider/{name}/servers`). Streams resolve via `/stream?linkId=…` for the chosen mirror, with `stream-direct` fallback. Subtitle tracks can also be fetched through KittyAPI `/subs`.
 
 ---
 

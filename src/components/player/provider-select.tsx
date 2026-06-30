@@ -14,6 +14,7 @@ import {
 import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-api";
 import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-api";
 import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-api";
+import { type AllanimeMirrorId } from "@/lib/providers/allanime-api";
 import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-api";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-api";
 import {
@@ -32,7 +33,7 @@ import {
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 
-export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar";
+export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AllAnime" | "MKissa";
 
 type Props = {
   value: KittyProvider;
@@ -114,6 +115,8 @@ export function ProviderQuickPick({
   animexServer,
   anisnatchServer,
   lunarServer,
+  allanimeMirror,
+  mkissaMirror,
   animoServer,
   streamAudio = "sub",
   capabilities,
@@ -124,6 +127,8 @@ export function ProviderQuickPick({
   onAnimexServerChange,
   onAnisnatchServerChange,
   onLunarServerChange,
+  onAllanimeMirrorChange,
+  onMkissaMirrorChange,
   onAnimoServerChange,
   className,
 }: {
@@ -134,6 +139,8 @@ export function ProviderQuickPick({
   animexServer?: AnimexServerId;
   anisnatchServer?: AnisnatchServerId;
   lunarServer?: LunarServerId;
+  allanimeMirror?: AllanimeMirrorId;
+  mkissaMirror?: AllanimeMirrorId;
   animoServer?: AnimoServerId;
   streamAudio?: "sub" | "dub";
   capabilities?: EpisodeStreamCapabilities;
@@ -144,6 +151,8 @@ export function ProviderQuickPick({
   onAnimexServerChange?: (server: AnimexServerId) => void;
   onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
   onLunarServerChange?: (server: LunarServerId) => void;
+  onAllanimeMirrorChange?: (mirror: AllanimeMirrorId) => void;
+  onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
   className?: string;
 }) {
@@ -156,6 +165,8 @@ export function ProviderQuickPick({
       animexServer={animexServer}
       anisnatchServer={anisnatchServer}
       lunarServer={lunarServer}
+      allanimeMirror={allanimeMirror}
+      mkissaMirror={mkissaMirror}
       animoServer={animoServer}
       streamAudio={streamAudio}
       capabilities={capabilities}
@@ -166,6 +177,8 @@ export function ProviderQuickPick({
       onAnimexServerChange={onAnimexServerChange}
       onAnisnatchServerChange={onAnisnatchServerChange}
       onLunarServerChange={onLunarServerChange}
+      onAllanimeMirrorChange={onAllanimeMirrorChange}
+      onMkissaMirrorChange={onMkissaMirrorChange}
       onAnimoServerChange={onAnimoServerChange}
       className={className}
       rows={["sub", "multi"]}
@@ -282,6 +295,10 @@ type ProviderGridProps = {
   onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
   lunarServer?: LunarServerId;
   onLunarServerChange?: (server: LunarServerId) => void;
+  allanimeMirror?: AllanimeMirrorId;
+  onAllanimeMirrorChange?: (mirror: AllanimeMirrorId) => void;
+  mkissaMirror?: AllanimeMirrorId;
+  onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
   animoServer?: AnimoServerId;
   onAnimoServerChange?: (server: AnimoServerId) => void;
   streamAudio?: "sub" | "dub";
@@ -306,6 +323,10 @@ export function ProviderGrid({
   onAnisnatchServerChange,
   lunarServer,
   onLunarServerChange,
+  allanimeMirror,
+  onAllanimeMirrorChange,
+  mkissaMirror,
+  onMkissaMirrorChange,
   animoServer,
   onAnimoServerChange,
   streamAudio = "sub",
@@ -528,6 +549,68 @@ export function ProviderGrid({
           </MultiServerPanel>
         )}
 
+      {multiPanel === "AllAnime" &&
+        provider === "AllAnime" &&
+        onAllanimeMirrorChange &&
+        allanimeMirror != null && (
+          <MultiServerPanel accent="teal" label={t("watch.allAnimeMirror")}>
+            <div className="flex flex-wrap gap-1.5">
+              {(capabilities?.allanimeServerRows ?? []).map((s) => (
+                <button
+                  key={s.mirror}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onAllanimeMirrorChange(s.mirror)}
+                  title={s.name}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                    allanimeMirror === s.mirror
+                      ? "bg-teal-500/25 border-teal-400/45 text-teal-100"
+                      : "border-white/10 text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+                    capabilitiesLoading && "opacity-60 animate-pulse",
+                  )}
+                >
+                  <span>{s.mirror}</span>
+                  {capsReady && allanimeMirror === s.mirror && (
+                    <StreamCapabilityBadges caps={capabilities?.allanimeServers[s.mirror]} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </MultiServerPanel>
+        )}
+
+      {multiPanel === "MKissa" &&
+        provider === "MKissa" &&
+        onMkissaMirrorChange &&
+        mkissaMirror != null && (
+          <MultiServerPanel accent="amber" label={t("watch.mkissaMirror")}>
+            <div className="flex flex-wrap gap-1.5">
+              {(capabilities?.mkissaServerRows ?? []).map((s) => (
+                <button
+                  key={s.mirror}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onMkissaMirrorChange(s.mirror)}
+                  title={s.name}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                    mkissaMirror === s.mirror
+                      ? "bg-amber-500/25 border-amber-400/45 text-amber-100"
+                      : "border-white/10 text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+                    capabilitiesLoading && "opacity-60 animate-pulse",
+                  )}
+                >
+                  <span>{s.mirror}</span>
+                  {capsReady && mkissaMirror === s.mirror && (
+                    <StreamCapabilityBadges caps={capabilities?.mkissaServers[s.mirror]} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </MultiServerPanel>
+        )}
+
       {provider === "Animo" && onAnimoServerChange && animoServer != null && (
         <MultiServerPanel accent="cyan" label={t("watch.animoServer")}>
           <div className="flex flex-wrap gap-1.5">
@@ -566,7 +649,7 @@ function MultiServerPanel({
   children,
 }: {
   label: string;
-  accent: "violet" | "rose" | "cyan" | "fuchsia" | "sky";
+  accent: "violet" | "rose" | "cyan" | "fuchsia" | "sky" | "teal" | "amber";
   children: ReactNode;
 }) {
   const border =
@@ -578,7 +661,11 @@ function MultiServerPanel({
           ? "border-fuchsia-500/25 bg-fuchsia-500/[0.04]"
           : accent === "sky"
             ? "border-sky-500/25 bg-sky-500/[0.04]"
-            : "border-violet-500/25 bg-violet-500/[0.04]";
+            : accent === "teal"
+              ? "border-teal-500/25 bg-teal-500/[0.04]"
+              : accent === "amber"
+                ? "border-amber-500/25 bg-amber-500/[0.04]"
+                : "border-violet-500/25 bg-violet-500/[0.04]";
   const text =
     accent === "rose"
       ? "text-rose-300/70"
@@ -588,7 +675,11 @@ function MultiServerPanel({
           ? "text-fuchsia-300/70"
           : accent === "sky"
             ? "text-sky-300/70"
-            : "text-violet-300/70";
+            : accent === "teal"
+              ? "text-teal-300/70"
+              : accent === "amber"
+                ? "text-amber-300/70"
+                : "text-violet-300/70";
 
   return (
     <div className={cn("ml-14 rounded-lg border px-2.5 py-2", border)}>
