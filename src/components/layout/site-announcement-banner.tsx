@@ -124,7 +124,7 @@ export default function SiteAnnouncementBanner() {
       <div ref={spacerRef} aria-hidden className="shrink-0" />
       <div
         ref={bannerRef}
-        className="pointer-events-none fixed left-0 right-0 top-[calc(var(--nav-height)+var(--donation-banner-offset))] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4"
+        className="pointer-events-none fixed left-0 right-0 top-[var(--nav-height)] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4"
       >
         {visible.map((a) => {
           const style = STYLES[a.severity] ?? STYLES.info;

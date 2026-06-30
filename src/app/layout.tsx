@@ -7,7 +7,6 @@ import NavBar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import SiteBetaBadge from "@/components/layout/site-beta-badge";
 import SiteAnnouncementBanner from "@/components/layout/site-announcement-banner";
-import SupporterBanner from "@/components/layout/supporter-banner";
 import I18nRoot from "@/components/layout/i18n-root";
 import Script from "next/script";
 import QueryProvider from "@/providers/query-provider";
@@ -129,7 +128,6 @@ export default async function RootLayout({
             <QueryProvider>
               <UserThemeSync />
               <NavBar />
-              <SupporterBanner />
               <SiteAnnouncementBanner />
               {children}
               <Footer />

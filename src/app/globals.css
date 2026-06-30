@@ -5,7 +5,6 @@
 html {
   scroll-behavior: smooth;
   --nav-height: 4rem;
-  --donation-banner-offset: 0px;
   --banner-offset: 0px;
   /* Prevent font scaling on orientation change in iOS */
   -webkit-text-size-adjust: 100%;
@@ -64,7 +63,7 @@ body {
     padding-top: max(0px, env(safe-area-inset-top));
   }
   .pt-page {
-    padding-top: calc(var(--nav-height) + var(--donation-banner-offset) + var(--banner-offset));
+    padding-top: calc(var(--nav-height) + var(--banner-offset));
   }
   /* Momentum scrolling on iOS */
   .scroll-momentum {
