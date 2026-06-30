@@ -64,7 +64,7 @@ export async function tryLockLandscapeOrientation(): Promise<void> {
   if (typeof screen === "undefined") return;
   try {
     const orient = screen.orientation as ScreenOrientation & {
-      lock?: (orientation: OrientationLockType) => Promise<void>;
+      lock?: (orientation: string) => Promise<void>;
     };
     await orient?.lock?.("landscape-primary");
   } catch {
