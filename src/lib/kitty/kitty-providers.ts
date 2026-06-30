@@ -5,6 +5,7 @@ export const KITTY_PROVIDERS = [
   "AnimeSogo",
   "Anix",
   "HiAnime",
+  "AniWatch",
   "Animepahe",
   "Anikoto",
   "Anitaku",
@@ -107,6 +108,15 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     supportsDub: true,
     hint: "MegaPlay · SUB · DUB",
+  },
+  {
+    id: "AniWatch",
+    label: "AniWatch",
+    group: "featured",
+    nativeSubs: true,
+    kittySubs: true,
+    supportsDub: true,
+    hint: "aniwatch.one · MGCLD · BYFMS · DGHG · MegaCloud · SUB · DUB",
   },
   {
     id: "Animepahe",
@@ -222,6 +232,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AnimeHub",
   "ReAnime",
   "2Dhive",
+  "AniWatch",
 ]);
 
 export function isKittyProvider(value: string): value is KittyProvider {

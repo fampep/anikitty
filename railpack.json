@@ -4,17 +4,18 @@
   "packages": {
     "node": "24"
   },
-  "steps": {
-    "install": {
-      "commands": ["npm install --no-fund --no-audit"]
-    },
-    "build": {
-      "commands": ["npm run build"],
-      "variables": {
-        "NODE_ENV": "production",
-        "NODE_OPTIONS": "--max-old-space-size=4096"
-      }
-    }
+  "exclude": [
+    ".open-next",
+    ".next",
+    "node_modules",
+    ".claude",
+    "pocketbase",
+    "docs",
+    "drizzle"
+  ],
+  "variables": {
+    "NODE_ENV": "production",
+    "NODE_OPTIONS": "--max-old-space-size=4096"
   },
   "deploy": {
     "startCommand": "npm start",

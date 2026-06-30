@@ -24,6 +24,7 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "AnimeSogo",
   "Anix",
   "HiAnime",
+  "AniWatch",
   "Animepahe",
   "Animex",
   "Miruro",

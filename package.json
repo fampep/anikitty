@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node -e \"const f=require('fs'),p=require('path');f.mkdirSync(p.join('public','fonts'),{recursive:true});f.copyFileSync(p.join('src','assets','fonts','NightinTokyo.ttf'),p.join('public','fonts','NightinTokyo.ttf'));\"",
     "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --no-lint",
     "start": "next start",
     "lint": "next lint",
