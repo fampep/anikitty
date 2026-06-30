@@ -1,4 +1,6 @@
-const KITTY_API_BASE = process.env.KITTY_API_BASE ?? "https://kittyapi.buzz";
+export const DEFAULT_KITTY_API_BASE = "https://kittyapi.92-119-165-226.sslip.io";
+
+const KITTY_API_BASE = process.env.KITTY_API_BASE ?? DEFAULT_KITTY_API_BASE;
 
 export function getKittyApiBase(): string {
   return KITTY_API_BASE.replace(/\/$/, "");

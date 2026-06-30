@@ -1,6 +1,5 @@
+import { getKittyApiBase } from "@/lib/kitty/kitty-api";
 import type { AnilistMediaList } from "@/types/anilist-animes";
-
-const KITTY_BASE = "https://kittyapi.buzz";
 
 export const ANILIST_STATUS_TO_FOLDER: Record<string, string> = {
   CURRENT: "WATCHING",
@@ -62,7 +61,7 @@ async function searchKittyForAnilistId(
 
     try {
       const res = await fetch(
-        `${KITTY_BASE}/provider/Miruro/search?q=${encodeURIComponent(title)}`,
+        `${getKittyApiBase()}/provider/Miruro/search?q=${encodeURIComponent(title)}`,
         { headers, signal: AbortSignal.timeout(8_000), cache: "no-store" },
       );
       if (!res.ok) continue;

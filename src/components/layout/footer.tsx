@@ -118,14 +118,6 @@ const Footer = () => {
               <DiscordLogoIcon width="13" height="13" />
               {t("footer.discord")}
             </a>
-            <a
-              href="https://kittyapi.buzz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-white/35 hover:text-white/65 transition-colors"
-            >
-              {t("footer.kittyApi")}
-            </a>
           </div>
         </div>
 
