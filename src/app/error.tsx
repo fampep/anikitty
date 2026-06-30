@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import LoadingGirl from "@/components/common/loading-girl";
 import ErrorImage from "@/assets/error.gif";
 import { ROUTES } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function Error({
   if (!showError) {
     return (
       <div className="min-h-[100dvh] w-full bg-black flex items-center justify-center px-6">
-        <p className="text-sm text-white/30 font-mono">{t("common.loading")}</p>
+        <LoadingGirl size={180} label={t("common.loading")} />
       </div>
     );
   }

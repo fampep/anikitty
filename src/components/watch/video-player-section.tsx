@@ -66,6 +66,7 @@ import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/watch-together/w2g-panel";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
+import LoadingGirl from "@/components/common/loading-girl";
 
 const ArtKittyPlayer = dynamic(() => import("@/components/player/art-kitty-player"), {
   ssr: false,
@@ -965,8 +966,7 @@ const PlayerSkeleton = ({
         <div className="h-2 w-10 rounded bg-white/[0.05] animate-pulse" />
       </div>
     </div>
-    <Loader2 className="w-7 h-7 text-violet-400/50 animate-spin relative z-10" />
-    <p className="text-white/30 text-[11px] font-medium tracking-widest uppercase animate-pulse relative z-10">{label}</p>
+    <LoadingGirl size={140} label={label} className="relative z-10" />
   </div>
 );
 
