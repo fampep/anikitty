@@ -14,6 +14,7 @@ import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import UserThemeSync from "@/components/layout/user-theme-sync";
+import ClickAdsLoader from "@/components/ads/click-ads-loader";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -125,6 +126,7 @@ export default async function RootLayout({
           >
             <QueryProvider>
               <UserThemeSync />
+              <ClickAdsLoader />
               <NavBar />
               <SiteAnnouncementBanner />
               {children}

@@ -18,6 +18,10 @@ interface ISettingsStore {
   autoPlay: boolean;
   setAutoPlay: (val: boolean) => void;
 
+  /** Click ads (logged-in users may disable after confirmation). */
+  showAds: boolean;
+  setShowAds: (val: boolean) => void;
+
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
   setSubtitleColor: (color: string) => void;
@@ -46,6 +50,9 @@ export const useSettingsStore = create<ISettingsStore>()(
       autoPlay: false,
       setAutoPlay: (autoPlay) => set({ autoPlay }),
 
+      showAds: true,
+      setShowAds: (showAds) => set({ showAds }),
+
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
         set((s) => ({
@@ -72,7 +79,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 7,
+      version: 8,
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
           subtitleSettings?: SubtitleSettings & { timeOffsetSec?: number };
@@ -97,6 +104,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           delete (next as Record<string, unknown>).videoPlayer;
           delete (next as Record<string, unknown>).anime4kEnabled;
           delete (next as Record<string, unknown>).anime4kMode;
+        }
+        if (version < 8 && next.showAds === undefined) {
+          next.showAds = true;
         }
         return next as ISettingsStore;
       },

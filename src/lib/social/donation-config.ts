@@ -18,6 +18,10 @@ export function getDonationProgress(): {
   return { goalEur, raisedEur, percent };
 }
 
+export function isDonationGoalReached(): boolean {
+  return getDonationProgress().percent >= 100;
+}
+
 export function kofiTipUrl(amountEur: number): string {
   return `${KOFI_URL}?amount=${amountEur}`;
 }

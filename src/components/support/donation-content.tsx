@@ -16,6 +16,7 @@ import CommunityHero from "@/components/community/community-hero";
 import { useT } from "@/providers/i18n-provider";
 import {
   getDonationProgress,
+  isDonationGoalReached,
   KOFI_URL,
   MONTHLY_GOAL_EUR,
   kofiTipUrl,
@@ -30,6 +31,7 @@ export default function DonationContent() {
   const t = useT();
   const { goalEur, raisedEur, percent } = getDonationProgress();
   const showProgress = raisedEur > 0;
+  const goalReached = isDonationGoalReached();
 
   const perks = [
     { icon: PERK_ICONS[0], title: t("donate.perks.running"), desc: t("donate.perks.runningDesc") },
@@ -113,7 +115,9 @@ export default function DonationContent() {
               <div className="rounded-xl border border-violet-500/20 bg-violet-500/8 px-4 py-3.5 flex gap-3">
                 <Megaphone className="w-4 h-4 shrink-0 mt-0.5 text-violet-300/90" />
                 <p className="text-sm leading-relaxed text-white/55">
-                  {t("donate.goalSupport")}
+                  {goalReached
+                    ? t("donate.goalAdsOffReached")
+                    : t("donate.goalAdsOff", { goal: goalEur })}
                 </p>
               </div>
 
@@ -188,6 +192,7 @@ export default function DonationContent() {
         <section className="site-panel p-5 sm:p-6">
           <h2 className="text-sm font-semibold text-white/85 mb-3">{t("donate.faqTitle")}</h2>
           <div className="space-y-3 text-sm text-white/50 leading-relaxed">
+            <p>{t("donate.faqClickAds")}</p>
             <p>{t("donate.faqKoFi")}</p>
             <p>{t("donate.faqVoluntary")}</p>
           </div>
