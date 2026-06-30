@@ -1,3 +1,52 @@
+const VTT_TIMESTAMP_TAG = /<\d{1,2}:?\d{0,2}:?\d{1,2}[.\d]*>/g;
+
+/** Strip WebVTT/SRT inline tags so plain-text renderers don't show raw markup. */
+export function stripVttInlineMarkup(text: string): string {
+  return text
+    .replace(VTT_TIMESTAMP_TAG, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .trim();
+}
+
+function dedupeAdjacentCueLines(lines: string[]): string[] {
+  const out: string[] = [];
+  let prev = "";
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t === prev) continue;
+    out.push(t);
+    prev = t;
+  }
+  return out;
+}
+
+/** Sanitize VTT/SRT file content before serving to the player. */
+export function sanitizeVttOrSrtContent(content: string): string {
+  const normalized = content.replace(/\r\n/g, "\n").trimEnd();
+  if (!normalized) return content;
+
+  const blocks = normalized.split(/\n\n+/);
+  const out = blocks.map((block) => {
+    const lines = block.split("\n");
+    const timeIdx = lines.findIndex((l) => l.includes("-->"));
+    if (timeIdx === -1) return block;
+
+    const head = lines.slice(0, timeIdx + 1);
+    const cleaned = dedupeAdjacentCueLines(
+      lines.slice(timeIdx + 1).map(stripVttInlineMarkup).filter(Boolean),
+    );
+    return [...head, ...cleaned].join("\n");
+  });
+
+  return out.length ? `${out.join("\n\n")}\n` : content;
+}
+
 export type VttCue = {
   start: string;
   end: string;
@@ -20,7 +69,9 @@ export function parseVttCues(content: string, limit = 12): VttCue[] {
     const [startRaw, endRaw] = lines[timeLineIdx].split("-->").map((s) => s.trim());
     const start = startRaw.split(/\s/)[0] ?? startRaw;
     const end = (endRaw ?? "").split(/\s/)[0] ?? endRaw ?? "";
-    const text = lines.slice(timeLineIdx + 1).join("\n").replace(/<[^>]+>/g, "");
+    const text = dedupeAdjacentCueLines(
+      lines.slice(timeLineIdx + 1).map(stripVttInlineMarkup).filter(Boolean),
+    ).join("\n");
 
     if (text) cues.push({ start, end, text });
     if (cues.length >= limit) break;

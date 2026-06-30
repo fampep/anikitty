@@ -1,5 +1,6 @@
 import { isAllowedMediaProxyUrl, sanitizeHeaderValue } from "@/lib/security/security";
 import { detectSubtitleFormat, subtitleContentType } from "@/lib/subtitles/subtitle-track-utils";
+import { sanitizeVttOrSrtContent } from "@/lib/subtitles/vtt-parse";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -30,12 +31,14 @@ export async function GET(req: Request) {
       return new Response("Subtitle fetch failed", { status: res.status });
     }
 
-    const text = await res.text();
-    if (!text.trim()) {
+    const raw = await res.text();
+    if (!raw.trim()) {
       return new Response("Empty subtitle", { status: 404 });
     }
 
-    const format = detectSubtitleFormat({ url, content: text });
+    const format = detectSubtitleFormat({ url, content: raw });
+    const text =
+      format === "ass" ? raw : sanitizeVttOrSrtContent(raw);
 
     return new Response(text, {
       status: 200,

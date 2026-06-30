@@ -4,6 +4,7 @@ import {
   detectSubtitleFormat,
   subtitleContentType,
 } from "@/lib/subtitles/subtitle-track-utils";
+import { sanitizeVttOrSrtContent } from "@/lib/subtitles/vtt-parse";
 
 const SAFE_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
   });
 
   const format = detectSubtitleFormat({ label: row.label, content: row.content });
+  const body = format === "ass" ? row.content : sanitizeVttOrSrtContent(row.content);
 
   const headers: Record<string, string> = {
     "Content-Type": subtitleContentType(format),
@@ -43,7 +45,7 @@ export async function GET(req: Request) {
     headers["Content-Disposition"] = `attachment; filename="${filename}"`;
   }
 
-  return new Response(row.content, { status: 200, headers });
+  return new Response(body, { status: 200, headers });
 }
 
 export const maxDuration = 10;

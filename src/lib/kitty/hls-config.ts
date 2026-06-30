@@ -1,7 +1,7 @@
 import type { HlsConfig } from "hls.js";
 
 /** hls.js settings tuned for Chrome / desktop browsers streaming VOD anime. */
-export function createHlsConfig(): Partial<HlsConfig> {
+export function createHlsConfig(opts?: { enableWebVTT?: boolean }): Partial<HlsConfig> {
   return {
     enableWorker: true,
     lowLatencyMode: false,
@@ -15,7 +15,7 @@ export function createHlsConfig(): Partial<HlsConfig> {
     startFragPrefetch: true,
     testBandwidth: true,
     progressive: true,
-    enableWebVTT: true,
+    enableWebVTT: opts?.enableWebVTT ?? true,
     enableCEA708Captions: false,
     abrEwmaDefaultEstimate: 800_000,
     manifestLoadingMaxRetry: 4,

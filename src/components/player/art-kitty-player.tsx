@@ -56,6 +56,13 @@ function hideArtPoster(art: Artplayer) {
   if (poster) poster.style.display = "none";
 }
 
+function disableNativeTextTracks(video: HTMLVideoElement | null | undefined) {
+  if (!video?.textTracks) return;
+  for (let i = 0; i < video.textTracks.length; i++) {
+    video.textTracks[i].mode = "disabled";
+  }
+}
+
 function applySubtitleStyles(
   art: Artplayer,
   settings: {
@@ -258,6 +265,7 @@ export default function ArtKittyPlayer({
       ...track,
       file: resolveTrackSrc(track.file),
     }));
+    const hasExternalSubs = subTracks.length > 0;
 
     const defaultSub = subTracks.find((tr) => tr.default) ?? subTracks[0];
     const defaultSubType = defaultSub
@@ -315,7 +323,9 @@ export default function ArtKittyPlayer({
         m3u8(video, url, player) {
           if (Hls.isSupported()) {
             hlsRef.current?.destroy();
-            const hls = new Hls(createHlsConfig());
+            const hls = new Hls(
+              createHlsConfig({ enableWebVTT: !hasExternalSubs }),
+            );
             hls.loadSource(url);
             hls.attachMedia(video as HTMLMediaElement);
             hlsRef.current = hls;
@@ -403,6 +413,13 @@ export default function ArtKittyPlayer({
       hideArtPoster(art);
       applySubtitleStyles(art, subtitleSettings);
       applyResume(art);
+
+      if (hasExternalSubs) {
+        disableNativeTextTracks(art.video);
+        art.video?.textTracks?.addEventListener("addtrack", () => {
+          disableNativeTextTracks(art.video);
+        });
+      }
 
       if (autoFsRef.current) {
         autoFsRef.current = false;
