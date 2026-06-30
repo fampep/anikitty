@@ -22,7 +22,7 @@ export function NextEpisodeButton({
     <button
       type="button"
       onClick={onClick}
-      className={`kitty-overlay ${stackClass} kitty-next-card pointer-events-auto group absolute right-4 flex max-w-[min(100%,300px)] items-center gap-3 px-3 py-2.5 text-left animate-in slide-in-from-right-4 fade-in duration-300`}
+      className={`kitty-overlay ${stackClass} kitty-next-card pointer-events-auto group absolute right-4 z-[130] flex max-w-[min(100%,300px)] items-center gap-3 px-3 py-2.5 text-left animate-in slide-in-from-right-4 fade-in duration-300`}
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 ring-1 ring-violet-400/20">
         <ChevronRight className="h-4 w-4 text-violet-200 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
@@ -58,7 +58,7 @@ export function CountdownOverlay({
   const dashOffset = circumference * (1 - countdown / 5);
 
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 p-4 animate-in fade-in duration-300">
+    <div className="pointer-events-none absolute inset-0 z-[140] flex items-center justify-center bg-black/55 p-4 animate-in fade-in duration-300">
       <div className="kitty-overlay pointer-events-auto flex w-full max-w-md flex-col gap-4 p-5 sm:flex-row sm:items-center">
         <div className="relative mx-auto h-16 w-16 shrink-0 sm:mx-0">
           <svg className="h-full w-full -rotate-90" viewBox="0 0 48 48" aria-hidden>
