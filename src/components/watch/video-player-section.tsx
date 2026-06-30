@@ -657,15 +657,32 @@ const VideoPlayerSection = () => {
   }
 
   const upstreamError = (streamError as { response?: { data?: { error?: string } } })?.response?.data?.error;
+  const upstreamStatus = (streamError as { response?: { status?: number } })?.response?.status;
 
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
+  const isEpisodeNotFound = (message: string | null | undefined) => {
+    if (!message && upstreamStatus === 404) return true;
+    if (!message) return false;
+    const lower = message.toLowerCase();
+    return (
+      upstreamStatus === 404 ||
+      lower.includes("not found") ||
+      lower.includes("couldn't find") ||
+      lower.includes("could not find") ||
+      lower.includes("no stream") ||
+      lower.includes("episode not")
+    );
+  };
+
   if (!isFetching && !hasStreamFile && streamQueryEnabled && (streamError || !isLoading)) {
-    const streamFailMessage =
+    const rawMessage =
       upstreamError ??
       streamData?.error ??
-      (streamError instanceof Error ? streamError.message : null) ??
-      t("watch.streamNotFound");
+      (streamError instanceof Error ? streamError.message : null);
+    const streamFailMessage = isEpisodeNotFound(rawMessage)
+      ? t("watch.episodeNotFoundOnProvider", { provider })
+      : (rawMessage ?? t("watch.streamNotFound"));
 
     return (
       <div className="flex flex-col gap-3">

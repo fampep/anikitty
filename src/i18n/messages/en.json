@@ -859,6 +859,7 @@
     "loadingStream": "Loading stream",
     "streamUnavailable": "Stream unavailable on {provider}",
     "streamNotFound": "This provider couldn't find the stream. Try a different one below.",
+    "episodeNotFoundOnProvider": "This episode couldn't be found on {provider}. Try another source below.",
     "retryWith": "Retry with {provider}",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
