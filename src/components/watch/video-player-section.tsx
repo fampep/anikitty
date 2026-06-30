@@ -504,6 +504,8 @@ const VideoPlayerSection = () => {
 
   const hasStreamFile = Boolean(streamData?.file);
   const streamSwitching = isFetching && hasStreamFile;
+  const streamQueryEnabled =
+    !!anilistId && !!episodeNo && parseInt(episodeNo, 10) > 0;
 
   const playerTracks = useMemo(
     () => streamData?.tracks ?? EMPTY_PLAYER_TRACKS,
@@ -667,7 +669,7 @@ const VideoPlayerSection = () => {
 
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
-  if (!isFetching && (streamError || !streamData?.file)) {
+  if (!isFetching && !hasStreamFile && streamQueryEnabled && (streamError || !isLoading)) {
     return (
       <div className="flex flex-col gap-3">
         <PlayerSkeleton dim label={t("watch.loadingStream")} thumbnail={loadingThumbnail} />

@@ -1,12 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ErrorImage from "@/assets/error.gif";
 import { ROUTES } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/common/button-link";
 import { useT } from "@/providers/i18n-provider";
+
+const AUTO_RETRY_MS = 2500;
 
 export default function Error({
   error,
@@ -16,10 +18,32 @@ export default function Error({
   reset: () => void;
 }) {
   const t = useT();
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     console.error(error);
-  }, [error]);
+
+    const retryKey = "anikitty-error-auto-retry";
+    const lastRetry = Number(sessionStorage.getItem(retryKey) || 0);
+    const now = Date.now();
+
+    if (now - lastRetry > AUTO_RETRY_MS) {
+      sessionStorage.setItem(retryKey, String(now));
+      reset();
+      return;
+    }
+
+    sessionStorage.removeItem(retryKey);
+    setShowError(true);
+  }, [error, reset]);
+
+  if (!showError) {
+    return (
+      <div className="min-h-[100dvh] w-full bg-black flex items-center justify-center px-6">
+        <p className="text-sm text-white/30 font-mono">{t("common.loading")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] w-full bg-black flex items-center justify-center px-6">
