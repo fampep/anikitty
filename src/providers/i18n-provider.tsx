@@ -30,7 +30,7 @@ export function I18nProvider({
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
 
   const setLocale = useCallback(async (next: Locale) => {
-    setLocaleState(next);
+    setLocaleState((prev) => (prev === next ? prev : next));
     document.documentElement.lang = next;
     try {
       await fetch("/api/locale", {

@@ -64,6 +64,8 @@ const Layout = (props: Props) => {
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
   const episodeId = searchParams.get("episode");
+  const watchType = searchParams.get("type");
+  const searchParamsKey = searchParams.toString();
 
   const [animeId, setAnimeId] = useState<string | null>(currentAnimeId);
 
@@ -114,8 +116,11 @@ const Layout = (props: Props) => {
 
     let cancelled = false;
     (async () => {
-      let target = episodes.episodes[0].episodeId;
-      if (auth) {
+      const isLatest = watchType === "latest";
+      let target = isLatest
+        ? episodes.episodes[episodes.episodes.length - 1].episodeId
+        : episodes.episodes[0].episodeId;
+      if (auth && !isLatest) {
         try {
           const res = await anisurgeContinue.getByAnime(animeId, 1);
           const latest = res?.data?.[0];
@@ -126,13 +131,16 @@ const Layout = (props: Props) => {
       }
       if (cancelled) return;
       setSelectedEpisode(target);
-      router.replace(`${ROUTES.WATCH}?anime=${animeId}&episode=${target}`, { scroll: false });
+      const params = new URLSearchParams(searchParamsKey);
+      params.set("anime", animeId);
+      params.set("episode", target);
+      router.replace(`${ROUTES.WATCH}?${params.toString()}`, { scroll: false });
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [episodeId, episodeLoading, episodes, animeId, router, setSelectedEpisode]);
+  }, [episodeId, episodeLoading, episodes, animeId, router, setSelectedEpisode, auth, watchType, searchParamsKey]);
 
   const anilistId = anime?.anime?.info?.anilistId;
   const { data: mappingData } = useGetAnimeMappings(anilistId);

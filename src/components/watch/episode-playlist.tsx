@@ -81,7 +81,7 @@ const EpisodePlaylist = ({
     const target = isLatestEpisode
       ? episodes.episodes[episodes.episodes.length - 1].episodeId
       : episodes.episodes[0].episodeId;
-    setSelectedEpisode(target as string);
+    if (target) setSelectedEpisode(target);
   }, [episodeId, episodes, isLatestEpisode, setSelectedEpisode]);
 
   useEffect(() => {

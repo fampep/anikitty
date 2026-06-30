@@ -45,7 +45,6 @@ import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import {
   Captions,
   Loader2,
-  AlertCircle,
   Cat,
   Users,
   SlidersHorizontal,
@@ -54,7 +53,6 @@ import {
 import WatchDownloadPanel from "@/components/watch/watch-download-panel";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Popover,
   PopoverContent,
@@ -67,8 +65,9 @@ import W2gPanel from "@/components/watch-together/w2g-panel";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
 import LoadingGirl from "@/components/common/loading-girl";
+import WatchErrorPanel from "@/components/watch/watch-error-panel";
 
-const ArtKittyPlayer = dynamic(() => import("@/components/player/art-kitty-player"), {
+const KittyPlayer = dynamic(() => import("@/components/player/kitty-player"), {
   ssr: false,
   loading: () => <PlayerSkeleton />,
 });
@@ -671,18 +670,18 @@ const VideoPlayerSection = () => {
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
   if (!isFetching && !hasStreamFile && streamQueryEnabled && (streamError || !isLoading)) {
+    const streamFailMessage =
+      upstreamError ??
+      streamData?.error ??
+      (streamError instanceof Error ? streamError.message : null) ??
+      t("watch.streamNotFound");
+
     return (
       <div className="flex flex-col gap-3">
-        <PlayerSkeleton dim label={t("watch.loadingStream")} thumbnail={loadingThumbnail} />
-        <Alert className="border-white/10 bg-white/5 rounded-xl">
-          <AlertCircle className="h-4 w-4 text-white/60" />
-          <AlertTitle className="text-white/80 font-semibold">
-            {t("watch.streamUnavailable", { provider })}
-          </AlertTitle>
-          <AlertDescription className="text-white/40 text-xs mt-1">
-            {upstreamError ?? streamData?.error ?? t("watch.streamNotFound")}
-          </AlertDescription>
-        </Alert>
+        <WatchErrorPanel
+          error={new Error(streamFailMessage)}
+          onRetry={() => void retryStream()}
+        />
 
         <ProviderQuickPick
           value={provider}
@@ -727,7 +726,7 @@ const VideoPlayerSection = () => {
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
-      <ArtKittyPlayer
+      <KittyPlayer
         key={playerKey}
         src={streamData.file}
         poster={playerPoster}
