@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
-import { CLICK_AD_SCRIPT_SRC, isPlayerSurfaceTarget, isProfilePath } from "@/lib/ads/click-ads-config";
+import { CLICK_AD_SCRIPT_SRC, isProfilePath, isWatchPath } from "@/lib/ads/click-ads-config";
 
 const SCRIPT_ID = "anikitty-click-ads";
 
@@ -16,6 +16,7 @@ export default function ClickAdsLoader() {
 
   const shouldRun =
     !isProfilePath(pathname ?? "") &&
+    !isWatchPath(pathname ?? "") &&
     (auth ? showAds : true);
 
   useEffect(() => {
@@ -34,15 +35,6 @@ export default function ClickAdsLoader() {
       script.referrerPolicy = "no-referrer-when-downgrade";
       document.body.insertBefore(script, document.body.firstChild);
     }
-
-    const blockPlayerClicks = (event: MouseEvent) => {
-      if (isPlayerSurfaceTarget(event.target)) {
-        event.stopPropagation();
-      }
-    };
-
-    document.addEventListener("click", blockPlayerClicks, true);
-    return () => document.removeEventListener("click", blockPlayerClicks, true);
   }, [shouldRun]);
 
   useEffect(() => {

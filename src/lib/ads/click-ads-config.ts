@@ -8,12 +8,7 @@ export function isProfilePath(pathname: string): boolean {
   return pathname === "/profile" || pathname.startsWith("/profile/");
 }
 
+/** Watch/player page — click ads are never loaded here. */
 export function isWatchPath(pathname: string): boolean {
   return pathname === "/anime/watch" || pathname.startsWith("/anime/watch/");
-}
-
-/** Player chrome should not trigger click ads; episode list/comments on watch page still can. */
-export function isPlayerSurfaceTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  return !!target.closest("[data-ad-free-player]");
 }

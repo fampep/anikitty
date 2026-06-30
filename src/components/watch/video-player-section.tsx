@@ -731,7 +731,7 @@ const VideoPlayerSection = () => {
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
-      <div className="relative w-full" data-ad-free-player>
+      <div className="relative w-full">
       <KittyPlayer
         key={playerKey}
         src={streamData.file}
