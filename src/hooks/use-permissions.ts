@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/store/auth-store";
 import { hasAnyPermission, hasPermission, type PermissionId } from "@/lib/security/permissions";
 
-const EMPTY_PERMISSIONS: readonly string[] = [];
+const EMPTY_PERMISSIONS: string[] = [];
 
 export function usePermissions() {
   const permissions = useAuthStore((s) => s.auth?.permissions ?? EMPTY_PERMISSIONS);
