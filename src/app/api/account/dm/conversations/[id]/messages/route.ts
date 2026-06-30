@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { dmConversations, dmMessages, users } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { createDmNotification } from "@/lib/social/dm-server";
-import { sanitizeBody, sanitizeGifUrl, rateLimit } from "@/lib/social/comment-helpers";
+import { sanitizeBody, sanitizeAndResolveGifUrl, rateLimit } from "@/lib/social/comment-helpers";
 import { assertMessageEncryptionConfigured, encryptStoredMessage } from "@/lib/security/message-crypto";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
 import { eq } from "drizzle-orm";
@@ -40,7 +40,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const raw = await req.json();
   const body = sanitizeBody(raw.body);
-  const gifUrl = sanitizeGifUrl(raw.gifUrl);
+  const gifUrl = await sanitizeAndResolveGifUrl(raw.gifUrl);
   if (!body && !gifUrl) {
     return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
   }

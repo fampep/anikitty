@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { chatMessages, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
-import { sanitizeBody, sanitizeGifUrl, rateLimit, maybeSweep } from "@/lib/social/comment-helpers";
+import { sanitizeBody, sanitizeAndResolveGifUrl, rateLimit, maybeSweep } from "@/lib/social/comment-helpers";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { CHAT_MESSAGE_TTL_MS, getChatCutoffDate } from "@/lib/social/chat-config";
 import { maybeSweepChatMessages } from "@/lib/social/chat-sweep";
@@ -129,7 +129,7 @@ export async function POST(req: Request) {
 
   const raw = await req.json();
   const body = sanitizeBody(raw.body);
-  const gifUrl = sanitizeGifUrl(raw.gifUrl);
+  const gifUrl = await sanitizeAndResolveGifUrl(raw.gifUrl);
   if (!body && !gifUrl) {
     return Response.json({ error: "Message cannot be empty" }, { status: 400 });
   }

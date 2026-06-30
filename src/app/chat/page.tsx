@@ -20,6 +20,7 @@ import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
 import { UserBadges } from "@/components/profile/user-badges";
 import { GifUrlPanel } from "@/components/shared/gif-url-panel";
+import { GifImage } from "@/components/shared/gif-image";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import CommunityHero from "@/components/community/community-hero";
 import { ROUTES } from "@/constants/routes";
@@ -111,11 +112,9 @@ function ChatBubble({
           ) : null}
           {message.gifUrl ? (
             <div className={cn(message.body ? "mt-2" : "")}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <GifImage
                 src={message.gifUrl}
                 alt={t("chat.gif")}
-                loading="lazy"
                 className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/10"
               />
             </div>
@@ -351,8 +350,7 @@ export default function ChatPage() {
                 )}
                 {selectedGif && !isEditing && (
                   <div className="relative inline-block self-start rounded-lg overflow-hidden ring-1 ring-white/10">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={selectedGif} alt={t("chat.gif")} className="max-h-28 w-auto block" />
+                    <GifImage src={selectedGif} alt={t("chat.gif")} className="max-h-28 w-auto block" />
                     <button
                       type="button"
                       onClick={() => setSelectedGif(null)}

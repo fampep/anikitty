@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { GifImage } from "@/components/shared/gif-image";
 
 export function GifUrlPanel({
   onAttach,
@@ -44,14 +45,10 @@ export function GifUrlPanel({
       </div>
       {isValid && (
         <div className="px-4 py-3 border-b border-white/6 bg-white/[0.02]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={url}
+          <GifImage
+            src={url.trim()}
             alt="preview"
             className="max-h-28 w-auto rounded-lg block"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
           />
         </div>
       )}

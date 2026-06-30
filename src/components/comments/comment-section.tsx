@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { UserBadges } from "@/components/profile/user-badges";
 import { GifUrlPanel } from "@/components/shared/gif-url-panel";
+import { GifImage } from "@/components/shared/gif-image";
 import { invalidateUserLevel } from "@/hooks/use-user-level";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
@@ -652,11 +653,9 @@ export default function CommentSection({
                 className="relative inline-block cursor-pointer"
                 onClick={() => setRevealed((prev) => new Set([...prev, c.id]))}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <GifImage
                   src={c.gifUrl}
                   alt="GIF"
-                  loading="lazy"
                   className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8 blur-md pointer-events-none"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -667,11 +666,9 @@ export default function CommentSection({
                 </div>
               </div>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <GifImage
                 src={c.gifUrl}
                 alt="GIF"
-                loading="lazy"
                 className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8"
               />
             )}
@@ -798,7 +795,7 @@ export default function CommentSection({
                 <div className="px-4 pb-3">
                   <div className="relative inline-block rounded-lg overflow-hidden ring-1 ring-white/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={selectedGif} alt="GIF" className="max-h-32 w-auto block" />
+                    <GifImage src={selectedGif} alt="GIF" className="max-h-32 w-auto block" />
                     <button
                       onClick={() => setSelectedGif(null)}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 flex items-center justify-center hover:bg-black transition-colors"

@@ -4,7 +4,7 @@ import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { and, eq, desc, asc, sql, isNull, inArray } from "drizzle-orm";
 import {
   sanitizeBody,
-  sanitizeGifUrl,
+  sanitizeAndResolveGifUrl,
   rateLimit,
   maybeSweep,
   COMMENT_RATE,
@@ -238,7 +238,7 @@ export async function POST(
 
   const raw = await req.json();
   const body = sanitizeBody(raw.body);
-  const gifUrl = sanitizeGifUrl(raw.gifUrl);
+  const gifUrl = await sanitizeAndResolveGifUrl(raw.gifUrl);
   const isSpoiler = !!raw.isSpoiler;
   const parentId: string | null = typeof raw.parentId === "string" ? raw.parentId : null;
   const episodeId: string | null =

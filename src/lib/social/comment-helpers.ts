@@ -2,8 +2,9 @@
 // in-memory rate limiter (per server instance — good enough to stop spam from
 // a single client; swap for Redis if you run multiple instances).
 
+import { normalizeGifUrl, isPlausibleGifUrl, resolveGifUrlAsync } from "@/lib/core/gif-url";
+
 const MAX_BODY = 1000;
-const MAX_GIF_LEN = 2000;
 
 export function sanitizeBody(input: unknown): string {
   return typeof input === "string" ? input.trim().slice(0, MAX_BODY) : "";
@@ -15,23 +16,18 @@ export function sanitizeBody(input: unknown): string {
  */
 export function sanitizeGifUrl(input: unknown): string | null {
   if (typeof input !== "string") return null;
-  const raw = input.trim().slice(0, MAX_GIF_LEN);
-  if (!raw) return null;
+  const normalized = normalizeGifUrl(input);
+  if (!normalized || !isPlausibleGifUrl(normalized)) return null;
+  return normalized;
+}
 
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    return null;
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-
-  const path = url.pathname.toLowerCase();
-  const looksLikeImage =
-    /\.(gif|gifv|png|jpe?g|webp|apng)$/.test(path) ||
-    /(giphy|tenor|imgur|media\d*\.|\.media\.|cdn)/.test(url.hostname + url.pathname);
-
-  return looksLikeImage ? url.toString() : null;
+/** Resolve share links (Tenor/Giphy pages) to direct media before storing. */
+export async function sanitizeAndResolveGifUrl(input: unknown): Promise<string | null> {
+  const sync = sanitizeGifUrl(input);
+  if (!sync) return null;
+  const resolved = await resolveGifUrlAsync(sync);
+  if (!isPlausibleGifUrl(resolved)) return null;
+  return resolved;
 }
 
 // ── Rate limiting ──────────────────────────────────────────────────────────

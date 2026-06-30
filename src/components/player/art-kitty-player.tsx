@@ -8,6 +8,18 @@ import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import {
+  isElementFullscreen,
+  onFullscreenChange,
+  requestElementFullscreen,
+} from "@/lib/kitty/fullscreen";
+import {
+  onPlayerOrientationChange,
+  resolvePlayerOrientClass,
+  tryLockLandscapeOrientation,
+  tryUnlockScreenOrientation,
+  type PlayerOrientClass,
+} from "@/lib/kitty/player-orientation";
+import {
   detectSubtitleFormat,
   isSubtitleTrack,
   labelToLanguage,
@@ -16,6 +28,7 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import type { VideoPlayerProps } from "@/lib/kitty/video-player-types";
 import type { SkipInterval } from "@/hooks/use-aniskip";
+import { cn } from "@/lib/core/utils";
 import { PlayerSkipButton } from "@/components/player/player-skip-button";
 import { CountdownOverlay, NextEpisodeButton } from "@/components/player/player-overlays";
 
@@ -125,6 +138,7 @@ export default function ArtKittyPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
 
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
@@ -146,6 +160,20 @@ export default function ArtKittyPlayer({
   const durationRef = useRef(0);
   const startTimeRef = useRef(startTime);
   const resumeAppliedRef = useRef(false);
+  const isPlayerFullscreenRef = useRef(false);
+
+  const syncPlayerOrientation = useCallback(() => {
+    const nativeFs = isElementFullscreen(wrapperRef.current);
+    const cls = resolvePlayerOrientClass({
+      isFullscreen: nativeFs || isPlayerFullscreenRef.current,
+    });
+    setOrientClass(cls);
+  }, []);
+
+  const syncPlayerOrientationRef = useRef(syncPlayerOrientation);
+  useEffect(() => {
+    syncPlayerOrientationRef.current = syncPlayerOrientation;
+  }, [syncPlayerOrientation]);
 
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
@@ -160,6 +188,29 @@ export default function ArtKittyPlayer({
   useEffect(() => {
     if (autoFullscreen) autoFsRef.current = true;
   }, [autoFullscreen]);
+
+  useEffect(() => {
+    const sync = () => syncPlayerOrientationRef.current();
+    const onFsChange = () => {
+      const nativeFs = isElementFullscreen(wrapperRef.current);
+      if (nativeFs) {
+        void tryLockLandscapeOrientation();
+      } else if (!isPlayerFullscreenRef.current) {
+        void tryUnlockScreenOrientation();
+      }
+      sync();
+    };
+
+    sync();
+    const offOrient = onPlayerOrientationChange(sync);
+    const offFs = onFullscreenChange(onFsChange);
+    return () => {
+      offOrient();
+      offFs();
+      isPlayerFullscreenRef.current = false;
+      void tryUnlockScreenOrientation();
+    };
+  }, []);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -424,14 +475,28 @@ export default function ArtKittyPlayer({
       if (autoFsRef.current) {
         autoFsRef.current = false;
         const target = wrapperRef.current ?? container;
-        if (target?.requestFullscreen) {
-          target.requestFullscreen().catch(() => {
+        requestElementFullscreen(target)
+          .then(() => {
+            void tryLockLandscapeOrientation();
+            syncPlayerOrientationRef.current();
+          })
+          .catch(() => {
             art.fullscreen = true;
+            isPlayerFullscreenRef.current = true;
+            void tryLockLandscapeOrientation();
+            syncPlayerOrientationRef.current();
           });
-        } else {
-          art.fullscreen = true;
-        }
       }
+    });
+
+    art.on("fullscreen", (enabled: boolean) => {
+      isPlayerFullscreenRef.current = enabled;
+      if (enabled) {
+        void tryLockLandscapeOrientation();
+      } else if (!isElementFullscreen(wrapperRef.current)) {
+        void tryUnlockScreenOrientation();
+      }
+      syncPlayerOrientationRef.current();
     });
 
     art.on("resize", () => {
@@ -561,8 +626,11 @@ export default function ArtKittyPlayer({
   return (
     <div
       ref={wrapperRef}
-      className="art-kitty-player kitty-stage relative w-full overflow-hidden rounded-xl bg-[#030303] shadow-[0_32px_100px_-24px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.06]"
-      style={{ aspectRatio: "16/9" }}
+      className={cn(
+        "art-kitty-player kitty-stage relative w-full overflow-hidden rounded-xl bg-[#030303] shadow-[0_32px_100px_-24px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.06]",
+        orientClass,
+      )}
+      style={orientClass ? undefined : { aspectRatio: "16/9" }}
     >
       <div
         className="kitty-stage__glow pointer-events-none absolute -inset-px rounded-xl bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent opacity-80"
