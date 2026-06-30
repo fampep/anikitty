@@ -105,6 +105,11 @@ function applySubtitleStyles(
   }
 }
 
+function refreshHlsControls(art: Artplayer) {
+  const plugin = art.plugins?.artplayerPluginHlsControl as { update?: () => void } | undefined;
+  plugin?.update?.();
+}
+
 export default function KittyPlayer({
   src,
   tracks = [],
@@ -129,7 +134,12 @@ export default function KittyPlayer({
   const artRef = useRef<Artplayer | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
+  const autoPlay = useSettingsStore((s) => s.autoPlay);
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
+
+  useEffect(() => {
+    autoNextRef.current = autoPlay;
+  }, [autoPlay]);
 
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -387,18 +397,26 @@ export default function KittyPlayer({
             );
             hls.loadSource(url);
             hls.attachMedia(video as HTMLMediaElement);
+            player.hls = hls;
             hlsRef.current = hls;
             hlsForCleanup = hls;
 
             const tryPickAudio = () => {
               pickHlsAudioTrack(hls, preferDubAudioRef.current);
             };
-            hls.on(Hls.Events.MANIFEST_PARSED, tryPickAudio);
-            hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, tryPickAudio);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              tryPickAudio();
+              refreshHlsControls(player);
+            });
+            hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
+              tryPickAudio();
+              refreshHlsControls(player);
+            });
 
             player.on("destroy", () => {
               hls.destroy();
               if (hlsRef.current === hls) hlsRef.current = null;
+              player.hls = undefined;
             });
           } else if ((video as HTMLVideoElement).canPlayType("application/vnd.apple.mpegurl")) {
             (video as HTMLVideoElement).src = url;
@@ -413,19 +431,19 @@ export default function KittyPlayer({
             control: true,
             setting: true,
             getName: (level: { height?: number; bitrate?: number }) => {
-              if (!level.height) return "Auto";
+              if (!level.height) return t("watch.streamAuto");
               const tier = level.height <= 480 ? "SD" : level.height <= 720 ? "HD" : "FHD";
               return `${tier} ${level.height}P`;
             },
-            title: "Quality",
-            auto: "Auto",
+            title: t("watch.streamQuality"),
+            auto: t("watch.streamAuto"),
           },
           audio: {
             control: true,
             setting: true,
-            getName: (track: { name?: string }) => track.name ?? "Audio",
-            title: "Audio",
-            auto: "Auto",
+            getName: (track: { name?: string }) => track.name ?? t("watch.streamAudio"),
+            title: t("watch.streamAudio"),
+            auto: t("watch.streamAuto"),
           },
         }),
       ],
@@ -435,12 +453,19 @@ export default function KittyPlayer({
       ],
       settings: [
         {
+          width: 220,
           html: t("watch.artAutoNext"),
-          tooltip: t("watch.artAutoNextHint"),
+          tooltip: autoNextRef.current ? t("watch.on") : t("watch.off"),
           switch: autoNextRef.current,
           onSwitch(item) {
-            autoNextRef.current = item.switch;
-            return item.switch;
+            const enabled = !item.switch;
+            autoNextRef.current = enabled;
+            useSettingsStore.getState().setAutoPlay(enabled);
+            item.tooltip = enabled ? t("watch.on") : t("watch.off");
+            art.notice.show = enabled
+              ? t("watch.artAutoNextEnabled")
+              : t("watch.artAutoNextDisabled");
+            return enabled;
           },
         },
         {
@@ -480,6 +505,7 @@ export default function KittyPlayer({
       setBuffering(false);
       applySubtitleStyles(art, subtitleSettings);
       applyResume(art);
+      refreshHlsControls(art);
 
       if (hasExternalSubs) {
         disableNativeTextTracks(art.video);
@@ -604,10 +630,8 @@ export default function KittyPlayer({
 
     art.on("video:ended", () => {
       onEndedRef.current?.();
-      if (nextEpisode) {
+      if (nextEpisode && autoNextRef.current) {
         setCountdown(5);
-      } else if (autoNextRef.current) {
-        onNextEpisodeRef.current?.();
       }
     });
 
