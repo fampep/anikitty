@@ -78,6 +78,7 @@ export function selectionSupportsBothStreamAudio(opts: {
   if (opts.audioMode === "multi") {
     if (opts.provider === "Miruro") return true;
     if (opts.provider === "AniSnatch") return true;
+    if (opts.provider === "Lunar") return true;
     if (opts.provider === "Animex" && opts.animexServer) {
       return animexServerSupportsBothStreamAudio(opts.animexServer);
     }

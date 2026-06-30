@@ -3,6 +3,12 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitles/subtitle-cache-store";
 import {
+  DEFAULT_LUNAR_SERVER,
+  fetchLunarVideoStream,
+  isLunarServerId,
+  type LunarServerId,
+} from "@/lib/providers/lunar-api";
+import {
   DEFAULT_ANISNATCH_SERVER,
   fetchAnisnatchVideoStream,
   isAnisnatchServerId,
@@ -47,6 +53,7 @@ const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
 const SAFE_ANIMEX_SERVER = /^[a-z]{2,12}$/;
 const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
+const SAFE_LUNAR_SERVER = /^[a-z0-9-]{2,12}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
@@ -72,6 +79,7 @@ export async function GET(req: Request) {
   const miruroPipeParam = searchParams.get("miruroPipe");
   const animexServerParam = searchParams.get("animexServer");
   const anisnatchServerParam = searchParams.get("anisnatchServer");
+  const lunarServerParam = searchParams.get("lunarServer");
   const animoServerParam = searchParams.get("animoServer");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
@@ -116,6 +124,15 @@ export async function GET(req: Request) {
       ? anisnatchServerParam
       : provider === "AniSnatch"
         ? DEFAULT_ANISNATCH_SERVER
+        : null;
+
+  const lunarServer =
+    lunarServerParam &&
+    SAFE_LUNAR_SERVER.test(lunarServerParam) &&
+    isLunarServerId(lunarServerParam)
+      ? lunarServerParam
+      : provider === "Lunar"
+        ? DEFAULT_LUNAR_SERVER
         : null;
 
   const animoServer =
@@ -250,6 +267,34 @@ export async function GET(req: Request) {
       }
     } catch (e) {
       console.error("[kitty/stream] AniSnatch server failed:", e);
+    }
+  }
+
+  if (provider === "Lunar") {
+    try {
+      const lunar = await fetchLunarVideoStream({
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        serverId: lunarServer as LunarServerId,
+        title: titleParam,
+      });
+
+      if (lunar?.file) {
+        return finalizeStreamResponse(
+          {
+            file: lunar.file,
+            headers: lunar.headers,
+            tracks: lunar.tracks,
+            skipTimes: lunar.skipTimes,
+            server: lunar.server,
+            download: lunar.download,
+          },
+          "Lunar",
+        );
+      }
+    } catch (e) {
+      console.error("[kitty/stream] Lunar server failed:", e);
     }
   }
 
