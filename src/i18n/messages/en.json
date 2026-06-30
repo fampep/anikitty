@@ -971,7 +971,7 @@
     "goalAdsOff": "When we reach €{goal} in a month, click ads are disabled site-wide for everyone until the next month.",
     "goalAdsOffReached": "Monthly goal reached — click ads are off for the rest of this month. Thank you for supporting AniKitty!",
     "banner": {
-      "goal": "€{goal}/month goal — donations help keep AniKitty running",
+      "goal": "€{goal}/month goal — hit it and click ads turn off site-wide",
       "progress": "€{amount} of €{goal} this month — thank you for helping keep the site online",
       "reached": "Monthly goal reached — thank you for supporting AniKitty!",
       "cta": "Support"

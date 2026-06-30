@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Info, AlertTriangle, AlertOctagon, CheckCircle2, X, MessageSquare, ArrowRight } from "lucide-react";
@@ -53,7 +53,8 @@ export default function SiteAnnouncementBanner() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
   const bannerRef = useRef<HTMLDivElement>(null);
-  const [spacerHeight, setSpacerHeight] = useState(0);
+  const spacerRef = useRef<HTMLDivElement>(null);
+  const lastOffsetRef = useRef(0);
 
   useEffect(() => {
     setDismissed(readDismissed());
@@ -81,26 +82,38 @@ export default function SiteAnnouncementBanner() {
 
   const visibleKey = useMemo(() => visible.map((a) => a.id).join(","), [visible]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const applyOffset = (rawHeight: number) => {
+      const offset = rawHeight > 0 ? rawHeight + 8 : 0;
+      if (offset === lastOffsetRef.current) return;
+      lastOffsetRef.current = offset;
+      document.documentElement.style.setProperty("--banner-offset", `${offset}px`);
+      if (spacerRef.current) {
+        spacerRef.current.style.height = `${offset}px`;
+      }
+    };
+
     if (visible.length === 0) {
-      setSpacerHeight((prev) => (prev === 0 ? prev : 0));
-      document.documentElement.style.setProperty("--banner-offset", "0px");
+      applyOffset(0);
       return;
     }
 
     const measure = () => {
-      const h = bannerRef.current?.offsetHeight ?? 0;
-      const offset = h + 8;
-      setSpacerHeight((prev) => (prev === offset ? prev : offset));
-      document.documentElement.style.setProperty("--banner-offset", `${offset}px`);
+      applyOffset(bannerRef.current?.offsetHeight ?? 0);
     };
 
     measure();
+
+    const el = bannerRef.current;
+    if (!el) return;
+
     const ro = new ResizeObserver(measure);
-    if (bannerRef.current) ro.observe(bannerRef.current);
+    ro.observe(el);
     return () => {
       ro.disconnect();
+      lastOffsetRef.current = 0;
       document.documentElement.style.setProperty("--banner-offset", "0px");
+      if (spacerRef.current) spacerRef.current.style.height = "0px";
     };
   }, [visibleKey, visible.length]);
 
@@ -108,10 +121,10 @@ export default function SiteAnnouncementBanner() {
 
   return (
     <>
-      <div aria-hidden style={{ height: spacerHeight }} className="shrink-0" />
+      <div ref={spacerRef} aria-hidden className="shrink-0" />
       <div
         ref={bannerRef}
-        className="pointer-events-none fixed left-0 right-0 top-[var(--nav-height)] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4"
+        className="pointer-events-none fixed left-0 right-0 top-[calc(var(--nav-height)+var(--donation-banner-offset))] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4"
       >
         {visible.map((a) => {
           const style = STYLES[a.severity] ?? STYLES.info;
