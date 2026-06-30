@@ -15,7 +15,8 @@
   ],
   "variables": {
     "NODE_ENV": "production",
-    "NODE_OPTIONS": "--max-old-space-size=4096"
+    "NODE_OPTIONS": "--max-old-space-size=3072",
+    "SKIP_NEXT_TYPECHECK": "1"
   },
   "deploy": {
     "startCommand": "npm start",

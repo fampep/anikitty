@@ -37,6 +37,7 @@
   "exclude": [
     "node_modules",
     "drizzle",
-    "scripts"
+    "scripts",
+    ".open-next"
   ]
 }

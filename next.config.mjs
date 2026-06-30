@@ -27,6 +27,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    // Types are checked locally/CI; skip in Railpack/Coolify to avoid OOM during deploy builds.
+    ignoreBuildErrors: process.env.SKIP_NEXT_TYPECHECK === "1",
+  },
   env: {
     NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ?? "",
   },
