@@ -1,6 +1,6 @@
 import {
   KOFI_HANDLE,
-  KOFI_MEMBERSHIP_EUR,
+  MIN_DONATION_EUR,
 } from "@/lib/social/donation-config";
 
 /** Ko-fi page ID from https://ko-fi.com/Manage/Zapier (Page Id field). */
@@ -41,6 +41,13 @@ function parseDate(value: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function isSubscriptionItem(obj: Record<string, unknown>, type: string): boolean {
+  if (type.includes("subscription") || type.includes("membership")) return true;
+  if (obj.is_subscription_payment === true) return true;
+  if (obj.is_first_subscription_payment === true) return true;
+  return false;
+}
+
 function paymentIdFromParts(parts: Record<string, unknown>): string {
   for (const key of ["id", "Id", "messageId", "message_id", "transactionId", "transaction_id"]) {
     const v = parts[key];
@@ -64,6 +71,8 @@ function normalizeFeedItem(raw: unknown): KofiFeedPayment | null {
     return null;
   }
 
+  if (isSubscriptionItem(obj, type)) return null;
+
   const amount =
     parseAmount(obj.amount) ??
     parseAmount(obj.Amount) ??
@@ -72,7 +81,7 @@ function normalizeFeedItem(raw: unknown): KofiFeedPayment | null {
     parseAmount(asRecord(obj.donation)?.amount) ??
     parseAmount(asRecord(obj.payment)?.amount);
 
-  if (amount == null || amount < KOFI_MEMBERSHIP_EUR) return null;
+  if (amount == null || amount < MIN_DONATION_EUR) return null;
 
   const message = String(
     obj.message ??

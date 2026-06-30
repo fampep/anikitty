@@ -18,11 +18,12 @@ import Container from "@/components/layout/container";
 import CommunityHero from "@/components/community/community-hero";
 import { useT } from "@/providers/i18n-provider";
 import {
-  KOFI_MEMBERSHIP_EUR,
+  KOFI_DONATION_UNIT_DAYS,
+  KOFI_DONATION_UNIT_EUR,
   KOFI_URL,
   SITE_OWNER_USERNAME,
-  kofiMembershipUrl,
-  kofiMembershipUrlForUsername,
+  kofiDonationUrl,
+  kofiDonationUrlForUsername,
   siteOwnerDmHref,
 } from "@/lib/social/donation-config";
 import { hasAdFreePerk } from "@/lib/social/supporter-access";
@@ -40,8 +41,8 @@ export default function DonationContent() {
   const username = auth?.username ?? "";
 
   const kofiPayUrl = username
-    ? kofiMembershipUrlForUsername(username)
-    : kofiMembershipUrl();
+    ? kofiDonationUrlForUsername(username)
+    : kofiDonationUrl();
 
   const perks = [
     { icon: PERK_ICONS[0], title: t("donate.perks.adFree"), desc: t("donate.perks.adFreeDesc") },
@@ -70,31 +71,32 @@ export default function DonationContent() {
         granted?: boolean;
         reason?: string;
         error?: string;
+        daysAdded?: number;
       };
 
       if (!res.ok) {
         throw new Error(data.error ?? t("donate.claimFailed"));
       }
 
-      if (data.granted) {
+      if (data.granted && data.daysAdded) {
         const meRes = await fetch("/api/account/me", withAuth());
         if (meRes.ok) {
           const me = await meRes.json();
           setAuth(me);
         }
-        toast.success(t("donate.claimSuccess"));
+        toast.success(t("donate.claimSuccess", { days: data.daysAdded }));
         return;
       }
 
       switch (data.reason) {
-        case "already_active":
-          toast.info(t("donate.claimAlready"));
-          break;
         case "payment_not_found":
           toast.error(t("donate.claimNotFound"));
           break;
         case "feed_not_configured":
           toast.error(t("donate.claimFeedUnavailable"));
+          break;
+        case "amount_too_small":
+          toast.error(t("donate.claimAmountTooSmall"));
           break;
         default:
           toast.error(t("donate.claimNotFound"));
@@ -121,7 +123,7 @@ export default function DonationContent() {
             className="site-brand-btn px-4 py-2.5 text-sm hover:from-violet-500 hover:to-violet-400"
           >
             <Coffee className="w-4 h-4" />
-            {t("donate.membershipCta", { amount: KOFI_MEMBERSHIP_EUR })}
+            {t("donate.donateCta")}
             <ExternalLink className="w-3.5 h-3.5 opacity-70" />
           </a>
         </CommunityHero>
@@ -138,15 +140,15 @@ export default function DonationContent() {
                   <Sparkles className="w-5 h-5 text-violet-300" />
                 </div>
                 <div>
-                  <p className="site-label mb-2">{t("donate.membershipTitle")}</p>
-                  <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white tabular-nums">
-                    €{KOFI_MEMBERSHIP_EUR}
-                    <span className="text-lg sm:text-xl font-medium text-white/35 ml-2">
-                      {t("donate.perMonth")}
-                    </span>
+                  <p className="site-label mb-2">{t("donate.donationTitle")}</p>
+                  <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">
+                    {t("donate.rateLine", {
+                      amount: KOFI_DONATION_UNIT_EUR,
+                      days: KOFI_DONATION_UNIT_DAYS,
+                    })}
                   </p>
                   <p className="mt-3 text-sm text-white/55 leading-relaxed max-w-lg">
-                    {t("donate.membershipDesc")}
+                    {t("donate.donationDesc")}
                   </p>
                 </div>
               </div>
@@ -182,23 +184,21 @@ export default function DonationContent() {
                   className="site-brand-btn px-4 py-2.5 text-sm"
                 >
                   <Heart className="w-4 h-4" />
-                  {t("donate.membershipCta", { amount: KOFI_MEMBERSHIP_EUR })}
+                  {t("donate.donateCta")}
                 </a>
-                {!isSupporter ? (
-                  <button
-                    type="button"
-                    onClick={handleClaim}
-                    disabled={claiming}
-                    className="site-ghost-btn py-2.5 disabled:opacity-50"
-                  >
-                    {claiming ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    {t("donate.claimCta")}
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={handleClaim}
+                  disabled={claiming}
+                  className="site-ghost-btn py-2.5 disabled:opacity-50"
+                >
+                  {claiming ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {t("donate.claimCta")}
+                </button>
                 <Link href={siteOwnerDmHref()} className="site-ghost-btn py-2.5">
                   <MessageCircle className="w-4 h-4" />
                   {t("donate.dmCta", { username: SITE_OWNER_USERNAME })}
@@ -234,7 +234,7 @@ export default function DonationContent() {
           <div className="space-y-3 text-sm text-white/50 leading-relaxed">
             <p>{t("donate.faqClickAds")}</p>
             <p>{t("donate.faqKoFi")}</p>
-            <p>{t("donate.faqMembership")}</p>
+            <p>{t("donate.faqDonation")}</p>
             <p>{t("donate.faqVoluntary")}</p>
           </div>
           <div className="mt-5 pt-5 border-t border-white/[0.06] flex flex-wrap gap-3">

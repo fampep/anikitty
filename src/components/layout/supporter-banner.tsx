@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Coffee, MessageCircle, Sparkles } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import {
-  KOFI_MEMBERSHIP_EUR,
+  KOFI_DONATION_UNIT_DAYS,
+  KOFI_DONATION_UNIT_EUR,
+  KOFI_URL,
   SITE_OWNER_USERNAME,
-  kofiMembershipUrl,
   siteOwnerDmHref,
 } from "@/lib/social/donation-config";
 import { useT } from "@/providers/i18n-provider";
@@ -65,7 +66,10 @@ export default function SupporterBanner() {
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-300" />
 
           <p className="min-w-0 flex-1 text-[11.5px] font-medium leading-snug text-white/80 sm:text-[12px]">
-            {t("donate.banner.membership", { amount: KOFI_MEMBERSHIP_EUR })}
+            {t("donate.banner.donation", {
+              amount: KOFI_DONATION_UNIT_EUR,
+              days: KOFI_DONATION_UNIT_DAYS,
+            })}
           </p>
 
           <Link
@@ -84,7 +88,7 @@ export default function SupporterBanner() {
           </Link>
 
           <a
-            href={kofiMembershipUrl()}
+            href={KOFI_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/75 transition-colors hover:bg-white/10 sm:text-[11.5px]"

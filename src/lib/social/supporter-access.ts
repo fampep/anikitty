@@ -2,6 +2,7 @@ import type { getDb } from "@/db";
 import { kofiWebhookEvents, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import {
+  calculateSupporterDays,
   DONATOR_ROLE,
   SITE_OWNER_USERNAME,
   STAFF_ROLES,
@@ -21,20 +22,16 @@ export const AD_FREE_PERMISSION = "ads.ad_free" as const;
 
 type Db = ReturnType<typeof getDb>;
 
-/** Days of ad-free access granted per Ko-fi membership payment. */
-export const SUPPORTER_PERIOD_DAYS = 32;
-
 export type SupporterClaimResult =
-  | { ok: true; granted: true; paymentId: string }
+  | { ok: true; granted: true; paymentId: string; daysAdded: number; supporterUntil: string }
   | { ok: true; granted: false; reason: SupporterClaimReason }
   | { ok: false; error: string };
 
 export type SupporterClaimReason =
-  | "already_active"
   | "feed_not_configured"
   | "payment_not_found"
   | "already_claimed"
-  | "staff_extended";
+  | "amount_too_small";
 
 export function hasAdFreePerk(
   role?: string | null,
@@ -42,17 +39,37 @@ export function hasAdFreePerk(
   supporterUntil?: Date | null,
 ): boolean {
   if (role === "admin") return true;
-  if (permissions && hasPermission(permissions, AD_FREE_PERMISSION)) return true;
-  if (supporterUntil && supporterUntil.getTime() > Date.now()) return true;
-  if (role === DONATOR_ROLE) return true;
+
+  const untilActive =
+    supporterUntil != null && supporterUntil.getTime() > Date.now();
+
+  if (untilActive) return true;
+
+  if (role === DONATOR_ROLE && !supporterUntil) return true;
+
+  if (
+    permissions &&
+    hasPermission(permissions, AD_FREE_PERMISSION) &&
+    role === DONATOR_ROLE &&
+    !supporterUntil
+  ) {
+    return true;
+  }
+
   return false;
 }
 
-export function extendSupporterUntil(current: Date | null | undefined): Date {
+export function extendSupporterUntilByDays(
+  current: Date | null | undefined,
+  days: number,
+): Date {
+  if (days <= 0) {
+    return current && current.getTime() > Date.now() ? current : new Date();
+  }
   const base =
     current && current.getTime() > Date.now() ? current : new Date();
   const next = new Date(base);
-  next.setDate(next.getDate() + SUPPORTER_PERIOD_DAYS);
+  next.setDate(next.getDate() + days);
   return next;
 }
 
@@ -96,6 +113,7 @@ async function recordClaimedPayment(
   db: Db,
   payment: KofiFeedPayment,
   username: string,
+  daysAdded: number,
 ): Promise<boolean> {
   const inserted = await db
     .insert(kofiWebhookEvents)
@@ -106,7 +124,12 @@ async function recordClaimedPayment(
       type: payment.type,
       amount: String(payment.amount),
       currency: payment.currency,
-      raw: { username, message: payment.message, source: "kofi_feed" },
+      raw: {
+        username,
+        message: payment.message,
+        source: "kofi_feed",
+        daysAdded,
+      },
     })
     .onConflictDoNothing()
     .returning({ messageId: kofiWebhookEvents.messageId });
@@ -117,8 +140,9 @@ async function recordClaimedPayment(
 async function grantSupporterAccess(
   db: Db,
   user: { id: string; role: string; supporterUntil: Date | null },
-): Promise<void> {
-  const nextUntil = extendSupporterUntil(user.supporterUntil);
+  days: number,
+): Promise<Date> {
+  const nextUntil = extendSupporterUntilByDays(user.supporterUntil, days);
 
   if (
     STAFF_ROLES.has(user.role) ||
@@ -128,16 +152,18 @@ async function grantSupporterAccess(
       .update(users)
       .set({ supporterUntil: nextUntil })
       .where(eq(users.id, user.id));
-    return;
+    return nextUntil;
   }
 
   await db
     .update(users)
     .set({ role: DONATOR_ROLE, supporterUntil: nextUntil })
     .where(eq(users.id, user.id));
+
+  return nextUntil;
 }
 
-/** Match Ko-fi feed (public page API) and grant donator access — no webhook. */
+/** Match Ko-fi feed and grant donator access for the donation amount. */
 export async function claimSupporterFromKofi(
   db: Db,
   userId: string,
@@ -160,10 +186,6 @@ export async function claimSupporterFromKofi(
 
   if (!user) return { ok: false, error: "User not found" };
 
-  if (hasAdFreePerk(user.role, null, user.supporterUntil)) {
-    return { ok: true, granted: false, reason: "already_active" };
-  }
-
   if (!kofiPageIdConfigured()) {
     return { ok: true, granted: false, reason: "feed_not_configured" };
   }
@@ -183,13 +205,29 @@ export async function claimSupporterFromKofi(
     return { ok: true, granted: false, reason: "payment_not_found" };
   }
 
-  const recorded = await recordClaimedPayment(db, payment, normalizedUsername);
+  const daysAdded = calculateSupporterDays(payment.amount);
+  if (daysAdded <= 0) {
+    return { ok: true, granted: false, reason: "amount_too_small" };
+  }
+
+  const recorded = await recordClaimedPayment(
+    db,
+    payment,
+    normalizedUsername,
+    daysAdded,
+  );
   if (!recorded) {
     return { ok: true, granted: false, reason: "already_claimed" };
   }
 
-  await grantSupporterAccess(db, user);
-  return { ok: true, granted: true, paymentId: payment.id };
+  const supporterUntil = await grantSupporterAccess(db, user, daysAdded);
+  return {
+    ok: true,
+    granted: true,
+    paymentId: payment.id,
+    daysAdded,
+    supporterUntil: supporterUntil.toISOString(),
+  };
 }
 
 export async function tryAutoClaimFromDm(

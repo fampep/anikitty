@@ -10,7 +10,8 @@ import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
 import { ROUTES } from "@/constants/routes";
 import { hasAdFreePerk } from "@/lib/social/supporter-access";
 import {
-  KOFI_MEMBERSHIP_EUR,
+  KOFI_DONATION_UNIT_DAYS,
+  KOFI_DONATION_UNIT_EUR,
   SITE_OWNER_USERNAME,
   siteOwnerDmHref,
 } from "@/lib/social/donation-config";
@@ -144,12 +145,15 @@ export default function AdsSettingsSection() {
                   onChange={handleToggle}
                 />
                 <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
-                  {t("settings.ads.membershipHint", { amount: KOFI_MEMBERSHIP_EUR })}{" "}
+                  {t("settings.ads.donationHint", {
+                    amount: KOFI_DONATION_UNIT_EUR,
+                    days: KOFI_DONATION_UNIT_DAYS,
+                  })}{" "}
                   <Link
                     href={ROUTES.DONATE}
                     className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
                   >
-                    {t("settings.ads.membershipLink")}
+                    {t("settings.ads.donationLink")}
                   </Link>
                   {" · "}
                   <Link

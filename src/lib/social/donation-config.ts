@@ -2,16 +2,18 @@
 export const KOFI_URL = "https://ko-fi.com/fampep";
 export const KOFI_HANDLE = "fampep";
 
-/** Monthly Ko-fi membership price (EUR) for ad-free viewing. */
-export const KOFI_MEMBERSHIP_EUR = 3;
+/** Reference donation: this many EUR buys one unit of ad-free time. */
+export const KOFI_DONATION_UNIT_EUR = 3;
 
-/** Ko-fi membership / tier page — override with NEXT_PUBLIC_KOFI_MEMBERSHIP_URL if needed. */
-export const KOFI_MEMBERSHIP_URL =
-  process.env.NEXT_PUBLIC_KOFI_MEMBERSHIP_URL ?? `${KOFI_URL}/membership`;
+/** Days of ad-free access per reference unit (€3 → 14 days). */
+export const KOFI_DONATION_UNIT_DAYS = 14;
+
+/** Smallest Ko-fi tip we accept for auto-claim. */
+export const MIN_DONATION_EUR = 0.01;
 
 export const DONATOR_ROLE = "donator";
 
-/** Site owner — grants donator role manually after Ko-fi payment. */
+/** Site owner — manual fallback for donation issues. */
 export const SITE_OWNER_USERNAME = KOFI_HANDLE;
 
 export function siteOwnerDmHref(): string {
@@ -21,17 +23,28 @@ export function siteOwnerDmHref(): string {
 /** Staff roles that should never be overwritten by Ko-fi auto-claim. */
 export const STAFF_ROLES = new Set(["admin", "moderator"]);
 
-export function kofiMembershipUrl(): string {
-  return KOFI_MEMBERSHIP_URL;
+/**
+ * Days of ad-free access for a Ko-fi donation (EUR).
+ * Uses rounding so odd tips map cleanly — e.g. €1.50→7, €2→9, €3→14, €9→42.
+ */
+export function calculateSupporterDays(amountEur: number): number {
+  if (!Number.isFinite(amountEur) || amountEur < MIN_DONATION_EUR) return 0;
+  const cents = Math.round(amountEur * 100);
+  const scaled =
+    (cents / 100 / KOFI_DONATION_UNIT_EUR) * KOFI_DONATION_UNIT_DAYS;
+  return Math.max(1, Math.round(scaled));
 }
 
-/** Ko-fi checkout link — user should put @username in the Ko-fi message field. */
-export function kofiMembershipUrlForUsername(username: string): string {
-  const base = kofiMembershipUrl();
+export function kofiDonationUrl(): string {
+  return KOFI_URL;
+}
+
+/** Ko-fi tip link — user should put @username in the Ko-fi message field. */
+export function kofiDonationUrlForUsername(username: string): string {
   const handle = username.trim().replace(/^@/, "");
-  if (!handle) return base;
-  const sep = base.includes("?") ? "&" : "?";
-  return `${base}${sep}message=${encodeURIComponent(`@${handle}`)}`;
+  if (!handle) return KOFI_URL;
+  const sep = KOFI_URL.includes("?") ? "&" : "?";
+  return `${KOFI_URL}${sep}message=${encodeURIComponent(`@${handle}`)}`;
 }
 
 export function kofiTipUrl(amountEur: number): string {
