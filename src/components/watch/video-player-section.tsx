@@ -13,7 +13,7 @@ import {
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { normalizeKittyProvider, MULTI_ROW_PROVIDERS, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import {
   DEFAULT_ANIMEX_SERVER,
   defaultAnimexServerForMode,
@@ -183,6 +183,12 @@ const VideoPlayerSection = () => {
     }
     return null;
   });
+
+  useEffect(() => {
+    if (!MULTI_ROW_PROVIDERS.has(provider) || audioMode === "multi") return;
+    setAudioMode("multi");
+    localStorage.setItem("kittyAudioMode", "multi");
+  }, [provider, audioMode]);
 
   const audio: "sub" | "dub" = streamAudio;
 

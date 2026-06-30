@@ -147,7 +147,11 @@ async function probeDirectProviderCapabilities(
   const dubProbe = providerSupportsDub(provider)
     ? await probeStreamDirect(provider, anilistId, episode, "dub", title)
     : null;
-  return capabilitiesFromProbes(subProbe, dubProbe);
+  const caps = capabilitiesFromProbes(subProbe, dubProbe);
+  if (MULTI_ROW_PROVIDERS.has(provider) && caps.sub && caps.dub) {
+    return { ...caps, multi: true };
+  }
+  return caps;
 }
 
 /** Probe sub/dub/hardsub for the provider the user is currently watching. */

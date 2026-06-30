@@ -6,6 +6,7 @@ export const KITTY_PROVIDERS = [
   "Anix",
   "HiAnime",
   "AniWatch",
+  "AniSnatch",
   "Animepahe",
   "Anikoto",
   "Anitaku",
@@ -117,6 +118,15 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     supportsDub: true,
     hint: "aniwatch.one · MGCLD · BYFMS · DGHG · MegaCloud · SUB · DUB",
+  },
+  {
+    id: "AniSnatch",
+    label: "AniSnatch",
+    group: "featured",
+    supportsDub: true,
+    supportsMulti: true,
+    hardSub: true,
+    hint: "anisnatch.top · AniVibe · Kwik · SUB · DUB · soft-sub",
   },
   {
     id: "Animepahe",
@@ -270,7 +280,7 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
 }
 
 /** Providers that only appear in the MULTI row (server picker expands below). */
-export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>(["Miruro", "Animex"]);
+export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>(["Miruro", "Animex", "AniSnatch"]);
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {
