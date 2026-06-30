@@ -7,6 +7,7 @@
     "forum": "フォーラム",
     "chat": "ライブチャット",
     "watchTogether": "一緒に視聴",
+    "donate": "支援",
     "faq": "FAQ",
     "more": "その他",
     "search": "検索",
@@ -20,6 +21,7 @@
       "forum": "フォーラム",
       "chat": "チャット",
       "together": "一緒に",
+      "donate": "支援",
       "faq": "FAQ"
     },
     "aria": {
@@ -53,6 +55,7 @@
     "disclaimer": "AniKittyはサーバーにファイルを保存しません。すべてのコンテンツは第三者サービスから提供されています。",
     "github": "GitHub",
     "discord": "Discord",
+    "donate": "支援する",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
   },
@@ -95,6 +98,7 @@
     "upcomingDesc": "まもなく公開",
     "trendingDesc": "みんなが見ている作品",
     "forumDesc": "コミュニティでアニメを語ろう",
+    "donateDesc": "月€96のサーバー費用を支援",
     "browseAll": "すべて見る",
     "browseAllDesc": "数千のタイトルを検索",
     "watchNow": "今すぐ視聴",

@@ -73,6 +73,11 @@ export const PAGE_SEO = {
     description: "How AniKitty works — streaming, accounts, and privacy.",
     path: "/faq",
   },
+  donate: {
+    title: "Support AniKitty | Donate",
+    description: "Donations help keep AniKitty running. Support server costs on Ko-fi.",
+    path: "/donate",
+  },
 } as const satisfies Record<string, PageSeo>;
 
 export function buildPageMetadata(

@@ -7,6 +7,7 @@
     "forum": "포럼",
     "chat": "라이브 채팅",
     "watchTogether": "함께 보기",
+    "donate": "후원",
     "faq": "FAQ",
     "more": "더보기",
     "search": "검색",
@@ -20,6 +21,7 @@
       "forum": "포럼",
       "chat": "채팅",
       "together": "함께",
+      "donate": "후원",
       "faq": "FAQ"
     },
     "aria": {
@@ -53,6 +55,7 @@
     "disclaimer": "AniKitty는 서버에 파일을 저장하지 않습니다. 모든 콘텐츠는 제3자 서비스에서 제공됩니다.",
     "github": "GitHub",
     "discord": "Discord",
+    "donate": "후원하기",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
   },
@@ -95,6 +98,7 @@
     "upcomingDesc": "곧 출시",
     "trendingDesc": "모두가 보고 있는 작품",
     "forumDesc": "커뮤니티와 애니에 대해 이야기하세요",
+    "donateDesc": "월 €96 서버 비용 후원",
     "browseAll": "전체 보기",
     "browseAllDesc": "수천 개의 작품 검색",
     "watchNow": "지금 보기",

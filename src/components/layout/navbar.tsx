@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Captions,
   ChevronDown,
+  Coffee,
   Flame,
   HelpCircle,
   Home,
@@ -44,6 +45,7 @@ const MENU_DEFS = [
   { href: ROUTES.FORUM, icon: MessagesSquare, titleKey: "nav.forum", shortKey: "nav.short.forum" },
   { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat" },
   { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together" },
+  { href: ROUTES.DONATE, icon: Coffee, titleKey: "nav.donate", shortKey: "nav.short.donate" },
   { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq" },
 ] as const;
 

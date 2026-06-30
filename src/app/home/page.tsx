@@ -19,6 +19,7 @@ import {
   Compass,
   MessagesSquare,
   RefreshCw,
+  Coffee,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
@@ -171,6 +172,13 @@ export default function Home() {
                 color="rose"
               />
               <ExploreCard
+                href={ROUTES.DONATE}
+                icon={<Coffee className="w-4 h-4" />}
+                title={t("nav.donate")}
+                description={t("home.donateDesc")}
+                color="fuchsia"
+              />
+              <ExploreCard
                 href={ROUTES.SEARCH}
                 icon={<Clock className="w-4 h-4" />}
                 title={t("home.browseAll")}
@@ -192,6 +200,7 @@ const COLOR_MAP: Record<string, { icon: string; bg: string; border: string }> = 
   amber:   { icon: "text-amber-400",   bg: "group-hover:bg-amber-500/[0.07]",   border: "group-hover:border-amber-500/25" },
   emerald: { icon: "text-emerald-400", bg: "group-hover:bg-emerald-500/[0.07]", border: "group-hover:border-emerald-500/25" },
   rose:    { icon: "text-rose-400",    bg: "group-hover:bg-rose-500/[0.07]",    border: "group-hover:border-rose-500/25" },
+  fuchsia: { icon: "text-fuchsia-400", bg: "group-hover:bg-fuchsia-500/[0.07]", border: "group-hover:border-fuchsia-500/25" },
 };
 
 function ExploreCard({

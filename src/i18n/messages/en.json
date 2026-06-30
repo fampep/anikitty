@@ -7,6 +7,7 @@
     "forum": "Forum",
     "chat": "Live Chat",
     "watchTogether": "Watch Together",
+    "donate": "Support",
     "faq": "FAQ",
     "more": "More",
     "search": "Search",
@@ -20,6 +21,7 @@
       "forum": "Forum",
       "chat": "Chat",
       "together": "Together",
+      "donate": "Support",
       "faq": "FAQ"
     },
     "aria": {
@@ -53,6 +55,7 @@
     "disclaimer": "AniKitty does not store any files on its servers. All content is provided by third-party services.",
     "github": "GitHub",
     "discord": "Discord",
+    "donate": "Support us",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
   },
@@ -95,6 +98,7 @@
     "upcomingDesc": "Coming soon",
     "trendingDesc": "What everyone is watching",
     "forumDesc": "Discuss anime with the community",
+    "donateDesc": "Donations help keep the site running",
     "browseAll": "Browse All",
     "browseAllDesc": "Search thousands of titles",
     "watchNow": "Watch Now",
@@ -943,5 +947,43 @@
     "sortNew": "New",
     "sortTop": "Top",
     "sortOld": "Old"
+  },
+  "donate": {
+    "title": "Support AniKitty",
+    "subtitle": "Donations help keep the site running — hosting, database, and bandwidth for everyone.",
+    "kofiCta": "Ko-fi",
+    "monthlyGoal": "Monthly operating cost",
+    "perMonth": "/ month",
+    "goalDesc": "Hosting, database, and bandwidth to stream anime for everyone.",
+    "goalSupport": "Every contribution on Ko-fi helps cover infrastructure and keep AniKitty online.",
+    "banner": {
+      "goal": "€{goal}/month goal — donations help keep AniKitty running",
+      "progress": "€{amount} of €{goal} this month — thank you for helping keep the site online",
+      "reached": "Monthly goal reached — thank you for supporting AniKitty!",
+      "cta": "Support"
+    },
+    "goalLabel": "Goal: €{goal} / month",
+    "raised": "€{amount} of €{goal} this month",
+    "goalHint": "Every contribution on Ko-fi helps us cover infrastructure and keep the site running.",
+    "quickTip": "Quick tip",
+    "customAmount": "Custom amount",
+    "supportOnKofi": "Support on Ko-fi",
+    "readFaq": "Read FAQ",
+    "faqTitle": "Good to know",
+    "faqKoFi": "Donations are processed securely through Ko-fi (ko-fi.com/fampep). You can tip once or set up a monthly membership there.",
+    "faqVoluntary": "Supporting is completely optional. AniKitty stays free whether you donate or not — donations help cover server costs and keep the site running.",
+    "costs": {
+      "server": "Server & hosting",
+      "database": "Database & storage",
+      "ops": "CDN & ops"
+    },
+    "perks": {
+      "running": "Keeps the site online",
+      "runningDesc": "Your support pays for hosting, storage, and the servers that power playback.",
+      "uptime": "Keeps streams fast",
+      "uptimeDesc": "Your support pays for the servers that power playback.",
+      "community": "Built for fans",
+      "communityDesc": "Run by enthusiasts who want a better free anime site."
+    }
   }
 }

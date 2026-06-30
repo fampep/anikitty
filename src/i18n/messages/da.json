@@ -7,6 +7,7 @@
     "forum": "Forum",
     "chat": "Live chat",
     "watchTogether": "Se sammen",
+    "donate": "Støt",
     "faq": "FAQ",
     "more": "Mere",
     "search": "Søg",
@@ -20,6 +21,7 @@
       "forum": "Forum",
       "chat": "Chat",
       "together": "Sammen",
+      "donate": "Støt",
       "faq": "FAQ"
     },
     "aria": {
@@ -53,6 +55,7 @@
     "disclaimer": "AniKitty gemmer ingen filer på egne servere. Alt indhold leveres af tredjepartstjenester.",
     "github": "GitHub",
     "discord": "Discord",
+    "donate": "Støt os",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
   },
@@ -95,6 +98,7 @@
     "upcomingDesc": "På vej",
     "trendingDesc": "Hvad alle ser lige nu",
     "forumDesc": "Diskutér anime med fællesskabet",
+    "donateDesc": "Hjælp med €96/måned i serveromkostninger",
     "browseAll": "Se alle",
     "browseAllDesc": "Søg blandt tusindvis af titler",
     "watchNow": "Se nu",

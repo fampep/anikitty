@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Flame, CalendarDays, Search, Captions } from "lucide-react";
+import { Flame, CalendarDays, Search, Captions, Coffee } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
@@ -99,6 +99,7 @@ const Footer = () => {
 
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.project")}</p>
+            <NavLink href="/donate" label={t("footer.donate")} icon={<Coffee className="w-3 h-3" />} />
             <NavLink href="/faq" label={t("footer.faqPrivacy")} />
             <a
               href="https://github.com/fampep/anikitty"

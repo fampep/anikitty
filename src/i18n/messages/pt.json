@@ -7,6 +7,7 @@
     "forum": "Fórum",
     "chat": "Chat ao vivo",
     "watchTogether": "Assistir juntos",
+    "donate": "Apoiar",
     "faq": "FAQ",
     "more": "Mais",
     "search": "Buscar",
@@ -20,6 +21,7 @@
       "forum": "Fórum",
       "chat": "Chat",
       "together": "Juntos",
+      "donate": "Apoiar",
       "faq": "FAQ"
     },
     "aria": {
@@ -53,6 +55,7 @@
     "disclaimer": "O AniKitty não armazena arquivos em seus servidores. Todo o conteúdo é fornecido por serviços de terceiros.",
     "github": "GitHub",
     "discord": "Discord",
+    "donate": "Apoiar",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
   },
@@ -95,6 +98,7 @@
     "upcomingDesc": "Chegando em breve",
     "trendingDesc": "O que todos estão assistindo",
     "forumDesc": "Discuta anime com a comunidade",
+    "donateDesc": "Ajude com os €96/mês do servidor",
     "browseAll": "Ver tudo",
     "browseAllDesc": "Busque milhares de títulos",
     "watchNow": "Assistir agora",

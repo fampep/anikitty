@@ -7,6 +7,7 @@
     "forum": "论坛",
     "chat": "实时聊天",
     "watchTogether": "一起看",
+    "donate": "支持",
     "faq": "常见问题",
     "more": "更多",
     "search": "搜索",
@@ -20,6 +21,7 @@
       "forum": "论坛",
       "chat": "聊天",
       "together": "一起看",
+      "donate": "支持",
       "faq": "FAQ"
     },
     "aria": {
@@ -53,6 +55,7 @@
     "disclaimer": "AniKitty 不在其服务器上存储任何文件。所有内容均由第三方服务提供。",
     "github": "GitHub",
     "discord": "Discord",
+    "donate": "支持我们",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
   },
@@ -95,6 +98,7 @@
     "upcomingDesc": "敬请期待",
     "trendingDesc": "大家都在看什么",
     "forumDesc": "与社区一起讨论动漫",
+    "donateDesc": "帮助承担每月€96服务器费用",
     "browseAll": "浏览全部",
     "browseAllDesc": "搜索数千部作品",
     "watchNow": "立即观看",
