@@ -375,7 +375,6 @@ export default function KittyPlayer({
       autoMini: false,
       mutex: true,
       playsInline: true,
-      theme: "#c084fc",
       lang: "en",
       moreVideoAttr: { crossOrigin: "anonymous" },
       subtitle: subtitleOption,
@@ -651,15 +650,11 @@ export default function KittyPlayer({
     <div
       ref={wrapperRef}
       className={cn(
-        "art-kitty-player kitty-stage relative w-full overflow-hidden rounded-xl bg-[#030303] shadow-[0_32px_100px_-24px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.06]",
+        "art-kitty-player relative w-full overflow-hidden rounded-xl bg-black",
         orientClass,
       )}
       style={orientClass ? undefined : { aspectRatio: "16/9" }}
     >
-      <div
-        className="kitty-stage__glow pointer-events-none absolute -inset-px rounded-xl bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent opacity-80"
-        aria-hidden
-      />
       <div ref={containerRef} className="absolute inset-0" />
 
       {showLoading && (
