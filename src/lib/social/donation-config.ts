@@ -2,24 +2,36 @@
 export const KOFI_URL = "https://ko-fi.com/fampep";
 export const KOFI_HANDLE = "fampep";
 
-/** Current monthly infrastructure cost (EUR). */
-export const MONTHLY_GOAL_EUR = 96;
+/** Monthly Ko-fi membership price (EUR) for ad-free viewing. */
+export const KOFI_MEMBERSHIP_EUR = 3;
 
-/** Optional manual override for progress bar (set in env, e.g. after checking Ko-fi). */
-export function getDonationProgress(): {
-  goalEur: number;
-  raisedEur: number;
-  percent: number;
-} {
-  const goalEur = MONTHLY_GOAL_EUR;
-  const raw = process.env.NEXT_PUBLIC_DONATION_RAISED_EUR;
-  const raisedEur = raw ? Math.max(0, parseFloat(raw)) || 0 : 0;
-  const percent = goalEur > 0 ? Math.min(100, Math.round((raisedEur / goalEur) * 100)) : 0;
-  return { goalEur, raisedEur, percent };
+/** Ko-fi membership / tier page — override with NEXT_PUBLIC_KOFI_MEMBERSHIP_URL if needed. */
+export const KOFI_MEMBERSHIP_URL =
+  process.env.NEXT_PUBLIC_KOFI_MEMBERSHIP_URL ?? `${KOFI_URL}/membership`;
+
+export const DONATOR_ROLE = "donator";
+
+/** Site owner — grants donator role manually after Ko-fi payment. */
+export const SITE_OWNER_USERNAME = KOFI_HANDLE;
+
+export function siteOwnerDmHref(): string {
+  return `/messages?user=${SITE_OWNER_USERNAME}`;
 }
 
-export function isDonationGoalReached(): boolean {
-  return getDonationProgress().percent >= 100;
+/** Staff roles that should never be overwritten by Ko-fi auto-claim. */
+export const STAFF_ROLES = new Set(["admin", "moderator"]);
+
+export function kofiMembershipUrl(): string {
+  return KOFI_MEMBERSHIP_URL;
+}
+
+/** Ko-fi checkout link — user should put @username in the Ko-fi message field. */
+export function kofiMembershipUrlForUsername(username: string): string {
+  const base = kofiMembershipUrl();
+  const handle = username.trim().replace(/^@/, "");
+  if (!handle) return base;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}message=${encodeURIComponent(`@${handle}`)}`;
 }
 
 export function kofiTipUrl(amountEur: number): string {

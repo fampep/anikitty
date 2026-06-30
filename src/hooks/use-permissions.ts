@@ -15,6 +15,7 @@ export function usePermissions() {
     canModerateForum: hasPermission(permissions, "forum.moderate"),
     canMuteUsers: hasPermission(permissions, "users.mute"),
     canBanUsers: hasPermission(permissions, "users.ban"),
+    adFree: hasPermission(permissions, "ads.ad_free"),
     isStaff: hasAnyPermission(permissions, [
       "comments.moderate",
       "chat.moderate",

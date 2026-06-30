@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { isSafeHttpsUrl } from "@/lib/security/security";
 import { isValidThemeColor, normalizeThemeColor } from "@/lib/core/theme-color";
 import { getRolePermissions } from "@/lib/security/permissions";
+import { expireSupporterIfNeeded } from "@/lib/social/supporter-access";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
       bio: users.bio,
       themeColor: users.themeColor,
       role: users.role,
+      supporterUntil: users.supporterUntil,
       anisurgeUsername: users.anisurgeUsername,
       anilistUsername: users.anilistUsername,
       anilistAccessToken: users.anilistAccessToken,
@@ -44,7 +46,13 @@ export async function GET(req: Request) {
 
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const permissions = await getRolePermissions(db, user.role ?? "user");
+  const effectiveRole = await expireSupporterIfNeeded(db, {
+    id: user.id,
+    role: user.role ?? "user",
+    supporterUntil: user.supporterUntil,
+  });
+
+  const permissions = await getRolePermissions(db, effectiveRole);
 
   const { anilistAccessToken: _token, ...safeUser } = user;
 
@@ -67,7 +75,7 @@ export async function GET(req: Request) {
       bannerUrl: safeUser.bannerUrl ?? null,
       bio: safeUser.bio ?? null,
       themeColor: safeUser.themeColor ?? null,
-      role: safeUser.role ?? "user",
+      role: effectiveRole,
       createdAt: safeUser.createdAt?.toISOString() ?? null,
     },
   });

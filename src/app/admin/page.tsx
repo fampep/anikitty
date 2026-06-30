@@ -132,7 +132,7 @@ interface PermissionDef {
   id: string;
   label: string;
   description: string;
-  group: "content" | "users";
+  group: "content" | "users" | "perks";
 }
 
 interface Role {
@@ -276,6 +276,7 @@ function RolePermissionEditor({
   const groups: Array<{ key: PermissionDef["group"]; label: string }> = [
     { key: "content", label: "Content" },
     { key: "users", label: "Users" },
+    { key: "perks", label: "Perks" },
   ];
 
   return (

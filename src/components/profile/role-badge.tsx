@@ -3,6 +3,7 @@
 const BUILTIN_COLORS: Record<string, string> = {
   admin: "#ff4d6d",
   moderator: "#4d9fff",
+  donator: "#f472b6",
   user: "",
 };
 

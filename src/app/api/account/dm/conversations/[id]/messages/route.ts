@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { dmConversations, dmMessages, users } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { createDmNotification } from "@/lib/social/dm-server";
+import { tryAutoClaimFromDm } from "@/lib/social/supporter-access";
 import { sanitizeBody, sanitizeAndResolveGifUrl, rateLimit } from "@/lib/social/comment-helpers";
 import { assertMessageEncryptionConfigured, encryptStoredMessage } from "@/lib/security/message-crypto";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
@@ -76,6 +77,23 @@ export async function POST(req: Request, { params }: Params) {
     conversationId: id,
     preview: body || (gifUrl ? "GIF" : ""),
   });
+
+  if (body && sender?.username) {
+    const [recipient] = await db
+      .select({ username: users.username })
+      .from(users)
+      .where(eq(users.id, recipientId))
+      .limit(1);
+
+    if (recipient?.username) {
+      void tryAutoClaimFromDm(db, {
+        senderId: payload.userId,
+        senderUsername: sender.username,
+        recipientUsername: recipient.username,
+        body,
+      });
+    }
+  }
 
   const message = {
     id: row.id,

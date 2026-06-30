@@ -75,7 +75,7 @@ export const PAGE_SEO = {
   },
   donate: {
     title: "Support AniKitty | Donate",
-    description: "Donations help keep AniKitty running. Support server costs on Ko-fi.",
+    description: "€3/month on Ko-fi for ad-free viewing. Pay with @username in the message, then DM @fampep or tap Activate.",
     path: "/donate",
   },
 } as const satisfies Record<string, PageSeo>;

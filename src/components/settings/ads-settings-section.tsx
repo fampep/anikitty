@@ -8,6 +8,12 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
 import { ROUTES } from "@/constants/routes";
+import { hasAdFreePerk } from "@/lib/social/supporter-access";
+import {
+  KOFI_MEMBERSHIP_EUR,
+  SITE_OWNER_USERNAME,
+  siteOwnerDmHref,
+} from "@/lib/social/donation-config";
 
 function ToggleRow({
   icon,
@@ -15,21 +21,29 @@ function ToggleRow({
   description,
   value,
   onChange,
+  disabled,
 }: {
   icon: React.ReactNode;
   label: string;
   description: string;
   value: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div
-      className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-white/3 border border-white/8 hover:border-white/14 transition-colors cursor-pointer"
-      onClick={() => onChange(!value)}
+      className={`flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-white/3 border border-white/8 transition-colors ${
+        disabled ? "opacity-50 cursor-not-allowed" : "hover:border-white/14 cursor-pointer"
+      }`}
+      onClick={() => {
+        if (!disabled) onChange(!value);
+      }}
       role="switch"
       aria-checked={value}
-      tabIndex={0}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
       onKeyDown={(e) => {
+        if (disabled) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onChange(!value);
@@ -95,7 +109,10 @@ export default function AdsSettingsSection() {
   const setShowAds = useSettingsStore((s) => s.setShowAds);
   const [disableOpen, setDisableOpen] = useState(false);
 
+  const adFree = hasAdFreePerk(auth?.role, auth?.permissions);
+
   const handleToggle = (next: boolean) => {
+    if (adFree) return;
     if (!next && showAds) {
       setDisableOpen(true);
       return;
@@ -113,13 +130,37 @@ export default function AdsSettingsSection() {
         />
         <SectionBody>
           {auth ? (
-            <ToggleRow
-              icon={<Megaphone className="w-4 h-4" />}
-              label={t("settings.ads.showAds")}
-              description={t("settings.ads.showAdsDesc")}
-              value={showAds}
-              onChange={handleToggle}
-            />
+            adFree ? (
+              <p className="text-sm text-emerald-200/80 leading-relaxed">
+                {t("settings.ads.donatorActive")}
+              </p>
+            ) : (
+              <>
+                <ToggleRow
+                  icon={<Megaphone className="w-4 h-4" />}
+                  label={t("settings.ads.showAds")}
+                  description={t("settings.ads.showAdsDesc")}
+                  value={showAds}
+                  onChange={handleToggle}
+                />
+                <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
+                  {t("settings.ads.membershipHint", { amount: KOFI_MEMBERSHIP_EUR })}{" "}
+                  <Link
+                    href={ROUTES.DONATE}
+                    className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
+                  >
+                    {t("settings.ads.membershipLink")}
+                  </Link>
+                  {" · "}
+                  <Link
+                    href={siteOwnerDmHref()}
+                    className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
+                  >
+                    {t("settings.ads.dmLink", { username: SITE_OWNER_USERNAME })}
+                  </Link>
+                </p>
+              </>
+            )
           ) : (
             <p className="text-sm text-white/45 leading-relaxed">
               {t("settings.ads.signInHint")}{" "}

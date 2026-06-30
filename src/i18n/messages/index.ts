@@ -13,14 +13,14 @@ import zh from "./zh.json";
 
 const catalogs: Record<Locale, Partial<Messages>> = {
   en,
-  es: es as Partial<Messages>,
-  fr: fr as Partial<Messages>,
-  de: de as Partial<Messages>,
-  da: da as Partial<Messages>,
-  pt: pt as Partial<Messages>,
-  ja: ja as Partial<Messages>,
-  ko: ko as Partial<Messages>,
-  zh: zh as Partial<Messages>,
+  es: es as unknown as Partial<Messages>,
+  fr: fr as unknown as Partial<Messages>,
+  de: de as unknown as Partial<Messages>,
+  da: da as unknown as Partial<Messages>,
+  pt: pt as unknown as Partial<Messages>,
+  ja: ja as unknown as Partial<Messages>,
+  ko: ko as unknown as Partial<Messages>,
+  zh: zh as unknown as Partial<Messages>,
 };
 
 export function getMessages(locale: Locale): Messages {

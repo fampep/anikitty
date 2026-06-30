@@ -4,12 +4,8 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
-import {
-  CLICK_AD_SCRIPT_SRC,
-  isPlayerSurfaceTarget,
-  isProfilePath,
-} from "@/lib/ads/click-ads-config";
-import { isDonationGoalReached } from "@/lib/social/donation-config";
+import { CLICK_AD_SCRIPT_SRC, isPlayerSurfaceTarget, isProfilePath } from "@/lib/ads/click-ads-config";
+import { hasAdFreePerk } from "@/lib/social/supporter-access";
 
 const SCRIPT_ID = "anikitty-click-ads";
 
@@ -19,10 +15,11 @@ export default function ClickAdsLoader() {
   const showAds = useSettingsStore((s) => s.showAds);
   const loadedRef = useRef(false);
 
+  const adFree = hasAdFreePerk(auth?.role, auth?.permissions);
+
   const shouldRun =
     !isProfilePath(pathname ?? "") &&
-    !isDonationGoalReached() &&
-    (auth ? showAds : true);
+    (auth ? showAds && !adFree : true);
 
   useEffect(() => {
     if (!shouldRun) return;
@@ -38,7 +35,6 @@ export default function ClickAdsLoader() {
       script.async = true;
       script.type = "text/javascript";
       script.referrerPolicy = "no-referrer-when-downgrade";
-      // Panel asks for the tag directly under <body>.
       document.body.insertBefore(script, document.body.firstChild);
     }
 

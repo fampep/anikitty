@@ -387,6 +387,17 @@ export async function migrateDb() {
         value TEXT NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS supporter_until TIMESTAMP`,
+      `CREATE TABLE IF NOT EXISTS kofi_webhook_events (
+        message_id VARCHAR(64) PRIMARY KEY,
+        kofi_transaction_id VARCHAR(64),
+        email VARCHAR(255),
+        type VARCHAR(32),
+        amount VARCHAR(16),
+        currency VARCHAR(8),
+        raw JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>
@@ -404,6 +415,17 @@ export async function migrateDb() {
         console.error("[migrate] level role seed failed:", tier.name, e),
       );
     }
+
+    await client`
+      INSERT INTO roles (name, color, permissions)
+      VALUES ('donator', '#f472b6', '["ads.ad_free"]'::jsonb)
+      ON CONFLICT (name) DO UPDATE SET
+        permissions = CASE
+          WHEN roles.permissions = '[]'::jsonb OR roles.permissions IS NULL
+          THEN '["ads.ad_free"]'::jsonb
+          ELSE roles.permissions
+        END
+    `.catch((e: unknown) => console.error("[migrate] donator role seed failed:", e));
 
     // Ensure the site owner always has admin role
     await client`UPDATE users SET role = 'admin' WHERE username = 'fampep' AND role != 'admin'`;

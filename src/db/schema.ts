@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   bio: text("bio"),
   themeColor: varchar("theme_color", { length: 7 }),
   role: varchar("role", { length: 20 }).notNull().default("user"),
+  supporterUntil: timestamp("supporter_until"),
   anisurgeToken: text("anisurge_token"),
   anisurgeUsername: varchar("anisurge_username", { length: 100 }),
   anilistAccessToken: text("anilist_access_token"),
@@ -560,6 +561,18 @@ export const appSettings = pgTable("app_settings", {
   key: varchar("key", { length: 100 }).primaryKey(),
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/** Idempotency log for Ko-fi payment webhooks. */
+export const kofiWebhookEvents = pgTable("kofi_webhook_events", {
+  messageId: varchar("message_id", { length: 64 }).primaryKey(),
+  kofiTransactionId: varchar("kofi_transaction_id", { length: 64 }),
+  email: varchar("email", { length: 255 }),
+  type: varchar("type", { length: 32 }),
+  amount: varchar("amount", { length: 16 }),
+  currency: varchar("currency", { length: 8 }),
+  raw: jsonb("raw"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // User subscriptions for new episode alerts (sub/dub) on airing anime.
