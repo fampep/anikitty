@@ -1,6 +1,7 @@
 import { useQuery } from "react-query";
 import { api } from "@/lib/core/api";
 import type { AnimexServerId } from "@/lib/providers/animex-api";
+import type { AnisnatchServerId } from "@/lib/providers/anisnatch-api";
 import type { AnimoServerId } from "@/lib/providers/animo-api";
 import type { MiruroPipeProviderId } from "@/lib/providers/miruro-api";
 import {
@@ -44,6 +45,7 @@ const getKittyStream = async (
   miruroPipe?: MiruroPipeProviderId | null,
   title?: string | null,
   animexServer?: AnimexServerId | null,
+  anisnatchServer?: AnisnatchServerId | null,
   animoServer?: AnimoServerId | null,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
@@ -55,6 +57,7 @@ const getKittyStream = async (
       ...(title ? { title } : {}),
       ...(provider === "Miruro" && miruroPipe ? { miruroPipe } : {}),
       ...(provider === "Animex" && animexServer ? { animexServer } : {}),
+      ...(provider === "AniSnatch" && anisnatchServer ? { anisnatchServer } : {}),
       ...(provider === "Animo" && animoServer ? { animoServer } : {}),
     },
   });
@@ -69,6 +72,7 @@ export const useGetKittyStream = (
   miruroPipe?: MiruroPipeProviderId | null,
   title?: string | null,
   animexServer?: AnimexServerId | null,
+  anisnatchServer?: AnisnatchServerId | null,
   animoServer?: AnimoServerId | null,
 ) => {
   return useQuery({
@@ -80,6 +84,7 @@ export const useGetKittyStream = (
       provider,
       miruroPipe ?? "",
       animexServer ?? "",
+      anisnatchServer ?? "",
       animoServer ?? "",
       title ?? "",
     ],
@@ -92,6 +97,7 @@ export const useGetKittyStream = (
         miruroPipe,
         title,
         animexServer,
+        anisnatchServer,
         animoServer,
       ),
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,

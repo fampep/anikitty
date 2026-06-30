@@ -21,6 +21,12 @@ import {
   type AnimexServerId,
 } from "@/lib/providers/animex-api";
 import {
+  DEFAULT_ANISNATCH_SERVER,
+  defaultAnisnatchServerForMode,
+  isAnisnatchServerId,
+  type AnisnatchServerId,
+} from "@/lib/providers/anisnatch-api";
+import {
   DEFAULT_ANIMO_SERVER,
   isAnimoServerId,
   type AnimoServerId,
@@ -162,6 +168,14 @@ const VideoPlayerSection = () => {
     return DEFAULT_ANIMEX_SERVER;
   });
 
+  const [anisnatchServer, setAnisnatchServer] = useState<AnisnatchServerId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("anisnatchServer");
+      if (saved && isAnisnatchServerId(saved)) return saved;
+    }
+    return DEFAULT_ANISNATCH_SERVER;
+  });
+
   const [animoServer, setAnimoServer] = useState<AnimoServerId>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("animoServer");
@@ -176,7 +190,9 @@ const VideoPlayerSection = () => {
       const savedMode = localStorage.getItem("kittyAudioMode");
       if (
         savedMode === "multi" &&
-        (savedProvider === "Miruro" || savedProvider === "Animex")
+        (savedProvider === "Miruro" ||
+          savedProvider === "Animex" ||
+          savedProvider === "AniSnatch")
       ) {
         return savedProvider;
       }
@@ -217,9 +233,10 @@ const VideoPlayerSection = () => {
       provider,
       ...(provider === "Miruro" ? { miruroPipe } : {}),
       ...(provider === "Animex" ? { animexServer } : {}),
+      ...(provider === "AniSnatch" ? { anisnatchServer } : {}),
       ...(provider === "Animo" ? { animoServer } : {}),
     }),
-    [provider, miruroPipe, animexServer, animoServer],
+    [provider, miruroPipe, animexServer, anisnatchServer, animoServer],
   );
 
   const {
@@ -241,6 +258,7 @@ const VideoPlayerSection = () => {
         provider === "Animex" ? animexServer : undefined,
         provider === "Miruro" ? miruroPipe : undefined,
         provider === "Animo" ? animoServer : undefined,
+        provider === "AniSnatch" ? anisnatchServer : undefined,
       ),
     [
       streamCapabilities,
@@ -249,6 +267,7 @@ const VideoPlayerSection = () => {
       animexServer,
       miruroPipe,
       animoServer,
+      anisnatchServer,
     ],
   );
 
@@ -505,6 +524,7 @@ const VideoPlayerSection = () => {
     provider === "Miruro" ? miruroPipe : null,
     animeTitle,
     provider === "Animex" ? animexServer : null,
+    provider === "AniSnatch" ? anisnatchServer : null,
     provider === "Animo" ? animoServer : null,
   );
 
@@ -540,7 +560,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${animoServer}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
@@ -594,13 +614,18 @@ const VideoPlayerSection = () => {
         syncDubSearchParam(false);
       }
     }
-    if (mode !== "multi" || (p !== "Miruro" && p !== "Animex")) {
+    if (mode !== "multi" || (p !== "Miruro" && p !== "Animex" && p !== "AniSnatch")) {
       setMultiPanel(null);
     }
     if (p === "Animex") {
       const server = defaultAnimexServerForMode(mode);
       setAnimexServer(server);
       localStorage.setItem("animexServer", server);
+    }
+    if (p === "AniSnatch") {
+      const server = defaultAnisnatchServerForMode(mode);
+      setAnisnatchServer(server);
+      localStorage.setItem("anisnatchServer", server);
     }
     if (p === "Animo") {
       setAnimoServer(DEFAULT_ANIMO_SERVER);
@@ -631,6 +656,17 @@ const VideoPlayerSection = () => {
     localStorage.setItem("kittyProvider", "Animex");
     localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("animexServer", server);
+  };
+
+  const handleAnisnatchServerChange = (server: AnisnatchServerId) => {
+    preservePlaybackPosition();
+    setProvider("AniSnatch");
+    setAudioMode("multi");
+    setAnisnatchServer(server);
+    setMultiPanel("AniSnatch");
+    localStorage.setItem("kittyProvider", "AniSnatch");
+    localStorage.setItem("kittyAudioMode", "multi");
+    localStorage.setItem("anisnatchServer", server);
   };
 
   const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
@@ -703,6 +739,7 @@ const VideoPlayerSection = () => {
           multiPanel={multiPanel}
           miruroPipe={miruroPipe}
           animexServer={animexServer}
+          anisnatchServer={anisnatchServer}
           animoServer={animoServer}
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
@@ -711,6 +748,7 @@ const VideoPlayerSection = () => {
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
           onAnimexServerChange={handleAnimexServerChange}
+          onAnisnatchServerChange={handleAnisnatchServerChange}
           onAnimoServerChange={handleAnimoServerChange}
         />
 
@@ -773,6 +811,7 @@ const VideoPlayerSection = () => {
           multiPanel={multiPanel}
           miruroPipe={miruroPipe}
           animexServer={animexServer}
+          anisnatchServer={anisnatchServer}
           animoServer={animoServer}
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
@@ -781,6 +820,7 @@ const VideoPlayerSection = () => {
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
           onAnimexServerChange={handleAnimexServerChange}
+          onAnisnatchServerChange={handleAnisnatchServerChange}
           onAnimoServerChange={handleAnimoServerChange}
         />
 

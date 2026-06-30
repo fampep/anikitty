@@ -1,5 +1,11 @@
 import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
 import {
+  DEFAULT_ANISNATCH_SERVER,
+  isAnisnatchServerId,
+  probeAnisnatchServerCapabilities,
+  type AnisnatchServerId,
+} from "@/lib/providers/anisnatch-api";
+import {
   DEFAULT_ANIMEX_SERVER,
   isAnimexServerId,
   probeAnimexServerCapabilities,
@@ -39,6 +45,7 @@ export type EpisodeStreamCapabilities = {
   miruroPipes: Partial<Record<MiruroPipeProviderId, StreamCapabilities>>;
   animexServers: Partial<Record<AnimexServerId, StreamCapabilities>>;
   animoServers: Partial<Record<AnimoServerId, StreamCapabilities>>;
+  anisnatchServers: Partial<Record<AnisnatchServerId, StreamCapabilities>>;
 };
 
 export type StreamCapabilityTarget = {
@@ -46,6 +53,7 @@ export type StreamCapabilityTarget = {
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
   animoServer?: AnimoServerId;
+  anisnatchServer?: AnisnatchServerId;
 };
 
 export const EMPTY_STREAM_CAPABILITIES: StreamCapabilities = {
@@ -148,7 +156,7 @@ async function probeDirectProviderCapabilities(
     ? await probeStreamDirect(provider, anilistId, episode, "dub", title)
     : null;
   const caps = capabilitiesFromProbes(subProbe, dubProbe);
-  if (MULTI_ROW_PROVIDERS.has(provider) && caps.sub && caps.dub) {
+  if (MULTI_ROW_PROVIDERS.has(provider) && provider !== "AniSnatch" && caps.sub && caps.dub) {
     return { ...caps, multi: true };
   }
   return caps;
@@ -171,6 +179,7 @@ export async function fetchActiveProviderStreamCapabilities(
       miruroPipes: { [pipe]: caps },
       animexServers: {},
       animoServers: {},
+      anisnatchServers: {},
     };
   }
 
@@ -182,6 +191,19 @@ export async function fetchActiveProviderStreamCapabilities(
       miruroPipes: {},
       animexServers: { [server]: caps },
       animoServers: {},
+      anisnatchServers: {},
+    };
+  }
+
+  if (provider === "AniSnatch") {
+    const server = target.anisnatchServer ?? DEFAULT_ANISNATCH_SERVER;
+    const caps = await probeAnisnatchServerCapabilities(anilistId, episode, server, title);
+    return {
+      providers: { AniSnatch: caps },
+      miruroPipes: {},
+      animexServers: {},
+      animoServers: {},
+      anisnatchServers: { [server]: caps },
     };
   }
 
@@ -193,6 +215,7 @@ export async function fetchActiveProviderStreamCapabilities(
       miruroPipes: {},
       animexServers: {},
       animoServers: { [server]: caps },
+      anisnatchServers: {},
     };
   }
 
@@ -202,6 +225,7 @@ export async function fetchActiveProviderStreamCapabilities(
     miruroPipes: {},
     animexServers: {},
     animoServers: {},
+    anisnatchServers: {},
   };
 }
 
@@ -224,6 +248,11 @@ export function parseStreamCapabilityTarget(searchParams: URLSearchParams): Stre
   const animoServer = searchParams.get("animoServer");
   if (animoServer && isAnimoServerId(animoServer)) {
     target.animoServer = animoServer;
+  }
+
+  const anisnatchServer = searchParams.get("anisnatchServer");
+  if (anisnatchServer && isAnisnatchServerId(anisnatchServer)) {
+    target.anisnatchServer = anisnatchServer;
   }
 
   return target;
@@ -268,11 +297,13 @@ export function resolveActiveStreamCapabilities(
   animexServer?: AnimexServerId,
   miruroPipe?: MiruroPipeProviderId,
   animoServer?: AnimoServerId,
+  anisnatchServer?: AnisnatchServerId,
 ): StreamCapabilities | null | undefined {
   if (!caps) return undefined;
   if (audioMode === "multi") {
     if (provider === "Miruro" && miruroPipe) return caps.miruroPipes[miruroPipe];
     if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
+    if (provider === "AniSnatch" && anisnatchServer) return caps.anisnatchServers[anisnatchServer];
   }
   if (provider === "Animo" && animoServer) return caps.animoServers[animoServer] ?? caps.providers[provider];
   return caps.providers[provider];
@@ -302,6 +333,7 @@ export function selectionSupportsBothStreamAudioFromCaps(
   animexServer?: AnimexServerId,
   miruroPipe?: MiruroPipeProviderId,
   animoServer?: AnimoServerId,
+  anisnatchServer?: AnisnatchServerId,
 ): boolean {
   const active = resolveActiveStreamCapabilities(
     caps,
@@ -310,6 +342,7 @@ export function selectionSupportsBothStreamAudioFromCaps(
     animexServer,
     miruroPipe,
     animoServer,
+    anisnatchServer,
   );
   return canToggleStreamAudio(active);
 }

@@ -15,6 +15,7 @@ import { PublicEnvScript } from "next-runtime-env";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import UserThemeSync from "@/components/layout/user-theme-sync";
 import ClickAdsLoader from "@/components/ads/click-ads-loader";
+import PwaRegister from "@/components/pwa/pwa-register";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -83,6 +84,10 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport = {
+  themeColor: "#000000",
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -118,6 +123,7 @@ export default async function RootLayout({
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
         <ClickAdsLoader />
+        <PwaRegister />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider
             attribute="class"

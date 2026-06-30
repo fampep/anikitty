@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-api";
+import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-api";
 import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-api";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-api";
 import {
@@ -30,7 +31,7 @@ import {
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 
-export type MultiPanelProvider = "Miruro" | "Animex";
+export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch";
 
 type Props = {
   value: KittyProvider;
@@ -110,6 +111,7 @@ export function ProviderQuickPick({
   multiPanel = null,
   miruroPipe,
   animexServer,
+  anisnatchServer,
   animoServer,
   streamAudio = "sub",
   capabilities,
@@ -118,6 +120,7 @@ export function ProviderQuickPick({
   onMultiToggle,
   onMiruroPipeChange,
   onAnimexServerChange,
+  onAnisnatchServerChange,
   onAnimoServerChange,
   className,
 }: {
@@ -126,6 +129,7 @@ export function ProviderQuickPick({
   multiPanel?: MultiPanelProvider | null;
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
+  anisnatchServer?: AnisnatchServerId;
   animoServer?: AnimoServerId;
   streamAudio?: "sub" | "dub";
   capabilities?: EpisodeStreamCapabilities;
@@ -134,6 +138,7 @@ export function ProviderQuickPick({
   onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
+  onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
   className?: string;
 }) {
@@ -144,6 +149,7 @@ export function ProviderQuickPick({
       multiPanel={multiPanel}
       miruroPipe={miruroPipe}
       animexServer={animexServer}
+      anisnatchServer={anisnatchServer}
       animoServer={animoServer}
       streamAudio={streamAudio}
       capabilities={capabilities}
@@ -152,6 +158,7 @@ export function ProviderQuickPick({
       onMultiToggle={onMultiToggle}
       onMiruroPipeChange={onMiruroPipeChange}
       onAnimexServerChange={onAnimexServerChange}
+      onAnisnatchServerChange={onAnisnatchServerChange}
       onAnimoServerChange={onAnimoServerChange}
       className={className}
       rows={["sub", "multi"]}
@@ -264,6 +271,8 @@ type ProviderGridProps = {
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   animexServer?: AnimexServerId;
   onAnimexServerChange?: (server: AnimexServerId) => void;
+  anisnatchServer?: AnisnatchServerId;
+  onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
   animoServer?: AnimoServerId;
   onAnimoServerChange?: (server: AnimoServerId) => void;
   streamAudio?: "sub" | "dub";
@@ -284,6 +293,8 @@ export function ProviderGrid({
   onMiruroPipeChange,
   animexServer,
   onAnimexServerChange,
+  anisnatchServer,
+  onAnisnatchServerChange,
   animoServer,
   onAnimoServerChange,
   streamAudio = "sub",
@@ -337,7 +348,8 @@ export function ProviderGrid({
             </span>
             <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
               {items.map((p) => {
-                const isMulti = p.id === "Miruro" || p.id === "Animex";
+                const isMulti =
+                  p.id === "Miruro" || p.id === "Animex" || p.id === "AniSnatch";
                 const isActive =
                   provider === p.id &&
                   (mode === "multi" ? audioMode === "multi" : audioMode !== "multi");
@@ -361,6 +373,7 @@ export function ProviderGrid({
                       isExpanded && styles.expanded,
                       capabilitiesLoading && "opacity-60 animate-pulse",
                       p.id === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
+                      p.id === "AniSnatch" && isActive && "border-fuchsia-400/40 bg-fuchsia-500/20 text-fuchsia-100",
                       p.id === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
                     )}
                   >
@@ -438,6 +451,37 @@ export function ProviderGrid({
         </MultiServerPanel>
       )}
 
+      {multiPanel === "AniSnatch" &&
+        provider === "AniSnatch" &&
+        onAnisnatchServerChange &&
+        anisnatchServer != null && (
+          <MultiServerPanel accent="fuchsia" label={t("watch.anisnatchServer")}>
+            <div className="flex flex-wrap gap-1.5">
+              {ANISNATCH_SERVERS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onAnisnatchServerChange(s.id)}
+                  title={s.hint}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
+                    anisnatchServer === s.id
+                      ? "bg-fuchsia-500/25 border-fuchsia-400/45 text-fuchsia-100"
+                      : "border-white/10 text-white/45 hover:border-fuchsia-500/30 hover:text-fuchsia-200/80 hover:bg-fuchsia-500/[0.06]",
+                    capabilitiesLoading && "opacity-60 animate-pulse",
+                  )}
+                >
+                  <span>{s.label}</span>
+                  {capsReady && anisnatchServer === s.id && (
+                    <StreamCapabilityBadges caps={capabilities?.anisnatchServers[s.id]} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </MultiServerPanel>
+        )}
+
       {provider === "Animo" && onAnimoServerChange && animoServer != null && (
         <MultiServerPanel accent="cyan" label={t("watch.animoServer")}>
           <div className="flex flex-wrap gap-1.5">
@@ -476,7 +520,7 @@ function MultiServerPanel({
   children,
 }: {
   label: string;
-  accent: "violet" | "rose" | "cyan";
+  accent: "violet" | "rose" | "cyan" | "fuchsia";
   children: ReactNode;
 }) {
   const border =
@@ -484,13 +528,17 @@ function MultiServerPanel({
       ? "border-rose-500/25 bg-rose-500/[0.04]"
       : accent === "cyan"
         ? "border-cyan-500/25 bg-cyan-500/[0.04]"
-        : "border-violet-500/25 bg-violet-500/[0.04]";
+        : accent === "fuchsia"
+          ? "border-fuchsia-500/25 bg-fuchsia-500/[0.04]"
+          : "border-violet-500/25 bg-violet-500/[0.04]";
   const text =
     accent === "rose"
       ? "text-rose-300/70"
       : accent === "cyan"
         ? "text-cyan-300/70"
-        : "text-violet-300/70";
+        : accent === "fuchsia"
+          ? "text-fuchsia-300/70"
+          : "text-violet-300/70";
 
   return (
     <div className={cn("ml-14 rounded-lg border px-2.5 py-2", border)}>

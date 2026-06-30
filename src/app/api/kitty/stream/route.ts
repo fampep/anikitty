@@ -3,6 +3,12 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitles/subtitle-cache-store";
 import {
+  DEFAULT_ANISNATCH_SERVER,
+  fetchAnisnatchVideoStream,
+  isAnisnatchServerId,
+  type AnisnatchServerId,
+} from "@/lib/providers/anisnatch-api";
+import {
   DEFAULT_ANIMEX_SERVER,
   fetchAnimexVideoStream,
   isAnimexServerId,
@@ -40,6 +46,7 @@ import {
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
 const SAFE_ANIMEX_SERVER = /^[a-z]{2,12}$/;
+const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
@@ -64,6 +71,7 @@ export async function GET(req: Request) {
   const provider = (searchParams.get("provider") || DEFAULT_KITTY_PROVIDER) as KittyProvider;
   const miruroPipeParam = searchParams.get("miruroPipe");
   const animexServerParam = searchParams.get("animexServer");
+  const anisnatchServerParam = searchParams.get("anisnatchServer");
   const animoServerParam = searchParams.get("animoServer");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
@@ -99,6 +107,15 @@ export async function GET(req: Request) {
       ? animexServerParam
       : provider === "Animex"
         ? DEFAULT_ANIMEX_SERVER
+        : null;
+
+  const anisnatchServer =
+    anisnatchServerParam &&
+    SAFE_ANISNATCH_SERVER.test(anisnatchServerParam) &&
+    isAnisnatchServerId(anisnatchServerParam)
+      ? anisnatchServerParam
+      : provider === "AniSnatch"
+        ? DEFAULT_ANISNATCH_SERVER
         : null;
 
   const animoServer =
@@ -205,6 +222,34 @@ export async function GET(req: Request) {
       }
     } catch (e) {
       console.error("[kitty/stream] Animex server failed:", e);
+    }
+  }
+
+  if (provider === "AniSnatch") {
+    try {
+      const anisnatch = await fetchAnisnatchVideoStream({
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        serverId: anisnatchServer as AnisnatchServerId,
+        title: titleParam,
+      });
+
+      if (anisnatch?.file) {
+        return finalizeStreamResponse(
+          {
+            file: anisnatch.file,
+            headers: anisnatch.headers,
+            tracks: anisnatch.tracks,
+            skipTimes: anisnatch.skipTimes,
+            server: anisnatch.server,
+            download: anisnatch.download,
+          },
+          "AniSnatch",
+        );
+      }
+    } catch (e) {
+      console.error("[kitty/stream] AniSnatch server failed:", e);
     }
   }
 

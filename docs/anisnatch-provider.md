@@ -135,11 +135,11 @@ Use the returned `headers` when proxying segments through AniKitty’s HLS proxy
 
 ## AniKitty integration
 
-Registered in `src/lib/kitty/kitty-providers.ts`:
+Registered in `src/lib/kitty/kitty-providers.ts` with a **Multi row** server picker (like Animex):
 
-- **Multi row** provider (with Miruro and Animex) — SUB/DUB toggled in the player via separate streams
-- Generic stream path: `/api/kitty/stream?provider=AniSnatch&audio=sub|dub`
-- **Hard sub** on SUB streams; soft-sub available on KittyAPI via `audio=soft-sub` (not exposed in the watch UI yet)
+- **AniVibe**, **NekoVibe**, **Kwik**, **AniBD**, **AniYT**, **AniAra**, **OkCdn**, **MP4**, **Megaplay**, **Vidwish**, **Onsen**
+- SUB/DUB toggled in the player; streams resolve via `/provider/AniSnatch/servers` + `/stream`
+- Default server: **AniVibe**; falls back to `stream-direct` if the selected mirror is unavailable
 
 Requires KittyAPI `PROVIDER_CONFIG.AniSnatch = true` (disable with `DISABLED_PROVIDERS=AniSnatch`).
 
