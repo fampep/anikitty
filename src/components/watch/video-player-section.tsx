@@ -537,9 +537,6 @@ const VideoPlayerSection = () => {
   const loadingThumbnail =
     anime?.anime?.info?.banner ?? anime?.anime?.info?.poster ?? null;
 
-  const playerPoster =
-    anime?.anime?.info?.banner ?? anime?.anime?.info?.poster ?? undefined;
-
   const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${animoServer}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
@@ -730,7 +727,6 @@ const VideoPlayerSection = () => {
       <KittyPlayer
         key={playerKey}
         src={streamData.file}
-        poster={playerPoster}
         tracks={playerTracks}
         headers={playerHeaders}
         preferSubtitles={subtitleTracks.length > 0 || streamAudio !== "dub"}

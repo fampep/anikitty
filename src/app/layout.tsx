@@ -117,6 +117,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
+        <ClickAdsLoader />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider
             attribute="class"
@@ -126,7 +127,6 @@ export default async function RootLayout({
           >
             <QueryProvider>
               <UserThemeSync />
-              <ClickAdsLoader />
               <NavBar />
               <SiteAnnouncementBanner />
               {children}

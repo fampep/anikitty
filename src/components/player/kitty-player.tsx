@@ -9,7 +9,6 @@ import {
   MediaPlayer,
   MediaProvider,
   Track,
-  Poster,
   type MediaPlayerInstance,
   isHLSProvider,
   type MediaProviderAdapter,
@@ -26,6 +25,16 @@ import { createHlsConfig } from "@/lib/kitty/hls-config";
 import Hls from "hls.js";
 import { bindPipCaptionSync } from "@/lib/kitty/pip-captions";
 import type { VideoPlayerProps } from "@/lib/kitty/video-player-types";
+
+function hideVidstackPoster(root: HTMLElement | null) {
+  if (!root) return;
+  root.querySelectorAll(".vds-poster").forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    node.style.display = "none";
+    node.removeAttribute("data-visible");
+    node.setAttribute("data-hidden", "");
+  });
+}
 
 export default function KittyPlayer({
   src,
@@ -449,6 +458,7 @@ export default function KittyPlayer({
 
   const dismissPoster = useCallback(() => {
     setPosterVisible(false);
+    hideVidstackPoster(containerRef.current);
   }, []);
 
   const handleTimeUpdate = useCallback(() => {
@@ -590,6 +600,8 @@ export default function KittyPlayer({
         className="w-full h-full"
         style={subtitleCssVars as React.CSSProperties & Record<string, string>}
         onProviderChange={onProviderChange}
+        onStarted={dismissPoster}
+        onLoadedData={dismissPoster}
         onCanPlay={handleCanPlay}
         onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}
@@ -597,7 +609,6 @@ export default function KittyPlayer({
         onEnded={handleEnded}
       >
         <MediaProvider>
-          {posterVisible && poster && <Poster className="vds-poster" src={poster} alt="" />}
           {effectiveChapterUrl && (
             <Track src={effectiveChapterUrl} kind="chapters" default />
           )}

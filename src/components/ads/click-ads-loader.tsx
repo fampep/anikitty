@@ -6,7 +6,6 @@ import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import {
   CLICK_AD_SCRIPT_SRC,
-  CLICK_AD_SW_PATH,
   isPlayerSurfaceTarget,
   isProfilePath,
 } from "@/lib/ads/click-ads-config";
@@ -37,14 +36,10 @@ export default function ClickAdsLoader() {
       script.id = SCRIPT_ID;
       script.src = CLICK_AD_SCRIPT_SRC;
       script.async = true;
+      script.type = "text/javascript";
       script.referrerPolicy = "no-referrer-when-downgrade";
-      document.head.appendChild(script);
-    }
-
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register(CLICK_AD_SW_PATH).catch(() => {
-        // Ad network or PWA may already own registration — ignore.
-      });
+      // Panel asks for the tag directly under <body>.
+      document.body.insertBefore(script, document.body.firstChild);
     }
 
     const blockPlayerClicks = (event: MouseEvent) => {
