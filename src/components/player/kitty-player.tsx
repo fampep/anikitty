@@ -655,43 +655,45 @@ export default function KittyPlayer({
       )}
       style={orientClass ? undefined : { aspectRatio: "16/9" }}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0 z-0" />
 
-      {showLoading && (
-        <div className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center bg-black/35 backdrop-blur-[1px] animate-in fade-in duration-300">
-          <LoadingGirl size={120} className="opacity-90" />
-        </div>
-      )}
+      <div className="kitty-player-overlays pointer-events-none absolute inset-0 z-[200]">
+        {showLoading && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[1px] animate-in fade-in duration-300">
+            <LoadingGirl size={120} className="opacity-90" />
+          </div>
+        )}
 
-      {showNext && nextEpisode && (
-        <NextEpisodeButton
-          episode={nextEpisode}
-          stackClass={overlayBottom}
-          onClick={() => onNextEpisodeRef.current?.()}
-        />
-      )}
+        {showNext && nextEpisode && (
+          <NextEpisodeButton
+            episode={nextEpisode}
+            stackClass={overlayBottom}
+            onClick={() => onNextEpisodeRef.current?.()}
+          />
+        )}
 
-      {activeSkip && activeInterval && countdown === null && (
-        <PlayerSkipButton
-          type={activeSkip}
-          interval={activeInterval}
-          currentTime={currentTime}
-          stackClass={overlayBottom}
-          onSkip={() => seekTo(activeInterval.end)}
-        />
-      )}
+        {activeSkip && activeInterval && countdown === null && (
+          <PlayerSkipButton
+            type={activeSkip}
+            interval={activeInterval}
+            currentTime={currentTime}
+            stackClass={overlayBottom}
+            onSkip={() => seekTo(activeInterval.end)}
+          />
+        )}
 
-      {countdown !== null && nextEpisode && (
-        <CountdownOverlay
-          episode={nextEpisode}
-          countdown={countdown}
-          onSkip={() => {
-            setCountdown(null);
-            onNextEpisodeRef.current?.();
-          }}
-          onCancel={() => setCountdown(null)}
-        />
-      )}
+        {countdown !== null && nextEpisode && (
+          <CountdownOverlay
+            episode={nextEpisode}
+            countdown={countdown}
+            onSkip={() => {
+              setCountdown(null);
+              onNextEpisodeRef.current?.();
+            }}
+            onCancel={() => setCountdown(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }

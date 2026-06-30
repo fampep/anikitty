@@ -261,6 +261,15 @@ button, a, [role="button"] {
   height: 100%;
 }
 
+/* Keep ArtPlayer chrome below React overlay buttons (skip / next / countdown) */
+.art-kitty-player .artplayer-app {
+  z-index: 0;
+}
+
+.kitty-player-overlays {
+  isolation: isolate;
+}
+
 /* Hide built-in spinner while LoadingGirl overlay is shown */
 .art-kitty-player .art-loading {
   display: none !important;
