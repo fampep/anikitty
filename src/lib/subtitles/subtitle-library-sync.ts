@@ -34,11 +34,12 @@ export type SubtitleLibrarySyncOptions = {
 export async function runSubtitleLibrarySyncTick(
   opts: SubtitleLibrarySyncOptions = {},
 ): Promise<SubtitleLibrarySyncResult> {
-  const maxIncompleteAnime = Math.max(0, opts.maxIncompleteAnime ?? 4);
+  // Process ALL incomplete anime (no limit) - systematically complete entire database
+  const maxIncompleteAnime = Math.max(0, opts.maxIncompleteAnime ?? 999999);
   const episodesPerAnime = Math.max(1, opts.episodesPerAnime ?? SUBTITLE_SYNC_EPISODES_PER_TICK);
-  const maxDiscover = Math.max(0, opts.maxDiscover ?? 2);
-  const backfillLimit = Math.max(0, opts.backfillLimit ?? 20);
-  const refreshLimit = Math.max(0, opts.refreshLimit ?? 15);
+  const maxDiscover = Math.max(0, opts.maxDiscover ?? 999999);
+  const backfillLimit = Math.max(0, opts.backfillLimit ?? 999999);
+  const refreshLimit = Math.max(0, opts.refreshLimit ?? 999999);
 
   const result: SubtitleLibrarySyncResult = {
     backfilled: 0,
