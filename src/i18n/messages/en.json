@@ -619,7 +619,8 @@
   "schedule": {
     "title": "Anime Schedule",
     "subtitle": "Weekly airing schedule — all times shown in your local timezone",
-    "noSchedule": "No schedule for this day"
+    "noSchedule": "No schedule for this day",
+    "airedAt": "Aired {time}"
   },
   "card": {
     "live": "LIVE",
@@ -691,15 +692,23 @@
       "banner": "Banner",
       "poster": "Poster"
     },
+    "ratings": "Ratings",
+    "ratingsVotes": "{count} votes",
     "detailFields": {
       "type": "Type",
       "episodes": "Episodes",
       "duration": "Duration",
       "status": "Status",
+      "source": "Source",
       "aired": "Aired",
       "premiered": "Premiered",
-      "score": "Score",
-      "rating": "Rating"
+      "score": "MAL Score",
+      "rating": "AniList Score",
+      "malRank": "MAL Rank",
+      "tvdbStatus": "TVDB Status",
+      "network": "Network",
+      "country": "Country",
+      "tmdbSeasons": "TMDB Seasons"
     },
     "bookmark": {
       "planToWatch": "Plan to Watch",

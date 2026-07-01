@@ -616,7 +616,8 @@
   "schedule": {
     "title": "Programação de anime",
     "subtitle": "Programação semanal — todos os horários no seu fuso local",
-    "noSchedule": "Sem programação para este dia"
+    "noSchedule": "Sem programação para este dia",
+    "airedAt": "Exibido às {time}"
   },
   "card": {
     "live": "AO VIVO",

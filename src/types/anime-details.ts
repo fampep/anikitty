@@ -78,6 +78,7 @@ export interface MoreInfo {
   duration: string;
   status: string;
   malscore: string;
+  source?: string | null;
   genres: string[];
   studios: string;
   producers: string[];

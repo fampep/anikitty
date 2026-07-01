@@ -4,7 +4,6 @@ import Container from "@/components/layout/container";
 import React, { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetAnimeSchedule } from "@/query/anime/get-anime-schedule";
-import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { CalendarDays } from "lucide-react";
 import {
@@ -15,6 +14,7 @@ import {
 } from "@/lib/anime/schedule-days";
 import { cn } from "@/lib/core/utils";
 import { useI18n, useT } from "@/providers/i18n-provider";
+import { ScheduleAnimeRow, ScheduleRowSkeleton } from "@/components/anime/schedule-anime-row";
 
 function AnimeSchedule() {
   const t = useT();
@@ -33,15 +33,16 @@ function AnimeSchedule() {
   const { isLoading, data } = useGetAnimeSchedule(selectedDate);
 
   return (
-    <Container className="flex flex-col gap-5 py-10 items-center lg:items-start">
-      {/* Heading */}
+    <Container className="flex flex-col items-center gap-5 py-10 lg:items-start">
       <div className="flex items-center gap-3">
-        <div className="w-0.5 h-5 bg-white/35 shrink-0" />
-        <CalendarDays className="w-4 h-4 text-white/50" />
-        <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+        <div className="h-5 w-0.5 shrink-0 bg-white/35" />
+        <CalendarDays className="h-4 w-4 text-white/50" />
+        <h5 className="text-xl font-bold tracking-tight text-white md:text-2xl">
           {t("nav.schedule")}
         </h5>
       </div>
+
+      <p className="text-sm font-mono text-white/35">{t("schedule.subtitle")}</p>
 
       <Tabs
         defaultValue={currentDay}
@@ -49,8 +50,7 @@ function AnimeSchedule() {
         value={currentSelectedTab}
         className="w-full"
       >
-        {/* Day tabs */}
-        <TabsList className="flex gap-0 w-full bg-transparent border-b border-white/10 h-auto p-0 overflow-x-auto">
+        <TabsList className="flex h-auto w-full gap-0 overflow-x-auto border-b border-white/10 bg-transparent p-0">
           {SCHEDULE_DAYS.map((day) => {
             const d = getDateForWeekday(day, currentDate);
             const isToday = day === currentDay;
@@ -59,9 +59,9 @@ function AnimeSchedule() {
                 key={day}
                 value={day}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-none border-b-2 border-transparent shrink-0 transition-all",
-                  "data-[state=active]:border-white data-[state=active]:text-white data-[state=active]:bg-white/4",
-                  "text-white/35 hover:text-white/55 bg-transparent",
+                  "flex shrink-0 flex-col items-center gap-0.5 rounded-none border-b-2 border-transparent px-3 py-2.5 transition-all",
+                  "bg-transparent text-white/35 hover:text-white/55",
+                  "data-[state=active]:border-white data-[state=active]:bg-white/4 data-[state=active]:text-white",
                 )}
               >
                 <span className="text-[11px] font-bold font-mono uppercase tracking-wider">
@@ -70,87 +70,35 @@ function AnimeSchedule() {
                 <span className={cn("text-[10px] font-mono", isToday ? "text-white/60" : "text-white/25")}>
                   {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}
                 </span>
-                {isToday && (
-                  <span className="w-1 h-1 rounded-full bg-white/50 mt-0.5" />
-                )}
+                {isToday && <span className="mt-0.5 h-1 w-1 rounded-full bg-white/50" />}
               </TabsTrigger>
             );
           })}
         </TabsList>
 
         {isLoading ? (
-          <ScheduleSkeleton />
+          <div className="flex flex-col gap-2 pt-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ScheduleRowSkeleton key={i} />
+            ))}
+          </div>
         ) : (
           SCHEDULE_DAYS.map((day) => (
             <TabsContent key={day} value={day} className="mt-0">
               {day === currentSelectedTab && (
-                <div className="flex flex-col divide-y divide-white/5">
+                <div className="flex flex-col gap-2 pt-4">
                   {!data?.scheduledAnimes?.length ? (
-                    <div className="flex items-center justify-center py-12 text-white/25 text-sm font-mono">
+                    <div className="flex items-center justify-center py-12 text-sm font-mono text-white/25">
                       {t("schedule.noSchedule")}
                     </div>
                   ) : (
-                    data.scheduledAnimes.map((anime) => {
-                      const airingTime = new Date(anime.airingTimestamp);
-                      const isPast = airingTime < currentDate;
-                      const isNearby =
-                        !isPast &&
-                        Math.abs(airingTime.getTime() - currentDate.getTime()) < 60 * 60 * 1000;
-
-                      return (
-                        <div
-                          key={anime.id}
-                          className="flex items-center justify-between gap-4 px-1 py-3 hover:bg-white/3 transition-colors rounded-lg group"
-                        >
-                          {/* Time */}
-                          <div className="flex items-center gap-1.5 w-20 shrink-0">
-                            {isNearby && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse shrink-0" />
-                            )}
-                            <span
-                              className={cn(
-                                "text-[11px] font-mono tabular-nums",
-                                isNearby
-                                  ? "text-white/80"
-                                  : isPast
-                                  ? "text-white/20"
-                                  : "text-white/40",
-                              )}
-                            >
-                              {airingTime.toLocaleTimeString("en-US", {
-                                hour: "numeric",
-                                minute: "2-digit",
-                                hour12: true,
-                              })}
-                            </span>
-                          </div>
-
-                          {/* Name */}
-                          <p
-                            className={cn(
-                              "flex-1 text-sm font-medium line-clamp-1 min-w-0 transition-colors",
-                              isPast ? "text-white/30" : "text-white/70 group-hover:text-white/90",
-                            )}
-                          >
-                            {anime.name}
-                          </p>
-
-                          {/* Episode link */}
-                          <Link href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}>
-                            <span
-                              className={cn(
-                                "shrink-0 text-[11px] font-mono px-2.5 py-1 rounded-md border transition-all whitespace-nowrap",
-                                isPast
-                                  ? "border-white/8 text-white/20"
-                                  : "border-white/15 text-white/45 hover:border-white/30 hover:text-white/75",
-                              )}
-                            >
-                              EP {anime.episode}
-                            </span>
-                          </Link>
-                        </div>
-                      );
-                    })
+                    data.scheduledAnimes.map((anime) => (
+                      <ScheduleAnimeRow
+                        key={`${anime.id}-${anime.episode}`}
+                        anime={anime}
+                        watchHref={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                      />
+                    ))
                   )}
                 </div>
               )}
@@ -161,17 +109,5 @@ function AnimeSchedule() {
     </Container>
   );
 }
-
-const ScheduleSkeleton = () => (
-  <div className="flex flex-col gap-2 pt-4">
-    {Array.from({ length: 6 }).map((_, i) => (
-      <div key={i} className="flex items-center gap-4 px-1 py-2">
-        <div className="w-16 h-3 rounded animate-pulse bg-white/8" />
-        <div className="flex-1 h-3 rounded animate-pulse bg-white/5" />
-        <div className="w-14 h-6 rounded-md animate-pulse bg-white/5" />
-      </div>
-    ))}
-  </div>
-);
 
 export default AnimeSchedule;

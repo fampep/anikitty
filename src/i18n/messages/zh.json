@@ -616,7 +616,8 @@
   "schedule": {
     "title": "动漫放送表",
     "subtitle": "每周放送表 — 所有时间均显示为你的本地时区",
-    "noSchedule": "这一天没有放送安排"
+    "noSchedule": "这一天没有放送安排",
+    "airedAt": "已于 {time} 播出"
   },
   "card": {
     "live": "LIVE",

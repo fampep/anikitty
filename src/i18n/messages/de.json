@@ -616,7 +616,8 @@
   "schedule": {
     "title": "Anime-Sendeplan",
     "subtitle": "Wöchentlicher Sendeplan — alle Zeiten in deiner lokalen Zeitzone",
-    "noSchedule": "Kein Sendeplan für diesen Tag"
+    "noSchedule": "Kein Sendeplan für diesen Tag",
+    "airedAt": "Ausgestrahlt um {time}"
   },
   "card": {
     "live": "LIVE",

@@ -616,7 +616,8 @@
   "schedule": {
     "title": "Horario de anime",
     "subtitle": "Horario semanal de emisiones — todas las horas se muestran en tu zona horaria local",
-    "noSchedule": "No hay horario para este día"
+    "noSchedule": "No hay horario para este día",
+    "airedAt": "Emitido a las {time}"
   },
   "card": {
     "live": "EN VIVO",

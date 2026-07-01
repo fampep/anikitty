@@ -616,7 +616,8 @@
   "schedule": {
     "title": "Planning des anime",
     "subtitle": "Planning hebdomadaire des diffusions — toutes les heures sont affichées dans votre fuseau horaire local",
-    "noSchedule": "Aucun planning pour ce jour"
+    "noSchedule": "Aucun planning pour ce jour",
+    "airedAt": "Diffusé à {time}"
   },
   "card": {
     "live": "EN DIRECT",

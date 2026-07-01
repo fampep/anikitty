@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useMemo } from "react";
-import Link from "next/link";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { CalendarDays, Clock } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionHeading } from "./section-heading";
 import { useGetAnimeSchedule } from "@/query/anime/get-anime-schedule";
@@ -17,15 +16,7 @@ import {
 } from "@/lib/anime/schedule-days";
 import { cn } from "@/lib/core/utils";
 import { useI18n, useT } from "@/providers/i18n-provider";
-
-function airingLabel(secondsUntilAiring: number, airingTimestamp: number, t: ReturnType<typeof useT>) {
-  if (secondsUntilAiring <= 0) return t("home.aired");
-  if (secondsUntilAiring < 3600) {
-    const m = Math.max(1, Math.ceil(secondsUntilAiring / 60));
-    return t("home.inMinutes", { m });
-  }
-  return new Date(airingTimestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
+import { ScheduleAnimeRow, ScheduleRowSkeleton } from "@/components/anime/schedule-anime-row";
 
 function ScheduleDayPanel({ day, activeDay }: { day: ScheduleDay; activeDay: ScheduleDay }) {
   const t = useT();
@@ -46,7 +37,7 @@ function ScheduleDayPanel({ day, activeDay }: { day: ScheduleDay; activeDay: Sch
     return (
       <div className="flex flex-col gap-2 py-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-11 rounded-xl bg-white/[0.04] animate-pulse" />
+          <ScheduleRowSkeleton key={i} compact />
         ))}
       </div>
     );
@@ -61,44 +52,14 @@ function ScheduleDayPanel({ day, activeDay }: { day: ScheduleDay; activeDay: Sch
   }
 
   return (
-    <div className="flex flex-col gap-1.5 max-h-[420px] overflow-y-auto pr-1">
-      {items.map((anime) => {
-        const aired = anime.secondsUntilAiring <= 0;
-        const nearby =
-          !aired && Math.abs(anime.airingTimestamp - Date.now()) < 60 * 60 * 1000;
-
-        return (
-          <Link
-            key={`${anime.id}-${anime.episode}`}
-            href={`${ROUTES.WATCH}?anime=${anime.id}`}
-            className="group flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2.5 transition-colors hover:border-white/16 hover:bg-white/[0.04]"
-          >
-            <span
-              className={cn(
-                "flex w-[4.5rem] shrink-0 items-center gap-1 text-[10px] font-mono tabular-nums",
-                nearby ? "text-sky-300/90" : aired ? "text-white/25" : "text-white/45",
-              )}
-            >
-              {nearby && <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-sky-400" />}
-              {airingLabel(anime.secondsUntilAiring, anime.airingTimestamp, t)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p
-                className={cn(
-                  "truncate text-[13px] font-semibold leading-tight",
-                  aired ? "text-white/35" : "text-white/75 group-hover:text-white",
-                )}
-              >
-                {anime.name}
-              </p>
-              <p className="mt-0.5 text-[10px] font-mono text-white/30">
-                {t("home.episode", { n: anime.episode })}
-              </p>
-            </div>
-            <Clock className="h-3.5 w-3.5 shrink-0 text-white/15 group-hover:text-white/35" />
-          </Link>
-        );
-      })}
+    <div className="flex max-h-[420px] flex-col gap-1.5 overflow-y-auto pr-1">
+      {items.map((anime) => (
+        <ScheduleAnimeRow
+          key={`${anime.id}-${anime.episode}`}
+          anime={anime}
+          compact
+        />
+      ))}
     </div>
   );
 }

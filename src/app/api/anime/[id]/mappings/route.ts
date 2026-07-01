@@ -1,5 +1,7 @@
 export const revalidate = 86400;
 
+import { fetchExternalMetadata } from "@/lib/anime/external-metadata";
+
 const TVDB_API = "https://api4.thetvdb.com/v4";
 
 // Module-level token cache (valid 29 days per TVDB docs)
@@ -75,14 +77,14 @@ export async function GET(
 ) {
   const { id } = await params;
   const numId = parseInt(id, 10);
-  if (isNaN(numId)) return Response.json({ mappings: null, images: null });
+  if (isNaN(numId)) return Response.json({ mappings: null, images: null, metadata: null });
 
   try {
     const res = await fetch(
       `https://api.ani.zip/mappings?anilist_id=${numId}`,
       { signal: AbortSignal.timeout(5000) },
     );
-    if (!res.ok) return Response.json({ mappings: null, images: null });
+    if (!res.ok) return Response.json({ mappings: null, images: null, metadata: null });
 
     const data = await res.json();
     const mappings = data.mappings ?? null;
@@ -109,11 +111,23 @@ export async function GET(
       }
     }
 
+    // AniList score for ratings row — fetched separately on detail page via main API;
+    // pass null here and let client merge, OR we could add a lightweight query.
+    // Client merges AniList score from anime.stats in the UI.
+    const metadata = await fetchExternalMetadata({
+      anilistId: numId,
+      malId: mappings?.mal_id ?? null,
+      tvdbId: mappings?.thetvdb_id ?? null,
+      tmdbId: mappings?.themoviedb_id ?? null,
+      imdbId: mappings?.imdb_id ?? null,
+    });
+
     return Response.json({
       mappings,
       images: { ...aniZipImages, artworks },
+      metadata,
     });
   } catch {
-    return Response.json({ mappings: null, images: null });
+    return Response.json({ mappings: null, images: null, metadata: null });
   }
 }

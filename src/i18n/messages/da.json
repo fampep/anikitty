@@ -616,7 +616,8 @@
   "schedule": {
     "title": "Anime-program",
     "subtitle": "Ugentligt sendeprogram — alle tider i din lokale tidszone",
-    "noSchedule": "Intet program for denne dag"
+    "noSchedule": "Intet program for denne dag",
+    "airedAt": "Sendt kl. {time}"
   },
   "card": {
     "live": "LIVE",

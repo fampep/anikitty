@@ -60,6 +60,14 @@ const DB_LINKS = [
   { key: "imdb",      label: "IMDb",         url: (id: string | number) => `https://www.imdb.com/title/${id}`,                  color: "text-amber-400/80 border-amber-500/20 bg-amber-500/8"   },
 ] as const;
 
+const RATING_STYLES: Record<string, { label: string; color: string }> = {
+  anilist: { label: "AniList", color: "border-teal-500/25 bg-teal-500/10 text-teal-300" },
+  mal:     { label: "MAL", color: "border-blue-500/25 bg-blue-500/10 text-blue-300" },
+  tvdb:    { label: "TVDB", color: "border-green-500/25 bg-green-500/10 text-green-300" },
+  tmdb:    { label: "TMDB", color: "border-sky-500/25 bg-sky-500/10 text-sky-300" },
+  imdb:    { label: "IMDb", color: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
+};
+
 export default function AnimeDetail({ slug }: { slug: string }) {
   const t = useT();
   const searchParams = useSearchParams();
@@ -94,6 +102,23 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     return tab && valid.has(tab) ? tab : "overview";
   }, [searchParams]);
 
+  const providerRatings = (() => {
+    if (!anime) return [];
+    const list = [...(mappingData?.metadata?.ratings ?? [])];
+    const rating = anime.anime.info.stats?.rating;
+    const aid = anime.anime.info.anilistId;
+    if (rating && rating !== "N/A" && !list.some((r) => r.provider === "anilist")) {
+      const match = rating.match(/([\d.]+)/);
+      list.unshift({
+        provider: "anilist",
+        score: match ? parseFloat(match[1]) : null,
+        label: rating,
+        url: aid ? `https://anilist.co/anime/${aid}` : null,
+      });
+    }
+    return list;
+  })();
+
   const handleSelect = async (value: string) => {
     if (!auth) return;
     const prev = selected;
@@ -121,6 +146,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const mappings  = mappingData?.mappings;
   const mapImages = mappingData?.images;
+  const extMeta   = mappingData?.metadata;
+
+  const malScoreLabel =
+    extMeta?.ratings?.find((r) => r.provider === "mal")?.label ??
+    (moreInfo.malscore !== "N/A" ? moreInfo.malscore : null);
 
   const bannerSrc =
     mapImages?.fanart ||
@@ -261,7 +291,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               ...(info.charactersVoiceActors.length > 0
                 ? [{ value: "characters", label: t("anime.tabs.characters") }]
                 : []),
-              ...(anime.seasons.length > 0
+              ...(anime.relatedAnimes?.length > 0
                 ? [{ value: "relations", label: t("anime.tabs.relations") }]
                 : []),
               { value: "comments", label: t("anime.tabs.comments") },
@@ -313,6 +343,46 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </div>
             )}
 
+            {providerRatings.length > 0 && (
+              <div>
+                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.ratings")}</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                  {providerRatings.map((rating) => {
+                    const style = RATING_STYLES[rating.provider] ?? {
+                      label: rating.provider,
+                      color: "border-white/15 bg-white/5 text-white/70",
+                    };
+                    const inner = (
+                      <div className={cn("rounded-xl border px-4 py-3 h-full", style.color)}>
+                        <span className="text-[10px] font-mono uppercase tracking-wider opacity-70 block mb-1">
+                          {style.label}
+                        </span>
+                        <span className="text-lg font-bold tabular-nums">{rating.label}</span>
+                        {rating.votes != null && rating.votes > 0 && (
+                          <span className="text-[10px] font-mono text-white/35 block mt-1">
+                            {t("anime.ratingsVotes", { count: rating.votes.toLocaleString() })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                    return rating.url ? (
+                      <a
+                        key={rating.provider}
+                        href={rating.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:opacity-90 transition-opacity"
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <div key={rating.provider}>{inner}</div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.details")}</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -321,10 +391,15 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
                   { label: t("anime.detailFields.duration"), value: (moreInfo as any).duration },
                   { label: t("anime.detailFields.status"), value: moreInfo.status },
+                  { label: t("anime.detailFields.source"), value: moreInfo.source },
                   { label: t("anime.detailFields.aired"), value: moreInfo.aired },
                   { label: t("anime.detailFields.premiered"), value: moreInfo.premiered },
-                  { label: t("anime.detailFields.score"), value: moreInfo.malscore },
-                  { label: t("anime.detailFields.rating"), value: stats?.rating },
+                  { label: t("anime.detailFields.score"), value: malScoreLabel },
+                  { label: t("anime.detailFields.malRank"), value: extMeta?.mal?.rank ? `#${extMeta.mal.rank}` : null },
+                  { label: t("anime.detailFields.tvdbStatus"), value: extMeta?.tvdb?.status },
+                  { label: t("anime.detailFields.network"), value: extMeta?.tvdb?.network ?? extMeta?.tmdb?.networks?.[0] },
+                  { label: t("anime.detailFields.country"), value: extMeta?.tvdb?.country },
+                  { label: t("anime.detailFields.tmdbSeasons"), value: extMeta?.tmdb?.seasons },
                 ].filter((r) => r.value).map((row) => (
                   <div key={row.label} className="rounded-xl bg-white/3 border border-white/6 px-4 py-3">
                     <span className="text-[10px] font-mono text-white/25 uppercase tracking-wider block mb-1">{row.label}</span>
@@ -415,22 +490,20 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           )}
 
           {/* ── Relations ── */}
-          {anime.seasons.length > 0 && (
+          {anime.relatedAnimes && anime.relatedAnimes.length > 0 && (
             <TabsContent value="relations" className="mt-6">
               <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-5">{t("anime.relatedSeries")}</h3>
               <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-5">
-                {anime.seasons.map((relation, idx) =>
-                  !relation.isCurrent && (
-                    <AnimeCard
-                      key={idx}
-                      title={relation.name}
-                      subTitle={relation.title}
-                      poster={relation.poster}
-                      className="self-center justify-self-center"
-                      href={`${ROUTES.ANIME_DETAILS}/${relation.id}`}
-                    />
-                  ),
-                )}
+                {anime.relatedAnimes.map((relation) => (
+                  <AnimeCard
+                    key={relation.id}
+                    title={relation.name}
+                    subTitle={relation.jname}
+                    poster={relation.poster}
+                    className="self-center justify-self-center"
+                    href={`${ROUTES.ANIME_DETAILS}/${relation.id}`}
+                  />
+                ))}
               </div>
             </TabsContent>
           )}

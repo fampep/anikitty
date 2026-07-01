@@ -38,6 +38,7 @@ export interface AnimeImages {
 export interface AnimeMappingsResponse {
   mappings: AnimeMappings | null;
   images: AnimeImages | null;
+  metadata?: import("@/lib/anime/external-metadata").ExternalMetadata | null;
 }
 
 const getAnimeMappings = async (anilistId: number) => {

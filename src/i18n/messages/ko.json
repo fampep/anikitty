@@ -616,7 +616,8 @@
   "schedule": {
     "title": "애니 편성표",
     "subtitle": "주간 방영 일정 — 모든 시간은 현지 시간대 기준",
-    "noSchedule": "이 날짜에 편성 없음"
+    "noSchedule": "이 날짜에 편성 없음",
+    "airedAt": "{time} 방영"
   },
   "card": {
     "live": "LIVE",

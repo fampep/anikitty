@@ -9,6 +9,8 @@ export interface Episode {
   number: number;
   isFiller: boolean;
   image?: string | null;
+  overview?: string | null;
+  airDate?: string | null;
 }
 
 export interface IEpisodeSource {

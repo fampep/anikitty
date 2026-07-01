@@ -13,6 +13,7 @@ const QUERY = `
         media {
           id
           title { english romaji }
+          coverImage { extraLarge large }
         }
       }
     }
@@ -39,6 +40,10 @@ export async function GET(request: Request) {
       id: String(s.media.id),
       name: toTitle(s.media.title),
       jname: s.media.title?.romaji ?? "",
+      poster:
+        s.media.coverImage?.extraLarge ??
+        s.media.coverImage?.large ??
+        null,
       time: new Date(s.airingAt * 1000).toISOString(),
       airingTimestamp: s.airingAt * 1000,
       secondsUntilAiring: s.airingAt - now,

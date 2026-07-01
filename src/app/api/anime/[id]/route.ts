@@ -105,6 +105,24 @@ export async function GET(
       .filter((s: any) => !s.isAnimationStudio)
       .map((s: any) => s.name);
 
+    const SOURCE_LABELS: Record<string, string> = {
+      ORIGINAL: "Original",
+      MANGA: "Manga",
+      LIGHT_NOVEL: "Light Novel",
+      VISUAL_NOVEL: "Visual Novel",
+      VIDEO_GAME: "Video Game",
+      NOVEL: "Novel",
+      DOUJINSHI: "Doujinshi",
+      ANIME: "Anime",
+      WEB_NOVEL: "Web Novel",
+      LIVE_ACTION: "Live Action",
+      GAME: "Game",
+      COMIC: "Comic",
+      MULTIMEDIA_PROJECT: "Multimedia Project",
+      PICTURE_BOOK: "Picture Book",
+      OTHER: "Other",
+    };
+
     const data = {
       anime: {
         info: {
@@ -148,6 +166,7 @@ export async function GET(
           duration: m.duration ? `${m.duration} min` : "N/A",
           status: toStatus(m.status),
           malscore: "N/A",
+          source: m.source ? (SOURCE_LABELS[m.source] ?? m.source) : null,
           genres: m.genres ?? [],
           studios: animationStudios.join(", "),
           producers,

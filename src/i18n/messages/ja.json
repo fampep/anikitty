@@ -616,7 +616,8 @@
   "schedule": {
     "title": "アニメ放送予定",
     "subtitle": "週間放送スケジュール — すべて現地タイムゾーンで表示",
-    "noSchedule": "この日の放送予定はありません"
+    "noSchedule": "この日の放送予定はありません",
+    "airedAt": "{time} 放送"
   },
   "card": {
     "live": "LIVE",

@@ -169,6 +169,7 @@ export default function KittyPlayer({
   const durationRef = useRef(0);
   const startTimeRef = useRef(startTime);
   const resumeAppliedRef = useRef(false);
+  const resumeSeekTargetRef = useRef<number | null>(null);
   const isPlayerFullscreenRef = useRef(false);
   const preferDubAudioRef = useRef(preferDubAudio);
 
@@ -265,13 +266,17 @@ export default function KittyPlayer({
     const dur = art.duration || durationRef.current;
     if (!shouldResumeAt(resumeAt, dur)) {
       resumeAppliedRef.current = true;
+      resumeSeekTargetRef.current = null;
       return;
     }
     if (resumeAppliedRef.current) return;
     if (Math.abs(art.currentTime - resumeAt) <= 2) {
       resumeAppliedRef.current = true;
+      resumeSeekTargetRef.current = null;
       return;
     }
+    if (resumeSeekTargetRef.current === resumeAt) return;
+    resumeSeekTargetRef.current = resumeAt;
     art.seek = resumeAt;
   }, []);
 
@@ -281,6 +286,7 @@ export default function KittyPlayer({
     lastProgressTs.current = 0;
     skipUiRef.current = null;
     resumeAppliedRef.current = false;
+    resumeSeekTargetRef.current = null;
     setActiveSkip(null);
     setCurrentTime(0);
     setCountdown(null);
@@ -292,8 +298,10 @@ export default function KittyPlayer({
 
   useEffect(() => {
     const art = artRef.current;
-    if (!art) return;
+    if (!art || resumeAppliedRef.current) return;
+    if (startFiredRef.current && art.currentTime > 5) return;
     resumeAppliedRef.current = false;
+    resumeSeekTargetRef.current = null;
     applyResume(art);
   }, [startTime, applyResume]);
 
@@ -380,7 +388,7 @@ export default function KittyPlayer({
       subtitleOffset: true,
       screenshot: true,
       backdrop: false,
-      autoPlayback: true,
+      autoPlayback: false,
       autoSize: false,
       autoMini: false,
       mutex: true,
@@ -411,6 +419,16 @@ export default function KittyPlayer({
             hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
               tryPickAudio();
               refreshHlsControls(player);
+            });
+            hls.on(Hls.Events.ERROR, (_event, data) => {
+              if (!data.fatal) return;
+              if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                hls.recoverMediaError();
+                return;
+              }
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                hls.startLoad();
+              }
             });
 
             player.on("destroy", () => {
@@ -545,12 +563,17 @@ export default function KittyPlayer({
       applySubtitleStyles(art, subtitleSettings);
     });
 
-    art.on("video:canplay", () => {
-      applyResume(art);
+    art.on("video:loadedmetadata", () => {
+      if (!resumeAppliedRef.current) applyResume(art);
     });
 
-    art.on("video:loadedmetadata", () => {
-      applyResume(art);
+    art.on("video:seeked", () => {
+      const target = resumeSeekTargetRef.current;
+      if (target == null) return;
+      if (Math.abs(art.currentTime - target) <= 3) {
+        resumeAppliedRef.current = true;
+        resumeSeekTargetRef.current = null;
+      }
     });
 
     art.on("video:waiting", () => setBuffering(true));
@@ -618,10 +641,6 @@ export default function KittyPlayer({
         }
       }
 
-      if (!resumeAppliedRef.current) {
-        applyResume(art);
-      }
-
       const cfg = w2gRef.current;
       if (cfg?.isHost && !applyingW2gRef.current && Math.abs(current - lastW2gReportRef.current) > 2.5) {
         reportW2g(!isArtPaused(art), current);
@@ -650,7 +669,6 @@ export default function KittyPlayer({
     preferSubtitles,
     nextEpisode,
     skipTimes,
-    subtitleSettings,
     t,
     reportW2g,
     applyResume,
