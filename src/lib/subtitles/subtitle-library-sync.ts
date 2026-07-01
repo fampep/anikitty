@@ -57,7 +57,7 @@ async function fetchSubtitlesForAnime(opts: {
         title: opts.title,
       });
 
-      if (result?.tracks?.length > 0) {
+      if (result && result.tracks && result.tracks.length > 0) {
         fetched++;
         console.log(
           `[SubtitleSync] Fetched subs for anime ${opts.anilistId} ep ${ep} from ${result.provider}`,
