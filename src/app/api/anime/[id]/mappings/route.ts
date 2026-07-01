@@ -2,6 +2,16 @@ export const revalidate = 86400;
 
 import { fetchMergedArtworkSources } from "@/lib/anime/art-sources";
 import { fetchExternalMetadata } from "@/lib/anime/external-metadata";
+import { queryAniList } from "@/lib/oauth/anilist";
+
+const ANILIST_SCORE_QUERY = `
+  query ($id: Int) {
+    Media(id: $id, type: ANIME) {
+      averageScore
+      title { english romaji native }
+    }
+  }
+`;
 
 export async function GET(
   _req: Request,
@@ -12,16 +22,26 @@ export async function GET(
   if (isNaN(numId)) return Response.json({ mappings: null, images: null, metadata: null });
 
   try {
-    const res = await fetch(
-      `https://api.ani.zip/mappings?anilist_id=${numId}`,
-      { signal: AbortSignal.timeout(5000) },
-    );
-    if (!res.ok) return Response.json({ mappings: null, images: null, metadata: null });
+    const [aniZipRes, anilistRaw] = await Promise.all([
+      fetch(`https://api.ani.zip/mappings?anilist_id=${numId}`, {
+        signal: AbortSignal.timeout(5000),
+      }),
+      queryAniList(ANILIST_SCORE_QUERY, { id: numId }).catch(() => null),
+    ]);
 
-    const data = await res.json();
+    if (!aniZipRes.ok) return Response.json({ mappings: null, images: null, metadata: null });
+
+    const data = await aniZipRes.json();
     const mappings = data.mappings ?? null;
     const aniZipImages = data.images ?? null;
     const aniZipEpisodes = data.episodes ?? null;
+
+    const anilistMedia = anilistRaw?.Media;
+    const searchTitles = [
+      anilistMedia?.title?.english,
+      anilistMedia?.title?.romaji,
+      anilistMedia?.title?.native,
+    ];
 
     const { images } = await fetchMergedArtworkSources({
       anilistId: numId,
@@ -30,10 +50,12 @@ export async function GET(
       tmdbId: mappings?.themoviedb_id ?? null,
       aniZipImages,
       aniZipEpisodes,
+      searchTitles,
     });
 
     const metadata = await fetchExternalMetadata({
       anilistId: numId,
+      anilistScore: anilistMedia?.averageScore ?? null,
       malId: mappings?.mal_id ?? null,
       tvdbId: mappings?.thetvdb_id ?? null,
       tmdbId: mappings?.themoviedb_id ?? null,

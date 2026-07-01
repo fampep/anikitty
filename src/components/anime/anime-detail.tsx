@@ -485,6 +485,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {hasArtTab && mapImages && (
             <TabsContent value="art" className="mt-6">
               <div className="space-y-10">
+                {(mapImages.artworks?.fanart?.length ?? 0) > 0 && (
+                  <ArtSection
+                    label={t("anime.artSections.communityFanart")}
+                    items={mapImages.artworks!.fanart!}
+                    wide
+                  />
+                )}
                 {(mapImages.artworks?.backgrounds?.length ?? 0) > 0 && (
                   <ArtSection label={t("anime.artSections.backgrounds")} items={mapImages.artworks!.backgrounds} wide />
                 )}
@@ -578,7 +585,7 @@ const ArtSection = ({
   label, items, wide = false, transparent = false,
 }: {
   label: string;
-  items: { image: string; thumbnail?: string }[];
+  items: { image: string; thumbnail?: string; title?: string; sourceUrl?: string }[];
   wide?: boolean;
   transparent?: boolean;
 }) => {
@@ -593,7 +600,7 @@ const ArtSection = ({
       {items.map((item, i) => (
         <a
           key={i}
-          href={item.image}
+          href={item.sourceUrl ?? item.image}
           target="_blank"
           rel="noopener noreferrer"
           className={cn("group relative rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/25 transition-all block", transparent && "bg-white/5")}
@@ -601,11 +608,13 @@ const ArtSection = ({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={item.thumbnail ?? item.image}
-            alt={`${label} ${i + 1}`}
+            alt={item.title ?? `${label} ${i + 1}`}
             className={cn("w-full object-cover transition-transform duration-300 group-hover:scale-105", wide ? "aspect-[16/9]" : "aspect-[2/3]", transparent && "object-contain p-4")}
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
-            <span className="text-[11px] font-mono text-white/80 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">{t("anime.fullSize")}</span>
+            <span className="text-[11px] font-mono text-white/80 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15 max-w-[90%] truncate">
+              {item.title ?? t("anime.fullSize")}
+            </span>
           </div>
         </a>
       ))}

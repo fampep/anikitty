@@ -18,6 +18,8 @@ export interface AnimeMappings {
 export interface TvdbArtworkItem {
   image: string;
   thumbnail?: string;
+  title?: string;
+  sourceUrl?: string;
 }
 
 export interface ArtworkGroups {
@@ -26,6 +28,7 @@ export interface ArtworkGroups {
   banners: TvdbArtworkItem[];
   clearArt: TvdbArtworkItem[];
   clearLogo: TvdbArtworkItem[];
+  fanart?: TvdbArtworkItem[];
 }
 
 export interface AnimeImages {

@@ -200,6 +200,23 @@ async function fetchTmdbMetadata(tmdbId: number): Promise<{
   }
 }
 
+async function fetchTmdbImdbId(tmdbId: number): Promise<string | null> {
+  const apiKey = process.env.TMDB_API_KEY?.trim();
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `${TMDB_API}/tv/${tmdbId}/external_ids?api_key=${encodeURIComponent(apiKey)}`,
+      { signal: AbortSignal.timeout(5000), next: { revalidate: 86400 } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const imdbId = data?.imdb_id;
+    return typeof imdbId === "string" && imdbId.startsWith("tt") ? imdbId : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchImdbRating(imdbId: string): Promise<ProviderRating | null> {
   const apiKey = process.env.OMDB_API_KEY?.trim();
   if (!apiKey || !imdbId) return null;
@@ -227,6 +244,22 @@ async function fetchImdbRating(imdbId: string): Promise<ProviderRating | null> {
   }
 }
 
+const RATING_ORDER = ["anilist", "mal", "imdb", "tmdb", "tvdb"] as const;
+
+function sortRatings(ratings: ProviderRating[]): ProviderRating[] {
+  const seen = new Set<string>();
+  const unique = ratings.filter((r) => {
+    if (seen.has(r.provider)) return false;
+    seen.add(r.provider);
+    return true;
+  });
+  return unique.sort((a, b) => {
+    const ai = RATING_ORDER.indexOf(a.provider as (typeof RATING_ORDER)[number]);
+    const bi = RATING_ORDER.indexOf(b.provider as (typeof RATING_ORDER)[number]);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+}
+
 export async function fetchExternalMetadata(opts: {
   anilistId: number;
   anilistScore?: number | null;
@@ -247,20 +280,25 @@ export async function fetchExternalMetadata(opts: {
     });
   }
 
+  let imdbId = opts.imdbId ?? null;
+  if (!imdbId && opts.tmdbId) {
+    imdbId = await fetchTmdbImdbId(opts.tmdbId);
+  }
+
   const [mal, tvdb, tmdb, imdb] = await Promise.all([
     opts.malId ? fetchMalMetadata(opts.malId) : Promise.resolve(null),
     opts.tvdbId ? fetchTvdbMetadata(opts.tvdbId) : Promise.resolve(null),
     opts.tmdbId ? fetchTmdbMetadata(opts.tmdbId) : Promise.resolve(null),
-    opts.imdbId ? fetchImdbRating(opts.imdbId) : Promise.resolve(null),
+    imdbId ? fetchImdbRating(imdbId) : Promise.resolve(null),
   ]);
 
   if (mal?.rating) ratings.push(mal.rating);
-  if (tvdb?.rating) ratings.push(tvdb.rating);
-  if (tmdb?.rating) ratings.push(tmdb.rating);
   if (imdb) ratings.push(imdb);
+  if (tmdb?.rating) ratings.push(tmdb.rating);
+  if (tvdb?.rating) ratings.push(tvdb.rating);
 
   return {
-    ratings,
+    ratings: sortRatings(ratings),
     mal: mal?.extra,
     tvdb: tvdb?.extra,
     tmdb: tmdb?.extra,
