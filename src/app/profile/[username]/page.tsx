@@ -85,11 +85,13 @@ function EditProfileDialog({
   onClose,
   onSaved,
   initial,
+  t,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: (data: ProfileCustomizationValues) => void;
   initial: ProfileCustomizationValues;
+  t: ReturnType<typeof useT>;
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -656,6 +658,7 @@ function ProfilePage() {
             bio: auth.bio ?? "",
             themeColor: auth.themeColor ?? null,
           }}
+          t={t}
         />
       )}
     </div>
