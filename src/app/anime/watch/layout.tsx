@@ -34,6 +34,7 @@ import { cn } from "@/lib/core/utils";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
+import { useSettingsStore } from "@/store/settings-store";
 
 const CommentSection = dynamic(() => import("@/components/comments/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
@@ -61,6 +62,7 @@ const Layout = (props: Props) => {
   const { setAnime, setSelectedEpisode, selectedEpisode } = useAnimeStore();
   const { auth } = useAuthStore();
   const router = useRouter();
+  const theatreMode = useSettingsStore((s) => s.theatreMode);
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
   const episodeId = searchParams.get("episode");
@@ -229,13 +231,18 @@ const Layout = (props: Props) => {
       </div>
 
       {/* Main grid: player + sidebar */}
-      <div className="grid lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_340px] grid-cols-1 gap-4">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-4",
+          !theatreMode && "lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_340px]",
+        )}
+      >
         {/* Left: player + episode info + tabs */}
         <div className="flex flex-col gap-3 min-w-0">
           <div>{props.children}</div>
 
           {/* Mobile: Miruro-style comments card + episode grid */}
-          <div className="flex flex-col gap-3 lg:hidden">
+          <div id="watch-mobile-playlist" className="flex flex-col gap-3 lg:hidden scroll-mt-24">
             {currentEpisode && currentAnimeId && (
               <WatchCommentsPreview
                 animeId={currentAnimeId}
@@ -383,7 +390,7 @@ const Layout = (props: Props) => {
         </div>
 
         {/* Right: episode playlist (desktop only) */}
-        {episodes && (
+        {episodes && !theatreMode && (
           <div className="hidden lg:block">
             <EpisodePlaylist
               variant="sidebar"

@@ -22,6 +22,26 @@ interface ISettingsStore {
   showAds: boolean;
   setShowAds: (val: boolean) => void;
 
+  /** Provider grid + stream actions below the player. */
+  showPlayerControls: boolean;
+  setShowPlayerControls: (val: boolean) => void;
+
+  /** Expanded player settings panel on watch page. */
+  playerSettingsOpen: boolean;
+  setPlayerSettingsOpen: (val: boolean) => void;
+
+  /** Hide sidebar and expand player on watch page. */
+  theatreMode: boolean;
+  setTheatreMode: (val: boolean) => void;
+
+  /** Auto-switch to next provider when stream fails. */
+  providerAutoFallback: boolean;
+  setProviderAutoFallback: (val: boolean) => void;
+
+  /** Compact provider dropdown instead of full grid. */
+  simpleProviderPicker: boolean;
+  setSimpleProviderPicker: (val: boolean) => void;
+
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
   setSubtitleColor: (color: string) => void;
@@ -53,6 +73,21 @@ export const useSettingsStore = create<ISettingsStore>()(
       showAds: true,
       setShowAds: (showAds) => set({ showAds }),
 
+      showPlayerControls: true,
+      setShowPlayerControls: (showPlayerControls) => set({ showPlayerControls }),
+
+      playerSettingsOpen: true,
+      setPlayerSettingsOpen: (playerSettingsOpen) => set({ playerSettingsOpen }),
+
+      theatreMode: false,
+      setTheatreMode: (theatreMode) => set({ theatreMode }),
+
+      providerAutoFallback: true,
+      setProviderAutoFallback: (providerAutoFallback) => set({ providerAutoFallback }),
+
+      simpleProviderPicker: false,
+      setSimpleProviderPicker: (simpleProviderPicker) => set({ simpleProviderPicker }),
+
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
         set((s) => ({
@@ -79,12 +114,17 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 9,
+      version: 11,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
         autoPlay: state.autoPlay,
         subtitleSettings: state.subtitleSettings,
+        showPlayerControls: state.showPlayerControls,
+        playerSettingsOpen: state.playerSettingsOpen,
+        theatreMode: state.theatreMode,
+        providerAutoFallback: state.providerAutoFallback,
+        simpleProviderPicker: state.simpleProviderPicker,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -116,6 +156,15 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 9) {
           delete (next as Record<string, unknown>).showAds;
+        }
+        if (version < 10) {
+          next.showPlayerControls = next.showPlayerControls ?? true;
+          next.playerSettingsOpen = next.playerSettingsOpen ?? true;
+        }
+        if (version < 11) {
+          next.theatreMode = next.theatreMode ?? false;
+          next.providerAutoFallback = next.providerAutoFallback ?? true;
+          next.simpleProviderPicker = next.simpleProviderPicker ?? false;
         }
         next.showAds = next.showAds ?? true;
         return next as ISettingsStore;

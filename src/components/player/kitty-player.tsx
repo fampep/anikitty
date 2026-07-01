@@ -124,6 +124,7 @@ export default function KittyPlayer({
   onNextEpisode,
   onOutroStart,
   onEnded,
+  onPlayerReady,
   w2g,
   preferSubtitles = true,
   preferDubAudio = false,
@@ -133,6 +134,10 @@ export default function KittyPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const artRef = useRef<Artplayer | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const onPlayerReadyRef = useRef(onPlayerReady);
+  useEffect(() => {
+    onPlayerReadyRef.current = onPlayerReady;
+  }, [onPlayerReady]);
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
   const autoPlay = useSettingsStore((s) => s.autoPlay);
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
@@ -524,6 +529,7 @@ export default function KittyPlayer({
       applySubtitleStyles(art, subtitleSettings);
       applyResume(art);
       refreshHlsControls(art);
+      onPlayerReadyRef.current?.(art);
 
       if (hasExternalSubs) {
         disableNativeTextTracks(art.video);

@@ -21,6 +21,7 @@ export interface VideoPlayerProps {
   onNextEpisode?: () => void;
   onOutroStart?: (duration: number) => void;
   onEnded?: () => void;
+  onPlayerReady?: (art: import("artplayer").default) => void;
   w2g?: {
     isHost: boolean;
     syncState?: W2gSyncState | null;

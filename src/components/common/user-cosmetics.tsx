@@ -59,7 +59,7 @@ export function ProfileStickerBadge({
   if (!stickerImage && !sticker) return null;
 
   if (stickerImage) {
-    const size = large ? 160 : 72;
+    const size = large ? 96 : 72;
     return (
       <Image
         src={stickerImage}
@@ -69,7 +69,7 @@ export function ProfileStickerBadge({
         unoptimized
         className={cn(
           "absolute z-10 select-none pointer-events-none object-contain",
-          large && "mix-blend-screen drop-shadow-[0_8px_24px_rgba(0,0,0,0.85)]",
+          large && "md:w-[112px] md:h-[112px] mix-blend-screen drop-shadow-[0_6px_18px_rgba(0,0,0,0.75)]",
           !large && "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]",
           className,
         )}

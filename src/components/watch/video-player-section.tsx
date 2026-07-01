@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type Artplayer from "artplayer";
 import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
@@ -67,18 +68,21 @@ import {
   Loader2,
   Cat,
   Users,
-  SlidersHorizontal,
   Mic,
+  Link2,
 } from "lucide-react";
 import WatchDownloadPanel from "@/components/watch/watch-download-panel";
+import PlayerSettingsBar from "@/components/watch/player-settings-bar";
+import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
+import WatchResumePrompt from "@/components/watch/watch-resume-prompt";
+import WatchKeyboardHelp from "@/components/watch/watch-keyboard-help";
+import WatchSimpleProviderRow from "@/components/watch/watch-simple-provider-row";
+import { useWatchKeyboard } from "@/hooks/use-watch-keyboard";
+import { useEpisodeProgress } from "@/hooks/use-episode-progress";
+import { getNextFallbackProvider } from "@/lib/kitty/provider-fallback";
+import type { Episode } from "@/types/episodes";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/watch-together/w2g-panel";
@@ -113,7 +117,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { preferDub, setPreferDub } = useSettingsStore();
+  const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode } = useSettingsStore();
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
@@ -342,7 +346,12 @@ const VideoPlayerSection = () => {
   }, [capsForAudioAvailability, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
 
   // ── Resume position ──────────────────────────────────────────────
-  const [startTime, setStartTime] = useState(0);
+  const [savedResumeTime, setSavedResumeTime] = useState(0);
+  const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
+  const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const triedProvidersRef = useRef(new Set<KittyProvider>());
+  const fallbackBusyRef = useRef(false);
 
   // Live position tracking — updated every timeupdate event (no re-render)
   const liveTimeRef = useRef(0);
@@ -407,6 +416,12 @@ const VideoPlayerSection = () => {
   };
 
   // Episode list moved above for episodeNo resolution
+  const prevEpisode = React.useMemo(() => {
+    if (!allEpisodes?.episodes || !episodeId) return undefined;
+    const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
+    return idx > 0 ? allEpisodes.episodes[idx - 1] : undefined;
+  }, [allEpisodes, episodeId]);
+
   const nextEpisode = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
     const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
@@ -417,30 +432,40 @@ const VideoPlayerSection = () => {
 
   const [autoFullscreen, setAutoFullscreen] = useState(false);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
+  const watchedEpisodes = useEpisodeProgress(animeSlug);
+
+  const navigateToEpisode = useCallback(
+    (ep: Episode) => {
+      if (!animeSlug) return;
+      const isFs = !!document.fullscreenElement;
+      if (isFs && playerWrapperRef.current) {
+        playerWrapperRef.current.requestFullscreen().catch(() => {});
+      }
+      setAutoFullscreen(isFs);
+      setResumeChoice(null);
+      setSelectedEpisode(ep.episodeId);
+      if (w2g.isHost && w2gCode) {
+        w2g.syncEpisode(
+          ep.episodeId,
+          ep.number,
+          Math.floor(liveTimeRef.current),
+          true,
+        );
+      }
+      router.push(
+        `/anime/watch?anime=${animeSlug}&episode=${ep.episodeId}${w2gCode ? `&w2g=${w2gCode}` : ""}`,
+      );
+    },
+    [animeSlug, setSelectedEpisode, router, w2g, w2gCode],
+  );
+
+  const handlePrevEpisode = useCallback(() => {
+    if (prevEpisode) navigateToEpisode(prevEpisode);
+  }, [prevEpisode, navigateToEpisode]);
 
   const handleNextEpisode = useCallback(() => {
-    if (!nextEpisode || !animeSlug) return;
-    const isFs = !!document.fullscreenElement;
-    if (isFs && playerWrapperRef.current) {
-      // Synchronously transfer fullscreen to the persistent wrapper before
-      // ArtKittyPlayer unmounts. This keeps
-      // the user in fullscreen through the episode transition.
-      playerWrapperRef.current.requestFullscreen().catch(() => {});
-    }
-    setAutoFullscreen(isFs);
-    setSelectedEpisode(nextEpisode.episodeId);
-    if (w2g.isHost && w2gCode) {
-      w2g.syncEpisode(
-        nextEpisode.episodeId,
-        nextEpisode.number,
-        Math.floor(liveTimeRef.current),
-        true,
-      );
-    }
-    router.push(
-      `/anime/watch?anime=${animeSlug}&episode=${nextEpisode.episodeId}${w2gCode ? `&w2g=${w2gCode}` : ""}`,
-    );
-  }, [nextEpisode, animeSlug, setSelectedEpisode, router, w2g, w2gCode]);
+    if (nextEpisode) navigateToEpisode(nextEpisode);
+  }, [nextEpisode, navigateToEpisode]);
 
   // Reset refs when episode changes so we don't cross-contaminate
   useEffect(() => {
@@ -448,6 +473,10 @@ const VideoPlayerSection = () => {
     watchedIdRef.current = null;
     liveTimeRef.current = 0;
     liveDurationRef.current = 0;
+    setResumeChoice(null);
+    setArtPlayer(null);
+    triedProvidersRef.current.clear();
+    fallbackBusyRef.current = false;
   }, [episodeId]);
 
   // Fetch saved resume position when the episode changes
@@ -458,20 +487,42 @@ const VideoPlayerSection = () => {
         ? useProgressStore.getState().getProgress(animeSlug, episodeId)
         : null;
     const localTime = Math.max(urlTime, cached?.current ?? 0);
-    setStartTime(localTime > 10 ? localTime : 0);
+    let resolved = localTime > 10 ? localTime : 0;
 
-    if (!auth || !animeSlug || !episodeId) return;
+    if (!auth || !animeSlug || !episodeId) {
+      setSavedResumeTime(resolved);
+      return;
+    }
+
     anisurgeContinue
       .getEpisode(animeSlug, episodeId)
       .then((r: { currentTime?: number; duration?: number }) => {
         const saved = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
         if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
-          setStartTime((prev) => Math.max(prev, saved));
+          resolved = Math.max(resolved, saved);
         }
+        setSavedResumeTime(resolved);
       })
-      .catch(() => {});
+      .catch(() => setSavedResumeTime(resolved));
   }, [auth, animeSlug, episodeId, timeFromUrl]);
+
+  const urlResumeTime = parseResumeTimeParam(timeFromUrl);
+  const isW2gGuest = Boolean(w2gCode && w2g.isMember && !w2g.isHost);
+  const needsResumePrompt =
+    savedResumeTime > 10 &&
+    urlResumeTime <= 0 &&
+    resumeChoice === null &&
+    !isW2gGuest;
+
+  const playerStartTime =
+    resumeChoice === "start"
+      ? 0
+      : resumeChoice === "resume" || urlResumeTime > 0
+        ? Math.max(savedResumeTime, urlResumeTime)
+        : needsResumePrompt
+          ? 0
+          : savedResumeTime;
 
   const handleStart = useCallback(async () => {
     if (!auth || !anime?.anime?.info) return;
@@ -518,7 +569,7 @@ const VideoPlayerSection = () => {
     const current = liveTimeRef.current;
     const dur = liveDurationRef.current;
     if (current <= 5) return;
-    setStartTime(current);
+    setSavedResumeTime(current);
     if (animeSlug && episodeId) {
       useProgressStore.getState().setProgress(
         animeSlug,
@@ -609,7 +660,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${resumeChoice ?? "auto"}-${playerStartTime}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
@@ -780,6 +831,86 @@ const VideoPlayerSection = () => {
     localStorage.setItem("animoServer", server);
   };
 
+  const handleSimpleProviderChange = (p: KittyProvider) => {
+    const mode: ProviderAudioMode = MULTI_ROW_PROVIDERS.has(p)
+      ? "multi"
+      : audioMode === "multi"
+        ? "sub"
+        : audioMode;
+    handleProviderGridSelect(p, mode);
+  };
+
+  const copyShareLink = useCallback(() => {
+    const params = new URLSearchParams(searchParamsKey);
+    const sec = Math.floor(liveTimeRef.current);
+    if (sec > 10) params.set("t", String(sec));
+    else params.delete("t");
+    const url = `${window.location.origin}/anime/watch?${params.toString()}`;
+    void navigator.clipboard.writeText(url).then(
+      () => toast.success(t("watch.linkCopied")),
+      () => toast.error(t("watch.linkCopyFailed")),
+    );
+  }, [searchParamsKey, t]);
+
+  const handleToggleMobilePlaylist = useCallback(() => {
+    document.getElementById("watch-mobile-playlist")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, []);
+
+  useWatchKeyboard({
+    enabled: Boolean(streamData?.file) && !needsResumePrompt,
+    art: artPlayer,
+    onPrevEpisode: handlePrevEpisode,
+    onNextEpisode: handleNextEpisode,
+    onToggleTheatre: () => setTheatreMode(!theatreMode),
+    onCopyShareLink: copyShareLink,
+    onShowShortcuts: () => setShortcutsOpen(true),
+    hasPrev: Boolean(prevEpisode),
+    hasNext: Boolean(nextEpisode),
+  });
+
+  useEffect(() => {
+    if (!providerAutoFallback || !streamQueryEnabled) return;
+    if (isLoading || isFetching || hasStreamFile) return;
+    if (!streamError) return;
+    if (fallbackBusyRef.current) return;
+
+    const tried = triedProvidersRef.current;
+    if (!tried.has(provider)) tried.add(provider);
+
+    const next = getNextFallbackProvider(provider, tried);
+    if (!next) return;
+
+    tried.add(next);
+    fallbackBusyRef.current = true;
+    toast.info(t("watch.providerFallback", { from: provider, to: next }));
+
+    const mode: ProviderAudioMode = MULTI_ROW_PROVIDERS.has(next)
+      ? "multi"
+      : audioMode === "multi"
+        ? "sub"
+        : audioMode;
+    handleProviderGridSelect(next, mode);
+
+    const timer = window.setTimeout(() => {
+      fallbackBusyRef.current = false;
+    }, 1200);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleProviderGridSelect is stable enough for fallback
+  }, [
+    providerAutoFallback,
+    streamQueryEnabled,
+    isLoading,
+    isFetching,
+    hasStreamFile,
+    streamError,
+    provider,
+    audioMode,
+    t,
+  ]);
+
   useEffect(() => {
     if (provider !== "AllAnime" || !streamCapabilities?.allanimeServerRows?.length) return;
     const rows = streamCapabilities.allanimeServerRows;
@@ -901,10 +1032,37 @@ const VideoPlayerSection = () => {
 
   return (
     <div className="flex flex-col gap-3">
+    <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+    {currentEpisodeInfo && allEpisodes && (
+      <WatchEpisodeBar
+        currentEpisode={currentEpisodeInfo}
+        episodes={allEpisodes}
+        animePoster={anime?.anime?.info?.poster}
+        animeName={animeTitle}
+        prevEpisode={prevEpisode ?? null}
+        nextEpisode={nextEpisode ?? null}
+        playlistOpen={false}
+        onTogglePlaylist={handleToggleMobilePlaylist}
+        onPrev={handlePrevEpisode}
+        onNext={handleNextEpisode}
+        watchedEpisodes={watchedEpisodes}
+      />
+    )}
+
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
       <div className="relative w-full">
+      {needsResumePrompt ? (
+        <div className="relative w-full aspect-video bg-[#030303]">
+          <WatchResumePrompt
+            resumeAt={savedResumeTime}
+            onResume={() => setResumeChoice("resume")}
+            onStartOver={() => setResumeChoice("start")}
+          />
+        </div>
+      ) : (
       <KittyPlayer
         key={playerKey}
         src={streamData.file}
@@ -916,7 +1074,7 @@ const VideoPlayerSection = () => {
         startTime={
           w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
             ? w2g.syncState.currentTime
-            : startTime
+            : playerStartTime
         }
         autoFullscreen={autoFullscreen}
         nextEpisode={playerNextEpisode}
@@ -926,14 +1084,29 @@ const VideoPlayerSection = () => {
         onNextEpisode={handleNextEpisode}
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
+        onPlayerReady={setArtPlayer}
         w2g={playerW2g}
       />
+      )}
       </div>
       </div>
 
       {/* Controls bar */}
       <div className="px-3 py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-white/8 space-y-2.5">
-        {/* Row 1 — SUB / DUB / MULTI provider grid */}
+        <PlayerSettingsBar />
+
+        {showPlayerControls && (
+          <>
+        {simpleProviderPicker ? (
+          <WatchSimpleProviderRow
+            provider={provider}
+            miruroPipe={miruroPipe}
+            animexServer={animexServer}
+            onProviderChange={handleSimpleProviderChange}
+            onMiruroPipeChange={handleMiruroPipeChange}
+            onAnimexServerChange={handleAnimexServerChange}
+          />
+        ) : (
         <ProviderGrid
           provider={provider}
           audioMode={audioMode}
@@ -958,6 +1131,7 @@ const VideoPlayerSection = () => {
           onMkissaMirrorChange={handleMkissaMirrorChange}
           onAnimoServerChange={handleAnimoServerChange}
         />
+        )}
 
         {/* Row 2 — badges + actions */}
         <div className="flex flex-wrap items-center gap-2">
@@ -1043,27 +1217,15 @@ const VideoPlayerSection = () => {
               />
             )}
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-teal-500/20 bg-teal-500/[0.08] text-teal-200/80 hover:bg-teal-500/[0.12] transition-colors"
-                  title={t("watch.subtitleSettings")}
-                >
-                  <SlidersHorizontal className="w-3 h-3" />
-                  <span className="hidden sm:inline">{t("watch.subtitleSettings")}</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="end"
-                className="w-[min(92vw,360px)] p-4 bg-[#0c0c0c] border-white/10"
-              >
-                <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">
-                  {t("settings.subtitleAppearance")}
-                </p>
-                <SubtitleSettingsPanel compact />
-              </PopoverContent>
-            </Popover>
+            <button
+              type="button"
+              onClick={copyShareLink}
+              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-white/12 bg-white/[0.03] text-white/45 hover:text-white/70 transition-colors"
+              title={t("watch.copyLink")}
+            >
+              <Link2 className="w-3 h-3" />
+              <span className="hidden sm:inline">{t("watch.copyLink")}</span>
+            </button>
 
             {w2gCode && w2g.isMember ? (
               <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
@@ -1098,6 +1260,8 @@ const VideoPlayerSection = () => {
             )}
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
 
