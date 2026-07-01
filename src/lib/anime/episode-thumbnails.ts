@@ -168,10 +168,19 @@ export async function fetchAllEpisodeImageSources(
   const tvdbId = aniZip.mappings?.thetvdb_id;
   const tmdbId = aniZip.mappings?.themoviedb_id;
 
-  const [tvdb, tmdb] = await Promise.all([
-    tvdbId ? fetchTvdbEpisodeImages(tvdbId) : Promise.resolve({ byId: {}, byAiredOrder: {} }),
-    tmdbId ? fetchTmdbEpisodeImages(tmdbId) : Promise.resolve({}),
-  ]);
+  const tmdb = tmdbId ? await fetchTmdbEpisodeImages(tmdbId) : {};
+  const tmdbCount = Object.keys(tmdb).length;
+  const anizipImageCount = Object.values(aniZip.episodes).filter((e) => e.image).length;
+  const anilistCount = Object.keys(imageMap).length;
+
+  // Skip TVDB episode fetch when other sources already cover thumbnails.
+  const shouldFetchTvdb =
+    Boolean(tvdbId) &&
+    tmdbCount + anizipImageCount + anilistCount < Math.max(3, streamingEpisodes.length * 0.25);
+
+  const tvdb = shouldFetchTvdb
+    ? await fetchTvdbEpisodeImages(tvdbId!)
+    : { byId: {}, byAiredOrder: {} };
 
   return {
     anilist: imageMap,
@@ -192,9 +201,9 @@ export function resolveEpisodeImage(
   return (
     sources.anilist[num] ??
     zip?.image ??
+    sources.tmdb[num] ??
     (zip?.tvdbId ? sources.tvdbById[zip.tvdbId] : undefined) ??
     sources.tvdbByOrder[num] ??
-    sources.tmdb[num] ??
     null
   );
 }

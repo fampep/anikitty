@@ -154,8 +154,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const bannerSrc =
     mapImages?.fanart ||
-    (banner?.Media.bannerImage as string | undefined) ||
+    banner?.Media.bannerImage ||
+    mapImages?.banner ||
+    mapImages?.artworks?.backgrounds?.[0]?.image ||
+    mapImages?.artworks?.banners?.[0]?.image ||
     info.poster;
+
+  const hasArtTab =
+    Boolean(mapImages?.fanart || mapImages?.banner || mapImages?.poster) ||
+    Boolean(
+      mapImages?.artworks &&
+        Object.values(mapImages.artworks).some((items) => (items?.length ?? 0) > 0),
+    );
 
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (info.anilistId)           externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(info.anilistId) });
@@ -319,7 +329,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               { value: "episodes", label: t("anime.tabs.episodes") },
               { value: "subtitles", label: t("anime.tabs.subtitles") },
               { value: "media", label: t("anime.tabs.media") },
-              ...(mapImages ? [{ value: "art", label: t("anime.tabs.art") }] : []),
+              ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
               ...(info.charactersVoiceActors.length > 0
                 ? [{ value: "characters", label: t("anime.tabs.characters") }]
                 : []),
@@ -472,7 +482,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           </TabsContent>
 
           {/* ── Art ── */}
-          {mapImages && Object.values(mapImages).some(Boolean) && (
+          {hasArtTab && mapImages && (
             <TabsContent value="art" className="mt-6">
               <div className="space-y-10">
                 {(mapImages.artworks?.backgrounds?.length ?? 0) > 0 && (
