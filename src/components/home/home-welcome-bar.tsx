@@ -11,7 +11,7 @@ import { useT } from "@/providers/i18n-provider";
 
 export default function HomeWelcomeBar() {
   const t = useT();
-  const { auth } = useAuthStore();
+  const auth = useAuthStore((s) => s.auth);
   const level = useUserLevel();
   if (!auth) return null;
 

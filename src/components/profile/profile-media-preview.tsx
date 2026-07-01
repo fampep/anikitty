@@ -34,7 +34,6 @@ export default function ProfileMediaPreview({ src, alt, variant, className }: Pr
       src={src}
       alt={alt}
       fill
-      unoptimized
       className={cn("object-cover", variant === "avatar" && "rounded-full", className)}
     />
   );

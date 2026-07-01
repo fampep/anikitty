@@ -560,6 +560,7 @@ export default function CommentSection({
       <button
         onClick={() => auth && handleVote(c.id, 1)}
         disabled={!auth}
+        aria-label="Like"
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === 1
@@ -573,6 +574,7 @@ export default function CommentSection({
       <button
         onClick={() => auth && handleVote(c.id, -1)}
         disabled={!auth}
+        aria-label="Dislike"
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === -1
@@ -1005,16 +1007,16 @@ export default function CommentSection({
                         {isOwn && (
                           <button
                             onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
-                            className="p-1.5 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"
-                            title="Edit"
+                            aria-label="Edit comment"
+                            className="p-1.5 rounded-lg hover:bg-white/8 text-white/35 hover:text-white/60 transition-all"
                           >
                             <Pencil className="w-3 h-3" />
                           </button>
                         )}
                         <button
                           onClick={() => handleDelete(c.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400/70 transition-all"
-                          title="Delete"
+                          aria-label="Delete comment"
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/35 hover:text-red-400/70 transition-all"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -1074,6 +1076,7 @@ export default function CommentSection({
                         <button
                           onClick={() => auth && handleVote(c.id, 1)}
                           disabled={!auth}
+                          aria-label="Like reply"
                           className={cn(
                             "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
                             c.myVote === 1
@@ -1089,6 +1092,7 @@ export default function CommentSection({
                         <button
                           onClick={() => auth && handleVote(c.id, -1)}
                           disabled={!auth}
+                          aria-label="Dislike reply"
                           className={cn(
                             "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
                             c.myVote === -1
@@ -1253,16 +1257,16 @@ export default function CommentSection({
                                               setEditingId(reply.id);
                                               setEditDraft(reply.body);
                                             }}
-                                            className="p-1 rounded-lg hover:bg-white/8 text-white/20 hover:text-white/60 transition-all"
-                                            title="Edit"
+                                            aria-label="Edit reply"
+                                            className="p-1 rounded-lg hover:bg-white/8 text-white/35 hover:text-white/60 transition-all"
                                           >
                                             <Pencil className="w-3 h-3" />
                                           </button>
                                         )}
                                         <button
                                           onClick={() => handleDelete(reply.id)}
-                                          className="p-1 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400/70 transition-all"
-                                          title="Delete"
+                                          aria-label="Delete reply"
+                                          className="p-1 rounded-lg hover:bg-red-500/10 text-white/35 hover:text-red-400/70 transition-all"
                                         >
                                           <Trash2 className="w-3 h-3" />
                                         </button>

@@ -61,7 +61,7 @@ const Layout = (props: Props) => {
   const bookmarkOptions = useBookmarkLabels();
   const searchParams = useSearchParams();
   const { setAnime, setSelectedEpisode, selectedEpisode } = useAnimeStore();
-  const { auth } = useAuthStore();
+  const auth = useAuthStore((s) => s.auth);
   const router = useRouter();
   const theatreMode = useSettingsStore((s) => s.theatreMode);
 

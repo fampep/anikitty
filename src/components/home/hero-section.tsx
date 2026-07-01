@@ -122,6 +122,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
               <button
                 key={i}
                 onClick={() => api?.scrollTo(i)}
+                aria-label={`Go to slide ${i + 1}`}
                 className={`h-[3px] rounded-full overflow-hidden bg-white/20 hover:bg-white/35 transition-all duration-300 ${
                   i === current ? "w-8" : "w-3"
                 }`}
