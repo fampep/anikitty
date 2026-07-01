@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/store/auth-store";
 import { useAnimeStore } from "@/store/anime-store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   anisurgeWatchlist,
@@ -75,11 +75,13 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
   const [bookmarks, setBookmarks] = useState<Bookmark[] | null>(null);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
     if (!populate || !auth) {
       setIsLoading(false);
       setBookmarks(null);
+      initialLoadRef.current = true;
       return;
     }
 
@@ -88,7 +90,7 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
 
     const fetch = async () => {
       try {
-        setIsLoading(true);
+        if (initialLoadRef.current) setIsLoading(true);
         const res = await anisurgeWatchlist.get(folder, per_page, offset);
         const results: any[] = res?.results ?? [];
 
@@ -106,9 +108,10 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
         }
       } catch (e) {
         console.error("useBookMarks fetch error:", e);
-        setBookmarks(null);
+        if (initialLoadRef.current) setBookmarks(null);
       } finally {
         setIsLoading(false);
+        initialLoadRef.current = false;
       }
     };
 

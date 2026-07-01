@@ -8,6 +8,7 @@
     "chat": "Live Chat",
     "watchTogether": "Watch Together",
     "donate": "Support",
+    "shop": "Shop",
     "faq": "FAQ",
     "more": "More",
     "search": "Search",
@@ -22,6 +23,7 @@
       "chat": "Chat",
       "together": "Together",
       "donate": "Support",
+      "shop": "Shop",
       "faq": "FAQ"
     },
     "aria": {
@@ -37,7 +39,8 @@
     "watchlist": "Watchlist",
     "settings": "Settings",
     "signOut": "Sign out",
-    "anisurge": "Anisurge"
+    "anisurge": "Anisurge",
+    "kittycoins": "Kittycoins"
   },
   "site": {
     "beta": "Beta",
@@ -268,6 +271,9 @@
     "title": "Settings",
     "subtitle": "Manage preferences, profile, and account",
     "viewProfile": "View profile",
+    "shopTitle": "Kittycoin Shop",
+    "shopDesc": "Spend Kittycoins on avatar frames, profile stickers, and username icons.",
+    "openShop": "Open shop",
     "tabs": {
       "general": "General",
       "profile": "Profile",
@@ -648,6 +654,32 @@
     "xpSummary": "{xp} XP · {count} done",
     "xpToNext": "{xp} XP to Lv.{level}",
     "max": "MAX"
+  },
+  "shop": {
+    "title": "Kittycoin Shop",
+    "eyebrow": "Cosmetics",
+    "subtitle": "Earn Kittycoins by watching, commenting, and logging in — then spend them on avatar frames, profile stickers, and username icons.",
+    "balance": "Your balance",
+    "signIn": "Sign in to browse the shop and equip cosmetics.",
+    "earnTitle": "How to earn",
+    "earnWelcome": "100 coins when you create an account",
+    "earnDaily": "15 coins for your first login each day",
+    "earnEpisode": "8 coins when you finish an episode (90%+ watched)",
+    "earnComment": "5 coins per episode comment",
+    "tabs": {
+      "frame": "Frames",
+      "sticker": "Stickers",
+      "icon": "Icons"
+    },
+    "buy": "Buy",
+    "equip": "Equip",
+    "equipped": "Equipped",
+    "free": "Free",
+    "supporterOnly": "Ko-fi supporters only",
+    "purchased": "Purchased {name}!",
+    "purchaseFailed": "Purchase failed",
+    "equippedToast": "Equipped {name}",
+    "equipFailed": "Could not equip item"
   },
   "anime": {
     "airing": "AIRING",

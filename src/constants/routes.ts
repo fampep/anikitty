@@ -13,4 +13,5 @@ export const ROUTES = {
   SETTINGS: "/settings",
   FAQ: "/faq",
   DONATE: "/donate",
+  SHOP: "/shop",
 };

@@ -12,6 +12,10 @@ export type IAuth = {
   role?: string | null;
   permissions?: string[];
   supporterUntil?: string | null;
+  kittycoinBalance?: number;
+  equippedFrame?: string | null;
+  equippedSticker?: string | null;
+  equippedIcon?: string | null;
 };
 
 export interface IAuthStore {
@@ -30,7 +34,7 @@ export const useAuthStore = create<IAuthStore>()(
     {
       name: "auth",
       partialize: (state) => ({ auth: state.auth }),
-      version: 3,
+      version: 4,
     },
   ),
 );

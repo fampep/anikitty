@@ -26,9 +26,10 @@ type Props = {
 
 function Select(props: Props) {
   const value = props.options.find((option) => option.value === props.value);
+  const controlledValue = props.value && props.value.length > 0 ? props.value : undefined;
 
   return (
-    <SelectCN defaultValue={props.value} onValueChange={props.onChange}>
+    <SelectCN value={controlledValue} onValueChange={props.onChange}>
       <SelectTrigger className={cn("w-[180px]", props.className)}>
         {value?.icon ? (
           <value.icon />

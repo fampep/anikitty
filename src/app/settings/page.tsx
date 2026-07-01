@@ -21,6 +21,7 @@ import {
   EyeOff,
   Languages,
   ExternalLink,
+  Coins,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -46,6 +47,8 @@ import { RoleBadge } from "@/components/profile/role-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n, useT } from "@/providers/i18n-provider";
 import { locales, localeLabels, type Locale } from "@/i18n/config";
+import { ROUTES } from "@/constants/routes";
+import { useKittycoins } from "@/hooks/use-kittycoins";
 
 const TAB_CLASS =
   "text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:text-white data-[state=active]:bg-transparent text-white/35 hover:text-white/65 transition-all bg-transparent whitespace-nowrap";
@@ -139,6 +142,39 @@ function AccountCard() {
         <ExternalLink className="w-3 h-3 opacity-60" />
       </Link>
     </div>
+  );
+}
+
+function ShopSection() {
+  const t = useT();
+  const auth = useAuthStore((s) => s.auth);
+  const { balance, loaded } = useKittycoins(!!auth);
+  if (!auth) return null;
+
+  return (
+    <SectionCard>
+      <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-400/20 flex items-center justify-center shrink-0">
+            <Coins className="w-4 h-4 text-amber-300" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-white/90">{t("settings.shopTitle")}</h3>
+            <p className="text-[12px] text-white/40 mt-1 leading-relaxed">{t("settings.shopDesc")}</p>
+            <p className="text-[12px] font-bold text-amber-300/90 mt-2 tabular-nums">
+              {loaded ? `${balance.toLocaleString()} Kittycoins` : "—"}
+            </p>
+          </div>
+        </div>
+        <Link
+          href={ROUTES.SHOP}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg site-brand-btn text-[12px] font-bold shrink-0"
+        >
+          {t("settings.openShop")}
+          <ExternalLink className="w-3 h-3 opacity-70" />
+        </Link>
+      </div>
+    </SectionCard>
   );
 }
 
@@ -657,6 +693,7 @@ export default function SettingsPage() {
 
             <TabsContent value="general" className="mt-8 space-y-5">
               <LanguageSection />
+              {auth && <ShopSection />}
               <PlaybackSection
                 preferDub={preferDub}
                 setPreferDub={setPreferDub}

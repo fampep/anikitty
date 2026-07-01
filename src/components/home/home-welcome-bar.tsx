@@ -27,7 +27,7 @@ export default function HomeWelcomeBar() {
               <LevelProgressCard level={level} compact />
             </div>
           ) : (
-            <p className="text-[10px] text-white/30 font-mono mt-0.5">{t("home.pickUp")}</p>
+            <div className="mt-1.5 h-9 w-full max-w-xs rounded-lg bg-white/[0.04] animate-pulse" aria-hidden />
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">

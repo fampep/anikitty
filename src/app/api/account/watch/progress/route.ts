@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { users, watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { parseEpisodeNumber, updateAniListProgress } from "@/lib/oauth/anilist-sync";
+import { grantEpisodeKittycoins } from "@/lib/shop/kittycoins";
 import { and, eq, isNull } from "drizzle-orm";
 
 function isWatchedEnough(current: number, duration: number): boolean {
@@ -67,6 +68,10 @@ export async function POST(req: Request) {
           updatedAt: new Date(),
         },
       });
+
+    if (isWatchedEnough(roundedCurrent, roundedDuration)) {
+      void grantEpisodeKittycoins(db, payload.userId, animeId, episodeId);
+    }
 
     // Sync to AniList once per episode — not on every progress tick past 90%.
     if (anilistId && isWatchedEnough(roundedCurrent, roundedDuration)) {

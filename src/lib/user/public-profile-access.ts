@@ -63,6 +63,9 @@ export function publicUserFields(user: PublicUserRow) {
     roleColor: user.roleColor,
     createdAt: user.createdAt?.toISOString() ?? null,
     profilePrivate: user.profilePrivate,
+    equippedFrame: user.equippedFrame,
+    equippedSticker: user.equippedSticker,
+    equippedIcon: user.equippedIcon,
   };
 }
 

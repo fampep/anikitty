@@ -87,7 +87,7 @@ export default function Home() {
       </LazyMount>
 
       <LazyMount minHeight={280}>
-        <ContinueWatching loading={isLoading && !!auth} />
+        <ContinueWatching />
       </LazyMount>
 
       <LazyMount minHeight={120}>

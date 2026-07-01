@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Container from "@/components/layout/container";
-import Avatar from "@/components/common/avatar";
+import FramedAvatar from "@/components/common/framed-avatar";
+import { CosmeticUsername, ProfileStickerBadge } from "@/components/common/user-cosmetics";
 import { cn } from "@/lib/core/utils";
 import { useAuthHydrated, useAuthStore } from "@/store/auth-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -65,6 +66,9 @@ type ProfileData = {
   roleColor: string | null;
   createdAt: string | null;
   profilePrivate?: boolean;
+  equippedFrame?: string | null;
+  equippedSticker?: string | null;
+  equippedIcon?: string | null;
 };
 
 const STATUS_TABS = [
@@ -150,6 +154,48 @@ function profileFetchInit(): RequestInit {
   return withAuth();
 }
 
+const EMPTY_COUNTS: ProfileCounts = {
+  watching: 0,
+  completed: 0,
+  plan: 0,
+  onHold: 0,
+  dropped: 0,
+};
+
+function profileCacheKey(username: string) {
+  return `profile:${username}`;
+}
+
+function readProfileCache(username: string) {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(profileCacheKey(username));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeProfileCache(username: string, data: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(profileCacheKey(username), JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
+}
+
+async function fetchProfilePayload(username: string) {
+  const r = await fetch(`/api/users/${encodeURIComponent(username)}`, profileFetchInit());
+  if (r.status === 404) return { notFound: true as const };
+  if (r.status === 403) {
+    const data = await r.json().catch(() => ({}));
+    if (data.private) return { hidden: true as const };
+  }
+  if (!r.ok) return null;
+  return r.json();
+}
+
 function UserComments({ username }: { username: string }) {
   const [items, setItems] = useState<UserComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,9 +278,23 @@ function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profileHidden, setProfileHidden] = useState(false);
+  const countsRefreshSkip = useRef(watchlistVersion);
   const ownLevelData = useUserLevel();
 
   const isOwn = !!auth && auth.username === profileUsername;
+
+  const applyProfilePayload = (data: {
+    user?: ProfileData;
+    counts?: ProfileCounts;
+    level?: UserLevelData | null;
+    accountBadges?: AccountBadges | null;
+  }) => {
+    if (!data?.user) return;
+    setProfile(data.user);
+    setCounts(data.counts ?? EMPTY_COUNTS);
+    setLevelData(data.level ?? null);
+    setAccountBadges(data.accountBadges ?? null);
+  };
 
   useEffect(() => {
     if (!profileUsername) {
@@ -243,44 +303,53 @@ function ProfilePage() {
       return;
     }
 
-    setProfileLoading(true);
+    const cached = readProfileCache(profileUsername);
+    if (cached?.user) {
+      applyProfilePayload(cached);
+      setProfileLoading(false);
+    } else {
+      setProfileLoading(true);
+    }
+
     setNotFound(false);
     setProfileHidden(false);
-    fetch(`/api/users/${encodeURIComponent(profileUsername)}`, profileFetchInit())
-      .then(async (r) => {
-        if (r.status === 404) {
+
+    fetchProfilePayload(profileUsername)
+      .then((result) => {
+        if (!result) {
           setNotFound(true);
-          return null;
+          return;
         }
-        if (r.status === 403) {
-          const data = await r.json().catch(() => ({}));
-          if (data.private) {
-            setProfileHidden(true);
-            return null;
-          }
+        if ("notFound" in result) {
+          setNotFound(true);
+          return;
         }
-        return r.ok ? r.json() : null;
-      })
-      .then((data) => {
-        if (!data?.user) return;
-        setProfile(data.user);
-        setCounts(
-          data.counts ?? {
-            watching: 0,
-            completed: 0,
-            plan: 0,
-            onHold: 0,
-            dropped: 0,
-          },
-        );
-        setLevelData(data.level ?? null);
-        setAccountBadges(data.accountBadges ?? null);
+        if ("hidden" in result) {
+          setProfileHidden(true);
+          return;
+        }
+        writeProfileCache(profileUsername, result);
+        applyProfilePayload(result);
       })
       .catch(() => setNotFound(true))
       .finally(() => setProfileLoading(false));
-  }, [profileUsername, watchlistVersion]);
+  }, [profileUsername]);
 
-  if (!hasHydrated || profileLoading) return <Loading />;
+  useEffect(() => {
+    if (watchlistVersion === countsRefreshSkip.current) return;
+    countsRefreshSkip.current = watchlistVersion;
+    if (!profileUsername || !profile) return;
+
+    fetchProfilePayload(profileUsername)
+      .then((result) => {
+        if (!result || "notFound" in result || "hidden" in result) return;
+        writeProfileCache(profileUsername, result);
+        if (result.counts) setCounts(result.counts);
+      })
+      .catch(() => {});
+  }, [watchlistVersion, profileUsername, profile]);
+
+  if (!hasHydrated || (profileLoading && !profile)) return <Loading />;
 
   if (profileHidden) {
     return (
@@ -338,6 +407,10 @@ function ProfilePage() {
     <div className="min-h-screen pb-24">
       {/* ── Hero banner ─────────────────────────────────────────── */}
       <div className="relative h-52 md:h-64 w-full overflow-hidden">
+        <ProfileStickerBadge
+          stickerSlug={profile.equippedSticker}
+          className="right-6 bottom-16 md:right-10 md:bottom-20"
+        />
         {bannerUrl ? (
           <div className="absolute inset-0">
             <ProfileMediaPreview src={bannerUrl} alt="Profile banner" variant="banner" />
@@ -364,22 +437,19 @@ function ProfilePage() {
         <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 mb-8">
           {/* Avatar */}
           <div className="shrink-0">
-            <div className={cn("rounded-full p-[3px] shadow-2xl", profile.themeColor ? "user-accent-ring" : "bg-gradient-to-br from-white/30 via-white/20 to-white/10")}>
-              <div className="rounded-full p-[2px] bg-black">
-                <Avatar
-                  className="w-28 h-28 md:w-32 md:h-32"
-                  username={profile.username}
-                  url={profile.avatarUrl ?? undefined}
-                />
-              </div>
-            </div>
+            <FramedAvatar
+              className="w-28 h-28 md:w-32 md:h-32 shadow-2xl"
+              username={profile.username}
+              url={profile.avatarUrl ?? undefined}
+              frameSlug={profile.equippedFrame}
+            />
           </div>
 
           {/* Name + meta */}
           <div className="flex-1 text-center sm:text-left pb-1">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
               <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-                @{profile.username}
+                @<CosmeticUsername username={profile.username} iconSlug={profile.equippedIcon} />
               </h1>
               {isOwn && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/15 bg-white/5 text-white/40 text-[11px] font-mono self-center sm:self-auto">
@@ -404,13 +474,21 @@ function ProfilePage() {
                 <RoleBadge role={profile.role} size="sm" />
               )}
               {isOwn && (
-                <button
-                  onClick={() => setEditOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto sm:ml-auto"
-                >
-                  <Pencil className="w-3 h-3" />
-                  Edit profile
-                </button>
+                <>
+                  <Link
+                    href={ROUTES.SHOP}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-400/25 bg-amber-500/10 text-amber-200/90 text-[12px] font-medium hover:bg-amber-500/20 transition-all self-center sm:self-auto"
+                  >
+                    {t("settings.openShop")}
+                  </Link>
+                  <button
+                    onClick={() => setEditOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto sm:ml-auto"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit profile
+                  </button>
+                </>
               )}
               {!isOwn && auth && (
                 <Link
@@ -481,11 +559,16 @@ function ProfilePage() {
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {t.label}
-                      {count > 0 && (
-                        <span className="ml-0.5 px-1.5 py-px rounded-full text-[10px] font-bold bg-white/10 text-white/50 data-[state=active]:bg-white/20 data-[state=active]:text-white leading-none">
-                          {count}
-                        </span>
-                      )}
+                      <span
+                        className={cn(
+                          "ml-0.5 px-1.5 py-px rounded-full text-[10px] font-bold leading-none tabular-nums",
+                          count > 0
+                            ? "bg-white/10 text-white/50 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                            : "bg-white/5 text-white/25",
+                        )}
+                      >
+                        {count}
+                      </span>
                     </TabsTrigger>
                   );
                 })}

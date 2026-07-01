@@ -75,6 +75,9 @@ export async function POST(req: Request) {
       })
       .returning();
 
+    const { grantWelcomeKittycoins } = await import("@/lib/shop/kittycoins");
+    await grantWelcomeKittycoins(db, user.id);
+
     const authData = await buildAuthResponse(user, req);
     return jsonWithAuthCookie(authData, authData.anisurgeToken);
   } catch (e) {

@@ -68,12 +68,13 @@ function AnimeLists({ status, username, isOwn }: Props) {
   const [publicBookmarks, setPublicBookmarks] = useState<Bookmark[] | null>(null);
   const [publicTotalPages, setPublicTotalPages] = useState(0);
   const [publicLoading, setPublicLoading] = useState(!isOwn);
+  const publicInitialLoadRef = useRef(true);
 
   useEffect(() => {
     if (isOwn) return;
     const folder = statusToFolder(status);
     const offset = (currentPage - 1) * 20;
-    setPublicLoading(true);
+    if (publicInitialLoadRef.current) setPublicLoading(true);
     fetch(
       `/api/users/${encodeURIComponent(username)}/watchlist?folder=${encodeURIComponent(folder)}&limit=20&offset=${offset}`,
       withAuth(),
@@ -86,7 +87,10 @@ function AnimeLists({ status, username, isOwn }: Props) {
         setPublicTotalPages(Math.ceil(total / 20));
       })
       .catch(() => setPublicBookmarks(null))
-      .finally(() => setPublicLoading(false));
+      .finally(() => {
+        setPublicLoading(false);
+        publicInitialLoadRef.current = false;
+      });
   }, [isOwn, username, status, currentPage]);
 
   const bookmarks = isOwn ? ownBookmarks.bookmarks : publicBookmarks;

@@ -31,7 +31,68 @@ interface ContinueItem {
   watchDetail: WatchHistory;
 }
 
-type Props = { loading: boolean };
+type Props = { loading?: boolean };
+
+const CONTINUE_CACHE_KEY = "kitty:continue-watching";
+
+function readContinueCache(userId: string): ContinueItem[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CONTINUE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { userId: string; items: ContinueItem[] };
+    return parsed.userId === userId ? parsed.items : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeContinueCache(userId: string, items: ContinueItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      CONTINUE_CACHE_KEY,
+      JSON.stringify({ userId, items }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+function mapContinueRows(
+  data: any[],
+  getProgress: (animeId: string, episodeId: string) => { current: number; duration: number } | null,
+): ContinueItem[] {
+  return data.map((r) => {
+    const animeData = r.anime ?? {};
+    const title =
+      animeData?.title?.english ??
+      animeData?.title?.user_preferred ??
+      animeData?.title?.romaji ??
+      r.animeId;
+    const poster =
+      animeData?.cover_image?.large ??
+      animeData?.cover_image?.extra_large ??
+      animeData?.poster ??
+      "";
+    const episodeNumber = parseInt((r.episodeId ?? "ep-0").replace("ep-", ""), 10) || 0;
+    const cached = getProgress(r.animeId, r.episodeId ?? "");
+    return {
+      id: r.animeId,
+      name: title,
+      poster,
+      episodeId: r.episodeId,
+      watchDetail: {
+        id: r.animeId,
+        current: cached?.current ?? r.currentTime ?? 0,
+        timestamp: cached?.duration ?? r.duration ?? 0,
+        episodeId: r.episodeId ?? "",
+        episodeNumber,
+        created: r.lastUpdated ?? "",
+      },
+    };
+  });
+}
 
 function ContinueCard({
   item,
@@ -183,14 +244,19 @@ function RemoveContinueDialog({
   );
 }
 
-const ContinueWatching = ({ loading }: Props) => {
+const ContinueWatching = ({ loading = false }: Props) => {
   const t = useT();
   const { auth } = useAuthStore();
   const lastSaved = useProgressStore((s) => s.lastSaved);
-  const getProgress = useProgressStore((s) => s.getProgress);
   const removeProgress = useProgressStore((s) => s.removeProgress);
-  const [items, setItems] = useState<ContinueItem[]>([]);
-  const [fetched, setFetched] = useState(false);
+  const [items, setItems] = useState<ContinueItem[]>(() => {
+    if (!auth?.id) return [];
+    return readContinueCache(auth.id) ?? [];
+  });
+  const [fetched, setFetched] = useState(() => {
+    if (!auth?.id) return true;
+    return (readContinueCache(auth.id)?.length ?? 0) > 0;
+  });
   const [loadError, setLoadError] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
@@ -200,51 +266,36 @@ const ContinueWatching = ({ loading }: Props) => {
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
-    if (!auth) { setItems([]); setFetched(true); return; }
+    if (!auth) {
+      setItems([]);
+      setFetched(true);
+      return;
+    }
+
+    const cached = readContinueCache(auth.id);
+    if (cached?.length) {
+      setItems(cached);
+      setFetched(true);
+    }
 
     setLoadError(false);
+    const getProgress = useProgressStore.getState().getProgress;
     anisurgeContinue
       .get(true, 14)
       .then((res) => {
         const data: any[] = res?.data ?? [];
-        setItems(
-          data.map((r) => {
-            const animeData = r.anime ?? {};
-            const title =
-              animeData?.title?.english ??
-              animeData?.title?.user_preferred ??
-              animeData?.title?.romaji ??
-              r.animeId;
-            const poster =
-              animeData?.cover_image?.large ??
-              animeData?.cover_image?.extra_large ??
-              animeData?.poster ??
-              "";
-            const episodeNumber = parseInt((r.episodeId ?? "ep-0").replace("ep-", ""), 10) || 0;
-            const cached = getProgress(r.animeId, r.episodeId ?? "");
-            return {
-              id: r.animeId,
-              name: title,
-              poster,
-              episodeId: r.episodeId,
-              watchDetail: {
-                id: r.animeId,
-                current: cached?.current ?? r.currentTime ?? 0,
-                timestamp: cached?.duration ?? r.duration ?? 0,
-                episodeId: r.episodeId ?? "",
-                episodeNumber,
-                created: r.lastUpdated ?? "",
-              },
-            };
-          }),
-        );
+        const mapped = mapContinueRows(data, getProgress);
+        setItems(mapped);
+        writeContinueCache(auth.id, mapped);
       })
       .catch(() => {
-        setItems([]);
-        setLoadError(true);
+        if (!cached?.length) {
+          setItems([]);
+          setLoadError(true);
+        }
       })
       .finally(() => setFetched(true));
-  }, [auth, lastSaved, retryTick, getProgress]);
+  }, [auth?.id, lastSaved, retryTick]);
 
   const updateScrollState = () => {
     const el = scrollRef.current;
@@ -272,6 +323,12 @@ const ContinueWatching = ({ loading }: Props) => {
     try {
       await anisurgeContinue.remove(item.id, item.episodeId);
       removeProgress(item.id, item.episodeId);
+      if (auth?.id) {
+        writeContinueCache(
+          auth.id,
+          prev.filter((i) => `${i.id}:${i.episodeId}` !== key),
+        );
+      }
       setPendingRemove(null);
     } catch {
       setItems(prev);
@@ -286,7 +343,7 @@ const ContinueWatching = ({ loading }: Props) => {
     void handleRemove(pendingRemove);
   };
 
-  if (loading) return <LoadingSkeleton />;
+  if (loading && !fetched) return <LoadingSkeleton />;
 
   if (!auth) {
     return (
@@ -316,7 +373,7 @@ const ContinueWatching = ({ loading }: Props) => {
     );
   }
 
-  if (!fetched) return <LoadingSkeleton />;
+  if (!fetched && !items.length) return <LoadingSkeleton />;
 
   if (loadError) {
     return (

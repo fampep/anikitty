@@ -1,17 +1,19 @@
 "use client";
 
 import React from "react";
-import Avatar from "@/components/common/avatar";
+import FramedAvatar from "@/components/common/framed-avatar";
+import { CosmeticUsername } from "@/components/common/user-cosmetics";
 import { IAuthStore } from "@/store/auth-store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Link from "next/link";
 import {
-  User, LogOut, BookMarked, Settings, Zap,
+  User, LogOut, BookMarked, Settings, Zap, Coins,
   Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { anisurgeAuth, clearAnisurgeToken } from "@/lib/oauth/anisurge";
 import { useUserLevel } from "@/hooks/use-user-level";
+import { useKittycoins } from "@/hooks/use-kittycoins";
 import type { LevelTier } from "@/lib/user/user-level";
 import { useT } from "@/providers/i18n-provider";
 
@@ -38,8 +40,12 @@ function NavbarAvatar({ auth }: Props) {
   const t = useT();
   const [open, setOpen] = React.useState(false);
   const level = useUserLevel();
+  const session = auth.auth;
+  const { balance, equipped, loaded } = useKittycoins(!!session);
+  const frameSlug = equipped.frame ?? session?.equippedFrame ?? null;
+  const iconSlug = equipped.icon ?? session?.equippedIcon ?? null;
 
-  if (!auth.auth) return null;
+  if (!session) return null;
 
   const close = () => setOpen(false);
 
@@ -50,7 +56,7 @@ function NavbarAvatar({ auth }: Props) {
     close();
   };
 
-  const isAdmin = auth.auth.role === "admin";
+  const isAdmin = session.role === "admin";
   const tier = level?.tier;
   const rgb = tier ? hexToRgb(tier.color) : null;
 
@@ -58,9 +64,10 @@ function NavbarAvatar({ auth }: Props) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button className="relative rounded-full ring-2 ring-white/15 hover:ring-white/45 transition-all duration-200 group">
-          <Avatar
-            username={auth.auth.username}
-            url={auth.auth.avatar || undefined}
+          <FramedAvatar
+            username={session.username}
+            url={session.avatar || undefined}
+            frameSlug={frameSlug}
             className="w-8 h-8"
           />
           <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-black shadow-sm shadow-emerald-400/50" />
@@ -77,9 +84,10 @@ function NavbarAvatar({ auth }: Props) {
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
           <div className="relative flex items-center gap-3">
             <div className="relative shrink-0">
-              <Avatar
-                username={auth.auth.username}
-                url={auth.auth.avatar || undefined}
+              <FramedAvatar
+                username={session.username}
+                url={session.avatar || undefined}
+                frameSlug={frameSlug}
                 className="w-9 h-9"
               />
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border-2 border-[#0d0d0d]" />
@@ -87,7 +95,7 @@ function NavbarAvatar({ auth }: Props) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="text-white/90 font-semibold text-sm truncate leading-tight">
-                  {auth.auth.username}
+                  <CosmeticUsername username={session.username} iconSlug={iconSlug} />
                 </p>
                 {isAdmin && (
                   <span className="shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500/15 border border-amber-500/20 text-amber-400/80 uppercase tracking-wider">
@@ -146,17 +154,37 @@ function NavbarAvatar({ auth }: Props) {
           )}
         </div>
 
+        <Link
+          href={ROUTES.SHOP}
+          onClick={close}
+          className="mx-4 mt-3 mb-1 flex items-center justify-between gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 transition-colors hover:bg-amber-500/15"
+        >
+          <span className="inline-flex items-center gap-2 text-[12px] font-bold">
+            <Coins className="w-3.5 h-3.5" />
+            {t("nav.kittycoins")}
+          </span>
+          <span className="text-sm font-black tabular-nums">
+            {loaded ? balance.toLocaleString() : "—"}
+          </span>
+        </Link>
+
         <div className="py-1.5">
           <MenuItem
-            href={`/profile/${auth.auth.username}`}
+            href={`/profile/${session.username}`}
             icon={<User className="w-3.5 h-3.5" />}
             label={t("nav.profile")}
             onClick={close}
           />
           <MenuItem
-            href={`/profile/${auth.auth.username}#watchlist`}
+            href={`/profile/${session.username}#watchlist`}
             icon={<BookMarked className="w-3.5 h-3.5" />}
             label={t("nav.watchlist")}
+            onClick={close}
+          />
+          <MenuItem
+            href={ROUTES.SHOP}
+            icon={<Coins className="w-3.5 h-3.5" />}
+            label={t("nav.shop")}
             onClick={close}
           />
           <MenuItem

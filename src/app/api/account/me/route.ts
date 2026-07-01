@@ -7,6 +7,7 @@ import { isSafeHttpsUrl } from "@/lib/security/security";
 import { isValidThemeColor, normalizeThemeColor } from "@/lib/core/theme-color";
 import { getRolePermissions } from "@/lib/security/permissions";
 import { expireSupporterIfNeeded } from "@/lib/social/supporter-access";
+import { getUserCosmetics } from "@/lib/shop/kittycoins";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -54,6 +55,7 @@ export async function GET(req: Request) {
   });
 
   const permissions = await getRolePermissions(db, effectiveRole);
+  const cosmetics = await getUserCosmetics(db, user.id);
 
   const { anilistAccessToken: _token, ...safeUser } = user;
 
@@ -61,6 +63,7 @@ export async function GET(req: Request) {
     anisurgeUserId: safeUser.id,
     permissions,
     supporterUntil: user.supporterUntil?.toISOString() ?? null,
+    kittycoinBalance: cosmetics.balance,
     anisurgeLinked: !!safeUser.anisurgeUsername,
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,
@@ -82,6 +85,9 @@ export async function GET(req: Request) {
       showAds: safeUser.showAds ?? true,
       supporterUntil: user.supporterUntil?.toISOString() ?? null,
       createdAt: safeUser.createdAt?.toISOString() ?? null,
+      equippedFrame: cosmetics.equipped.frame,
+      equippedSticker: cosmetics.equipped.sticker,
+      equippedIcon: cosmetics.equipped.icon,
     },
   });
 }

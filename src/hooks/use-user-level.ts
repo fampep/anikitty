@@ -50,7 +50,15 @@ async function fetchLevelData(userId: string): Promise<UserLevelData | null> {
 
 export function useUserLevel(): UserLevelData | null {
   const auth = useAuthStore((s) => s.auth);
-  const [data, setData] = useState<UserLevelData | null>(null);
+  const [data, setData] = useState<UserLevelData | null>(() => {
+    if (!auth || typeof window === "undefined") return null;
+    try {
+      const cached = sessionStorage.getItem(`level:${auth.id}`);
+      return cached ? (JSON.parse(cached) as UserLevelData) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const fetchLevel = useCallback(() => {
     if (!auth) {
@@ -87,8 +95,21 @@ export function useUserLevel(): UserLevelData | null {
   }, [auth]);
 
   useEffect(() => {
+    if (!auth) {
+      setData(null);
+      return;
+    }
+    const cacheKey = `level:${auth.id}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        setData(JSON.parse(cached) as UserLevelData);
+      } catch {
+        /* ignore */
+      }
+    }
     fetchLevel();
-  }, [fetchLevel]);
+  }, [auth, fetchLevel]);
 
   useEffect(() => {
     const onInvalidate = () => fetchLevel();

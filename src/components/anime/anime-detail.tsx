@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 
@@ -80,6 +80,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     per_page: 1,
   });
   const [selected, setSelected] = useState(bookmarks?.[0]?.status || "");
+
+  useEffect(() => {
+    const status = bookmarks?.[0]?.status;
+    if (status) setSelected(status);
+  }, [bookmarks?.[0]?.status]);
 
   const anilistId = anime?.anime.info.anilistId;
 

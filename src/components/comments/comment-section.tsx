@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Image from "next/image";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { withAuth } from "@/lib/auth/auth-fetch";
@@ -17,6 +16,8 @@ import { invalidateUserLevel } from "@/hooks/use-user-level";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
+import FramedAvatar from "@/components/common/framed-avatar";
+import { CosmeticUsername } from "@/components/common/user-cosmetics";
 
 // ── Emoji picker ──────────────────────────────────────────────────────────────
 
@@ -104,6 +105,8 @@ interface Comment {
   level?: number;
   levelRole?: string;
   levelRoleColor?: string;
+  equippedFrame?: string | null;
+  equippedIcon?: string | null;
   likes: number;
   dislikes: number;
   myVote: 0 | 1 | -1;
@@ -137,38 +140,25 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-const AVATAR_PALETTES = [
-  { bg: "bg-violet-500/15", text: "text-violet-300", ring: "ring-violet-500/20" },
-  { bg: "bg-sky-500/15",    text: "text-sky-300",    ring: "ring-sky-500/20"    },
-  { bg: "bg-pink-500/15",   text: "text-pink-300",   ring: "ring-pink-500/20"   },
-  { bg: "bg-emerald-500/15",text: "text-emerald-300",ring: "ring-emerald-500/20"},
-  { bg: "bg-amber-500/15",  text: "text-amber-300",  ring: "ring-amber-500/20"  },
-  { bg: "bg-rose-500/15",   text: "text-rose-300",   ring: "ring-rose-500/20"   },
-];
-
 function CommentAvatar({
   username,
   avatarUrl,
+  frameSlug,
   size = "md",
 }: {
   username: string;
   avatarUrl?: string | null;
+  frameSlug?: string | null;
   size?: "sm" | "md";
 }) {
-  const letter = username?.[0]?.toUpperCase() ?? "?";
-  const pal = AVATAR_PALETTES[letter.charCodeAt(0) % AVATAR_PALETTES.length];
-  const dim = size === "sm" ? "w-7 h-7 text-[11px]" : "w-9 h-9 text-[13px]";
-  if (avatarUrl) {
-    return (
-      <div className={`relative ${dim} shrink-0 rounded-full overflow-hidden ring-1 ring-white/10`}>
-        <Image src={avatarUrl} alt={username} fill className="object-cover" unoptimized />
-      </div>
-    );
-  }
+  const dim = size === "sm" ? "w-7 h-7" : "w-9 h-9";
   return (
-    <div className={`${dim} rounded-full shrink-0 flex items-center justify-center font-bold ring-1 ${pal.bg} ${pal.text} ${pal.ring}`}>
-      {letter}
-    </div>
+    <FramedAvatar
+      username={username}
+      url={avatarUrl ?? undefined}
+      frameSlug={frameSlug}
+      className={dim}
+    />
   );
 }
 
@@ -763,7 +753,7 @@ export default function CommentSection({
       {/* Composer */}
       {auth && !requiresEpisode ? (
         <div className="flex gap-3">
-          <CommentAvatar username={auth.username} avatarUrl={auth.avatar} />
+          <CommentAvatar username={auth.username} avatarUrl={auth.avatar} frameSlug={auth.equippedFrame} />
           <div className="flex-1">
             <div
               className={`rounded-xl border transition-all duration-200 ${
@@ -936,13 +926,13 @@ export default function CommentSection({
 
             return (
               <div key={c.id} className="flex gap-3 py-4 group">
-                <CommentAvatar username={c.username} avatarUrl={c.avatarUrl} />
+                <CommentAvatar username={c.username} avatarUrl={c.avatarUrl} frameSlug={c.equippedFrame} />
                 <div className="flex-1 min-w-0">
 
                   {/* Header */}
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="text-[13px] font-semibold text-white/90 leading-none">
-                      {c.username}
+                      <CosmeticUsername username={c.username} iconSlug={c.equippedIcon} />
                     </span>
                     <UserBadges
                       role={c.role}
@@ -1119,6 +1109,7 @@ export default function CommentSection({
                       <CommentAvatar
                         username={auth!.username}
                         avatarUrl={auth!.avatar}
+                        frameSlug={auth!.equippedFrame}
                         size="sm"
                       />
                       <div className="flex-1">
@@ -1191,12 +1182,13 @@ export default function CommentSection({
                                 <CommentAvatar
                                   username={reply.username}
                                   avatarUrl={reply.avatarUrl}
+                                  frameSlug={reply.equippedFrame}
                                   size="sm"
                                 />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <span className="text-[12px] font-semibold text-white/85 leading-none">
-                                      {reply.username}
+                                      <CosmeticUsername username={reply.username} iconSlug={reply.equippedIcon} />
                                     </span>
                                     <UserBadges
                                       role={reply.role}

@@ -10,6 +10,7 @@ import {
   COMMENT_RATE,
 } from "@/lib/social/comment-helpers";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
+import { grantCommentKittycoins } from "@/lib/shop/kittycoins";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
 
 const PAGE_SIZE = 20;
@@ -29,6 +30,8 @@ const BASE_SELECT = {
   avatarUrl: users.avatarUrl,
   role: users.role,
   roleColor: roles.color,
+  equippedFrame: users.equippedFrame,
+  equippedIcon: users.equippedIcon,
 } as const;
 
 type RawRow = {
@@ -46,6 +49,8 @@ type RawRow = {
   avatarUrl: string | null;
   role: string | null;
   roleColor: string | null;
+  equippedFrame?: string | null;
+  equippedIcon?: string | null;
   level?: number;
   levelRole?: string;
   levelRoleColor?: string;
@@ -298,6 +303,8 @@ export async function POST(
       episodeId: comments.episodeId,
       episodeNumber: comments.episodeNumber,
     });
+
+  void grantCommentKittycoins(db, payload.userId, row.id);
 
   const [user] = await db
     .select({

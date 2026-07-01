@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/container";
-import Avatar from "@/components/common/avatar";
+import FramedAvatar from "@/components/common/framed-avatar";
+import { CosmeticUsername } from "@/components/common/user-cosmetics";
 import { SectionHeading } from "./section-heading";
 import { UserBadges } from "@/components/profile/user-badges";
 import { MessageSquare, ArrowRight } from "lucide-react";
@@ -25,6 +26,8 @@ interface LatestComment {
   level?: number;
   levelRole?: string;
   levelRoleColor?: string;
+  equippedFrame?: string | null;
+  equippedIcon?: string | null;
 }
 
 function commentLink(c: LatestComment) {
@@ -61,14 +64,17 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
           key={c.id}
           className="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-white/8 hover:bg-white/[0.025] transition-colors group"
         >
-          <Avatar
+          <FramedAvatar
             username={c.username}
             url={c.avatarUrl ?? undefined}
+            frameSlug={c.equippedFrame}
             className="w-9 h-9 shrink-0 mt-0.5"
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1">
-              <span className="text-[12.5px] font-semibold text-white/85">{c.username}</span>
+              <span className="text-[12.5px] font-semibold text-white/85">
+                <CosmeticUsername username={c.username} iconSlug={c.equippedIcon} />
+              </span>
               <UserBadges
                 role={c.role}
                 roleColor={c.roleColor}

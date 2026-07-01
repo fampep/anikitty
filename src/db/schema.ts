@@ -40,6 +40,10 @@ export const users = pgTable("users", {
   mutedUntil: timestamp("muted_until"),
   muteReason: text("mute_reason"),
   mutedBy: uuid("muted_by"),
+  kittycoinBalance: integer("kittycoin_balance").notNull().default(0),
+  equippedFrame: varchar("equipped_frame", { length: 64 }),
+  equippedSticker: varchar("equipped_sticker", { length: 64 }),
+  equippedIcon: varchar("equipped_icon", { length: 64 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -598,5 +602,43 @@ export const animeEpisodeAlerts = pgTable(
   (t) => ({
     userAnilist: unique("anime_episode_alerts_user_anilist").on(t.userId, t.anilistId),
     anilistIdx: index("anime_episode_alerts_anilist_idx").on(t.anilistId),
+  }),
+);
+
+export const userShopItems = pgTable(
+  "user_shop_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    itemSlug: varchar("item_slug", { length: 64 }).notNull(),
+    purchasedAt: timestamp("purchased_at").defaultNow(),
+  },
+  (t) => ({
+    userItem: unique("user_shop_items_user_slug").on(t.userId, t.itemSlug),
+    userIdx: index("user_shop_items_user_id_idx").on(t.userId),
+  }),
+);
+
+export const kittycoinLedger = pgTable(
+  "kittycoin_ledger",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: varchar("reason", { length: 64 }).notNull(),
+    referenceId: varchar("reference_id", { length: 128 }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    refUnique: unique("kittycoin_ledger_user_reason_ref").on(
+      t.userId,
+      t.reason,
+      t.referenceId,
+    ),
+    userIdx: index("kittycoin_ledger_user_id_idx").on(t.userId),
   }),
 );

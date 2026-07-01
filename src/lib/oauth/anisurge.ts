@@ -36,6 +36,15 @@ export function authFromMeResponse(data: Record<string, unknown>): IAuth {
         : typeof user.supporterUntil === "string"
           ? user.supporterUntil
           : null,
+    kittycoinBalance:
+      typeof data.kittycoinBalance === "number"
+        ? data.kittycoinBalance
+        : typeof user.kittycoinBalance === "number"
+          ? user.kittycoinBalance
+          : 0,
+    equippedFrame: (user.equippedFrame as string | null) ?? null,
+    equippedSticker: (user.equippedSticker as string | null) ?? null,
+    equippedIcon: (user.equippedIcon as string | null) ?? null,
   };
 }
 

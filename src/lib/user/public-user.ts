@@ -15,6 +15,9 @@ export type PublicUserRow = {
   roleColor: string | null;
   createdAt: Date | null;
   profilePrivate: boolean;
+  equippedFrame: string | null;
+  equippedSticker: string | null;
+  equippedIcon: string | null;
 };
 
 export async function getUserByUsername(
@@ -33,6 +36,9 @@ export async function getUserByUsername(
       roleColor: roles.color,
       createdAt: users.createdAt,
       profilePrivate: users.profilePrivate,
+      equippedFrame: users.equippedFrame,
+      equippedSticker: users.equippedSticker,
+      equippedIcon: users.equippedIcon,
     })
     .from(users)
     .leftJoin(roles, eq(roles.name, users.role))

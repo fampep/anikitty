@@ -20,6 +20,8 @@ export async function GET() {
       avatarUrl: users.avatarUrl,
       role: users.role,
       roleColor: roles.color,
+      equippedFrame: users.equippedFrame,
+      equippedIcon: users.equippedIcon,
     })
     .from(comments)
     .innerJoin(users, eq(users.id, comments.userId))

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { sign2faPendingToken } from "@/lib/auth/auth-jwt";
 import { buildAuthResponse } from "@/lib/auth/auth-response";
 import { jsonWithAuthCookie } from "@/lib/auth/auth-cookie";
+import { grantDailyLoginKittycoins } from "@/lib/shop/kittycoins";
+import { getDb } from "@/db";
 import {
   findUserByIdentifier,
   verifyUserPassword,
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
     }
 
     const authData = await buildAuthResponse(user, req);
+    void grantDailyLoginKittycoins(getDb(), user.id);
     return jsonWithAuthCookie(authData, authData.anisurgeToken);
   } catch (e) {
     console.error("[login]", e);

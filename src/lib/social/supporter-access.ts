@@ -20,6 +20,8 @@ import {
   type KofiFeedPayment,
   type KofiWebhookPayload,
 } from "@/lib/social/kofi-feed";
+import { grantKittycoins } from "@/lib/shop/kittycoins";
+import { KITTYCOIN_REWARDS } from "@/lib/shop/catalog";
 
 export const AD_FREE_PERMISSION = "ads.ad_free" as const;
 
@@ -230,6 +232,13 @@ async function grantKofiPaymentToUser(
   }
 
   const supporterUntil = await grantSupporterAccess(db, user, daysAdded);
+  await grantKittycoins(
+    db,
+    user.id,
+    KITTYCOIN_REWARDS.kofiBonus,
+    "kofi",
+    payment.id,
+  );
   return {
     granted: true,
     daysAdded,

@@ -11,6 +11,7 @@ import {
   Captions,
   ChevronDown,
   Coffee,
+  Coins,
   Flame,
   HelpCircle,
   Home,
@@ -37,6 +38,7 @@ import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import Image from "next/image";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
+import { useKittycoins } from "@/hooks/use-kittycoins";
 
 const MENU_DEFS = [
   { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home" },
@@ -46,6 +48,7 @@ const MENU_DEFS = [
   { href: ROUTES.FORUM, icon: MessagesSquare, titleKey: "nav.forum", shortKey: "nav.short.forum" },
   { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat" },
   { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together" },
+  { href: ROUTES.SHOP, icon: Coins, titleKey: "nav.shop", shortKey: "nav.short.shop" },
   { href: ROUTES.DONATE, icon: Coffee, titleKey: "nav.donate", shortKey: "nav.short.donate" },
   { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq" },
 ] as const;
@@ -194,6 +197,25 @@ function MoreNavMenu({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function KittycoinPill() {
+  const t = useT();
+  const auth = useAuthStore((s) => s.auth);
+  const { balance, loaded } = useKittycoins(!!auth);
+
+  if (!auth) return null;
+
+  return (
+    <Link
+      href={ROUTES.SHOP}
+      title={t("nav.shop")}
+      className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-500/10 px-2.5 py-1.5 text-[12px] font-bold text-amber-200/90 tabular-nums transition-colors hover:bg-amber-500/15 hover:border-amber-400/30"
+    >
+      <Coins className="h-3.5 w-3.5 shrink-0" />
+      {loaded ? balance.toLocaleString() : "—"}
+    </Link>
   );
 }
 
@@ -358,12 +380,14 @@ const NavBar = () => {
             </button>
 
             <div className="hidden items-center gap-2 lg:flex">
+              {user && <KittycoinPill />}
               {user && <NotificationBell />}
               <LanguageSwitcher compact />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
 
             <div className="flex items-center gap-1 lg:hidden">
+              {user && <KittycoinPill />}
               {user && <NotificationBell />}
               <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />} />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
