@@ -1,4 +1,5 @@
-import { ensureIncrementalSubtitleCache } from "@/lib/subtitles/subtitle-cache-store";
+import { ensureIncrementalSubtitleCache, fetchAndCacheSubtitle } from "@/lib/subtitles/subtitle-cache-store";
+import { fetchKittySubsTracks } from "@/lib/kitty/kitty-subs-api";
 import {
   backfillSubtitleLibraryAnime,
   countIncompleteSubtitleAnimesFromDb,
@@ -6,6 +7,7 @@ import {
   listAnimesWithMissingSubtitles,
   countAnimesWithMissingSubtitles,
   refreshStaleCompletionStatuses,
+  getStoredSubtitleLibraryMeta,
 } from "@/lib/subtitles/subtitle-library-db";
 import {
   discoverSubtitleLibraryCandidates,
@@ -32,6 +34,45 @@ export type SubtitleLibrarySyncOptions = {
   backfillLimit?: number;
   refreshLimit?: number;
 };
+
+/**
+ * Actively fetch subtitles for anime using the Kitty Subs API
+ * Used for anime with episodes but missing subtitles
+ */
+async function fetchSubtitlesForAnime(opts: {
+  anilistId: number;
+  totalEpisodes: number;
+  title?: string | null;
+  episodesToFetch?: number;
+}): Promise<number> {
+  let fetched = 0;
+  const episodesToFetch = Math.min(opts.episodesToFetch ?? 5, opts.totalEpisodes);
+
+  for (let ep = 1; ep <= episodesToFetch; ep++) {
+    try {
+      const result = await fetchKittySubsTracks({
+        anilistId: opts.anilistId,
+        episode: ep,
+        audio: "sub",
+        title: opts.title,
+      });
+
+      if (result?.tracks?.length > 0) {
+        fetched++;
+        console.log(
+          `[SubtitleSync] Fetched subs for anime ${opts.anilistId} ep ${ep} from ${result.provider}`,
+        );
+      }
+
+      // Small delay between API calls
+      await new Promise((resolve) => setTimeout(resolve, SUBTITLE_API_INTERVAL_MS));
+    } catch (error) {
+      console.error(`Failed to fetch subs for anime ${opts.anilistId} ep ${ep}:`, error);
+    }
+  }
+
+  return fetched;
+}
 
 export async function runSubtitleLibrarySyncTick(
   opts: SubtitleLibrarySyncOptions = {},
@@ -60,7 +101,7 @@ export async function runSubtitleLibrarySyncTick(
     result.refreshed = await refreshStaleCompletionStatuses(refreshLimit);
   }
 
-  // PRIORITY 1: Anime with MISSING subtitles (episodes exist but no subs)
+  // PRIORITY 1: Anime with MISSING subtitles (episodes exist but no subs) - USE KITTY SUBS API
   const missingSubsCount = await countAnimesWithMissingSubtitles();
   if (missingSubsCount > 0 && maxIncompleteAnime > 0) {
     const missingSubsIds = await listAnimesWithMissingSubtitles(
@@ -69,14 +110,29 @@ export async function runSubtitleLibrarySyncTick(
 
     for (const anilistId of missingSubsIds) {
       try {
-        console.log(`[SubtitleSync] Priority: Fetching subtitles for anime ${anilistId} (missing subs)`);
-        const tick = await ensureIncrementalSubtitleCache(anilistId, {
-          maxEpisodes: episodesPerAnime,
-          delayMs: SUBTITLE_API_INTERVAL_MS,
+        console.log(
+          `[SubtitleSync] 🔴 PRIORITY: Actively fetching subtitles for anime ${anilistId} using Kitty Subs API (missing subs)`,
+        );
+
+        // First try to get metadata
+        const metaMap = await getStoredSubtitleLibraryMeta([anilistId]);
+        const meta = metaMap.get(anilistId);
+
+        if (!meta?.totalEpisodes) {
+          console.warn(`[SubtitleSync] No metadata for anime ${anilistId}, skipping`);
+          continue;
+        }
+
+        // Use Kitty Subs API to fetch subtitles
+        const fetched = await fetchSubtitlesForAnime({
+          anilistId,
+          totalEpisodes: meta.totalEpisodes,
+          title: meta.title,
+          episodesToFetch: Math.min(episodesPerAnime, meta.totalEpisodes),
         });
 
-        result.episodesFetched += tick.fetched;
-        if (tick.fetched > 0) result.animeUpdated++;
+        result.episodesFetched += fetched;
+        if (fetched > 0) result.animeUpdated++;
       } catch (error) {
         console.error(`Error fetching subtitles for anime ${anilistId}:`, error);
       }
