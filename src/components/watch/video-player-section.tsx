@@ -364,6 +364,7 @@ const VideoPlayerSection = () => {
   const [savedResumeTime, setSavedResumeTime] = useState(0);
   const [resumeReady, setResumeReady] = useState(false);
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
+  const resumeReadyRef = useRef(false);
   const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
@@ -510,6 +511,7 @@ const VideoPlayerSection = () => {
 
     if (!auth || !animeSlug || !episodeId || resolved > 10 || urlTime > 0) {
       setResumeReady(true);
+      resumeReadyRef.current = true;
       if (!auth || !animeSlug || !episodeId) return;
 
       anisurgeContinue
@@ -517,7 +519,7 @@ const VideoPlayerSection = () => {
         .then((r: { currentTime?: number; duration?: number }) => {
           const saved = r?.currentTime ?? 0;
           const dur = r?.duration ?? 0;
-          if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+          if (saved > 10 && (dur <= 0 || saved < dur - 30) && !resumeReadyRef.current) {
             setSavedResumeTime((prev) => Math.max(prev, saved));
           }
         })
@@ -526,20 +528,23 @@ const VideoPlayerSection = () => {
     }
 
     setResumeReady(false);
-    const timeout = window.setTimeout(() => setResumeReady(true), 2500);
+    resumeReadyRef.current = false;
+    const timeout = window.setTimeout(() => {
+      setResumeReady(true);
+      resumeReadyRef.current = true;
+    }, 2500);
     anisurgeContinue
       .getEpisode(animeSlug, episodeId)
       .then((r: { currentTime?: number; duration?: number }) => {
         const saved = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
-        if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+        if (saved > 10 && (dur <= 0 || saved < dur - 30) && !resumeReadyRef.current) {
           setSavedResumeTime(saved);
         }
       })
       .catch(() => {})
       .finally(() => {
         window.clearTimeout(timeout);
-        setResumeReady(true);
       });
 
     return () => window.clearTimeout(timeout);
