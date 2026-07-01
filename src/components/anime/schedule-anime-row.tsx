@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Film } from "lucide-react";
+import { Captions, Clock, Film, Mic } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 import { formatScheduleAiringLabel } from "@/lib/anime/schedule-format";
@@ -14,6 +14,36 @@ type Props = {
   compact?: boolean;
   watchHref?: string;
 };
+
+function ScheduleAudioBadge({
+  type,
+  compact,
+}: {
+  type: "sub" | "dub";
+  compact?: boolean;
+}) {
+  const t = useT();
+  const isSub = type === "sub";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none",
+        compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
+        isSub
+          ? "bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/25"
+          : "bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/25",
+      )}
+    >
+      {isSub ? (
+        <Captions className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} />
+      ) : (
+        <Mic className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} />
+      )}
+      {isSub ? t("card.sub") : t("card.dub")}
+    </span>
+  );
+}
 
 export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
   const t = useT();
@@ -28,6 +58,7 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
   const href = watchHref ?? `${ROUTES.WATCH}?anime=${anime.id}`;
   const thumbW = compact ? 40 : 48;
   const thumbH = compact ? 56 : 68;
+  const audioTypes = anime.audio?.length ? anime.audio : (["sub"] as const);
 
   return (
     <Link
@@ -72,9 +103,14 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
         >
           {anime.name}
         </p>
-        <p className="mt-0.5 truncate text-[10px] font-mono text-white/30">
-          {t("home.episode", { n: anime.episode })}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-1">
+          <span className="text-[10px] font-mono text-white/30">
+            {t("home.episode", { n: anime.episode })}
+          </span>
+          {audioTypes.map((type) => (
+            <ScheduleAudioBadge key={type} type={type} compact={compact} />
+          ))}
+        </div>
       </div>
 
       <div className={cn("shrink-0 text-right", compact ? "max-w-[5.5rem]" : "max-w-[6.5rem]")}>

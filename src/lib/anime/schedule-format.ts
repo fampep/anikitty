@@ -1,3 +1,17 @@
+/** Which audio tracks apply to this schedule slot (sub = AniList broadcast; dub when that ep is out). */
+export function resolveScheduleAudio(
+  episode: number,
+  secondsUntilAiring: number,
+  dubCount: number,
+): ("sub" | "dub")[] {
+  const audio: ("sub" | "dub")[] = ["sub"];
+  const aired = secondsUntilAiring <= 0;
+  if (aired && dubCount >= episode) {
+    audio.push("dub");
+  }
+  return audio;
+}
+
 export function formatScheduleAiringLabel(
   secondsUntilAiring: number,
   airingTimestamp: number,

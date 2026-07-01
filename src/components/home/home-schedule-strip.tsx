@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, RefreshCw } from "lucide-react";
+import { CalendarDays, Captions, ChevronLeft, ChevronRight, Clock, Mic, RefreshCw } from "lucide-react";
 import { SectionHeading } from "./section-heading";
 import { cn } from "@/lib/core/utils";
 import { useI18n, useT } from "@/providers/i18n-provider";
@@ -15,6 +15,7 @@ type ScheduleItem = {
   episode: number;
   airingTimestamp: number;
   secondsUntilAiring: number;
+  audio?: ("sub" | "dub")[];
 };
 
 function formatAiringTime(ts: number) {
@@ -136,17 +137,37 @@ export default function HomeScheduleStrip() {
         >
           {items.map((item) => {
             const aired = item.secondsUntilAiring <= 0;
+            const audioTypes = item.audio?.length ? item.audio : (["sub"] as const);
             return (
               <Link
                 key={`${item.id}-${item.episode}`}
                 href={`${ROUTES.WATCH}?anime=${item.id}`}
-                className="group shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-white/8 bg-white/[0.025] hover:border-white/18 hover:bg-white/[0.04] transition-all min-w-[200px] max-w-[260px]"
+                className="group shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-white/8 bg-white/[0.025] hover:border-white/18 hover:bg-white/[0.04] transition-all min-w-[200px] max-w-[280px]"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-[12px] font-semibold text-white/75 group-hover:text-white truncate leading-tight">
                     {item.name}
                   </p>
-                  <p className="text-[10px] font-mono text-white/30 mt-0.5">{t("home.episode", { n: item.episode })}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <p className="text-[10px] font-mono text-white/30">{t("home.episode", { n: item.episode })}</p>
+                    {audioTypes.map((type) => {
+                      const isSub = type === "sub";
+                      return (
+                        <span
+                          key={type}
+                          className={cn(
+                            "inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase",
+                            isSub
+                              ? "bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/25"
+                              : "bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/25",
+                          )}
+                        >
+                          {isSub ? <Captions className="h-2 w-2" /> : <Mic className="h-2 w-2" />}
+                          {isSub ? t("card.sub") : t("card.dub")}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
                 <span
                   className={cn(

@@ -179,9 +179,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           unoptimized
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
         <WatchTrailer videoHref={info.promotionalVideos[0]?.source} />
       </div>
 
@@ -208,11 +208,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
           <div className="flex flex-col gap-2.5 sm:gap-3 pb-4 md:pb-10 min-w-0 flex-1">
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white leading-tight tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-[2.75rem] font-black text-white leading-[1.1] tracking-tight">
                 {info.name}
               </h1>
               {moreInfo.japanese && (
-                <p className="text-xs sm:text-sm text-white/30 mt-1 font-mono">{moreInfo.japanese}</p>
+                <p className="text-xs sm:text-sm text-white/35 mt-1.5 font-mono tracking-wide">{moreInfo.japanese}</p>
               )}
             </div>
 
@@ -222,7 +222,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               )}
               {stats?.type && <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />}
               {stats?.episodes?.sub !== undefined && (
-                <StatPill label={`${stats.episodes.sub} ${t("card.sub")}`} />
+                <StatPill label={`${stats.episodes.sub} ${t("card.sub")}`} teal />
               )}
               {hasDub && (
                 <StatPill label={`${stats!.episodes!.dub} ${t("card.dub")}`} purple />
@@ -234,12 +234,44 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               {moreInfo?.premiered && <StatPill label={moreInfo.premiered} />}
             </div>
 
+            {providerRatings.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+                {providerRatings.map((rating) => {
+                  const style = RATING_STYLES[rating.provider] ?? {
+                    label: rating.provider,
+                    color: "border-white/15 bg-white/5 text-white/70",
+                  };
+                  const card = (
+                    <div className={cn("shrink-0 rounded-xl border px-3 py-2 min-w-[5.5rem]", style.color)}>
+                      <span className="text-[9px] font-mono uppercase tracking-wider opacity-70 block">
+                        {style.label}
+                      </span>
+                      <span className="text-sm font-bold tabular-nums">{rating.label}</span>
+                    </div>
+                  );
+                  return rating.url ? (
+                    <a
+                      key={rating.provider}
+                      href={rating.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:opacity-90 transition-opacity"
+                    >
+                      {card}
+                    </a>
+                  ) : (
+                    <div key={rating.provider}>{card}</div>
+                  );
+                })}
+              </div>
+            )}
+
             {moreInfo?.genres && (moreInfo.genres as string[]).length > 0 && (
               <div className="flex flex-wrap gap-1 sm:gap-1.5">
                 {(moreInfo.genres as string[]).map((g) => (
                   <span
                     key={g}
-                    className="px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-full border border-white/10 text-white/40 bg-white/4 hover:bg-white/8 hover:text-white/60 transition-colors cursor-default"
+                    className="px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-full border border-violet-500/15 text-violet-200/55 bg-violet-500/[0.06] hover:bg-violet-500/10 hover:text-violet-100/80 transition-colors cursor-default"
                   >
                     {g}
                   </span>
@@ -248,7 +280,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             )}
 
             {info.description && (
-              <p className="text-[12px] sm:text-[13px] text-white/45 leading-relaxed line-clamp-3 md:line-clamp-4 max-w-2xl">
+              <p className="text-[12px] sm:text-[13px] text-white/50 leading-relaxed line-clamp-3 md:line-clamp-4 max-w-2xl">
                 {info.description}
               </p>
             )}
@@ -299,7 +331,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:text-white data-[state=active]:bg-transparent text-white/35 hover:text-white/65 transition-all bg-transparent whitespace-nowrap"
+                className="text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400 data-[state=active]:text-white data-[state=active]:bg-violet-500/[0.06] text-white/35 hover:text-white/65 transition-all bg-transparent whitespace-nowrap"
               >
                 {tab.label}
               </TabsTrigger>
@@ -307,15 +339,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           </TabsList>
 
           {/* ── Overview ── */}
-          <TabsContent value="overview" className="mt-8 space-y-8">
-            <div>
-              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-4">{t("anime.synopsis")}</h3>
-              <p className="text-sm text-white/60 leading-8">{info.description}</p>
-            </div>
+          <TabsContent value="overview" className="mt-8 space-y-5">
+            <OverviewPanel title={t("anime.synopsis")}>
+              <p className="text-sm text-white/65 leading-8">{info.description}</p>
+            </OverviewPanel>
 
             {moreInfo.synonyms && (
-              <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.alternativeTitles")}</h3>
+              <OverviewPanel title={t("anime.alternativeTitles")}>
                 <div className="flex flex-wrap gap-2">
                   {moreInfo.japanese && (
                     <span className="px-3 py-1.5 text-[12px] rounded-lg border border-white/10 text-white/55 bg-white/4">
@@ -326,12 +356,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                     <span key={s} className="px-3 py-1.5 text-[12px] rounded-lg border border-white/8 text-white/40 bg-white/[0.02]">{s}</span>
                   ))}
                 </div>
-              </div>
+              </OverviewPanel>
             )}
 
             {moreInfo.studios && (
-              <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.studios")}</h3>
+              <OverviewPanel title={t("anime.studios")}>
                 <div className="flex flex-wrap gap-2">
                   {String(moreInfo.studios).split(",").map((s) => s.trim()).filter(Boolean).map((s) => (
                     <span key={s} className="px-3 py-1.5 text-[12px] rounded-lg border border-white/12 text-white/65 bg-white/5 font-medium">{s}</span>
@@ -340,12 +369,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                     <span key={p} className="px-3 py-1.5 text-[12px] rounded-lg border border-white/8 text-white/35 bg-white/[0.02]">{p}</span>
                   ))}
                 </div>
-              </div>
+              </OverviewPanel>
             )}
 
             {providerRatings.length > 0 && (
-              <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.ratings")}</h3>
+              <OverviewPanel title={t("anime.ratings")}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {providerRatings.map((rating) => {
                     const style = RATING_STYLES[rating.provider] ?? {
@@ -353,7 +381,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                       color: "border-white/15 bg-white/5 text-white/70",
                     };
                     const inner = (
-                      <div className={cn("rounded-xl border px-4 py-3 h-full", style.color)}>
+                      <div className={cn("rounded-xl border px-4 py-3 h-full transition-colors hover:bg-white/[0.03]", style.color)}>
                         <span className="text-[10px] font-mono uppercase tracking-wider opacity-70 block mb-1">
                           {style.label}
                         </span>
@@ -380,12 +408,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                     );
                   })}
                 </div>
-              </div>
+              </OverviewPanel>
             )}
 
-            <div>
-              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.details")}</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <OverviewPanel title={t("anime.details")}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {[
                   { label: t("anime.detailFields.type"), value: stats?.type },
                   { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
@@ -401,17 +428,16 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   { label: t("anime.detailFields.country"), value: extMeta?.tvdb?.country },
                   { label: t("anime.detailFields.tmdbSeasons"), value: extMeta?.tmdb?.seasons },
                 ].filter((r) => r.value).map((row) => (
-                  <div key={row.label} className="rounded-xl bg-white/3 border border-white/6 px-4 py-3">
-                    <span className="text-[10px] font-mono text-white/25 uppercase tracking-wider block mb-1">{row.label}</span>
-                    <span className="text-[13px] text-white/70 font-medium">{row.value}</span>
+                  <div key={row.label} className="rounded-xl bg-white/[0.02] border border-white/8 px-4 py-3 hover:border-white/14 transition-colors">
+                    <span className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-1">{row.label}</span>
+                    <span className="text-[13px] text-white/75 font-medium">{row.value}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </OverviewPanel>
 
             {externalLinks.length > 0 && (
-              <div>
-                <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</h3>
+              <OverviewPanel title={t("anime.externalLinks")}>
                 <div className="flex flex-wrap gap-2">
                   {externalLinks.map((link) => (
                     <a
@@ -419,14 +445,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all hover:opacity-80", link.color)}
+                      className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all hover:scale-[1.02] hover:opacity-90", link.color)}
                     >
                       {link.label}
                       <ExternalLink className="w-3 h-3 opacity-60" />
                     </a>
                   ))}
                 </div>
-              </div>
+              </OverviewPanel>
             )}
           </TabsContent>
 
@@ -510,7 +536,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
           {/* ── Comments ── */}
           <TabsContent value="comments" className="mt-6">
-            <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
+            <div className="site-panel p-5 sm:p-6">
               <CommentSection
                 animeId={info.id}
                 episodes={episodesData?.episodes.map((ep) => ({
@@ -530,6 +556,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     </div>
   );
 }
+
+const OverviewPanel = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <section className="site-panel p-5 sm:p-6">
+    <h3 className="text-[10px] font-mono text-white/35 uppercase tracking-widest mb-4">{title}</h3>
+    {children}
+  </section>
+);
 
 const ArtSection = ({
   label, items, wide = false, transparent = false,
