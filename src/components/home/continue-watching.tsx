@@ -101,7 +101,7 @@ function mapContinueRows(
       id: r.animeId,
       name: title,
       poster,
-      episodeId: r.episodeId,
+      episodeId: r.episodeId ?? "",
       watchDetail: {
         id: r.animeId,
         current: cached?.current ?? r.currentTime ?? 0,
