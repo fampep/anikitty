@@ -93,17 +93,6 @@ export default function LandingPage({ initialPosters = [] }: Props) {
     };
   }, [isLoggedIn, auth.auth]);
 
-  useEffect(() => {
-    const redirectIfLoggedIn = () => {
-      if (!useAuthStore.getState().auth) return;
-      if (searchParams.get("stay") === "1") return;
-      router.replace(`${ROUTES.HOME}?from=landing`);
-    };
-
-    const unsub = useAuthStore.persist.onFinishHydration(redirectIfLoggedIn);
-    if (useAuthStore.persist.hasHydrated()) redirectIfLoggedIn();
-    return unsub;
-  }, [router, searchParams]);
 
   const latestCount = homeData?.latestEpisodeAnimes?.length ?? 0;
   const primaryHref = continueHref ?? ROUTES.HOME;

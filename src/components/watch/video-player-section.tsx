@@ -324,16 +324,28 @@ const VideoPlayerSection = () => {
     ],
   );
 
-  const providerStreamCaps = streamCapabilities?.providers[provider] ?? null;
-  const capsForAudioAvailability = providerStreamCaps ?? activeStreamCaps;
+  const providerStreamCaps = useMemo(
+    () => streamCapabilities?.providers[provider] ?? null,
+    [streamCapabilities?.providers, provider],
+  );
+  const capsForAudioAvailability = useMemo(
+    () => providerStreamCaps ?? activeStreamCaps,
+    [providerStreamCaps, activeStreamCaps],
+  );
 
   const canSwitchStreamAudio = useMemo(
     () => canToggleStreamAudio(capsForAudioAvailability),
     [capsForAudioAvailability],
   );
 
-  const canSelectSubAudio = supportsStreamAudioMode(capsForAudioAvailability, "sub");
-  const canSelectDubAudio = supportsStreamAudioMode(capsForAudioAvailability, "dub");
+  const canSelectSubAudio = useMemo(
+    () => supportsStreamAudioMode(capsForAudioAvailability, "sub"),
+    [capsForAudioAvailability],
+  );
+  const canSelectDubAudio = useMemo(
+    () => supportsStreamAudioMode(capsForAudioAvailability, "dub"),
+    [capsForAudioAvailability],
+  );
 
   useEffect(() => {
     if (!capsForAudioAvailability) return;
