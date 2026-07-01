@@ -63,18 +63,19 @@ export async function runSubtitleLibrarySyncTick(
   if (incompleteRemaining > 0 && maxIncompleteAnime > 0) {
     const incompleteIds = await listIncompleteSubtitleAnimesFromDb(maxIncompleteAnime);
 
-    const ticks = await Promise.all(
-      incompleteIds.map((anilistId) =>
-        ensureIncrementalSubtitleCache(anilistId, {
+    // Process anime one at a time instead of in parallel
+    for (const anilistId of incompleteIds) {
+      try {
+        const tick = await ensureIncrementalSubtitleCache(anilistId, {
           maxEpisodes: episodesPerAnime,
           delayMs: SUBTITLE_API_INTERVAL_MS,
-        }),
-      ),
-    );
+        });
 
-    for (const tick of ticks) {
-      result.episodesFetched += tick.fetched;
-      if (tick.fetched > 0) result.animeUpdated++;
+        result.episodesFetched += tick.fetched;
+        if (tick.fetched > 0) result.animeUpdated++;
+      } catch (error) {
+        console.error(`Error fetching subtitles for anime ${anilistId}:`, error);
+      }
     }
 
     result.incompleteRemaining = await countIncompleteSubtitleAnimesFromDb();
@@ -87,20 +88,21 @@ export async function runSubtitleLibrarySyncTick(
       await fetchAnilistMetaBatch(candidates);
     }
 
-    const ticks = await Promise.all(
-      candidates.map((anilistId) =>
-        ensureIncrementalSubtitleCache(anilistId, {
+    // Process discovered anime one at a time
+    for (const anilistId of candidates) {
+      try {
+        const tick = await ensureIncrementalSubtitleCache(anilistId, {
           maxEpisodes: episodesPerAnime,
           delayMs: SUBTITLE_API_INTERVAL_MS,
-        }),
-      ),
-    );
+        });
 
-    for (const tick of ticks) {
-      if (tick.fetched > 0 || tick.cachedEpisodes > 0) {
-        result.animeDiscovered++;
-        result.episodesFetched += tick.fetched;
-        if (tick.fetched > 0) result.animeUpdated++;
+        if (tick.fetched > 0 || tick.cachedEpisodes > 0) {
+          result.animeDiscovered++;
+          result.episodesFetched += tick.fetched;
+          if (tick.fetched > 0) result.animeUpdated++;
+        }
+      } catch (error) {
+        console.error(`Error discovering subtitles for anime ${anilistId}:`, error);
       }
     }
   }
