@@ -1210,17 +1210,17 @@ const VideoPlayerSection = () => {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-1.5 mr-auto min-w-0">
             {(skipTimes?.intro || skipTimes?.outro) && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-white/[0.04] border border-white/10 text-white/35">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-white/[0.04] border border-white/10 text-white/70">
                 {t("watch.chapters")}
               </span>
             )}
             {streamData?.miruroPipe && provider === "Miruro" && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300/70">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300/90">
                 {streamData.miruroPipe}
               </span>
             )}
             {streamData?.server && providerHasNativeSubs(provider) && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/70">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/90">
                 {streamData.server}
               </span>
             )}
@@ -1229,7 +1229,7 @@ const VideoPlayerSection = () => {
                 {subtitleTracks.slice(0, 3).map((track, i) => (
                   <span
                     key={`${track.label ?? "sub"}-${i}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-teal-500/10 border border-teal-500/20 text-teal-300/80 truncate max-w-[120px]"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-teal-500/10 border border-teal-500/20 text-teal-300/90 truncate max-w-[120px]"
                     title={track.label}
                   >
                     <Captions className="w-2.5 h-2.5 shrink-0" />

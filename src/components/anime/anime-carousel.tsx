@@ -47,7 +47,7 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
             onClick={() => scroll(-1)}
             disabled={!canLeft}
             aria-label="Scroll left"
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
           </button>
@@ -55,7 +55,7 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
             onClick={() => scroll(1)}
             disabled={!canRight}
             aria-label="Scroll right"
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
