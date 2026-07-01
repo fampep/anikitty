@@ -60,6 +60,7 @@ export default function WatchCommentsPreview({
     <button
       type="button"
       onClick={onOpen}
+      aria-label={subtitle}
       className={cn(
         "w-full text-left rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5",
         "hover:bg-white/[0.06] hover:border-white/15 transition-colors",

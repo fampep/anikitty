@@ -31,6 +31,26 @@ interface ContinueItem {
   watchDetail: WatchHistory;
 }
 
+interface ContinueWatchingRow {
+  animeId: string;
+  episodeId?: string;
+  currentTime?: number;
+  duration?: number;
+  lastUpdated?: string;
+  anime?: {
+    title?: {
+      english?: string;
+      user_preferred?: string;
+      romaji?: string;
+    };
+    cover_image?: {
+      large?: string;
+      extra_large?: string;
+    };
+    poster?: string;
+  };
+}
+
 type Props = { loading?: boolean };
 
 const CONTINUE_CACHE_KEY = "kitty:continue-watching";
@@ -60,7 +80,7 @@ function writeContinueCache(userId: string, items: ContinueItem[]) {
 }
 
 function mapContinueRows(
-  data: any[],
+  data: ContinueWatchingRow[],
   getProgress: (animeId: string, episodeId: string) => { current: number; duration: number } | null,
 ): ContinueItem[] {
   return data.map((r) => {

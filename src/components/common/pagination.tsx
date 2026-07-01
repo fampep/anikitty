@@ -28,7 +28,7 @@ function Pagination({
     <PaginationShad className="mt-10">
       <PaginationContent>
         <PaginationItem onClick={handlePreviousPage}>
-          <PaginationPrevious href="#" />
+          <PaginationPrevious href="#" aria-label="Previous page" />
         </PaginationItem>
 
         {Array.from({ length: totalPages }, (_, index) => index + 1)
@@ -62,7 +62,7 @@ function Pagination({
           ))}
 
         <PaginationItem onClick={handleNextPage}>
-          <PaginationNext href="#" />
+          <PaginationNext href="#" aria-label="Next page" />
         </PaginationItem>
       </PaginationContent>
     </PaginationShad>

@@ -146,6 +146,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
         <div className="hidden md:flex items-center gap-2">
           <Button
             onClick={() => api?.scrollPrev()}
+            aria-label="Previous slide"
             size="icon"
             className="rounded-full bg-black/40 border border-white/15 hover:bg-white/10 hover:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
           >
@@ -153,6 +154,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
           </Button>
           <Button
             onClick={() => api?.scrollNext()}
+            aria-label="Next slide"
             size="icon"
             className="rounded-full bg-black/40 border border-white/15 hover:bg-white/10 hover:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
           >

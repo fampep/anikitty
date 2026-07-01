@@ -127,8 +127,8 @@ const SearchBar = ({
                         alt={anime.name}
                         height={56}
                         width={40}
+                        sizes="40px"
                         className="h-full w-full object-cover"
-                        unoptimized
                       />
                     )}
                   </div>

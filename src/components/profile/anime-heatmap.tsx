@@ -22,6 +22,7 @@ function AnimeHeatmap({ username }: Props) {
   const [heatmapData, setHeatmapData] = useState<HeatmapValue[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000);
@@ -68,27 +69,28 @@ function AnimeHeatmap({ username }: Props) {
         <div>
           <p className="text-sm text-white/50 font-medium">{t("profile.failedToLoadActivity")}</p>
           <button
-            onClick={() => {
-              setFailed(false);
-              (async () => {
-                try {
-                  const res = await fetch(
-                    `/api/users/${encodeURIComponent(username)}/activity`,
-                    withAuth(),
-                  );
-                  if (!res.ok) throw new Error("failed");
-                  const data = await res.json();
-                  setHeatmapData(data.activity ?? []);
-                  setTotalCount(data.totalCount ?? 0);
-                  setFailed(false);
-                } catch {
-                  setFailed(true);
-                }
-              })();
+            onClick={async () => {
+              setRetrying(true);
+              try {
+                const res = await fetch(
+                  `/api/users/${encodeURIComponent(username)}/activity`,
+                  withAuth(),
+                );
+                if (!res.ok) throw new Error("failed");
+                const data = await res.json();
+                setHeatmapData(data.activity ?? []);
+                setTotalCount(data.totalCount ?? 0);
+                setFailed(false);
+              } catch {
+                setFailed(true);
+              } finally {
+                setRetrying(false);
+              }
             }}
-            className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-1"
+            disabled={retrying}
+            className="text-xs text-violet-400 hover:text-violet-300 disabled:opacity-50 transition-colors mt-1"
           >
-            {t("profile.retry")}
+            {retrying ? t("profile.retrying") : t("profile.retry")}
           </button>
         </div>
       </div>

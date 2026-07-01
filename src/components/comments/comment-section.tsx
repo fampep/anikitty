@@ -56,6 +56,7 @@ function EmojiPickerPanel({
           <button
             key={g.label}
             onClick={() => setTab(i)}
+            aria-label={g.label}
             className={`px-2.5 py-1.5 rounded-t-lg text-[10px] font-semibold transition-colors ${
               tab === i ? "bg-white/8 text-white/80" : "text-white/30 hover:text-white/55"
             }`}
@@ -69,6 +70,7 @@ function EmojiPickerPanel({
           <button
             key={emoji}
             onClick={() => onSelect(emoji)}
+            aria-label={`Insert emoji ${emoji}`}
             className="flex items-center justify-center text-xl p-1.5 rounded-lg hover:bg-white/10 transition-colors leading-none"
           >
             {emoji}
