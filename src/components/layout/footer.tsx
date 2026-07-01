@@ -19,11 +19,11 @@ const Footer = () => {
   if (pathname === "/") return null;
 
   return (
-    <footer className="w-full mt-16 relative overflow-hidden border-t border-white/[0.06]">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/[0.02] to-transparent pointer-events-none" />
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/15 to-transparent" />
+    <footer className="w-full mt-20 relative overflow-hidden border-t border-white/[0.08]">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/[0.03] to-violet-500/[0.02] pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/25 to-transparent" />
 
-      <div className="max-w-screen-xl mx-auto px-6 py-14 relative">
+      <div className="mx-auto w-full max-w-[1400px] 2xl:max-w-[1600px] px-4 md:px-6 lg:px-8 py-16 relative">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-white/[0.06]">
 
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">

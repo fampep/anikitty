@@ -87,10 +87,10 @@ const AnimeCard = ({
       <div
         className={cn(
           "rounded-xl overflow-hidden relative cursor-pointer group",
-          "ring-1 ring-white/[0.07] bg-zinc-950",
+          "ring-1 ring-white/[0.09] bg-zinc-950/90",
           "transition-[transform,box-shadow,ring-color] duration-300 ease-out",
-          "[@media(hover:hover)]:hover:scale-[1.025] [@media(hover:hover)]:hover:ring-violet-400/30",
-          "[@media(hover:hover)]:hover:shadow-[0_0_0_1px_rgba(167,139,250,0.15),0_16px_40px_rgba(0,0,0,0.55)]",
+          "[@media(hover:hover)]:hover:scale-[1.03] [@media(hover:hover)]:hover:ring-violet-400/35",
+          "[@media(hover:hover)]:hover:shadow-[0_0_0_1px_rgba(167,139,250,0.2),0_20px_48px_rgba(0,0,0,0.55)]",
           !compact && variant === "sm" &&
             "h-[14rem] min-[380px]:h-[17rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           !compact && variant === "lg" &&

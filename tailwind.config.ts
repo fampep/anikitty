@@ -12,6 +12,10 @@ const config: Config = {
 			colors: {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				brand: {
+					DEFAULT: 'hsl(var(--brand))',
+					muted: 'hsl(var(--brand-muted))',
+				},
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
@@ -55,7 +59,12 @@ const config: Config = {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
-			}
+			},
+			boxShadow: {
+				panel: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.28)',
+				'panel-hover': 'inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.38), 0 0 0 1px rgba(167,139,250,0.06)',
+				'glow-violet': '0 0 24px rgba(124,58,237,0.25)',
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

@@ -71,11 +71,11 @@ function useMenuItems(): MenuItem[] {
 
 function navLinkClass(isActive: boolean, compact = false) {
   return cn(
-    "flex items-center gap-1.5 rounded-xl border border-transparent font-medium transition-all duration-150",
+    "flex items-center gap-1.5 rounded-xl border border-transparent font-medium transition-all duration-200",
     compact ? "px-2.5 py-1.5 text-[13px]" : "px-3 py-1.5 text-sm",
     isActive
       ? "nav-link-active user-accent-nav-active font-semibold"
-      : "text-white/50 hover:bg-white/[0.06] hover:border-white/[0.06] hover:text-white/90",
+      : "text-white/55 hover:bg-white/[0.07] hover:border-white/[0.08] hover:text-white/95",
   );
 }
 
@@ -117,7 +117,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
   return (
     <>
       <nav
-        className="hidden min-w-0 items-center justify-center gap-0.5 lg:flex 2xl:hidden"
+        className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-1 backdrop-blur-sm lg:flex 2xl:hidden"
         aria-label={t("nav.aria.mainNav")}
       >
         {primary.map((item) => (
@@ -127,7 +127,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
       </nav>
 
       <nav
-        className="hidden min-w-0 items-center justify-center gap-0.5 2xl:flex"
+        className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-1 backdrop-blur-sm 2xl:flex"
         aria-label={t("nav.aria.mainNav")}
       >
         {menuItems.map((item) => (
@@ -301,14 +301,14 @@ const NavBar = () => {
       className={cn(
         "fixed left-0 right-0 top-0 z-[100] transition-all duration-300",
         isScrolled
-          ? "bg-[#050508]/92 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md"
-          : "bg-gradient-to-b from-black/75 via-black/35 to-transparent",
+          ? "bg-[#08080f]/88 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+          : "bg-gradient-to-b from-black/80 via-black/40 to-transparent",
       )}
     >
       <div
         className={cn(
-          "absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/20 to-transparent transition-opacity duration-300",
-          isScrolled ? "opacity-100" : "opacity-40",
+          "absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent transition-opacity duration-300",
+          isScrolled ? "opacity-100" : "opacity-50",
         )}
       />
 
