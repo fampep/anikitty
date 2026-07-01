@@ -27,6 +27,19 @@ const QUERY = `
 
 const AUDIO_REFRESH_BUDGET = 8;
 
+type ScheduleRawItem = {
+  id: string;
+  name: string;
+  jname: string;
+  malId: number | null;
+  status: string | null;
+  poster: string | null;
+  time: string;
+  airingTimestamp: number;
+  secondsUntilAiring: number;
+  episode: number;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const dateStr = searchParams.get("date");
@@ -43,7 +56,7 @@ export async function GET(request: Request) {
     });
 
     const now = Math.floor(Date.now() / 1000);
-    const rawItems = (raw.Page?.airingSchedules ?? []).map((s: any) => ({
+    const rawItems: ScheduleRawItem[] = (raw.Page?.airingSchedules ?? []).map((s: any) => ({
       id: String(s.media.id),
       name: toTitle(s.media.title),
       jname: s.media.title?.romaji ?? "",
