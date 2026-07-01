@@ -1,6 +1,6 @@
 import { queryAniList } from "@/lib/oauth/anilist";
 import { getTvdbToken } from "@/lib/anime/tvdb-api";
-import { fetchDeviantArtFanart } from "@/lib/anime/deviantart-api";
+import { fetchNekosFanart } from "@/lib/anime/nekos-api";
 
 const TVDB_API = "https://api4.thetvdb.com/v4";
 const TMDB_API = "https://api.themoviedb.org/3";
@@ -281,7 +281,7 @@ function collectEpisodeArtFromAniZip(
   mergeGroups(groups, { backgrounds: items.slice(0, 40) });
 }
 
-/** Merge art from AniList, ani.zip, TMDB, MAL/Jikan, DeviantArt, then TVDB as fallback. */
+/** Merge art from AniList, ani.zip, TMDB, MAL/Jikan, Nekos API, then TVDB as fallback. */
 export async function fetchMergedArtworkSources(opts: {
   anilistId: number;
   malId?: number | null;
@@ -293,12 +293,12 @@ export async function fetchMergedArtworkSources(opts: {
 }): Promise<{ artworks: ArtworkGroups; images: BasicImages & { artworks: ArtworkGroups } }> {
   const artworks = emptyGroups();
 
-  const [anilist, tmdb, jikan, tvdb, deviantArt] = await Promise.all([
+  const [anilist, tmdb, jikan, tvdb, nekosFanart] = await Promise.all([
     fetchAnilistArt(opts.anilistId),
     opts.tmdbId ? fetchTmdbArt(opts.tmdbId) : Promise.resolve(emptyGroups()),
     opts.malId ? fetchJikanPictures(opts.malId) : Promise.resolve(emptyGroups()),
     opts.tvdbId ? fetchTvdbArtworks(opts.tvdbId) : Promise.resolve(emptyGroups()),
-    fetchDeviantArtFanart(opts.searchTitles ?? [], 20),
+    fetchNekosFanart(opts.searchTitles ?? [], 20),
   ]);
 
   mergeGroups(artworks, anilist);
@@ -306,8 +306,8 @@ export async function fetchMergedArtworkSources(opts: {
   collectEpisodeArtFromAniZip(opts.aniZipEpisodes, artworks);
   mergeGroups(artworks, tmdb);
   mergeGroups(artworks, jikan);
-  if (deviantArt.length) {
-    artworks.fanart.push(...deviantArt);
+  if (nekosFanart.length) {
+    artworks.fanart.push(...nekosFanart);
   }
   mergeGroups(artworks, tvdb);
 
@@ -318,7 +318,7 @@ export async function fetchMergedArtworkSources(opts: {
       tmdb.banners[0]?.image ??
       tvdb.banners[0]?.image,
     fanart:
-      deviantArt[0]?.image ??
+      nekosFanart[0]?.image ??
       opts.aniZipImages?.fanart ??
       anilist.backgrounds[0]?.image ??
       tmdb.backgrounds[0]?.image ??
