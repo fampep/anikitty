@@ -10,6 +10,13 @@ import { useT } from "@/providers/i18n-provider";
 import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
 import { anisurgeAuth } from "@/lib/oauth/anisurge";
 import { ROUTES } from "@/constants/routes";
+import { hasAdFreePerk } from "@/lib/social/supporter-access";
+import {
+  KOFI_DONATION_UNIT_DAYS,
+  KOFI_DONATION_UNIT_EUR,
+  SITE_OWNER_USERNAME,
+  siteOwnerDmHref,
+} from "@/lib/social/donation-config";
 
 function ToggleRow({
   icon,
@@ -98,6 +105,13 @@ function SectionBody({ children }: { children: React.ReactNode }) {
   return <div className="px-5 py-4">{children}</div>;
 }
 
+function formatSupporterUntil(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
 export default function AdsSettingsSection() {
   const t = useT();
   const { auth } = useAuthStore();
@@ -105,6 +119,9 @@ export default function AdsSettingsSection() {
   const setShowAds = useSettingsStore((s) => s.setShowAds);
   const [disableOpen, setDisableOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const adFree = hasAdFreePerk(auth?.role, auth?.permissions, auth?.supporterUntil);
+  const untilLabel = formatSupporterUntil(auth?.supporterUntil);
 
   const persistShowAds = async (next: boolean) => {
     if (!auth) return;
@@ -120,7 +137,7 @@ export default function AdsSettingsSection() {
   };
 
   const handleToggle = (next: boolean) => {
-    if (!auth || saving) return;
+    if (!auth || saving || adFree) return;
     if (!next && showAds) {
       setDisableOpen(true);
       return;
@@ -138,25 +155,43 @@ export default function AdsSettingsSection() {
         />
         <SectionBody>
           {auth ? (
-            <>
-              <ToggleRow
-                icon={<Megaphone className="w-4 h-4" />}
-                label={t("settings.ads.showAds")}
-                description={t("settings.ads.showAdsDesc")}
-                value={showAds}
-                onChange={handleToggle}
-                disabled={saving}
-              />
-              <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
-                {t("settings.ads.donationHint")}{" "}
-                <Link
-                  href={ROUTES.DONATE}
-                  className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
-                >
-                  {t("settings.ads.donationLink")}
-                </Link>
+            adFree ? (
+              <p className="text-sm text-emerald-200/80 leading-relaxed">
+                {untilLabel
+                  ? t("settings.ads.donatorActiveUntil", { date: untilLabel })
+                  : t("settings.ads.donatorActive")}
               </p>
-            </>
+            ) : (
+              <>
+                <ToggleRow
+                  icon={<Megaphone className="w-4 h-4" />}
+                  label={t("settings.ads.showAds")}
+                  description={t("settings.ads.showAdsDesc")}
+                  value={showAds}
+                  onChange={handleToggle}
+                  disabled={saving}
+                />
+                <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
+                  {t("settings.ads.donationHint", {
+                    amount: KOFI_DONATION_UNIT_EUR,
+                    days: KOFI_DONATION_UNIT_DAYS,
+                  })}{" "}
+                  <Link
+                    href={ROUTES.DONATE}
+                    className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
+                  >
+                    {t("settings.ads.donationLink")}
+                  </Link>
+                  {" · "}
+                  <Link
+                    href={siteOwnerDmHref()}
+                    className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
+                  >
+                    {t("settings.ads.dmLink", { username: SITE_OWNER_USERNAME })}
+                  </Link>
+                </p>
+              </>
+            )
           ) : (
             <p className="text-sm text-white/45 leading-relaxed">
               {t("settings.ads.signInHint")}{" "}

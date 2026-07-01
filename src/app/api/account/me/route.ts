@@ -60,6 +60,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     anisurgeUserId: safeUser.id,
     permissions,
+    supporterUntil: user.supporterUntil?.toISOString() ?? null,
     anisurgeLinked: !!safeUser.anisurgeUsername,
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,
@@ -79,6 +80,7 @@ export async function GET(req: Request) {
       themeColor: safeUser.themeColor ?? null,
       role: effectiveRole,
       showAds: safeUser.showAds ?? true,
+      supporterUntil: user.supporterUntil?.toISOString() ?? null,
       createdAt: safeUser.createdAt?.toISOString() ?? null,
     },
   });

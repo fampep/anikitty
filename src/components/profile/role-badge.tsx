@@ -14,7 +14,7 @@ interface RoleBadgeProps {
 }
 
 export function RoleBadge({ role, color, size = "xs" }: RoleBadgeProps) {
-  if (!role || role === "user" || role === "donator") return null;
+  if (!role || role === "user") return null;
 
   const hex = color || BUILTIN_COLORS[role] || "#ffffff";
 

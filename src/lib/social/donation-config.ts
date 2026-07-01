@@ -40,6 +40,17 @@ export function calculateSupporterDays(amountEur: number): number {
   return Math.max(1, Math.round(scaled));
 }
 
+/** Rough EUR equivalent for Ko-fi amounts in other currencies. */
+export function amountToEur(amount: number, currency: string): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const code = currency.trim().toUpperCase();
+  if (code === "EUR") return amount;
+  if (code === "USD" || code === "GBP" || code === "CAD" || code === "AUD") {
+    return amount * 0.92;
+  }
+  return amount;
+}
+
 export function kofiDonationUrl(): string {
   return KOFI_URL;
 }

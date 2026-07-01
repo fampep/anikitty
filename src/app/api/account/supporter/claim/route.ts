@@ -22,14 +22,19 @@ export async function POST(req: Request) {
 
   const db = getDb();
   const [user] = await db
-    .select({ username: users.username })
+    .select({ username: users.username, email: users.email })
     .from(users)
     .where(eq(users.id, payload.userId))
     .limit(1);
 
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const result = await claimSupporterFromKofi(db, payload.userId, user.username);
+  const result = await claimSupporterFromKofi(
+    db,
+    payload.userId,
+    user.username,
+    user.email,
+  );
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });

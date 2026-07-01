@@ -30,6 +30,12 @@ export function authFromMeResponse(data: Record<string, unknown>): IAuth {
     permissions: Array.isArray(data.permissions)
       ? (data.permissions as string[])
       : [],
+    supporterUntil:
+      typeof data.supporterUntil === "string"
+        ? data.supporterUntil
+        : typeof user.supporterUntil === "string"
+          ? user.supporterUntil
+          : null,
   };
 }
 

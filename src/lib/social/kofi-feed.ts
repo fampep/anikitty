@@ -1,4 +1,5 @@
 import {
+  amountToEur,
   KOFI_HANDLE,
   MIN_DONATION_EUR,
 } from "@/lib/social/donation-config";
@@ -8,14 +9,34 @@ const KOFI_PAGE_ID = process.env.KOFI_PAGE_ID?.trim() ?? "";
 
 const FEED_CACHE_MS = 2 * 60 * 1000;
 const KOFI_TOOLS_FEED = "https://api.ko-fi.tools/feed";
+const KOFI_FEED_REFERER =
+  process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://anikitty.moe";
 
 export type KofiFeedPayment = {
   id: string;
   amount: number;
+  amountEur: number;
   currency: string;
   message: string;
   createdAt: Date | null;
   type: string;
+  email: string | null;
+  kofiTransactionId: string | null;
+};
+
+export type KofiWebhookPayload = {
+  message_id?: string;
+  timestamp?: string;
+  type?: string;
+  from_name?: string;
+  message?: string;
+  amount?: string | number;
+  email?: string;
+  currency?: string;
+  is_subscription_payment?: boolean;
+  is_first_subscription_payment?: boolean;
+  kofi_transaction_id?: string;
+  verification_token?: string;
 };
 
 let feedCache: { at: number; items: KofiFeedPayment[] } | null = null;
@@ -41,37 +62,39 @@ function parseDate(value: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function isSubscriptionItem(obj: Record<string, unknown>, type: string): boolean {
-  if (type.includes("subscription") || type.includes("membership")) return true;
-  if (obj.is_subscription_payment === true) return true;
-  if (obj.is_first_subscription_payment === true) return true;
-  return false;
-}
-
 function paymentIdFromParts(parts: Record<string, unknown>): string {
-  for (const key of ["id", "Id", "messageId", "message_id", "transactionId", "transaction_id"]) {
+  for (const key of [
+    "message_id",
+    "messageId",
+    "id",
+    "Id",
+    "transactionId",
+    "transaction_id",
+    "kofi_transaction_id",
+  ]) {
     const v = parts[key];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
   const amount = parseAmount(parts.amount ?? parts.Amount ?? parts.value) ?? 0;
   const message = String(parts.message ?? parts.Message ?? parts.text ?? parts.body ?? "");
-  const date = String(parts.date ?? parts.createdAt ?? parts.timestamp ?? "");
+  const date = String(parts.date ?? parts.createdAt ?? parts.timestamp ?? parts.time ?? "");
   return `hash:${date}:${amount}:${message}`.slice(0, 64);
 }
 
-function normalizeFeedItem(raw: unknown): KofiFeedPayment | null {
-  const obj = asRecord(raw);
-  if (!obj) return null;
+function isIgnoredFeedType(type: string): boolean {
+  return (
+    type.includes("post") ||
+    type.includes("gallery") ||
+    type.includes("shop") ||
+    type.includes("commission")
+  );
+}
 
-  const type = String(
-    obj.type ?? obj.Type ?? obj.eventType ?? obj.activityType ?? obj.kind ?? "donation",
-  ).toLowerCase();
-
-  if (type.includes("post") || type.includes("gallery") || type.includes("shop")) {
-    return null;
-  }
-
-  if (isSubscriptionItem(obj, type)) return null;
+function buildFeedPayment(
+  obj: Record<string, unknown>,
+  type: string,
+): KofiFeedPayment | null {
+  if (isIgnoredFeedType(type)) return null;
 
   const amount =
     parseAmount(obj.amount) ??
@@ -82,6 +105,10 @@ function normalizeFeedItem(raw: unknown): KofiFeedPayment | null {
     parseAmount(asRecord(obj.payment)?.amount);
 
   if (amount == null || amount < MIN_DONATION_EUR) return null;
+
+  const currency = String(
+    obj.currency ?? obj.Currency ?? asRecord(obj.donation)?.currency ?? "EUR",
+  ).toUpperCase();
 
   const message = String(
     obj.message ??
@@ -94,18 +121,42 @@ function normalizeFeedItem(raw: unknown): KofiFeedPayment | null {
       "",
   );
 
-  const currency = String(
-    obj.currency ?? obj.Currency ?? asRecord(obj.donation)?.currency ?? "EUR",
-  ).toUpperCase();
+  const kofiTransactionId =
+    typeof obj.kofi_transaction_id === "string"
+      ? obj.kofi_transaction_id
+      : typeof obj.transaction_id === "string"
+        ? obj.transaction_id
+        : null;
+
+  const email =
+    typeof obj.email === "string" && obj.email.trim()
+      ? obj.email.trim()
+      : null;
 
   return {
     id: paymentIdFromParts(obj),
     amount,
+    amountEur: amountToEur(amount, currency),
     currency,
     message,
-    createdAt: parseDate(obj.date ?? obj.createdAt ?? obj.timestamp ?? obj.time),
+    createdAt: parseDate(
+      obj.timestamp ?? obj.date ?? obj.createdAt ?? obj.time ?? obj.created_at,
+    ),
     type,
+    email,
+    kofiTransactionId,
   };
+}
+
+function normalizeFeedItem(raw: unknown): KofiFeedPayment | null {
+  const obj = asRecord(raw);
+  if (!obj) return null;
+
+  const type = String(
+    obj.type ?? obj.Type ?? obj.eventType ?? obj.activityType ?? obj.kind ?? "donation",
+  ).toLowerCase();
+
+  return buildFeedPayment(obj, type);
 }
 
 function collectFeedArrays(payload: unknown, out: unknown[] = []): unknown[] {
@@ -126,6 +177,8 @@ function collectFeedArrays(payload: unknown, out: unknown[] = []): unknown[] {
     "donations",
     "payments",
     "supporters",
+    "subscriptions",
+    "events",
   ]) {
     const val = obj[key];
     if (Array.isArray(val)) {
@@ -140,15 +193,49 @@ function collectFeedArrays(payload: unknown, out: unknown[] = []): unknown[] {
 export function parseKofiFeedPayload(payload: unknown): KofiFeedPayment[] {
   const rawItems = collectFeedArrays(payload);
   const payments: KofiFeedPayment[] = [];
+  const seen = new Set<string>();
+
   for (const raw of rawItems) {
     const item = normalizeFeedItem(raw);
-    if (item) payments.push(item);
+    if (!item || seen.has(item.id)) continue;
+    seen.add(item.id);
+    payments.push(item);
   }
+
+  payments.sort((a, b) => {
+    const ta = a.createdAt?.getTime() ?? 0;
+    const tb = b.createdAt?.getTime() ?? 0;
+    return tb - ta;
+  });
+
   return payments;
+}
+
+export function parseKofiWebhookPayload(raw: string): KofiWebhookPayload | null {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return asRecord(parsed) as KofiWebhookPayload | null;
+  } catch {
+    return null;
+  }
+}
+
+export function kofiWebhookPayloadToPayment(
+  payload: KofiWebhookPayload,
+): KofiFeedPayment | null {
+  const obj = payload as Record<string, unknown>;
+  const type = String(payload.type ?? "Donation").toLowerCase();
+  if (isIgnoredFeedType(type)) return null;
+  if (!type.includes("donation") && !type.includes("subscription")) return null;
+  return buildFeedPayment(obj, type);
 }
 
 export function kofiPageIdConfigured(): boolean {
   return KOFI_PAGE_ID.length > 0;
+}
+
+export function kofiVerificationTokenConfigured(): boolean {
+  return (process.env.KOFI_VERIFICATION_TOKEN?.trim() ?? "").length > 0;
 }
 
 export async function fetchKofiFeedPayments(force = false): Promise<KofiFeedPayment[]> {
@@ -161,8 +248,11 @@ export async function fetchKofiFeedPayments(force = false): Promise<KofiFeedPaym
 
   const url = `${KOFI_TOOLS_FEED}?pageId=${encodeURIComponent(KOFI_PAGE_ID)}`;
   const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 120 },
+    headers: {
+      Accept: "application/json",
+      Referer: KOFI_FEED_REFERER,
+    },
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -174,6 +264,12 @@ export async function fetchKofiFeedPayments(force = false): Promise<KofiFeedPaym
   try {
     payload = await res.json();
   } catch {
+    return feedCache?.items ?? [];
+  }
+
+  const obj = asRecord(payload);
+  if (obj?.error) {
+    console.error("[kofi feed] api error:", obj.error);
     return feedCache?.items ?? [];
   }
 
@@ -195,17 +291,53 @@ export function findUnclaimedPaymentForUsername(
   payments: KofiFeedPayment[],
   username: string,
   claimedIds: Set<string>,
-  maxAgeDays = 14,
+  maxAgeDays = 30,
 ): KofiFeedPayment | null {
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  const u = username.trim().toLowerCase();
 
-  for (const payment of payments) {
-    if (claimedIds.has(payment.id)) continue;
-    if (payment.createdAt && payment.createdAt.getTime() < cutoff) continue;
-    if (!paymentMessageMatchesUsername(payment.message, username)) continue;
-    return payment;
-  }
-  return null;
+  const matches = payments.filter((payment) => {
+    if (claimedIds.has(payment.id)) return false;
+    if (payment.createdAt && payment.createdAt.getTime() < cutoff) return false;
+    return paymentMessageMatchesUsername(payment.message, u);
+  });
+
+  if (matches.length === 0) return null;
+
+  matches.sort((a, b) => {
+    const ta = a.createdAt?.getTime() ?? 0;
+    const tb = b.createdAt?.getTime() ?? 0;
+    return tb - ta;
+  });
+
+  return matches[0];
+}
+
+export function findUnclaimedPaymentForEmail(
+  payments: KofiFeedPayment[],
+  email: string,
+  claimedIds: Set<string>,
+  maxAgeDays = 30,
+): KofiFeedPayment | null {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  const matches = payments.filter((payment) => {
+    if (claimedIds.has(payment.id)) return false;
+    if (payment.createdAt && payment.createdAt.getTime() < cutoff) return false;
+    return payment.email?.trim().toLowerCase() === normalized;
+  });
+
+  if (matches.length === 0) return null;
+
+  matches.sort((a, b) => {
+    const ta = a.createdAt?.getTime() ?? 0;
+    const tb = b.createdAt?.getTime() ?? 0;
+    return tb - ta;
+  });
+
+  return matches[0];
 }
 
 export function kofiProfileUrl(): string {

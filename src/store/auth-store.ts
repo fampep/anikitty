@@ -11,6 +11,7 @@ export type IAuth = {
   themeColor?: string | null;
   role?: string | null;
   permissions?: string[];
+  supporterUntil?: string | null;
 };
 
 export interface IAuthStore {

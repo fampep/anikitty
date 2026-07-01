@@ -70,7 +70,7 @@ export function UserBadges({
   levelTierIcon,
   size = "xs",
 }: Props) {
-  const showStaff = role && role !== "user" && role !== "donator";
+  const showRole = role && role !== "user";
 
   return (
     <span className="inline-flex items-center gap-1 flex-wrap">
@@ -81,7 +81,7 @@ export function UserBadges({
         levelTierIcon={levelTierIcon}
         size={size}
       />
-      {showStaff && <RoleBadge role={role!} color={roleColor} size={size} />}
+      {showRole && <RoleBadge role={role!} color={roleColor} size={size} />}
     </span>
   );
 }
