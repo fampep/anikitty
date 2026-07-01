@@ -10,63 +10,120 @@ import {
 } from "@/components/ui/select";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-api";
 import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-api";
+import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-api";
+import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-api";
+import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-api";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 import { useT } from "@/providers/i18n-provider";
+import { cn } from "@/lib/core/utils";
 
 type Props = {
   provider: KittyProvider;
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
+  anisnatchServer?: AnisnatchServerId;
+  lunarServer?: LunarServerId;
+  animoServer?: AnimoServerId;
   onProviderChange: (provider: KittyProvider) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
+  onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
+  onLunarServerChange?: (server: LunarServerId) => void;
+  onAnimoServerChange?: (server: AnimoServerId) => void;
+  className?: string;
 };
+
+function ServerSelect<T extends string>({
+  value,
+  options,
+  placeholder,
+  onChange,
+}: {
+  value: T;
+  options: readonly { id: T; label: string }[];
+  placeholder: string;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as T)}>
+      <SelectTrigger className="h-9 min-w-0 flex-1 text-[11px] font-mono bg-white/[0.04] border-white/12 text-white/70">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent className="bg-[#0c0c0c] border-white/10 max-h-48">
+        {options.map((opt) => (
+          <SelectItem key={opt.id} value={opt.id} className="text-xs text-white/80">
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export default function WatchSimpleProviderRow({
   provider,
   miruroPipe,
   animexServer,
+  anisnatchServer,
+  lunarServer,
+  animoServer,
   onProviderChange,
   onMiruroPipeChange,
   onAnimexServerChange,
+  onAnisnatchServerChange,
+  onLunarServerChange,
+  onAnimoServerChange,
+  className,
 }: Props) {
   const t = useT();
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("flex flex-col gap-2", className)}>
       <ProviderSelect
         value={provider}
         onChange={onProviderChange}
         compact
-        className="min-w-[10rem]"
+        className="w-full min-w-0"
       />
       {provider === "Miruro" && miruroPipe && onMiruroPipeChange && (
-        <Select value={miruroPipe} onValueChange={(v) => onMiruroPipeChange(v as MiruroPipeProviderId)}>
-          <SelectTrigger className="h-8 min-w-[8rem] text-[11px] font-mono bg-white/[0.04] border-white/12 text-white/70">
-            <SelectValue placeholder={t("watch.miruroPipe")} />
-          </SelectTrigger>
-          <SelectContent className="bg-[#0c0c0c] border-white/10 max-h-48">
-            {MIRURO_PIPE_PROVIDERS.map((p) => (
-              <SelectItem key={p.id} value={p.id} className="text-xs text-white/80">
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ServerSelect
+          value={miruroPipe}
+          options={MIRURO_PIPE_PROVIDERS}
+          placeholder={t("watch.miruroPipe")}
+          onChange={onMiruroPipeChange}
+        />
       )}
       {provider === "Animex" && animexServer && onAnimexServerChange && (
-        <Select value={animexServer} onValueChange={(v) => onAnimexServerChange(v as AnimexServerId)}>
-          <SelectTrigger className="h-8 min-w-[8rem] text-[11px] font-mono bg-white/[0.04] border-white/12 text-white/70">
-            <SelectValue placeholder={t("watch.animexServer")} />
-          </SelectTrigger>
-          <SelectContent className="bg-[#0c0c0c] border-white/10 max-h-48">
-            {ANIMEX_SERVERS.map((s) => (
-              <SelectItem key={s.id} value={s.id} className="text-xs text-white/80">
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ServerSelect
+          value={animexServer}
+          options={ANIMEX_SERVERS}
+          placeholder={t("watch.animexServer")}
+          onChange={onAnimexServerChange}
+        />
+      )}
+      {provider === "AniSnatch" && anisnatchServer && onAnisnatchServerChange && (
+        <ServerSelect
+          value={anisnatchServer}
+          options={ANISNATCH_SERVERS}
+          placeholder={t("watch.anisnatchServer")}
+          onChange={onAnisnatchServerChange}
+        />
+      )}
+      {provider === "Lunar" && lunarServer && onLunarServerChange && (
+        <ServerSelect
+          value={lunarServer}
+          options={LUNAR_SERVERS}
+          placeholder={t("watch.lunarServer")}
+          onChange={onLunarServerChange}
+        />
+      )}
+      {provider === "Animo" && animoServer && onAnimoServerChange && (
+        <ServerSelect
+          value={animoServer}
+          options={ANIMO_SERVERS}
+          placeholder={t("watch.animoServer")}
+          onChange={onAnimoServerChange}
+        />
       )}
     </div>
   );

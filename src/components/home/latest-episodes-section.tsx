@@ -46,9 +46,11 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
 
   return (
     <Container className="relative z-20 flex flex-col items-start gap-4 py-8">
-      <div className="flex items-center gap-3 w-full">
-        <SectionHeading icon={<Tv2 className="w-4 h-4" />} title={t("home.recentReleases")} href={ROUTES.SEARCH} />
-        <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 w-full min-w-0">
+        <div className="min-w-0 flex-1">
+          <SectionHeading icon={<Tv2 className="w-4 h-4" />} title={t("home.recentReleases")} href={ROUTES.SEARCH} />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}

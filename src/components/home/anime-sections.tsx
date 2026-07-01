@@ -104,9 +104,11 @@ function RowLayout({
 
   return (
     <Container id={sectionId} className="flex flex-col gap-4 py-8 items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
-      <div className="flex items-center gap-3 w-full">
-        <SectionHeading icon={icon} title={title} href={seeAllHref} />
-        <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 w-full min-w-0">
+        <div className="min-w-0 flex-1">
+          <SectionHeading icon={icon} title={title} href={seeAllHref} />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}

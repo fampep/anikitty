@@ -398,11 +398,13 @@ const ContinueWatching = ({ loading = false }: Props) => {
   return (
     <>
       <Container className="flex flex-col gap-4 py-8 items-start">
-      <div className="flex items-center gap-3 w-full">
+      <div className="flex items-center gap-2 w-full min-w-0">
         <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-white/70 to-white/20 shrink-0" />
         <History className="text-white/45 w-4 h-4" />
-        <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight">{t("home.continueWatching")}</h5>
-        <div className="ml-auto flex items-center gap-1">
+        <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight min-w-0 truncate flex-1">
+          {t("home.continueWatching")}
+        </h5>
+        <div className="ml-auto flex items-center gap-1 shrink-0">
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}

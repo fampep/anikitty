@@ -85,8 +85,9 @@ export default function PlayerSettingsBar() {
     if (!window.matchMedia("(max-width: 1023px)").matches) return;
     setPlayerSettingsOpen(false);
     setShowPlayerControls(false);
+    setSimpleProviderPicker(true);
     localStorage.setItem("kitty-watch-mobile-defaults", "1");
-  }, [setPlayerSettingsOpen, setShowPlayerControls]);
+  }, [setPlayerSettingsOpen, setShowPlayerControls, setSimpleProviderPicker]);
 
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">

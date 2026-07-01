@@ -78,6 +78,7 @@ import WatchResumePrompt from "@/components/watch/watch-resume-prompt";
 import WatchKeyboardHelp from "@/components/watch/watch-keyboard-help";
 import WatchSimpleProviderRow from "@/components/watch/watch-simple-provider-row";
 import { useWatchKeyboard } from "@/hooks/use-watch-keyboard";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { getNextFallbackProvider } from "@/lib/kitty/provider-fallback";
 import type { Episode } from "@/types/episodes";
@@ -108,6 +109,7 @@ function parseResumeTimeParam(raw: string | null): number {
 
 const VideoPlayerSection = () => {
   const t = useT();
+  const isMobile = useIsMobile();
   const searchParams = useSearchParams();
   const router = useRouter();
   const episodeId = searchParams.get("episode");
@@ -118,6 +120,7 @@ const VideoPlayerSection = () => {
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
   const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode } = useSettingsStore();
+  const compactProviderPicker = simpleProviderPicker || isMobile;
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
@@ -481,7 +484,7 @@ const VideoPlayerSection = () => {
     fallbackBusyRef.current = false;
   }, [episodeId]);
 
-  // Fetch saved resume position when the episode changes (must finish before mounting player)
+  // Fetch saved resume position when the episode changes
   useEffect(() => {
     const urlTime = parseResumeTimeParam(timeFromUrl);
     const cached =
@@ -491,25 +494,43 @@ const VideoPlayerSection = () => {
     const localTime = Math.max(urlTime, cached?.current ?? 0);
     let resolved = localTime > 10 ? localTime : 0;
 
-    if (!auth || !animeSlug || !episodeId) {
-      setSavedResumeTime(resolved);
+    setSavedResumeTime(resolved);
+
+    if (!auth || !animeSlug || !episodeId || resolved > 10 || urlTime > 0) {
       setResumeReady(true);
+      if (!auth || !animeSlug || !episodeId) return;
+
+      anisurgeContinue
+        .getEpisode(animeSlug, episodeId)
+        .then((r: { currentTime?: number; duration?: number }) => {
+          const saved = r?.currentTime ?? 0;
+          const dur = r?.duration ?? 0;
+          if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+            setSavedResumeTime((prev) => Math.max(prev, saved));
+          }
+        })
+        .catch(() => {});
       return;
     }
 
     setResumeReady(false);
+    const timeout = window.setTimeout(() => setResumeReady(true), 2500);
     anisurgeContinue
       .getEpisode(animeSlug, episodeId)
       .then((r: { currentTime?: number; duration?: number }) => {
         const saved = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
         if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
-          resolved = Math.max(resolved, saved);
+          setSavedResumeTime(saved);
         }
-        setSavedResumeTime(resolved);
       })
-      .catch(() => setSavedResumeTime(resolved))
-      .finally(() => setResumeReady(true));
+      .catch(() => {})
+      .finally(() => {
+        window.clearTimeout(timeout);
+        setResumeReady(true);
+      });
+
+    return () => window.clearTimeout(timeout);
   }, [auth, animeSlug, episodeId, timeFromUrl]);
 
   const urlResumeTime = parseResumeTimeParam(timeFromUrl);
@@ -952,7 +973,7 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if ((isLoading || isFetching) && !hasStreamFile) {
+  if (isLoading && !hasStreamFile) {
     return (
       <PlayerSkeleton label={t("watch.loadingStream")} />
     );
@@ -1016,7 +1037,24 @@ const VideoPlayerSection = () => {
           onAllanimeMirrorChange={handleAllanimeMirrorChange}
           onMkissaMirrorChange={handleMkissaMirrorChange}
           onAnimoServerChange={handleAnimoServerChange}
+          className={compactProviderPicker ? "hidden" : undefined}
         />
+        {compactProviderPicker && (
+          <WatchSimpleProviderRow
+            provider={provider}
+            miruroPipe={miruroPipe}
+            animexServer={animexServer}
+            anisnatchServer={anisnatchServer}
+            lunarServer={lunarServer}
+            animoServer={animoServer}
+            onProviderChange={handleSimpleProviderChange}
+            onMiruroPipeChange={handleMiruroPipeChange}
+            onAnimexServerChange={handleAnimexServerChange}
+            onAnisnatchServerChange={handleAnisnatchServerChange}
+            onLunarServerChange={handleLunarServerChange}
+            onAnimoServerChange={handleAnimoServerChange}
+          />
+        )}
 
         <Button
           size="sm"
@@ -1109,14 +1147,20 @@ const VideoPlayerSection = () => {
 
         {showPlayerControls && (
           <>
-        {simpleProviderPicker ? (
+        {compactProviderPicker ? (
           <WatchSimpleProviderRow
             provider={provider}
             miruroPipe={miruroPipe}
             animexServer={animexServer}
+            anisnatchServer={anisnatchServer}
+            lunarServer={lunarServer}
+            animoServer={animoServer}
             onProviderChange={handleSimpleProviderChange}
             onMiruroPipeChange={handleMiruroPipeChange}
             onAnimexServerChange={handleAnimexServerChange}
+            onAnisnatchServerChange={handleAnisnatchServerChange}
+            onLunarServerChange={handleLunarServerChange}
+            onAnimoServerChange={handleAnimoServerChange}
           />
         ) : (
         <ProviderGrid

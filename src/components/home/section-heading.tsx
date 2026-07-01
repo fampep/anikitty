@@ -19,7 +19,7 @@ export const SectionHeading = ({
   const t = useT();
 
   return (
-    <div className="flex items-center gap-3 w-full mb-1">
+    <div className="flex items-center gap-3 min-w-0 flex-1 mb-1">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="w-1 h-8 rounded-full bg-gradient-to-b from-violet-300 via-violet-500 to-violet-700/30 shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.35)]" />
         {icon && (
