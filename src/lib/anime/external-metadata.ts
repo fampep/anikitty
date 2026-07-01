@@ -60,54 +60,30 @@ async function getTvdbToken(): Promise<string | null> {
   }
 }
 
-function formatScore(value: unknown, scale = 10): string | null {
-  const n = typeof value === "number" ? value : parseFloat(String(value ?? ""));
-  if (!Number.isFinite(n) || n <= 0) return null;
-  const normalized = scale === 100 ? n / 10 : n;
-  return `${normalized.toFixed(1)}/10`;
-}
-
-async function fetchMalMetadata(malId: number): Promise<{
-  rating: ProviderRating | null;
-  extra: ExternalMetadata["mal"];
-}> {
+async function fetchMalExtras(malId: number): Promise<ExternalMetadata["mal"]> {
   try {
     const res = await fetch(`${JIKAN_API}/anime/${malId}`, {
       signal: AbortSignal.timeout(6000),
       next: { revalidate: 86400 },
     });
-    if (!res.ok) return { rating: null, extra: undefined };
-    const json = await res.json();
-    const data = json?.data;
-    const score = typeof data?.score === "number" ? data.score : null;
+    if (!res.ok) return undefined;
+    const data = res.json ? await res.json() : null;
+    const row = data?.data;
+    if (!row) return undefined;
     return {
-      rating: score
-        ? {
-            provider: "mal",
-            score,
-            label: formatScore(score) ?? `${score}/10`,
-            votes: data?.scored_by ?? null,
-            url: `https://myanimelist.net/anime/${malId}`,
-          }
-        : null,
-      extra: {
-        rank: data?.rank ?? null,
-        popularity: data?.popularity ?? null,
-        members: data?.members ?? null,
-        scoredBy: data?.scored_by ?? null,
-      },
+      rank: row.rank ?? null,
+      popularity: row.popularity ?? null,
+      members: row.members ?? null,
+      scoredBy: row.scored_by ?? null,
     };
   } catch {
-    return { rating: null, extra: undefined };
+    return undefined;
   }
 }
 
-async function fetchTvdbMetadata(tvdbId: number): Promise<{
-  rating: ProviderRating | null;
-  extra: ExternalMetadata["tvdb"];
-}> {
+async function fetchTvdbExtras(tvdbId: number): Promise<ExternalMetadata["tvdb"]> {
   const token = await getTvdbToken();
-  if (!token) return { rating: null, extra: undefined };
+  if (!token) return undefined;
 
   for (const kind of ["series", "movies"] as const) {
     try {
@@ -121,7 +97,6 @@ async function fetchTvdbMetadata(tvdbId: number): Promise<{
       const data = json?.data;
       if (!data) continue;
 
-      const score = typeof data.score === "number" ? data.score : null;
       const statusName =
         typeof data.status === "object" && data.status?.name
           ? String(data.status.name)
@@ -130,177 +105,68 @@ async function fetchTvdbMetadata(tvdbId: number): Promise<{
             : null;
 
       return {
-        rating: score
-          ? {
-              provider: "tvdb",
-              score,
-              label: formatScore(score) ?? `${score}/10`,
-              url: `https://www.thetvdb.com/?id=${tvdbId}&tab=series`,
-            }
+        status: statusName,
+        runtime: typeof data.runtime === "number" ? data.runtime : null,
+        year: data.year ? String(data.year) : null,
+        country: data.originalCountry ? String(data.originalCountry) : null,
+        network: Array.isArray(data.networks) && data.networks[0]?.name
+          ? String(data.networks[0].name)
           : null,
-        extra: {
-          status: statusName,
-          runtime: typeof data.runtime === "number" ? data.runtime : null,
-          year: data.year ? String(data.year) : null,
-          country: data.originalCountry ? String(data.originalCountry) : null,
-          network: Array.isArray(data.networks) && data.networks[0]?.name
-            ? String(data.networks[0].name)
-            : null,
-          overview: data.overview ? String(data.overview) : null,
-        },
+        overview: data.overview ? String(data.overview) : null,
       };
     } catch {
       continue;
     }
   }
 
-  return { rating: null, extra: undefined };
+  return undefined;
 }
 
-async function fetchTmdbMetadata(tmdbId: number): Promise<{
-  rating: ProviderRating | null;
-  extra: ExternalMetadata["tmdb"];
-}> {
+async function fetchTmdbExtras(tmdbId: number): Promise<ExternalMetadata["tmdb"]> {
   const apiKey = process.env.TMDB_API_KEY?.trim();
-  if (!apiKey) return { rating: null, extra: undefined };
+  if (!apiKey) return undefined;
 
   try {
     const res = await fetch(
       `${TMDB_API}/tv/${tmdbId}?api_key=${encodeURIComponent(apiKey)}`,
       { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
     );
-    if (!res.ok) return { rating: null, extra: undefined };
+    if (!res.ok) return undefined;
     const data = await res.json();
-    const score = typeof data.vote_average === "number" ? data.vote_average : null;
 
     return {
-      rating: score
-        ? {
-            provider: "tmdb",
-            score,
-            label: formatScore(score) ?? `${score}/10`,
-            votes: data.vote_count ?? null,
-            url: `https://www.themoviedb.org/tv/${tmdbId}`,
-          }
-        : null,
-      extra: {
-        status: data.status ? String(data.status) : null,
-        seasons: data.number_of_seasons ?? null,
-        episodes: data.number_of_episodes ?? null,
-        popularity: data.popularity ?? null,
-        networks: (data.networks ?? []).map((n: { name?: string }) => n.name).filter(Boolean),
-        production: (data.production_companies ?? [])
-          .map((c: { name?: string }) => c.name)
-          .filter(Boolean)
-          .slice(0, 4),
-      },
+      status: data.status ? String(data.status) : null,
+      seasons: data.number_of_seasons ?? null,
+      episodes: data.number_of_episodes ?? null,
+      popularity: data.popularity ?? null,
+      networks: (data.networks ?? []).map((n: { name?: string }) => n.name).filter(Boolean),
+      production: (data.production_companies ?? [])
+        .map((c: { name?: string }) => c.name)
+        .filter(Boolean)
+        .slice(0, 4),
     };
   } catch {
-    return { rating: null, extra: undefined };
+    return undefined;
   }
 }
 
-async function fetchTmdbImdbId(tmdbId: number): Promise<string | null> {
-  const apiKey = process.env.TMDB_API_KEY?.trim();
-  if (!apiKey) return null;
-  try {
-    const res = await fetch(
-      `${TMDB_API}/tv/${tmdbId}/external_ids?api_key=${encodeURIComponent(apiKey)}`,
-      { signal: AbortSignal.timeout(5000), next: { revalidate: 86400 } },
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const imdbId = data?.imdb_id;
-    return typeof imdbId === "string" && imdbId.startsWith("tt") ? imdbId : null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchImdbRating(imdbId: string): Promise<ProviderRating | null> {
-  const apiKey = process.env.OMDB_API_KEY?.trim();
-  if (!apiKey || !imdbId) return null;
-
-  try {
-    const res = await fetch(
-      `https://www.omdbapi.com/?i=${encodeURIComponent(imdbId)}&apikey=${encodeURIComponent(apiKey)}`,
-      { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.Response === "False") return null;
-    const score = parseFloat(String(data.imdbRating ?? ""));
-    if (!Number.isFinite(score) || score <= 0) return null;
-
-    return {
-      provider: "imdb",
-      score,
-      label: `${score.toFixed(1)}/10`,
-      votes: data.imdbVotes ? parseInt(String(data.imdbVotes).replace(/,/g, ""), 10) : null,
-      url: `https://www.imdb.com/title/${imdbId}`,
-    };
-  } catch {
-    return null;
-  }
-}
-
-const RATING_ORDER = ["anilist", "mal", "imdb", "tmdb", "tvdb"] as const;
-
-function sortRatings(ratings: ProviderRating[]): ProviderRating[] {
-  const seen = new Set<string>();
-  const unique = ratings.filter((r) => {
-    if (seen.has(r.provider)) return false;
-    seen.add(r.provider);
-    return true;
-  });
-  return unique.sort((a, b) => {
-    const ai = RATING_ORDER.indexOf(a.provider as (typeof RATING_ORDER)[number]);
-    const bi = RATING_ORDER.indexOf(b.provider as (typeof RATING_ORDER)[number]);
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-  });
-}
-
-export async function fetchExternalMetadata(opts: {
-  anilistId: number;
-  anilistScore?: number | null;
+/** Detail extras only — ratings come from ani.zip via buildRatingsFromAniZip. */
+export async function fetchExternalMetadataExtras(opts: {
   malId?: number | null;
   tvdbId?: number | null;
-  tmdbId?: number | null;
-  imdbId?: string | null;
-}): Promise<ExternalMetadata> {
-  const ratings: ProviderRating[] = [];
+  tmdbId?: number | string | null;
+}): Promise<Pick<ExternalMetadata, "mal" | "tvdb" | "tmdb">> {
+  const tmdbRaw = opts.tmdbId;
+  const tmdbNum =
+    tmdbRaw != null && String(tmdbRaw).trim() !== ""
+      ? parseInt(String(tmdbRaw), 10)
+      : NaN;
 
-  if (opts.anilistScore && opts.anilistScore > 0) {
-    const score = opts.anilistScore / 10;
-    ratings.push({
-      provider: "anilist",
-      score,
-      label: `${score.toFixed(1)}/10`,
-      url: `https://anilist.co/anime/${opts.anilistId}`,
-    });
-  }
-
-  let imdbId = opts.imdbId ?? null;
-  if (!imdbId && opts.tmdbId) {
-    imdbId = await fetchTmdbImdbId(opts.tmdbId);
-  }
-
-  const [mal, tvdb, tmdb, imdb] = await Promise.all([
-    opts.malId ? fetchMalMetadata(opts.malId) : Promise.resolve(null),
-    opts.tvdbId ? fetchTvdbMetadata(opts.tvdbId) : Promise.resolve(null),
-    opts.tmdbId ? fetchTmdbMetadata(opts.tmdbId) : Promise.resolve(null),
-    imdbId ? fetchImdbRating(imdbId) : Promise.resolve(null),
+  const [mal, tvdb, tmdb] = await Promise.all([
+    opts.malId ? fetchMalExtras(opts.malId) : Promise.resolve(undefined),
+    opts.tvdbId ? fetchTvdbExtras(opts.tvdbId) : Promise.resolve(undefined),
+    Number.isFinite(tmdbNum) ? fetchTmdbExtras(tmdbNum) : Promise.resolve(undefined),
   ]);
 
-  if (mal?.rating) ratings.push(mal.rating);
-  if (imdb) ratings.push(imdb);
-  if (tmdb?.rating) ratings.push(tmdb.rating);
-  if (tvdb?.rating) ratings.push(tvdb.rating);
-
-  return {
-    ratings: sortRatings(ratings),
-    mal: mal?.extra,
-    tvdb: tvdb?.extra,
-    tmdb: tmdb?.extra,
-  };
+  return { mal, tvdb, tmdb };
 }

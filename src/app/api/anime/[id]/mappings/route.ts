@@ -1,7 +1,8 @@
 export const revalidate = 86400;
 
 import { fetchMergedArtworkSources } from "@/lib/anime/art-sources";
-import { fetchExternalMetadata } from "@/lib/anime/external-metadata";
+import { buildRatingsFromAniZip } from "@/lib/anime/anizip-ratings";
+import { fetchExternalMetadataExtras } from "@/lib/anime/external-metadata";
 import { queryAniList } from "@/lib/oauth/anilist";
 
 const ANILIST_SCORE_QUERY = `
@@ -24,7 +25,7 @@ export async function GET(
   try {
     const [aniZipRes, anilistRaw] = await Promise.all([
       fetch(`https://api.ani.zip/mappings?anilist_id=${numId}`, {
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(10000),
       }),
       queryAniList(ANILIST_SCORE_QUERY, { id: numId }).catch(() => null),
     ]);
@@ -43,29 +44,37 @@ export async function GET(
       anilistMedia?.title?.native,
     ];
 
-    const { images } = await fetchMergedArtworkSources({
-      anilistId: numId,
-      malId: mappings?.mal_id ?? null,
-      tvdbId: mappings?.thetvdb_id ?? null,
-      tmdbId: mappings?.themoviedb_id ?? null,
-      aniZipImages,
-      aniZipEpisodes,
-      searchTitles,
-    });
+    const [{ images }, extras] = await Promise.all([
+      fetchMergedArtworkSources({
+        anilistId: numId,
+        malId: mappings?.mal_id ?? null,
+        tvdbId: mappings?.thetvdb_id ?? null,
+        tmdbId: mappings?.themoviedb_id ?? null,
+        aniZipImages,
+        aniZipEpisodes,
+        searchTitles,
+      }),
+      fetchExternalMetadataExtras({
+        malId: mappings?.mal_id ?? null,
+        tvdbId: mappings?.thetvdb_id ?? null,
+        tmdbId: mappings?.themoviedb_id ?? null,
+      }),
+    ]);
 
-    const metadata = await fetchExternalMetadata({
+    const ratings = buildRatingsFromAniZip({
       anilistId: numId,
       anilistScore: anilistMedia?.averageScore ?? null,
-      malId: mappings?.mal_id ?? null,
-      tvdbId: mappings?.thetvdb_id ?? null,
-      tmdbId: mappings?.themoviedb_id ?? null,
-      imdbId: mappings?.imdb_id ?? null,
+      mappings,
+      episodes: aniZipEpisodes,
     });
 
     return Response.json({
       mappings,
       images,
-      metadata,
+      metadata: {
+        ratings,
+        ...extras,
+      },
     });
   } catch {
     return Response.json({ mappings: null, images: null, metadata: null });
