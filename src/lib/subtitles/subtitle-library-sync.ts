@@ -1,4 +1,4 @@
-import { ensureIncrementalSubtitleCache, fetchAndCacheSubtitle } from "@/lib/subtitles/subtitle-cache-store";
+import { ensureIncrementalSubtitleCache } from "@/lib/subtitles/subtitle-cache-store";
 import { fetchKittySubsTracks } from "@/lib/kitty/kitty-subs-api";
 import {
   backfillSubtitleLibraryAnime,
