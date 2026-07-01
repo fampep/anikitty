@@ -118,7 +118,7 @@ export async function runSubtitleLibrarySyncTick(
         const metaMap = await getStoredSubtitleLibraryMeta([anilistId]);
         const meta = metaMap.get(anilistId);
 
-        if (!meta?.totalEpisodes) {
+        if (!meta?.episodes) {
           console.warn(`[SubtitleSync] No metadata for anime ${anilistId}, skipping`);
           continue;
         }
@@ -126,7 +126,7 @@ export async function runSubtitleLibrarySyncTick(
         // Use Kitty Subs API to fetch subtitles
         const fetched = await fetchSubtitlesForAnime({
           anilistId,
-          totalEpisodes: meta.totalEpisodes,
+          totalEpisodes: meta.episodes,
           title: meta.title,
           episodesToFetch: Math.min(episodesPerAnime, meta.totalEpisodes),
         });

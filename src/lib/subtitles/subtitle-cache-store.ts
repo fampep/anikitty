@@ -25,7 +25,6 @@ import {
 } from "@/lib/subtitles/subtitle-sync-config";
 import { fetchAnitakuSubtitleStreamFallback, fetchMiruroSubtitleStream } from "@/lib/providers/miruro-api";
 import { fetchKittySubsTracks, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
-import { fetchRyuoSubtitleTracks, isRyuoAvailable, RYUO_SOURCE_PROVIDER } from "@/lib/subtitles/ryuo-subtitles";
 
 export type EpisodeSubtitleCacheContext = Pick<
   SubtitleCacheContext,
@@ -251,26 +250,12 @@ async function fetchMiruroSubtitleTracks(
   }
 }
 
-/** Fetch subtitle tracks on demand (Ryuo → Kitty /subs → Miruro) for one episode. */
+/** Fetch subtitle tracks on demand (Kitty /subs → Miruro) for one episode. */
 export async function ensureMiruroSubtitleCache(
   ctx: EpisodeSubtitleCacheContext,
   opts?: EnsureSubtitleCacheOptions,
 ): Promise<StreamTrack[]> {
   if (!opts?.force && (await hasFreshCachedSubtitles(ctx))) return [];
-
-  if (await isRyuoAvailable()) {
-    const ryuoTracks = dedupeSubtitleTracks(
-      await fetchRyuoSubtitleTracks(ctx.anilistId, ctx.episode),
-    );
-    if (ryuoTracks.length > 0) {
-      return cacheStreamSubtitleTracks(ryuoTracks, {
-        ...ctx,
-        provider: RYUO_SOURCE_PROVIDER,
-        animeTitle: ctx.animeTitle,
-        headers: {},
-      });
-    }
-  }
 
   let kitty = await fetchKittySubsTracks({
     anilistId: ctx.anilistId,
