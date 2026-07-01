@@ -128,7 +128,7 @@ export async function runSubtitleLibrarySyncTick(
           anilistId,
           totalEpisodes: meta.episodes,
           title: meta.title,
-          episodesToFetch: Math.min(episodesPerAnime, meta.totalEpisodes),
+          episodesToFetch: Math.min(episodesPerAnime, meta.episodes),
         });
 
         result.episodesFetched += fetched;
