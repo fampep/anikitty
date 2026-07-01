@@ -83,7 +83,36 @@
     "comments": "Comentários",
     "community": "Comunidade",
     "onlineStrip": "pessoas assistindo anime agora",
-    "joinThem": "Participe"
+    "joinThem": "Participe",
+    "communityLabel": "Ao vivo da comunidade",
+    "communityTitle": "Fãs estão a falar agora",
+    "continueWatching": "Continuar a ver",
+    "searchAnime": "Pesquisar anime",
+    "seeAll": "Ver tudo",
+    "recentCount": "{count}+ títulos no catálogo",
+    "trendingLabel": "Popular agora",
+    "trendingTitle": "Em destaque no AniKitty",
+    "previewLabel": "Feito para ver",
+    "previewTitle": "Um leitor feito para anime",
+    "previewDesc": "Streams multi-fonte, retomar, saltar intro, modo cinema e atalhos de teclado — tudo num só lugar.",
+    "preview": {
+      "mock": "Página de visualização",
+      "player": { "title": "Leitor multi-fonte", "desc": "Muda de provider sem sair do episódio." },
+      "skip": { "title": "Saltar intro e outro", "desc": "Marcadores de capítulo detetados automaticamente quando disponíveis." },
+      "theatre": { "title": "Modo cinema", "desc": "Expande o leitor e esconde distrações." },
+      "shortcuts": { "title": "Atalhos de teclado", "desc": "Prime ? na página de visualização para a lista completa." }
+    },
+    "featuresLabel": "Porquê AniKitty",
+    "featuresTitle": "Tudo o que precisas para ver anime",
+    "freeForever": "Grátis — o apoio Ko-fi é opcional",
+    "features": {
+      "stream": { "title": "Streams sub e dub", "desc": "Vê com legendas ou dobragem em muitos providers." },
+      "fast": { "title": "Rápido e leve", "desc": "Streams carregam rápido com uma interface escura e limpa." },
+      "subs": { "title": "Biblioteca de legendas", "desc": "Explora e descarrega legendas em cache." },
+      "community": { "title": "Comentários e fórum", "desc": "Discute episódios e descobre recomendações com outros." },
+      "together": { "title": "Ver juntos", "desc": "Sincroniza a reprodução com amigos através de um código de sala." },
+      "shop": { "title": "Loja Kittycoins", "desc": "Ganha moedas e desbloqueia stickers e molduras de perfil." }
+    }
   },
   "home": {
     "loadError": "Não foi possível carregar a página inicial",
@@ -138,7 +167,16 @@
     "donationGoalProgress": "Meta de apoio mensal",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Doar no Ko-fi",
-    "donationGoalLearn": "Saber mais"
+    "donationGoalLearn": "Saber mais",
+    "donationSlim": "Gorjetas opcionais no Ko-fi ajudam com os servidores. O site continua grátis.",
+    "todayPanel": "Hoje no AniKitty",
+    "todayPanelDesc": "Horário de emissão e géneros rápidos",
+    "discover": "Descobrir",
+    "promos": {
+      "shop": { "title": "Loja Kittycoins", "desc": "Stickers, molduras e estilo de perfil" },
+      "w2g": { "title": "Ver juntos", "desc": "Sincroniza episódios com amigos" },
+      "subs": { "title": "Biblioteca de legendas", "desc": "Explora legendas em cache" }
+    }
   },
   "search": {
     "title": "Buscar",
@@ -639,7 +677,8 @@
     "timeAgoDays": "há {d} d",
     "live": "Ao vivo",
     "backHome": "Voltar ao início",
-    "reload": "Recarregar"
+    "reload": "Recarregar",
+    "close": "Fechar"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} concluídos",
@@ -981,6 +1020,10 @@
     "logInToReact": "Entre para reagir",
     "sortNew": "Novo",
     "sortTop": "Top",
-    "sortOld": "Antigo"
+    "sortOld": "Antigo",
+    "scopeAnime": "Anime",
+    "addComment": "Adicionar um comentário",
+    "loadingCount": "A carregar comentários…",
+    "count": "{count} comentários"
   }
 }

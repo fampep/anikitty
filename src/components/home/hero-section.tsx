@@ -17,6 +17,8 @@ import { ROUTES } from "@/constants/routes";
 import { ButtonLink } from "@/components/common/button-link";
 import { SpotlightAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { trackEvent } from "@/lib/analytics";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -34,6 +36,7 @@ type IHeroSectionProps = {
 };
 
 const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
+  const reducedMotion = usePrefersReducedMotion();
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
@@ -46,12 +49,34 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   }, [api]);
 
   useEffect(() => {
-    if (!api || !count) return;
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") api.scrollNext();
-    }, 7000);
-    return () => clearInterval(timer);
-  }, [api, count]);
+    if (!api || !count || reducedMotion) return;
+    const root = document.querySelector(".home-hero-carousel");
+    if (!root || typeof IntersectionObserver === "undefined") {
+      const timer = setInterval(() => {
+        if (document.visibilityState === "visible") api.scrollNext();
+      }, 7000);
+      return () => clearInterval(timer);
+    }
+
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (timer) clearInterval(timer);
+        timer = null;
+        if (!entry?.isIntersecting) return;
+        timer = setInterval(() => {
+          if (document.visibilityState === "visible") api.scrollNext();
+        }, 7000);
+      },
+      { threshold: 0.25 },
+    );
+    observer.observe(root);
+
+    return () => {
+      observer.disconnect();
+      if (timer) clearInterval(timer);
+    };
+  }, [api, count, reducedMotion]);
 
   useEffect(() => {
     if (!api) return;
@@ -66,7 +91,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   if (isDataLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] w-full relative overflow-hidden">
+    <div className="home-hero-carousel h-[42vh] sm:h-[48vh] md:h-[52vh] max-h-[var(--home-hero-max-h,520px)] w-full relative overflow-hidden">
       <Carousel className="w-full h-full" setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="h-full">
           {spotlightAnime?.map((anime, index) => (
@@ -101,12 +126,15 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
                   i === current ? "w-8" : "w-3"
                 }`}
               >
-                {i === current && (
+                {i === current && !reducedMotion && (
                   <div
                     key={current}
                     className="h-full bg-white rounded-full"
                     style={{ animation: "progressBar 7s linear forwards", width: "0%" }}
                   />
+                )}
+                {i === current && reducedMotion && (
+                  <div className="h-full w-full bg-white rounded-full" />
                 )}
               </button>
             ))}
@@ -146,7 +174,7 @@ const HeroCarouselItem = ({
 }) => {
   const t = useT();
   return (
-  <div className="w-full h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] relative overflow-hidden bg-black">
+  <div className="w-full h-[42vh] sm:h-[48vh] md:h-[52vh] max-h-[var(--home-hero-max-h,520px)] relative overflow-hidden bg-black">
     {isNearActive && anime?.poster ? (
       <Image
         src={anime.poster}
@@ -212,6 +240,7 @@ const HeroCarouselItem = ({
           <div className="flex items-center gap-2 sm:gap-3">
             <ButtonLink
               href={`${ROUTES.WATCH}?anime=${anime.id}`}
+              onClick={() => trackEvent("home_hero_watch", { anime_id: anime.id })}
               className="flex items-center gap-2 h-10 sm:h-11 bg-white text-black font-bold px-4 sm:px-6 rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-lg shadow-white/10 text-sm"
             >
               <Play className="h-4 w-4 fill-current" />
@@ -233,7 +262,7 @@ const HeroCarouselItem = ({
 };
 
 const LoadingSkeleton = () => (
-  <div className="h-[48vh] sm:h-[52vh] md:h-[56vh] max-h-[480px] w-full relative bg-black">
+  <div className="h-[42vh] sm:h-[48vh] md:h-[52vh] max-h-[var(--home-hero-max-h,520px)] w-full relative bg-black">
     <div className="absolute inset-0 flex items-end md:items-center pb-14 sm:pb-16 md:pb-0">
       <Container className="w-full">
         <div className="max-w-lg space-y-4">

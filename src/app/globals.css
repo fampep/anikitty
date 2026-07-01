@@ -6,6 +6,8 @@ html {
   scroll-behavior: smooth;
   --nav-height: 4rem;
   --banner-offset: 0px;
+  --home-hero-max-h: 520px;
+  --home-section-gap: 2.5rem;
   /* Prevent font scaling on orientation change in iOS */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -67,6 +69,14 @@ body {
   }
   .site-page {
     @apply relative z-[1] min-h-screen;
+  }
+
+  .home-feed > * + * {
+    margin-top: 0;
+  }
+
+  .home-feed .site-divider {
+    margin-block: var(--home-section-gap);
   }
 
   @media (prefers-reduced-motion: no-preference) {

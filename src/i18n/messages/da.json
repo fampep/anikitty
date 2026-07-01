@@ -83,7 +83,36 @@
     "comments": "Kommentarer",
     "community": "Fællesskab",
     "onlineStrip": "personer ser anime lige nu",
-    "joinThem": "Deltag"
+    "joinThem": "Deltag",
+    "communityLabel": "Live fra fællesskabet",
+    "communityTitle": "Fans snakker lige nu",
+    "continueWatching": "Fortsæt med at se",
+    "searchAnime": "Søg anime",
+    "seeAll": "Se alle",
+    "recentCount": "{count}+ titler i kataloget",
+    "trendingLabel": "Populært nu",
+    "trendingTitle": "Trending på AniKitty",
+    "previewLabel": "Bygget til at se",
+    "previewTitle": "En afspiller lavet til anime",
+    "previewDesc": "Multi-kilde streams, genoptag, skip intro, teatertilstand og tastaturgenveje — alt ét sted.",
+    "preview": {
+      "mock": "Se-side",
+      "player": { "title": "Multi-kilde afspiller", "desc": "Skift provider uden at forlade episoden." },
+      "skip": { "title": "Skip intro & outro", "desc": "Auto-detekterede kapitelmarkører når tilgængelige." },
+      "theatre": { "title": "Teatertilstand", "desc": "Udvid afspilleren og skjul distraktioner." },
+      "shortcuts": { "title": "Tastaturgenveje", "desc": "Tryk ? på se-siden for den fulde liste." }
+    },
+    "featuresLabel": "Hvorfor AniKitty",
+    "featuresTitle": "Alt hvad du behøver for at se anime",
+    "freeForever": "Gratis at bruge — Ko-fi støtte er valgfri",
+    "features": {
+      "stream": { "title": "Sub & dub streams", "desc": "Se med undertekster eller dub på mange providers." },
+      "fast": { "title": "Hurtig & let", "desc": "Streams loader hurtigt med et rent, mørkt interface." },
+      "subs": { "title": "Undertekstbibliotek", "desc": "Gennemse og download cachede undertekster." },
+      "community": { "title": "Kommentarer & forum", "desc": "Diskuter episoder og opdag anbefalinger med andre." },
+      "together": { "title": "Se sammen", "desc": "Synkroniser afspilning med venner via en rumkode." },
+      "shop": { "title": "Kittycoins-butik", "desc": "Tjen mønter og lås profilstickers og rammer op." }
+    }
   },
   "home": {
     "loadError": "Kunne ikke indlæse forsiden",
@@ -138,7 +167,16 @@
     "donationGoalProgress": "Månedligt støttemål",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Donér på Ko-fi",
-    "donationGoalLearn": "Læs mere"
+    "donationGoalLearn": "Læs mere",
+    "donationSlim": "Valgfrie Ko-fi drikkepenge hjælper med servere. Siden forbliver gratis.",
+    "todayPanel": "I dag på AniKitty",
+    "todayPanelDesc": "Sendeplan og hurtige genrevalg",
+    "discover": "Udforsk",
+    "promos": {
+      "shop": { "title": "Kittycoins-butik", "desc": "Stickers, rammer & profilflair" },
+      "w2g": { "title": "Se sammen", "desc": "Synkroniser episoder med venner" },
+      "subs": { "title": "Undertekstbibliotek", "desc": "Gennemse cachede undertekster" }
+    }
   },
   "search": {
     "title": "Søg",
@@ -639,7 +677,8 @@
     "timeAgoDays": "for {d} d. siden",
     "live": "Live",
     "backHome": "Tilbage til forsiden",
-    "reload": "Genindlæs"
+    "reload": "Genindlæs",
+    "close": "Luk"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} færdige",
@@ -981,6 +1020,10 @@
     "logInToReact": "Log ind for at reagere",
     "sortNew": "Ny",
     "sortTop": "Top",
-    "sortOld": "Gammel"
+    "sortOld": "Gammel",
+    "scopeAnime": "Anime",
+    "addComment": "Tilføj en kommentar",
+    "loadingCount": "Indlæser kommentarer…",
+    "count": "{count} kommentarer"
   }
 }

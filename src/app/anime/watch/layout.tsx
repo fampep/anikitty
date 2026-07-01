@@ -9,6 +9,7 @@ import { useAnimeStore } from "@/store/anime-store";
 
 import EpisodePlaylist from "@/components/watch/episode-playlist";
 import WatchCommentsPreview from "@/components/watch/watch-comments-preview";
+import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime/anime-carousel";
 import dynamic from "next/dynamic";
@@ -93,6 +94,8 @@ const Layout = (props: Props) => {
     per_page: 1,
   });
   const [selected, setSelected] = useState("");
+  const [mobileCommentsOpen, setMobileCommentsOpen] = useState(false);
+  const [mobileCommentScope, setMobileCommentScope] = useState<"episode" | "anime">("episode");
 
   const handleSelect = async (value: string) => {
     const prev = selected;
@@ -184,7 +187,26 @@ const Layout = (props: Props) => {
     }
   };
 
-  const openComments = () => handleWatchTabChange("comments");
+  const openMobileComments = (scope: "episode" | "anime" = "episode") => {
+    setMobileCommentScope(scope);
+    setMobileCommentsOpen(true);
+  };
+
+  const openComments = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      openMobileComments("episode");
+      return;
+    }
+    handleWatchTabChange("comments");
+  };
+
+  const handleWatchTabChangeWithMobile = (value: string) => {
+    if (value === "comments" && typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      openMobileComments("episode");
+      return;
+    }
+    handleWatchTabChange(value);
+  };
 
   // Update browser title instantly when episode changes (no server round-trip)
   useEffect(() => {
@@ -264,7 +286,7 @@ const Layout = (props: Props) => {
           </div>
 
           {/* Tabs: Comments | Info | Related */}
-          <Tabs value={watchTab} onValueChange={handleWatchTabChange} className="w-full">
+          <Tabs value={watchTab} onValueChange={handleWatchTabChangeWithMobile} className="w-full">
             <TabsList className="flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0">
               {[
                 { value: "comments", label: t("watch.tabs.comments"), icon: <MessageSquare className="w-3.5 h-3.5" /> },
@@ -282,7 +304,7 @@ const Layout = (props: Props) => {
               ))}
             </TabsList>
 
-            <TabsContent value="comments" className="mt-4" id="watch-comments-panel">
+            <TabsContent value="comments" className="mt-4 hidden lg:block" id="watch-comments-panel">
               {currentAnimeId && (
                 <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
                   <CommentSection
@@ -403,6 +425,18 @@ const Layout = (props: Props) => {
           </div>
         )}
       </div>
+
+      {currentAnimeId && currentEpisode && (
+        <WatchCommentsSheet
+          open={mobileCommentsOpen}
+          onOpenChange={setMobileCommentsOpen}
+          animeId={currentAnimeId}
+          episodeId={episodeId}
+          episodeNumber={currentEpisode.number}
+          scope={mobileCommentScope}
+          onScopeChange={setMobileCommentScope}
+        />
+      )}
     </Container>
   );
 };

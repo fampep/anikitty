@@ -347,6 +347,7 @@ const VideoPlayerSection = () => {
 
   // ── Resume position ──────────────────────────────────────────────
   const [savedResumeTime, setSavedResumeTime] = useState(0);
+  const [resumeReady, setResumeReady] = useState(false);
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
   const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -474,12 +475,13 @@ const VideoPlayerSection = () => {
     liveTimeRef.current = 0;
     liveDurationRef.current = 0;
     setResumeChoice(null);
+    setResumeReady(false);
     setArtPlayer(null);
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
   }, [episodeId]);
 
-  // Fetch saved resume position when the episode changes
+  // Fetch saved resume position when the episode changes (must finish before mounting player)
   useEffect(() => {
     const urlTime = parseResumeTimeParam(timeFromUrl);
     const cached =
@@ -491,9 +493,11 @@ const VideoPlayerSection = () => {
 
     if (!auth || !animeSlug || !episodeId) {
       setSavedResumeTime(resolved);
+      setResumeReady(true);
       return;
     }
 
+    setResumeReady(false);
     anisurgeContinue
       .getEpisode(animeSlug, episodeId)
       .then((r: { currentTime?: number; duration?: number }) => {
@@ -504,12 +508,14 @@ const VideoPlayerSection = () => {
         }
         setSavedResumeTime(resolved);
       })
-      .catch(() => setSavedResumeTime(resolved));
+      .catch(() => setSavedResumeTime(resolved))
+      .finally(() => setResumeReady(true));
   }, [auth, animeSlug, episodeId, timeFromUrl]);
 
   const urlResumeTime = parseResumeTimeParam(timeFromUrl);
   const isW2gGuest = Boolean(w2gCode && w2g.isMember && !w2g.isHost);
   const needsResumePrompt =
+    resumeReady &&
     savedResumeTime > 10 &&
     urlResumeTime <= 0 &&
     resumeChoice === null &&
@@ -660,7 +666,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${resumeChoice ?? "auto"}-${playerStartTime}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${resumeChoice ?? "auto"}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
@@ -1025,6 +1031,12 @@ const VideoPlayerSection = () => {
   }
 
   if (!streamData?.file) {
+    return (
+      <PlayerSkeleton label={t("watch.loadingStream")} />
+    );
+  }
+
+  if (!resumeReady) {
     return (
       <PlayerSkeleton label={t("watch.loadingStream")} />
     );

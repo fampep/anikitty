@@ -83,7 +83,36 @@
     "comments": "댓글",
     "community": "커뮤니티",
     "onlineStrip": "명이 지금 애니를 시청 중",
-    "joinThem": "함께하기"
+    "joinThem": "함께하기",
+    "communityLabel": "커뮤니티 실시간",
+    "communityTitle": "팬들이 지금 이야기 중",
+    "continueWatching": "이어보기",
+    "searchAnime": "애니 검색",
+    "seeAll": "전체 보기",
+    "recentCount": "카탈로그 {count}+개 작품",
+    "trendingLabel": "지금 인기",
+    "trendingTitle": "AniKitty 인기 작품",
+    "previewLabel": "시청을 위해 설계됨",
+    "previewTitle": "애니를 위한 플레이어",
+    "previewDesc": "멀티 소스 스트림, 이어보기, 인트로 스킵, 시어터 모드, 키보드 단축키 — 한곳에서.",
+    "preview": {
+      "mock": "시청 페이지",
+      "player": { "title": "멀티 소스 플레이어", "desc": "에피소드를 떠나지 않고 제공자를 전환하세요." },
+      "skip": { "title": "인트로·아웃트로 스킵", "desc": "가능할 때 자동 감지된 챕터 마커." },
+      "theatre": { "title": "시어터 모드", "desc": "플레이어를 확대하고 방해 요소를 숨깁니다." },
+      "shortcuts": { "title": "키보드 단축키", "desc": "시청 페이지에서 ? 키로 전체 목록을 확인하세요." }
+    },
+    "featuresLabel": "AniKitty를 선택하는 이유",
+    "featuresTitle": "애니 시청에 필요한 모든 것",
+    "freeForever": "무료 이용 — Ko-fi 후원은 선택 사항",
+    "features": {
+      "stream": { "title": "자막·더빙 스트림", "desc": "다양한 제공자로 자막 또는 더빙 시청." },
+      "fast": { "title": "빠르고 가벼움", "desc": "깔끔한 다크 UI로 빠르게 로드되는 스트림." },
+      "subs": { "title": "자막 라이브러리", "desc": "캐시된 자막을 탐색하고 다운로드." },
+      "community": { "title": "댓글 & 포럼", "desc": "에피소드를 토론하고 다른 사람의 추천을 발견." },
+      "together": { "title": "함께 보기", "desc": "방 코드로 친구와 재생을 동기화." },
+      "shop": { "title": "키티코인 상점", "desc": "코인을 모아 프로필 스티커와 프레임 해제." }
+    }
   },
   "home": {
     "loadError": "홈 피드를 불러올 수 없습니다",
@@ -138,7 +167,16 @@
     "donationGoalProgress": "월간 지원 목표",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Ko-fi에서 후원",
-    "donationGoalLearn": "자세히 보기"
+    "donationGoalLearn": "자세히 보기",
+    "donationSlim": "선택적 Ko-fi 후원이 서버 운영에 도움이 됩니다. 사이트는 계속 무료입니다.",
+    "todayPanel": "오늘의 AniKitty",
+    "todayPanelDesc": "방영 일정과 빠른 장르 선택",
+    "discover": "탐색",
+    "promos": {
+      "shop": { "title": "키티코인 상점", "desc": "스티커, 프레임 & 프로필 꾸미기" },
+      "w2g": { "title": "함께 보기", "desc": "친구와 에피소드 동기화" },
+      "subs": { "title": "자막 라이브러리", "desc": "캐시된 자막 탐색" }
+    }
   },
   "search": {
     "title": "검색",
@@ -639,7 +677,8 @@
     "timeAgoDays": "{d}일 전",
     "live": "라이브",
     "backHome": "홈으로 돌아가기",
-    "reload": "새로고침"
+    "reload": "새로고침",
+    "close": "닫기"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count}개 완료",
@@ -981,6 +1020,10 @@
     "logInToReact": "로그인하여 반응하기",
     "sortNew": "최신",
     "sortTop": "인기",
-    "sortOld": "오래된"
+    "sortOld": "오래된",
+    "scopeAnime": "애니메이션",
+    "addComment": "댓글 추가",
+    "loadingCount": "댓글 불러오는 중…",
+    "count": "댓글 {count}개"
   }
 }

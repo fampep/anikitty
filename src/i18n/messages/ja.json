@@ -83,7 +83,36 @@
     "comments": "コメント",
     "community": "コミュニティ",
     "onlineStrip": "人が今アニメを視聴中",
-    "joinThem": "参加する"
+    "joinThem": "参加する",
+    "communityLabel": "コミュニティからライブ",
+    "communityTitle": "ファンが今話している",
+    "continueWatching": "続きを見る",
+    "searchAnime": "アニメを検索",
+    "seeAll": "すべて見る",
+    "recentCount": "カタログ {count}+ 作品",
+    "trendingLabel": "今人気",
+    "trendingTitle": "AniKittyのトレンド",
+    "previewLabel": "視聴のために作られた",
+    "previewTitle": "アニメのためのプレイヤー",
+    "previewDesc": "マルチソース配信、続きから再生、イントロスキップ、シアターモード、キーボードショートカット — すべて一か所に。",
+    "preview": {
+      "mock": "視聴ページ",
+      "player": { "title": "マルチソースプレイヤー", "desc": "エピソードを離れずにプロバイダーを切り替え。" },
+      "skip": { "title": "イントロ・アウトロスキップ", "desc": "利用可能な場合は自動検出されたチャプターマーカー。" },
+      "theatre": { "title": "シアターモード", "desc": "プレイヤーを拡大し、気を散らす要素を非表示。" },
+      "shortcuts": { "title": "キーボードショートカット", "desc": "視聴ページで ? を押すと一覧を表示。" }
+    },
+    "featuresLabel": "AniKittyを選ぶ理由",
+    "featuresTitle": "アニメ視聴に必要なすべて",
+    "freeForever": "無料で利用 — Ko-fiサポートは任意",
+    "features": {
+      "stream": { "title": "字幕・吹替ストリーム", "desc": "多くのプロバイダーで字幕または吹替で視聴。" },
+      "fast": { "title": "高速で軽量", "desc": "すっきりしたダークUIで素早く読み込まれるストリーム。" },
+      "subs": { "title": "字幕ライブラリ", "desc": "キャッシュされた字幕を閲覧・ダウンロード。" },
+      "community": { "title": "コメント＆フォーラム", "desc": "エピソードを議論し、他の人のおすすめを発見。" },
+      "together": { "title": "一緒に視聴", "desc": "ルームコードで友達と再生を同期。" },
+      "shop": { "title": "Kittycoinsショップ", "desc": "コインを稼いでプロフィールステッカーとフレームを解除。" }
+    }
   },
   "home": {
     "loadError": "ホームフィードを読み込めませんでした",
@@ -138,7 +167,16 @@
     "donationGoalProgress": "月間支援目標",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Ko-fiで寄付",
-    "donationGoalLearn": "詳しく見る"
+    "donationGoalLearn": "詳しく見る",
+    "donationSlim": "任意のKo-fiチップがサーバー運営を支えます。サイトは引き続き無料です。",
+    "todayPanel": "今日のAniKitty",
+    "todayPanelDesc": "放送スケジュールとクイックジャンル",
+    "discover": "発見",
+    "promos": {
+      "shop": { "title": "Kittycoinsショップ", "desc": "ステッカー、フレーム＆プロフィール装飾" },
+      "w2g": { "title": "一緒に視聴", "desc": "友達とエピソードを同期" },
+      "subs": { "title": "字幕ライブラリ", "desc": "キャッシュ字幕を閲覧" }
+    }
   },
   "search": {
     "title": "検索",
@@ -639,7 +677,8 @@
     "timeAgoDays": "{d}日前",
     "live": "ライブ",
     "backHome": "ホームに戻る",
-    "reload": "再読み込み"
+    "reload": "再読み込み",
+    "close": "閉じる"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} 完了",
@@ -981,6 +1020,10 @@
     "logInToReact": "ログインしてリアクション",
     "sortNew": "新着",
     "sortTop": "人気",
-    "sortOld": "古い"
+    "sortOld": "古い",
+    "scopeAnime": "アニメ",
+    "addComment": "コメントを追加",
+    "loadingCount": "コメントを読み込み中…",
+    "count": "コメント {count}件"
   }
 }

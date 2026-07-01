@@ -20,12 +20,12 @@ export type PageSeo = {
 export const PAGE_SEO = {
   landing: {
     title: APP_DEFAULT_TITLE,
-    description: APP_DESCRIPTION,
+    description: "Free anime streaming with sub & dub, community features, and a built-in player. No subscriptions.",
     path: "/",
   },
   home: {
     title: "Home | AniKitty",
-    description: "Browse trending anime, continue watching, and new releases.",
+    description: "Trending anime, continue watching, today's schedule, and new releases.",
     path: "/home",
   },
   subtitles: {

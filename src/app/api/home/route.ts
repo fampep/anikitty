@@ -1,8 +1,20 @@
-import { getHomePageData } from "@/lib/core/home-data";
+import {
+  getHomeCriticalData,
+  getHomeDiscoveryData,
+  getHomePageData,
+} from "@/lib/core/home-data";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const scope = new URL(req.url).searchParams.get("scope");
+
   try {
-    const data = await getHomePageData();
+    const data =
+      scope === "critical"
+        ? await getHomeCriticalData()
+        : scope === "discovery"
+          ? await getHomeDiscoveryData()
+          : await getHomePageData();
+
     return Response.json(
       { data },
       {

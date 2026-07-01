@@ -11,4 +11,6 @@ export const GET_ANIME_SCHEDULE = "get-anime-schedule";
 export const GET_SUBTITLE_LIBRARY = "get-subtitle-library";
 
 export const GET_HOME_PAGE_DATA = "get-home-page-data";
+export const GET_HOME_CRITICAL = "get-home-critical";
+export const GET_HOME_DISCOVERY = "get-home-discovery";
 export const GET_ANIME_MAPPINGS = "get-anime-mappings";

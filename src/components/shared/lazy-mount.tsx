@@ -7,6 +7,7 @@ type Props = {
   rootMargin?: string;
   minHeight?: number | string;
   className?: string;
+  onVisible?: () => void;
 };
 
 /** Mount children only when near the viewport — cuts initial JS work and image loads. */
@@ -15,6 +16,7 @@ export default function LazyMount({
   rootMargin = "280px 0px",
   minHeight,
   className,
+  onVisible,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -27,6 +29,7 @@ export default function LazyMount({
       ([entry]) => {
         if (entry.isIntersecting) {
           setVisible(true);
+          onVisible?.();
           observer.disconnect();
         }
       },

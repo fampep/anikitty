@@ -123,6 +123,10 @@ type CommentSectionProps = {
   episodeLabel?: string;
   /** Show episode picker — pass episode list from anime detail page. */
   episodes?: CommentEpisode[];
+  /** Watch mobile sheet: episode vs whole-series comments */
+  commentScope?: "episode" | "anime";
+  /** Compact layout for bottom sheet */
+  variant?: "default" | "sheet";
 };
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
@@ -202,6 +206,8 @@ export default function CommentSection({
   episodeNumber: lockedEpisodeNumber,
   episodeLabel,
   episodes,
+  commentScope,
+  variant = "default",
 }: CommentSectionProps) {
   const t = useT();
   const { auth } = useAuthStore();
@@ -215,13 +221,23 @@ export default function CommentSection({
     setPickedEpisodeId(episodes[0].episodeId);
   }, [hasEpisodePicker, episodes]);
 
-  const activeEpisodeId = lockedEpisodeId ?? (pickedEpisodeId === "all" ? null : pickedEpisodeId);
+  const activeEpisodeId =
+    commentScope === "anime"
+      ? null
+      : lockedEpisodeId ?? (pickedEpisodeId === "all" ? null : pickedEpisodeId);
   const activeEpisodeNumber =
-    lockedEpisodeNumber ??
-    (activeEpisodeId
-      ? episodes?.find((ep) => ep.episodeId === activeEpisodeId)?.number ?? null
-      : null);
-  const activeEpisodeQuery = lockedEpisodeId ?? (pickedEpisodeId === "all" ? "all" : pickedEpisodeId);
+    commentScope === "anime"
+      ? null
+      : lockedEpisodeNumber ??
+        (activeEpisodeId
+          ? episodes?.find((ep) => ep.episodeId === activeEpisodeId)?.number ?? null
+          : null);
+  const activeEpisodeQuery =
+    commentScope === "anime"
+      ? "all"
+      : commentScope === "episode" && lockedEpisodeId
+        ? lockedEpisodeId
+        : lockedEpisodeId ?? (pickedEpisodeId === "all" ? "all" : pickedEpisodeId);
   const headerLabel =
     episodeLabel ??
     (activeEpisodeId && activeEpisodeNumber
@@ -229,7 +245,8 @@ export default function CommentSection({
       : hasEpisodePicker && pickedEpisodeId === "all"
         ? t("comments.allEpisodes")
         : null);
-  const requiresEpisode = lockedEpisodeId !== undefined && !lockedEpisodeId;
+  const requiresEpisode =
+    commentScope !== "anime" && lockedEpisodeId !== undefined && !lockedEpisodeId;
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [total, setTotal] = useState(0);
@@ -525,6 +542,14 @@ export default function CommentSection({
     });
   };
 
+  const isSheet = variant === "sheet";
+  const composerPlaceholder =
+    isSheet
+      ? t("comments.addComment")
+      : activeEpisodeNumber
+        ? t("comments.placeholderEpisode", { n: activeEpisodeNumber })
+        : t("comments.placeholder");
+
   const canSubmit = (draft.trim().length > 0 || !!selectedGif) && !submitting;
   const showToolbar = focused || !!draft || !!selectedGif;
 
@@ -671,7 +696,7 @@ export default function CommentSection({
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn("flex flex-col", isSheet ? "gap-4 py-3" : "gap-5")}>
 
       {/* Episode picker (anime detail page) */}
       {hasEpisodePicker && (
@@ -711,27 +736,38 @@ export default function CommentSection({
       )}
 
       {/* Header + sort */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <MessageSquare className="w-4 h-4 text-white/40 shrink-0" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-base font-bold text-white tracking-tight">{t("comments.title")}</span>
-              {headerLabel && (
-                <span className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-[10px] font-mono text-sky-300/80">
-                  {headerLabel}
-                </span>
-              )}
-              {total > 0 && (
-                <span className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[11px] font-mono text-white/35">
-                  {total}
-                </span>
-              )}
+      <div
+        className={cn(
+          "flex items-center justify-between gap-3",
+          isSheet && "sticky top-0 z-10 bg-[#0a0a0a] py-1 -mx-0.5",
+        )}
+      >
+        {isSheet ? (
+          <p className="text-sm font-semibold text-white/80">
+            {loading ? t("comments.loadingCount") : t("comments.count", { count: total })}
+          </p>
+        ) : (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <MessageSquare className="w-4 h-4 text-white/40 shrink-0" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-base font-bold text-white tracking-tight">{t("comments.title")}</span>
+                {headerLabel && (
+                  <span className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-[10px] font-mono text-sky-300/80">
+                    {headerLabel}
+                  </span>
+                )}
+                {total > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[11px] font-mono text-white/35">
+                    {total}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
         {!loading && (
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/8 p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg border border-white/8 p-0.5 shrink-0">
             {(["new", "top", "old"] as const).map((s) => (
               <button
                 key={s}
@@ -752,15 +788,19 @@ export default function CommentSection({
 
       {/* Composer */}
       {auth && !requiresEpisode ? (
-        <div className="flex gap-3">
-          <CommentAvatar username={auth.username} avatarUrl={auth.avatar} frameSlug={auth.equippedFrame} />
-          <div className="flex-1">
+        <div className={cn("flex gap-3", isSheet && "gap-2.5")}>
+          {!isSheet && (
+            <CommentAvatar username={auth.username} avatarUrl={auth.avatar} frameSlug={auth.equippedFrame} />
+          )}
+          <div className="flex-1 min-w-0">
             <div
-              className={`rounded-xl border transition-all duration-200 ${
+              className={cn(
+                "rounded-xl border transition-all duration-200",
                 focused
                   ? "border-white/20 bg-white/[0.04] shadow-lg shadow-black/30"
-                  : "border-white/8 bg-white/[0.02]"
-              }`}
+                  : "border-white/8 bg-white/[0.02]",
+                isSheet && !focused && "bg-white/[0.03]",
+              )}
             >
               <textarea
                 ref={textareaRef}
@@ -771,14 +811,14 @@ export default function CommentSection({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit();
                 }}
-                placeholder={
-                  activeEpisodeNumber
-                    ? t("comments.placeholderEpisode", { n: activeEpisodeNumber })
-                    : t("comments.placeholder")
-                }
-                rows={focused ? 3 : 2}
+                placeholder={composerPlaceholder}
+                rows={focused ? (isSheet ? 2 : 3) : 1}
                 maxLength={1000}
-                className="w-full bg-transparent px-4 pt-3 pb-2 text-sm text-white/85 placeholder:text-white/20 resize-none focus:outline-none transition-all duration-200 leading-relaxed"
+                className={cn(
+                  "w-full bg-transparent px-4 text-sm text-white/85 placeholder:text-white/25 resize-none focus:outline-none transition-all duration-200 leading-relaxed",
+                  isSheet ? "pt-3 pb-2" : "pt-3 pb-2",
+                  !focused && isSheet && "py-3.5",
+                )}
               />
 
               {selectedGif && (
@@ -947,7 +987,8 @@ export default function CommentSection({
                         spoiler
                       </span>
                     )}
-                    {hasEpisodePicker && pickedEpisodeId === "all" && c.episodeNumber && (
+                    {(commentScope === "anime" || (hasEpisodePicker && pickedEpisodeId === "all")) &&
+                      c.episodeNumber && (
                       <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-white/5 border border-white/10 text-white/35">
                         Ep {c.episodeNumber}
                       </span>

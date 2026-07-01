@@ -18,18 +18,28 @@ type Props = {
   showRanks?: boolean;
   layout?: "grid" | "row";
   seeAllHref?: string;
+  sectionId?: string;
 };
 
-const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout = "grid", seeAllHref }: Props) => {
-  if (loading) return <LoadingSkeleton layout={layout} />;
+const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout = "grid", seeAllHref, sectionId }: Props) => {
+  if (loading) return <LoadingSkeleton layout={layout} sectionId={sectionId} />;
   if (!trendingAnime?.length) return null;
 
   if (layout === "row") {
-    return <RowLayout trendingAnime={trendingAnime} title={title} icon={icon} showRanks={showRanks} seeAllHref={seeAllHref} />;
+    return (
+      <RowLayout
+        trendingAnime={trendingAnime}
+        title={title}
+        icon={icon}
+        showRanks={showRanks}
+        seeAllHref={seeAllHref}
+        sectionId={sectionId}
+      />
+    );
   }
 
   return (
-    <Container className="flex flex-col gap-5 py-10 items-center lg:items-start">
+    <Container id={sectionId} className="flex flex-col gap-5 py-10 items-center lg:items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
       <SectionHeading icon={icon} title={title} href={seeAllHref} />
       <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-3 md:gap-4">
         {trendingAnime.map((anime, idx) => (
@@ -60,12 +70,14 @@ function RowLayout({
   icon,
   showRanks,
   seeAllHref,
+  sectionId,
 }: {
   trendingAnime: IAnime[];
   title: string;
   icon?: React.ReactNode;
   showRanks?: boolean;
   seeAllHref?: string;
+  sectionId?: string;
 }) {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -91,7 +103,7 @@ function RowLayout({
   };
 
   return (
-    <Container className="flex flex-col gap-4 py-8 items-start">
+    <Container id={sectionId} className="flex flex-col gap-4 py-8 items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
       <div className="flex items-center gap-3 w-full">
         <SectionHeading icon={icon} title={title} href={seeAllHref} />
         <div className="flex items-center gap-1">
@@ -154,8 +166,8 @@ function RowLayout({
   );
 }
 
-const LoadingSkeleton = ({ layout }: { layout?: "grid" | "row" }) => (
-  <Container className="flex flex-col gap-4 py-8 items-start">
+const LoadingSkeleton = ({ layout, sectionId }: { layout?: "grid" | "row"; sectionId?: string }) => (
+  <Container id={sectionId} className="flex flex-col gap-4 py-8 items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
       <div className="h-6 w-48 animate-pulse bg-white/8 rounded" />

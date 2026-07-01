@@ -86,7 +86,36 @@
     "comments": "Comments",
     "community": "Community",
     "onlineStrip": "people watching anime right now",
-    "joinThem": "Join them"
+    "joinThem": "Join them",
+    "communityLabel": "Live from the community",
+    "communityTitle": "Fans are talking right now",
+    "continueWatching": "Continue watching",
+    "searchAnime": "Search anime",
+    "seeAll": "See all",
+    "recentCount": "{count}+ titles in the catalog",
+    "trendingLabel": "Popular now",
+    "trendingTitle": "Trending on AniKitty",
+    "previewLabel": "Built for watching",
+    "previewTitle": "A player made for anime",
+    "previewDesc": "Multi-source streams, resume playback, skip intro, theatre mode, and keyboard shortcuts — all in one place.",
+    "preview": {
+      "mock": "Watch page",
+      "player": { "title": "Multi-source player", "desc": "Switch providers without leaving the episode." },
+      "skip": { "title": "Skip intro & outro", "desc": "Auto-detected chapter markers when available." },
+      "theatre": { "title": "Theatre mode", "desc": "Expand the player and hide distractions." },
+      "shortcuts": { "title": "Keyboard shortcuts", "desc": "Press ? on the watch page for the full list." }
+    },
+    "featuresLabel": "Why AniKitty",
+    "featuresTitle": "Everything you need to watch anime",
+    "freeForever": "Free to use — Ko-fi support is optional",
+    "features": {
+      "stream": { "title": "Sub & dub streams", "desc": "Watch with subtitles or dubbed audio across many providers." },
+      "fast": { "title": "Fast & lightweight", "desc": "Streams load quickly with a clean, dark interface." },
+      "subs": { "title": "Subtitle library", "desc": "Browse and download cached subtitle tracks." },
+      "community": { "title": "Comments & forum", "desc": "Discuss episodes and discover picks with others." },
+      "together": { "title": "Watch together", "desc": "Sync playback with friends using a room code." },
+      "shop": { "title": "Kittycoins shop", "desc": "Earn coins and unlock profile stickers and frames." }
+    }
   },
   "home": {
     "loadError": "Couldn't load home feed",
@@ -141,7 +170,16 @@
     "donationGoalProgress": "Monthly support goal",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Donate on Ko-fi",
-    "donationGoalLearn": "Learn more"
+    "donationGoalLearn": "Learn more",
+    "donationSlim": "Optional Ko-fi tips help keep servers running. The site stays free either way.",
+    "todayPanel": "Today on AniKitty",
+    "todayPanelDesc": "Airing schedule and quick genre picks",
+    "discover": "Discover",
+    "promos": {
+      "shop": { "title": "Kittycoins shop", "desc": "Stickers, frames & profile flair" },
+      "w2g": { "title": "Watch together", "desc": "Sync episodes with friends" },
+      "subs": { "title": "Subtitle library", "desc": "Browse cached subtitle tracks" }
+    }
   },
   "search": {
     "title": "Search",
@@ -648,7 +686,8 @@
     "timeAgoDays": "{d}d ago",
     "live": "Live",
     "backHome": "Back to Home",
-    "reload": "Reload"
+    "reload": "Reload",
+    "close": "Close"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} done",
@@ -1072,7 +1111,11 @@
     "logInToReact": "Log in to react",
     "sortNew": "New",
     "sortTop": "Top",
-    "sortOld": "Old"
+    "sortOld": "Old",
+    "scopeAnime": "Anime",
+    "addComment": "Add a comment",
+    "loadingCount": "Loading comments…",
+    "count": "{count} comments"
   },
   "donate": {
     "title": "Support AniKitty",

@@ -162,6 +162,8 @@ export default function KittyPlayer({
   const onEndedRef = useRef(onEnded);
   const skipTimesRef = useRef(skipTimes);
   const w2gRef = useRef(w2g);
+  const nextEpisodeRef = useRef(nextEpisode);
+  const preferSubtitlesRef = useRef(preferSubtitles);
   const startFiredRef = useRef(false);
   const outroFiredRef = useRef(false);
   const lastProgressTs = useRef(0);
@@ -208,6 +210,8 @@ export default function KittyPlayer({
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
   useEffect(() => { skipTimesRef.current = skipTimes; }, [skipTimes]);
   useEffect(() => { w2gRef.current = w2g; }, [w2g]);
+  useEffect(() => { nextEpisodeRef.current = nextEpisode; }, [nextEpisode]);
+  useEffect(() => { preferSubtitlesRef.current = preferSubtitles; }, [preferSubtitles]);
 
   useEffect(() => {
     if (autoFullscreen) autoFsRef.current = true;
@@ -305,8 +309,6 @@ export default function KittyPlayer({
     const art = artRef.current;
     if (!art || resumeAppliedRef.current) return;
     if (startFiredRef.current && art.currentTime > 5) return;
-    resumeAppliedRef.current = false;
-    resumeSeekTargetRef.current = null;
     applyResume(art);
   }, [startTime, applyResume]);
 
@@ -350,6 +352,7 @@ export default function KittyPlayer({
       file: resolveTrackSrc(track.file),
     }));
     const hasExternalSubs = subTracks.length > 0;
+    const showSubs = preferSubtitlesRef.current;
 
     const defaultSub = subTracks.find((tr) => tr.default) ?? subTracks[0];
     const defaultSubType = defaultSub
@@ -357,7 +360,7 @@ export default function KittyPlayer({
       : "vtt";
 
     const subtitleOption: Option["subtitle"] =
-      preferSubtitles && defaultSub
+      showSubs && defaultSub
         ? {
             url: defaultSub.file,
             type: defaultSubType,
@@ -376,6 +379,7 @@ export default function KittyPlayer({
     }));
 
     let hlsForCleanup: Hls | null = null;
+    let hlsNetworkRecoveries = 0;
 
     const art = new Artplayer({
       container,
@@ -431,7 +435,8 @@ export default function KittyPlayer({
                 hls.recoverMediaError();
                 return;
               }
-              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 3) {
+                hlsNetworkRecoveries += 1;
                 hls.startLoad();
               }
             });
@@ -498,8 +503,8 @@ export default function KittyPlayer({
           selector: [
             {
               html: "Display",
-              tooltip: preferSubtitles ? "Hide" : "Show",
-              switch: preferSubtitles,
+              tooltip: preferSubtitlesRef.current ? "Hide" : "Show",
+              switch: preferSubtitlesRef.current,
               onSwitch(item) {
                 const show = !item.switch;
                 art.subtitle.show = show;
@@ -655,7 +660,7 @@ export default function KittyPlayer({
 
     art.on("video:ended", () => {
       onEndedRef.current?.();
-      if (nextEpisode && autoNextRef.current) {
+      if (nextEpisodeRef.current && autoNextRef.current) {
         setCountdown(5);
       }
     });
@@ -669,16 +674,7 @@ export default function KittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [
-    proxiedSrc,
-    tracks,
-    preferSubtitles,
-    nextEpisode,
-    skipTimes,
-    t,
-    reportW2g,
-    applyResume,
-  ]);
+  }, [proxiedSrc, t, applyResume, reportW2g]);
 
   if (!proxiedSrc) return null;
 

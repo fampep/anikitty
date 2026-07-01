@@ -4,11 +4,13 @@ import React, { ReactNode } from "react";
 type Props = {
   children?: ReactNode;
   className?: string;
+  id?: string;
 };
 
 const Container = (props: Props) => {
   return (
     <div
+      id={props.id}
       className={cn([
         "mx-auto w-full",
         "px-4",

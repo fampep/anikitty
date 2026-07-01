@@ -83,7 +83,36 @@
     "comments": "Comentarios",
     "community": "Comunidad",
     "onlineStrip": "personas viendo anime ahora mismo",
-    "joinThem": "Únete"
+    "joinThem": "Únete",
+    "communityLabel": "En vivo de la comunidad",
+    "communityTitle": "Los fans hablan ahora mismo",
+    "continueWatching": "Seguir viendo",
+    "searchAnime": "Buscar anime",
+    "seeAll": "Ver todo",
+    "recentCount": "{count}+ títulos en el catálogo",
+    "trendingLabel": "Popular ahora",
+    "trendingTitle": "Tendencias en AniKitty",
+    "previewLabel": "Hecho para ver",
+    "previewTitle": "Un reproductor hecho para anime",
+    "previewDesc": "Streams multi-fuente, reanudar, saltar intro, modo cine y atajos de teclado — todo en un solo lugar.",
+    "preview": {
+      "mock": "Página de reproducción",
+      "player": { "title": "Reproductor multi-fuente", "desc": "Cambia de proveedor sin salir del episodio." },
+      "skip": { "title": "Saltar intro y outro", "desc": "Marcadores de capítulo detectados automáticamente cuando están disponibles." },
+      "theatre": { "title": "Modo cine", "desc": "Amplía el reproductor y oculta distracciones." },
+      "shortcuts": { "title": "Atajos de teclado", "desc": "Pulsa ? en la página de reproducción para la lista completa." }
+    },
+    "featuresLabel": "Por qué AniKitty",
+    "featuresTitle": "Todo lo que necesitas para ver anime",
+    "freeForever": "Gratis — el apoyo en Ko-fi es opcional",
+    "features": {
+      "stream": { "title": "Streams sub y dub", "desc": "Mira con subtítulos o doblaje en muchos proveedores." },
+      "fast": { "title": "Rápido y ligero", "desc": "Los streams cargan rápido con una interfaz oscura y limpia." },
+      "subs": { "title": "Biblioteca de subtítulos", "desc": "Explora y descarga subtítulos en caché." },
+      "community": { "title": "Comentarios y foro", "desc": "Comenta episodios y descubre recomendaciones con otros." },
+      "together": { "title": "Ver juntos", "desc": "Sincroniza la reproducción con amigos mediante un código de sala." },
+      "shop": { "title": "Tienda Kittycoins", "desc": "Gana monedas y desbloquea stickers y marcos de perfil." }
+    }
   },
   "home": {
     "loadError": "No se pudo cargar el inicio",
@@ -138,7 +167,16 @@
     "donationGoalProgress": "Meta de apoyo mensual",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Donar en Ko-fi",
-    "donationGoalLearn": "Más información"
+    "donationGoalLearn": "Más información",
+    "donationSlim": "Las propinas opcionales en Ko-fi ayudan con los servidores. El sitio sigue siendo gratis.",
+    "todayPanel": "Hoy en AniKitty",
+    "todayPanelDesc": "Horario de emisión y géneros rápidos",
+    "discover": "Descubrir",
+    "promos": {
+      "shop": { "title": "Tienda Kittycoins", "desc": "Stickers, marcos y estilo de perfil" },
+      "w2g": { "title": "Ver juntos", "desc": "Sincroniza episodios con amigos" },
+      "subs": { "title": "Biblioteca de subtítulos", "desc": "Explora subtítulos en caché" }
+    }
   },
   "search": {
     "title": "Buscar",
@@ -639,7 +677,8 @@
     "timeAgoDays": "hace {d} d",
     "live": "En vivo",
     "backHome": "Volver al inicio",
-    "reload": "Recargar"
+    "reload": "Recargar",
+    "close": "Cerrar"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} completados",
@@ -981,6 +1020,10 @@
     "logInToReact": "Inicia sesión para reaccionar",
     "sortNew": "Nuevo",
     "sortTop": "Top",
-    "sortOld": "Antiguo"
+    "sortOld": "Antiguo",
+    "scopeAnime": "Anime",
+    "addComment": "Añadir un comentario",
+    "loadingCount": "Cargando comentarios…",
+    "count": "{count} comentarios"
   }
 }

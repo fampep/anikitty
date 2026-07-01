@@ -83,7 +83,36 @@
     "comments": "评论",
     "community": "社区",
     "onlineStrip": "人正在观看动漫",
-    "joinThem": "加入他们"
+    "joinThem": "加入他们",
+    "communityLabel": "社区实时动态",
+    "communityTitle": "粉丝们正在讨论",
+    "continueWatching": "继续观看",
+    "searchAnime": "搜索动漫",
+    "seeAll": "查看全部",
+    "recentCount": "片库 {count}+ 部作品",
+    "trendingLabel": "当下热门",
+    "trendingTitle": "AniKitty 热门动漫",
+    "previewLabel": "为观看而生",
+    "previewTitle": "专为动漫打造的播放器",
+    "previewDesc": "多源串流、续播、跳过片头、影院模式和键盘快捷键 — 一应俱全。",
+    "preview": {
+      "mock": "观看页面",
+      "player": { "title": "多源播放器", "desc": "无需离开剧集即可切换线路。" },
+      "skip": { "title": "跳过片头片尾", "desc": "可用时自动检测章节标记。" },
+      "theatre": { "title": "影院模式", "desc": "放大播放器并隐藏干扰元素。" },
+      "shortcuts": { "title": "键盘快捷键", "desc": "在观看页面按 ? 查看完整列表。" }
+    },
+    "featuresLabel": "为什么选择 AniKitty",
+    "featuresTitle": "看动漫所需的一切",
+    "freeForever": "免费使用 — Ko-fi 支持为可选项",
+    "features": {
+      "stream": { "title": "字幕与配音串流", "desc": "通过众多线路观看字幕或配音版本。" },
+      "fast": { "title": "快速轻量", "desc": "简洁深色界面，串流加载迅速。" },
+      "subs": { "title": "字幕库", "desc": "浏览并下载缓存字幕。" },
+      "community": { "title": "评论与论坛", "desc": "讨论剧集，与他人发现好作品。" },
+      "together": { "title": "一起看", "desc": "通过房间码与好友同步播放。" },
+      "shop": { "title": "Kittycoins 商店", "desc": "赚取金币，解锁个人资料贴纸和边框。" }
+    }
   },
   "home": {
     "loadError": "无法加载首页内容",
@@ -138,7 +167,16 @@
     "donationGoalProgress": "月度支持目标",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "在 Ko-fi 捐赠",
-    "donationGoalLearn": "了解更多"
+    "donationGoalLearn": "了解更多",
+    "donationSlim": "可选的 Ko-fi 打赏有助于服务器运营。网站依然免费。",
+    "todayPanel": "今日 AniKitty",
+    "todayPanelDesc": "播出日程与快速类型筛选",
+    "discover": "发现",
+    "promos": {
+      "shop": { "title": "Kittycoins 商店", "desc": "贴纸、边框与个人装饰" },
+      "w2g": { "title": "一起看", "desc": "与好友同步剧集" },
+      "subs": { "title": "字幕库", "desc": "浏览缓存字幕" }
+    }
   },
   "search": {
     "title": "搜索",
@@ -639,7 +677,8 @@
     "timeAgoDays": "{d} 天前",
     "live": "直播",
     "backHome": "返回首页",
-    "reload": "重新加载"
+    "reload": "重新加载",
+    "close": "关闭"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · 已完成 {count}",
@@ -981,6 +1020,10 @@
     "logInToReact": "登录以回应",
     "sortNew": "最新",
     "sortTop": "热门",
-    "sortOld": "最早"
+    "sortOld": "最早",
+    "scopeAnime": "动画",
+    "addComment": "添加评论",
+    "loadingCount": "正在加载评论…",
+    "count": "{count} 条评论"
   }
 }
