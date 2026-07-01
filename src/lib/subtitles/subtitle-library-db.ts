@@ -791,6 +791,64 @@ export async function countIncompleteSubtitleAnimesFromDb(): Promise<number> {
   }
 }
 
+/**
+ * Find anime with MISSING subtitles (trackCount = 0) and prioritize them
+ * These have episodes but no subtitle tracks - HIGH PRIORITY
+ */
+export async function listAnimesWithMissingSubtitles(limit: number): Promise<number[]> {
+  if (!dbAvailable()) return [];
+
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({ anilistId: subtitleLibraryAnime.anilistId })
+      .from(subtitleLibraryAnime)
+      .where(
+        and(
+          // Has episodes but NO subtitles
+          sql`${subtitleLibraryAnime.cachedEpisodeCount} > 0`,
+          or(
+            eq(subtitleLibraryAnime.trackCount, 0),
+            isNull(subtitleLibraryAnime.trackCount),
+          ),
+        ),
+      )
+      .orderBy(desc(subtitleLibraryAnime.cachedEpisodeCount)) // Prioritize anime with most episodes
+      .limit(limit);
+
+    return rows.map((row) => row.anilistId);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Count anime with missing subtitles
+ */
+export async function countAnimesWithMissingSubtitles(): Promise<number> {
+  if (!dbAvailable()) return 0;
+
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(subtitleLibraryAnime)
+      .where(
+        and(
+          sql`${subtitleLibraryAnime.cachedEpisodeCount} > 0`,
+          or(
+            eq(subtitleLibraryAnime.trackCount, 0),
+            isNull(subtitleLibraryAnime.trackCount),
+          ),
+        ),
+      );
+
+    return row?.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function refreshStaleCompletionStatuses(limit = 40): Promise<number> {
   if (!dbAvailable()) return 0;
 

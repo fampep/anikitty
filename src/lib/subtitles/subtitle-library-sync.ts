@@ -3,6 +3,8 @@ import {
   backfillSubtitleLibraryAnime,
   countIncompleteSubtitleAnimesFromDb,
   listIncompleteSubtitleAnimesFromDb,
+  listAnimesWithMissingSubtitles,
+  countAnimesWithMissingSubtitles,
   refreshStaleCompletionStatuses,
 } from "@/lib/subtitles/subtitle-library-db";
 import {
@@ -58,6 +60,30 @@ export async function runSubtitleLibrarySyncTick(
     result.refreshed = await refreshStaleCompletionStatuses(refreshLimit);
   }
 
+  // PRIORITY 1: Anime with MISSING subtitles (episodes exist but no subs)
+  const missingSubsCount = await countAnimesWithMissingSubtitles();
+  if (missingSubsCount > 0 && maxIncompleteAnime > 0) {
+    const missingSubsIds = await listAnimesWithMissingSubtitles(
+      Math.min(1, maxIncompleteAnime),
+    );
+
+    for (const anilistId of missingSubsIds) {
+      try {
+        console.log(`[SubtitleSync] Priority: Fetching subtitles for anime ${anilistId} (missing subs)`);
+        const tick = await ensureIncrementalSubtitleCache(anilistId, {
+          maxEpisodes: episodesPerAnime,
+          delayMs: SUBTITLE_API_INTERVAL_MS,
+        });
+
+        result.episodesFetched += tick.fetched;
+        if (tick.fetched > 0) result.animeUpdated++;
+      } catch (error) {
+        console.error(`Error fetching subtitles for anime ${anilistId}:`, error);
+      }
+    }
+  }
+
+  // PRIORITY 2: Incomplete anime (missing episodes)
   const incompleteRemaining = await countIncompleteSubtitleAnimesFromDb();
   result.incompleteRemaining = incompleteRemaining;
 
