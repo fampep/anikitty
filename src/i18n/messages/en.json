@@ -456,7 +456,35 @@
       "sensei": "Sensei",
       "kage": "Kage"
     },
-    "message": "Message"
+    "message": "Message",
+    "editProfile": "Edit profile",
+    "editProfileTitle": "Customize profile",
+    "joined": "Joined",
+    "passphraseAccount": "passphrase account",
+    "ninjaMode": "ninja mode",
+    "ninjaModeDesc": "{username} has hidden their profile. They're watching from the shadows.",
+    "backToHome": "Back to home",
+    "notFound": "User not found",
+    "notFoundDesc": "{username} does not exist.",
+    "goHome": "Go home",
+    "watchlist": "Watchlist",
+    "watchActivity": "Watch Activity",
+    "comments": "Comments",
+    "noCommentsYet": "No comments yet",
+    "stats": {
+      "total": "Total",
+      "watching": "Watching",
+      "completed": "Completed",
+      "planToWatch": "Plan to Watch",
+      "onHold": "On Hold",
+      "dropped": "Dropped"
+    },
+    "scrollLeft": "Scroll left",
+    "scrollRight": "Scroll right",
+    "noActivityYet": "No activity yet",
+    "failedToLoadComments": "Couldn't load comments",
+    "failedToLoadActivity": "Couldn't load activity",
+    "retry": "Try again"
   },
   "forum": {
     "title": "Forum",

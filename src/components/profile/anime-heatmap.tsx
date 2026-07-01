@@ -5,6 +5,8 @@ import CalendarHeatmap from "react-calendar-heatmap";
 import styles from "./heatmap.module.css";
 import { Tooltip } from "react-tooltip";
 import { withAuth } from "@/lib/auth/auth-fetch";
+import { useT } from "@/providers/i18n-provider";
+import { Activity } from "lucide-react";
 
 type HeatmapValue = {
   date: string;
@@ -16,11 +18,13 @@ type Props = {
 };
 
 function AnimeHeatmap({ username }: Props) {
+  const t = useT();
   const [heatmapData, setHeatmapData] = useState<HeatmapValue[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [failed, setFailed] = useState(false);
 
-  const startDate = new Date(new Date().setMonth(0, 1));
-  const endDate = new Date(new Date().setMonth(11, 31));
+  const endDate = new Date();
+  const startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000);
 
   useEffect(() => {
     (async () => {
@@ -33,9 +37,11 @@ function AnimeHeatmap({ username }: Props) {
         const data = await res.json();
         setHeatmapData(data.activity ?? []);
         setTotalCount(data.totalCount ?? 0);
+        setFailed(false);
       } catch {
         setHeatmapData([]);
         setTotalCount(0);
+        setFailed(true);
       }
     })();
   }, [username]);
@@ -54,6 +60,40 @@ function AnimeHeatmap({ username }: Props) {
     const d = new Date(value.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
     return { ...base, "data-tooltip-content": `Watched ${value.count} episode${value.count !== 1 ? "s" : ""} on ${d}` };
   };
+
+  if (failed) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <Activity className="w-8 h-8 text-white/8" />
+        <div>
+          <p className="text-sm text-white/50 font-medium">{t("profile.failedToLoadActivity")}</p>
+          <button
+            onClick={() => {
+              setFailed(false);
+              (async () => {
+                try {
+                  const res = await fetch(
+                    `/api/users/${encodeURIComponent(username)}/activity`,
+                    withAuth(),
+                  );
+                  if (!res.ok) throw new Error("failed");
+                  const data = await res.json();
+                  setHeatmapData(data.activity ?? []);
+                  setTotalCount(data.totalCount ?? 0);
+                  setFailed(false);
+                } catch {
+                  setFailed(true);
+                }
+              })();
+            }}
+            className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-1"
+          >
+            {t("profile.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

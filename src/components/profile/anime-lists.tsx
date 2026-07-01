@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { ChevronLeft, ChevronRight, Tv2 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import { useT } from "@/providers/i18n-provider";
 
 const CARD_W = 130;
 
@@ -162,22 +163,7 @@ function AnimeLists({ status, username, isOwn }: Props) {
   return (
     <>
       {/* Scroll controls */}
-      <div className="flex justify-end gap-1 mb-2">
-        <button
-          onClick={() => scroll("left")}
-          disabled={!canScrollLeft}
-          className="h-6 w-6 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-        </button>
-        <button
-          onClick={() => scroll("right")}
-          disabled={!canScrollRight}
-          className="h-6 w-6 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
+      <ScrollControls canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} onScroll={scroll} />
 
       {/* Horizontal scroll row */}
       <div className="relative w-full">
@@ -225,6 +211,30 @@ function AnimeLists({ status, username, isOwn }: Props) {
         </div>
       )}
     </>
+  );
+}
+
+function ScrollControls({ canScrollLeft, canScrollRight, onScroll }: { canScrollLeft: boolean; canScrollRight: boolean; onScroll: (dir: "left" | "right") => void }) {
+  const t = useT();
+  return (
+    <div className="flex justify-end gap-1 mb-2">
+      <button
+        onClick={() => onScroll("left")}
+        disabled={!canScrollLeft}
+        aria-label={t("profile.scrollLeft")}
+        className="h-6 w-6 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={() => onScroll("right")}
+        disabled={!canScrollRight}
+        aria-label={t("profile.scrollRight")}
+        className="h-6 w-6 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }
 

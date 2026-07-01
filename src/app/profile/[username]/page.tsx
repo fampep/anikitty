@@ -46,6 +46,7 @@ import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/profile/level-progress-card";
 import AnimeLists from "@/components/profile/anime-lists";
 import { useT } from "@/providers/i18n-provider";
+import { useKittycoins } from "@/hooks/use-kittycoins";
 
 type ProfileCounts = {
   watching: number;
@@ -71,12 +72,12 @@ type ProfileData = {
   equippedIcon?: string | null;
 };
 
-const STATUS_TABS = [
-  { value: "watching",      label: "Watching",      key: "watching",  icon: Clock        },
-  { value: "plan to watch", label: "Plan to Watch", key: "plan",      icon: BookOpen     },
-  { value: "on hold",       label: "On Hold",       key: "onHold",    icon: PauseCircle  },
-  { value: "completed",     label: "Completed",     key: "completed", icon: CheckCircle  },
-  { value: "dropped",       label: "Dropped",       key: "dropped",   icon: XCircle      },
+const getStatusTabs = (t: ReturnType<typeof useT>) => [
+  { value: "watching",      label: t("profile.stats.watching"),      key: "watching",  icon: Clock        },
+  { value: "plan to watch", label: t("profile.stats.planToWatch"), key: "plan",      icon: BookOpen     },
+  { value: "on hold",       label: t("profile.stats.onHold"),    key: "onHold",    icon: PauseCircle  },
+  { value: "completed",     label: t("profile.stats.completed"),     key: "completed", icon: CheckCircle  },
+  { value: "dropped",       label: t("profile.stats.dropped"),       key: "dropped",   icon: XCircle      },
 ] as const;
 
 function EditProfileDialog({
@@ -94,7 +95,7 @@ function EditProfileDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="bg-[#0d0d0d] border border-white/12 rounded-2xl max-w-lg w-full p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
         <DialogHeader className="px-6 pt-5 pb-4 border-b border-white/8">
-          <DialogTitle className="text-white font-semibold text-base">Customize profile</DialogTitle>
+          <DialogTitle className="text-white font-semibold text-base">{t("profile.editProfileTitle")}</DialogTitle>
         </DialogHeader>
         <div className="px-6 py-5">
           <ProfileCustomizationForm
@@ -197,14 +198,19 @@ async function fetchProfilePayload(username: string) {
 }
 
 function UserComments({ username }: { username: string }) {
+  const t = useT();
   const [items, setItems] = useState<UserComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     fetch(`/api/users/${encodeURIComponent(username)}/comments`, profileFetchInit())
       .then((r) => r.json())
-      .then((d) => setItems(d.comments ?? []))
-      .catch(() => {})
+      .then((d) => {
+        setItems(d.comments ?? []);
+        setFailed(false);
+      })
+      .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   }, [username]);
 
@@ -218,11 +224,39 @@ function UserComments({ username }: { username: string }) {
     );
   }
 
+  if (failed) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <MessageSquare className="w-8 h-8 text-white/8" />
+        <div>
+          <p className="text-sm text-white/50 font-medium">{t("profile.failedToLoadComments")}</p>
+          <button
+            onClick={() => {
+              setFailed(false);
+              setLoading(true);
+              fetch(`/api/users/${encodeURIComponent(username)}/comments`, profileFetchInit())
+                .then((r) => r.json())
+                .then((d) => {
+                  setItems(d.comments ?? []);
+                  setFailed(false);
+                })
+                .catch(() => setFailed(true))
+                .finally(() => setLoading(false));
+            }}
+            className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-1"
+          >
+            {t("profile.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!items.length) {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
         <MessageSquare className="w-8 h-8 text-white/8" />
-        <p className="text-sm text-white/20 font-mono">No comments yet</p>
+        <p className="text-sm text-white/20 font-mono">{t("profile.noCommentsYet")}</p>
       </div>
     );
   }
@@ -282,6 +316,7 @@ function ProfilePage() {
   const ownLevelData = useUserLevel();
 
   const isOwn = !!auth && auth.username === profileUsername;
+  const { balance: kittycoinBalance, loaded: kittycoinLoaded } = useKittycoins(isOwn && !!auth);
 
   const applyProfilePayload = (data: {
     user?: ProfileData;
@@ -357,12 +392,12 @@ function ProfilePage() {
         <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-4xl">
           🥷
         </div>
-        <p className="text-xl font-bold text-white">Ninja mode</p>
+        <p className="text-xl font-bold text-white">{t("profile.ninjaMode")}</p>
         <p className="text-sm text-white/40 max-w-sm">
-          @{profileUsername} has hidden their profile. They&apos;re watching from the shadows.
+          {t("profile.ninjaModeDesc", { username: profileUsername })}
         </p>
         <Link href="/home" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
-          Back to home
+          {t("profile.backToHome")}
         </Link>
       </div>
     );
@@ -371,10 +406,10 @@ function ProfilePage() {
   if (notFound || !profile) {
     return (
       <div className="min-h-screen pt-24 flex flex-col items-center gap-3 text-center px-4">
-        <p className="text-xl font-bold text-white">User not found</p>
-        <p className="text-sm text-white/40">@{profileUsername} does not exist.</p>
+        <p className="text-xl font-bold text-white">{t("profile.notFound")}</p>
+        <p className="text-sm text-white/40">{t("profile.notFoundDesc", { username: profileUsername })}</p>
         <Link href="/" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
-          Go home
+          {t("profile.goHome")}
         </Link>
       </div>
     );
@@ -454,7 +489,7 @@ function ProfilePage() {
               {isOwn && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/15 bg-white/5 text-white/40 text-[11px] font-mono self-center sm:self-auto">
                   <ShieldCheck className="w-3 h-3" />
-                  passphrase account
+                  {t("profile.passphraseAccount")}
                 </span>
               )}
               {isOwn && profile.profilePrivate && (
@@ -474,21 +509,29 @@ function ProfilePage() {
                 <RoleBadge role={profile.role} size="sm" />
               )}
               {isOwn && (
-                <>
-                  <Link
-                    href={ROUTES.SHOP}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-400/25 bg-amber-500/10 text-amber-200/90 text-[12px] font-medium hover:bg-amber-500/20 transition-all self-center sm:self-auto"
-                  >
-                    {t("settings.openShop")}
-                  </Link>
-                  <button
-                    onClick={() => setEditOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto sm:ml-auto"
-                  >
-                    <Pencil className="w-3 h-3" />
-                    Edit profile
-                  </button>
-                </>
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 mt-2 sm:mt-0 sm:ml-auto">
+                  <div className="flex flex-col sm:items-end">
+                    <p className="text-[10px] font-mono text-white/30 uppercase">{t("nav.kittycoins")}</p>
+                    <p className="text-[12px] font-bold text-amber-300/90 tabular-nums">
+                      {kittycoinLoaded ? `${kittycoinBalance.toLocaleString()}` : "—"}
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Link
+                      href={ROUTES.SHOP}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-400/25 bg-amber-500/10 text-amber-200/90 text-[12px] font-medium hover:bg-amber-500/20 transition-all self-center sm:self-auto"
+                    >
+                      {t("settings.openShop")}
+                    </Link>
+                    <button
+                      onClick={() => setEditOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      {t("profile.editProfile")}
+                    </button>
+                  </div>
+                </div>
               )}
               {!isOwn && auth && (
                 <Link
@@ -515,18 +558,18 @@ function ProfilePage() {
 
             {profile.createdAt && (
               <p className="text-[11px] font-mono text-white/25 mt-1.5">
-                Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                {t("profile.joined")} {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </p>
             )}
 
             {/* Stats row */}
             <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3">
-              <QuickStat label="Total" value={totalAnime} />
+              <QuickStat label={t("profile.stats.total")} value={totalAnime} />
               <div className="w-px h-4 bg-white/15 self-center" />
-              <QuickStat label="Watching"  value={counts.watching}  color="text-white/80" />
-              <QuickStat label="Completed" value={counts.completed} color="text-white/80" />
-              <QuickStat label="Plan"      value={counts.plan}      color="text-white/80" />
-              <QuickStat label="Dropped"   value={counts.dropped}   color="text-red-400" />
+              <QuickStat label={t("profile.stats.watching")}  value={counts.watching}  color="text-white/80" />
+              <QuickStat label={t("profile.stats.completed")} value={counts.completed} color="text-white/80" />
+              <QuickStat label={t("profile.stats.planToWatch")}      value={counts.plan}      color="text-white/80" />
+              <QuickStat label={t("profile.stats.dropped")}   value={counts.dropped}   color="text-red-400" />
             </div>
 
             {/* Level card */}
@@ -545,20 +588,20 @@ function ProfilePage() {
           )}
 
           <section id="watchlist">
-            <SectionLabel icon={<List className="w-4 h-4" />} title="Watchlist" />
+            <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.watchlist")} />
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="flex flex-wrap gap-1.5 h-auto bg-transparent p-0 mb-6 border-b border-white/10 pb-3">
-                {STATUS_TABS.map((t) => {
-                  const count = counts[t.key as keyof typeof counts];
-                  const Icon = t.icon;
+                {getStatusTabs(t).map((tab) => {
+                  const count = counts[tab.key as keyof typeof counts];
+                  const Icon = tab.icon;
                   return (
                     <TabsTrigger
-                      key={t.value}
-                      value={t.value}
+                      key={tab.value}
+                      value={tab.value}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white/90 data-[state=active]:border-white/20 hover:text-white/60 transition-all bg-transparent"
                     >
                       <Icon className="w-3.5 h-3.5" />
-                      {t.label}
+                      {tab.label}
                       <span
                         className={cn(
                           "ml-0.5 px-1.5 py-px rounded-full text-[10px] font-bold leading-none tabular-nums",
@@ -574,10 +617,10 @@ function ProfilePage() {
                 })}
               </TabsList>
 
-              {STATUS_TABS.map((t) => (
-                <TabsContent key={t.value} value={t.value}>
+              {getStatusTabs(t).map((tab) => (
+                <TabsContent key={tab.value} value={tab.value}>
                   <AnimeLists
-                    status={t.value}
+                    status={tab.value}
                     username={profile.username}
                     isOwn={isOwn}
                   />
@@ -587,15 +630,15 @@ function ProfilePage() {
           </section>
 
           <section>
-            <SectionLabel icon={<Activity className="w-4 h-4" />} title="Watch Activity" />
-            <div className="rounded-xl border border-white/10 bg-white/3 p-5">
+            <SectionLabel icon={<Activity className="w-4 h-4" />} title={t("profile.watchActivity")} />
+            <div className="site-panel p-5">
               <AnimeHeatmap username={profile.username} />
             </div>
           </section>
 
           <section>
-            <SectionLabel icon={<MessageSquare className="w-4 h-4" />} title="Comments" />
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2">
+            <SectionLabel icon={<MessageSquare className="w-4 h-4" />} title={t("profile.comments")} />
+            <div className="site-panel px-4 py-2">
               <UserComments username={profile.username} />
             </div>
           </section>
