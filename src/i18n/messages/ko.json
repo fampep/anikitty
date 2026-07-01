@@ -44,6 +44,13 @@
     "version": "v{version}",
     "betaVersionAria": "AniKitty 베타, 버전 {version}"
   },
+  "banner": {
+    "adsPromoGuestTitle": "로그인하면 클릭 광고를 끌 수 있어요",
+    "adsPromoGuestBody": "계정을 만들거나 로그인한 뒤 설정에서 광고를 끄세요.",
+    "adsPromoSignedInTitle": "클릭 광고를 끌 수 있어요",
+    "adsPromoSignedInBody": "설정에서 언제든 가벼운 클릭 광고를 끌 수 있습니다.",
+    "adsPromoCta": "설정 열기"
+  },
   "footer": {
     "tagline": "무료 애니 스트리밍. 광고 없음. 제한 없음.",
     "online": "{count}명 접속 중",
@@ -124,7 +131,14 @@
     "sharedGif": "GIF를 공유함",
     "browseByGenre": "장르별 탐색",
     "allGenres": "모든 장르 →",
-    "inMinutes": "{m}분 후"
+    "inMinutes": "{m}분 후",
+    "weeklySchedule": "방영 일정",
+    "donationGoalTitle": "AniKitty 운영을 도와주세요",
+    "donationGoalBody": "Ko-fi 후원은 서버와 스트리밍 비용에 도움이 됩니다. 사이트는 계속 무료입니다.",
+    "donationGoalProgress": "월간 지원 목표",
+    "donationGoalAmount": "€{raised} / €{goal}",
+    "donationGoalCta": "Ko-fi에서 후원",
+    "donationGoalLearn": "자세히 보기"
   },
   "search": {
     "title": "검색",
@@ -314,6 +328,21 @@
     "layoutThumbnailDesc": "에피소드 이미지가 있는 포스터 스타일 카드",
     "playback": "재생",
     "playbackDesc": "애니 시청 시 기본 동작",
+    "ads": {
+      "title": "광고",
+      "desc": "가벼운 클릭 광고는 서버 비용에 도움이 됩니다",
+      "showAds": "클릭 광고 표시",
+      "showAdsDesc": "계정에 동기화되어 모든 기기에 적용",
+      "signInHint": "로그인하면 계정의 클릭 광고를 끌 수 있습니다.",
+      "saveFailed": "광고 설정을 저장하지 못했습니다. 다시 시도하세요.",
+      "donationHint": "AniKitty가 마음에 드시나요?",
+      "donationLink": "Ko-fi에서 후원",
+      "disableTitle": "광고를 끌까요?",
+      "disableBody": "AniKitty의 클릭 광고는 가볍고 호스팅, 스트리밍, 데이터베이스 비용을 충당해 사이트를 무료로 유지하는 데 도움이 됩니다.",
+      "disableWarning": "광고를 끄면 AniKitty 운영 지원이 줄어듭니다. 가능하다면 Ko-fi 후원을 고려해 주세요.",
+      "keepAds": "광고 유지",
+      "disableConfirm": "그래도 끄기"
+    },
     "preferDub": "더빙 우선",
     "preferDubDesc": "가능하면 영어 더빙을 기본으로 사용",
     "autoPlay": "다음 에피소드 자동 재생",
@@ -849,6 +878,10 @@
     "retryWith": "{provider}(으)로 다시 시도",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "anisnatchServer": "AniSnatch 서버",
+    "lunarServer": "Lunar 서버",
+    "allAnimeMirror": "AllAnime 미러",
+    "mkissaMirror": "MKissa 미러",
     "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "스트림 소스",

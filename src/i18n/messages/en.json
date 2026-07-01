@@ -44,6 +44,13 @@
     "version": "v{version}",
     "betaVersionAria": "AniKitty beta, version {version}"
   },
+  "banner": {
+    "adsPromoGuestTitle": "Signed in? You can disable click ads",
+    "adsPromoGuestBody": "Create an account or log in, then turn ads off in Settings.",
+    "adsPromoSignedInTitle": "You can disable click ads",
+    "adsPromoSignedInBody": "Turn off lightweight click ads anytime in Settings.",
+    "adsPromoCta": "Open Settings"
+  },
   "footer": {
     "tagline": "Free anime streaming. No ads. No limits.",
     "online": "{count} online",
@@ -124,7 +131,14 @@
     "sharedGif": "shared a GIF",
     "browseByGenre": "Browse by genre",
     "allGenres": "All genres →",
-    "inMinutes": "in {m}m"
+    "inMinutes": "in {m}m",
+    "weeklySchedule": "Release Schedule",
+    "donationGoalTitle": "Help keep AniKitty online",
+    "donationGoalBody": "Optional Ko-fi tips help pay for servers and streaming. Every bit helps — the site stays free either way.",
+    "donationGoalProgress": "Monthly support goal",
+    "donationGoalAmount": "€{raised} / €{goal}",
+    "donationGoalCta": "Donate on Ko-fi",
+    "donationGoalLearn": "Learn more"
   },
   "search": {
     "title": "Search",
@@ -318,8 +332,9 @@
       "title": "Ads",
       "desc": "Lightweight click ads help pay for servers",
       "showAds": "Show click ads",
-      "showAdsDesc": "Disable only for your account on this device",
+      "showAdsDesc": "Synced to your account on every device",
       "signInHint": "Sign in to turn click ads off for your account.",
+      "saveFailed": "Could not save your ad preference. Try again.",
       "donationHint": "Love AniKitty?",
       "donationLink": "Donate on Ko-fi",
       "disableTitle": "Turn off ads?",

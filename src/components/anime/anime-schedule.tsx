@@ -7,34 +7,28 @@ import { useGetAnimeSchedule } from "@/query/anime/get-anime-schedule";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { CalendarDays } from "lucide-react";
+import {
+  formatScheduleQueryDate,
+  getCurrentScheduleDay,
+  getDateForWeekday,
+  SCHEDULE_DAYS,
+} from "@/lib/anime/schedule-days";
 import { cn } from "@/lib/core/utils";
 import { useI18n, useT } from "@/providers/i18n-provider";
-
-const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
-function getDateForWeekday(targetDay: string, referenceDate: Date) {
-  const currentDayIndex = referenceDate.getDay();
-  const targetIndex = DAYS.indexOf(targetDay);
-  const diff = targetIndex - currentDayIndex;
-  const date = new Date(referenceDate);
-  date.setDate(referenceDate.getDate() + diff);
-  return date;
-}
 
 function AnimeSchedule() {
   const t = useT();
   const { locale } = useI18n();
   const currentDate = new Date();
-  const currentDay = currentDate.toLocaleString(locale, { weekday: "long" }).toLowerCase();
+  const currentDay = getCurrentScheduleDay(locale, currentDate);
 
   const [currentSelectedTab, setCurrentSelectedTab] = React.useState<string>(currentDay);
 
   const selectedDate = useMemo(() => {
-    const date = getDateForWeekday(currentSelectedTab, currentDate);
-    date.setDate(date.getDate() + 1);
-    return date.toLocaleDateString(locale);
+    const date = getDateForWeekday(currentSelectedTab as (typeof SCHEDULE_DAYS)[number], currentDate);
+    return formatScheduleQueryDate(date, locale);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSelectedTab]);
+  }, [currentSelectedTab, locale]);
 
   const { isLoading, data } = useGetAnimeSchedule(selectedDate);
 
@@ -57,7 +51,7 @@ function AnimeSchedule() {
       >
         {/* Day tabs */}
         <TabsList className="flex gap-0 w-full bg-transparent border-b border-white/10 h-auto p-0 overflow-x-auto">
-          {DAYS.map((day) => {
+          {SCHEDULE_DAYS.map((day) => {
             const d = getDateForWeekday(day, currentDate);
             const isToday = day === currentDay;
             return (
@@ -87,7 +81,7 @@ function AnimeSchedule() {
         {isLoading ? (
           <ScheduleSkeleton />
         ) : (
-          DAYS.map((day) => (
+          SCHEDULE_DAYS.map((day) => (
             <TabsContent key={day} value={day} className="mt-0">
               {day === currentSelectedTab && (
                 <div className="flex flex-col divide-y divide-white/5">

@@ -44,6 +44,13 @@
     "version": "v{version}",
     "betaVersionAria": "AniKitty beta, version {version}"
   },
+  "banner": {
+    "adsPromoGuestTitle": "Logget ind? Du kan slå klik-annoncer fra",
+    "adsPromoGuestBody": "Opret en konto eller log ind, og slå annoncer fra under Indstillinger.",
+    "adsPromoSignedInTitle": "Du kan slå klik-annoncer fra",
+    "adsPromoSignedInBody": "Slå lette klik-annoncer fra når som helst under Indstillinger.",
+    "adsPromoCta": "Åbn Indstillinger"
+  },
   "footer": {
     "tagline": "Gratis anime-streaming. Ingen reklamer. Ingen grænser.",
     "online": "{count} online",
@@ -124,7 +131,14 @@
     "sharedGif": "delte en GIF",
     "browseByGenre": "Gennemse efter genre",
     "allGenres": "Alle genrer →",
-    "inMinutes": "om {m} min."
+    "inMinutes": "om {m} min.",
+    "weeklySchedule": "Udsendelsesplan",
+    "donationGoalTitle": "Hjælp med at holde AniKitty online",
+    "donationGoalBody": "Valgfrie Ko-fi-donationer hjælper med at betale for servere og streaming. Hver bidrag tæller — siden forbliver gratis.",
+    "donationGoalProgress": "Månedligt støttemål",
+    "donationGoalAmount": "€{raised} / €{goal}",
+    "donationGoalCta": "Donér på Ko-fi",
+    "donationGoalLearn": "Læs mere"
   },
   "search": {
     "title": "Søg",
@@ -314,6 +328,21 @@
     "layoutThumbnailDesc": "Plakatkort med afsnitsbilleder",
     "playback": "Afspilning",
     "playbackDesc": "Standardadfærd når du ser anime",
+    "ads": {
+      "title": "Annoncer",
+      "desc": "Lette klik-annoncer hjælper med at betale for servere",
+      "showAds": "Vis klik-annoncer",
+      "showAdsDesc": "Synkroniseret med din konto på alle enheder",
+      "signInHint": "Log ind for at slå klik-annoncer fra for din konto.",
+      "saveFailed": "Kunne ikke gemme din annonceindstilling. Prøv igen.",
+      "donationHint": "Kan du lide AniKitty?",
+      "donationLink": "Donér på Ko-fi",
+      "disableTitle": "Slå annoncer fra?",
+      "disableBody": "Klik-annoncer på AniKitty er lette og hjælper med at dække hosting, streaming og databaseomkostninger, så siden forbliver gratis for alle.",
+      "disableWarning": "At slå annoncer fra betyder mindre støtte til at holde AniKitty online. Hvis du kan, overvej at donere på Ko-fi.",
+      "keepAds": "Behold annoncer",
+      "disableConfirm": "Slå fra alligevel"
+    },
     "preferDub": "Foretræk dub",
     "preferDubDesc": "Brug engelsk dub som standard, når tilgængelig",
     "autoPlay": "Afspil næste afsnit automatisk",
@@ -849,6 +878,10 @@
     "retryWith": "Prøv igen med {provider}",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "anisnatchServer": "AniSnatch-server",
+    "lunarServer": "Lunar-server",
+    "allAnimeMirror": "AllAnime-spejl",
+    "mkissaMirror": "MKissa-spejl",
     "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "Streamkilde",

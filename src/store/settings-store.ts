@@ -79,7 +79,13 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 8,
+      version: 9,
+      partialize: (state) => ({
+        episodeLayout: state.episodeLayout,
+        preferDub: state.preferDub,
+        autoPlay: state.autoPlay,
+        subtitleSettings: state.subtitleSettings,
+      }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
           subtitleSettings?: SubtitleSettings & { timeOffsetSec?: number };
@@ -108,6 +114,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 8 && next.showAds === undefined) {
           next.showAds = true;
         }
+        if (version < 9) {
+          delete (next as Record<string, unknown>).showAds;
+        }
+        next.showAds = next.showAds ?? true;
         return next as ISettingsStore;
       },
     },

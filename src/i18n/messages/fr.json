@@ -44,6 +44,13 @@
     "version": "v{version}",
     "betaVersionAria": "AniKitty bêta, version {version}"
   },
+  "banner": {
+    "adsPromoGuestTitle": "Connecté ? Vous pouvez désactiver les pubs au clic",
+    "adsPromoGuestBody": "Créez un compte ou connectez-vous, puis désactivez les pubs dans les Paramètres.",
+    "adsPromoSignedInTitle": "Vous pouvez désactiver les pubs au clic",
+    "adsPromoSignedInBody": "Désactivez les pubs légères au clic à tout moment dans les Paramètres.",
+    "adsPromoCta": "Ouvrir les Paramètres"
+  },
   "footer": {
     "tagline": "Anime en streaming gratuit. Sans pub. Sans limites.",
     "online": "{count} en ligne",
@@ -124,7 +131,14 @@
     "sharedGif": "a partagé un GIF",
     "browseByGenre": "Parcourir par genre",
     "allGenres": "Tous les genres →",
-    "inMinutes": "dans {m} min"
+    "inMinutes": "dans {m} min",
+    "weeklySchedule": "Calendrier des sorties",
+    "donationGoalTitle": "Aidez à garder AniKitty en ligne",
+    "donationGoalBody": "Les pourboires Ko-fi optionnels aident à payer les serveurs et le streaming. Chaque geste compte — le site reste gratuit.",
+    "donationGoalProgress": "Objectif de soutien mensuel",
+    "donationGoalAmount": "€{raised} / €{goal}",
+    "donationGoalCta": "Faire un don sur Ko-fi",
+    "donationGoalLearn": "En savoir plus"
   },
   "search": {
     "title": "Recherche",
@@ -314,6 +328,21 @@
     "layoutThumbnailDesc": "Cartes style affiche montrant l'illustration de l'épisode",
     "playback": "Lecture",
     "playbackDesc": "Comportement par défaut lors du visionnage d'anime",
+    "ads": {
+      "title": "Publicités",
+      "desc": "Les pubs légères au clic aident à financer les serveurs",
+      "showAds": "Afficher les pubs au clic",
+      "showAdsDesc": "Synchronisé avec votre compte sur tous les appareils",
+      "signInHint": "Connectez-vous pour désactiver les pubs au clic pour votre compte.",
+      "saveFailed": "Impossible d'enregistrer votre préférence publicitaire. Réessayez.",
+      "donationHint": "Vous aimez AniKitty ?",
+      "donationLink": "Faire un don sur Ko-fi",
+      "disableTitle": "Désactiver les pubs ?",
+      "disableBody": "Les pubs au clic sur AniKitty sont légères et aident à couvrir l'hébergement, le streaming et les coûts de base de données pour que le site reste gratuit pour tous.",
+      "disableWarning": "Désactiver les pubs signifie moins de soutien pour maintenir AniKitty en ligne. Si vous le pouvez, pensez à faire un don sur Ko-fi.",
+      "keepAds": "Garder les pubs",
+      "disableConfirm": "Désactiver quand même"
+    },
     "preferDub": "Préférer la VF",
     "preferDubDesc": "Utiliser la version française par défaut lorsqu'elle est disponible",
     "autoPlay": "Lecture automatique de l'épisode suivant",
@@ -808,6 +837,10 @@
     },
     "miruroPipe": "Miruro",
     "animexServer": "Serveur Animex",
+    "anisnatchServer": "Serveur AniSnatch",
+    "lunarServer": "Serveur Lunar",
+    "allAnimeMirror": "Miroir AllAnime",
+    "mkissaMirror": "Miroir MKissa",
     "animoServer": "Serveur Animo",
     "multi": "MULTI",
     "providerSelect": "Source du flux",

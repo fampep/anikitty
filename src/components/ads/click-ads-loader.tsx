@@ -4,43 +4,41 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
-import { CLICK_AD_SCRIPT_SRC, isProfilePath, isWatchPath } from "@/lib/ads/click-ads-config";
-
-const SCRIPT_ID = "anikitty-click-ads";
+import { usePermissions } from "@/hooks/use-permissions";
+import {
+  isProfilePath,
+  isWatchPath,
+} from "@/lib/ads/click-ads-config";
+import { loadClickAds, unloadClickAds } from "@/lib/ads/show-ads-preference";
 
 export default function ClickAdsLoader() {
   const pathname = usePathname();
-  const { auth } = useAuthStore();
+  const auth = useAuthStore((s) => s.auth);
+  const authHydrated = useAuthStore.persist.hasHydrated();
+  const settingsHydrated = useSettingsStore.persist.hasHydrated();
   const showAds = useSettingsStore((s) => s.showAds);
-  const loadedRef = useRef(false);
+  const { adFree } = usePermissions();
+  const wasRunningRef = useRef(false);
 
   const shouldRun =
+    authHydrated &&
+    settingsHydrated &&
     !isProfilePath(pathname ?? "") &&
     !isWatchPath(pathname ?? "") &&
+    !adFree &&
     (auth ? showAds : true);
 
   useEffect(() => {
-    if (!shouldRun) return;
-    if (loadedRef.current) return;
-    if (typeof window === "undefined") return;
-
-    loadedRef.current = true;
-
-    if (!document.getElementById(SCRIPT_ID)) {
-      const script = document.createElement("script");
-      script.id = SCRIPT_ID;
-      script.src = CLICK_AD_SCRIPT_SRC;
-      script.async = true;
-      script.type = "text/javascript";
-      script.referrerPolicy = "no-referrer-when-downgrade";
-      document.body.insertBefore(script, document.body.firstChild);
+    if (shouldRun) {
+      loadClickAds();
+      wasRunningRef.current = true;
+      return;
     }
-  }, [shouldRun]);
 
-  useEffect(() => {
-    if (shouldRun) return;
-    loadedRef.current = false;
-    document.getElementById(SCRIPT_ID)?.remove();
+    if (wasRunningRef.current) {
+      unloadClickAds();
+      wasRunningRef.current = false;
+    }
   }, [shouldRun]);
 
   return null;

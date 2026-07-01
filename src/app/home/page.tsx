@@ -3,7 +3,8 @@
 import ContinueWatching from "@/components/home/continue-watching";
 import FeaturedCollection from "@/components/home/featured-collection";
 import HomeGenreBar from "@/components/home/home-genre-bar";
-import HomeScheduleStrip from "@/components/home/home-schedule-strip";
+import HomeDonationGoal from "@/components/home/home-donation-goal";
+import HomeWeeklySchedule from "@/components/home/home-weekly-schedule";
 import HomeWelcomeBar from "@/components/home/home-welcome-bar";
 import { useGetHomePageData } from "@/query/home/get-home-page-data";
 import { IAnime, LatestCompletedAnime, SpotlightAnime } from "@/types/anime";
@@ -91,7 +92,8 @@ export default function Home() {
 
       <LazyMount minHeight={120}>
         <HomeWelcomeBar />
-        <HomeScheduleStrip />
+        <HomeDonationGoal />
+        <HomeWeeklySchedule />
         <HomeGenreBar />
       </LazyMount>
 

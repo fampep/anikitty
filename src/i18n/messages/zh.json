@@ -44,6 +44,13 @@
     "version": "v{version}",
     "betaVersionAria": "AniKitty 测试版，版本 {version}"
   },
+  "banner": {
+    "adsPromoGuestTitle": "已登录？可在设置中关闭点击广告",
+    "adsPromoGuestBody": "创建账户或登录后，在设置中关闭广告。",
+    "adsPromoSignedInTitle": "可在设置中关闭点击广告",
+    "adsPromoSignedInBody": "随时在设置中关闭轻量点击广告。",
+    "adsPromoCta": "打开设置"
+  },
   "footer": {
     "tagline": "免费动漫流媒体。无广告。无限制。",
     "online": "{count} 人在线",
@@ -124,7 +131,14 @@
     "sharedGif": "分享了一张 GIF",
     "browseByGenre": "按类型浏览",
     "allGenres": "全部类型 →",
-    "inMinutes": "{m} 分钟后"
+    "inMinutes": "{m} 分钟后",
+    "weeklySchedule": "播出日程",
+    "donationGoalTitle": "帮助维持 AniKitty 运营",
+    "donationGoalBody": "Ko-fi 上的自愿打赏有助于支付服务器和流媒体费用。网站仍然免费。",
+    "donationGoalProgress": "月度支持目标",
+    "donationGoalAmount": "€{raised} / €{goal}",
+    "donationGoalCta": "在 Ko-fi 捐赠",
+    "donationGoalLearn": "了解更多"
   },
   "search": {
     "title": "搜索",
@@ -314,6 +328,21 @@
     "layoutThumbnailDesc": "显示剧集画面的海报式卡片",
     "playback": "播放",
     "playbackDesc": "观看动漫时的默认行为",
+    "ads": {
+      "title": "广告",
+      "desc": "轻量点击广告有助于支付服务器费用",
+      "showAds": "显示点击广告",
+      "showAdsDesc": "与账户同步，适用于所有设备",
+      "signInHint": "登录后可为账户关闭点击广告。",
+      "saveFailed": "无法保存广告偏好，请重试。",
+      "donationHint": "喜欢 AniKitty？",
+      "donationLink": "在 Ko-fi 捐赠",
+      "disableTitle": "关闭广告？",
+      "disableBody": "AniKitty 上的点击广告很轻量，有助于支付托管、流媒体与数据库费用，让网站对所有人保持免费。",
+      "disableWarning": "关闭广告意味着对维持 AniKitty 在线的支持减少。如可以，请考虑在 Ko-fi 捐赠。",
+      "keepAds": "保留广告",
+      "disableConfirm": "仍然关闭"
+    },
     "preferDub": "优先配音",
     "preferDubDesc": "有英文配音时默认使用配音",
     "autoPlay": "自动播放下一集",
@@ -849,6 +878,10 @@
     "retryWith": "使用 {provider} 重试",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "anisnatchServer": "AniSnatch 服务器",
+    "lunarServer": "Lunar 服务器",
+    "allAnimeMirror": "AllAnime 镜像",
+    "mkissaMirror": "MKissa 镜像",
     "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "流媒体来源",

@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
+import { anisurgeAuth } from "@/lib/oauth/anisurge";
 import { ROUTES } from "@/constants/routes";
 
 function ToggleRow({
@@ -102,14 +104,28 @@ export default function AdsSettingsSection() {
   const showAds = useSettingsStore((s) => s.showAds);
   const setShowAds = useSettingsStore((s) => s.setShowAds);
   const [disableOpen, setDisableOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const persistShowAds = async (next: boolean) => {
+    if (!auth) return;
+    setSaving(true);
+    try {
+      const res = await anisurgeAuth.updateShowAds(next);
+      setShowAds(res.showAds);
+    } catch {
+      toast.error(t("settings.ads.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleToggle = (next: boolean) => {
-    if (!auth) return;
+    if (!auth || saving) return;
     if (!next && showAds) {
       setDisableOpen(true);
       return;
     }
-    setShowAds(next);
+    void persistShowAds(next);
   };
 
   return (
@@ -129,6 +145,7 @@ export default function AdsSettingsSection() {
                 description={t("settings.ads.showAdsDesc")}
                 value={showAds}
                 onChange={handleToggle}
+                disabled={saving}
               />
               <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
                 {t("settings.ads.donationHint")}{" "}
@@ -154,7 +171,7 @@ export default function AdsSettingsSection() {
       <DisableAdsDialog
         open={disableOpen}
         onOpenChange={setDisableOpen}
-        onConfirm={() => setShowAds(false)}
+        onConfirm={() => void persistShowAds(false)}
       />
     </>
   );

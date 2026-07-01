@@ -44,6 +44,13 @@
     "version": "v{version}",
     "betaVersionAria": "AniKitty Beta, Version {version}"
   },
+  "banner": {
+    "adsPromoGuestTitle": "Angemeldet? Du kannst Klick-Werbung deaktivieren",
+    "adsPromoGuestBody": "Erstelle ein Konto oder melde dich an, dann schalte Werbung in den Einstellungen aus.",
+    "adsPromoSignedInTitle": "Du kannst Klick-Werbung deaktivieren",
+    "adsPromoSignedInBody": "Schalte leichte Klick-Werbung jederzeit in den Einstellungen aus.",
+    "adsPromoCta": "Einstellungen öffnen"
+  },
   "footer": {
     "tagline": "Kostenloses Anime-Streaming. Keine Werbung. Keine Limits.",
     "online": "{count} online",
@@ -124,7 +131,14 @@
     "sharedGif": "hat ein GIF geteilt",
     "browseByGenre": "Nach Genre entdecken",
     "allGenres": "Alle Genres →",
-    "inMinutes": "in {m} Min."
+    "inMinutes": "in {m} Min.",
+    "weeklySchedule": "Sendeplan",
+    "donationGoalTitle": "Hilf mit, AniKitty online zu halten",
+    "donationGoalBody": "Optionale Ko-fi-Tips helfen bei Server- und Streaming-Kosten. Jedes bisschen hilft — die Seite bleibt kostenlos.",
+    "donationGoalProgress": "Monatliches Unterstützungsziel",
+    "donationGoalAmount": "€{raised} / €{goal}",
+    "donationGoalCta": "Auf Ko-fi spenden",
+    "donationGoalLearn": "Mehr erfahren"
   },
   "search": {
     "title": "Suche",
@@ -314,6 +328,21 @@
     "layoutThumbnailDesc": "Poster-Karten mit Episodenbildern",
     "playback": "Wiedergabe",
     "playbackDesc": "Standardverhalten beim Anime-Schauen",
+    "ads": {
+      "title": "Werbung",
+      "desc": "Leichte Klick-Werbung hilft, die Server zu finanzieren",
+      "showAds": "Klick-Werbung anzeigen",
+      "showAdsDesc": "Mit deinem Konto auf allen Geräten synchronisiert",
+      "signInHint": "Melde dich an, um Klick-Werbung für dein Konto auszuschalten.",
+      "saveFailed": "Werbeeinstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "donationHint": "Magst du AniKitty?",
+      "donationLink": "Auf Ko-fi spenden",
+      "disableTitle": "Werbung ausschalten?",
+      "disableBody": "Klick-Werbung auf AniKitty ist leichtgewichtig und hilft, Hosting-, Streaming- und Datenbankkosten zu decken, damit die Seite für alle kostenlos bleibt.",
+      "disableWarning": "Werbung auszuschalten bedeutet weniger Unterstützung für AniKitty. Wenn du kannst, spende auf Ko-fi.",
+      "keepAds": "Werbung behalten",
+      "disableConfirm": "Trotzdem ausschalten"
+    },
     "preferDub": "Dub bevorzugen",
     "preferDubDesc": "Standardmäßig englische Synchronisation, wenn verfügbar",
     "autoPlay": "Nächste Folge automatisch abspielen",
@@ -849,6 +878,10 @@
     "retryWith": "Erneut mit {provider}",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "anisnatchServer": "AniSnatch-Server",
+    "lunarServer": "Lunar-Server",
+    "allAnimeMirror": "AllAnime-Spiegel",
+    "mkissaMirror": "MKissa-Spiegel",
     "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "Stream-Quelle",

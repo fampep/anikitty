@@ -10,9 +10,11 @@ const getAnimeSchedule = async (date: string) => {
   return res.data.data as IAnimeSchedule;
 };
 
-export const useGetAnimeSchedule = (date: string) => {
+export const useGetAnimeSchedule = (date: string, enabled = true) => {
   return useQuery({
     queryFn: () => getAnimeSchedule(date),
     queryKey: [GET_ANIME_SCHEDULE, date],
+    enabled: enabled && !!date,
+    staleTime: 5 * 60 * 1000,
   });
 };

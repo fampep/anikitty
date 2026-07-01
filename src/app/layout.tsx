@@ -15,6 +15,7 @@ import { PublicEnvScript } from "next-runtime-env";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import UserThemeSync from "@/components/layout/user-theme-sync";
 import ClickAdsLoader from "@/components/ads/click-ads-loader";
+import ShowAdsSync from "@/components/ads/show-ads-sync";
 import PwaRegister from "@/components/pwa/pwa-register";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -123,6 +124,7 @@ export default async function RootLayout({
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
         <ClickAdsLoader />
+        <ShowAdsSync />
         <PwaRegister />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider

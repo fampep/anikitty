@@ -44,6 +44,13 @@
     "version": "v{version}",
     "betaVersionAria": "AniKitty ベータ版、バージョン {version}"
   },
+  "banner": {
+    "adsPromoGuestTitle": "ログインするとクリック広告を無効にできます",
+    "adsPromoGuestBody": "アカウントを作成するかログインし、設定で広告をオフにできます。",
+    "adsPromoSignedInTitle": "クリック広告を無効にできます",
+    "adsPromoSignedInBody": "設定からいつでも軽量なクリック広告をオフにできます。",
+    "adsPromoCta": "設定を開く"
+  },
   "footer": {
     "tagline": "無料アニメストリーミング。広告なし。制限なし。",
     "online": "{count}人オンライン",
@@ -124,7 +131,14 @@
     "sharedGif": "GIFを共有しました",
     "browseByGenre": "ジャンルで探す",
     "allGenres": "すべてのジャンル →",
-    "inMinutes": "あと{m}分"
+    "inMinutes": "あと{m}分",
+    "weeklySchedule": "放送スケジュール",
+    "donationGoalTitle": "AniKittyの運営を支援",
+    "donationGoalBody": "Ko-fiでの任意の支援はサーバーとストリーミングの費用に役立ちます。サイトは引き続き無料です。",
+    "donationGoalProgress": "月間支援目標",
+    "donationGoalAmount": "€{raised} / €{goal}",
+    "donationGoalCta": "Ko-fiで寄付",
+    "donationGoalLearn": "詳しく見る"
   },
   "search": {
     "title": "検索",
@@ -314,6 +328,21 @@
     "layoutThumbnailDesc": "エピソード画像付きのポスタースタイルカード",
     "playback": "再生",
     "playbackDesc": "アニメ視聴時のデフォルト動作",
+    "ads": {
+      "title": "広告",
+      "desc": "軽量なクリック広告はサーバー維持の助けになります",
+      "showAds": "クリック広告を表示",
+      "showAdsDesc": "アカウントで全デバイスに同期",
+      "signInHint": "ログインすると、アカウントのクリック広告をオフにできます。",
+      "saveFailed": "広告設定を保存できませんでした。もう一度お試しください。",
+      "donationHint": "AniKittyを気に入りましたか？",
+      "donationLink": "Ko-fiで寄付",
+      "disableTitle": "広告をオフにしますか？",
+      "disableBody": "AniKittyのクリック広告は軽量で、ホスティング・ストリーミング・データベースの費用を賄い、サイトを無料で維持するのに役立ちます。",
+      "disableWarning": "広告をオフにすると、AniKittyの運営支援が減ります。可能であればKo-fiでの寄付をご検討ください。",
+      "keepAds": "広告をオンにする",
+      "disableConfirm": "それでもオフにする"
+    },
     "preferDub": "吹替を優先",
     "preferDubDesc": "利用可能な場合は英語吹替をデフォルトに",
     "autoPlay": "次のエピソードを自動再生",
@@ -849,6 +878,10 @@
     "retryWith": "{provider}で再試行",
     "miruroPipe": "Miruro",
     "animexServer": "Animex server",
+    "anisnatchServer": "AniSnatchサーバー",
+    "lunarServer": "Lunarサーバー",
+    "allAnimeMirror": "AllAnimeミラー",
+    "mkissaMirror": "MKissaミラー",
     "animoServer": "Animo server",
     "multi": "MULTI",
     "providerSelect": "配信ソース",

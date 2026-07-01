@@ -22,6 +22,8 @@ export const users = pgTable("users", {
   themeColor: varchar("theme_color", { length: 7 }),
   role: varchar("role", { length: 20 }).notNull().default("user"),
   supporterUntil: timestamp("supporter_until"),
+  /** Click ads preference — synced across devices when signed in. */
+  showAds: boolean("show_ads").notNull().default(true),
   anisurgeToken: text("anisurge_token"),
   anisurgeUsername: varchar("anisurge_username", { length: 100 }),
   anilistAccessToken: text("anilist_access_token"),

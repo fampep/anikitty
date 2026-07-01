@@ -11,6 +11,11 @@ export const KOFI_DONATION_UNIT_DAYS = 14;
 /** Smallest Ko-fi tip we accept for auto-claim. */
 export const MIN_DONATION_EUR = 0.01;
 
+/** Monthly server-cost goal shown on the home page (EUR). */
+export const MONTHLY_DONATION_GOAL_EUR = Number(
+  process.env.MONTHLY_DONATION_GOAL_EUR ?? "100",
+) || 100;
+
 export const DONATOR_ROLE = "donator";
 
 /** Site owner — manual fallback for donation issues. */
