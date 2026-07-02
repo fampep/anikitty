@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useQuery } from "react-query";
 import { api } from "@/lib/core/api";
 import type { AnimexServerId } from "@/lib/providers/animex-api";
@@ -77,10 +78,45 @@ const getKittyStream = async (
 
 export const KITTY_STREAM_QUERY_KEY = "kitty-stream";
 
-export function cancelKittyStreamQueries(
-  queryClient: { cancelQueries: (queryKey: string[]) => Promise<unknown> },
+export function buildKittyStreamQueryKey(
+  anilistId: number | undefined,
+  episode: string | undefined,
+  audio: "sub" | "dub",
+  provider: KittyProvider,
+  miruroPipe?: MiruroPipeProviderId | null,
+  title?: string | null,
+  animexServer?: AnimexServerId | null,
+  anisnatchServer?: AnisnatchServerId | null,
+  lunarServer?: LunarServerId | null,
+  allanimeMirror?: AllanimeMirrorId | null,
+  mkissaMirror?: AllanimeMirrorId | null,
+  animoServer?: AnimoServerId | null,
 ) {
-  return queryClient.cancelQueries([KITTY_STREAM_QUERY_KEY]);
+  return [
+    KITTY_STREAM_QUERY_KEY,
+    anilistId,
+    episode,
+    audio,
+    provider,
+    miruroPipe ?? "",
+    animexServer ?? "",
+    anisnatchServer ?? "",
+    lunarServer ?? "",
+    allanimeMirror ?? "",
+    mkissaMirror ?? "",
+    animoServer ?? "",
+    title ?? "",
+  ];
+}
+
+export function isKittyStreamAbortError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; code?: string; message?: string };
+  return (
+    err.name === "CanceledError" ||
+    err.code === "ERR_CANCELED" ||
+    err.message === "canceled"
+  );
 }
 
 export const useGetKittyStream = (
@@ -97,42 +133,52 @@ export const useGetKittyStream = (
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
 ) => {
+  const abortRef = useRef<AbortController | null>(null);
+
   return useQuery({
-    queryKey: [
-      KITTY_STREAM_QUERY_KEY,
+    queryKey: buildKittyStreamQueryKey(
       anilistId,
       episode,
       audio,
       provider,
-      miruroPipe ?? "",
-      animexServer ?? "",
-      anisnatchServer ?? "",
-      lunarServer ?? "",
-      allanimeMirror ?? "",
-      mkissaMirror ?? "",
-      animoServer ?? "",
-      title ?? "",
-    ],
-    queryFn: ({ signal }) =>
-      getKittyStream(
-        anilistId!,
-        episode!,
-        audio,
-        provider,
-        miruroPipe,
-        title,
-        animexServer,
-        anisnatchServer,
-        lunarServer,
-        allanimeMirror,
-        mkissaMirror,
-        animoServer,
-        signal,
-      ),
+      miruroPipe,
+      title,
+      animexServer,
+      anisnatchServer,
+      lunarServer,
+      allanimeMirror,
+      mkissaMirror,
+      animoServer,
+    ),
+    queryFn: async () => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      try {
+        return await getKittyStream(
+          anilistId!,
+          episode!,
+          audio,
+          provider,
+          miruroPipe,
+          title,
+          animexServer,
+          anisnatchServer,
+          lunarServer,
+          allanimeMirror,
+          mkissaMirror,
+          animoServer,
+          controller.signal,
+        );
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
+      }
+    },
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
     refetchOnWindowFocus: false,
     staleTime: 0,
     retry: false,
-    keepPreviousData: true,
   });
 };

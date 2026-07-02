@@ -75,7 +75,7 @@ export const useSettingsStore = create<ISettingsStore>()(
       theatreMode: false,
       setTheatreMode: (theatreMode) => set({ theatreMode }),
 
-      providerAutoFallback: true,
+      providerAutoFallback: false,
       setProviderAutoFallback: (providerAutoFallback) => set({ providerAutoFallback }),
 
       simpleProviderPicker: false,
@@ -107,7 +107,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 12,
+      version: 13,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -155,6 +155,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.theatreMode = next.theatreMode ?? false;
           next.providerAutoFallback = next.providerAutoFallback ?? true;
           next.simpleProviderPicker = next.simpleProviderPicker ?? false;
+        }
+        if (version < 13) {
+          next.providerAutoFallback = false;
         }
         return next as ISettingsStore;
       },

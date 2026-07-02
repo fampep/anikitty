@@ -11,7 +11,8 @@ import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
-  cancelKittyStreamQueries,
+  buildKittyStreamQueryKey,
+  isKittyStreamAbortError,
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
@@ -613,7 +614,22 @@ const VideoPlayerSection = () => {
   }, [saveProgress]);
 
   const preservePlaybackPosition = useCallback(() => {
-    void cancelKittyStreamQueries(queryClient);
+    void queryClient.cancelQueries(
+      buildKittyStreamQueryKey(
+        anilistId,
+        episodeNo || undefined,
+        audio,
+        provider,
+        provider === "Miruro" ? miruroPipe : null,
+        animeTitle,
+        provider === "Animex" ? animexServer : null,
+        provider === "AniSnatch" ? anisnatchServer : null,
+        provider === "Lunar" ? lunarServer : null,
+        provider === "AllAnime" ? allanimeMirror : null,
+        provider === "MKissa" ? mkissaMirror : null,
+        provider === "Animo" ? animoServer : null,
+      ),
+    );
     fallbackBusyRef.current = false;
     const current = liveTimeRef.current;
     const dur = liveDurationRef.current;
@@ -629,7 +645,24 @@ const VideoPlayerSection = () => {
       useProgressStore.getState().flush();
     }
     if (dur > 0) void saveProgress(current, dur);
-  }, [animeSlug, episodeId, saveProgress, queryClient]);
+  }, [
+    animeSlug,
+    episodeId,
+    saveProgress,
+    queryClient,
+    anilistId,
+    episodeNo,
+    audio,
+    provider,
+    miruroPipe,
+    animeTitle,
+    animexServer,
+    anisnatchServer,
+    lunarServer,
+    allanimeMirror,
+    mkissaMirror,
+    animoServer,
+  ]);
 
   // Credits started → mark episode as fully watched
   const handleOutroStart = useCallback((duration: number) => {
@@ -677,10 +710,19 @@ const VideoPlayerSection = () => {
     provider === "Animo" ? animoServer : null,
   );
 
-  const hasStreamFile = Boolean(streamData?.file);
-  const streamSwitching = isFetching && hasStreamFile;
   const streamQueryEnabled =
     !!anilistId && !!episodeNo && parseInt(episodeNo, 10) > 0;
+
+  const hasStreamFile = Boolean(streamData?.file);
+  const streamPending = streamQueryEnabled && (isLoading || isFetching);
+  const streamFailed =
+    streamQueryEnabled &&
+    !streamPending &&
+    !hasStreamFile &&
+    (Boolean(streamError && !isKittyStreamAbortError(streamError)) ||
+      Boolean(streamData?.error) ||
+      streamData !== undefined);
+  const streamSwitching = isFetching && hasStreamFile;
 
   const playerTracks = useMemo(
     () => streamData?.tracks ?? EMPTY_PLAYER_TRACKS,
@@ -732,8 +774,16 @@ const VideoPlayerSection = () => {
   }, [streamData?.skipTimes, aniSkipTimes]);
 
   // Change provider but resume from current position, not original start
-  const handleProviderGridSelect = (p: KittyProvider, mode: ProviderAudioMode) => {
+  const handleProviderGridSelect = (
+    p: KittyProvider,
+    mode: ProviderAudioMode,
+    fromFallback = false,
+  ) => {
     preservePlaybackPosition();
+    if (!fromFallback) {
+      triedProvidersRef.current.clear();
+      fallbackBusyRef.current = false;
+    }
     setProvider(p);
     setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
@@ -922,8 +972,9 @@ const VideoPlayerSection = () => {
 
   useEffect(() => {
     if (!providerAutoFallback || !streamQueryEnabled) return;
-    if (isLoading || isFetching || hasStreamFile) return;
-    if (!streamError) return;
+    if (streamPending || hasStreamFile) return;
+    if (!streamFailed) return;
+    if (streamError && isKittyStreamAbortError(streamError)) return;
     if (fallbackBusyRef.current) return;
 
     const tried = triedProvidersRef.current;
@@ -941,7 +992,7 @@ const VideoPlayerSection = () => {
       : audioMode === "multi"
         ? "sub"
         : audioMode;
-    handleProviderGridSelect(next, mode);
+    handleProviderGridSelect(next, mode, true);
 
     const timer = window.setTimeout(() => {
       fallbackBusyRef.current = false;
@@ -951,9 +1002,9 @@ const VideoPlayerSection = () => {
   }, [
     providerAutoFallback,
     streamQueryEnabled,
-    isLoading,
-    isFetching,
+    streamPending,
     hasStreamFile,
+    streamFailed,
     streamError,
     provider,
     audioMode,
@@ -1062,11 +1113,9 @@ const VideoPlayerSection = () => {
     );
   };
 
-  const showStreamError =
-    !isFetching && !hasStreamFile && streamQueryEnabled && (streamError || !isLoading);
+  const showStreamError = streamFailed;
 
-  const showStreamLoading =
-    streamQueryEnabled && !hasStreamFile && (isLoading || isFetching);
+  const showStreamLoading = streamQueryEnabled && !hasStreamFile && streamPending;
 
   if (showStreamError) {
     const rawMessage =
@@ -1115,9 +1164,26 @@ const VideoPlayerSection = () => {
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
   if (!streamData?.file) {
+    if (showStreamLoading) {
+      return (
+        <div className="flex flex-col gap-3">
+          <PlayerSkeleton label={t("watch.loadingStreamProvider", { provider })} />
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-3 space-y-2.5">
+            <p className="text-[11px] font-mono text-white/40 leading-relaxed">
+              {t("watch.switchProviderWhileLoading")}
+            </p>
+            {streamProviderControls}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-3">
-        <PlayerSkeleton label={t("watch.loadingStream")} />
+        <WatchErrorPanel
+          error={new Error(streamData?.error ?? t("watch.streamNotFound"))}
+          onRetry={() => void retryStream()}
+        />
         {streamProviderControls}
       </div>
     );
@@ -1125,7 +1191,10 @@ const VideoPlayerSection = () => {
 
   if (!resumeReady) {
     return (
-      <PlayerSkeleton label={t("watch.loadingStream")} />
+      <div className="flex flex-col gap-3">
+        <PlayerSkeleton label={t("watch.loadingStream")} />
+        {streamProviderControls}
+      </div>
     );
   }
 
