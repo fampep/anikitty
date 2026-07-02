@@ -332,6 +332,12 @@ button, a, [role="button"] {
   display: none !important;
 }
 
+.art-kitty-player video::cue {
+  font-size: 1.05em;
+  line-height: 1.35;
+  background-color: rgba(0, 0, 0, 0.72);
+}
+
 .kitty-overlay {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
