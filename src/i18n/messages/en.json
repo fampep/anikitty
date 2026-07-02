@@ -48,10 +48,10 @@
     "betaVersionAria": "AniKitty beta, version {version}"
   },
   "banner": {
-    "adsPromoGuestTitle": "Signed in? You can disable click ads",
+    "adsPromoGuestTitle": "Signed in? You can disable banner ads",
     "adsPromoGuestBody": "Create an account or log in, then turn ads off in Settings.",
-    "adsPromoSignedInTitle": "You can disable click ads",
-    "adsPromoSignedInBody": "Turn off lightweight click ads anytime in Settings.",
+    "adsPromoSignedInTitle": "You can disable banner ads",
+    "adsPromoSignedInBody": "Turn off banner ads anytime in Settings.",
     "adsPromoCta": "Open Settings"
   },
   "footer": {
@@ -1171,10 +1171,10 @@
       "auto": "We read recent Ko-fi donations and add ad-free time based on the amount you sent.",
       "help": "Something wrong? DM @{username} and we will sort it out manually."
     },
-    "activeSupporter": "Your supporter access is active — click ads are off for your account. Thank you!",
-    "activeSupporterUntil": "Your supporter access is active until {date} — click ads are off for your account. Thank you!",
+    "activeSupporter": "Your supporter access is active — banner ads are off for your account. Thank you!",
+    "activeSupporterUntil": "Your supporter access is active until {date} — banner ads are off for your account. Thank you!",
     "faqTitle": "Good to know",
-    "faqClickAds": "We use lightweight click ads (not video ads) on pages outside the player. They never run on profile pages or inside the video player.",
+    "faqClickAds": "We use banner ads on pages outside the player. They never run on profile pages or inside the video player.",
     "faqKoFi": "Donations go through Ko-fi (ko-fi.com/fampep). Include your AniKitty @username in the Ko-fi message when you pay.",
     "faqDonation": "After donating, DM @fampep with @yourusername or tap Activate ad-free here. Days are calculated from your amount (€1.50 → 7, €2 → 9, €3 → 14, €9 → 42). Each donation can only be claimed once; donate again to extend.",
     "faqVoluntary": "Supporting is completely optional. AniKitty stays free whether you donate or not — ads and tips help cover server costs.",
