@@ -1,5 +1,6 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
+import { ANILIST_SFW_MEDIA_FILTER, filterBlockedAnime, stripBlockedGenreSlugs } from "@/lib/anime/content-policy";
 
 const QUERY = `
   query (
@@ -16,6 +17,7 @@ const QUERY = `
       pageInfo { total currentPage lastPage hasNextPage perPage }
       media(
         type: ANIME
+        ${ANILIST_SFW_MEDIA_FILTER}
         search: $search
         format: $format
         status: $status
@@ -29,6 +31,8 @@ const QUERY = `
         episodes
         format
         status
+        isAdult
+        genres
         nextAiringEpisode { episode }
         averageScore
         seasonYear
@@ -85,7 +89,7 @@ export async function GET(request: Request) {
   const aniStatus = STATUS_MAP[status] ?? undefined;
   const aniSeason = season ? season.toUpperCase() : undefined;
   const genreList = genres
-    ? genres.split(",").map(slugToGenre).filter(Boolean)
+    ? stripBlockedGenreSlugs(genres.split(",")).map(slugToGenre).filter(Boolean)
     : undefined;
 
   const sortValue = SORT_MAP[sortParam];
@@ -108,7 +112,7 @@ export async function GET(request: Request) {
     });
 
     const pageInfo = raw.Page?.pageInfo ?? {};
-    const animes = (raw.Page?.media ?? []).map((m: any) => ({
+    const animes = filterBlockedAnime(raw.Page?.media ?? []).map((m: any) => ({
       id: String(m.id),
       name: toTitle(m.title),
       jname: m.title?.romaji ?? "",

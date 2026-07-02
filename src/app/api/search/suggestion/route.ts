@@ -1,16 +1,19 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
+import { ANILIST_SFW_MEDIA_FILTER, filterBlockedAnime } from "@/lib/anime/content-policy";
 
 const QUERY = `
   query ($search: String) {
     Page(page: 1, perPage: 10) {
-      media(type: ANIME, search: $search, sort: SEARCH_MATCH) {
+      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, search: $search, sort: SEARCH_MATCH) {
         id
         title { english romaji }
         coverImage { large }
         format
         episodes
         status
+        isAdult
+        genres
         averageScore
         seasonYear
         nextAiringEpisode { episode }
@@ -29,7 +32,7 @@ export async function GET(request: Request) {
 
   try {
     const raw = await queryAniList(QUERY, { search: q });
-    const media = raw.Page?.media ?? [];
+    const media = filterBlockedAnime(raw.Page?.media ?? []);
 
     const suggestions = media.map((m: any) => ({
       id: String(m.id),

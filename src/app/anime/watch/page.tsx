@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { queryAniList } from "@/lib/oauth/anilist";
+import { isBlockedAnime } from "@/lib/anime/content-policy";
 import { watchEpisodeDescription } from "@/lib/seo/site-seo";
 import VideoPlayerSection from "@/components/watch/video-player-section";
 
 const META_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
+      isAdult
+      format
+      genres
       title { english romaji }
       description(asHtml: false)
       coverImage { extraLarge }
@@ -37,7 +41,7 @@ export async function generateMetadata({
   try {
     const data = await queryAniList(META_QUERY, { id: numId });
     const m = data?.Media;
-    if (!m) return { title: "Watch | AniKitty" };
+    if (!m || isBlockedAnime(m)) return { title: "Not Found | AniKitty" };
 
     const animeName = m.title.english || m.title.romaji || "Anime";
     const title = epNum
