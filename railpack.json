@@ -19,7 +19,7 @@
     "SKIP_NEXT_TYPECHECK": "1"
   },
   "deploy": {
-    "startCommand": "npm start",
+    "startCommand": "node .next/standalone/server.js",
     "variables": {
       "HOSTNAME": "0.0.0.0",
       "NODE_ENV": "production",

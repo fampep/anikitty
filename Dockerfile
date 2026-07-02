@@ -10,8 +10,15 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_PROXY_URL
+ARG NEXT_PUBLIC_DONATION_RAISED_EUR
+ARG DISCORD_CLIENT_ID
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_PROXY_URL=$NEXT_PUBLIC_PROXY_URL
+ENV NEXT_PUBLIC_DONATION_RAISED_EUR=$NEXT_PUBLIC_DONATION_RAISED_EUR
+ENV DISCORD_CLIENT_ID=$DISCORD_CLIENT_ID
+ENV SKIP_NEXT_TYPECHECK=1
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -33,10 +40,9 @@ RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 3000
-CMD ["node_modules/.bin/next", "start"]
+CMD ["node", "server.js"]
