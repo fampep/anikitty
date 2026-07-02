@@ -11,6 +11,7 @@ import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
+  cancelKittyStreamQueries,
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
@@ -83,6 +84,7 @@ import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { getNextFallbackProvider } from "@/lib/kitty/provider-fallback";
 import type { Episode } from "@/types/episodes";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useQueryClient } from "react-query";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
@@ -109,6 +111,7 @@ function parseResumeTimeParam(raw: string | null): number {
 
 const VideoPlayerSection = () => {
   const t = useT();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -610,6 +613,8 @@ const VideoPlayerSection = () => {
   }, [saveProgress]);
 
   const preservePlaybackPosition = useCallback(() => {
+    void cancelKittyStreamQueries(queryClient);
+    fallbackBusyRef.current = false;
     const current = liveTimeRef.current;
     const dur = liveDurationRef.current;
     if (current <= 5) return;
@@ -624,7 +629,7 @@ const VideoPlayerSection = () => {
       useProgressStore.getState().flush();
     }
     if (dur > 0) void saveProgress(current, dur);
-  }, [animeSlug, episodeId, saveProgress]);
+  }, [animeSlug, episodeId, saveProgress, queryClient]);
 
   // Credits started → mark episode as fully watched
   const handleOutroStart = useCallback((duration: number) => {

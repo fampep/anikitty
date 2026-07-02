@@ -52,6 +52,7 @@ const getKittyStream = async (
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  signal?: AbortSignal,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -68,9 +69,19 @@ const getKittyStream = async (
       ...(provider === "MKissa" && mkissaMirror ? { mkissaMirror } : {}),
       ...(provider === "Animo" && animoServer ? { animoServer } : {}),
     },
+    signal,
+    timeout: 22_000,
   });
   return res.data;
 };
+
+export const KITTY_STREAM_QUERY_KEY = "kitty-stream";
+
+export function cancelKittyStreamQueries(
+  queryClient: { cancelQueries: (queryKey: string[]) => Promise<unknown> },
+) {
+  return queryClient.cancelQueries([KITTY_STREAM_QUERY_KEY]);
+}
 
 export const useGetKittyStream = (
   anilistId: number | undefined,
@@ -88,7 +99,7 @@ export const useGetKittyStream = (
 ) => {
   return useQuery({
     queryKey: [
-      "kitty-stream",
+      KITTY_STREAM_QUERY_KEY,
       anilistId,
       episode,
       audio,
@@ -102,7 +113,7 @@ export const useGetKittyStream = (
       animoServer ?? "",
       title ?? "",
     ],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       getKittyStream(
         anilistId!,
         episode!,
@@ -116,10 +127,11 @@ export const useGetKittyStream = (
         allanimeMirror,
         mkissaMirror,
         animoServer,
+        signal,
       ),
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: false,
     keepPreviousData: true,
   });
