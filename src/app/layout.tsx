@@ -14,7 +14,7 @@ import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import UserThemeSync from "@/components/layout/user-theme-sync";
-import BannerAdsContainer from "@/components/ads/banner-ads-container";
+import ClickAdsLoader from "@/components/ads/click-ads-loader";
 import ShowAdsSync from "@/components/ads/show-ads-sync";
 import PwaRegister from "@/components/pwa/pwa-register";
 
@@ -124,6 +124,7 @@ export default async function RootLayout({
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
         <ShowAdsSync />
+        <ClickAdsLoader />
         <PwaRegister />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider
@@ -136,7 +137,6 @@ export default async function RootLayout({
               <UserThemeSync />
               <NavBar />
               <SiteAnnouncementBanner />
-              <BannerAdsContainer />
               <div className="site-page">{children}</div>
               <Footer />
               <SiteBetaBadge />
