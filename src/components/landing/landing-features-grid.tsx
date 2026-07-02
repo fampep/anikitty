@@ -34,7 +34,7 @@ export default function LandingFeaturesGrid() {
           {FEATURES.map(({ icon: Icon, key }) => (
             <div
               key={key}
-              className="site-panel p-4 sm:p-5 flex gap-3.5 items-start"
+              className="site-panel-hover p-4 sm:p-5 flex gap-3.5 items-start"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 text-violet-300">
                 <Icon className="w-4 h-4" />

@@ -22,7 +22,11 @@ export default function LandingPosterWall({ posters, loaded }: Props) {
       <div className="grid grid-cols-3 sm:grid-cols-6 h-full gap-1 sm:gap-1.5">
         {tiles.map((src, i) =>
           src ? (
-            <div key={i} className="relative overflow-hidden rounded-md aspect-[2/3]">
+            <div
+              key={i}
+              className="relative overflow-hidden rounded-md aspect-[2/3] motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700"
+              style={loaded ? { animationDelay: `${i * 60}ms`, animationFillMode: "backwards" } : undefined}
+            >
               <Image
                 src={src}
                 alt=""
