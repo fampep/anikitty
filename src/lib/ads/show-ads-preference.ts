@@ -8,7 +8,7 @@ export function unloadClickAds(): void {
 
   document.getElementById(CLICK_AD_SCRIPT_ID)?.remove();
   document
-    .querySelectorAll('script[src*="greate.net"]')
+    .querySelectorAll('script[src*="3nbf4.com"], script[src*="greate.net"]')
     .forEach((node) => node.remove());
 }
 
