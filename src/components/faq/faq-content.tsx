@@ -12,6 +12,7 @@ import {
   Shield,
   Database,
   ExternalLink,
+  Coffee,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 
@@ -82,6 +83,16 @@ export default function FaqContent() {
         { q: t("faq.community.commentsQ"), a: t("faq.community.commentsA") },
         { q: t("faq.community.w2gQ"), a: t("faq.community.w2gA") },
         { q: t("faq.community.onlineQ"), a: t("faq.community.onlineA") },
+      ],
+    },
+    {
+      id: "support",
+      title: t("faq.sections.support"),
+      icon: <Coffee className="w-4 h-4" />,
+      items: [
+        { q: t("faq.support.adsQ"), a: t("faq.support.adsA") },
+        { q: t("faq.support.disableQ"), a: t("faq.support.disableA") },
+        { q: t("faq.support.kofiQ"), a: t("faq.support.kofiA") },
       ],
     },
     {

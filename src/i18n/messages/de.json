@@ -45,10 +45,10 @@
     "betaVersionAria": "AniKitty Beta, Version {version}"
   },
   "banner": {
-    "adsPromoGuestTitle": "Angemeldet? Du kannst Banner-Werbung deaktivieren",
-    "adsPromoGuestBody": "Erstelle ein Konto oder melde dich an, dann schalte Werbung in den Einstellungen aus.",
-    "adsPromoSignedInTitle": "Du kannst Banner-Werbung deaktivieren",
-    "adsPromoSignedInBody": "Schalte leichte Banner-Werbung jederzeit in den Einstellungen aus.",
+    "adsPromoGuestTitle": "Konto vorhanden? Klick-Werbung in den Einstellungen ausschalten",
+    "adsPromoGuestBody": "AniKitty kostet etwa 100 €/Monat. Angemeldete Nutzer können Klick-Werbung in den Einstellungen deaktivieren — ohne Spende.",
+    "adsPromoSignedInTitle": "Klick-Werbung kann in den Einstellungen ausgeschaltet werden",
+    "adsPromoSignedInBody": "AniKitty kostet etwa 100 €/Monat. Deaktiviere Klick-Werbung jederzeit unter Einstellungen → Werbung.",
     "adsPromoCta": "Einstellungen öffnen"
   },
   "footer": {
@@ -134,7 +134,7 @@
     "upcomingDesc": "Bald verfügbar",
     "trendingDesc": "Was alle gerade schauen",
     "forumDesc": "Diskutiere Anime mit der Community",
-    "donateDesc": "Serverkosten €96/Monat mittragen",
+    "donateDesc": "Optionale Ko-fi-Tips helfen bei den Betriebskosten",
     "browseAll": "Alle anzeigen",
     "browseAllDesc": "Tausende Titel durchsuchen",
     "watchNow": "Jetzt ansehen",
@@ -163,12 +163,12 @@
     "inMinutes": "in {m} Min.",
     "weeklySchedule": "Sendeplan",
     "donationGoalTitle": "Hilf mit, AniKitty online zu halten",
-    "donationGoalBody": "Optionale Ko-fi-Tips helfen bei Server- und Streaming-Kosten. Jedes bisschen hilft — die Seite bleibt kostenlos.",
+    "donationGoalBody": "AniKitty kostet etwa 100 €/Monat. Optionale Ko-fi-Tips helfen bei Server- und Streaming-Kosten — die Seite bleibt kostenlos.",
     "donationGoalProgress": "Monatliches Unterstützungsziel",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Auf Ko-fi spenden",
     "donationGoalLearn": "Mehr erfahren",
-    "donationSlim": "Optionale Ko-fi-Tips helfen bei den Serverkosten. Die Seite bleibt kostenlos.",
+    "donationSlim": "AniKitty kostet etwa 100 €/Monat. Optionale Ko-fi-Tips helfen — die Seite bleibt kostenlos.",
     "todayPanel": "Heute auf AniKitty",
     "todayPanelDesc": "Sendeplan und schnelle Genre-Auswahl",
     "discover": "Entdecken",
@@ -368,18 +368,22 @@
     "playbackDesc": "Standardverhalten beim Anime-Schauen",
     "ads": {
       "title": "Werbung",
-      "desc": "Leichte Banner-Werbung hilft, die Server zu finanzieren",
-      "showAds": "Banner-Werbung anzeigen",
-      "showAdsDesc": "Mit deinem Konto auf allen Geräten synchronisiert",
-      "signInHint": "Melde dich an, um Banner-Werbung für dein Konto auszuschalten.",
+      "desc": "Leichte Klick-Werbung hilft, die ~100 €/Monat Betriebskosten von AniKitty zu decken",
+      "showAds": "Klick-Werbung anzeigen",
+      "showAdsDesc": "Jedes angemeldete Konto kann Klick-Werbung ausschalten — auf allen Geräten synchronisiert",
+      "signInHint": "Melde dich an, um Klick-Werbung für dein Konto in den Einstellungen auszuschalten.",
       "saveFailed": "Werbeeinstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
-      "donationHint": "Magst du AniKitty?",
-      "donationLink": "Auf Ko-fi spenden",
-      "disableTitle": "Werbung ausschalten?",
-      "disableBody": "Banner-Werbung auf AniKitty hilft, Hosting-, Streaming- und Datenbankkosten zu decken, damit die Seite für alle kostenlos bleibt.",
-      "disableWarning": "Werbung auszuschalten bedeutet weniger Unterstützung für AniKitty. Wenn du kannst, spende auf Ko-fi.",
-      "keepAds": "Werbung behalten",
-      "disableConfirm": "Trotzdem ausschalten"
+      "donatorActive": "Du hast Bonus-Werbefreiheit durch deine Ko-fi-Unterstützung. Danke, dass du AniKitty unterstützt!",
+      "donatorActiveUntil": "Bonus-Werbefreiheit durch deine Ko-fi-Unterstützung bis {date}. Danke, dass du AniKitty unterstützt!",
+      "optionalSupportHint": "Ko-fi-Spenden sind völlig optional — sie helfen, die Seite online zu halten.",
+      "optionalSupportLink": "Mehr über optionale Unterstützung",
+      "disableTitle": "Klick-Werbung wirklich ausschalten?",
+      "disableIntro": "Du bist dabei, Klick-Werbung für dein Konto zu deaktivieren. Bitte lies zuerst, warum sie existiert.",
+      "disableEmbedTitle": "Warum es Klick-Werbung gibt",
+      "disableEmbedBody": "AniKitty kostet etwa 100 € pro Monat — Server, Streaming und Datenbank. Leichte Klick-Werbung auf Seiten außerhalb des Players hilft, diese Kosten zu decken. Es sind keine Videoanzeigen; sie laufen nie im Player oder auf Profilseiten.",
+      "disableNote": "Du musst nicht spenden, um Werbung auszuschalten. Optionale Ko-fi-Tips helfen trotzdem, wenn du die Seite unterstützen möchtest.",
+      "keepAds": "Klick-Werbung behalten",
+      "disableConfirm": "Ja, Klick-Werbung ausschalten"
     },
     "preferDub": "Dub bevorzugen",
     "preferDubDesc": "Standardmäßig englische Synchronisation, wenn verfügbar",
@@ -574,15 +578,16 @@
       "account": "Konto & Profil",
       "community": "Community",
       "privacy": "Datenschutz & Datenerhebung",
-      "security": "Sicherheit & Moderation"
+      "security": "Sicherheit & Moderation",
+      "support": "Werbung & Unterstützung"
     },
     "basics": {
       "whatIsQ": "Was ist AniKitty?",
-      "whatIsA": "AniKitty ist eine kostenlose Anime-Streaming-Seite ohne Werbung und ohne Abo-Paywall. Du kannst den Katalog durchsuchen, Folgen schauen (Sub und Dub, wo verfügbar) und Community-Funktionen nutzen, wenn du angemeldet bist. AniKitty hostet keine Videodateien auf eigenen Servern — Streams werden über Drittanbieter aufgelöst (via KittyAPI).",
+      "whatIsA": "AniKitty ist eine kostenlose Anime-Streaming-Seite ohne Abo-Paywall. Du kannst den Katalog durchsuchen, Folgen schauen (Sub und Dub, wo verfügbar) und Community-Funktionen nutzen, wenn du angemeldet bist. Leichte Klick-Werbung kann auf Seiten außerhalb des Players erscheinen, um die Betriebskosten (~100 €/Monat) zu decken. Sie läuft nie im Videoplayer oder auf Profilseiten. Angemeldete Nutzer können sie in den Einstellungen ausschalten. AniKitty hostet keine Videodateien auf eigenen Servern — Streams werden über Drittanbieter aufgelöst (via KittyAPI).",
       "accountQ": "Brauche ich ein Konto?",
       "accountA": "Nein — du kannst ohne Anmeldung stöbern und schauen. Ein Konto schaltet deine Watchlist, synchronisierten Fortschritt auf allen Geräten, Episodenkommentare, Forenbeiträge, Live-Chat, öffentliche Profile, XP/Level, optionalen AniList-Import und Einstellungen wie 2FA frei. Registriere dich über die Anmelden-Schaltfläche in der Navigation.",
       "freeQ": "Ist AniKitty wirklich kostenlos?",
-      "freeA": "Ja. Es gibt keine Werbung im Player oder im Seitenlayout und keine kostenpflichtige Stufe. Die Seite wird als Community-Projekt unterstützt (siehe GitHub- und Discord-Links in der Fußzeile)."
+      "freeA": "Ja. Es gibt keine kostenpflichtige Stufe. Player und Profilseiten bleiben werbefrei. Leichte Klick-Werbung auf anderen Seiten hilft, die ~100 €/Monat Betriebskosten zu decken — jedes angemeldete Konto kann sie in den Einstellungen deaktivieren. Optionale Ko-fi-Tips sind willkommen, aber nicht erforderlich."
     },
     "watching": {
       "streamingQ": "Wie funktioniert das Streaming?",
@@ -626,13 +631,21 @@
       "browserQ": "Was wird nur in meinem Browser gespeichert?",
       "browserA": "Sitzungs-Cookie, Player-/UI-Einstellungen, Fortschritts-Cache, Online-Heartbeat-ID und Level-Statistik-Cache.",
       "thirdPartyQ": "Analysen und Drittanbieter",
-      "thirdPartyA": "Google Analytics für Seitenaufrufe, KittyAPI für Streams, AniList wenn verbunden, und externe Discord-/GitHub-Links.",
+      "thirdPartyA": "Google Analytics für Seitenaufrufe, KittyAPI für Streams, AniList wenn verbunden, ein leichtes Klick-Werbenetzwerk auf Seiten außerhalb des Players sowie externe Discord-/GitHub-Links.",
       "notDoQ": "Was wir nicht tun",
-      "notDoA": "AniKitty betreibt keine Werbenetzwerke, verkauft deine Daten nicht und hostet keine Videodateien auf eigenen Servern.",
+      "notDoA": "AniKitty verkauft deine Daten nicht und hostet keine Videodateien auf eigenen Servern. Der Videoplayer und Profilseiten bleiben werbefrei.",
       "deleteQ": "Wie kann ich meine Daten löschen?",
       "deleteA": "Gehe zu Einstellungen → Datenschutz → Kontolöschung, um eine dauerhafte Entfernung anzufordern. Du kannst auch Sitzungen widerrufen und AniList trennen.",
       "cookiesQ": "Cookies",
       "cookiesA": "Die Anmeldung nutzt ein HttpOnly-Sitzungs-Cookie. Google Analytics kann eigene Cookies setzen. Die Seite erzwingt HTTPS in der Produktion."
+    },
+    "support": {
+      "adsQ": "Warum gibt es Klick-Werbung?",
+      "adsA": "AniKitty kostet etwa 100 € pro Monat (Server, Streaming und Datenbank). Leichte Klick-Werbung auf Seiten außerhalb des Players hilft, das zu decken. Es sind keine Videoanzeigen — sie laufen nie im Player oder auf Profilseiten.",
+      "disableQ": "Kann ich Klick-Werbung ausschalten?",
+      "disableA": "Ja. Erstelle ein kostenloses Konto und schalte sie unter Einstellungen → Werbung aus. Eine Ko-fi-Spende ist völlig optional und nicht nötig.",
+      "kofiQ": "Ist Ko-fi-Unterstützung erforderlich?",
+      "kofiA": "Nein. Tips auf Ko-fi sind optional und helfen, die Seite online zu halten. Spender können Bonus-Werbefreiheit erhalten, aber jeder angemeldete Nutzer kann Klick-Werbung in den Einstellungen deaktivieren."
     },
     "security": {
       "passwordQ": "Wie ist mein Passwort geschützt?",

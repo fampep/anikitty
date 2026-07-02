@@ -45,10 +45,10 @@
     "betaVersionAria": "AniKitty 베타, 버전 {version}"
   },
   "banner": {
-    "adsPromoGuestTitle": "로그인하면 클릭 광고를 끌 수 있어요",
-    "adsPromoGuestBody": "계정을 만들거나 로그인한 뒤 설정에서 광고를 끄세요.",
-    "adsPromoSignedInTitle": "클릭 광고를 끌 수 있어요",
-    "adsPromoSignedInBody": "설정에서 언제든 가벼운 클릭 광고를 끌 수 있습니다.",
+    "adsPromoGuestTitle": "계정이 있나요? 설정에서 클릭 광고를 끌 수 있습니다",
+    "adsPromoGuestBody": "AniKitty 운영 비용은 월 약 100유로입니다. 로그인한 사용자는 설정에서 클릭 광고를 끌 수 있습니다 — 기부 불필요.",
+    "adsPromoSignedInTitle": "설정에서 클릭 광고를 끌 수 있습니다",
+    "adsPromoSignedInBody": "AniKitty 운영 비용은 월 약 100유로입니다. 설정 → 광고에서 언제든 끌 수 있습니다.",
     "adsPromoCta": "설정 열기"
   },
   "footer": {
@@ -97,21 +97,51 @@
     "previewDesc": "멀티 소스 스트림, 이어보기, 인트로 스킵, 시어터 모드, 키보드 단축키 — 한곳에서.",
     "preview": {
       "mock": "시청 페이지",
-      "player": { "title": "멀티 소스 플레이어", "desc": "에피소드를 떠나지 않고 제공자를 전환하세요." },
-      "skip": { "title": "인트로·아웃트로 스킵", "desc": "가능할 때 자동 감지된 챕터 마커." },
-      "theatre": { "title": "시어터 모드", "desc": "플레이어를 확대하고 방해 요소를 숨깁니다." },
-      "shortcuts": { "title": "키보드 단축키", "desc": "시청 페이지에서 ? 키로 전체 목록을 확인하세요." }
+      "player": {
+        "title": "멀티 소스 플레이어",
+        "desc": "에피소드를 떠나지 않고 제공자를 전환하세요."
+      },
+      "skip": {
+        "title": "인트로·아웃트로 스킵",
+        "desc": "가능할 때 자동 감지된 챕터 마커."
+      },
+      "theatre": {
+        "title": "시어터 모드",
+        "desc": "플레이어를 확대하고 방해 요소를 숨깁니다."
+      },
+      "shortcuts": {
+        "title": "키보드 단축키",
+        "desc": "시청 페이지에서 ? 키로 전체 목록을 확인하세요."
+      }
     },
     "featuresLabel": "AniKitty를 선택하는 이유",
     "featuresTitle": "애니 시청에 필요한 모든 것",
     "freeForever": "무료 이용 — Ko-fi 후원은 선택 사항",
     "features": {
-      "stream": { "title": "자막·더빙 스트림", "desc": "다양한 제공자로 자막 또는 더빙 시청." },
-      "fast": { "title": "빠르고 가벼움", "desc": "깔끔한 다크 UI로 빠르게 로드되는 스트림." },
-      "subs": { "title": "자막 라이브러리", "desc": "캐시된 자막을 탐색하고 다운로드." },
-      "community": { "title": "댓글 & 포럼", "desc": "에피소드를 토론하고 다른 사람의 추천을 발견." },
-      "together": { "title": "함께 보기", "desc": "방 코드로 친구와 재생을 동기화." },
-      "shop": { "title": "키티코인 상점", "desc": "코인을 모아 프로필 스티커와 프레임 해제." }
+      "stream": {
+        "title": "자막·더빙 스트림",
+        "desc": "다양한 제공자로 자막 또는 더빙 시청."
+      },
+      "fast": {
+        "title": "빠르고 가벼움",
+        "desc": "깔끔한 다크 UI로 빠르게 로드되는 스트림."
+      },
+      "subs": {
+        "title": "자막 라이브러리",
+        "desc": "캐시된 자막을 탐색하고 다운로드."
+      },
+      "community": {
+        "title": "댓글 & 포럼",
+        "desc": "에피소드를 토론하고 다른 사람의 추천을 발견."
+      },
+      "together": {
+        "title": "함께 보기",
+        "desc": "방 코드로 친구와 재생을 동기화."
+      },
+      "shop": {
+        "title": "키티코인 상점",
+        "desc": "코인을 모아 프로필 스티커와 프레임 해제."
+      }
     }
   },
   "home": {
@@ -134,7 +164,7 @@
     "upcomingDesc": "곧 출시",
     "trendingDesc": "모두가 보고 있는 작품",
     "forumDesc": "커뮤니티와 애니에 대해 이야기하세요",
-    "donateDesc": "월 €96 서버 비용 후원",
+    "donateDesc": "선택적 Ko-fi 후원이 운영 비용에 도움이 됩니다",
     "browseAll": "전체 보기",
     "browseAllDesc": "수천 개의 작품 검색",
     "watchNow": "지금 보기",
@@ -163,19 +193,28 @@
     "inMinutes": "{m}분 후",
     "weeklySchedule": "방영 일정",
     "donationGoalTitle": "AniKitty 운영을 도와주세요",
-    "donationGoalBody": "Ko-fi 후원은 서버와 스트리밍 비용에 도움이 됩니다. 사이트는 계속 무료입니다.",
+    "donationGoalBody": "AniKitty 운영 비용은 월 약 100유로입니다. 선택적 Ko-fi 후원이 서버와 스트리밍 비용에 도움이 됩니다. 사이트는 계속 무료입니다.",
     "donationGoalProgress": "월간 지원 목표",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Ko-fi에서 후원",
     "donationGoalLearn": "자세히 보기",
-    "donationSlim": "선택적 Ko-fi 후원이 서버 운영에 도움이 됩니다. 사이트는 계속 무료입니다.",
+    "donationSlim": "AniKitty 운영 비용은 월 약 100유로입니다. 선택적 Ko-fi 후원이 도움이 됩니다. 사이트는 계속 무료입니다.",
     "todayPanel": "오늘의 AniKitty",
     "todayPanelDesc": "방영 일정과 빠른 장르 선택",
     "discover": "탐색",
     "promos": {
-      "shop": { "title": "키티코인 상점", "desc": "스티커, 프레임 & 프로필 꾸미기" },
-      "w2g": { "title": "함께 보기", "desc": "친구와 에피소드 동기화" },
-      "subs": { "title": "자막 라이브러리", "desc": "캐시된 자막 탐색" }
+      "shop": {
+        "title": "키티코인 상점",
+        "desc": "스티커, 프레임 & 프로필 꾸미기"
+      },
+      "w2g": {
+        "title": "함께 보기",
+        "desc": "친구와 에피소드 동기화"
+      },
+      "subs": {
+        "title": "자막 라이브러리",
+        "desc": "캐시된 자막 탐색"
+      }
     }
   },
   "search": {
@@ -368,18 +407,22 @@
     "playbackDesc": "애니 시청 시 기본 동작",
     "ads": {
       "title": "광고",
-      "desc": "가벼운 클릭 광고는 서버 비용에 도움이 됩니다",
+      "desc": "가벼운 클릭 광고가 AniKitty 월 약 100유로 운영 비용을 돕습니다",
       "showAds": "클릭 광고 표시",
-      "showAdsDesc": "계정에 동기화되어 모든 기기에 적용",
-      "signInHint": "로그인하면 계정의 클릭 광고를 끌 수 있습니다.",
+      "showAdsDesc": "로그인 계정은 클릭 광고를 끌 수 있습니다 — 모든 기기 동기화",
+      "signInHint": "로그인하여 설정에서 클릭 광고를 끄세요.",
       "saveFailed": "광고 설정을 저장하지 못했습니다. 다시 시도하세요.",
-      "donationHint": "AniKitty가 마음에 드시나요?",
-      "donationLink": "Ko-fi에서 후원",
-      "disableTitle": "광고를 끌까요?",
-      "disableBody": "AniKitty의 클릭 광고는 가볍고 호스팅, 스트리밍, 데이터베이스 비용을 충당해 사이트를 무료로 유지하는 데 도움이 됩니다.",
-      "disableWarning": "광고를 끄면 AniKitty 운영 지원이 줄어듭니다. 가능하다면 Ko-fi 후원을 고려해 주세요.",
-      "keepAds": "광고 유지",
-      "disableConfirm": "그래도 끄기"
+      "donatorActive": "Ko-fi 후원으로 보너스 광고 없음 접근 권한이 있습니다. AniKitty를 후원해 주셔서 감사합니다!",
+      "donatorActiveUntil": "Ko-fi 후원 보너스 광고 없음 접근은 {date}까지. AniKitty를 후원해 주셔서 감사합니다!",
+      "optionalSupportHint": "Ko-fi 기부는 완전히 선택 사항입니다 — 사이트 운영에 도움이 됩니다.",
+      "optionalSupportLink": "선택적 후원 알아보기",
+      "disableTitle": "클릭 광고 끄기 확인",
+      "disableIntro": "계정의 클릭 광고를 끄려고 합니다. 확인 전에 존재 이유를 읽어 주세요.",
+      "disableEmbedTitle": "클릭 광고가 있는 이유",
+      "disableEmbedBody": "AniKitty 운영 비용은 월 약 100유로(서버, 스트리밍, 데이터베이스)입니다. 플레이어 밖 가벼운 클릭 광고가 비용을 돕습니다. 동영상 광고가 아니며 플레이어와 프로필에는 표시되지 않습니다.",
+      "disableNote": "끄려면 기부할 필요가 없습니다. 사이트를 후원하고 싶다면 선택적 Ko-fi 팁이 도움이 됩니다.",
+      "keepAds": "클릭 광고 유지",
+      "disableConfirm": "예, 클릭 광고 끄기"
     },
     "preferDub": "더빙 우선",
     "preferDubDesc": "가능하면 영어 더빙을 기본으로 사용",
@@ -574,15 +617,16 @@
       "account": "계정 및 프로필",
       "community": "커뮤니티",
       "privacy": "개인정보 및 데이터 수집",
-      "security": "보안 및 운영"
+      "security": "보안 및 운영",
+      "support": "광고 및 후원"
     },
     "basics": {
       "whatIsQ": "AniKitty란 무엇인가요?",
-      "whatIsA": "AniKitty는 광고 없이 무료로 이용할 수 있는 애니 스트리밍 사이트입니다. 카탈로그를 둘러보고, 에피소드를 시청(가능한 경우 자막 및 더빙)하고, 로그인 시 커뮤니티 기능에 참여할 수 있습니다. AniKitty는 자체 서버에 비디오 파일을 호스팅하지 않으며, 스트림은 제3자 소스(KittyAPI 경유)를 통해 제공됩니다.",
+      "whatIsA": "AniKitty는 무료 애니 스트리밍 사이트입니다. 카탈로그 탐색, 시청, 커뮤니티 기능을 계정으로 이용할 수 있습니다. 플레이어 밖 페이지에 가벼운 클릭 광고가 표시될 수 있으며 운영 비용(월 약 100유로)을 돕습니다. 플레이어와 프로필에는 표시되지 않습니다. 로그인 사용자는 설정에서 끌 수 있습니다. 동영상은 자체 서버에 호스팅하지 않고 KittyAPI를 통해 제공됩니다.",
       "accountQ": "계정이 필요한가요?",
       "accountA": "아니요 — 로그인 없이도 둘러보고 시청할 수 있습니다. 계정을 만들면 보고 싶은 목록, 기기 간 동기화된 시청 진행, 에피소드 댓글, 포럼 게시물, 라이브 채팅, 공개 프로필, XP/레벨, 선택적 AniList 가져오기, 2FA 같은 설정을 사용할 수 있습니다. 내비게이션 바의 로그인 버튼에서 가입하세요.",
       "freeQ": "AniKitty는 정말 무료인가요?",
-      "freeA": "네. 플레이어나 사이트에 광고가 없고 유료 등급도 없습니다. 이 사이트는 커뮤니티 프로젝트로 운영됩니다(푸터의 GitHub 및 Discord 링크 참조)."
+      "freeA": "예. 유료 등급은 없습니다. 플레이어와 프로필은 광고 없음입니다. 다른 페이지의 가벼운 클릭 광고는 월 약 100유로 운영 비용을 돕고, 로그인 계정은 설정에서 끌 수 있습니다. Ko-fi는 선택 사항입니다."
     },
     "watching": {
       "streamingQ": "스트리밍은 어떻게 작동하나요?",
@@ -626,9 +670,9 @@
       "browserQ": "브라우저에만 저장되는 것은?",
       "browserA": "세션 쿠키, 플레이어/UI 설정, 진행 캐시, 온라인 하트비트 ID, 레벨 통계 캐시.",
       "thirdPartyQ": "분석 및 제3자",
-      "thirdPartyA": "페이지 조회용 Google Analytics, 스트림용 KittyAPI, 연결 시 AniList, 외부 Discord/GitHub 링크.",
+      "thirdPartyA": "Google Analytics, KittyAPI, 연결 시 AniList, 플레이어 밖 가벼운 클릭 광고 네트워크, 외부 Discord/GitHub 링크.",
       "notDoQ": "하지 않는 것",
-      "notDoA": "AniKitty는 광고 네트워크를 운영하지 않고, 데이터를 판매하지 않으며, 서버에 비디오 파일을 호스팅하지 않습니다.",
+      "notDoA": "AniKitty는 데이터를 판매하지 않으며 서버에 동영상을 호스팅하지 않습니다. 플레이어와 프로필 페이지는 광고 없음입니다.",
       "deleteQ": "데이터를 삭제하려면?",
       "deleteA": "설정 → 개인정보 → 계정 삭제에서 영구 삭제를 요청하세요. 세션을 해제하고 AniList 연결을 끊을 수도 있습니다.",
       "cookiesQ": "쿠키",
@@ -643,6 +687,14 @@
       "rateLimitA": "민감한 작업은 IP 및/또는 사용자 ID별로 속도 제한되어 남용을 줄입니다.",
       "moderationQ": "운영",
       "moderationA": "관리자와 운영진은 포럼 콘텐츠, 라이브 채팅, 사용자 역할을 관리할 수 있습니다."
+    },
+    "support": {
+      "adsQ": "왜 클릭 광고가 있나요?",
+      "adsA": "AniKitty 운영 비용은 월 약 100유로(서버, 스트리밍, 데이터베이스)입니다. 플레이어 밖 가벼운 클릭 광고가 비용을 돕습니다. 동영상 광고가 아닙니다.",
+      "disableQ": "클릭 광고를 끌 수 있나요?",
+      "disableA": "예. 무료 계정을 만들고 설정 → 광고에서 끌 수 있습니다. Ko-fi 기부는 선택 사항입니다.",
+      "kofiQ": "Ko-fi 후원이 필수인가요?",
+      "kofiA": "아니요. Ko-fi 팁은 선택 사항입니다. 기부자는 보너스 광고 없음 기간을 받을 수 있지만, 로그인 사용자는 누구나 설정에서 끌 수 있습니다."
     }
   },
   "trending": {

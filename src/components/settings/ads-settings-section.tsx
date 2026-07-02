@@ -9,14 +9,8 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
 import { anisurgeAuth } from "@/lib/oauth/anisurge";
-import { ROUTES } from "@/constants/routes";
 import { hasAdFreePerk } from "@/lib/social/supporter-access";
-import {
-  KOFI_DONATION_UNIT_DAYS,
-  KOFI_DONATION_UNIT_EUR,
-  SITE_OWNER_USERNAME,
-  siteOwnerDmHref,
-} from "@/lib/social/donation-config";
+import { ROUTES } from "@/constants/routes";
 
 function ToggleRow({
   icon,
@@ -137,7 +131,7 @@ export default function AdsSettingsSection() {
   };
 
   const handleToggle = (next: boolean) => {
-    if (!auth || saving || adFree) return;
+    if (!auth || saving) return;
     if (!next && showAds) {
       setDisableOpen(true);
       return;
@@ -155,43 +149,34 @@ export default function AdsSettingsSection() {
         />
         <SectionBody>
           {auth ? (
-            adFree ? (
-              <p className="text-sm text-emerald-200/80 leading-relaxed">
-                {untilLabel
-                  ? t("settings.ads.donatorActiveUntil", { date: untilLabel })
-                  : t("settings.ads.donatorActive")}
-              </p>
-            ) : (
-              <>
-                <ToggleRow
-                  icon={<Megaphone className="w-4 h-4" />}
-                  label={t("settings.ads.showAds")}
-                  description={t("settings.ads.showAdsDesc")}
-                  value={showAds}
-                  onChange={handleToggle}
-                  disabled={saving}
-                />
-                <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
-                  {t("settings.ads.donationHint", {
-                    amount: KOFI_DONATION_UNIT_EUR,
-                    days: KOFI_DONATION_UNIT_DAYS,
-                  })}{" "}
+            <>
+              {adFree && (
+                <p className="mb-3 text-sm leading-relaxed text-emerald-200/80">
+                  {untilLabel
+                    ? t("settings.ads.donatorActiveUntil", { date: untilLabel })
+                    : t("settings.ads.donatorActive")}
+                </p>
+              )}
+              <ToggleRow
+                icon={<Megaphone className="w-4 h-4" />}
+                label={t("settings.ads.showAds")}
+                description={t("settings.ads.showAdsDesc")}
+                value={showAds}
+                onChange={handleToggle}
+                disabled={saving || adFree}
+              />
+              {!adFree && (
+                <p className="mt-3 text-[11px] leading-relaxed text-white/35">
+                  {t("settings.ads.optionalSupportHint")}{" "}
                   <Link
                     href={ROUTES.DONATE}
                     className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
                   >
-                    {t("settings.ads.donationLink")}
-                  </Link>
-                  {" · "}
-                  <Link
-                    href={siteOwnerDmHref()}
-                    className="text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
-                  >
-                    {t("settings.ads.dmLink", { username: SITE_OWNER_USERNAME })}
+                    {t("settings.ads.optionalSupportLink")}
                   </Link>
                 </p>
-              </>
-            )
+              )}
+            </>
           ) : (
             <p className="text-sm text-white/45 leading-relaxed">
               {t("settings.ads.signInHint")}{" "}

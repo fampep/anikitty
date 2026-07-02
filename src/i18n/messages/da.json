@@ -45,10 +45,10 @@
     "betaVersionAria": "AniKitty beta, version {version}"
   },
   "banner": {
-    "adsPromoGuestTitle": "Logget ind? Du kan slå klik-annoncer fra",
-    "adsPromoGuestBody": "Opret en konto eller log ind, og slå annoncer fra under Indstillinger.",
-    "adsPromoSignedInTitle": "Du kan slå klik-annoncer fra",
-    "adsPromoSignedInBody": "Slå lette klik-annoncer fra når som helst under Indstillinger.",
+    "adsPromoGuestTitle": "Har du en konto? Slå klik-annoncer fra i Indstillinger",
+    "adsPromoGuestBody": "AniKitty koster omkring 100 €/måned. Alle loggede brugere kan slå klik-annoncer fra i Indstillinger — uden donation.",
+    "adsPromoSignedInTitle": "Klik-annoncer kan slås fra i Indstillinger",
+    "adsPromoSignedInBody": "AniKitty koster omkring 100 €/måned. Slå klik-annoncer fra under Indstillinger → Annoncer.",
     "adsPromoCta": "Åbn Indstillinger"
   },
   "footer": {
@@ -97,21 +97,51 @@
     "previewDesc": "Multi-kilde streams, genoptag, skip intro, teatertilstand og tastaturgenveje — alt ét sted.",
     "preview": {
       "mock": "Se-side",
-      "player": { "title": "Multi-kilde afspiller", "desc": "Skift provider uden at forlade episoden." },
-      "skip": { "title": "Skip intro & outro", "desc": "Auto-detekterede kapitelmarkører når tilgængelige." },
-      "theatre": { "title": "Teatertilstand", "desc": "Udvid afspilleren og skjul distraktioner." },
-      "shortcuts": { "title": "Tastaturgenveje", "desc": "Tryk ? på se-siden for den fulde liste." }
+      "player": {
+        "title": "Multi-kilde afspiller",
+        "desc": "Skift provider uden at forlade episoden."
+      },
+      "skip": {
+        "title": "Skip intro & outro",
+        "desc": "Auto-detekterede kapitelmarkører når tilgængelige."
+      },
+      "theatre": {
+        "title": "Teatertilstand",
+        "desc": "Udvid afspilleren og skjul distraktioner."
+      },
+      "shortcuts": {
+        "title": "Tastaturgenveje",
+        "desc": "Tryk ? på se-siden for den fulde liste."
+      }
     },
     "featuresLabel": "Hvorfor AniKitty",
     "featuresTitle": "Alt hvad du behøver for at se anime",
     "freeForever": "Gratis at bruge — Ko-fi støtte er valgfri",
     "features": {
-      "stream": { "title": "Sub & dub streams", "desc": "Se med undertekster eller dub på mange providers." },
-      "fast": { "title": "Hurtig & let", "desc": "Streams loader hurtigt med et rent, mørkt interface." },
-      "subs": { "title": "Undertekstbibliotek", "desc": "Gennemse og download cachede undertekster." },
-      "community": { "title": "Kommentarer & forum", "desc": "Diskuter episoder og opdag anbefalinger med andre." },
-      "together": { "title": "Se sammen", "desc": "Synkroniser afspilning med venner via en rumkode." },
-      "shop": { "title": "Kittycoins-butik", "desc": "Tjen mønter og lås profilstickers og rammer op." }
+      "stream": {
+        "title": "Sub & dub streams",
+        "desc": "Se med undertekster eller dub på mange providers."
+      },
+      "fast": {
+        "title": "Hurtig & let",
+        "desc": "Streams loader hurtigt med et rent, mørkt interface."
+      },
+      "subs": {
+        "title": "Undertekstbibliotek",
+        "desc": "Gennemse og download cachede undertekster."
+      },
+      "community": {
+        "title": "Kommentarer & forum",
+        "desc": "Diskuter episoder og opdag anbefalinger med andre."
+      },
+      "together": {
+        "title": "Se sammen",
+        "desc": "Synkroniser afspilning med venner via en rumkode."
+      },
+      "shop": {
+        "title": "Kittycoins-butik",
+        "desc": "Tjen mønter og lås profilstickers og rammer op."
+      }
     }
   },
   "home": {
@@ -134,7 +164,7 @@
     "upcomingDesc": "På vej",
     "trendingDesc": "Hvad alle ser lige nu",
     "forumDesc": "Diskutér anime med fællesskabet",
-    "donateDesc": "Hjælp med €96/måned i serveromkostninger",
+    "donateDesc": "Valgfrie Ko-fi-donationer hjælper med driftsomkostninger",
     "browseAll": "Se alle",
     "browseAllDesc": "Søg blandt tusindvis af titler",
     "watchNow": "Se nu",
@@ -163,19 +193,28 @@
     "inMinutes": "om {m} min.",
     "weeklySchedule": "Udsendelsesplan",
     "donationGoalTitle": "Hjælp med at holde AniKitty online",
-    "donationGoalBody": "Valgfrie Ko-fi-donationer hjælper med at betale for servere og streaming. Hver bidrag tæller — siden forbliver gratis.",
+    "donationGoalBody": "AniKitty koster omkring 100 €/måned. Valgfrie Ko-fi-donationer hjælper med servere og streaming — siden forbliver gratis.",
     "donationGoalProgress": "Månedligt støttemål",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Donér på Ko-fi",
     "donationGoalLearn": "Læs mere",
-    "donationSlim": "Valgfrie Ko-fi drikkepenge hjælper med servere. Siden forbliver gratis.",
+    "donationSlim": "AniKitty koster omkring 100 €/måned. Valgfrie Ko-fi-donationer hjælper — siden forbliver gratis.",
     "todayPanel": "I dag på AniKitty",
     "todayPanelDesc": "Sendeplan og hurtige genrevalg",
     "discover": "Udforsk",
     "promos": {
-      "shop": { "title": "Kittycoins-butik", "desc": "Stickers, rammer & profilflair" },
-      "w2g": { "title": "Se sammen", "desc": "Synkroniser episoder med venner" },
-      "subs": { "title": "Undertekstbibliotek", "desc": "Gennemse cachede undertekster" }
+      "shop": {
+        "title": "Kittycoins-butik",
+        "desc": "Stickers, rammer & profilflair"
+      },
+      "w2g": {
+        "title": "Se sammen",
+        "desc": "Synkroniser episoder med venner"
+      },
+      "subs": {
+        "title": "Undertekstbibliotek",
+        "desc": "Gennemse cachede undertekster"
+      }
     }
   },
   "search": {
@@ -368,18 +407,22 @@
     "playbackDesc": "Standardadfærd når du ser anime",
     "ads": {
       "title": "Annoncer",
-      "desc": "Lette klik-annoncer hjælper med at betale for servere",
+      "desc": "Lette klik-annoncer hjælper med at dække AniKittys ~100 €/måned",
       "showAds": "Vis klik-annoncer",
-      "showAdsDesc": "Synkroniseret med din konto på alle enheder",
-      "signInHint": "Log ind for at slå klik-annoncer fra for din konto.",
-      "saveFailed": "Kunne ikke gemme din annonceindstilling. Prøv igen.",
-      "donationHint": "Kan du lide AniKitty?",
-      "donationLink": "Donér på Ko-fi",
-      "disableTitle": "Slå annoncer fra?",
-      "disableBody": "Klik-annoncer på AniKitty er lette og hjælper med at dække hosting, streaming og databaseomkostninger, så siden forbliver gratis for alle.",
-      "disableWarning": "At slå annoncer fra betyder mindre støtte til at holde AniKitty online. Hvis du kan, overvej at donere på Ko-fi.",
-      "keepAds": "Behold annoncer",
-      "disableConfirm": "Slå fra alligevel"
+      "showAdsDesc": "Enhver konto kan slå klik-annoncer fra — synkroniseret på alle enheder",
+      "signInHint": "Log ind for at slå klik-annoncer fra i Indstillinger.",
+      "saveFailed": "Kunne ikke gemme din annoncepræference. Prøv igen.",
+      "donatorActive": "Du har bonus annoncefri adgang via dit Ko-fi-støtte. Tak fordi du støtter AniKitty!",
+      "donatorActiveUntil": "Bonus annoncefri adgang via Ko-fi indtil {date}. Tak fordi du støtter AniKitty!",
+      "optionalSupportHint": "Ko-fi-donationer er helt valgfrie — de hjælper med at holde siden online.",
+      "optionalSupportLink": "Læs om valgfri støtte",
+      "disableTitle": "Bekræft slå klik-annoncer fra",
+      "disableIntro": "Du er ved at slå klik-annoncer fra på din konto. Læs hvorfor de findes, før du bekræfter.",
+      "disableEmbedTitle": "Hvorfor klik-annoncer findes",
+      "disableEmbedBody": "AniKitty koster omkring 100 € om måneden — servere, streaming og database. Lette klik-annoncer uden for afspilleren hjælper med at dække det. Det er ikke videoannoncer og de vises aldrig i afspilleren eller på profiler.",
+      "disableNote": "Du behøver ikke donere for at slå dem fra. Valgfrie Ko-fi-tips hjælper stadig, hvis du vil støtte siden.",
+      "keepAds": "Behold klik-annoncer",
+      "disableConfirm": "Ja, slå klik-annoncer fra"
     },
     "preferDub": "Foretræk dub",
     "preferDubDesc": "Brug engelsk dub som standard, når tilgængelig",
@@ -574,15 +617,16 @@
       "account": "Konto & profil",
       "community": "Fællesskab",
       "privacy": "Privatliv & dataindsamling",
-      "security": "Sikkerhed & moderation"
+      "security": "Sikkerhed & moderation",
+      "support": "Annoncer og støtte"
     },
     "basics": {
       "whatIsQ": "Hvad er AniKitty?",
-      "whatIsA": "AniKitty er et gratis anime-streaming-site uden reklamer og uden betalingsmur. Du kan gennemse kataloget, se afsnit (sub og dub hvor tilgængeligt) og deltage i fællesskabsfunktioner, når du er logget ind. AniKitty hoster ikke videofiler på egne servere — streams hentes via tredjepartskilder (via KittyAPI).",
+      "whatIsA": "AniKitty er et gratis anime-streaming-site uden betalingsmur. Du kan gennemse, se episoder og bruge community-funktioner med konto. Lette klik-annoncer kan vises uden for afspilleren for at dække omkostninger (~100 €/måned). De vises aldrig i afspilleren eller på profiler. Loggede brugere kan slå dem fra i Indstillinger. AniKitty hoster ikke videoer — streams kommer via tredjepart (KittyAPI).",
       "accountQ": "Skal jeg have en konto?",
       "accountA": "Nej — du kan gennemse og se uden at logge ind. En konto giver adgang til din watchlist, synkroniseret fremgang på tværs af enheder, afsnitskommentarer, forumindlæg, live chat, offentlige profiler, XP/niveauer, valgfri AniList-import og indstillinger som 2FA. Opret konto via login-knappen i navigationsbjælken.",
       "freeQ": "Er AniKitty virkelig gratis?",
-      "freeA": "Ja. Der er ingen reklamer i afspilleren eller på siden, og intet betalt abonnement. Siden understøttes som et fællesskabsprojekt (se GitHub- og Discord-links i footeren)."
+      "freeA": "Ja. Intet betalingsniveau. Afspiller og profiler forbliver annoncefrie. Lette klik-annoncer på andre sider hjælper med ~100 €/måned — enhver konto kan slå dem fra i Indstillinger. Ko-fi er valgfrit."
     },
     "watching": {
       "streamingQ": "Hvordan fungerer streaming?",
@@ -626,9 +670,9 @@
       "browserQ": "Hvad gemmes kun i min browser?",
       "browserA": "Sessionscookie, afspiller-/UI-indstillinger, fremgangs-cache, online-heartbeat-ID og niveau-statistik-cache.",
       "thirdPartyQ": "Analyse og tredjeparter",
-      "thirdPartyA": "Google Analytics til sidevisninger, KittyAPI til streams, AniList hvis tilknyttet, og eksterne Discord-/GitHub-links.",
+      "thirdPartyA": "Google Analytics, KittyAPI, AniList hvis tilkoblet, et let klik-annoncenetværk uden for afspilleren, og eksterne Discord/GitHub-links.",
       "notDoQ": "Hvad vi ikke gør",
-      "notDoA": "AniKitty kører ikke annoncenetværk, sælger ikke dine data og hoster ikke videofiler på egne servere.",
+      "notDoA": "AniKitty sælger ikke dine data og hoster ikke videofiler på egne servere. Afspilleren og profilsider forbliver annoncefrie.",
       "deleteQ": "Hvordan kan jeg slette mine data?",
       "deleteA": "Gå til Indstillinger → Privatliv → Sletning af konto for at anmode om permanent fjernelse. Du kan også tilbagekalde sessioner og afbryde AniList.",
       "cookiesQ": "Cookies",
@@ -643,6 +687,14 @@
       "rateLimitA": "Følsomme handlinger er hastighedsbegrænset efter IP og/eller bruger-ID for at reducere misbrug.",
       "moderationQ": "Moderation",
       "moderationA": "Admins og moderatorer kan administrere forumindhold, live chat og brugerroller."
+    },
+    "support": {
+      "adsQ": "Hvorfor er der klik-annoncer?",
+      "adsA": "AniKitty koster omkring 100 € om måneden. Lette klik-annoncer uden for afspilleren hjælper med at dække det. Det er ikke videoannoncer.",
+      "disableQ": "Kan jeg slå dem fra?",
+      "disableA": "Ja. Opret en gratis konto og slå dem fra under Indstillinger → Annoncer. Ko-fi-donation er valgfri.",
+      "kofiQ": "Er Ko-fi-støtte påkrævet?",
+      "kofiA": "Nej. Tips er valgfrie. Donatorer kan få bonus annoncefri tid, men enhver logged bruger kan slå annoncer fra i Indstillinger."
     }
   },
   "trending": {

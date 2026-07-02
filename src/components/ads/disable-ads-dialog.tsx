@@ -24,9 +24,9 @@ export function DisableAdsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border-white/10 bg-[#0a0a0f] text-white shadow-2xl shadow-black/80 sm:rounded-2xl">
+      <DialogContent className="max-w-md border border-red-500/20 bg-[#08080c] text-white shadow-2xl shadow-black sm:rounded-2xl">
         <DialogHeader className="space-y-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500/10 ring-1 ring-red-500/25">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500/15 ring-1 ring-red-500/35">
             <AlertTriangle className="h-5 w-5 text-red-400" />
           </div>
           <DialogTitle className="text-left text-lg font-bold text-white">
@@ -34,11 +34,25 @@ export function DisableAdsDialog({
           </DialogTitle>
           <DialogDescription asChild>
             <div className="space-y-3 text-left">
-              <p className="text-sm leading-relaxed text-white/55">
-                {t("settings.ads.disableBody")}
+              <p className="text-sm leading-relaxed text-white/60">
+                {t("settings.ads.disableIntro")}
               </p>
-              <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 text-sm font-medium leading-relaxed text-red-300">
-                {t("settings.ads.disableWarning")}
+
+              <div className="overflow-hidden rounded-xl border border-red-500/45 bg-black shadow-[inset_0_1px_0_rgba(248,113,113,0.12)]">
+                <div className="border-b border-red-500/30 bg-gradient-to-r from-red-950/80 to-black px-4 py-2.5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-red-400">
+                    {t("settings.ads.disableEmbedTitle")}
+                  </p>
+                </div>
+                <div className="px-4 py-3.5">
+                  <p className="text-sm font-medium leading-relaxed text-red-100/90">
+                    {t("settings.ads.disableEmbedBody")}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs leading-relaxed text-white/40">
+                {t("settings.ads.disableNote")}
               </p>
             </div>
           </DialogDescription>
@@ -47,7 +61,7 @@ export function DisableAdsDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="site-ghost-btn w-full sm:w-auto justify-center py-2.5"
+            className="site-ghost-btn w-full justify-center py-2.5 sm:w-auto"
           >
             {t("settings.ads.keepAds")}
           </button>
@@ -57,7 +71,7 @@ export function DisableAdsDialog({
               onConfirm();
               onOpenChange(false);
             }}
-            className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-red-500/30 bg-red-500/15 px-4 py-2.5 text-sm font-semibold text-red-200 transition-colors hover:bg-red-500/25"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-red-500/40 bg-red-950/60 px-4 py-2.5 text-sm font-semibold text-red-100 transition-colors hover:bg-red-900/70 sm:w-auto"
           >
             {t("settings.ads.disableConfirm")}
           </button>

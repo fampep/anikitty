@@ -45,10 +45,10 @@
     "betaVersionAria": "AniKitty beta, versión {version}"
   },
   "banner": {
-    "adsPromoGuestTitle": "¿Tienes cuenta? Puedes desactivar los anuncios al clic",
-    "adsPromoGuestBody": "Crea una cuenta o inicia sesión y desactiva los anuncios en Ajustes.",
-    "adsPromoSignedInTitle": "Puedes desactivar los anuncios al clic",
-    "adsPromoSignedInBody": "Desactiva los anuncios ligeros al clic cuando quieras en Ajustes.",
+    "adsPromoGuestTitle": "¿Tienes cuenta? Desactiva los anuncios de clic en Ajustes",
+    "adsPromoGuestBody": "AniKitty cuesta unos 100 €/mes. Cualquier usuario con sesión puede desactivar los anuncios de clic en Ajustes — sin donar.",
+    "adsPromoSignedInTitle": "Los anuncios de clic se pueden desactivar en Ajustes",
+    "adsPromoSignedInBody": "AniKitty cuesta unos 100 €/mes. Desactívalos en Ajustes → Anuncios.",
     "adsPromoCta": "Abrir Ajustes"
   },
   "footer": {
@@ -97,21 +97,51 @@
     "previewDesc": "Streams multi-fuente, reanudar, saltar intro, modo cine y atajos de teclado — todo en un solo lugar.",
     "preview": {
       "mock": "Página de reproducción",
-      "player": { "title": "Reproductor multi-fuente", "desc": "Cambia de proveedor sin salir del episodio." },
-      "skip": { "title": "Saltar intro y outro", "desc": "Marcadores de capítulo detectados automáticamente cuando están disponibles." },
-      "theatre": { "title": "Modo cine", "desc": "Amplía el reproductor y oculta distracciones." },
-      "shortcuts": { "title": "Atajos de teclado", "desc": "Pulsa ? en la página de reproducción para la lista completa." }
+      "player": {
+        "title": "Reproductor multi-fuente",
+        "desc": "Cambia de proveedor sin salir del episodio."
+      },
+      "skip": {
+        "title": "Saltar intro y outro",
+        "desc": "Marcadores de capítulo detectados automáticamente cuando están disponibles."
+      },
+      "theatre": {
+        "title": "Modo cine",
+        "desc": "Amplía el reproductor y oculta distracciones."
+      },
+      "shortcuts": {
+        "title": "Atajos de teclado",
+        "desc": "Pulsa ? en la página de reproducción para la lista completa."
+      }
     },
     "featuresLabel": "Por qué AniKitty",
     "featuresTitle": "Todo lo que necesitas para ver anime",
     "freeForever": "Gratis — el apoyo en Ko-fi es opcional",
     "features": {
-      "stream": { "title": "Streams sub y dub", "desc": "Mira con subtítulos o doblaje en muchos proveedores." },
-      "fast": { "title": "Rápido y ligero", "desc": "Los streams cargan rápido con una interfaz oscura y limpia." },
-      "subs": { "title": "Biblioteca de subtítulos", "desc": "Explora y descarga subtítulos en caché." },
-      "community": { "title": "Comentarios y foro", "desc": "Comenta episodios y descubre recomendaciones con otros." },
-      "together": { "title": "Ver juntos", "desc": "Sincroniza la reproducción con amigos mediante un código de sala." },
-      "shop": { "title": "Tienda Kittycoins", "desc": "Gana monedas y desbloquea stickers y marcos de perfil." }
+      "stream": {
+        "title": "Streams sub y dub",
+        "desc": "Mira con subtítulos o doblaje en muchos proveedores."
+      },
+      "fast": {
+        "title": "Rápido y ligero",
+        "desc": "Los streams cargan rápido con una interfaz oscura y limpia."
+      },
+      "subs": {
+        "title": "Biblioteca de subtítulos",
+        "desc": "Explora y descarga subtítulos en caché."
+      },
+      "community": {
+        "title": "Comentarios y foro",
+        "desc": "Comenta episodios y descubre recomendaciones con otros."
+      },
+      "together": {
+        "title": "Ver juntos",
+        "desc": "Sincroniza la reproducción con amigos mediante un código de sala."
+      },
+      "shop": {
+        "title": "Tienda Kittycoins",
+        "desc": "Gana monedas y desbloquea stickers y marcos de perfil."
+      }
     }
   },
   "home": {
@@ -134,7 +164,7 @@
     "upcomingDesc": "Próximamente",
     "trendingDesc": "Lo que todos están viendo",
     "forumDesc": "Habla de anime con la comunidad",
-    "donateDesc": "Ayuda con los €96/mes del servidor",
+    "donateDesc": "Las propinas opcionales en Ko-fi ayudan con los costes",
     "browseAll": "Ver todo",
     "browseAllDesc": "Busca miles de títulos",
     "watchNow": "Ver ahora",
@@ -163,19 +193,28 @@
     "inMinutes": "en {m} min",
     "weeklySchedule": "Calendario de estrenos",
     "donationGoalTitle": "Ayuda a mantener AniKitty en línea",
-    "donationGoalBody": "Las propinas opcionales en Ko-fi ayudan a pagar servidores y streaming. Cada aporte cuenta — el sitio sigue siendo gratis.",
+    "donationGoalBody": "AniKitty cuesta unos 100 €/mes. Las propinas opcionales en Ko-fi ayudan con servidores y streaming — el sitio sigue siendo gratis.",
     "donationGoalProgress": "Meta de apoyo mensual",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "Donar en Ko-fi",
     "donationGoalLearn": "Más información",
-    "donationSlim": "Las propinas opcionales en Ko-fi ayudan con los servidores. El sitio sigue siendo gratis.",
+    "donationSlim": "AniKitty cuesta unos 100 €/mes. Las propinas opcionales en Ko-fi ayudan — el sitio sigue siendo gratis.",
     "todayPanel": "Hoy en AniKitty",
     "todayPanelDesc": "Horario de emisión y géneros rápidos",
     "discover": "Descubrir",
     "promos": {
-      "shop": { "title": "Tienda Kittycoins", "desc": "Stickers, marcos y estilo de perfil" },
-      "w2g": { "title": "Ver juntos", "desc": "Sincroniza episodios con amigos" },
-      "subs": { "title": "Biblioteca de subtítulos", "desc": "Explora subtítulos en caché" }
+      "shop": {
+        "title": "Tienda Kittycoins",
+        "desc": "Stickers, marcos y estilo de perfil"
+      },
+      "w2g": {
+        "title": "Ver juntos",
+        "desc": "Sincroniza episodios con amigos"
+      },
+      "subs": {
+        "title": "Biblioteca de subtítulos",
+        "desc": "Explora subtítulos en caché"
+      }
     }
   },
   "search": {
@@ -368,18 +407,22 @@
     "playbackDesc": "Comportamiento predeterminado al ver anime",
     "ads": {
       "title": "Anuncios",
-      "desc": "Los anuncios ligeros al clic ayudan a pagar los servidores",
-      "showAds": "Mostrar anuncios al clic",
-      "showAdsDesc": "Sincronizado con tu cuenta en todos los dispositivos",
-      "signInHint": "Inicia sesión para desactivar los anuncios al clic en tu cuenta.",
-      "saveFailed": "No se pudo guardar tu preferencia de anuncios. Inténtalo de nuevo.",
-      "donationHint": "¿Te gusta AniKitty?",
-      "donationLink": "Donar en Ko-fi",
-      "disableTitle": "¿Desactivar anuncios?",
-      "disableBody": "Los anuncios al clic en AniKitty son ligeros y ayudan a cubrir hosting, streaming y costes de base de datos para que el sitio siga siendo gratis para todos.",
-      "disableWarning": "Desactivar los anuncios significa menos apoyo para mantener AniKitty en línea. Si puedes, considera donar en Ko-fi.",
-      "keepAds": "Mantener anuncios",
-      "disableConfirm": "Desactivar de todos modos"
+      "desc": "Los anuncios de clic ligeros ayudan a cubrir los ~100 €/mes de AniKitty",
+      "showAds": "Mostrar anuncios de clic",
+      "showAdsDesc": "Cualquier cuenta con sesión puede desactivarlos — sincronizado en todos los dispositivos",
+      "signInHint": "Inicia sesión para desactivar los anuncios de clic en Ajustes.",
+      "saveFailed": "No se pudo guardar tu preferencia. Inténtalo de nuevo.",
+      "donatorActive": "Tienes acceso bonus sin anuncios gracias a tu apoyo en Ko-fi. ¡Gracias por apoyar AniKitty!",
+      "donatorActiveUntil": "Acceso bonus sin anuncios por Ko-fi hasta el {date}. ¡Gracias por apoyar AniKitty!",
+      "optionalSupportHint": "Las donaciones en Ko-fi son completamente opcionales — ayudan a mantener el sitio en línea.",
+      "optionalSupportLink": "Más sobre el apoyo opcional",
+      "disableTitle": "Confirmar desactivación de anuncios de clic",
+      "disableIntro": "Vas a desactivar los anuncios de clic en tu cuenta. Lee por qué existen antes de confirmar.",
+      "disableEmbedTitle": "Por qué hay anuncios de clic",
+      "disableEmbedBody": "AniKitty cuesta unos 100 € al mes — servidores, streaming y base de datos. Los anuncios de clic ligeros fuera del reproductor ayudan a cubrirlo. No son anuncios de vídeo y nunca aparecen en el reproductor ni en perfiles.",
+      "disableNote": "No necesitas donar para desactivarlos. Las propinas opcionales en Ko-fi siguen ayudando si quieres apoyar el sitio.",
+      "keepAds": "Mantener anuncios de clic",
+      "disableConfirm": "Sí, desactivar anuncios de clic"
     },
     "preferDub": "Preferir dub",
     "preferDubDesc": "Usar doblaje en inglés por defecto cuando esté disponible",
@@ -574,15 +617,16 @@
       "account": "Cuenta y perfil",
       "community": "Comunidad",
       "privacy": "Privacidad y recopilación de datos",
-      "security": "Seguridad y moderación"
+      "security": "Seguridad y moderación",
+      "support": "Anuncios y apoyo"
     },
     "basics": {
       "whatIsQ": "¿Qué es AniKitty?",
-      "whatIsA": "AniKitty es un sitio gratuito para ver anime sin anuncios ni muros de pago por suscripción. Puedes explorar el catálogo, ver episodios (sub y dub cuando estén disponibles) y unirte a funciones de la comunidad al iniciar sesión. AniKitty no aloja archivos de video en sus propios servidores — los streams se resuelven a través de fuentes de terceros (vía KittyAPI).",
+      "whatIsA": "AniKitty es un sitio de anime gratuito sin paywall. Puedes explorar, ver episodios y usar funciones comunitarias con cuenta. Los anuncios de clic ligeros pueden aparecer fuera del reproductor para cubrir costes (~100 €/mes). Nunca en el reproductor ni en perfiles. Los usuarios con sesión pueden desactivarlos en Ajustes. No aloja vídeos — los streams usan fuentes externas (KittyAPI).",
       "accountQ": "¿Necesito una cuenta?",
       "accountA": "No — puedes explorar y ver sin iniciar sesión. Una cuenta desbloquea tu lista, progreso de visualización sincronizado entre dispositivos, comentarios en episodios, publicaciones en el foro, chat en vivo, perfiles públicos, XP/niveles, importación opcional de AniList y ajustes como 2FA. Regístrate desde el botón de iniciar sesión en la barra de navegación.",
       "freeQ": "¿AniKitty es realmente gratis?",
-      "freeA": "Sí. No hay anuncios en el reproductor ni en el diseño del sitio, y no hay nivel de pago. El sitio se mantiene como un proyecto comunitario (consulta los enlaces de GitHub y Discord en el pie de página)."
+      "freeA": "Sí. Sin nivel de pago. El reproductor y los perfiles siguen sin anuncios. Los anuncios de clic ligeros en otras páginas ayudan con los ~100 €/mes — cualquier cuenta puede desactivarlos en Ajustes. Ko-fi es opcional."
     },
     "watching": {
       "streamingQ": "¿Cómo funciona la reproducción?",
@@ -626,9 +670,9 @@
       "browserQ": "¿Qué se almacena solo en mi navegador?",
       "browserA": "Cookie de sesión, ajustes del reproductor/interfaz, caché de progreso, ID de heartbeat en línea y caché de estadísticas de nivel.",
       "thirdPartyQ": "Analíticas y terceros",
-      "thirdPartyA": "Google Analytics para vistas de página, KittyAPI para streams, AniList si lo conectas, y enlaces externos a Discord/GitHub.",
+      "thirdPartyA": "Google Analytics, KittyAPI, AniList si conectas, una red ligera de anuncios de clic fuera del reproductor, y enlaces Discord/GitHub.",
       "notDoQ": "Lo que no hacemos",
-      "notDoA": "AniKitty no usa redes de anuncios, no vende tus datos y no aloja archivos de video en sus servidores.",
+      "notDoA": "AniKitty no vende tus datos ni aloja vídeos en sus servidores. El reproductor y los perfiles siguen sin anuncios.",
       "deleteQ": "¿Cómo puedo eliminar mis datos?",
       "deleteA": "Ve a Ajustes → Privacidad → Eliminación de cuenta para solicitar la eliminación permanente. También puedes revocar sesiones y desconectar AniList.",
       "cookiesQ": "Cookies",
@@ -643,6 +687,14 @@
       "rateLimitA": "Las acciones sensibles tienen límite de solicitudes por IP y/o ID de usuario para reducir abusos.",
       "moderationQ": "Moderación",
       "moderationA": "Los administradores y moderadores pueden gestionar contenido del foro, chat en vivo y roles de usuario."
+    },
+    "support": {
+      "adsQ": "¿Por qué hay anuncios de clic?",
+      "adsA": "AniKitty cuesta unos 100 € al mes (servidores, streaming y base de datos). Los anuncios de clic ligeros fuera del reproductor ayudan a cubrirlo. No son anuncios de vídeo.",
+      "disableQ": "¿Puedo desactivarlos?",
+      "disableA": "Sí. Crea una cuenta gratuita y desactívalos en Ajustes → Anuncios. Donar en Ko-fi es opcional.",
+      "kofiQ": "¿Es obligatorio Ko-fi?",
+      "kofiA": "No. Las propinas son opcionales. Los donantes pueden obtener tiempo bonus sin anuncios, pero cualquier usuario con sesión puede desactivarlos en Ajustes."
     }
   },
   "trending": {

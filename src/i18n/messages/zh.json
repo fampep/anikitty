@@ -45,10 +45,10 @@
     "betaVersionAria": "AniKitty 测试版，版本 {version}"
   },
   "banner": {
-    "adsPromoGuestTitle": "已登录？可在设置中关闭点击广告",
-    "adsPromoGuestBody": "创建账户或登录后，在设置中关闭广告。",
+    "adsPromoGuestTitle": "有账号？可在设置中关闭点击广告",
+    "adsPromoGuestBody": "AniKitty 每月运营成本约 100 欧元。登录用户可在设置中关闭点击广告，无需捐赠。",
     "adsPromoSignedInTitle": "可在设置中关闭点击广告",
-    "adsPromoSignedInBody": "随时在设置中关闭轻量点击广告。",
+    "adsPromoSignedInBody": "AniKitty 每月运营成本约 100 欧元。随时在设置 → 广告中关闭。",
     "adsPromoCta": "打开设置"
   },
   "footer": {
@@ -97,21 +97,51 @@
     "previewDesc": "多源串流、续播、跳过片头、影院模式和键盘快捷键 — 一应俱全。",
     "preview": {
       "mock": "观看页面",
-      "player": { "title": "多源播放器", "desc": "无需离开剧集即可切换线路。" },
-      "skip": { "title": "跳过片头片尾", "desc": "可用时自动检测章节标记。" },
-      "theatre": { "title": "影院模式", "desc": "放大播放器并隐藏干扰元素。" },
-      "shortcuts": { "title": "键盘快捷键", "desc": "在观看页面按 ? 查看完整列表。" }
+      "player": {
+        "title": "多源播放器",
+        "desc": "无需离开剧集即可切换线路。"
+      },
+      "skip": {
+        "title": "跳过片头片尾",
+        "desc": "可用时自动检测章节标记。"
+      },
+      "theatre": {
+        "title": "影院模式",
+        "desc": "放大播放器并隐藏干扰元素。"
+      },
+      "shortcuts": {
+        "title": "键盘快捷键",
+        "desc": "在观看页面按 ? 查看完整列表。"
+      }
     },
     "featuresLabel": "为什么选择 AniKitty",
     "featuresTitle": "看动漫所需的一切",
     "freeForever": "免费使用 — Ko-fi 支持为可选项",
     "features": {
-      "stream": { "title": "字幕与配音串流", "desc": "通过众多线路观看字幕或配音版本。" },
-      "fast": { "title": "快速轻量", "desc": "简洁深色界面，串流加载迅速。" },
-      "subs": { "title": "字幕库", "desc": "浏览并下载缓存字幕。" },
-      "community": { "title": "评论与论坛", "desc": "讨论剧集，与他人发现好作品。" },
-      "together": { "title": "一起看", "desc": "通过房间码与好友同步播放。" },
-      "shop": { "title": "Kittycoins 商店", "desc": "赚取金币，解锁个人资料贴纸和边框。" }
+      "stream": {
+        "title": "字幕与配音串流",
+        "desc": "通过众多线路观看字幕或配音版本。"
+      },
+      "fast": {
+        "title": "快速轻量",
+        "desc": "简洁深色界面，串流加载迅速。"
+      },
+      "subs": {
+        "title": "字幕库",
+        "desc": "浏览并下载缓存字幕。"
+      },
+      "community": {
+        "title": "评论与论坛",
+        "desc": "讨论剧集，与他人发现好作品。"
+      },
+      "together": {
+        "title": "一起看",
+        "desc": "通过房间码与好友同步播放。"
+      },
+      "shop": {
+        "title": "Kittycoins 商店",
+        "desc": "赚取金币，解锁个人资料贴纸和边框。"
+      }
     }
   },
   "home": {
@@ -134,7 +164,7 @@
     "upcomingDesc": "敬请期待",
     "trendingDesc": "大家都在看什么",
     "forumDesc": "与社区一起讨论动漫",
-    "donateDesc": "帮助承担每月€96服务器费用",
+    "donateDesc": "可选的 Ko-fi 打赏有助于运营成本",
     "browseAll": "浏览全部",
     "browseAllDesc": "搜索数千部作品",
     "watchNow": "立即观看",
@@ -163,19 +193,28 @@
     "inMinutes": "{m} 分钟后",
     "weeklySchedule": "播出日程",
     "donationGoalTitle": "帮助维持 AniKitty 运营",
-    "donationGoalBody": "Ko-fi 上的自愿打赏有助于支付服务器和流媒体费用。网站仍然免费。",
+    "donationGoalBody": "AniKitty 每月运营成本约 100 欧元。可选的 Ko-fi 打赏有助于服务器和流媒体费用，网站仍然免费。",
     "donationGoalProgress": "月度支持目标",
     "donationGoalAmount": "€{raised} / €{goal}",
     "donationGoalCta": "在 Ko-fi 捐赠",
     "donationGoalLearn": "了解更多",
-    "donationSlim": "可选的 Ko-fi 打赏有助于服务器运营。网站依然免费。",
+    "donationSlim": "AniKitty 每月运营成本约 100 欧元。可选的 Ko-fi 打赏有帮助，网站仍然免费。",
     "todayPanel": "今日 AniKitty",
     "todayPanelDesc": "播出日程与快速类型筛选",
     "discover": "发现",
     "promos": {
-      "shop": { "title": "Kittycoins 商店", "desc": "贴纸、边框与个人装饰" },
-      "w2g": { "title": "一起看", "desc": "与好友同步剧集" },
-      "subs": { "title": "字幕库", "desc": "浏览缓存字幕" }
+      "shop": {
+        "title": "Kittycoins 商店",
+        "desc": "贴纸、边框与个人装饰"
+      },
+      "w2g": {
+        "title": "一起看",
+        "desc": "与好友同步剧集"
+      },
+      "subs": {
+        "title": "字幕库",
+        "desc": "浏览缓存字幕"
+      }
     }
   },
   "search": {
@@ -368,18 +407,22 @@
     "playbackDesc": "观看动漫时的默认行为",
     "ads": {
       "title": "广告",
-      "desc": "轻量点击广告有助于支付服务器费用",
+      "desc": "轻量点击广告帮助分担 AniKitty 每月约 100 欧元的运营成本",
       "showAds": "显示点击广告",
-      "showAdsDesc": "与账户同步，适用于所有设备",
-      "signInHint": "登录后可为账户关闭点击广告。",
+      "showAdsDesc": "任何登录账号都可关闭点击广告，并在所有设备同步",
+      "signInHint": "登录后可在设置中关闭点击广告。",
       "saveFailed": "无法保存广告偏好，请重试。",
-      "donationHint": "喜欢 AniKitty？",
-      "donationLink": "在 Ko-fi 捐赠",
-      "disableTitle": "关闭广告？",
-      "disableBody": "AniKitty 上的点击广告很轻量，有助于支付托管、流媒体与数据库费用，让网站对所有人保持免费。",
-      "disableWarning": "关闭广告意味着对维持 AniKitty 在线的支持减少。如可以，请考虑在 Ko-fi 捐赠。",
-      "keepAds": "保留广告",
-      "disableConfirm": "仍然关闭"
+      "donatorActive": "感谢你的 Ko-fi 支持，你享有额外无广告访问。感谢支持 AniKitty！",
+      "donatorActiveUntil": "Ko-fi 支持的额外无广告访问至 {date}。感谢支持 AniKitty！",
+      "optionalSupportHint": "Ko-fi 捐赠完全可选，有助于维持网站运营。",
+      "optionalSupportLink": "了解可选支持",
+      "disableTitle": "确认关闭点击广告",
+      "disableIntro": "你即将关闭账号的点击广告。确认前请先了解它们存在的原因。",
+      "disableEmbedTitle": "为什么有点击广告",
+      "disableEmbedBody": "AniKitty 每月运营成本约 100 欧元（服务器、流媒体和数据库）。播放器外页面的轻量点击广告帮助分担费用。不是视频广告，也不会在播放器或资料页显示。",
+      "disableNote": "关闭广告无需捐赠。若想支持网站，可选的 Ko-fi 打赏仍然有帮助。",
+      "keepAds": "保留点击广告",
+      "disableConfirm": "是的，关闭点击广告"
     },
     "preferDub": "优先配音",
     "preferDubDesc": "有英文配音时默认使用配音",
@@ -574,15 +617,16 @@
       "account": "账户与个人资料",
       "community": "社区",
       "privacy": "隐私与数据收集",
-      "security": "安全与审核"
+      "security": "安全与审核",
+      "support": "广告与支持"
     },
     "basics": {
       "whatIsQ": "什么是 AniKitty？",
-      "whatIsA": "AniKitty 是一个免费的动漫流媒体网站，无广告、无订阅门槛。你可以浏览目录、观看剧集（有字幕和配音时均可观看），登录后还可使用社区功能。AniKitty 不在自己的服务器上托管视频文件 — 流媒体通过第三方来源（经由 KittyAPI）解析。",
+      "whatIsA": "AniKitty 是免费动漫流媒体网站。可浏览目录、观看剧集并使用社区功能。播放器外的页面可能显示轻量点击广告以分担运营成本（约每月 100 欧元），播放器和个人资料页永不显示。登录用户可在设置中关闭。网站不托管视频，流媒体通过 KittyAPI 等第三方来源提供。",
       "accountQ": "我需要账户吗？",
       "accountA": "不需要 — 你可以在不登录的情况下浏览和观看。账户可解锁观看列表、跨设备同步的观看进度、剧集评论、论坛帖子、实时聊天、公开个人资料、XP/等级、可选的 AniList 导入，以及 2FA 等设置。点击导航栏中的登录按钮即可注册。",
       "freeQ": "AniKitty 真的免费吗？",
-      "freeA": "是的。播放器和网站布局中没有广告，也没有付费层级。该网站作为社区项目运营（请参阅页脚中的 GitHub 和 Discord 链接）。"
+      "freeA": "是的。没有付费等级。播放器和资料页保持无广告。其他页面的轻量点击广告帮助分担约每月 100 欧元运营成本，任何登录账号都可在设置中关闭。Ko-fi 完全可选。"
     },
     "watching": {
       "streamingQ": "流媒体如何工作？",
@@ -626,9 +670,9 @@
       "browserQ": "哪些数据仅存储在我的浏览器中？",
       "browserA": "会话 cookie、播放器/UI 设置、进度缓存、在线心跳 ID 和等级统计缓存。",
       "thirdPartyQ": "分析与第三方",
-      "thirdPartyA": "Google Analytics 用于页面浏览，KittyAPI 用于流媒体，AniList（如已连接），以及外部 Discord/GitHub 链接。",
+      "thirdPartyA": "Google Analytics、KittyAPI、连接时的 AniList、播放器外的轻量点击广告网络，以及外部 Discord/GitHub 链接。",
       "notDoQ": "我们不会做什么",
-      "notDoA": "AniKitty 不运行广告网络，不出售你的数据，也不在其服务器上托管视频文件。",
+      "notDoA": "AniKitty 不出售你的数据，也不在其服务器上托管视频文件。播放器和资料页保持无广告。",
       "deleteQ": "如何删除我的数据？",
       "deleteA": "前往设置 → 隐私 → 账户删除以请求永久删除。你也可以撤销会话并断开 AniList 连接。",
       "cookiesQ": "Cookie",
@@ -643,6 +687,14 @@
       "rateLimitA": "敏感操作按 IP 和/或用户 ID 进行速率限制，以减少滥用。",
       "moderationQ": "审核",
       "moderationA": "管理员和版主可以管理论坛内容、实时聊天和用户角色。"
+    },
+    "support": {
+      "adsQ": "为什么有点击广告？",
+      "adsA": "AniKitty 每月运营成本约 100 欧元（服务器、流媒体和数据库）。播放器外的轻量点击广告帮助分担费用，不是视频广告。",
+      "disableQ": "可以关闭点击广告吗？",
+      "disableA": "可以。创建免费账号后在设置 → 广告中关闭。Ko-fi 捐赠完全可选，并非必须。",
+      "kofiQ": "必须支持 Ko-fi 吗？",
+      "kofiA": "不必。Ko-fi 打赏是可选的。捐赠者可获得额外无广告时间，但任何登录用户都可在设置中关闭广告。"
     }
   },
   "trending": {
