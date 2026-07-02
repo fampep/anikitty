@@ -1,5 +1,4 @@
 import { queryAniList } from "@/lib/oauth/anilist";
-import { isBlockedAnime } from "@/lib/anime/content-policy";
 import {
   fetchAllEpisodeImageSources,
   resolveEpisodeImage,
@@ -11,9 +10,6 @@ export const revalidate = 3600;
 const QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
-      isAdult
-      format
-      genres
       episodes
       nextAiringEpisode { episode }
       streamingEpisodes {
@@ -38,7 +34,7 @@ export async function GET(
   try {
     const raw = await queryAniList(QUERY, { id: numId });
     const m = raw.Media;
-    if (!m || isBlockedAnime(m)) return Response.json({ error: "Not found" }, { status: 404 });
+    if (!m) return Response.json({ error: "Not found" }, { status: 404 });
 
     const totalEpisodes = m.nextAiringEpisode
       ? m.nextAiringEpisode.episode - 1

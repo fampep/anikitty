@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
 import { queryAniList } from "@/lib/oauth/anilist";
-import { isBlockedAnime } from "@/lib/anime/content-policy";
 import { animeShareDescription } from "@/lib/seo/site-seo";
 import AnimeDetail from "@/components/anime/anime-detail";
 
 const META_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
-      isAdult
-      format
-      genres
       title { english romaji }
       description(asHtml: false)
       coverImage { extraLarge color }
       bannerImage
+      genres
       averageScore
       episodes
+      format
       status
     }
   }
@@ -31,7 +29,7 @@ export async function generateMetadata(
   try {
     const data = await queryAniList(META_QUERY, { id: numId });
     const m = data?.Media;
-    if (!m || isBlockedAnime(m)) return { title: "Not Found | AniKitty" };
+    if (!m) return { title: "Anime | AniKitty" };
 
     const title  = m.title.english || m.title.romaji || "Anime";
     const desc   = animeShareDescription(title);

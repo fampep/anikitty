@@ -1,5 +1,4 @@
 import { queryAniList, toTitle } from "@/lib/oauth/anilist";
-import { ANILIST_SFW_MEDIA_FILTER } from "@/lib/anime/content-policy";
 import type { SubtitleLibraryEntry } from "@/lib/subtitles/subtitle-cache-store";
 import { searchSubtitleLibrary } from "@/lib/subtitles/subtitle-cache-store";
 import {
@@ -122,17 +121,17 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
 const DISCOVER_QUERY = `
   query ($page: Int) {
     trending: Page(page: $page, perPage: 30) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: TRENDING_DESC, status_in: [RELEASING, FINISHED]) {
+      media(type: ANIME, sort: TRENDING_DESC, status_in: [RELEASING, FINISHED]) {
         id
       }
     }
     popular: Page(page: $page, perPage: 30) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: POPULARITY_DESC, status_in: [RELEASING, FINISHED]) {
+      media(type: ANIME, sort: POPULARITY_DESC, status_in: [RELEASING, FINISHED]) {
         id
       }
     }
     recent: Page(page: $page, perPage: 30) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: START_DATE_DESC, status: RELEASING) {
+      media(type: ANIME, sort: START_DATE_DESC, status: RELEASING) {
         id
       }
     }

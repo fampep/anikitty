@@ -1,13 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
-import { ANILIST_SFW_MEDIA_FILTER } from "@/lib/anime/content-policy";
 import type { IAnimeData } from "@/types/anime";
 
 const CRITICAL_QUERY = `
   query {
     spotlight: Page(page: 1, perPage: 8) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: POPULARITY_DESC, status: RELEASING) {
+      media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
         id
         title { english romaji }
         coverImage { extraLarge }
@@ -19,17 +18,17 @@ const CRITICAL_QUERY = `
       }
     }
     trending: Page(page: 1, perPage: 15) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: TRENDING_DESC) {
+      media(type: ANIME, sort: TRENDING_DESC) {
         id title { english romaji } coverImage { extraLarge } episodes format trending averageScore seasonYear status
       }
     }
     popular: Page(page: 1, perPage: 15) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: POPULARITY_DESC, status: RELEASING) {
+      media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
     recentlyAdded: Page(page: 1, perPage: 15) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: START_DATE_DESC, status: RELEASING) {
+      media(type: ANIME, sort: START_DATE_DESC, status: RELEASING) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
         nextAiringEpisode { episode }
       }
@@ -40,22 +39,22 @@ const CRITICAL_QUERY = `
 const DISCOVERY_QUERY = `
   query {
     favorite: Page(page: 1, perPage: 15) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: FAVOURITES_DESC) {
+      media(type: ANIME, sort: FAVOURITES_DESC) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
     popular: Page(page: 1, perPage: 15) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: POPULARITY_DESC, status: RELEASING) {
+      media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
     latest: Page(page: 1, perPage: 15) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: END_DATE_DESC, status: FINISHED) {
+      media(type: ANIME, sort: END_DATE_DESC, status: FINISHED) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
     upcoming: Page(page: 1, perPage: 15) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) {
+      media(type: ANIME, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
@@ -220,22 +219,22 @@ async function fetchHomeDataUncached(): Promise<IAnimeData> {
   };
 }
 
-export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v2-sfw"], {
+export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v1"], {
   revalidate: 300,
 });
 
-export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v2-sfw"], {
+export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v1"], {
   revalidate: 300,
 });
 
-export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v4-sfw"], {
+export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v3"], {
   revalidate: 300,
 });
 
 const POSTER_QUERY = `
   query {
     trending: Page(page: 1, perPage: 24) {
-      media(type: ANIME, ${ANILIST_SFW_MEDIA_FILTER}, sort: TRENDING_DESC) {
+      media(type: ANIME, sort: TRENDING_DESC) {
         coverImage { extraLarge large }
       }
     }
@@ -254,6 +253,6 @@ async function fetchHomePostersUncached(): Promise<string[]> {
   return [...new Set(imgs)].slice(0, 18);
 }
 
-export const getHomePosterUrls = unstable_cache(fetchHomePostersUncached, ["home-poster-urls-v2-sfw"], {
+export const getHomePosterUrls = unstable_cache(fetchHomePostersUncached, ["home-poster-urls-v1"], {
   revalidate: 3600,
 });

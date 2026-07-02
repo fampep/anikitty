@@ -1,13 +1,11 @@
 import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/providers/anikoto-availability";
-import { isBlockedAnime } from "@/lib/anime/content-policy";
 
 const DETAIL_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
       id
       idMal
-      isAdult
       title { english romaji native }
       description(asHtml: false)
       coverImage { extraLarge large }
@@ -30,7 +28,7 @@ const DETAIL_QUERY = `
       recommendations(page: 1, perPage: 12) {
         nodes {
           mediaRecommendation {
-            id title { english romaji } coverImage { extraLarge } episodes format isAdult genres
+            id title { english romaji } coverImage { extraLarge } episodes format
           }
         }
       }
@@ -38,7 +36,7 @@ const DETAIL_QUERY = `
         edges {
           relationType(version: 2)
           node {
-            id title { english romaji } coverImage { extraLarge } type episodes format isAdult genres
+            id title { english romaji } coverImage { extraLarge } type episodes format
           }
         }
       }
@@ -53,19 +51,10 @@ const DETAIL_QUERY = `
   }
 `;
 
-function mapAnime(node: {
-  id: number;
-  title?: { english?: string | null; romaji?: string | null };
-  coverImage?: { extraLarge?: string | null };
-  episodes?: number | null;
-  format?: string | null;
-  isAdult?: boolean | null;
-  genres?: string[] | null;
-}) {
-  if (isBlockedAnime(node)) return null;
+function mapAnime(node: any) {
   return {
     id: String(node.id),
-    name: toTitle(node.title ?? {}),
+    name: toTitle(node.title),
     jname: node.title?.romaji ?? "",
     poster: node.coverImage?.extraLarge ?? "",
     episodes: { sub: node.episodes ?? 0, dub: 0 },
@@ -89,7 +78,7 @@ export async function GET(
   try {
     const raw = await queryAniList(DETAIL_QUERY, { id: numId });
     const m = raw.Media;
-    if (!m || isBlockedAnime(m)) return Response.json({ error: "Not found" }, { status: 404 });
+    if (!m) return Response.json({ error: "Not found" }, { status: 404 });
 
     const episodeCount = m.nextAiringEpisode
       ? m.nextAiringEpisode.episode - 1
@@ -185,20 +174,15 @@ export async function GET(
       },
       seasons: [],
       mostPopularAnimes: (m.relations?.edges ?? [])
-        .filter((e: { node: { type: string } }) => e.node.type === "ANIME")
+        .filter((e: any) => e.node.type === "ANIME")
         .slice(0, 5)
-        .map((e: { node: Parameters<typeof mapAnime>[0] }) => mapAnime(e.node))
-        .filter((a: ReturnType<typeof mapAnime>): a is NonNullable<ReturnType<typeof mapAnime>> => a != null),
+        .map((e: any) => mapAnime(e.node)),
       relatedAnimes: (m.relations?.edges ?? [])
-        .filter((e: { node: { type: string } }) => e.node.type === "ANIME")
-        .map((e: { node: Parameters<typeof mapAnime>[0] }) => mapAnime(e.node))
-        .filter((a: ReturnType<typeof mapAnime>): a is NonNullable<ReturnType<typeof mapAnime>> => a != null),
+        .filter((e: any) => e.node.type === "ANIME")
+        .map((e: any) => mapAnime(e.node)),
       recommendedAnimes: (m.recommendations?.nodes ?? [])
-        .filter((n: { mediaRecommendation?: unknown }) => n.mediaRecommendation)
-        .map((n: { mediaRecommendation: Parameters<typeof mapAnime>[0] }) =>
-          mapAnime(n.mediaRecommendation),
-        )
-        .filter((a: ReturnType<typeof mapAnime>): a is NonNullable<ReturnType<typeof mapAnime>> => a != null),
+        .filter((n: any) => n.mediaRecommendation)
+        .map((n: any) => mapAnime(n.mediaRecommendation)),
     };
 
     const [mostPopularAnimes, relatedAnimes, recommendedAnimes] = await (async () => {

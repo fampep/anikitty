@@ -2,7 +2,6 @@ import { queryAniList, toTitle } from "@/lib/oauth/anilist";
 import { resolveScheduleAudio } from "@/lib/anime/schedule-format";
 import { getAudioAvailability } from "@/lib/providers/anikoto-availability";
 import { getBatchStoredAudioAvailability } from "@/lib/watch/anime-audio-store";
-import { isBlockedAnime } from "@/lib/anime/content-policy";
 
 const QUERY = `
   query ($airingAt_greater: Int, $airingAt_lesser: Int) {
@@ -18,9 +17,6 @@ const QUERY = `
           id
           idMal
           status
-          isAdult
-          format
-          genres
           title { english romaji }
           coverImage { extraLarge large }
         }
@@ -60,11 +56,7 @@ export async function GET(request: Request) {
     });
 
     const now = Math.floor(Date.now() / 1000);
-    const rawItems: ScheduleRawItem[] = (raw.Page?.airingSchedules ?? [])
-      .filter((s: { media: { isAdult?: boolean; format?: string; genres?: string[] } }) =>
-        !isBlockedAnime(s.media),
-      )
-      .map((s: any) => ({
+    const rawItems: ScheduleRawItem[] = (raw.Page?.airingSchedules ?? []).map((s: any) => ({
       id: String(s.media.id),
       name: toTitle(s.media.title),
       jname: s.media.title?.romaji ?? "",
