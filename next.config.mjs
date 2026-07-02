@@ -1,4 +1,4 @@
-import withPWA from "next-pwa";
+import withPWAInit from "@ducanh2912/next-pwa";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -8,13 +8,14 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://www.googletagmanager.com https://www.gstatic.com https://3nbf4.com https://push-sdk.com`,
+  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://www.googletagmanager.com https://www.gstatic.com https://*.effectivecpmnetwork.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
   isProd ? "connect-src 'self' https: wss:" : "connect-src 'self' https: http: wss: ws:",
   "media-src 'self' blob: https:",
-  "worker-src 'self' blob: https://3nbf4.com",
+  "frame-src 'self' https:",
+  "worker-src 'self' blob:",
   "manifest-src 'self'",
   ...(isProd ? ["upgrade-insecure-requests", "block-all-mixed-content"] : []),
 ].join("; ");
@@ -92,35 +93,36 @@ const nextConfig = {
   },
 };
 
-export default withPWA({
+const withPWA = withPWAInit({
   dest: "public",
   register: false,
-  skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
   sw: "sw.js",
   scope: "/",
-  importScripts: [
-    "/monetag-sw-init.js",
-    "https://3nbf4.com/act/files/service-worker.min.js?r=sw",
-  ],
-  buildExcludes: [/middleware-manifest\.json$/, /\.map$/, /^worker-.*\.js$/],
-  maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
-      handler: "CacheFirst",
-      options: {
-        cacheName: "google-fonts-webfonts",
-        expiration: { maxEntries: 4, maxAgeSeconds: 365 * 24 * 60 * 60 },
+  workboxOptions: {
+    skipWaiting: true,
+    clientsClaim: true,
+    exclude: [/middleware-manifest\.json$/, /\.map$/, /^worker-.*\.js$/],
+    maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "google-fonts-webfonts",
+          expiration: { maxEntries: 4, maxAgeSeconds: 365 * 24 * 60 * 60 },
+        },
       },
-    },
-    {
-      urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "static-image-assets",
-        expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
+      {
+        urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "static-image-assets",
+          expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
+        },
       },
-    },
-  ],
-})(nextConfig);
+    ],
+  },
+});
+
+export default withPWA(nextConfig);

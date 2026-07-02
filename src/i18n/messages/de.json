@@ -45,10 +45,10 @@
     "betaVersionAria": "AniKitty Beta, Version {version}"
   },
   "banner": {
-    "adsPromoGuestTitle": "Angemeldet? Du kannst Klick-Werbung deaktivieren",
+    "adsPromoGuestTitle": "Angemeldet? Du kannst Banner-Werbung deaktivieren",
     "adsPromoGuestBody": "Erstelle ein Konto oder melde dich an, dann schalte Werbung in den Einstellungen aus.",
-    "adsPromoSignedInTitle": "Du kannst Klick-Werbung deaktivieren",
-    "adsPromoSignedInBody": "Schalte leichte Klick-Werbung jederzeit in den Einstellungen aus.",
+    "adsPromoSignedInTitle": "Du kannst Banner-Werbung deaktivieren",
+    "adsPromoSignedInBody": "Schalte leichte Banner-Werbung jederzeit in den Einstellungen aus.",
     "adsPromoCta": "Einstellungen öffnen"
   },
   "footer": {
@@ -368,15 +368,15 @@
     "playbackDesc": "Standardverhalten beim Anime-Schauen",
     "ads": {
       "title": "Werbung",
-      "desc": "Leichte Klick-Werbung hilft, die Server zu finanzieren",
-      "showAds": "Klick-Werbung anzeigen",
+      "desc": "Leichte Banner-Werbung hilft, die Server zu finanzieren",
+      "showAds": "Banner-Werbung anzeigen",
       "showAdsDesc": "Mit deinem Konto auf allen Geräten synchronisiert",
-      "signInHint": "Melde dich an, um Klick-Werbung für dein Konto auszuschalten.",
+      "signInHint": "Melde dich an, um Banner-Werbung für dein Konto auszuschalten.",
       "saveFailed": "Werbeeinstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "donationHint": "Magst du AniKitty?",
       "donationLink": "Auf Ko-fi spenden",
       "disableTitle": "Werbung ausschalten?",
-      "disableBody": "Klick-Werbung auf AniKitty ist leichtgewichtig und hilft, Hosting-, Streaming- und Datenbankkosten zu decken, damit die Seite für alle kostenlos bleibt.",
+      "disableBody": "Banner-Werbung auf AniKitty hilft, Hosting-, Streaming- und Datenbankkosten zu decken, damit die Seite für alle kostenlos bleibt.",
       "disableWarning": "Werbung auszuschalten bedeutet weniger Unterstützung für AniKitty. Wenn du kannst, spende auf Ko-fi.",
       "keepAds": "Werbung behalten",
       "disableConfirm": "Trotzdem ausschalten"
