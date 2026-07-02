@@ -1004,6 +1004,8 @@
     "databaseIds": "数据库 ID",
     "selectEpisode": "选择一集开始观看",
     "loadingStream": "正在加载流媒体",
+    "loadingStreamProvider": "正在从 {provider} 加载…",
+    "switchProviderWhileLoading": "加载慢或卡住了？可在下方切换源，无需等待当前源。",
     "streamUnavailable": "{provider} 上无法播放",
     "streamNotFound": "该提供方找不到流媒体，请尝试下方的其他提供方。",
     "retryWith": "使用 {provider} 重试",

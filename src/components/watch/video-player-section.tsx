@@ -994,47 +994,9 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if (isLoading && !hasStreamFile) {
-    return (
-      <PlayerSkeleton label={t("watch.loadingStream")} />
-    );
-  }
-
-  const upstreamError = (streamError as { response?: { data?: { error?: string } } })?.response?.data?.error;
-  const upstreamStatus = (streamError as { response?: { status?: number } })?.response?.status;
-
-  const subtitleTracks = playerTracks.filter(isSubtitleTrack);
-
-  const isEpisodeNotFound = (message: string | null | undefined) => {
-    if (!message && upstreamStatus === 404) return true;
-    if (!message) return false;
-    const lower = message.toLowerCase();
-    return (
-      upstreamStatus === 404 ||
-      lower.includes("not found") ||
-      lower.includes("couldn't find") ||
-      lower.includes("could not find") ||
-      lower.includes("no stream") ||
-      lower.includes("episode not")
-    );
-  };
-
-  if (!isFetching && !hasStreamFile && streamQueryEnabled && (streamError || !isLoading)) {
-    const rawMessage =
-      upstreamError ??
-      streamData?.error ??
-      (streamError instanceof Error ? streamError.message : null);
-    const streamFailMessage = isEpisodeNotFound(rawMessage)
-      ? t("watch.episodeNotFoundOnProvider", { provider })
-      : (rawMessage ?? t("watch.streamNotFound"));
-
-    return (
-      <div className="flex flex-col gap-3">
-        <WatchErrorPanel
-          error={new Error(streamFailMessage)}
-          onRetry={() => void retryStream()}
-        />
-
+  const streamProviderControls = (
+    <>
+      {!compactProviderPicker ? (
         <ProviderQuickPick
           value={provider}
           audioMode={audioMode}
@@ -1058,24 +1020,66 @@ const VideoPlayerSection = () => {
           onAllanimeMirrorChange={handleAllanimeMirrorChange}
           onMkissaMirrorChange={handleMkissaMirrorChange}
           onAnimoServerChange={handleAnimoServerChange}
-          className={compactProviderPicker ? "hidden" : undefined}
         />
-        {compactProviderPicker && (
-          <WatchSimpleProviderRow
-            provider={provider}
-            miruroPipe={miruroPipe}
-            animexServer={animexServer}
-            anisnatchServer={anisnatchServer}
-            lunarServer={lunarServer}
-            animoServer={animoServer}
-            onProviderChange={handleSimpleProviderChange}
-            onMiruroPipeChange={handleMiruroPipeChange}
-            onAnimexServerChange={handleAnimexServerChange}
-            onAnisnatchServerChange={handleAnisnatchServerChange}
-            onLunarServerChange={handleLunarServerChange}
-            onAnimoServerChange={handleAnimoServerChange}
-          />
-        )}
+      ) : (
+        <WatchSimpleProviderRow
+          provider={provider}
+          miruroPipe={miruroPipe}
+          animexServer={animexServer}
+          anisnatchServer={anisnatchServer}
+          lunarServer={lunarServer}
+          animoServer={animoServer}
+          onProviderChange={handleSimpleProviderChange}
+          onMiruroPipeChange={handleMiruroPipeChange}
+          onAnimexServerChange={handleAnimexServerChange}
+          onAnisnatchServerChange={handleAnisnatchServerChange}
+          onLunarServerChange={handleLunarServerChange}
+          onAnimoServerChange={handleAnimoServerChange}
+        />
+      )}
+    </>
+  );
+
+  const upstreamError = (streamError as { response?: { data?: { error?: string } } })?.response?.data?.error;
+  const upstreamStatus = (streamError as { response?: { status?: number } })?.response?.status;
+
+  const isEpisodeNotFound = (message: string | null | undefined) => {
+    if (!message && upstreamStatus === 404) return true;
+    if (!message) return false;
+    const lower = message.toLowerCase();
+    return (
+      upstreamStatus === 404 ||
+      lower.includes("not found") ||
+      lower.includes("couldn't find") ||
+      lower.includes("could not find") ||
+      lower.includes("no stream") ||
+      lower.includes("episode not")
+    );
+  };
+
+  const showStreamError =
+    !isFetching && !hasStreamFile && streamQueryEnabled && (streamError || !isLoading);
+
+  const showStreamLoading =
+    streamQueryEnabled && !hasStreamFile && (isLoading || isFetching);
+
+  if (showStreamError) {
+    const rawMessage =
+      upstreamError ??
+      streamData?.error ??
+      (streamError instanceof Error ? streamError.message : null);
+    const streamFailMessage = isEpisodeNotFound(rawMessage)
+      ? t("watch.episodeNotFoundOnProvider", { provider })
+      : (rawMessage ?? t("watch.streamNotFound"));
+
+    return (
+      <div className="flex flex-col gap-3">
+        <WatchErrorPanel
+          error={new Error(streamFailMessage)}
+          onRetry={() => void retryStream()}
+        />
+
+        {streamProviderControls}
 
         <Button
           size="sm"
@@ -1089,9 +1093,28 @@ const VideoPlayerSection = () => {
     );
   }
 
+  if (showStreamLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        <PlayerSkeleton label={t("watch.loadingStreamProvider", { provider })} />
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-3 space-y-2.5">
+          <p className="text-[11px] font-mono text-white/40 leading-relaxed">
+            {t("watch.switchProviderWhileLoading")}
+          </p>
+          {streamProviderControls}
+        </div>
+      </div>
+    );
+  }
+
+  const subtitleTracks = playerTracks.filter(isSubtitleTrack);
+
   if (!streamData?.file) {
     return (
-      <PlayerSkeleton label={t("watch.loadingStream")} />
+      <div className="flex flex-col gap-3">
+        <PlayerSkeleton label={t("watch.loadingStream")} />
+        {streamProviderControls}
+      </div>
     );
   }
 

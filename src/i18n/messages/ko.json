@@ -1004,6 +1004,8 @@
     "databaseIds": "데이터베이스 ID",
     "selectEpisode": "시청할 에피소드를 선택하세요",
     "loadingStream": "스트림 불러오는 중",
+    "loadingStreamProvider": "{provider}에서 불러오는 중…",
+    "switchProviderWhileLoading": "느리거나 멈췄나요? 아래에서 소스를 바꿀 수 있습니다. 현재 소스를 기다릴 필요 없습니다.",
     "streamUnavailable": "{provider}에서 스트림을 이용할 수 없습니다",
     "streamNotFound": "이 제공자에서 스트림을 찾을 수 없습니다. 아래에서 다른 제공자를 시도해 보세요.",
     "retryWith": "{provider}(으)로 다시 시도",

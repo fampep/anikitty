@@ -1004,6 +1004,8 @@
     "databaseIds": "データベースID",
     "selectEpisode": "視聴するエピソードを選択",
     "loadingStream": "ストリームを読み込み中",
+    "loadingStreamProvider": "{provider} から読み込み中…",
+    "switchProviderWhileLoading": "遅い・止まった？下でソースを切り替えられます。現在の読み込みを待つ必要はありません。",
     "streamUnavailable": "{provider}でストリームを利用できません",
     "streamNotFound": "このプロバイダーではストリームが見つかりませんでした。下から別のものをお試しください。",
     "retryWith": "{provider}で再試行",

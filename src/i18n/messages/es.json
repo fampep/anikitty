@@ -1004,6 +1004,8 @@
     "databaseIds": "IDs de base de datos",
     "selectEpisode": "Selecciona un episodio para empezar a ver",
     "loadingStream": "Cargando stream",
+    "loadingStreamProvider": "Cargando desde {provider}…",
+    "switchProviderWhileLoading": "¿Lento o atascado? Cambia de fuente abajo — no tienes que esperar a la actual.",
     "streamUnavailable": "Stream no disponible en {provider}",
     "streamNotFound": "Este proveedor no encontró el stream. Prueba otro abajo.",
     "retryWith": "Reintentar con {provider}",

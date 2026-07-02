@@ -1004,6 +1004,8 @@
     "databaseIds": "Database-ID'er",
     "selectEpisode": "Vælg et afsnit for at begynde at se",
     "loadingStream": "Indlæser stream",
+    "loadingStreamProvider": "Indlæser fra {provider}…",
+    "switchProviderWhileLoading": "Langsom eller hænger? Skift kilde nedenfor — du behøver ikke vente på den nuværende.",
     "streamUnavailable": "Stream utilgængelig på {provider}",
     "streamNotFound": "Denne udbyder kunne ikke finde streamen. Prøv en anden nedenfor.",
     "retryWith": "Prøv igen med {provider}",

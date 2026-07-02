@@ -965,6 +965,8 @@
     "databaseIds": "Datenbank-IDs",
     "selectEpisode": "Wähle eine Folge zum Starten",
     "loadingStream": "Stream wird geladen",
+    "loadingStreamProvider": "Lade von {provider}…",
+    "switchProviderWhileLoading": "Langsam oder hängt? Wechsle unten die Quelle — du musst nicht auf die aktuelle warten.",
     "streamUnavailable": "Stream auf {provider} nicht verfügbar",
     "streamNotFound": "Dieser Anbieter konnte den Stream nicht finden. Probiere unten einen anderen.",
     "retryWith": "Erneut mit {provider}",

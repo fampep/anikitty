@@ -877,6 +877,8 @@
     "databaseIds": "Identifiants de base de données",
     "selectEpisode": "Sélectionnez un épisode pour commencer à regarder",
     "loadingStream": "Chargement du stream",
+    "loadingStreamProvider": "Chargement depuis {provider}…",
+    "switchProviderWhileLoading": "Trop lent ou bloqué ? Changez de source ci-dessous — pas besoin d'attendre la source actuelle.",
     "streamUnavailable": "Stream indisponible sur {provider}",
     "streamNotFound": "Ce fournisseur n'a pas trouvé le stream. Essayez-en un autre ci-dessous.",
     "retryWith": "Réessayer avec {provider}",
