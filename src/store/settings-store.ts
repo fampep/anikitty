@@ -18,10 +18,6 @@ interface ISettingsStore {
   autoPlay: boolean;
   setAutoPlay: (val: boolean) => void;
 
-  /** Click ads (logged-in users may disable after confirmation). */
-  showAds: boolean;
-  setShowAds: (val: boolean) => void;
-
   /** Provider grid + stream actions below the player. */
   showPlayerControls: boolean;
   setShowPlayerControls: (val: boolean) => void;
@@ -70,9 +66,6 @@ export const useSettingsStore = create<ISettingsStore>()(
       autoPlay: false,
       setAutoPlay: (autoPlay) => set({ autoPlay }),
 
-      showAds: true,
-      setShowAds: (showAds) => set({ showAds }),
-
       showPlayerControls: true,
       setShowPlayerControls: (showPlayerControls) => set({ showPlayerControls }),
 
@@ -114,7 +107,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 11,
+      version: 12,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -151,10 +144,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           delete (next as Record<string, unknown>).anime4kEnabled;
           delete (next as Record<string, unknown>).anime4kMode;
         }
-        if (version < 8 && next.showAds === undefined) {
-          next.showAds = true;
-        }
-        if (version < 9) {
+        if (version < 12) {
           delete (next as Record<string, unknown>).showAds;
         }
         if (version < 10) {
@@ -166,7 +156,6 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.providerAutoFallback = next.providerAutoFallback ?? true;
           next.simpleProviderPicker = next.simpleProviderPicker ?? false;
         }
-        next.showAds = next.showAds ?? true;
         return next as ISettingsStore;
       },
     },

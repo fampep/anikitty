@@ -185,12 +185,6 @@ export const anisurgeAuth = {
 
   me: () => bff("/me"),
 
-  updateShowAds: (showAds: boolean) =>
-    bff<{ showAds: boolean }>("/preferences", {
-      method: "PATCH",
-      body: JSON.stringify({ showAds }),
-    }),
-
   updateProfile: (data: {
     avatarUrl?: string | null;
     bannerUrl?: string | null;

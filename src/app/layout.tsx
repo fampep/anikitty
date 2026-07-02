@@ -14,8 +14,6 @@ import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import UserThemeSync from "@/components/layout/user-theme-sync";
-import ClickAdsLoader from "@/components/ads/click-ads-loader";
-import ShowAdsSync from "@/components/ads/show-ads-sync";
 import PwaRegister from "@/components/pwa/pwa-register";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -119,12 +117,11 @@ export default async function RootLayout({
         <PublicEnvScript />
         <link rel="icon" href={SITE_FAVICON} type="image/png" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
-        <ClickAdsLoader />
+        <script src="https://pl30172658.effectivecpmnetwork.com/a2/1e/38/a21e38fcd3c151b55ac215d3281f5ddb.js" />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
-        <ShowAdsSync />
         <PwaRegister />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider

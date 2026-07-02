@@ -6,10 +6,6 @@ import { usePathname } from "next/navigation";
 import { Info, AlertTriangle, AlertOctagon, CheckCircle2, X, MessageSquare, ArrowRight, Megaphone } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
-import { useAuthStore } from "@/store/auth-store";
-import { useSettingsStore } from "@/store/settings-store";
-import { usePermissions } from "@/hooks/use-permissions";
-import { useT } from "@/providers/i18n-provider";
 
 interface Announcement {
   id: string;
@@ -31,7 +27,6 @@ const STYLES: Record<string, { bg: string; border: string; text: string; icon: R
 };
 
 const DISMISSED_KEY = "anikitty:dismissedAnnouncements";
-const ADS_PROMO_ID = "__ads_settings_promo__";
 
 function readDismissed(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -54,12 +49,7 @@ function writeDismissed(set: Set<string>) {
 }
 
 export default function SiteAnnouncementBanner() {
-  const t = useT();
   const pathname = usePathname();
-  const auth = useAuthStore((s) => s.auth);
-  const authHydrated = useAuthStore.persist.hasHydrated();
-  const showAds = useSettingsStore((s) => s.showAds);
-  const { adFree } = usePermissions();
   const [items, setItems] = useState<Announcement[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
@@ -87,30 +77,10 @@ export default function SiteAnnouncementBanner() {
 
   const hideOnPage = !hydrated || pathname === "/" || pathname?.startsWith("/anime/watch");
 
-  const showAdsPromo =
-    authHydrated &&
-    !adFree &&
-    (!auth || showAds) &&
-    !dismissed.has(ADS_PROMO_ID);
-
   const visible = useMemo(() => {
     if (hideOnPage) return [];
-    const admin = items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
-    if (!showAdsPromo) return admin;
-
-    const promo: Announcement = {
-      id: ADS_PROMO_ID,
-      title: auth ? t("banner.adsPromoSignedInTitle") : t("banner.adsPromoGuestTitle"),
-      body: auth ? t("banner.adsPromoSignedInBody") : t("banner.adsPromoGuestBody"),
-      severity: "promo",
-      dismissible: true,
-      linkUrl: ROUTES.SETTINGS,
-      linkLabel: t("banner.adsPromoCta"),
-      forumThreadId: null,
-    };
-
-    return [promo, ...admin];
-  }, [hideOnPage, items, dismissed, showAdsPromo, auth, t]);
+    return items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
+  }, [hideOnPage, items, dismissed]);
 
   const visibleKey = useMemo(() => visible.map((a) => a.id).join(","), [visible]);
 

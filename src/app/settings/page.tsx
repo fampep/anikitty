@@ -40,7 +40,6 @@ import ActiveSessionsSection from "@/components/auth/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile/profile-privacy-section";
 import AccountDeletionSection from "@/components/auth/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
-import AdsSettingsSection from "@/components/settings/ads-settings-section";
 import DiscordConnect from "@/components/auth/discord-connect";
 import AnisurgeConnect from "@/components/auth/anisurge-connect";
 import { RoleBadge } from "@/components/profile/role-badge";
@@ -700,7 +699,6 @@ export default function SettingsPage() {
                 autoPlay={autoPlay}
                 setAutoPlay={setAutoPlay}
               />
-              <AdsSettingsSection />
               <EpisodeLayoutSection
                 episodeLayouts={episodeLayouts}
                 episodeLayout={episodeLayout}
@@ -796,7 +794,6 @@ export default function SettingsPage() {
               autoPlay={autoPlay}
               setAutoPlay={setAutoPlay}
             />
-            <AdsSettingsSection />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}
               episodeLayout={episodeLayout}

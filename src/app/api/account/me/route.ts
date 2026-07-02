@@ -28,7 +28,6 @@ export async function GET(req: Request) {
       themeColor: users.themeColor,
       role: users.role,
       supporterUntil: users.supporterUntil,
-      showAds: users.showAds,
       anisurgeUsername: users.anisurgeUsername,
       anilistUsername: users.anilistUsername,
       anilistAccessToken: users.anilistAccessToken,
@@ -72,7 +71,6 @@ export async function GET(req: Request) {
       discordUsername: safeUser.discordUsername ?? null,
       totpEnabled: safeUser.totpEnabled ?? false,
       profilePrivate: safeUser.profilePrivate ?? false,
-      showAds: safeUser.showAds ?? true,
       user: {
       id: safeUser.id,
       username: safeUser.username,
@@ -82,7 +80,6 @@ export async function GET(req: Request) {
       bio: safeUser.bio ?? null,
       themeColor: safeUser.themeColor ?? null,
       role: effectiveRole,
-      showAds: safeUser.showAds ?? true,
       supporterUntil: user.supporterUntil?.toISOString() ?? null,
       createdAt: safeUser.createdAt?.toISOString() ?? null,
       equippedFrame: cosmetics.equipped.frame,
