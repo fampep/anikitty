@@ -112,6 +112,9 @@ export function buildPageMetadata(
       description: page.description,
       images: [ogImage],
     },
+    other: {
+      monetag: "f3374b2b42202f0a62f67720001d46e8",
+    },
   };
 }
 
