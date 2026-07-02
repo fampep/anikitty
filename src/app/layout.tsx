@@ -83,6 +83,9 @@ export const metadata: Metadata = {
     description: APP_DESCRIPTION,
     images: ["/opengraph-image"],
   },
+  other: {
+    monetag: "f3374b2b42202f0a62f67720001d46e8",
+  },
 };
 
 export const viewport = {
