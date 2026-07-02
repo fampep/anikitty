@@ -222,6 +222,16 @@
     "todayPanel": "Hoy en AniKitty",
     "todayPanelDesc": "Horario de emisión y géneros rápidos",
     "discover": "Descubrir",
+    "exploreSearch": "Buscar entre {count}+ anime…",
+    "catalogTitles": "{count}+ títulos",
+    "quickNav": {
+      "continue": "Continuar",
+      "latest": "Nuevos episodios",
+      "added": "Recién añadidos",
+      "today": "Horario",
+      "trending": "Tendencias",
+      "comments": "Comentarios"
+    },
     "promos": {
       "shop": {
         "title": "Tienda Kittycoins",
@@ -782,6 +792,7 @@
       "relations": "Relaciones",
       "comments": "Comentarios"
     },
+    "quickNavHint": "Ir a la sección",
     "synopsis": "Sinopsis",
     "alternativeTitles": "Títulos alternativos",
     "studios": "Estudios",
@@ -981,6 +992,14 @@
       "info": "Info",
       "related": "Relacionados"
     },
+    "nowWatching": "Viendo ahora",
+    "quickNav": {
+      "comments": "Comentarios",
+      "info": "Info",
+      "related": "Relacionados",
+      "animePage": "Página del anime"
+    },
+    "selectEpisodeHint": "Elige un episodio de la lista de abajo",
     "fullAnimePage": "Página completa del anime",
     "databaseIds": "IDs de base de datos",
     "selectEpisode": "Selecciona un episodio para empezar a ver",

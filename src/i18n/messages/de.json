@@ -192,6 +192,16 @@
     "todayPanel": "Heute auf AniKitty",
     "todayPanelDesc": "Sendeplan und schnelle Genre-Auswahl",
     "discover": "Entdecken",
+    "exploreSearch": "{count}+ Anime-Titel suchen…",
+    "catalogTitles": "{count}+ Titel",
+    "quickNav": {
+      "continue": "Weiter",
+      "latest": "Neue Folgen",
+      "added": "Neu hinzugefügt",
+      "today": "Plan",
+      "trending": "Trends",
+      "comments": "Kommentare"
+    },
     "promos": {
       "shop": { "title": "Kittycoins-Shop", "desc": "Sticker, Rahmen & Profil-Flair" },
       "w2g": { "title": "Gemeinsam schauen", "desc": "Episoden mit Freunden synchronisieren" },
@@ -743,6 +753,7 @@
       "relations": "Verwandte",
       "comments": "Kommentare"
     },
+    "quickNavHint": "Zum Abschnitt springen",
     "synopsis": "Synopsis",
     "alternativeTitles": "Alternative Titel",
     "studios": "Studios",
@@ -942,6 +953,14 @@
       "info": "Info",
       "related": "Verwandte"
     },
+    "nowWatching": "Gerade am Schauen",
+    "quickNav": {
+      "comments": "Kommentare",
+      "info": "Info",
+      "related": "Verwandte",
+      "animePage": "Anime-Seite"
+    },
+    "selectEpisodeHint": "Wähle eine Folge aus der Liste unten",
     "fullAnimePage": "Vollständige Anime-Seite",
     "databaseIds": "Datenbank-IDs",
     "selectEpisode": "Wähle eine Folge zum Starten",

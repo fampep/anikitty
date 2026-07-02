@@ -10,6 +10,8 @@ import { useAnimeStore } from "@/store/anime-store";
 import EpisodePlaylist from "@/components/watch/episode-playlist";
 import WatchCommentsPreview from "@/components/watch/watch-comments-preview";
 import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
+import WatchPageHeader from "@/components/watch/watch-page-header";
+import WatchQuickNav from "@/components/watch/watch-quick-nav";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime/anime-carousel";
 import dynamic from "next/dynamic";
@@ -226,31 +228,26 @@ const Layout = (props: Props) => {
 
   return (
     <Container className="mt-16 sm:mt-20 pb-16 pb-safe">
-      {/* Breadcrumb + list selector */}
-      <div className="flex items-center gap-1.5 mb-3 min-w-0">
-        <Link
-          href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-          className="text-[12px] font-mono text-white/35 hover:text-white/65 transition-colors truncate max-w-[160px] sm:max-w-[260px]"
-        >
-          {info.name}
-        </Link>
-        {currentEpisode && (
-          <>
-            <ChevronRight className="w-3 h-3 text-white/20 shrink-0" />
-            <span className="text-[12px] font-mono text-white/20 shrink-0">
-              {t("watch.episode", { n: currentEpisode.number })}
-            </span>
-          </>
-        )}
-        <div className="ml-auto shrink-0">
+      <WatchPageHeader
+        animeId={info.id}
+        name={info.name}
+        poster={info.poster}
+        episodeNumber={currentEpisode?.number}
+        listSelector={
           <Select
             placeholder={t("anime.addToList")}
             value={bookmarks?.[0]?.status || selected}
             options={bookmarkOptions}
             onChange={handleSelect}
           />
-        </div>
-      </div>
+        }
+      />
+
+      <WatchQuickNav
+        activeTab={watchTab}
+        onTabChange={handleWatchTabChangeWithMobile}
+        animeId={info.id}
+      />
 
       {/* Main grid: player + sidebar */}
       <div
@@ -287,7 +284,7 @@ const Layout = (props: Props) => {
 
           {/* Tabs: Comments | Info | Related */}
           <Tabs value={watchTab} onValueChange={handleWatchTabChangeWithMobile} className="w-full">
-            <TabsList className="flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0">
+            <TabsList className="hidden lg:flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0">
               {[
                 { value: "comments", label: t("watch.tabs.comments"), icon: <MessageSquare className="w-3.5 h-3.5" /> },
                 { value: "info", label: t("watch.tabs.info"), icon: <Info className="w-3.5 h-3.5" /> },
@@ -296,7 +293,7 @@ const Layout = (props: Props) => {
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:text-white data-[state=active]:bg-transparent text-white/35 hover:text-white/65 transition-all bg-transparent"
+                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400 data-[state=active]:text-white data-[state=active]:bg-violet-500/[0.06] text-white/35 hover:text-white/65 transition-all bg-transparent"
                 >
                   {tab.icon}
                   {tab.label}
@@ -306,7 +303,7 @@ const Layout = (props: Props) => {
 
             <TabsContent value="comments" className="mt-4 hidden lg:block" id="watch-comments-panel">
               {currentAnimeId && (
-                <div className="rounded-xl border border-white/8 bg-[#080808] p-5">
+                <div className="site-panel p-5 sm:p-6">
                   <CommentSection
                     animeId={currentAnimeId}
                     episodeId={episodeId}
@@ -319,10 +316,10 @@ const Layout = (props: Props) => {
               )}
             </TabsContent>
 
-            <TabsContent value="info" className="mt-6 space-y-6">
+            <TabsContent value="info" className="mt-6 space-y-5">
               {/* Synopsis */}
               {info.description && (
-                <div>
+                <div className="site-panel p-5 sm:p-6">
                   <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
                   <p className="text-[13px] text-white/55 leading-7">
                     {parse(info.description as string)}
@@ -337,7 +334,7 @@ const Layout = (props: Props) => {
               )}
 
               {/* Details grid */}
-              <div>
+              <div className="site-panel p-5 sm:p-6">
                 <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.details")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -358,7 +355,7 @@ const Layout = (props: Props) => {
 
               {/* External links */}
               {externalLinks.length > 0 && (
-                <div>
+                <div className="site-panel p-5 sm:p-6">
                   <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</p>
                   <div className="flex flex-wrap gap-2">
                     {externalLinks.map((link) => (
@@ -382,7 +379,7 @@ const Layout = (props: Props) => {
 
               {/* DB IDs (raw) */}
               {mappings && (
-                <div>
+                <div className="site-panel p-5 sm:p-6">
                   <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("watch.databaseIds")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[

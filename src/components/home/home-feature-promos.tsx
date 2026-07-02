@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { Captions, Coins, Users } from "lucide-react";
+import { Captions, ChevronRight, Coins, Users } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 
 const PROMOS = [
@@ -23,15 +23,16 @@ export default function HomeFeaturePromos() {
           <Link
             key={key}
             href={href}
-            className={`site-panel-hover flex items-center gap-3 p-4 bg-gradient-to-br ${bg} to-transparent`}
+            className={`site-panel-hover group flex items-center gap-3 p-4 bg-gradient-to-br ${bg} to-transparent`}
           >
             <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 ${color}`}>
               <Icon className="w-4 h-4" />
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white/80">{t(`home.promos.${key}.title`)}</p>
               <p className="text-[11px] text-white/30 font-mono mt-0.5 line-clamp-1">{t(`home.promos.${key}.desc`)}</p>
             </div>
+            <ChevronRight className="w-4 h-4 shrink-0 text-white/15 group-hover:text-violet-300/70 group-hover:translate-x-0.5 transition-all" />
           </Link>
         ))}
       </div>

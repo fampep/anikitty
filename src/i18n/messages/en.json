@@ -195,6 +195,16 @@
     "todayPanel": "Today on AniKitty",
     "todayPanelDesc": "Airing schedule and quick genre picks",
     "discover": "Discover",
+    "exploreSearch": "Search {count}+ anime titles…",
+    "catalogTitles": "{count}+ titles",
+    "quickNav": {
+      "continue": "Continue",
+      "latest": "New episodes",
+      "added": "Recently added",
+      "today": "Schedule",
+      "trending": "Trending",
+      "comments": "Comments"
+    },
     "promos": {
       "shop": { "title": "Kittycoins shop", "desc": "Stickers, frames & profile flair" },
       "w2g": { "title": "Watch together", "desc": "Sync episodes with friends" },
@@ -803,6 +813,7 @@
       "relations": "Relations",
       "comments": "Comments"
     },
+    "quickNavHint": "Jump to section",
     "synopsis": "Synopsis",
     "alternativeTitles": "Alternative Titles",
     "studios": "Studios",
@@ -1010,6 +1021,14 @@
       "info": "Info",
       "related": "Related"
     },
+    "nowWatching": "Now watching",
+    "quickNav": {
+      "comments": "Comments",
+      "info": "Info",
+      "related": "Related",
+      "animePage": "Anime page"
+    },
+    "selectEpisodeHint": "Pick an episode from the list below",
     "fullAnimePage": "Full anime page",
     "databaseIds": "Database IDs",
     "selectEpisode": "Select an episode to start watching",

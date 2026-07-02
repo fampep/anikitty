@@ -222,6 +222,16 @@
     "todayPanel": "今日のAniKitty",
     "todayPanelDesc": "放送スケジュールとクイックジャンル",
     "discover": "発見",
+    "exploreSearch": "{count}+作品を検索…",
+    "catalogTitles": "{count}+作品",
+    "quickNav": {
+      "continue": "続き",
+      "latest": "新着エピソード",
+      "added": "最近追加",
+      "today": "放送予定",
+      "trending": "トレンド",
+      "comments": "コメント"
+    },
     "promos": {
       "shop": {
         "title": "Kittycoinsショップ",
@@ -782,6 +792,7 @@
       "relations": "関連作品",
       "comments": "コメント"
     },
+    "quickNavHint": "セクションへ移動",
     "synopsis": "あらすじ",
     "alternativeTitles": "別タイトル",
     "studios": "制作スタジオ",
@@ -981,6 +992,14 @@
       "info": "情報",
       "related": "関連"
     },
+    "nowWatching": "視聴中",
+    "quickNav": {
+      "comments": "コメント",
+      "info": "情報",
+      "related": "関連",
+      "animePage": "アニメページ"
+    },
+    "selectEpisodeHint": "下のリストからエピソードを選んでください",
     "fullAnimePage": "アニメ詳細ページ",
     "databaseIds": "データベースID",
     "selectEpisode": "視聴するエピソードを選択",

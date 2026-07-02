@@ -12,10 +12,15 @@ export default function HomeDonationSlim() {
 
   return (
     <Container className="py-3">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 py-3 rounded-xl border border-fuchsia-500/15 bg-gradient-to-r from-fuchsia-500/[0.06] to-violet-500/[0.04]">
-        <p className="text-[12px] text-white/50 leading-relaxed flex-1 min-w-0">
-          {t("home.donationSlim")}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 py-3.5 rounded-xl border border-fuchsia-500/15 bg-gradient-to-r from-fuchsia-500/[0.08] via-violet-500/[0.05] to-transparent">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/15 border border-fuchsia-400/20 text-fuchsia-300">
+            <Coffee className="h-4 w-4" />
+          </span>
+          <p className="text-[12px] text-white/50 leading-relaxed pt-1.5">
+            {t("home.donationSlim")}
+          </p>
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           <a
             href={kofiDonationUrl()}

@@ -222,6 +222,16 @@
     "todayPanel": "오늘의 AniKitty",
     "todayPanelDesc": "방영 일정과 빠른 장르 선택",
     "discover": "탐색",
+    "exploreSearch": "{count}+개 작품 검색…",
+    "catalogTitles": "{count}+작품",
+    "quickNav": {
+      "continue": "이어보기",
+      "latest": "새 에피소드",
+      "added": "최근 추가",
+      "today": "편성표",
+      "trending": "인기",
+      "comments": "댓글"
+    },
     "promos": {
       "shop": {
         "title": "키티코인 상점",
@@ -782,6 +792,7 @@
       "relations": "관련 작품",
       "comments": "댓글"
     },
+    "quickNavHint": "섹션으로 이동",
     "synopsis": "줄거리",
     "alternativeTitles": "다른 제목",
     "studios": "제작사",
@@ -981,6 +992,14 @@
       "info": "정보",
       "related": "관련"
     },
+    "nowWatching": "시청 중",
+    "quickNav": {
+      "comments": "댓글",
+      "info": "정보",
+      "related": "관련",
+      "animePage": "애니메 페이지"
+    },
+    "selectEpisodeHint": "아래 목록에서 에피소드를 선택하세요",
     "fullAnimePage": "애니메이션 상세 페이지",
     "databaseIds": "데이터베이스 ID",
     "selectEpisode": "시청할 에피소드를 선택하세요",

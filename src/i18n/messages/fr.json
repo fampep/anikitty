@@ -192,6 +192,16 @@
     "todayPanel": "Aujourd'hui sur AniKitty",
     "todayPanelDesc": "Planning de diffusion et genres rapides",
     "discover": "Découvrir",
+    "exploreSearch": "Rechercher parmi {count}+ anime…",
+    "catalogTitles": "{count}+ titres",
+    "quickNav": {
+      "continue": "Continuer",
+      "latest": "Nouveaux épisodes",
+      "added": "Ajouts récents",
+      "today": "Planning",
+      "trending": "Tendances",
+      "comments": "Commentaires"
+    },
     "promos": {
       "shop": { "title": "Boutique Kittycoins", "desc": "Stickers, cadres & flair de profil" },
       "w2g": { "title": "Regarder ensemble", "desc": "Synchronisez des épisodes avec des amis" },
@@ -743,6 +753,7 @@
       "subtitles": "Sous-titres",
       "media": "Médias"
     },
+    "quickNavHint": "Aller à la section",
     "synopsis": "Synopsis",
     "alternativeTitles": "Titres alternatifs",
     "studios": "Studios",
@@ -854,6 +865,14 @@
       "info": "Info",
       "related": "Liés"
     },
+    "nowWatching": "En cours de lecture",
+    "quickNav": {
+      "comments": "Commentaires",
+      "info": "Info",
+      "related": "Liés",
+      "animePage": "Page anime"
+    },
+    "selectEpisodeHint": "Choisissez un épisode dans la liste ci-dessous",
     "fullAnimePage": "Page anime complète",
     "databaseIds": "Identifiants de base de données",
     "selectEpisode": "Sélectionnez un épisode pour commencer à regarder",

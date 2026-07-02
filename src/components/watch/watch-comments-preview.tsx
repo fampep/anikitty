@@ -62,21 +62,24 @@ export default function WatchCommentsPreview({
       onClick={onOpen}
       aria-label={subtitle}
       className={cn(
-        "w-full text-left rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5",
-        "hover:bg-white/[0.06] hover:border-white/15 transition-colors",
+        "w-full text-left rounded-xl border border-white/10 bg-gradient-to-br from-violet-500/[0.08] via-white/[0.03] to-transparent px-4 py-3.5",
+        "hover:bg-violet-500/[0.1] hover:border-violet-400/20 transition-all group",
         className,
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] border border-white/10">
-          <MessageSquare className="h-4 w-4 text-white/55" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 border border-violet-400/15 group-hover:border-violet-400/30 transition-colors">
+          <MessageSquare className="h-4 w-4 text-violet-300/80" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white leading-none">
             {t("watch.tabs.comments")}
           </p>
           <p className="mt-1.5 text-[12px] text-white/40 leading-snug">{subtitle}</p>
         </div>
+        <span className="shrink-0 text-[11px] font-mono text-white/25 group-hover:text-violet-300/70 transition-colors mt-0.5">
+          →
+        </span>
       </div>
     </button>
   );

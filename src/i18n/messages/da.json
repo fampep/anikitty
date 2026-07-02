@@ -222,6 +222,16 @@
     "todayPanel": "I dag på AniKitty",
     "todayPanelDesc": "Sendeplan og hurtige genrevalg",
     "discover": "Udforsk",
+    "exploreSearch": "Søg blandt {count}+ anime…",
+    "catalogTitles": "{count}+ titler",
+    "quickNav": {
+      "continue": "Fortsæt",
+      "latest": "Nye afsnit",
+      "added": "Nyligt tilføjet",
+      "today": "Plan",
+      "trending": "Trending",
+      "comments": "Kommentarer"
+    },
     "promos": {
       "shop": {
         "title": "Kittycoins-butik",
@@ -782,6 +792,7 @@
       "relations": "Relationer",
       "comments": "Kommentarer"
     },
+    "quickNavHint": "Gå til sektion",
     "synopsis": "Synopsis",
     "alternativeTitles": "Alternative titler",
     "studios": "Studier",
@@ -981,6 +992,14 @@
       "info": "Info",
       "related": "Relationer"
     },
+    "nowWatching": "Ser nu",
+    "quickNav": {
+      "comments": "Kommentarer",
+      "info": "Info",
+      "related": "Relationer",
+      "animePage": "Anime-side"
+    },
+    "selectEpisodeHint": "Vælg et afsnit fra listen nedenfor",
     "fullAnimePage": "Fuld anime-side",
     "databaseIds": "Database-ID'er",
     "selectEpisode": "Vælg et afsnit for at begynde at se",

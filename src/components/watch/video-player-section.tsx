@@ -983,9 +983,13 @@ const VideoPlayerSection = () => {
 
   if (!episodeId && !selectedEpisode) {
     return (
-      <div className="w-full aspect-video bg-black flex flex-col items-center justify-center gap-3 rounded-xl border border-white/10">
-        <Cat className="text-white/20 w-12 h-12" />
-        <p className="text-white/30 text-sm font-mono">{t("watch.selectEpisode")}</p>
+      <div className="w-full aspect-video bg-[#030303] flex flex-col items-center justify-center gap-4 rounded-xl border border-white/10 ring-1 ring-white/[0.06] shadow-2xl shadow-black/60 overflow-hidden relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.1),transparent_60%)] pointer-events-none" />
+        <Cat className="text-violet-300/30 w-12 h-12 relative z-10" />
+        <div className="text-center relative z-10 px-6">
+          <p className="text-white/50 text-sm font-medium">{t("watch.selectEpisode")}</p>
+          <p className="text-white/25 text-[11px] font-mono mt-1.5">{t("watch.selectEpisodeHint")}</p>
+        </div>
       </div>
     );
   }

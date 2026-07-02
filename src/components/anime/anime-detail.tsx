@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import Container from "@/components/layout/container";
 import AnimeCard from "@/components/anime/anime-card";
@@ -34,6 +34,7 @@ import { cn } from "@/lib/core/utils";
 import dynamic from "next/dynamic";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
+import AnimeQuickNav from "@/components/anime/anime-quick-nav";
 
 const WatchTrailer = dynamic(() => import("@/components/watch/watch-trailer"), { ssr: false });
 const AnimeEpisodeAlertButton = dynamic(() => import("@/components/anime/anime-episode-alert-button"), {
@@ -70,6 +71,8 @@ const RATING_STYLES: Record<string, { label: string; color: string }> = {
 
 export default function AnimeDetail({ slug }: { slug: string }) {
   const t = useT();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const bookmarkOptions = useBookmarkLabels();
   const { data: anime, isLoading } = useGetAnimeDetails(slug);
@@ -106,6 +109,27 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     ]);
     return tab && valid.has(tab) ? tab : "overview";
   }, [searchParams]);
+
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "overview") params.delete("tab");
+    else params.set("tab", value);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    requestAnimationFrame(() => {
+      document.getElementById("anime-tabs-panel")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
 
   const providerRatings = (() => {
     if (!anime) return [];
@@ -182,6 +206,21 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   if (mappings?.animeplanet_id) externalLinks.push({ ...DB_LINKS[6], url: DB_LINKS[6].url(mappings.animeplanet_id) });
   if (mappings?.imdb_id)        externalLinks.push({ ...DB_LINKS[7], url: DB_LINKS[7].url(mappings.imdb_id) });
 
+  const tabItems = [
+    { value: "overview", label: t("anime.tabs.overview") },
+    { value: "episodes", label: t("anime.tabs.episodes") },
+    { value: "subtitles", label: t("anime.tabs.subtitles") },
+    { value: "media", label: t("anime.tabs.media") },
+    ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
+    ...(info.charactersVoiceActors.length > 0
+      ? [{ value: "characters", label: t("anime.tabs.characters") }]
+      : []),
+    ...(anime.relatedAnimes?.length > 0
+      ? [{ value: "relations", label: t("anime.tabs.relations") }]
+      : []),
+    { value: "comments", label: t("anime.tabs.comments") },
+  ];
+
   return (
     <div className="w-full min-h-screen">
       {/* ── Banner ── */}
@@ -205,6 +244,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <div className="flex md:mt-[-14rem] mt-[-3rem] sm:mt-[-4rem] md:flex-row flex-col md:items-end gap-4 sm:gap-6 md:gap-8">
           {/* Poster: smaller on mobile, full-size on md+ */}
           <div className="shrink-0 relative self-center md:self-auto">
+            <div className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-transparent blur-xl pointer-events-none" />
             <AnimeCard
               title={info.name}
               poster={info.poster}
@@ -327,22 +367,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </div>
 
         {/* ── Tabs ── */}
-        <Tabs defaultValue={defaultTab} className="w-full mt-6 sm:mt-10">
-          <TabsList className="flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">
-            {[
-              { value: "overview", label: t("anime.tabs.overview") },
-              { value: "episodes", label: t("anime.tabs.episodes") },
-              { value: "subtitles", label: t("anime.tabs.subtitles") },
-              { value: "media", label: t("anime.tabs.media") },
-              ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
-              ...(info.charactersVoiceActors.length > 0
-                ? [{ value: "characters", label: t("anime.tabs.characters") }]
-                : []),
-              ...(anime.relatedAnimes?.length > 0
-                ? [{ value: "relations", label: t("anime.tabs.relations") }]
-                : []),
-              { value: "comments", label: t("anime.tabs.comments") },
-            ].map((tab) => (
+        <div id="anime-tabs-panel" className="scroll-mt-24 mt-6 sm:mt-10">
+          <AnimeQuickNav
+            tabs={tabItems}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            className="mb-4"
+          />
+
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="hidden sm:flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">
+            {tabItems.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
@@ -473,7 +508,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
           {/* ── Episodes ── */}
           <TabsContent value="episodes" className="mt-6">
-            <AnimeEpisodes animeId={info.id} />
+            <div className="site-panel p-4 sm:p-5">
+              <AnimeEpisodes animeId={info.id} />
+            </div>
           </TabsContent>
 
           {/* ── Subtitles ── */}
@@ -570,6 +607,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
 
         {anime.recommendedAnimes.length > 0 && (
           <AnimeCarousel anime={anime.recommendedAnimes as IAnime[]} title={t("common.recommended")} className="mt-16" />

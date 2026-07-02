@@ -222,6 +222,16 @@
     "todayPanel": "今日 AniKitty",
     "todayPanelDesc": "播出日程与快速类型筛选",
     "discover": "发现",
+    "exploreSearch": "搜索 {count}+ 部动漫…",
+    "catalogTitles": "{count}+ 部作品",
+    "quickNav": {
+      "continue": "继续观看",
+      "latest": "最新剧集",
+      "added": "最近添加",
+      "today": "放送表",
+      "trending": "热门",
+      "comments": "评论"
+    },
     "promos": {
       "shop": {
         "title": "Kittycoins 商店",
@@ -782,6 +792,7 @@
       "relations": "相关作品",
       "comments": "评论"
     },
+    "quickNavHint": "跳转到板块",
     "synopsis": "简介",
     "alternativeTitles": "别名",
     "studios": "制作公司",
@@ -981,6 +992,14 @@
       "info": "信息",
       "related": "相关"
     },
+    "nowWatching": "正在观看",
+    "quickNav": {
+      "comments": "评论",
+      "info": "信息",
+      "related": "相关",
+      "animePage": "动画页面"
+    },
+    "selectEpisodeHint": "从下方列表中选择一集",
     "fullAnimePage": "完整动画页面",
     "databaseIds": "数据库 ID",
     "selectEpisode": "选择一集开始观看",

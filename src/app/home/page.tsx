@@ -5,6 +5,8 @@ import FeaturedCollection from "@/components/home/featured-collection";
 import HomeTodayPanel from "@/components/home/home-today-panel";
 import HomeDonationSlim from "@/components/home/home-donation-slim";
 import HomeWelcomeBar from "@/components/home/home-welcome-bar";
+import HomeQuickNav from "@/components/home/home-quick-nav";
+import HomeExploreBar from "@/components/home/home-explore-bar";
 import HomeFeaturePromos from "@/components/home/home-feature-promos";
 import {
   useGetHomeCriticalData,
@@ -17,6 +19,7 @@ import {
   Flame,
   CalendarClock,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import Container from "@/components/layout/container";
@@ -106,6 +109,9 @@ export default function Home() {
         isDataLoading={isLoading}
       />
 
+      <HomeQuickNav />
+      <HomeExploreBar />
+
       <div id="continue" className="scroll-mt-[calc(var(--nav-height)+1rem)]">
         <LazyMount minHeight={200}>
           <ContinueWatching />
@@ -120,6 +126,18 @@ export default function Home() {
           />
         </LazyMount>
       </div>
+
+      <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="recently-added"
+            title={t("home.recentlyAdded")}
+            icon={<Sparkles className="w-4 h-4" />}
+            trendingAnime={data?.recentlyAddedAnimes as IAnime[]}
+            loading={isLoading}
+            layout="row"
+            seeAllHref={ROUTES.SEARCH}
+          />
+        </LazyMount>
 
       <LazyMount minHeight={80}>
         <HomeWelcomeBar />

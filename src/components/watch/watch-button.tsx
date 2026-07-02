@@ -26,8 +26,9 @@ const WatchButton = () => {
           ? `${ROUTES.WATCH}?anime=${animeId}`
           : `${ROUTES.WATCH}?anime=${animeId}&episode=${latestEpisodeWatched}`
       }
-      className="max-w-fit text-base"
+      className="max-w-fit text-base px-5 py-2.5 font-semibold border-0 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all"
       LeftIcon={CirclePlay}
+      classNames={{ leftIcon: "fill-white/20" }}
     >
       {hasWatchedAnime ? t("home.continueWatching") : t("landing.startWatching")}
     </ButtonLink>

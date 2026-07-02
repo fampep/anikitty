@@ -25,6 +25,7 @@ import LanguageSwitcher from "@/components/layout/language-switcher";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { ROUTES } from "@/constants/routes";
+import { CATALOG_ANIME_COUNT } from "@/constants/site-meta";
 import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import { trackEvent } from "@/lib/analytics";
@@ -106,17 +107,17 @@ export default function LandingPage({ initialPosters = [] }: Props) {
     };
   }, [isLoggedIn, auth.auth]);
 
-  const latestCount = homeData?.latestEpisodeAnimes?.length ?? 0;
-  const catalogStat = latestCount > 0 ? `${latestCount}+` : "1000+";
+  const catalogStat = `${CATALOG_ANIME_COUNT.toLocaleString()}+`;
   const primaryHref = continueHref ?? ROUTES.HOME;
   const primaryLabel = continueHref ? t("landing.continueWatching") : t("landing.startWatching");
   const spotlight = homeData?.spotlightAnimes?.[0] ?? null;
 
   const statsLine = useMemo(() => {
-    const parts: string[] = [t("landing.noSubscriptions")];
-    if (latestCount > 0) parts.unshift(t("landing.recentCount", { count: latestCount }));
-    return parts;
-  }, [latestCount, t]);
+    return [
+      t("landing.recentCount", { count: CATALOG_ANIME_COUNT.toLocaleString() }),
+      t("landing.noSubscriptions"),
+    ];
+  }, [t]);
 
   return (
     <div className="relative min-h-screen bg-black text-white overflow-x-hidden flex flex-col">

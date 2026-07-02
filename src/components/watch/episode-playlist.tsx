@@ -154,7 +154,7 @@ const EpisodePlaylist = ({
   return (
     <div
       className={cn(
-        "col-span-1 flex flex-col w-full rounded-xl border border-white/10 bg-[#080808] overflow-hidden",
+        "col-span-1 flex flex-col w-full site-panel overflow-hidden",
         isWatch ? "min-h-0" : "min-h-[200px] max-h-[60vh] lg:max-h-[720px]",
       )}
     >

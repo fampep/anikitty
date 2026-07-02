@@ -77,13 +77,13 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
         )}
         <div
           ref={setScrollRoot}
-          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-momentum"
+          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-momentum snap-x snap-mandatory"
         >
           {latestEpisodes.map((anime, idx) => (
             <div
               key={anime.id ?? idx}
               style={{ width: CARD_W, contentVisibility: "auto", containIntrinsicSize: "240px 360px" }}
-              className="shrink-0"
+              className="shrink-0 snap-start"
             >
               <AnimeCard
                 compact
