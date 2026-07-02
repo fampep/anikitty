@@ -8,7 +8,6 @@ import {
   STAFF_ROLES,
 } from "@/lib/social/donation-config";
 import {
-  hasPermission,
   isBuiltinRole,
 } from "@/lib/security/permissions";
 import {
@@ -68,22 +67,7 @@ export function hasAdFreePerk(
   if (role === "admin") return true;
 
   const until = parseSupporterUntil(supporterUntil);
-  const untilActive = until != null && until.getTime() > Date.now();
-
-  if (untilActive) return true;
-
-  if (role === DONATOR_ROLE && !supporterUntil) return true;
-
-  if (
-    permissions &&
-    hasPermission(permissions, AD_FREE_PERMISSION) &&
-    role === DONATOR_ROLE &&
-    !supporterUntil
-  ) {
-    return true;
-  }
-
-  return false;
+  return until != null && until.getTime() > Date.now();
 }
 
 export function extendSupporterUntilByDays(

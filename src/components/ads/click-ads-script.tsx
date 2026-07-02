@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth-store";
-import { usePermissions } from "@/hooks/use-permissions";
+import { hasAdFreePerk } from "@/lib/social/supporter-access";
 
 const SCRIPT_SRC =
   "https://pl30172658.effectivecpmnetwork.com/a2/1e/38/a21e38fcd3c151b55ac215d3281f5ddb.js";
@@ -13,32 +13,39 @@ function removeClickAdsScript(): void {
     .forEach((node) => node.remove());
 }
 
-/** EffectiveCPM popunder — skipped for Ko-fi supporters and staff with ad-free perk. */
+function ensureClickAdsScript(): void {
+  if (document.querySelector(`script[src="${SCRIPT_SRC}"]`)) return;
+
+  const script = document.createElement("script");
+  script.src = SCRIPT_SRC;
+  document.head.appendChild(script);
+}
+
+/** Keeps the head popunder for everyone except active Ko-fi supporters. */
 export default function ClickAdsScript() {
-  const [authHydrated, setAuthHydrated] = useState(
-    () => useAuthStore.persist.hasHydrated(),
-  );
-  const { adFree } = usePermissions();
-
   useEffect(() => {
-    if (authHydrated) return;
-    return useAuthStore.persist.onFinishHydration(() => setAuthHydrated(true));
-  }, [authHydrated]);
+    const syncAdsForUser = () => {
+      if (!useAuthStore.persist.hasHydrated()) return;
 
-  useEffect(() => {
-    if (!authHydrated) return;
+      const auth = useAuthStore.getState().auth;
+      if (hasAdFreePerk(auth?.role, auth?.permissions, auth?.supporterUntil)) {
+        removeClickAdsScript();
+        return;
+      }
 
-    if (adFree) {
-      removeClickAdsScript();
-      return;
-    }
+      ensureClickAdsScript();
+    };
 
-    if (document.querySelector(`script[src="${SCRIPT_SRC}"]`)) return;
+    syncAdsForUser();
 
-    const script = document.createElement("script");
-    script.src = SCRIPT_SRC;
-    document.head.appendChild(script);
-  }, [authHydrated, adFree]);
+    const unsubHydration = useAuthStore.persist.onFinishHydration(syncAdsForUser);
+    const unsubAuth = useAuthStore.subscribe(syncAdsForUser);
+
+    return () => {
+      unsubHydration();
+      unsubAuth();
+    };
+  }, []);
 
   return null;
 }

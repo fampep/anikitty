@@ -4,3 +4,5 @@ import packageJson from "../../package.json";
 export const SITE_VERSION = packageJson.version;
 
 export const SITE_IS_BETA = true;
+
+export const DISCORD_INVITE_URL = "https://discord.gg/qn55BfU5Ur";

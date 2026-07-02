@@ -118,7 +118,7 @@ export default async function RootLayout({
         <PublicEnvScript />
         <link rel="icon" href={SITE_FAVICON} type="image/png" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
-        <ClickAdsScript />
+        <script src="https://pl30172658.effectivecpmnetwork.com/a2/1e/38/a21e38fcd3c151b55ac215d3281f5ddb.js" />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
@@ -132,6 +132,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <QueryProvider>
+              <ClickAdsScript />
               <UserThemeSync />
               <NavBar />
               <SiteAnnouncementBanner />

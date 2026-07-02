@@ -10,6 +10,7 @@ import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
 import LanguageSwitcher from "@/components/layout/language-switcher";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
+import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 
 const Footer = () => {
   const t = useT();
@@ -61,7 +62,7 @@ const Footer = () => {
                 <GitHubLogoIcon width="14" height="14" />
               </a>
               <a
-                href="https://discord.gg/gD8QTfkhHq"
+                href={DISCORD_INVITE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 rounded-lg border border-white/10 text-white/30 hover:text-white/70 hover:border-white/25 transition-all"
@@ -111,7 +112,7 @@ const Footer = () => {
               {t("footer.github")}
             </a>
             <a
-              href="https://discord.gg/gD8QTfkhHq"
+              href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-white/35 hover:text-white/65 transition-colors"

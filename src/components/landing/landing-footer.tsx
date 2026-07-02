@@ -4,6 +4,7 @@ import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import LanguageSwitcher from "@/components/layout/language-switcher";
 import { ROUTES } from "@/constants/routes";
+import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { useT } from "@/providers/i18n-provider";
 
 export default function LandingFooter() {
@@ -21,7 +22,7 @@ export default function LandingFooter() {
             <Link href={ROUTES.DONATE} className="hover:text-white/70 transition-colors">{t("nav.donate")}</Link>
             <Link href={ROUTES.FORUM} className="hover:text-white/70 transition-colors">{t("nav.forum")}</Link>
             <a
-              href="https://discord.gg/gD8QTfkhHq"
+              href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-white/70 transition-colors"
@@ -33,7 +34,7 @@ export default function LandingFooter() {
         <div className="flex items-center gap-4">
           <LanguageSwitcher compact />
           <a
-            href="https://discord.gg/gD8QTfkhHq"
+            href={DISCORD_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="text-white/20 hover:text-white/55 transition-colors"

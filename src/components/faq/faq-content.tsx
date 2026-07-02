@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
+import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { useT } from "@/providers/i18n-provider";
 import {
   HelpCircle,
@@ -171,7 +172,7 @@ export default function FaqContent() {
           <p className="text-sm text-white/45 leading-relaxed mb-4">{t("faq.contactDesc")}</p>
           <div className="flex flex-wrap gap-3">
             <a
-              href="https://discord.gg/gD8QTfkhHq"
+              href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/12 text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors"
