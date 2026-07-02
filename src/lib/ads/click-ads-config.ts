@@ -6,7 +6,7 @@ export const CLICK_AD_ZONE_ID = 11229456;
 /** OnClick / popunder tag — paste below <head> in Monetag dashboard. */
 export const CLICK_AD_SCRIPT_SRC = `https://${MONETAG_DOMAIN}/${CLICK_AD_ZONE_ID}/invoke.js`;
 
-/** Push notification service worker loader (paired with worker/index.js). */
+/** Push notification service worker loader (paired with public/monetag-sw-init.js). */
 export const MONETAG_SW_SCRIPT_SRC = `https://${MONETAG_DOMAIN}/act/files/service-worker.min.js?r=sw`;
 
 export function isProfilePath(pathname: string): boolean {

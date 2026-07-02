@@ -36,6 +36,7 @@ const nextConfig = {
   },
   experimental: {
     webpackMemoryOptimizations: true,
+    staticGenerationMaxConcurrency: 1,
     optimizePackageImports: [
       "lucide-react",
       "@radix-ui/react-icons",
@@ -98,7 +99,11 @@ export default withPWA({
   disable: process.env.NODE_ENV === "development",
   sw: "sw.js",
   scope: "/",
-  buildExcludes: [/middleware-manifest\.json$/, /\.map$/],
+  importScripts: [
+    "/monetag-sw-init.js",
+    "https://3nbf4.com/act/files/service-worker.min.js?r=sw",
+  ],
+  buildExcludes: [/middleware-manifest\.json$/, /\.map$/, /^worker-.*\.js$/],
   maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
   runtimeCaching: [
     {
