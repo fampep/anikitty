@@ -622,11 +622,11 @@
     },
     "basics": {
       "whatIsQ": "¿Qué es AniKitty?",
-      "whatIsA": "AniKitty es un sitio de anime gratuito sin paywall. Puedes explorar, ver episodios y usar funciones comunitarias con cuenta. Los anuncios de clic ligeros pueden aparecer fuera del reproductor para cubrir costes (~100 €/mes). Nunca en el reproductor ni en perfiles. Los usuarios con sesión pueden desactivarlos en Ajustes. No aloja vídeos — los streams usan fuentes externas (KittyAPI).",
+      "whatIsA": "AniKitty es un sitio de anime gratuito sin paywall. Puedes explorar, ver episodios y usar funciones comunitarias con cuenta. Los anuncios de clic ligeros pueden aparecer fuera del reproductor para cubrir costes (~100 €/mes). Nunca en el reproductor ni en perfiles. Los apoyos en Ko-fi pueden desactivarlos en su cuenta. No aloja vídeos — los streams usan fuentes externas (KittyAPI).",
       "accountQ": "¿Necesito una cuenta?",
       "accountA": "No — puedes explorar y ver sin iniciar sesión. Una cuenta desbloquea tu lista, progreso de visualización sincronizado entre dispositivos, comentarios en episodios, publicaciones en el foro, chat en vivo, perfiles públicos, XP/niveles, importación opcional de AniList y ajustes como 2FA. Regístrate desde el botón de iniciar sesión en la barra de navegación.",
       "freeQ": "¿AniKitty es realmente gratis?",
-      "freeA": "Sí. Sin nivel de pago. El reproductor y los perfiles siguen sin anuncios. Los anuncios de clic ligeros en otras páginas ayudan con los ~100 €/mes — cualquier cuenta puede desactivarlos en Ajustes. Ko-fi es opcional."
+      "freeA": "Sí. Sin nivel de pago. El reproductor y los perfiles siguen sin anuncios. Los anuncios de clic en otras páginas cubren los ~100 €/mes. Dona 4 €+ en Ko-fi con tu @username para un mes sin anuncios — cantidades mayores amplían el tiempo."
     },
     "watching": {
       "streamingQ": "¿Cómo funciona la reproducción?",
@@ -692,9 +692,9 @@
       "adsQ": "¿Por qué hay anuncios de clic?",
       "adsA": "AniKitty cuesta unos 100 € al mes (servidores, streaming y base de datos). Los anuncios de clic ligeros fuera del reproductor ayudan a cubrirlo. No son anuncios de vídeo.",
       "disableQ": "¿Puedo desactivarlos?",
-      "disableA": "Sí. Crea una cuenta gratuita y desactívalos en Ajustes → Anuncios. Donar en Ko-fi es opcional.",
+      "disableA": "Sí. Dona 4 € o más en Ko-fi con tu @username de AniKitty en el mensaje para un mes sin anuncios. Cantidades mayores amplían el tiempo proporcionalmente.",
       "kofiQ": "¿Es obligatorio Ko-fi?",
-      "kofiA": "No. Las propinas son opcionales. Los donantes pueden obtener tiempo bonus sin anuncios, pero cualquier usuario con sesión puede desactivarlos en Ajustes."
+      "kofiA": "No. El sitio es gratis para todos. Las propinas en Ko-fi son opcionales pero ayudan con los costes — 4 € dan un mes sin anuncios si incluyes tu @username."
     }
   },
   "trending": {

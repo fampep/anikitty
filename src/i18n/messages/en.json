@@ -617,11 +617,11 @@
     },
     "basics": {
       "whatIsQ": "What is AniKitty?",
-      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. You can browse the catalog, watch episodes (sub and dub where available), and join community features when signed in. Lightweight click ads may appear on pages outside the player to help cover running costs (~€100/month). They never run in the video player or on profile pages. Signed-in users can turn them off in Settings. AniKitty does not host video files on its own servers — streams are resolved through third-party sources (via KittyAPI).",
+      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. You can browse the catalog, watch episodes (sub and dub where available), and join community features when signed in. Lightweight click ads may appear on pages outside the player to help cover running costs (~€100/month). They never run in the video player or on profile pages. Ko-fi supporters can turn them off for their account. AniKitty does not host video files on its own servers — streams are resolved through third-party sources (via KittyAPI).",
       "accountQ": "Do I need an account?",
       "accountA": "No — you can browse and watch without signing in. An account unlocks your watchlist, synced watch progress across devices, episode comments, forum posts, live chat, public profiles, XP/levels, optional AniList import, and settings like 2FA. Sign up from the login button in the navbar.",
       "freeQ": "Is AniKitty really free?",
-      "freeA": "Yes. There is no paid tier. The player and profile pages stay ad-free. Lightweight click ads on other pages help cover the ~€100/month running cost, and any signed-in account can disable them in Settings. Optional Ko-fi tips are welcome but not required."
+      "freeA": "Yes. There is no paid tier. The player and profile pages stay ad-free. Lightweight click ads on other pages help cover the ~€100/month running cost. Donate €4+ on Ko-fi with your @username in the message for one month of ad-free browsing — larger tips extend your time.",
     },
     "watching": {
       "streamingQ": "How does streaming work?",
@@ -677,9 +677,9 @@
       "adsQ": "Why are there click ads?",
       "adsA": "Running AniKitty costs about €100 per month (servers, streaming, and database). Lightweight click ads on pages outside the player help cover that. They are not video ads and never run in the player or on profile pages.",
       "disableQ": "Can I turn click ads off?",
-      "disableA": "Yes. Create a free account and turn them off in Settings → Ads. A Ko-fi donation is completely optional and not required to disable ads.",
+      "disableA": "Yes. Donate €4 or more on Ko-fi with your AniKitty @username in the message to get one month of ad-free browsing. Larger tips extend your time proportionally.",
       "kofiQ": "Is Ko-fi support required?",
-      "kofiA": "No. Tips on Ko-fi are optional and help keep the site online. Donors can also receive bonus ad-free time, but any signed-in user can disable click ads in Settings."
+      "kofiA": "No. The site is free for everyone. Ko-fi tips are optional but help cover running costs — €4 gives one month of ad-free browsing when you include your @username in the message."
     },
     "security": {
       "passwordQ": "How is my password protected?",
@@ -1157,7 +1157,7 @@
   },
   "donate": {
     "title": "Support AniKitty",
-    "subtitle": "Optional Ko-fi tips help cover the ~€100/month running cost. Donating is not required — signed-in users can turn click ads off in Settings.",
+    "subtitle": "Optional Ko-fi tips help cover the ~€100/month running cost. Donate €4 with your @username for one month ad-free.",
     "body": "AniKitty is free for everyone. If you enjoy watching here, an optional tip on Ko-fi helps pay for servers and streaming. Every bit helps, and it is completely optional.",
     "kofiCta": "Ko-fi",
     "donateCta": "Donate on Ko-fi",
@@ -1165,7 +1165,7 @@
     "readFaq": "Read FAQ",
     "donationTitle": "Optional Ko-fi support",
     "rateLine": "€{amount} ≈ {days} days bonus ad-free",
-    "donationDesc": "Ko-fi tips are optional. Include your AniKitty @username in the message for bonus ad-free time — e.g. €1.50 → 7 days, €2 → 9, €3 → 14, €9 → 42. You do not need to donate to turn click ads off in Settings.",
+    "donationDesc": "Include your AniKitty @username in the Ko-fi message for ad-free time — e.g. €4 → 30 days, €8 → 60 days, €2 → 15 days.",
     "dmCta": "DM @{username}",
     "claimCta": "Activate ad-free",
     "claimSignIn": "Sign in to activate ad-free access.",
@@ -1184,13 +1184,13 @@
     "activeSupporter": "Your supporter access is active — click ads are off for your account. Thank you!",
     "activeSupporterUntil": "Your supporter access is active until {date} — click ads are off for your account. Thank you!",
     "faqTitle": "Good to know",
-    "faqClickAds": "We use lightweight click ads (not video ads) on pages outside the player to help cover the ~€100/month running cost. They never run on profile pages or inside the video player. Any signed-in account can turn them off in Settings — no donation required.",
-    "faqKoFi": "Ko-fi tips are completely optional. Donations go through Ko-fi (ko-fi.com/fampep). Include your AniKitty @username in the message if you want bonus ad-free time.",
-    "faqDonation": "After donating, DM @fampep with @yourusername or tap Activate ad-free here for bonus ad-free days (€1.50 → 7, €2 → 9, €3 → 14, €9 → 42). This is optional — you can also turn click ads off in Settings without donating.",
+    "faqClickAds": "We use lightweight click ads (not video ads) on pages outside the player to help cover the ~€100/month running cost. They never run on profile pages or inside the video player. Donate €4+ on Ko-fi with your @username for one month ad-free.",
+    "faqKoFi": "Ko-fi tips are completely optional. Donations go through Ko-fi (ko-fi.com/fampep). Include your AniKitty @username in the message — €4 gives one month ad-free.",
+    "faqDonation": "After donating, DM @fampep with @yourusername or tap Activate ad-free here (€4 → 30 days, €8 → 60 days). Ads stay off for your account until your supporter time expires.",
     "faqVoluntary": "Supporting is completely optional. AniKitty stays free whether you donate or not. Running the site costs about €100 per month — ads and optional tips help cover that.",
     "perks": {
-      "adFree": "Bonus ad-free time",
-      "adFreeDesc": "Optional Ko-fi support can add bonus ad-free days on top of the Settings toggle.",
+      "adFree": "Ad-free browsing",
+      "adFreeDesc": "€4 on Ko-fi gives one month without click ads on your account.",
       "uptime": "Keeps streams fast",
       "uptimeDesc": "Your support pays for the servers that power playback.",
       "community": "Built for fans",

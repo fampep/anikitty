@@ -622,11 +622,11 @@
     },
     "basics": {
       "whatIsQ": "Hvad er AniKitty?",
-      "whatIsA": "AniKitty er et gratis anime-streaming-site uden betalingsmur. Du kan gennemse, se episoder og bruge community-funktioner med konto. Lette klik-annoncer kan vises uden for afspilleren for at dække omkostninger (~100 €/måned). De vises aldrig i afspilleren eller på profiler. Loggede brugere kan slå dem fra i Indstillinger. AniKitty hoster ikke videoer — streams kommer via tredjepart (KittyAPI).",
+      "whatIsA": "AniKitty er et gratis anime-streaming-site uden betalingsmur. Du kan gennemse, se episoder og bruge community-funktioner med konto. Lette klik-annoncer kan vises uden for afspilleren for at dække omkostninger (~100 €/måned). De vises aldrig i afspilleren eller på profiler. Ko-fi-støtter kan slå dem fra på deres konto. AniKitty hoster ikke videoer — streams kommer via tredjepart (KittyAPI).",
       "accountQ": "Skal jeg have en konto?",
       "accountA": "Nej — du kan gennemse og se uden at logge ind. En konto giver adgang til din watchlist, synkroniseret fremgang på tværs af enheder, afsnitskommentarer, forumindlæg, live chat, offentlige profiler, XP/niveauer, valgfri AniList-import og indstillinger som 2FA. Opret konto via login-knappen i navigationsbjælken.",
       "freeQ": "Er AniKitty virkelig gratis?",
-      "freeA": "Ja. Intet betalingsniveau. Afspiller og profiler forbliver annoncefrie. Lette klik-annoncer på andre sider hjælper med ~100 €/måned — enhver konto kan slå dem fra i Indstillinger. Ko-fi er valgfrit."
+      "freeA": "Ja. Intet betalingsniveau. Afspiller og profiler forbliver annoncefrie. Klik-annoncer på andre sider dækker ~100 €/måned. Donér 4 €+ på Ko-fi med dit @username for en måned uden annoncer — større beløb forlænger tiden."
     },
     "watching": {
       "streamingQ": "Hvordan fungerer streaming?",
@@ -692,9 +692,9 @@
       "adsQ": "Hvorfor er der klik-annoncer?",
       "adsA": "AniKitty koster omkring 100 € om måneden. Lette klik-annoncer uden for afspilleren hjælper med at dække det. Det er ikke videoannoncer.",
       "disableQ": "Kan jeg slå dem fra?",
-      "disableA": "Ja. Opret en gratis konto og slå dem fra under Indstillinger → Annoncer. Ko-fi-donation er valgfri.",
+      "disableA": "Ja. Donér 4 € eller mere på Ko-fi med dit AniKitty-@username i beskeden for en måned uden annoncer. Større beløb forlænger tiden proportionelt.",
       "kofiQ": "Er Ko-fi-støtte påkrævet?",
-      "kofiA": "Nej. Tips er valgfrie. Donatorer kan få bonus annoncefri tid, men enhver logged bruger kan slå annoncer fra i Indstillinger."
+      "kofiA": "Nej. Siden er gratis for alle. Ko-fi-tips er valgfrie men hjælper med omkostningerne — 4 € giver en måned uden annoncer hvis du inkluderer dit @username."
     }
   },
   "trending": {

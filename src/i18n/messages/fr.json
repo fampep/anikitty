@@ -583,11 +583,11 @@
     },
     "basics": {
       "whatIsQ": "Qu'est-ce qu'AniKitty ?",
-      "whatIsA": "AniKitty est un site de streaming d'anime gratuit sans abonnement payant. Vous pouvez parcourir le catalogue, regarder des épisodes (VOSTFR et VF) et rejoindre la communauté une fois connecté. Des pubs au clic légères peuvent apparaître hors lecteur pour couvrir les frais (~100 €/mois). Elles ne s'affichent jamais dans le lecteur ni sur les profils. Les utilisateurs connectés peuvent les désactiver dans les Paramètres. AniKitty n'héberge pas de vidéos — les flux passent par des sources tierces (KittyAPI).",
+      "whatIsA": "AniKitty est un site de streaming d'anime gratuit sans abonnement payant. Vous pouvez parcourir le catalogue, regarder des épisodes (VOSTFR et VF) et rejoindre la communauté une fois connecté. Des pubs au clic légères peuvent apparaître hors lecteur pour couvrir les frais (~100 €/mois). Elles ne s'affichent jamais dans le lecteur ni sur les profils. Les soutiens Ko-fi peuvent les désactiver pour leur compte. AniKitty n'héberge pas de vidéos — les flux passent par des sources tierces (KittyAPI).",
       "accountQ": "Ai-je besoin d'un compte ?",
       "accountA": "Non — vous pouvez parcourir et regarder sans vous connecter. Un compte débloque votre liste de visionnage, la progression synchronisée sur tous vos appareils, les commentaires d'épisodes, les publications sur le forum, le chat en direct, les profils publics, l'XP/les niveaux, l'import AniList optionnel et des paramètres comme la 2FA. Inscrivez-vous via le bouton Connexion dans la barre de navigation.",
       "freeQ": "AniKitty est-il vraiment gratuit ?",
-      "freeA": "Oui. Pas de niveau payant. Le lecteur et les profils restent sans pub. Des pubs au clic légères sur d'autres pages aident à couvrir les ~100 €/mois — tout compte connecté peut les désactiver dans les Paramètres. Les pourboires Ko-fi sont optionnels."
+      "freeA": "Oui. Pas de niveau payant. Le lecteur et les profils restent sans pub. Des pubs au clic légères sur d'autres pages couvrent les ~100 €/mois. Donnez 4 €+ sur Ko-fi avec votre @username pour un mois sans pub — les montants plus élevés prolongent le temps."
     },
     "watching": {
       "streamingQ": "Comment fonctionne le streaming ?",
@@ -643,9 +643,9 @@
       "adsQ": "Pourquoi y a-t-il des pubs au clic ?",
       "adsA": "AniKitty coûte environ 100 € par mois (serveurs, streaming et base de données). Les pubs au clic légères hors lecteur aident à couvrir cela. Ce ne sont pas des pubs vidéo et elles ne s'affichent jamais dans le lecteur ni sur les profils.",
       "disableQ": "Puis-je désactiver les pubs au clic ?",
-      "disableA": "Oui. Créez un compte gratuit et désactivez-les dans Paramètres → Publicités. Un don Ko-fi est entièrement optionnel.",
+      "disableA": "Oui. Donnez 4 € ou plus sur Ko-fi avec votre @username AniKitty dans le message pour un mois sans pubs. Les montants plus élevés prolongent le temps proportionnellement.",
       "kofiQ": "Le soutien Ko-fi est-il obligatoire ?",
-      "kofiA": "Non. Les pourboires Ko-fi sont optionnels. Les donateurs peuvent obtenir du temps bonus sans pub, mais tout utilisateur connecté peut désactiver les pubs dans les Paramètres."
+      "kofiA": "Non. Le site est gratuit pour tous. Les pourboires Ko-fi sont optionnels mais aident aux frais — 4 € donnent un mois sans pub si vous incluez votre @username."
     },
     "security": {
       "passwordQ": "Comment mon mot de passe est-il protégé ?",

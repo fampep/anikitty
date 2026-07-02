@@ -622,11 +622,11 @@
     },
     "basics": {
       "whatIsQ": "O que é o AniKitty?",
-      "whatIsA": "AniKitty é um site de anime gratuito sem paywall. Podes explorar, ver episódios e usar funcionalidades comunitárias com conta. Anúncios de clique leves podem aparecer fora do leitor para cobrir custos (~100 €/mês). Nunca no leitor nem em perfis. Utilizadores com sessão podem desativá-los nas Definições. Não aloja vídeos — streams usam fontes externas (KittyAPI).",
+      "whatIsA": "AniKitty é um site de anime gratuito sem paywall. Podes explorar, ver episódios e usar funcionalidades comunitárias com conta. Anúncios de clique leves podem aparecer fora do leitor para cobrir custos (~100 €/mês). Nunca no leitor nem em perfis. Apoiantes Ko-fi podem desativá-los na sua conta. Não aloja vídeos — streams usam fontes externas (KittyAPI).",
       "accountQ": "Preciso de uma conta?",
       "accountA": "Não — você pode explorar e assistir sem entrar. Uma conta desbloqueia sua lista, progresso sincronizado entre dispositivos, comentários de episódios, posts no fórum, chat ao vivo, perfis públicos, XP/níveis, importação opcional do AniList e configurações como 2FA. Cadastre-se pelo botão de login na barra de navegação.",
       "freeQ": "O AniKitty é realmente grátis?",
-      "freeA": "Sim. Sem nível pago. O leitor e perfis ficam sem anúncios. Anúncios de clique leves noutras páginas ajudam com os ~100 €/mês — qualquer conta pode desativá-los nas Definições. Ko-fi é opcional."
+      "freeA": "Sim. Sem nível pago. O leitor e perfis ficam sem anúncios. Anúncios de clique noutras páginas cobrem os ~100 €/mês. Doa 4 €+ no Ko-fi com o teu @username para um mês sem anúncios — valores maiores prolongam o tempo."
     },
     "watching": {
       "streamingQ": "Como funciona o streaming?",
@@ -692,9 +692,9 @@
       "adsQ": "Por que há anúncios de clique?",
       "adsA": "AniKitty custa cerca de 100 € por mês. Anúncios de clique leves fora do leitor ajudam a cobrir isso. Não são anúncios de vídeo.",
       "disableQ": "Posso desativá-los?",
-      "disableA": "Sim. Cria uma conta gratuita e desativa em Definições → Anúncios. Doar no Ko-fi é opcional.",
+      "disableA": "Sim. Doa 4 € ou mais no Ko-fi com o teu @username AniKitty na mensagem para um mês sem anúncios. Valores maiores prolongam o tempo proporcionalmente.",
       "kofiQ": "O Ko-fi é obrigatório?",
-      "kofiA": "Não. Gorjetas são opcionais. Doadores podem obter tempo bonus sem anúncios, mas qualquer utilizador com sessão pode desativá-los nas Definições."
+      "kofiA": "Não. O site é gratuito para todos. Gorjetas no Ko-fi são opcionais mas ajudam com os custos — 4 € dão um mês sem anúncios se incluíres o teu @username."
     }
   },
   "trending": {

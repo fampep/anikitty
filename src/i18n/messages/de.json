@@ -583,11 +583,11 @@
     },
     "basics": {
       "whatIsQ": "Was ist AniKitty?",
-      "whatIsA": "AniKitty ist eine kostenlose Anime-Streaming-Seite ohne Abo-Paywall. Du kannst den Katalog durchsuchen, Folgen schauen (Sub und Dub, wo verfügbar) und Community-Funktionen nutzen, wenn du angemeldet bist. Leichte Klick-Werbung kann auf Seiten außerhalb des Players erscheinen, um die Betriebskosten (~100 €/Monat) zu decken. Sie läuft nie im Videoplayer oder auf Profilseiten. Angemeldete Nutzer können sie in den Einstellungen ausschalten. AniKitty hostet keine Videodateien auf eigenen Servern — Streams werden über Drittanbieter aufgelöst (via KittyAPI).",
+      "whatIsA": "AniKitty ist eine kostenlose Anime-Streaming-Seite ohne Abo-Paywall. Du kannst den Katalog durchsuchen, Folgen schauen (Sub und Dub, wo verfügbar) und Community-Funktionen nutzen, wenn du angemeldet bist. Leichte Klick-Werbung kann auf Seiten außerhalb des Players erscheinen, um die Betriebskosten (~100 €/Monat) zu decken. Sie läuft nie im Videoplayer oder auf Profilseiten. Ko-fi-Unterstützer können sie für ihr Konto abschalten. AniKitty hostet keine Videodateien auf eigenen Servern — Streams werden über Drittanbieter aufgelöst (via KittyAPI).",
       "accountQ": "Brauche ich ein Konto?",
       "accountA": "Nein — du kannst ohne Anmeldung stöbern und schauen. Ein Konto schaltet deine Watchlist, synchronisierten Fortschritt auf allen Geräten, Episodenkommentare, Forenbeiträge, Live-Chat, öffentliche Profile, XP/Level, optionalen AniList-Import und Einstellungen wie 2FA frei. Registriere dich über die Anmelden-Schaltfläche in der Navigation.",
       "freeQ": "Ist AniKitty wirklich kostenlos?",
-      "freeA": "Ja. Es gibt keine kostenpflichtige Stufe. Player und Profilseiten bleiben werbefrei. Leichte Klick-Werbung auf anderen Seiten hilft, die ~100 €/Monat Betriebskosten zu decken — jedes angemeldete Konto kann sie in den Einstellungen deaktivieren. Optionale Ko-fi-Tips sind willkommen, aber nicht erforderlich."
+      "freeA": "Ja. Es gibt keine kostenpflichtige Stufe. Player und Profilseiten bleiben werbefrei. Leichte Klick-Werbung auf anderen Seiten deckt die ~100 €/Monat Betriebskosten. Spende 4 €+ auf Ko-fi mit deinem @username für einen Monat werbefrei — größere Tips verlängern die Zeit."
     },
     "watching": {
       "streamingQ": "Wie funktioniert das Streaming?",
@@ -643,9 +643,9 @@
       "adsQ": "Warum gibt es Klick-Werbung?",
       "adsA": "AniKitty kostet etwa 100 € pro Monat (Server, Streaming und Datenbank). Leichte Klick-Werbung auf Seiten außerhalb des Players hilft, das zu decken. Es sind keine Videoanzeigen — sie laufen nie im Player oder auf Profilseiten.",
       "disableQ": "Kann ich Klick-Werbung ausschalten?",
-      "disableA": "Ja. Erstelle ein kostenloses Konto und schalte sie unter Einstellungen → Werbung aus. Eine Ko-fi-Spende ist völlig optional und nicht nötig.",
+      "disableA": "Ja. Spende 4 € oder mehr auf Ko-fi mit deinem AniKitty-@username in der Nachricht für einen Monat werbefreies Surfen. Größere Tips verlängern die Zeit proportional.",
       "kofiQ": "Ist Ko-fi-Unterstützung erforderlich?",
-      "kofiA": "Nein. Tips auf Ko-fi sind optional und helfen, die Seite online zu halten. Spender können Bonus-Werbefreiheit erhalten, aber jeder angemeldete Nutzer kann Klick-Werbung in den Einstellungen deaktivieren."
+      "kofiA": "Nein. Die Seite ist für alle kostenlos. Ko-fi-Tips sind optional, helfen aber bei den Betriebskosten — 4 € geben einen Monat werbefrei, wenn du deinen @username in der Nachricht angibst."
     },
     "security": {
       "passwordQ": "Wie ist mein Passwort geschützt?",
