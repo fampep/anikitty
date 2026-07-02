@@ -20,8 +20,9 @@ export function loadClickAds(): void {
   script.src = CLICK_AD_SCRIPT_SRC;
   script.async = true;
   script.type = "text/javascript";
+  script.setAttribute("data-cfasync", "false");
   script.referrerPolicy = "no-referrer-when-downgrade";
-  document.body.insertBefore(script, document.body.firstChild);
+  document.head.appendChild(script);
 }
 
 export function readShowAdsFromMe(data: Record<string, unknown>): boolean {
