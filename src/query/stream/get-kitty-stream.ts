@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "react-query";
 import { api } from "@/lib/core/api";
 import type { AnimexServerId } from "@/lib/providers/animex-api";
@@ -135,6 +135,13 @@ export const useGetKittyStream = (
 ) => {
   const abortRef = useRef<AbortController | null>(null);
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
+  }, []);
+
   return useQuery({
     queryKey: buildKittyStreamQueryKey(
       anilistId,
@@ -178,7 +185,9 @@ export const useGetKittyStream = (
     },
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
     refetchOnWindowFocus: false,
-    staleTime: 0,
+    refetchOnMount: true,
+    staleTime: 30_000,
+    cacheTime: 5 * 60 * 1000,
     retry: false,
   });
 };
