@@ -119,12 +119,12 @@ export default async function RootLayout({
         <PublicEnvScript />
         <link rel="icon" href={SITE_FAVICON} type="image/png" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
+        <ClickAdsLoader />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
         <ShowAdsSync />
-        <ClickAdsLoader />
         <PwaRegister />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider

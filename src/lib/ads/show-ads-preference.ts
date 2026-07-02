@@ -10,7 +10,7 @@ export function unloadClickAds(): void {
     .forEach((node) => node.remove());
 }
 
-/** Inject the click-ad script once when ads should run. */
+/** Inject the EffectiveCPM popunder tag once (one per page). */
 export function loadClickAds(): void {
   if (typeof document === "undefined") return;
   if (document.getElementById(CLICK_AD_SCRIPT_ID)) return;
@@ -18,10 +18,7 @@ export function loadClickAds(): void {
   const script = document.createElement("script");
   script.id = CLICK_AD_SCRIPT_ID;
   script.src = CLICK_AD_SCRIPT_SRC;
-  script.async = true;
-  script.type = "text/javascript";
   script.setAttribute("data-cfasync", "false");
-  script.referrerPolicy = "no-referrer-when-downgrade";
   document.head.appendChild(script);
 }
 
