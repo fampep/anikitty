@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { withAuth } from "@/lib/auth/auth-fetch";
@@ -21,19 +22,28 @@ import { CosmeticUsername } from "@/components/common/user-cosmetics";
 
 // ── Emoji picker ──────────────────────────────────────────────────────────────
 
+const EMOJI_GROUP_KEYS = [
+  "comments.emojiPopular",
+  "comments.emojiReactions",
+  "comments.emojiAnime",
+  "comments.emojiFaces",
+] as const;
+
 const EMOJI_GROUPS = [
-  { label: "Popular",   emojis: ["😂","😭","🥺","😍","🤣","😩","😅","😤","💀","😳","🥰","🤔","😏","😱","🫠","😢"] },
-  { label: "Reactions", emojis: ["❤️","🔥","💯","✨","👍","👎","💔","🙌","🤌","⭐","💫","👏","🫶","💪","🤦","🤷"] },
-  { label: "Anime",     emojis: ["🌸","🗡️","⚔️","🐉","🌙","🎌","🧠","👁️","✊","🩸","🌊","⚡","🏹","👊","🫡","🤯"] },
-  { label: "Faces",     emojis: ["😎","🤓","🥱","😡","🤩","🫢","😬","🙃","😴","🤧","🥴","😫","🤑","😒","🙄","😈"] },
+  { emojis: ["😂","😭","🥺","😍","🤣","😩","😅","😤","💀","😳","🥰","🤔","😏","😱","🫠","😢"] },
+  { emojis: ["❤️","🔥","💯","✨","👍","👎","💔","🙌","🤌","⭐","💫","👏","🫶","💪","🤦","🤷"] },
+  { emojis: ["🌸","🗡️","⚔️","🐉","🌙","🎌","🧠","👁️","✊","🩸","🌊","⚡","🏹","👊","🫡","🤯"] },
+  { emojis: ["😎","🤓","🥱","😡","🤩","🫢","😬","🙃","😴","🤧","🥴","😫","🤑","😒","🙄","😈"] },
 ];
 
 function EmojiPickerPanel({
   onSelect,
   onClose,
+  t,
 }: {
   onSelect: (e: string) => void;
   onClose: () => void;
+  t: (key: string) => string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState(0);
@@ -54,14 +64,14 @@ function EmojiPickerPanel({
       <div className="flex border-b border-white/6 px-2 pt-2 gap-0.5">
         {EMOJI_GROUPS.map((g, i) => (
           <button
-            key={g.label}
+            key={EMOJI_GROUP_KEYS[i]}
             onClick={() => setTab(i)}
-            aria-label={g.label}
+            aria-label={t(EMOJI_GROUP_KEYS[i])}
             className={`px-2.5 py-1.5 rounded-t-lg text-[10px] font-semibold transition-colors ${
               tab === i ? "bg-white/8 text-white/80" : "text-white/30 hover:text-white/55"
             }`}
           >
-            {g.label}
+            {t(EMOJI_GROUP_KEYS[i])}
           </button>
         ))}
       </div>
@@ -133,17 +143,21 @@ type CommentSectionProps = {
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: (key: string, vars?: Record<string, string | number>) => string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const s = Math.floor(diff / 1000);
-  if (s < 60) return "just now";
+  if (s < 60) return t("home.justNow");
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return t("common.timeAgoMinutes", { m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t("common.timeAgoHours", { h });
   const d = Math.floor(h / 24);
-  if (d < 30) return `${d}d ago`;
+  if (d < 30) return t("common.timeAgoDays", { d });
   return new Date(iso).toLocaleDateString();
+}
+
+function netScore(c: Comment): number {
+  return c.likes - c.dislikes;
 }
 
 function CommentAvatar({
@@ -170,15 +184,21 @@ function CommentAvatar({
 
 function CommentSkeleton() {
   return (
-    <div className="flex gap-3 py-4 animate-pulse">
-      <div className="w-9 h-9 rounded-full bg-white/5 shrink-0" />
-      <div className="flex-1 space-y-2 pt-1">
+    <div className="flex gap-3 py-4 px-2 animate-pulse">
+      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-white/8 to-white/[0.02] shrink-0" />
+      <div className="flex-1 space-y-2.5 pt-0.5">
         <div className="flex gap-2 items-center">
-          <div className="h-3 w-20 rounded bg-white/5" />
-          <div className="h-3 w-12 rounded bg-white/[0.03]" />
+          <div className="h-3 w-24 rounded-full bg-white/6" />
+          <div className="h-3 w-14 rounded-full bg-white/[0.03]" />
         </div>
-        <div className="h-3 w-3/4 rounded bg-white/[0.04]" />
-        <div className="h-3 w-1/2 rounded bg-white/[0.03]" />
+        <div className="space-y-1.5">
+          <div className="h-3 w-full max-w-md rounded-full bg-white/[0.04]" />
+          <div className="h-3 w-2/3 max-w-xs rounded-full bg-white/[0.03]" />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <div className="h-6 w-12 rounded-lg bg-white/[0.03]" />
+          <div className="h-6 w-12 rounded-lg bg-white/[0.03]" />
+        </div>
       </div>
     </div>
   );
@@ -217,11 +237,6 @@ export default function CommentSection({
 
   const hasEpisodePicker = !!episodes?.length;
   const [pickedEpisodeId, setPickedEpisodeId] = useState<string | "all">("all");
-
-  useEffect(() => {
-    if (!hasEpisodePicker || !episodes?.length) return;
-    setPickedEpisodeId(episodes[0].episodeId);
-  }, [hasEpisodePicker, episodes]);
 
   const activeEpisodeId =
     commentScope === "anime"
@@ -281,6 +296,13 @@ export default function CommentSection({
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [draft, focused]);
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
 
@@ -553,20 +575,29 @@ export default function CommentSection({
         : t("comments.placeholder");
 
   const canSubmit = (draft.trim().length > 0 || !!selectedGif) && !submitting;
-  const showToolbar = focused || !!draft || !!selectedGif;
+  const showToolbar = focused || !!draft || !!selectedGif || isSpoiler;
+  const charNearLimit = draft.length > 850;
 
-  // ── Sub-renders ─────────────────────────────────────────────────────────────
+  const renderAuthorName = (username: string, iconSlug?: string | null, className?: string) => (
+    <Link
+      href={`/profile/${encodeURIComponent(username)}`}
+      className={cn("hover:text-white transition-colors", className)}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <CosmeticUsername username={username} iconSlug={iconSlug} />
+    </Link>
+  );
 
-  const renderVoteReact = (c: Comment, compact = false) => (
-    <div className={cn("flex items-center gap-1", compact ? "mt-2" : "mt-2.5")}>
+  const renderVoteReact = (c: Comment, compact = false, showReply = false) => (
+    <div className={cn("flex items-center gap-1 flex-wrap", compact ? "mt-2" : "mt-2.5")}>
       <button
         onClick={() => auth && handleVote(c.id, 1)}
         disabled={!auth}
-        aria-label="Like"
+        aria-label={t("comments.like")}
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === 1
-            ? "text-emerald-400 bg-emerald-500/10"
+            ? "text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20"
             : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
         )}
       >
@@ -576,11 +607,11 @@ export default function CommentSection({
       <button
         onClick={() => auth && handleVote(c.id, -1)}
         disabled={!auth}
-        aria-label="Dislike"
+        aria-label={t("comments.dislike")}
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === -1
-            ? "text-rose-400 bg-rose-500/10"
+            ? "text-rose-400 bg-rose-500/10 ring-1 ring-rose-500/20"
             : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
         )}
       >
@@ -588,12 +619,18 @@ export default function CommentSection({
         {c.dislikes > 0 && <span className="font-mono tabular-nums">{c.dislikes}</span>}
       </button>
 
+      {sort === "top" && netScore(c) > 0 && (
+        <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-semibold text-sky-300/70 bg-sky-500/10 border border-sky-500/15 tabular-nums">
+          {t("comments.netScore", { score: netScore(c) })}
+        </span>
+      )}
+
       {auth && (
         <div className="relative ml-0.5">
           <button
             onClick={() => setReactionPickerFor(reactionPickerFor === c.id ? null : c.id)}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-white/20 hover:text-white/55 hover:bg-white/5 transition-all"
-            title="Add reaction"
+            title={t("comments.addReaction")}
           >
             <SmilePlus className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
           </button>
@@ -601,9 +638,25 @@ export default function CommentSection({
             <EmojiPickerPanel
               onSelect={(emoji) => handleReact(c.id, emoji)}
               onClose={() => setReactionPickerFor(null)}
+              t={t}
             />
           )}
         </div>
+      )}
+
+      {showReply && auth && (
+        <button
+          onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ml-0.5",
+            replyingTo === c.id
+              ? "text-white/70 bg-white/10 ring-1 ring-white/15"
+              : "text-white/20 hover:text-white/55 hover:bg-white/5",
+          )}
+        >
+          <Reply className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
+          {t("comments.reply")}
+        </button>
       )}
     </div>
   );
@@ -621,8 +674,8 @@ export default function CommentSection({
               title={
                 auth
                   ? c.myReactions.includes(emoji)
-                    ? "Remove reaction"
-                    : "React"
+                    ? t("comments.removeReaction")
+                    : t("comments.react")
                   : t("comments.logInToReact")
               }
               className={cn(
@@ -655,7 +708,7 @@ export default function CommentSection({
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="flex items-center gap-1.5 text-xs text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
                   <EyeOff className="w-3 h-3" />
-                  Spoiler — click to reveal
+                  {t("comments.spoilerReveal")}
                 </span>
               </div>
             </div>
@@ -680,7 +733,7 @@ export default function CommentSection({
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="flex items-center gap-1.5 text-xs text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
                     <EyeOff className="w-3 h-3" />
-                    Spoiler — click to reveal
+                  {t("comments.spoilerReveal")}
                   </span>
                 </div>
               </div>
@@ -704,21 +757,21 @@ export default function CommentSection({
 
       {/* Episode picker (anime detail page) */}
       {hasEpisodePicker && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">
-            Episode comments
+            {t("comments.episodePicker")}
           </p>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin -mx-1 px-1">
             <button
               onClick={() => setPickedEpisodeId("all")}
               className={cn(
-                "shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all",
+                "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all",
                 pickedEpisodeId === "all"
-                  ? "bg-white/10 text-white border-white/20"
+                  ? "bg-white/12 text-white border-white/25 shadow-sm shadow-black/20"
                   : "bg-white/[0.02] text-white/35 border-white/8 hover:border-white/15 hover:text-white/60",
               )}
             >
-              All
+              {t("comments.allEpisodes")}
             </button>
             {episodes!.map((ep) => (
               <button
@@ -726,13 +779,13 @@ export default function CommentSection({
                 onClick={() => setPickedEpisodeId(ep.episodeId)}
                 title={ep.title}
                 className={cn(
-                  "shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all max-w-[140px] truncate",
+                  "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all max-w-[140px] truncate",
                   pickedEpisodeId === ep.episodeId
-                    ? "bg-white/10 text-white border-white/20"
+                    ? "bg-sky-500/15 text-sky-200 border-sky-500/30 shadow-sm shadow-sky-950/30"
                     : "bg-white/[0.02] text-white/35 border-white/8 hover:border-white/15 hover:text-white/60",
                 )}
               >
-                Ep {ep.number}
+                {t("comments.episodeShort", { n: ep.number })}
               </button>
             ))}
           </div>
@@ -771,15 +824,15 @@ export default function CommentSection({
           </div>
         )}
         {!loading && (
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/8 p-0.5 shrink-0">
+          <div className="flex items-center gap-0.5 rounded-xl border border-white/8 bg-white/[0.02] p-0.5 shrink-0">
             {(["new", "top", "old"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setSort(s)}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all",
+                  "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all",
                   sort === s
-                    ? "bg-white/10 text-white/80"
+                    ? "bg-white/12 text-white shadow-sm shadow-black/20"
                     : "text-white/30 hover:text-white/55",
                 )}
               >
@@ -799,10 +852,10 @@ export default function CommentSection({
           <div className="flex-1 min-w-0">
             <div
               className={cn(
-                "rounded-xl border transition-all duration-200",
+                "rounded-2xl border transition-all duration-200 overflow-hidden",
                 focused
-                  ? "border-white/20 bg-white/[0.04] shadow-lg shadow-black/30"
-                  : "border-white/8 bg-white/[0.02]",
+                  ? "border-violet-500/25 bg-white/[0.04] shadow-lg shadow-violet-950/20 ring-1 ring-violet-500/10"
+                  : "border-white/8 bg-white/[0.02] hover:border-white/12",
                 isSheet && !focused && "bg-white/[0.03]",
               )}
             >
@@ -858,6 +911,7 @@ export default function CommentSection({
                       <EmojiPickerPanel
                         onSelect={insertEmoji}
                         onClose={() => setShowEmojiPicker(false)}
+                        t={t}
                       />
                     )}
 
@@ -871,7 +925,7 @@ export default function CommentSection({
                       )}
                     >
                       <ImagePlay className="w-3.5 h-3.5" />
-                      GIF
+                      {t("comments.gif")}
                     </button>
                     {showGifPanel && (
                       <GifUrlPanel
@@ -882,7 +936,7 @@ export default function CommentSection({
 
                     <button
                       onClick={() => setIsSpoiler((v) => !v)}
-                      title="Mark as spoiler"
+                      title={t("comments.markSpoiler")}
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                         isSpoiler
@@ -891,25 +945,30 @@ export default function CommentSection({
                       )}
                     >
                       <EyeOff className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Spoiler</span>
+                      <span className="hidden sm:inline">{t("comments.spoiler")}</span>
                     </button>
                   </div>
 
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="hidden sm:block text-[10px] font-mono text-white/15 tabular-nums">
+                    <span
+                      className={cn(
+                        "hidden sm:block text-[10px] font-mono tabular-nums transition-colors",
+                        charNearLimit ? "text-amber-400/70" : "text-white/15",
+                      )}
+                    >
                       {draft.length}/1000
                     </span>
                     <button
                       onClick={handleSubmit}
                       disabled={!canSubmit}
-                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-white to-white/90 text-black text-xs font-bold hover:from-white/95 hover:to-white/85 disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-sm shadow-black/20"
                     >
                       {submitting ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Send className="w-3.5 h-3.5" />
                       )}
-                      Post
+                      {t("comments.post")}
                     </button>
                   </div>
                 </div>
@@ -917,13 +976,13 @@ export default function CommentSection({
             </div>
             {focused && (
               <p className="hidden sm:block text-[10px] text-white/15 font-mono mt-1.5 pl-1">
-                Ctrl+Enter to post
+                {t("comments.ctrlEnterPost")}
               </p>
             )}
           </div>
         </div>
       ) : !auth ? (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 px-4 rounded-xl bg-white/[0.02] border border-white/6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 px-4 rounded-2xl bg-gradient-to-r from-white/[0.03] to-violet-500/[0.04] border border-white/8">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <SmilePlus className="w-4 h-4 text-white/20 shrink-0" />
             <p className="text-sm text-white/30">{t("comments.signInToJoin")}</p>
@@ -947,7 +1006,7 @@ export default function CommentSection({
             onClick={() => fetchComments(1, sort, false)}
             className="px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/8 text-white/60 text-xs font-semibold transition-colors"
           >
-            Retry
+            {t("comments.retry")}
           </button>
         </div>
       ) : loading ? (
@@ -955,28 +1014,43 @@ export default function CommentSection({
           {[...Array(4)].map((_, i) => <CommentSkeleton key={i} />)}
         </div>
       ) : comments.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <MessageSquare className="w-8 h-8 text-white/8" />
-          <p className="text-sm text-white/20 font-mono">
-            {activeEpisodeId ? t("comments.noCommentsEpisode") : t("comments.noComments")}
-          </p>
-          <p className="text-xs text-white/12">Be the first to share your thoughts</p>
+        <div className="flex flex-col items-center gap-3 py-12 px-6 text-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015]">
+          <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
+            <MessageSquare className="w-6 h-6 text-white/20" />
+          </div>
+          <div>
+            <p className="text-sm text-white/35 font-medium">
+              {activeEpisodeId ? t("comments.noCommentsEpisode") : t("comments.noComments")}
+            </p>
+            <p className="text-xs text-white/20 mt-1">{t("comments.firstComment")}</p>
+          </div>
         </div>
       ) : (
-        <div className="flex flex-col divide-y divide-white/[0.04]">
-          {comments.map((c) => {
+        <div className="flex flex-col">
+          {comments.map((c, index) => {
             const isOwn = auth?.id === c.userId;
             const isEditing = editingId === c.id;
+            const isHighlighted = isOwn || netScore(c) >= 5;
 
             return (
-              <div key={c.id} className="flex gap-3 py-4 group">
+              <div
+                key={c.id}
+                className={cn(
+                  "flex gap-3 py-4 px-2 -mx-2 rounded-2xl transition-colors group",
+                  index > 0 && "border-t border-white/[0.04]",
+                  isHighlighted
+                    ? "bg-white/[0.025] hover:bg-white/[0.035]"
+                    : "hover:bg-white/[0.02]",
+                  isOwn && "ring-1 ring-violet-500/10",
+                )}
+              >
                 <CommentAvatar username={c.username} avatarUrl={c.avatarUrl} frameSlug={c.equippedFrame} />
                 <div className="flex-1 min-w-0">
 
                   {/* Header */}
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="text-[13px] font-semibold text-white/90 leading-none">
-                      <CosmeticUsername username={c.username} iconSlug={c.equippedIcon} />
+                      {renderAuthorName(c.username, c.equippedIcon)}
                     </span>
                     <UserBadges
                       role={c.role}
@@ -988,19 +1062,19 @@ export default function CommentSection({
                     {c.isSpoiler && (
                       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-400/70">
                         <EyeOff className="w-2.5 h-2.5" />
-                        spoiler
+                        {t("comments.spoilerBadge")}
                       </span>
                     )}
                     {(commentScope === "anime" || (hasEpisodePicker && pickedEpisodeId === "all")) &&
                       c.episodeNumber && (
-                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-white/5 border border-white/10 text-white/35">
-                        Ep {c.episodeNumber}
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-sky-500/10 border border-sky-500/20 text-sky-300/70">
+                        {t("comments.episodeShort", { n: c.episodeNumber })}
                       </span>
                     )}
                     <span className="text-[11px] font-mono text-white/18 leading-none">
-                      {relativeTime(c.createdAt)}
+                      {relativeTime(c.createdAt, t)}
                       {c.updatedAt && (
-                        <span className="ml-1 text-white/15">(edited)</span>
+                        <span className="ml-1 text-white/15">{t("comments.edited")}</span>
                       )}
                     </span>
 
@@ -1009,7 +1083,7 @@ export default function CommentSection({
                         {isOwn && (
                           <button
                             onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
-                            aria-label="Edit comment"
+                            aria-label={t("comments.editComment")}
                             className="p-1.5 rounded-lg hover:bg-white/8 text-white/35 hover:text-white/60 transition-all"
                           >
                             <Pencil className="w-3 h-3" />
@@ -1017,7 +1091,7 @@ export default function CommentSection({
                         )}
                         <button
                           onClick={() => handleDelete(c.id)}
-                          aria-label="Delete comment"
+                          aria-label={t("comments.deleteComment")}
                           className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/35 hover:text-red-400/70 transition-all"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -1050,7 +1124,7 @@ export default function CommentSection({
                             onClick={() => { setEditingId(null); setEditDraft(""); }}
                             className="px-2.5 py-1 rounded-lg text-xs text-white/35 hover:text-white/65 hover:bg-white/5 transition-all"
                           >
-                            Cancel
+                            {t("comments.cancel")}
                           </button>
                           <button
                             onClick={() => saveEdit(c.id)}
@@ -1062,7 +1136,7 @@ export default function CommentSection({
                             ) : (
                               <Check className="w-3 h-3" />
                             )}
-                            Save
+                            {t("comments.save")}
                           </button>
                         </div>
                       </div>
@@ -1074,85 +1148,19 @@ export default function CommentSection({
                   {/* Votes + reactions + reply button */}
                   {!isEditing && (
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1 mt-2.5">
-                        <button
-                          onClick={() => auth && handleVote(c.id, 1)}
-                          disabled={!auth}
-                          aria-label="Like reply"
-                          className={cn(
-                            "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
-                            c.myVote === 1
-                              ? "text-emerald-400 bg-emerald-500/10"
-                              : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
-                          )}
-                        >
-                          <ThumbsUp className="w-3.5 h-3.5" />
-                          {c.likes > 0 && (
-                            <span className="font-mono tabular-nums">{c.likes}</span>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => auth && handleVote(c.id, -1)}
-                          disabled={!auth}
-                          aria-label="Dislike reply"
-                          className={cn(
-                            "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
-                            c.myVote === -1
-                              ? "text-rose-400 bg-rose-500/10"
-                              : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
-                          )}
-                        >
-                          <ThumbsDown className="w-3.5 h-3.5" />
-                          {c.dislikes > 0 && (
-                            <span className="font-mono tabular-nums">{c.dislikes}</span>
-                          )}
-                        </button>
-
-                        {auth && (
-                          <div className="relative ml-0.5">
-                            <button
-                              onClick={() =>
-                                setReactionPickerFor(reactionPickerFor === c.id ? null : c.id)
-                              }
-                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-white/20 hover:text-white/55 hover:bg-white/5 transition-all"
-                              title="Add reaction"
-                            >
-                              <SmilePlus className="w-3.5 h-3.5" />
-                            </button>
-                            {reactionPickerFor === c.id && (
-                              <EmojiPickerPanel
-                                onSelect={(emoji) => handleReact(c.id, emoji)}
-                                onClose={() => setReactionPickerFor(null)}
-                              />
-                            )}
-                          </div>
-                        )}
-
-                        {auth && (
-                          <button
-                            onClick={() =>
-                              setReplyingTo(replyingTo === c.id ? null : c.id)
-                            }
-                            className={cn(
-                              "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ml-0.5",
-                              replyingTo === c.id
-                                ? "text-white/60 bg-white/8"
-                                : "text-white/20 hover:text-white/55 hover:bg-white/5",
-                            )}
-                          >
-                            <Reply className="w-3.5 h-3.5" />
-                            Reply
-                          </button>
-                        )}
-                      </div>
-
+                      {renderVoteReact(c, false, true)}
                       {renderReactionPills(c)}
                     </div>
                   )}
 
                   {/* Inline reply composer */}
                   {replyingTo === c.id && (
-                    <div className="mt-3 flex gap-2.5">
+                    <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/25 mb-2">
+                        {t("comments.replyingTo")}{" "}
+                        <span className="text-white/50">@{c.username}</span>
+                      </p>
+                      <div className="flex gap-2.5">
                       <CommentAvatar
                         username={auth!.username}
                         avatarUrl={auth!.avatar}
@@ -1172,17 +1180,17 @@ export default function CommentSection({
                               setReplyDraft("");
                             }
                           }}
-                          placeholder={`Reply to ${c.username}…`}
+                          placeholder={t("comments.replyTo", { user: c.username })}
                           rows={2}
                           maxLength={1000}
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-sm text-white/85 placeholder:text-white/20 resize-none focus:outline-none focus:border-white/22 transition-colors leading-relaxed"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-sm text-white/85 placeholder:text-white/20 resize-none focus:outline-none focus:border-violet-500/25 transition-colors leading-relaxed"
                         />
                         <div className="flex items-center justify-end gap-2 mt-1.5">
                           <button
                             onClick={() => { setReplyingTo(null); setReplyDraft(""); }}
                             className="text-xs text-white/30 hover:text-white/55 transition-colors px-2 py-1"
                           >
-                            Cancel
+                            {t("comments.cancel")}
                           </button>
                           <button
                             onClick={() => handleReply(c.id)}
@@ -1194,16 +1202,17 @@ export default function CommentSection({
                             ) : (
                               <Reply className="w-3 h-3" />
                             )}
-                            Reply
+                            {t("comments.reply")}
                           </button>
                         </div>
+                      </div>
                       </div>
                     </div>
                   )}
 
                   {/* Threaded replies */}
                   {c.replies.length > 0 && (
-                    <div className="mt-3 ml-1 pl-3.5 border-l-2 border-white/[0.05]">
+                    <div className="mt-3 ml-2 pl-4 border-l-2 border-violet-500/15">
                       {!expandedReplies.has(c.id) ? (
                         <button
                           onClick={() =>
@@ -1212,8 +1221,9 @@ export default function CommentSection({
                           className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 py-1 transition-colors"
                         >
                           <ChevronDown className="w-3.5 h-3.5" />
-                          {c.replies.length}{" "}
-                          {c.replies.length === 1 ? "reply" : "replies"}
+                          {c.replies.length === 1
+                            ? t("comments.replyOne")
+                            : t("comments.repliesMany", { count: c.replies.length })}
                         </button>
                       ) : (
                         <>
@@ -1235,7 +1245,7 @@ export default function CommentSection({
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <span className="text-[12px] font-semibold text-white/85 leading-none">
-                                      <CosmeticUsername username={reply.username} iconSlug={reply.equippedIcon} />
+                                      {renderAuthorName(reply.username, reply.equippedIcon, "text-[12px]")}
                                     </span>
                                     <UserBadges
                                       role={reply.role}
@@ -1246,20 +1256,20 @@ export default function CommentSection({
                                       size="xs"
                                     />
                                     <span className="text-[10px] font-mono text-white/18 leading-none">
-                                      {relativeTime(reply.createdAt)}
+                                      {relativeTime(reply.createdAt, t)}
                                       {reply.updatedAt && (
-                                        <span className="ml-1 text-white/15">(edited)</span>
+                                        <span className="ml-1 text-white/15">{t("comments.edited")}</span>
                                       )}
                                     </span>
                                     {(replyOwn || canModerateComments) && !replyEditing && (
-                                      <div className="ml-auto flex items-center gap-1 opacity-0 group-hover/reply:opacity-100 transition-opacity">
+                                      <div className="ml-auto flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/reply:opacity-100 transition-opacity">
                                         {replyOwn && (
                                           <button
                                             onClick={() => {
                                               setEditingId(reply.id);
                                               setEditDraft(reply.body);
                                             }}
-                                            aria-label="Edit reply"
+                                            aria-label={t("comments.editReply")}
                                             className="p-1 rounded-lg hover:bg-white/8 text-white/35 hover:text-white/60 transition-all"
                                           >
                                             <Pencil className="w-3 h-3" />
@@ -1267,7 +1277,7 @@ export default function CommentSection({
                                         )}
                                         <button
                                           onClick={() => handleDelete(reply.id)}
-                                          aria-label="Delete reply"
+                                          aria-label={t("comments.deleteReply")}
                                           className="p-1 rounded-lg hover:bg-red-500/10 text-white/35 hover:text-red-400/70 transition-all"
                                         >
                                           <Trash2 className="w-3 h-3" />
@@ -1299,7 +1309,7 @@ export default function CommentSection({
                                           onClick={() => { setEditingId(null); setEditDraft(""); }}
                                           className="px-2.5 py-1 rounded-lg text-xs text-white/35 hover:text-white/65 hover:bg-white/5 transition-all"
                                         >
-                                          Cancel
+                                          {t("comments.cancel")}
                                         </button>
                                         <button
                                           onClick={() => saveEdit(reply.id)}
@@ -1311,7 +1321,7 @@ export default function CommentSection({
                                           ) : (
                                             <Check className="w-3 h-3" />
                                           )}
-                                          Save
+                                          {t("comments.save")}
                                         </button>
                                       </div>
                                     </div>
@@ -1343,7 +1353,7 @@ export default function CommentSection({
                             className="flex items-center gap-1.5 text-xs text-white/20 hover:text-white/45 py-2 transition-colors"
                           >
                             <ChevronUp className="w-3.5 h-3.5" />
-                            Hide replies
+                            {t("comments.hideReplies")}
                           </button>
                         </>
                       )}
@@ -1365,7 +1375,7 @@ export default function CommentSection({
             className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm text-white/40 hover:text-white/70 hover:bg-white/5 border border-white/6 transition-all disabled:opacity-50"
           >
             {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            Load more comments
+            {t("comments.loadMore")}
           </button>
         </div>
       )}

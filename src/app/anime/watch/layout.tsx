@@ -179,9 +179,19 @@ const Layout = (props: Props) => {
     if (value === "comments") params.delete("tab");
     else params.set("tab", value);
     router.replace(`${ROUTES.WATCH}?${params.toString()}`, { scroll: false });
-    if (value === "comments") {
+
+    const scrollTarget =
+      value === "comments"
+        ? "watch-comments-panel"
+        : value === "info"
+          ? "watch-tab-info"
+          : value === "related"
+            ? "watch-tab-related"
+            : null;
+
+    if (scrollTarget) {
       requestAnimationFrame(() => {
-        document.getElementById("watch-comments-panel")?.scrollIntoView({
+        document.getElementById(scrollTarget)?.scrollIntoView({
           behavior: "smooth",
           block: "start",
         });
@@ -316,7 +326,7 @@ const Layout = (props: Props) => {
               )}
             </TabsContent>
 
-            <TabsContent value="info" className="mt-6 space-y-5">
+            <TabsContent value="info" className="mt-6 space-y-5 scroll-mt-24" id="watch-tab-info">
               {/* Synopsis */}
               {info.description && (
                 <div className="site-panel p-5 sm:p-6">
@@ -401,7 +411,7 @@ const Layout = (props: Props) => {
               )}
             </TabsContent>
 
-            <TabsContent value="related" className="mt-6 space-y-8">
+            <TabsContent value="related" className="mt-6 space-y-8 scroll-mt-24" id="watch-tab-related">
               <AnimeCarousel title={t("common.alsoWatch")} anime={anime.relatedAnimes as IAnime[]} />
               <AnimeCarousel title={t("common.recommended")} anime={anime.recommendedAnimes as IAnime[]} />
             </TabsContent>

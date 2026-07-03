@@ -16,6 +16,7 @@ interface LatestComment {
   body: string;
   gifUrl: string | null;
   animeId: string;
+  animeTitle?: string | null;
   episodeId?: string | null;
   episodeNumber?: number | null;
   createdAt: string;
@@ -55,6 +56,10 @@ function formatAnimeId(id: string) {
     .join(" ");
 }
 
+function animeLabel(c: LatestComment) {
+  return c.animeTitle ?? formatAnimeId(c.animeId);
+}
+
 function CommentsFeed({ comments }: { comments: LatestComment[] }) {
   const t = useT();
   return (
@@ -64,17 +69,22 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
           key={c.id}
           className="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-white/8 hover:bg-white/[0.025] transition-colors group"
         >
-          <FramedAvatar
-            username={c.username}
-            url={c.avatarUrl ?? undefined}
-            frameSlug={c.equippedFrame}
-            className="w-9 h-9 shrink-0 mt-0.5"
-          />
+          <Link href={`/profile/${encodeURIComponent(c.username)}`} className="shrink-0">
+            <FramedAvatar
+              username={c.username}
+              url={c.avatarUrl ?? undefined}
+              frameSlug={c.equippedFrame}
+              className="w-9 h-9 mt-0.5"
+            />
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1">
-              <span className="text-[12.5px] font-semibold text-white/85">
+              <Link
+                href={`/profile/${encodeURIComponent(c.username)}`}
+                className="text-[12.5px] font-semibold text-white/85 hover:text-white transition-colors"
+              >
                 <CosmeticUsername username={c.username} iconSlug={c.equippedIcon} />
-              </span>
+              </Link>
               <UserBadges
                 role={c.role}
                 roleColor={c.roleColor}
@@ -97,7 +107,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
               href={commentLink(c)}
               className="inline-flex items-center gap-1.5 mt-1.5 text-[10px] text-white/30 hover:text-white/65 font-mono transition-colors max-w-full flex-wrap"
             >
-              <span className="truncate">{formatAnimeId(c.animeId)}</span>
+              <span className="truncate">{animeLabel(c)}</span>
               {c.episodeNumber && (
                 <span className="shrink-0 px-1.5 py-px rounded bg-sky-500/10 border border-sky-500/20 text-sky-300/70">
                   Ep {c.episodeNumber}

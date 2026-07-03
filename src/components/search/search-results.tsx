@@ -14,6 +14,8 @@ import Select from "@/components/common/select";
 import { SearchAnimeParams } from "@/types/anime";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/core/utils";
+import SearchBar from "@/components/layout/search-bar";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { SlidersHorizontal, RotateCcw, Search, RefreshCw } from "lucide-react";
 
 const SearchResults = () => {
@@ -22,6 +24,7 @@ const SearchResults = () => {
   const params = useAnimeSearchParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
   const displayPhrase = params.q.replace(/^"+|"+$/g, "").trim();
 
   const { data: searchResults, isLoading, isError, refetch, isFetching } = useGetSearchAnimeResults(params);
@@ -69,23 +72,60 @@ const SearchResults = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const applyFilters = () => {
-    const p = new URLSearchParams();
-    if (params.q) p.set("q", params.q);
-    Object.entries(filters).forEach(([key, value]) => {
-      if (key === "q") return;
-      if (typeof value === "string" && value.trim() && value !== "all") {
-        p.set(key, value);
-      } else if (typeof value === "number" && !isNaN(value) && key !== "page") {
-        p.set(key, value.toString());
-      }
-    });
-    router.push(`/search?${p.toString()}`);
-  };
+  const applyFilters = React.useCallback(
+    (nextFilters: SearchAnimeParams, query = params.q) => {
+      const p = new URLSearchParams();
+      if (query) p.set("q", query);
+      Object.entries(nextFilters).forEach(([key, value]) => {
+        if (key === "q") return;
+        if (typeof value === "string" && value.trim() && value !== "all") {
+          p.set(key, value);
+        } else if (typeof value === "number" && !isNaN(value) && key !== "page") {
+          p.set(key, value.toString());
+        }
+      });
+      router.push(`/search?${p.toString()}`);
+    },
+    [params.q, router],
+  );
+
+  const [debouncedFilters, setDebouncedFilters] = React.useState(filters);
+
+  React.useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedFilters(filters), 400);
+    return () => window.clearTimeout(id);
+  }, [filters.type, filters.status, filters.season, filters.sort, filters.genres, filters]);
+
+  React.useEffect(() => {
+    if (isMobile) return;
+    const changed =
+      debouncedFilters.type !== params.type ||
+      debouncedFilters.status !== params.status ||
+      debouncedFilters.season !== params.season ||
+      debouncedFilters.sort !== params.sort ||
+      debouncedFilters.genres !== params.genres;
+    if (!changed) return;
+    applyFilters({ ...debouncedFilters, page: 1 });
+  }, [
+    debouncedFilters.type,
+    debouncedFilters.status,
+    debouncedFilters.season,
+    debouncedFilters.sort,
+    debouncedFilters.genres,
+    debouncedFilters,
+    params.type,
+    params.status,
+    params.season,
+    params.sort,
+    params.genres,
+    applyFilters,
+    isMobile,
+  ]);
 
   const resetFilters = () => {
-    setFilters({ q: "", page: 1, type: "", status: "", rated: "", season: "", language: "", sort: "", genres: "" });
-    router.push('/search?q=');
+    const cleared = { q: "", page: 1, type: "", status: "", rated: "", season: "", language: "", sort: "", genres: "" };
+    setFilters(cleared);
+    router.push("/search");
   };
 
   const activeFilterCount = [
@@ -98,6 +138,14 @@ const SearchResults = () => {
 
   return (
     <div className="flex flex-col gap-8 mt-28 lg:mt-36 pb-20 min-h-[75vh]">
+      <div className="max-w-2xl">
+        <SearchBar
+          key={displayPhrase}
+          defaultValue={displayPhrase}
+          onSubmitQuery={(q) => applyFilters(filters, q)}
+        />
+      </div>
+
       {/* Filter panel */}
       <div className="bg-white/4 border border-white/10 backdrop-blur-sm rounded-xl p-5 flex flex-col gap-5">
         <div className="flex items-center justify-between">
@@ -151,12 +199,15 @@ const SearchResults = () => {
         </div>
 
         <button
-          onClick={applyFilters}
-          className="self-start flex items-center gap-2 bg-white text-black hover:bg-white/90 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+          onClick={() => applyFilters(filters)}
+          className="self-start flex items-center gap-2 bg-white/10 text-white hover:bg-white/15 border border-white/10 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors lg:hidden"
         >
           <Search className="h-3.5 w-3.5" />
           {t("search.apply")}
         </button>
+        <p className="hidden lg:block text-[11px] text-white/25 font-mono">
+          {t("search.filtersAutoApply")}
+        </p>
       </div>
 
       {/* Heading */}

@@ -15,13 +15,17 @@ const SearchBar = ({
   className,
   onAnimeClick,
   autoFocus,
+  defaultValue = "",
+  onSubmitQuery,
 }: {
   className?: string;
   onAnimeClick?: () => void;
   autoFocus?: boolean;
+  defaultValue?: string;
+  onSubmitQuery?: (query: string) => void;
 }) => {
   const t = useT();
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(defaultValue);
   const [isOpen, setIsOpen] = useState(false);
   const debouncedValue = useDebounce(searchValue, 300);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,6 +50,10 @@ const SearchBar = ({
     return () => cancelAnimationFrame(id);
   }, [autoFocus]);
 
+  useEffect(() => {
+    setSearchValue(defaultValue);
+  }, [defaultValue]);
+
   const handleClear = () => {
     setSearchValue("");
     setIsOpen(false);
@@ -60,8 +68,14 @@ const SearchBar = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchValue.trim()) {
-      router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`);
-      handleSelect();
+      const q = searchValue.trim();
+      if (onSubmitQuery) {
+        onSubmitQuery(q);
+        handleSelect();
+      } else {
+        router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(q)}`);
+        handleSelect();
+      }
     }
     if (e.key === "Escape") setIsOpen(false);
   };

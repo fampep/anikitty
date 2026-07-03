@@ -373,7 +373,21 @@ const NavBar = () => {
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white"
+              className="hidden items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-white/55 transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-white lg:flex"
+              aria-label={t("nav.aria.openSearch")}
+            >
+              <SearchIcon className="h-4 w-4 shrink-0" />
+              <span className="hidden xl:inline text-xs text-white/35 max-w-[8rem] truncate">
+                {t("search.placeholder")}
+              </span>
+              <kbd className="hidden xl:inline-flex items-center gap-0.5 rounded border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-white/30">
+                Ctrl K
+              </kbd>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white lg:hidden"
               aria-label={t("nav.aria.openSearch")}
             >
               <SearchIcon className="h-5 w-5" />
@@ -389,7 +403,11 @@ const NavBar = () => {
             <div className="flex items-center gap-1 lg:hidden">
               {user && <KittycoinPill />}
               {user && <NotificationBell />}
-              <MobileMenuSheet pathname={pathname} trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />} />
+              <MobileMenuSheet
+                pathname={pathname}
+                onSearchClick={() => setSearchOpen(true)}
+                trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />}
+              />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
           </div>
@@ -399,7 +417,15 @@ const NavBar = () => {
   );
 };
 
-const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: string }) => {
+const MobileMenuSheet = ({
+  trigger,
+  pathname,
+  onSearchClick,
+}: {
+  trigger: ReactNode;
+  pathname: string;
+  onSearchClick?: () => void;
+}) => {
   const t = useT();
   const menuItems = useMenuItems();
   const [open, setOpen] = useState(false);
@@ -429,6 +455,20 @@ const MobileMenuSheet = ({ trigger, pathname }: { trigger: ReactNode; pathname: 
             <SheetClose className="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white">
               <X className="h-4 w-4" />
             </SheetClose>
+          </div>
+
+          <div className="border-b border-white/[0.06] p-4">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onSearchClick?.();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-white"
+            >
+              <SearchIcon className="h-4 w-4 shrink-0" />
+              {t("nav.search")}
+            </button>
           </div>
 
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label={t("nav.aria.mobileNav")}>

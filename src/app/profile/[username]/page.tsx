@@ -114,16 +114,16 @@ function EditProfileDialog({
   );
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: ReturnType<typeof useT>): string {
   const diff = Date.now() - new Date(iso).getTime();
   const s = Math.floor(diff / 1000);
-  if (s < 60) return "just now";
+  if (s < 60) return t("home.justNow");
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return t("common.timeAgoMinutes", { m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t("common.timeAgoHours", { h });
   const d = Math.floor(h / 24);
-  if (d < 30) return `${d}d ago`;
+  if (d < 30) return t("common.timeAgoDays", { d });
   return new Date(iso).toLocaleDateString();
 }
 
@@ -275,7 +275,7 @@ function UserComments({ username }: { username: string }) {
               {formatAnimeLabel(c.animeId)}
               {c.episodeNumber ? ` · Ep ${c.episodeNumber}` : ""}
             </Link>
-            <span className="text-[10px] font-mono text-white/20 shrink-0">{relativeTime(c.createdAt)}</span>
+            <span className="text-[10px] font-mono text-white/20 shrink-0">{relativeTime(c.createdAt, t)}</span>
           </div>
           {c.body && (
             <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words">{c.body}</p>
