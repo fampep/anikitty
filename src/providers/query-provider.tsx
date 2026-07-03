@@ -2,15 +2,10 @@
 
 import React, { ReactNode, useState } from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { KittyStreamSupersededError } from "@/query/stream/get-kitty-stream";
 
 type Props = {
   children: ReactNode;
 };
-
-function isSupersededStreamError(error: unknown): boolean {
-  return error instanceof KittyStreamSupersededError;
-}
 
 const QueryProvider = (props: Props) => {
   const [queryClient] = useState(
@@ -22,9 +17,6 @@ const QueryProvider = (props: Props) => {
             cacheTime: 5 * 60_000,
             refetchOnWindowFocus: false,
             retry: 1,
-            onError: (error) => {
-              if (isSupersededStreamError(error)) return;
-            },
           },
         },
       }),

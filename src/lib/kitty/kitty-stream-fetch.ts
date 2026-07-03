@@ -1,4 +1,4 @@
-import { fetchKittyAutoStream } from "@/lib/kitty/kitty-auto-stream";
+import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   fetchMiruroVideoStream,
@@ -74,21 +74,32 @@ export async function fetchKittyStreamRaw(
     }
   }
 
-  const auto = await fetchKittyAutoStream({
+  const url = buildKittyStreamDirectUrl({
+    provider: provider as KittyProvider,
     anilistId,
     episode,
     audio,
-    provider: provider as KittyProvider,
     title,
   });
 
-  if (!auto?.entry.file) return null;
+  try {
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
+      headers: kittyApiHeaders(),
+    });
 
-  return {
-    file: auto.entry.file,
-    headers: auto.entry.headers,
-    download: auto.entry.download ?? null,
-    tracks: auto.entry.tracks,
-    server: auto.entry.server,
-  };
+    const data = await res.json();
+    if (!res.ok || !data?.file) return null;
+
+    return {
+      file: data.file as string,
+      headers: (data.headers ?? {}) as Record<string, string>,
+      download: typeof data.download === "string" ? data.download : null,
+      tracks: Array.isArray(data.tracks) ? data.tracks : undefined,
+      server: typeof data.server === "string" ? data.server : null,
+    };
+  } catch {
+    return null;
+  }
 }

@@ -12,7 +12,7 @@ import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
   buildKittyStreamQueryKey,
-  isKittyStreamSupersededError,
+  isKittyStreamAbortError,
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
@@ -366,10 +366,9 @@ const VideoPlayerSection = () => {
 
   // ── Resume position ──────────────────────────────────────────────
   const [savedResumeTime, setSavedResumeTime] = useState(0);
-  const [resumeReady, setResumeReady] = useState(true);
+  const [resumeReady, setResumeReady] = useState(false);
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
-  const [playbackStarted, setPlaybackStarted] = useState(false);
-  const resumeReadyRef = useRef(true);
+  const resumeReadyRef = useRef(false);
   const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
@@ -496,18 +495,15 @@ const VideoPlayerSection = () => {
     liveTimeRef.current = 0;
     liveDurationRef.current = 0;
     setResumeChoice(null);
-    setResumeReady(true);
-    setPlaybackStarted(false);
-    resumeReadyRef.current = true;
+    setResumeReady(false);
     setArtPlayer(null);
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
   }, [episodeId]);
 
-  // Fetch saved resume position when the episode changes (non-blocking)
+  // Fetch saved resume position when the episode changes
   useEffect(() => {
     if (!animeSlug || !episodeId) {
-      setSavedResumeTime(0);
       setResumeReady(true);
       resumeReadyRef.current = true;
       return;
@@ -518,13 +514,47 @@ const VideoPlayerSection = () => {
     const cached = useProgressStore.getState().getProgress(animeSlug, episodeId);
     const localTime = Math.max(urlTime, cached?.current ?? 0);
 
-    setSavedResumeTime(localTime > 10 ? localTime : 0);
-    setResumeReady(true);
-    resumeReadyRef.current = true;
+    if (localTime > 10) {
+      setSavedResumeTime(localTime);
+      setResumeReady(true);
+      resumeReadyRef.current = true;
 
-    if (!auth) return () => {
-      cancelled = true;
+      if (auth) {
+        void anisurgeContinue
+          .getEpisode(animeSlug, episodeId)
+          .then((r: { currentTime?: number; duration?: number }) => {
+            if (cancelled) return;
+            const saved = r?.currentTime ?? 0;
+            const dur = r?.duration ?? 0;
+            if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+              setSavedResumeTime((prev) => Math.max(prev, saved));
+            }
+          })
+          .catch(() => {});
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setResumeReady(false);
+    resumeReadyRef.current = false;
+
+    const finish = () => {
+      if (cancelled) return;
+      setResumeReady(true);
+      resumeReadyRef.current = true;
     };
+
+    const safety = window.setTimeout(finish, 3000);
+
+    if (!auth) {
+      finish();
+      return () => {
+        cancelled = true;
+        window.clearTimeout(safety);
+      };
+    }
 
     void anisurgeContinue
       .getEpisode(animeSlug, episodeId)
@@ -533,13 +563,18 @@ const VideoPlayerSection = () => {
         const saved = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
         if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
-          setSavedResumeTime((prev) => Math.max(prev, saved));
+          setSavedResumeTime(saved);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        window.clearTimeout(safety);
+        finish();
+      });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(safety);
     };
   }, [auth, animeSlug, episodeId, timeFromUrl]);
 
@@ -550,8 +585,7 @@ const VideoPlayerSection = () => {
     savedResumeTime > 10 &&
     urlResumeTime <= 0 &&
     resumeChoice === null &&
-    !isW2gGuest &&
-    !playbackStarted;
+    !isW2gGuest;
 
   const playerStartTime =
     resumeChoice === "start"
@@ -563,7 +597,6 @@ const VideoPlayerSection = () => {
           : savedResumeTime;
 
   const handleStart = useCallback(async () => {
-    setPlaybackStarted(true);
     if (!auth || !anime?.anime?.info) return;
     const { id: slug, name, poster } = anime.anime.info;
     // Add to watchlist silently — doesn't gate progress saving
@@ -710,15 +743,15 @@ const VideoPlayerSection = () => {
     streamQueryEnabled &&
     !streamPending &&
     !hasStreamFile &&
-    (Boolean(streamError && !isKittyStreamSupersededError(streamError)) ||
+    (Boolean(streamError && !isKittyStreamAbortError(streamError)) ||
       Boolean(streamData?.error));
 
   useEffect(() => {
     if (!streamQueryEnabled) return;
-    if (hasStreamFile || isLoading || isFetching) return;
-    if (!streamError || isKittyStreamSupersededError(streamError)) return;
+    if (hasStreamFile) return;
+    if (!streamError || !isKittyStreamAbortError(streamError)) return;
     void retryStream();
-  }, [streamQueryEnabled, hasStreamFile, isLoading, isFetching, streamError, retryStream]);
+  }, [streamQueryEnabled, hasStreamFile, streamError, retryStream]);
   const streamSwitching = isFetching && hasStreamFile;
 
   const playerTracks = useMemo(
@@ -971,7 +1004,7 @@ const VideoPlayerSection = () => {
     if (!providerAutoFallback || !streamQueryEnabled) return;
     if (streamPending || hasStreamFile) return;
     if (!streamFailed) return;
-    if (streamError && isKittyStreamSupersededError(streamError)) return;
+    if (streamError && isKittyStreamAbortError(streamError)) return;
     if (fallbackBusyRef.current) return;
 
     const tried = triedProvidersRef.current;
@@ -1181,6 +1214,15 @@ const VideoPlayerSection = () => {
           error={new Error(streamData?.error ?? t("watch.streamNotFound"))}
           onRetry={() => void retryStream()}
         />
+        {streamProviderControls}
+      </div>
+    );
+  }
+
+  if (!resumeReady) {
+    return (
+      <div className="flex flex-col gap-3">
+        <PlayerSkeleton label={t("watch.loadingStream")} />
         {streamProviderControls}
       </div>
     );

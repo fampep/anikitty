@@ -33,8 +33,7 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { fetchKittyAutoStream } from "@/lib/kitty/kitty-auto-stream";
-import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-hls-url";
+import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
@@ -77,7 +76,6 @@ type StreamPayload = {
   download?: string | null;
   subtitleSource?: string;
   error?: string;
-  resolvedProvider?: KittyProvider;
 };
 
 export async function GET(req: Request) {
@@ -175,10 +173,6 @@ export async function GET(req: Request) {
         : null;
 
   async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
-    if (data.file) {
-      data.file = resolveKittyStreamUrl(data.file);
-    }
-
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
         if (!t.file && t.url) t.file = t.url;
@@ -418,32 +412,46 @@ export async function GET(req: Request) {
     }
   }
 
-  const auto = await fetchKittyAutoStream({
-    anilistId: subtitleCtx.anilistId,
-    episode: subtitleCtx.episode,
-    audio: subtitleCtx.audio,
+  const url = buildKittyStreamDirectUrl({
     provider,
+    anilistId,
+    episode,
+    audio: audio as "sub" | "dub",
     title: titleParam,
   });
 
-  if (!auto?.entry.file) {
+  try {
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
+      headers: kittyApiHeaders(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.file) {
+      return Response.json(
+        { file: null, error: data?.message ?? data?.error ?? "Provider unavailable" },
+        { status: 200 },
+      );
+    }
+
+    const payload = data as StreamPayload & { server?: string; serverName?: string };
+    const serverLabel = payload.server ?? payload.serverName;
+    if (typeof serverLabel === "string") {
+      const trimmed = serverLabel.trim();
+      payload.server = trimmed || undefined;
+    }
+
+    return finalizeStreamResponse(payload, provider);
+  } catch (e: unknown) {
+    const err = e as { name?: string };
+    const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
     return Response.json(
-      { file: null, error: "No working stream found" },
+      { file: null, error: timedOut ? `${provider} timed out` : "Failed to reach provider" },
       { status: 200 },
     );
   }
-
-  const resolvedName = auto.resolvedProvider ?? provider;
-  const payload: StreamPayload = {
-    file: auto.entry.file,
-    headers: auto.entry.headers,
-    tracks: auto.entry.tracks,
-    server: auto.entry.server,
-    download: auto.entry.download,
-    resolvedProvider: resolvedName,
-  };
-
-  return finalizeStreamResponse(payload, resolvedName);
 }
 
 export const maxDuration = 30;

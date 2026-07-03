@@ -532,10 +532,7 @@ export default function KittyPlayer({
               if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 3) {
                 hlsNetworkRecoveries += 1;
                 hls.startLoad();
-                return;
               }
-              setBuffering(false);
-              player.notice.show = t("watch.streamLoadFailed");
             });
 
             player.on("destroy", () => {

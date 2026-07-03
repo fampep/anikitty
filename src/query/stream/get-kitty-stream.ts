@@ -38,7 +38,6 @@ export interface KittyStreamResponse {
   download?: string | null;
   subtitleSource?: string;
   error?: string;
-  resolvedProvider?: KittyProvider;
 }
 
 const getKittyStream = async (
@@ -54,6 +53,7 @@ const getKittyStream = async (
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  signal?: AbortSignal,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -70,6 +70,7 @@ const getKittyStream = async (
       ...(provider === "MKissa" && mkissaMirror ? { mkissaMirror } : {}),
       ...(provider === "Animo" && animoServer ? { animoServer } : {}),
     },
+    signal,
     timeout: 22_000,
   });
   return res.data;
@@ -108,16 +109,14 @@ export function buildKittyStreamQueryKey(
   ];
 }
 
-/** Thrown when a newer stream request superseded this one — not a user-facing error. */
-export class KittyStreamSupersededError extends Error {
-  constructor() {
-    super("stream request superseded");
-    this.name = "KittyStreamSupersededError";
-  }
-}
-
-export function isKittyStreamSupersededError(error: unknown): boolean {
-  return error instanceof KittyStreamSupersededError;
+export function isKittyStreamAbortError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; code?: string; message?: string };
+  return (
+    err.name === "CanceledError" ||
+    err.code === "ERR_CANCELED" ||
+    err.message === "canceled"
+  );
 }
 
 export const useGetKittyStream = (
@@ -134,11 +133,12 @@ export const useGetKittyStream = (
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
 ) => {
-  const requestGenRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
-      requestGenRef.current += 1;
+      abortRef.current?.abort();
+      abortRef.current = null;
     };
   }, []);
 
@@ -158,25 +158,30 @@ export const useGetKittyStream = (
       animoServer,
     ),
     queryFn: async () => {
-      const gen = ++requestGenRef.current;
-      const data = await getKittyStream(
-        anilistId!,
-        episode!,
-        audio,
-        provider,
-        miruroPipe,
-        title,
-        animexServer,
-        anisnatchServer,
-        lunarServer,
-        allanimeMirror,
-        mkissaMirror,
-        animoServer,
-      );
-      if (gen !== requestGenRef.current) {
-        throw new KittyStreamSupersededError();
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      try {
+        return await getKittyStream(
+          anilistId!,
+          episode!,
+          audio,
+          provider,
+          miruroPipe,
+          title,
+          animexServer,
+          anisnatchServer,
+          lunarServer,
+          allanimeMirror,
+          mkissaMirror,
+          animoServer,
+          controller.signal,
+        );
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
       }
-      return data;
     },
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
     refetchOnWindowFocus: false,
@@ -184,6 +189,5 @@ export const useGetKittyStream = (
     staleTime: 30_000,
     cacheTime: 5 * 60 * 1000,
     retry: false,
-    keepPreviousData: true,
   });
 };
