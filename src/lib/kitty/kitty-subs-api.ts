@@ -10,33 +10,31 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
 
 /**
  * Fallback order when GET /subs?list=providers is unavailable.
- * Matches KittyAPI subs-capable providers (MegaPlay, Miruro, AllAnime, AnimeNexus, etc.).
+ * Providers with Kitty `/subs` support per KittyAPI reference.
  */
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
-  "AnimeNexus",
-  "AnimeHub",
-  "ReAnime",
-  "AnimeOnsen",
+  "Miruro",
+  "Animex",
   "AllAnime",
   "MKissa",
-  "Anikoto",
   "Animo",
+  "Anikoto",
   "AnimeSogo",
   "Anix",
   "HiAnime",
   "AniWatch",
   "Animepahe",
-  "Animex",
-  "Miruro",
+  "AnimeHub",
+  "AnimeNexus",
   "Animetsu",
   "AniWaves",
   "Senshi",
   "Animeya",
   "Anitaku",
-  "Anizen",
   "Nyanime",
   "Animeverse",
   "AniZone",
+  "AnimeOnsen",
 ] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];
