@@ -1,4 +1,4 @@
-import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { getKittyApiBase, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-api";
@@ -98,7 +98,7 @@ export async function fetchLunarServers(opts: {
   const res = await fetch(`${getKittyApiBase()}/provider/Lunar/servers?${params.toString()}`, {
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
-    headers: kittyApiHeaders(),
+    headers: kittyStreamHeaders(),
   });
 
   if (!res.ok) return [];
@@ -119,7 +119,7 @@ async function fetchLunarStreamByLinkId(linkId: string): Promise<LunarStreamResu
   const res = await fetch(`${getKittyApiBase()}/provider/Lunar/stream?${params.toString()}`, {
     cache: "no-store",
     signal: AbortSignal.timeout(25_000),
-    headers: kittyApiHeaders(),
+    headers: kittyStreamHeaders(),
   });
 
   if (!res.ok) return null;
@@ -160,7 +160,7 @@ async function fetchLunarStreamDirect(opts: {
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 

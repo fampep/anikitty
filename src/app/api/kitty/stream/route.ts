@@ -33,7 +33,7 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { buildKittyStreamDirectUrl, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
@@ -424,7 +424,7 @@ export async function GET(req: Request) {
     const res = await fetch(url, {
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     });
 
     const data = await res.json();

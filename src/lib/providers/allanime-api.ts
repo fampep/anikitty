@@ -1,4 +1,4 @@
-import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { getKittyApiBase, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-api";
@@ -138,7 +138,7 @@ export async function fetchAllanimeServers(opts: {
     {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 
@@ -166,7 +166,7 @@ async function fetchAllanimeStreamByLinkId(
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 
@@ -209,7 +209,7 @@ async function fetchAllanimeStreamDirect(opts: {
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 

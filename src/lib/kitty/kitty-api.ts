@@ -6,7 +6,12 @@ export function getKittyApiBase(): string {
   return KITTY_API_BASE.replace(/\/$/, "");
 }
 
-/** Auth headers for Kitty provider routes (Bearer + legacy x-api-key). */
+/** Stream/scrape routes — KittyAPI no longer requires an API key. */
+export function kittyStreamHeaders(): HeadersInit {
+  return {};
+}
+
+/** Auth headers for Kitty routes that still require a key (e.g. /subs). */
 export function kittyApiHeaders(): HeadersInit {
   const apiKey = process.env.KITTY_API_KEY;
   if (!apiKey) return {};

@@ -1,6 +1,6 @@
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
-import { kittyApiHeaders, getKittyApiBase } from "@/lib/kitty/kitty-api";
+import { kittyStreamHeaders, getKittyApiBase } from "@/lib/kitty/kitty-api";
 
 const MIRURO_API_BASE = `${getKittyApiBase()}/miruro`;
 
@@ -113,7 +113,7 @@ const episodeListCache = new Map<number, { payload: MiruroEpisodesPayload; at: n
 const EPISODE_LIST_TTL_MS = 5 * 60_000;
 
 function miruroHeaders(): HeadersInit {
-  return kittyApiHeaders();
+  return kittyStreamHeaders();
 }
 
 async function miruroFetch<T>(

@@ -1,4 +1,4 @@
-import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { buildKittyStreamDirectUrl, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   fetchMiruroVideoStream,
@@ -86,7 +86,7 @@ export async function fetchKittyStreamRaw(
     const res = await fetch(url, {
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     });
 
     const data = await res.json();

@@ -1,4 +1,4 @@
-import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { buildKittyStreamDirectUrl, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_LUNAR_SERVER,
   isLunarServerId,
@@ -153,7 +153,7 @@ async function probeStreamDirect(
     const res = await fetch(url, {
       cache: "no-store",
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     });
 
     const data = await res.json();

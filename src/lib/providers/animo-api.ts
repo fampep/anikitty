@@ -1,4 +1,4 @@
-import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { getKittyApiBase, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-api";
 
@@ -87,7 +87,7 @@ export async function fetchAnimoServers(opts: {
     {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 
@@ -111,7 +111,7 @@ async function fetchAnimoStreamByLinkId(linkId: string): Promise<AnimoStreamResu
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 
@@ -153,7 +153,7 @@ async function fetchAnimoStreamDirect(opts: {
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 

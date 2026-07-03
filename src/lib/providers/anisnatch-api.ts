@@ -1,4 +1,4 @@
-import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { getKittyApiBase, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-api";
@@ -105,7 +105,7 @@ export async function fetchAnisnatchServers(opts: {
     {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 
@@ -129,7 +129,7 @@ async function fetchAnisnatchStreamByLinkId(linkId: string): Promise<AnisnatchSt
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 
@@ -171,7 +171,7 @@ async function fetchAnisnatchStreamDirect(opts: {
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
-      headers: kittyApiHeaders(),
+      headers: kittyStreamHeaders(),
     },
   );
 
