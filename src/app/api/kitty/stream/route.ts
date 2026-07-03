@@ -180,11 +180,7 @@ export async function GET(req: Request) {
     }
 
     const inlineSubtitleTracks = (data.tracks ?? []).filter(isSubtitleTrack);
-    const preserveInlineSubs =
-      providerHasNativeSubs(providerName) ||
-      providerName === "Miruro" ||
-      providerName === "Animex" ||
-      providerName === "Animo";
+    const preserveInlineSubs = providerHasNativeSubs(providerName);
     const providerSubtitleTracks: StreamTrack[] = preserveInlineSubs
       ? inlineSubtitleTracks.map((track) => proxyInlineSubtitle(track, data.headers))
       : [];
@@ -202,14 +198,17 @@ export async function GET(req: Request) {
       data.headers ?? {},
     );
 
-    if (providerSubtitleTracks.length > 0) {
-      data.tracks = dedupeSubtitleTracks([...data.tracks, ...providerSubtitleTracks]);
-      data.subtitleSource = providerName;
-    } else if (!data.tracks.some(isSubtitleTrack) && fetchedSubs.length > 0) {
-      data.tracks = dedupeSubtitleTracks([...data.tracks, ...fetchedSubs]);
-      data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
+    data.tracks = dedupeSubtitleTracks([
+      ...data.tracks,
+      ...providerSubtitleTracks,
+      ...fetchedSubs.filter(isSubtitleTrack),
+    ]);
+
+    if (data.tracks.some(isSubtitleTrack)) {
+      data.subtitleSource = providerSubtitleTracks.length
+        ? providerName
+        : SUBTITLE_SOURCE_PROVIDER;
     } else {
-      data.tracks = dedupeSubtitleTracks(data.tracks);
       data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
     }
 

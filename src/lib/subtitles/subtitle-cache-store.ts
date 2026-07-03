@@ -176,13 +176,20 @@ export async function getStoredSubtitleTracks(
   }
 }
 
-async function hasFreshCachedSubtitles(
+async function loadStoredPlaybackSubtitleTracks(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
-): Promise<boolean> {
+): Promise<CachedSubtitleTrack[]> {
   let tracks = await getStoredSubtitleTracks(ctx);
   if (tracks.length === 0 && ctx.audio === "dub") {
     tracks = await getStoredSubtitleTracks({ ...ctx, audio: "sub" });
   }
+  return tracks;
+}
+
+async function hasFreshCachedSubtitles(
+  ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
+): Promise<boolean> {
+  const tracks = await loadStoredPlaybackSubtitleTracks(ctx);
   return tracks.length > 0;
 }
 
@@ -261,7 +268,18 @@ export async function ensureMiruroSubtitleCache(
   ctx: EpisodeSubtitleCacheContext,
   opts?: EnsureSubtitleCacheOptions,
 ): Promise<StreamTrack[]> {
-  if (!opts?.force && (await hasFreshCachedSubtitles(ctx))) return [];
+  const cachedPlayback = await loadStoredPlaybackSubtitleTracks(ctx);
+  if (!opts?.force && cachedPlayback.length > 0) {
+    return cachedPlayback;
+  }
+
+  /** Subtitle rows are keyed by sub audio so dub streams reuse the same tracks. */
+  const storeBase = {
+    anilistId: ctx.anilistId,
+    episode: ctx.episode,
+    audio: "sub" as const,
+    animeTitle: ctx.animeTitle,
+  };
 
   const kitty = await fetchKittySubsTracks({
     anilistId: ctx.anilistId,
@@ -273,7 +291,7 @@ export async function ensureMiruroSubtitleCache(
 
   if (kitty?.tracks.length) {
     return cacheStreamSubtitleTracks(dedupeSubtitleTracks(kitty.tracks), {
-      ...ctx,
+      ...storeBase,
       provider: KITTY_SUB_SOURCE_PROVIDER,
       animeTitle: kitty.animeTitle,
       headers: {},
@@ -287,12 +305,12 @@ export async function ensureMiruroSubtitleCache(
     stream = await fetchMiruroSubtitleTracks({ ...ctx, audio: "sub" });
   }
 
-  if (!stream?.tracks?.length) return [];
+  if (!stream?.tracks?.length) return cachedPlayback;
 
   return cacheStreamSubtitleTracks(
     dedupeSubtitleTracks(stream.tracks.filter(isSubtitleTrack)),
     {
-      ...ctx,
+      ...storeBase,
       provider: SUBTITLE_SOURCE_PROVIDER,
       animeTitle: stream.animeTitle,
       headers: stream.headers,
@@ -686,17 +704,11 @@ export async function mergeCachedSubtitleTracks(
 ): Promise<StreamTrack[]> {
   const all = Array.isArray(tracks) ? tracks : [];
   const nonSubs = all.filter((t) => !isSubtitleTrack(t));
+  const inlineSubs = all.filter(isSubtitleTrack).map((t) => proxySubtitleTrack(t, headers));
 
-  let cached = await getStoredSubtitleTracks(ctx);
-  if (cached.length === 0 && ctx.audio === "dub") {
-    cached = await getStoredSubtitleTracks({ ...ctx, audio: "sub" });
-  }
-  if (cached.length > 0) {
-    return dedupeSubtitleTracks([...nonSubs, ...cached]);
-  }
+  const cached = await loadStoredPlaybackSubtitleTracks(ctx);
 
-  const subs = all.filter(isSubtitleTrack).map((t) => proxySubtitleTrack(t, headers));
-  return dedupeSubtitleTracks([...nonSubs, ...subs]);
+  return dedupeSubtitleTracks([...nonSubs, ...cached, ...inlineSubs]);
 }
 
 export type ListedSubtitle = {

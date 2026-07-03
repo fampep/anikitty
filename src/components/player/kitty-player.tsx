@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Artplayer from "artplayer";
 import type { Option } from "artplayer";
 import Hls from "hls.js";
@@ -297,6 +297,14 @@ export default function KittyPlayer({
   useEffect(() => { preferSubtitlesRef.current = preferSubtitles; }, [preferSubtitles]);
   useEffect(() => { tracksRef.current = tracks; }, [tracks]);
 
+  const externalSubtitleSig = useMemo(
+    () =>
+      resolveSubtitleTracks(tracks)
+        .map((track) => track.file)
+        .join("|"),
+    [tracks],
+  );
+
   useEffect(() => {
     if (autoFullscreen) autoFsRef.current = true;
   }, [autoFullscreen]);
@@ -396,17 +404,6 @@ export default function KittyPlayer({
     applyResume(art);
   }, [startTime, applyResume]);
 
-  useEffect(() => {
-    const art = artRef.current;
-    if (!art || !ready) return;
-    subtitleModeRef.current = applySubtitleMode(
-      art,
-      tracks,
-      preferSubtitles,
-      subtitleSettings,
-    );
-  }, [tracks, preferSubtitles, ready, subtitleSettings]);
-
   const reapplyExternalSubtitles = useCallback(
     (art: Artplayer) => {
       const subTracks = resolveSubtitleTracks(tracksRef.current);
@@ -425,6 +422,28 @@ export default function KittyPlayer({
   useEffect(() => {
     reapplyExternalSubtitlesRef.current = reapplyExternalSubtitles;
   }, [reapplyExternalSubtitles]);
+
+  useEffect(() => {
+    const art = artRef.current;
+    if (!art || !ready) return;
+    subtitleModeRef.current = applySubtitleMode(
+      art,
+      tracks,
+      preferSubtitles,
+      subtitleSettings,
+    );
+  }, [tracks, preferSubtitles, ready, subtitleSettings, externalSubtitleSig]);
+
+  useEffect(() => {
+    const art = artRef.current;
+    if (!art || !ready || !externalSubtitleSig) return;
+    if (!preferSubtitlesRef.current) return;
+
+    const id = window.requestAnimationFrame(() => {
+      reapplyExternalSubtitlesRef.current(art);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [externalSubtitleSig, ready, preferSubtitles]);
 
   useEffect(() => {
     const cfg = w2gRef.current;
@@ -544,7 +563,7 @@ export default function KittyPlayer({
         m3u8(video, url, player) {
           if (Hls.isSupported()) {
             hlsRef.current?.destroy();
-            const hls = new Hls(createHlsConfig({ enableWebVTT: true }));
+            const hls = new Hls(createHlsConfig({ enableWebVTT: !hasExternalSubs }));
             hls.loadSource(url);
             hls.attachMedia(video as HTMLMediaElement);
             player.hls = hls;

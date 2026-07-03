@@ -173,9 +173,14 @@ async function fetchKittySubsResponse(opts: {
 
     const data = (await res.json()) as KittySubsResponse;
     if (data.error) return null;
-    if (!normalizeSubsEpisodes(data).length) return null;
 
-    return data;
+    if (opts.episode != null && opts.episode > 0) {
+      if (pickEpisodeSubs(data, opts.episode).length > 0) return data;
+    }
+
+    if (normalizeSubsEpisodes(data).length > 0) return data;
+
+    return null;
   } catch {
     return null;
   }
