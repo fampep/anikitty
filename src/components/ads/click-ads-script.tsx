@@ -18,6 +18,10 @@ function ensureClickAdsScript(): void {
 
   const script = document.createElement("script");
   script.src = SCRIPT_SRC;
+  script.async = true;
+  script.onerror = () => {
+    script.remove();
+  };
   document.head.appendChild(script);
 }
 

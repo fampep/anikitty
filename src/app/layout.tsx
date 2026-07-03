@@ -29,6 +29,11 @@ import {
   SITE_LOGO,
 } from "@/lib/seo/site-seo";
 
+const GA_MEASUREMENT_ID =
+  process.env.NEXT_PUBLIC_GA_ID?.trim() || "G-X9RZ58XPH1";
+const ENABLE_ANALYTICS =
+  process.env.NODE_ENV === "production" && GA_MEASUREMENT_ID.length > 0;
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -103,22 +108,24 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="dark" suppressHydrationWarning>
       <head>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-X9RZ58XPH1"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
+        {ENABLE_ANALYTICS && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-
-          gtag('config', 'G-X9RZ58XPH1');`}
-        </Script>
+          gtag('config', '${GA_MEASUREMENT_ID}');`}
+            </Script>
+          </>
+        )}
         <PublicEnvScript />
         <link rel="icon" href={SITE_FAVICON} type="image/png" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
-        <script src="https://pl30172658.effectivecpmnetwork.com/a2/1e/38/a21e38fcd3c151b55ac215d3281f5ddb.js" />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}

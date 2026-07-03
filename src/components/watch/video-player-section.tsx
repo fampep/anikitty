@@ -12,7 +12,7 @@ import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
   buildKittyStreamQueryKey,
-  isKittyStreamAbortError,
+  isKittyStreamSupersededError,
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
@@ -710,13 +710,13 @@ const VideoPlayerSection = () => {
     streamQueryEnabled &&
     !streamPending &&
     !hasStreamFile &&
-    (Boolean(streamError && !isKittyStreamAbortError(streamError)) ||
+    (Boolean(streamError && !isKittyStreamSupersededError(streamError)) ||
       Boolean(streamData?.error));
 
   useEffect(() => {
     if (!streamQueryEnabled) return;
     if (hasStreamFile || isLoading || isFetching) return;
-    if (!streamError || !isKittyStreamAbortError(streamError)) return;
+    if (!streamError || isKittyStreamSupersededError(streamError)) return;
     void retryStream();
   }, [streamQueryEnabled, hasStreamFile, isLoading, isFetching, streamError, retryStream]);
   const streamSwitching = isFetching && hasStreamFile;
@@ -971,7 +971,7 @@ const VideoPlayerSection = () => {
     if (!providerAutoFallback || !streamQueryEnabled) return;
     if (streamPending || hasStreamFile) return;
     if (!streamFailed) return;
-    if (streamError && isKittyStreamAbortError(streamError)) return;
+    if (streamError && isKittyStreamSupersededError(streamError)) return;
     if (fallbackBusyRef.current) return;
 
     const tried = triedProvidersRef.current;
