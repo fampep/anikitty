@@ -277,6 +277,7 @@ const VideoPlayerSection = () => {
   const {
     data: streamCapabilities,
     isLoading: capabilitiesLoading,
+    isFetching: capabilitiesFetching,
   } = useGetStreamCapabilities(
     anilistId,
     episodeNo || undefined,
@@ -1087,6 +1088,8 @@ const VideoPlayerSection = () => {
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
           capabilitiesLoading={capabilitiesLoading}
+          capabilitiesFetching={capabilitiesFetching}
+          episodeNo={episodeNo || undefined}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
@@ -1315,6 +1318,8 @@ const VideoPlayerSection = () => {
           streamAudio={streamAudio}
           capabilities={streamCapabilities}
           capabilitiesLoading={capabilitiesLoading}
+          capabilitiesFetching={capabilitiesFetching}
+          episodeNo={episodeNo || undefined}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
