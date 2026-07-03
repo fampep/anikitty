@@ -25,8 +25,18 @@ export const PAGE_SEO = {
   },
   home: {
     title: "Home | AniKitty",
-    description: "Trending anime, continue watching, today's schedule, and new releases.",
+    description: "Featured anime, continue watching, and quick links to browse the catalog.",
     path: "/home",
+  },
+  new: {
+    title: "New Releases | AniKitty",
+    description: "Latest episode releases and recently added anime.",
+    path: "/new",
+  },
+  community: {
+    title: "Community | AniKitty",
+    description: "Latest comments from the AniKitty community.",
+    path: "/community",
   },
   subtitles: {
     title: "Subtitle Library | AniKitty",

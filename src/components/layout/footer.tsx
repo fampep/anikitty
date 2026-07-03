@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Flame, CalendarDays, Search, Captions, Coffee } from "lucide-react";
+import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
@@ -75,8 +75,10 @@ const Footer = () => {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.browse")}</p>
             <NavLink href="/home" label={t("nav.home")} />
+            <NavLink href="/new" label={t("nav.newReleases")} icon={<Tv2 className="w-3 h-3" />} />
             <NavLink href="/search" label={t("nav.search")} icon={<Search className="w-3 h-3" />} />
             <NavLink href="/trending" label={t("nav.trending")} icon={<Flame className="w-3 h-3" />} />
+            <NavLink href="/community" label={t("nav.community")} icon={<MessageSquare className="w-3 h-3" />} />
             <NavLink href="/subtitles" label={t("nav.subtitles")} icon={<Captions className="w-3 h-3" />} />
             <NavLink href="/schedule" label={t("nav.schedule")} icon={<CalendarDays className="w-3 h-3" />} />
           </div>

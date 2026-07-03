@@ -3,15 +3,29 @@
 import dynamic from "next/dynamic";
 import Container from "@/components/layout/container";
 import { Flame, CalendarClock, TrendingUp } from "lucide-react";
-import { useGetHomePageData } from "@/query/home/get-home-page-data";
-import { IAnime } from "@/types/anime";
+import {
+  useGetHomeCriticalData,
+  useGetHomeDiscoveryData,
+} from "@/query/home/get-home-page-data";
+import { IAnime, LatestCompletedAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
+import { useEffect, useState } from "react";
 
 const AnimeSections = dynamic(() => import("@/components/home/anime-sections"), { ssr: false });
+const FeaturedCollection = dynamic(() => import("@/components/home/featured-collection"));
 
 export default function TrendingPage() {
   const t = useT();
-  const { data, isLoading } = useGetHomePageData();
+  const [discoveryEnabled, setDiscoveryEnabled] = useState(false);
+  const { data: critical, isLoading: criticalLoading } = useGetHomeCriticalData();
+  const { data: discovery, isLoading: discoveryLoading } = useGetHomeDiscoveryData(discoveryEnabled);
+
+  useEffect(() => {
+    if (critical) setDiscoveryEnabled(true);
+  }, [critical]);
+
+  const isLoading = criticalLoading;
+  const discoveryPending = discoveryEnabled && discoveryLoading && !discovery;
 
   return (
     <div className="min-h-screen pt-8 pb-24">
@@ -31,17 +45,27 @@ export default function TrendingPage() {
       <AnimeSections
         title={t("trending.trendingNow")}
         icon={<Flame className="w-4 h-4" />}
-        trendingAnime={data?.trendingAnimes as IAnime[]}
+        trendingAnime={critical?.trendingAnimes as IAnime[]}
         loading={isLoading}
         showRanks
+      />
+
+      <FeaturedCollection
+        sectionId="featured"
+        loading={discoveryPending || isLoading}
+        featuredAnime={[
+          { title: t("home.mostFavorite"), anime: discovery?.mostFavoriteAnimes as IAnime[] },
+          { title: t("home.mostPopular"), anime: discovery?.mostPopularAnimes as IAnime[] },
+          { title: t("home.latestCompleted"), anime: discovery?.latestCompletedAnimes as LatestCompletedAnime[] },
+        ]}
       />
 
       <div id="upcoming">
         <AnimeSections
           title={t("trending.upcomingAnime")}
           icon={<CalendarClock className="w-4 h-4" />}
-          trendingAnime={data?.topUpcomingAnimes as IAnime[]}
-          loading={isLoading}
+          trendingAnime={discovery?.topUpcomingAnimes as IAnime[]}
+          loading={discoveryPending || isLoading}
         />
       </div>
     </div>

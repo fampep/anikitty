@@ -3,6 +3,8 @@
     "home": "Home",
     "schedule": "Schedule",
     "trending": "Trending",
+    "newReleases": "New",
+    "community": "Community",
     "subtitles": "Subtitles",
     "forum": "Forum",
     "chat": "Live Chat",
@@ -18,6 +20,8 @@
       "home": "Home",
       "schedule": "Schedule",
       "trending": "Trending",
+      "newReleases": "New",
+      "community": "Community",
       "subtitles": "Subs",
       "forum": "Forum",
       "chat": "Chat",
@@ -199,11 +203,10 @@
     "catalogTitles": "{count}+ titles",
     "quickNav": {
       "continue": "Continue",
-      "latest": "New episodes",
-      "added": "Recently added",
-      "today": "Schedule",
+      "latest": "New releases",
       "trending": "Trending",
-      "comments": "Comments"
+      "today": "Schedule",
+      "comments": "Community"
     },
     "promos": {
       "shop": { "title": "Kittycoins shop", "desc": "Stickers, frames & profile flair" },
@@ -728,6 +731,15 @@
     "subtitle": "What everyone's watching right now",
     "trendingNow": "Trending Now",
     "upcomingAnime": "Upcoming Anime"
+  },
+  "new": {
+    "title": "New Releases",
+    "subtitle": "Fresh episodes and recently added series"
+  },
+  "community": {
+    "title": "Community",
+    "subtitle": "Recent comments from watchers across the site",
+    "forumCta": "Open forum"
   },
   "schedule": {
     "title": "Anime Schedule",

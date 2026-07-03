@@ -1,5 +1,7 @@
 export const ROUTES = {
   HOME: "/home",
+  NEW: "/new",
+  COMMUNITY: "/community",
   ANIME_DETAILS: "/anime",
   WATCH: "/anime/watch",
   SEARCH: "/search",

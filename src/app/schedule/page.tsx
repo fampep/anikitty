@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Container from "@/components/layout/container";
+import HomeGenreBar from "@/components/home/home-genre-bar";
 import { CalendarDays } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 
@@ -23,6 +24,7 @@ export default function SchedulePage() {
           {t("schedule.subtitle")}
         </p>
       </Container>
+      <HomeGenreBar />
       <AnimeSchedule />
     </div>
   );
