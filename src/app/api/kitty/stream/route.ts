@@ -33,7 +33,7 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { fetchKittyAutoStream } from "@/lib/kitty/kitty-auto-stream";
 import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-hls-url";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -77,6 +77,7 @@ type StreamPayload = {
   download?: string | null;
   subtitleSource?: string;
   error?: string;
+  resolvedProvider?: KittyProvider;
 };
 
 export async function GET(req: Request) {
@@ -417,46 +418,32 @@ export async function GET(req: Request) {
     }
   }
 
-  const url = buildKittyStreamDirectUrl({
+  const auto = await fetchKittyAutoStream({
+    anilistId: subtitleCtx.anilistId,
+    episode: subtitleCtx.episode,
+    audio: subtitleCtx.audio,
     provider,
-    anilistId,
-    episode,
-    audio: audio as "sub" | "dub",
     title: titleParam,
   });
 
-  try {
-    const res = await fetch(url, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(20_000),
-      headers: kittyApiHeaders(),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data?.file) {
-      return Response.json(
-        { file: null, error: data?.message ?? data?.error ?? "Provider unavailable" },
-        { status: 200 },
-      );
-    }
-
-    const payload = data as StreamPayload & { server?: string; serverName?: string };
-    const serverLabel = payload.server ?? payload.serverName;
-    if (typeof serverLabel === "string") {
-      const trimmed = serverLabel.trim();
-      payload.server = trimmed || undefined;
-    }
-
-    return finalizeStreamResponse(payload, provider);
-  } catch (e: unknown) {
-    const err = e as { name?: string };
-    const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
+  if (!auto?.entry.file) {
     return Response.json(
-      { file: null, error: timedOut ? `${provider} timed out` : "Failed to reach provider" },
+      { file: null, error: "No working stream found" },
       { status: 200 },
     );
   }
+
+  const resolvedName = auto.resolvedProvider ?? provider;
+  const payload: StreamPayload = {
+    file: auto.entry.file,
+    headers: auto.entry.headers,
+    tracks: auto.entry.tracks,
+    server: auto.entry.server,
+    download: auto.entry.download,
+    resolvedProvider: resolvedName,
+  };
+
+  return finalizeStreamResponse(payload, resolvedName);
 }
 
 export const maxDuration = 30;

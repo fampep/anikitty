@@ -38,6 +38,7 @@ export interface KittyStreamResponse {
   download?: string | null;
   subtitleSource?: string;
   error?: string;
+  resolvedProvider?: KittyProvider;
 }
 
 const getKittyStream = async (
