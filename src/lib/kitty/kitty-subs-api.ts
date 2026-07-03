@@ -1,4 +1,4 @@
-import { getKittyApiBase, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { kittyApiFetch, kittyApiHeaders, kittyApiPath } from "@/lib/kitty/kitty-api";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import { dedupeSubtitleTracks } from "@/lib/subtitles/subtitle-track-utils";
 
@@ -73,7 +73,7 @@ export type KittySubsResponse = {
   message?: string;
 };
 
-export function buildKittySubsUrl(opts: {
+export function buildKittySubsPath(opts: {
   provider: string;
   anilistId?: number;
   episode?: number;
@@ -93,7 +93,18 @@ export function buildKittySubsUrl(opts: {
   if (opts.title?.trim()) params.set("title", opts.title.trim());
   if (opts.seriesUrl?.trim()) params.set("seriesUrl", opts.seriesUrl.trim());
 
-  return `${getKittyApiBase()}/subs?${params.toString()}`;
+  return `/subs?${params.toString()}`;
+}
+
+export function buildKittySubsUrl(opts: {
+  provider: string;
+  anilistId?: number;
+  episode?: number;
+  audio?: "sub" | "dub";
+  title?: string | null;
+  seriesUrl?: string | null;
+}): string {
+  return kittyApiPath(buildKittySubsPath(opts));
 }
 
 function subsFilesToTracks(files: KittySubsFile[]): StreamTrack[] {
@@ -133,7 +144,7 @@ async function fetchKittySubsFromProvider(opts: {
   title?: string | null;
 }): Promise<{ tracks: StreamTrack[]; animeTitle: string | null } | null> {
   try {
-    const url = buildKittySubsUrl({
+    const path = buildKittySubsPath({
       provider: opts.provider,
       anilistId: opts.anilistId,
       episode: opts.episode,
@@ -141,7 +152,7 @@ async function fetchKittySubsFromProvider(opts: {
       title: opts.title,
     });
 
-    const res = await fetch(url, {
+    const res = await kittyApiFetch(path, {
       cache: "no-store",
       signal: AbortSignal.timeout(35_000),
       headers: kittyApiHeaders(),
@@ -164,7 +175,7 @@ async function fetchKittySubsFromProvider(opts: {
 
 export async function listKittySubsProviders(): Promise<string[]> {
   try {
-    const res = await fetch(`${getKittyApiBase()}/subs?list=providers`, {
+    const res = await kittyApiFetch("/subs?list=providers", {
       cache: "no-store",
       signal: AbortSignal.timeout(8_000),
       headers: kittyApiHeaders(),

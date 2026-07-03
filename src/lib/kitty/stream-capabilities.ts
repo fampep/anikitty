@@ -1,4 +1,4 @@
-import { buildKittyStreamDirectUrl, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
+import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_LUNAR_SERVER,
   isLunarServerId,
@@ -52,6 +52,7 @@ import {
   isKittyProvider,
   KITTY_PROVIDERS,
   MULTI_ROW_PROVIDERS,
+  getKittyProviderMeta,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -104,8 +105,8 @@ const EMPTY_MULTI_SERVER_FIELDS = {
   mkissaServerRows: [] as AllanimeKittyServer[],
 };
 
-const PROBE_TIMEOUT_MS = 8_000;
-const DIRECT_PROBE_CONCURRENCY = 6;
+const PROBE_TIMEOUT_MS = 5_000;
+const DIRECT_PROBE_CONCURRENCY = 10;
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -176,7 +177,7 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
-  const url = buildKittyStreamDirectUrl({
+  const path = buildKittyStreamDirectPath({
     provider,
     anilistId,
     episode,
@@ -185,7 +186,7 @@ async function probeStreamDirect(
   });
 
   try {
-    const res = await fetch(url, {
+    const res = await kittyApiFetch(path, {
       cache: "no-store",
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
       headers: kittyStreamHeaders(),
@@ -236,22 +237,53 @@ const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(
   (p) => !MULTI_ROW_PROVIDERS.has(p) && p !== "Animo",
 );
 
-/** Probe sub/dub/hardsub for every provider on an episode (dynamic per anime). */
-export async function fetchEpisodeStreamCapabilities(
+const FEATURED_DIRECT_PROBE_PROVIDERS = DIRECT_PROBE_PROVIDERS.filter(
+  (p) => getKittyProviderMeta(p).group === "featured",
+);
+
+const REST_DIRECT_PROBE_PROVIDERS = DIRECT_PROBE_PROVIDERS.filter(
+  (p) => getKittyProviderMeta(p).group !== "featured",
+);
+
+export function mergeEpisodeStreamCapabilities(
+  ...parts: Array<Partial<EpisodeStreamCapabilities> | undefined | null>
+): EpisodeStreamCapabilities {
+  const merged: EpisodeStreamCapabilities = {
+    providers: {},
+    miruroPipes: {},
+    animexServers: {},
+    animoServers: {},
+    anisnatchServers: {},
+    lunarServers: {},
+    allanimeServers: {},
+    mkissaServers: {},
+    allanimeServerRows: [],
+    mkissaServerRows: [],
+  };
+
+  for (const part of parts) {
+    if (!part) continue;
+    Object.assign(merged.providers, part.providers);
+    Object.assign(merged.miruroPipes, part.miruroPipes);
+    Object.assign(merged.animexServers, part.animexServers);
+    Object.assign(merged.animoServers, part.animoServers);
+    Object.assign(merged.anisnatchServers, part.anisnatchServers);
+    Object.assign(merged.lunarServers, part.lunarServers);
+    Object.assign(merged.allanimeServers, part.allanimeServers);
+    Object.assign(merged.mkissaServers, part.mkissaServers);
+    if (part.allanimeServerRows?.length) merged.allanimeServerRows = part.allanimeServerRows;
+    if (part.mkissaServerRows?.length) merged.mkissaServerRows = part.mkissaServerRows;
+  }
+
+  return merged;
+}
+
+async function probeMultiProviderEpisodeCapabilities(
   anilistId: number,
   episode: number,
   title?: string | null,
-): Promise<EpisodeStreamCapabilities> {
-  const [
-    miruro,
-    animex,
-    anisnatch,
-    lunar,
-    allanime,
-    mkissa,
-    animo,
-    directCaps,
-  ] = await Promise.all([
+) {
+  const [miruro, animex, anisnatch, lunar, allanime, mkissa, animo] = await Promise.all([
     probeMiruroEpisodeCapabilities(anilistId, episode),
     probeAnimexEpisodeCapabilities(anilistId, episode, title),
     probeAnisnatchEpisodeCapabilities(anilistId, episode, title),
@@ -259,30 +291,18 @@ export async function fetchEpisodeStreamCapabilities(
     probeAllanimeEpisodeCapabilities("AllAnime", anilistId, episode, title),
     probeAllanimeEpisodeCapabilities("MKissa", anilistId, episode, title),
     probeAnimoEpisodeCapabilities(anilistId, episode, title),
-    mapWithConcurrency(DIRECT_PROBE_PROVIDERS, DIRECT_PROBE_CONCURRENCY, (provider) =>
-      probeDirectProviderCapabilities(provider, anilistId, episode, title).then((caps) => ({
-        provider,
-        caps,
-      })),
-    ),
   ]);
 
-  const providers: Partial<Record<KittyProvider, StreamCapabilities>> = {
-    Miruro: miruro.provider,
-    Animex: animex.provider,
-    AniSnatch: anisnatch.provider,
-    Lunar: lunar.provider,
-    AllAnime: allanime.provider,
-    MKissa: mkissa.provider,
-    Animo: animo.provider,
-  };
-
-  for (const row of directCaps) {
-    providers[row.provider] = row.caps;
-  }
-
   return {
-    providers,
+    providers: {
+      Miruro: miruro.provider,
+      Animex: animex.provider,
+      AniSnatch: anisnatch.provider,
+      Lunar: lunar.provider,
+      AllAnime: allanime.provider,
+      MKissa: mkissa.provider,
+      Animo: animo.provider,
+    } satisfies Partial<Record<KittyProvider, StreamCapabilities>>,
     miruroPipes: miruro.pipes,
     animexServers: animex.servers,
     animoServers: animo.servers,
@@ -293,6 +313,68 @@ export async function fetchEpisodeStreamCapabilities(
     allanimeServerRows: allanime.serverRows,
     mkissaServerRows: mkissa.serverRows,
   };
+}
+
+async function probeDirectProviderBatch(
+  providers: readonly KittyProvider[],
+  anilistId: number,
+  episode: number,
+  title?: string | null,
+): Promise<Partial<Record<KittyProvider, StreamCapabilities>>> {
+  const rows = await mapWithConcurrency(providers, DIRECT_PROBE_CONCURRENCY, (provider) =>
+    probeDirectProviderCapabilities(provider, anilistId, episode, title).then((caps) => ({
+      provider,
+      caps,
+    })),
+  );
+
+  const out: Partial<Record<KittyProvider, StreamCapabilities>> = {};
+  for (const row of rows) {
+    out[row.provider] = row.caps;
+  }
+  return out;
+}
+
+/** Fast first pass: featured + multi providers for the episode grid. */
+export async function fetchFeaturedEpisodeStreamCapabilities(
+  anilistId: number,
+  episode: number,
+  title?: string | null,
+): Promise<EpisodeStreamCapabilities> {
+  const [multi, featuredDirect] = await Promise.all([
+    probeMultiProviderEpisodeCapabilities(anilistId, episode, title),
+    probeDirectProviderBatch(FEATURED_DIRECT_PROBE_PROVIDERS, anilistId, episode, title),
+  ]);
+
+  return mergeEpisodeStreamCapabilities(multi, { providers: featuredDirect });
+}
+
+/** Remaining non-featured direct providers. */
+export async function fetchRestEpisodeStreamCapabilities(
+  anilistId: number,
+  episode: number,
+  title?: string | null,
+): Promise<EpisodeStreamCapabilities> {
+  const providers = await probeDirectProviderBatch(
+    REST_DIRECT_PROBE_PROVIDERS,
+    anilistId,
+    episode,
+    title,
+  );
+  return mergeEpisodeStreamCapabilities({ providers });
+}
+
+/** Probe sub/dub/hardsub for every provider on an episode (dynamic per anime). */
+export async function fetchEpisodeStreamCapabilities(
+  anilistId: number,
+  episode: number,
+  title?: string | null,
+): Promise<EpisodeStreamCapabilities> {
+  const [featured, rest] = await Promise.all([
+    fetchFeaturedEpisodeStreamCapabilities(anilistId, episode, title),
+    fetchRestEpisodeStreamCapabilities(anilistId, episode, title),
+  ]);
+  return mergeEpisodeStreamCapabilities(featured, rest);
 }
 
 /** Probe sub/dub/hardsub for the provider the user is currently watching. */

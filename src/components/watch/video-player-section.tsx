@@ -254,8 +254,6 @@ const VideoPlayerSection = () => {
     localStorage.setItem("kittyAudioMode", "multi");
   }, [provider, audioMode]);
 
-  const audio: "sub" | "dub" = streamAudio;
-
   const animeSlug = anime?.anime?.info?.id ?? null;
   const anilistId = anime?.anime?.info?.anilistId;
   const malId = anime?.anime?.info?.malId;
@@ -322,6 +320,13 @@ const VideoPlayerSection = () => {
     [providerStreamCaps, activeStreamCaps],
   );
 
+  const usesInPlayerHlsAudioSwitch = useMemo(
+    () => Boolean(capsForAudioAvailability?.multi),
+    [capsForAudioAvailability],
+  );
+
+  const streamQueryAudio: "sub" | "dub" = usesInPlayerHlsAudioSwitch ? "sub" : streamAudio;
+
   const canSwitchStreamAudio = useMemo(
     () => canToggleStreamAudio(capsForAudioAvailability),
     [capsForAudioAvailability],
@@ -374,7 +379,7 @@ const VideoPlayerSection = () => {
     animeId: animeSlug,
     episodeId,
     provider,
-    audio,
+    audio: streamAudio,
     enabled: !!w2gCode && !!auth,
     onEpisodeChange: (epId) => {
       if (!animeSlug || !w2gCode) return;
@@ -602,11 +607,11 @@ const VideoPlayerSection = () => {
         episodeNumber: parseInt(episodeNo) || 0,
         current,
         duration,
-        language: audio,
+        language: streamAudio,
         server: provider,
       },
     );
-  }, [auth, episodeId, episodeNo, audio, provider, animeSlug, syncWatchProgress]);
+  }, [auth, episodeId, episodeNo, streamAudio, provider, animeSlug, syncWatchProgress]);
 
   // Track live position in ref (fires every timeupdate — no state update)
   const handleLiveTime = useCallback((t: number, dur: number) => {
@@ -627,7 +632,7 @@ const VideoPlayerSection = () => {
       buildKittyStreamQueryKey(
         anilistId,
         episodeNo || undefined,
-        audio,
+        streamQueryAudio,
         provider,
         provider === "Miruro" ? miruroPipe : null,
         animeTitle,
@@ -661,7 +666,7 @@ const VideoPlayerSection = () => {
     queryClient,
     anilistId,
     episodeNo,
-    audio,
+    streamQueryAudio,
     provider,
     miruroPipe,
     animeTitle,
@@ -707,7 +712,7 @@ const VideoPlayerSection = () => {
   } = useGetKittyStream(
     anilistId,
     episodeNo || undefined,
-    audio,
+    streamQueryAudio,
     provider,
     provider === "Miruro" ? miruroPipe : null,
     animeTitle,
@@ -766,7 +771,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamAudio}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${resumeChoice ?? "auto"}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${resumeChoice ?? "auto"}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
@@ -1401,7 +1406,7 @@ const VideoPlayerSection = () => {
                 anilistId={anilistId}
                 currentEpisodeNumber={parseInt(episodeNo, 10)}
                 episodes={allEpisodes.episodes}
-                audio={audio}
+                audio={streamAudio}
                 provider={provider}
               />
             )}

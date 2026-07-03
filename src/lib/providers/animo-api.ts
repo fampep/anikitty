@@ -1,4 +1,4 @@
-import { getKittyApiBase, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
+import { kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-api";
 
@@ -82,8 +82,8 @@ export async function fetchAnimoServers(opts: {
     audio: opts.audio,
   });
 
-  const res = await fetch(
-    `${getKittyApiBase()}/provider/Animo/servers?${params.toString()}`,
+  const res = await kittyApiFetch(
+    `/provider/Animo/servers?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
@@ -106,8 +106,8 @@ export async function fetchAnimoServers(opts: {
 
 async function fetchAnimoStreamByLinkId(linkId: string): Promise<AnimoStreamResult | null> {
   const params = new URLSearchParams({ linkId });
-  const res = await fetch(
-    `${getKittyApiBase()}/provider/Animo/stream?${params.toString()}`,
+  const res = await kittyApiFetch(
+    `/provider/Animo/stream?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
@@ -148,8 +148,8 @@ async function fetchAnimoStreamDirect(opts: {
   });
   if (opts.title?.trim()) params.set("title", opts.title.trim());
 
-  const res = await fetch(
-    `${getKittyApiBase()}/provider/Animo/stream-direct?${params.toString()}`,
+  const res = await kittyApiFetch(
+    `/provider/Animo/stream-direct?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),

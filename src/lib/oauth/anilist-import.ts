@@ -1,4 +1,4 @@
-import { getKittyApiBase } from "@/lib/kitty/kitty-api";
+import { kittyApiFetch } from "@/lib/kitty/kitty-api";
 import type { AnilistMediaList } from "@/types/anilist-animes";
 
 export const ANILIST_STATUS_TO_FOLDER: Record<string, string> = {
@@ -60,8 +60,8 @@ async function searchKittyForAnilistId(
     seen.add(title);
 
     try {
-      const res = await fetch(
-        `${getKittyApiBase()}/provider/Miruro/search?q=${encodeURIComponent(title)}`,
+      const res = await kittyApiFetch(
+        `/provider/Miruro/search?q=${encodeURIComponent(title)}`,
         { headers, signal: AbortSignal.timeout(8_000), cache: "no-store" },
       );
       if (!res.ok) continue;

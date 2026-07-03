@@ -1,6 +1,8 @@
 import {
   fetchActiveProviderStreamCapabilities,
   fetchEpisodeStreamCapabilities,
+  fetchFeaturedEpisodeStreamCapabilities,
+  fetchRestEpisodeStreamCapabilities,
   parseStreamCapabilityTarget,
 } from "@/lib/kitty/stream-capabilities";
 import { isKittyProvider } from "@/lib/kitty/kitty-providers";
@@ -14,6 +16,7 @@ export async function GET(req: Request) {
   const episodeRaw = searchParams.get("episode");
   const title = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
   const scope = searchParams.get("scope");
+  const tier = searchParams.get("tier");
   const provider = searchParams.get("provider");
 
   if (!anilistIdRaw || !SAFE_ID.test(anilistIdRaw)) {
@@ -31,7 +34,12 @@ export async function GET(req: Request) {
 
   try {
     if (scope === "episode") {
-      const capabilities = await fetchEpisodeStreamCapabilities(anilistId, episode, title);
+      const capabilities =
+        tier === "featured"
+          ? await fetchFeaturedEpisodeStreamCapabilities(anilistId, episode, title)
+          : tier === "rest"
+            ? await fetchRestEpisodeStreamCapabilities(anilistId, episode, title)
+            : await fetchEpisodeStreamCapabilities(anilistId, episode, title);
       return Response.json(capabilities, {
         headers: { "Cache-Control": "private, max-age=300" },
       });

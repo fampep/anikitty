@@ -33,7 +33,7 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { buildKittyStreamDirectUrl, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
+import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
@@ -412,7 +412,7 @@ export async function GET(req: Request) {
     }
   }
 
-  const url = buildKittyStreamDirectUrl({
+  const path = buildKittyStreamDirectPath({
     provider,
     anilistId,
     episode,
@@ -421,7 +421,7 @@ export async function GET(req: Request) {
   });
 
   try {
-    const res = await fetch(url, {
+    const res = await kittyApiFetch(path, {
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
       headers: kittyStreamHeaders(),

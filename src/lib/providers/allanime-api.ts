@@ -1,4 +1,4 @@
-import { getKittyApiBase, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
+import { kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-api";
@@ -133,8 +133,8 @@ export async function fetchAllanimeServers(opts: {
   });
   if (opts.title?.trim()) params.set("title", opts.title.trim());
 
-  const res = await fetch(
-    `${getKittyApiBase()}/provider/${opts.provider}/servers?${params.toString()}`,
+  const res = await kittyApiFetch(
+    `/provider/${opts.provider}/servers?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
@@ -161,8 +161,8 @@ async function fetchAllanimeStreamByLinkId(
   linkId: string,
 ): Promise<AllanimeStreamResult | null> {
   const params = new URLSearchParams({ linkId });
-  const res = await fetch(
-    `${getKittyApiBase()}/provider/${provider}/stream?${params.toString()}`,
+  const res = await kittyApiFetch(
+    `/provider/${provider}/stream?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
@@ -204,8 +204,8 @@ async function fetchAllanimeStreamDirect(opts: {
   });
   if (opts.title?.trim()) params.set("title", opts.title.trim());
 
-  const res = await fetch(
-    `${getKittyApiBase()}/provider/${opts.provider}/stream-direct?${params.toString()}`,
+  const res = await kittyApiFetch(
+    `/provider/${opts.provider}/stream-direct?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),

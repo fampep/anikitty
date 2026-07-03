@@ -188,6 +188,7 @@ export const useGetKittyStream = (
     refetchOnMount: true,
     staleTime: 30_000,
     cacheTime: 5 * 60 * 1000,
+    keepPreviousData: true,
     retry: false,
   });
 };

@@ -1,8 +1,6 @@
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
-import { kittyStreamHeaders, getKittyApiBase } from "@/lib/kitty/kitty-api";
-
-const MIRURO_API_BASE = `${getKittyApiBase()}/miruro`;
+import { kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
 
 /** External VTT providers — bonk first (best subtitle support per Miruro pipe). */
 export const MIRURO_SUB_PROVIDERS = ["bonk", "ally", "kiwi", "moo", "pewe"] as const;
@@ -120,15 +118,18 @@ async function miruroFetch<T>(
   path: string,
   params?: Record<string, string | number | undefined | null>,
 ): Promise<T | null> {
-  const url = new URL(`${MIRURO_API_BASE}${path.startsWith("/") ? path : `/${path}`}`);
+  let apiPath = `/miruro${path.startsWith("/") ? path : `/${path}`}`;
   if (params) {
+    const search = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
-      if (value != null && value !== "") url.searchParams.set(key, String(value));
+      if (value != null && value !== "") search.set(key, String(value));
     }
+    const query = search.toString();
+    if (query) apiPath += `?${query}`;
   }
 
   try {
-    const res = await fetch(url.toString(), {
+    const res = await kittyApiFetch(apiPath, {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
       headers: miruroHeaders(),
@@ -579,13 +580,19 @@ export async function proxyMiruroRequest(
     params[key] = value;
   });
 
-  const url = new URL(`${MIRURO_API_BASE}/${path}`);
+  let apiPath = `/miruro/${path}`;
+  const search = new URLSearchParams();
+  searchParams.forEach((value, key) => {
+    search.set(key, value);
+  });
   for (const [key, value] of Object.entries(params)) {
-    if (value) url.searchParams.set(key, value);
+    if (value) search.set(key, value);
   }
+  const query = search.toString();
+  if (query) apiPath += `?${query}`;
 
   try {
-    const res = await fetch(url.toString(), {
+    const res = await kittyApiFetch(apiPath, {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
       headers: miruroHeaders(),
@@ -699,10 +706,10 @@ export async function fetchAnitakuSubtitleStreamFallback(opts: {
   episode: number;
   audio: "sub" | "dub";
 }): Promise<MiruroStreamResult | null> {
-  const url = `${getKittyApiBase()}/provider/${encodeURIComponent(ANITAKU_FALLBACK_PROVIDER)}/stream-direct?anilistId=${opts.anilistId}&episode=${opts.episode}&audio=${opts.audio}`;
+  const path = `/provider/${encodeURIComponent(ANITAKU_FALLBACK_PROVIDER)}/stream-direct?anilistId=${opts.anilistId}&episode=${opts.episode}&audio=${opts.audio}`;
 
   try {
-    const res = await fetch(url, {
+    const res = await kittyApiFetch(path, {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
       headers: miruroHeaders(),
