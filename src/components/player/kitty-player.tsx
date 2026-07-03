@@ -23,6 +23,7 @@ import {
 } from "@/lib/kitty/player-orientation";
 import {
   detectSubtitleFormat,
+  getTrackFile,
   isSubtitleTrack,
   labelToLanguage,
   type StreamTrack,
@@ -96,10 +97,10 @@ function enableNativeHlsSubtitles(video: HTMLVideoElement | null | undefined) {
 function resolveSubtitleTracks(tracks: StreamTrack[]) {
   return tracks
     .filter(isSubtitleTrack)
-    .map((track) => ({
-      ...track,
-      file: resolveTrackSrc(track.file ?? ""),
-    }))
+    .map((track) => {
+      const file = resolveTrackSrc(getTrackFile(track) ?? "");
+      return { ...track, file };
+    })
     .filter((track) => Boolean(track.file));
 }
 
@@ -137,6 +138,11 @@ function applySubtitleMode(
     art.subtitle.switch(active.file, buildSubtitleSwitchOptions(active));
     applySubtitleStyles(art, settings);
     return "external";
+  }
+
+  if (subTracks.length > 0) {
+    art.subtitle.show = false;
+    return "off";
   }
 
   art.subtitle.show = false;
@@ -397,6 +403,25 @@ export default function KittyPlayer({
     );
   }, [tracks, preferSubtitles, ready, subtitleSettings]);
 
+  const reapplyExternalSubtitles = useCallback(
+    (art: Artplayer) => {
+      const subTracks = resolveSubtitleTracks(tracksRef.current);
+      if (!preferSubtitlesRef.current || subTracks.length === 0) return;
+      disableNativeTextTracks(art.video);
+      subtitleModeRef.current = applySubtitleMode(
+        art,
+        tracksRef.current,
+        preferSubtitlesRef.current,
+        subtitleSettings,
+      );
+    },
+    [subtitleSettings],
+  );
+  const reapplyExternalSubtitlesRef = useRef(reapplyExternalSubtitles);
+  useEffect(() => {
+    reapplyExternalSubtitlesRef.current = reapplyExternalSubtitles;
+  }, [reapplyExternalSubtitles]);
+
   useEffect(() => {
     const cfg = w2gRef.current;
     if (!cfg || cfg.isHost || !cfg.syncState) return;
@@ -453,21 +478,36 @@ export default function KittyPlayer({
           }
         : undefined;
 
-    const subtitleSelector = subTracks.map((track) => ({
-      html: track.label || labelToLanguage(track.label || ""),
-      url: track.file,
-      type: detectSubtitleFormat({ url: track.file, label: track.label }),
-    }));
+    const subtitleSelector = subTracks.map((track) => {
+      const type = detectSubtitleFormat({ url: track.file, label: track.label });
+      return {
+        html: track.label || labelToLanguage(track.label || ""),
+        url: track.file,
+        type,
+        escape: false,
+        onVttLoad:
+          type === "ass"
+            ? undefined
+            : (vtt: string) => sanitizeVttOrSrtContent(vtt),
+      };
+    });
 
     let hlsForCleanup: Hls | null = null;
     let hlsNetworkRecoveries = 0;
-    subtitleModeRef.current = showSubs && hasExternalSubs ? "external" : "native";
+    subtitleModeRef.current =
+      showSubs && hasExternalSubs ? "external" : hasExternalSubs ? "off" : "native";
+
+    const shouldUseExternalSubs = () =>
+      preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0;
 
     const syncNativeSubsIfNeeded = (video: HTMLVideoElement) => {
-      if (subtitleModeRef.current !== "external") {
-        const enabled = enableNativeHlsSubtitles(video);
-        if (enabled) subtitleModeRef.current = "native";
+      if (subtitleModeRef.current === "external") return;
+      if (shouldUseExternalSubs()) {
+        disableNativeTextTracks(video);
+        return;
       }
+      const enabled = enableNativeHlsSubtitles(video);
+      if (enabled) subtitleModeRef.current = "native";
     };
 
     const art = new Artplayer({
@@ -706,6 +746,7 @@ export default function KittyPlayer({
     art.on("video:canplay", () => {
       setBuffering(false);
       setReady(true);
+      reapplyExternalSubtitlesRef.current(art);
     });
     art.on("video:playing", () => setBuffering(false));
 

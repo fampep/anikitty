@@ -31,6 +31,8 @@ export type EpisodeSubtitleCacheContext = Pick<
   "anilistId" | "episode" | "audio"
 > & {
   animeTitle?: string | null;
+  /** Active stream provider — tried first when fetching Kitty /subs. */
+  streamProvider?: string | null;
 };
 
 export type EnsureSubtitleCacheOptions = {
@@ -174,10 +176,14 @@ export async function getStoredSubtitleTracks(
   }
 }
 
-function hasFreshCachedSubtitles(
+async function hasFreshCachedSubtitles(
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
 ): Promise<boolean> {
-  return getStoredSubtitleTracks(ctx).then((tracks) => tracks.length > 0);
+  let tracks = await getStoredSubtitleTracks(ctx);
+  if (tracks.length === 0 && ctx.audio === "dub") {
+    tracks = await getStoredSubtitleTracks({ ...ctx, audio: "sub" });
+  }
+  return tracks.length > 0;
 }
 
 function subtitleProviderFilter() {
@@ -257,21 +263,13 @@ export async function ensureMiruroSubtitleCache(
 ): Promise<StreamTrack[]> {
   if (!opts?.force && (await hasFreshCachedSubtitles(ctx))) return [];
 
-  let kitty = await fetchKittySubsTracks({
+  const kitty = await fetchKittySubsTracks({
     anilistId: ctx.anilistId,
     episode: ctx.episode,
     audio: ctx.audio,
     title: ctx.animeTitle,
+    preferProvider: ctx.streamProvider,
   });
-
-  if (!kitty?.tracks.length && ctx.audio === "dub") {
-    kitty = await fetchKittySubsTracks({
-      anilistId: ctx.anilistId,
-      episode: ctx.episode,
-      audio: "sub",
-      title: ctx.animeTitle,
-    });
-  }
 
   if (kitty?.tracks.length) {
     return cacheStreamSubtitleTracks(dedupeSubtitleTracks(kitty.tracks), {

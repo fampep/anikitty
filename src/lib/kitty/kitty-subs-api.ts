@@ -207,6 +207,15 @@ export async function getKittySubsProviderOrder(
   return merged;
 }
 
+function prioritizeProviderOrder(
+  order: string[],
+  preferProvider?: string | null,
+): string[] {
+  const prefer = preferProvider?.trim();
+  if (!prefer) return order;
+  return [prefer, ...order.filter((p) => p !== prefer)];
+}
+
 /** Fetch subtitle tracks for one episode via GET /subs (first provider with tracks). */
 export async function fetchKittySubsTracks(opts: {
   anilistId: number;
@@ -214,6 +223,8 @@ export async function fetchKittySubsTracks(opts: {
   audio?: "sub" | "dub";
   title?: string | null;
   providers?: readonly string[];
+  /** Try this provider first (e.g. the active stream provider). */
+  preferProvider?: string | null;
 }): Promise<{
   tracks: StreamTrack[];
   provider: string;
@@ -221,28 +232,32 @@ export async function fetchKittySubsTracks(opts: {
 } | null> {
   if (opts.anilistId <= 0 || opts.episode <= 0) return null;
 
-  const audio = opts.audio ?? "sub";
-  const order = await getKittySubsProviderOrder(opts.providers);
+  const baseOrder = await getKittySubsProviderOrder(opts.providers);
+  const order = prioritizeProviderOrder(baseOrder, opts.preferProvider);
+  const audioModes: ("sub" | "dub")[] =
+    opts.audio === "dub" ? ["dub", "sub"] : [opts.audio ?? "sub"];
 
   let animeTitle = opts.title?.trim() || null;
 
-  for (const provider of order) {
-    const result = await fetchKittySubsFromProvider({
-      provider,
-      anilistId: opts.anilistId,
-      episode: opts.episode,
-      audio,
-      title: opts.title,
-    });
-    if (!result?.tracks.length) continue;
+  for (const audio of audioModes) {
+    for (const provider of order) {
+      const result = await fetchKittySubsFromProvider({
+        provider,
+        anilistId: opts.anilistId,
+        episode: opts.episode,
+        audio,
+        title: opts.title,
+      });
+      if (!result?.tracks.length) continue;
 
-    if (result.animeTitle) animeTitle = result.animeTitle;
+      if (result.animeTitle) animeTitle = result.animeTitle;
 
-    return {
-      tracks: result.tracks,
-      provider: KITTY_SUB_SOURCE_PROVIDER,
-      animeTitle,
-    };
+      return {
+        tracks: result.tracks,
+        provider: KITTY_SUB_SOURCE_PROVIDER,
+        animeTitle,
+      };
+    }
   }
 
   return null;

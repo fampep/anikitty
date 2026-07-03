@@ -193,6 +193,7 @@ export async function GET(req: Request) {
     const fetchedSubs = await ensureMiruroSubtitleCache({
       ...subtitleCtx,
       animeTitle: titleParam,
+      streamProvider: providerName,
     });
 
     data.tracks = await mergeCachedSubtitleTracks(

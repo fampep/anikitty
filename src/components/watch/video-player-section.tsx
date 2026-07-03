@@ -688,10 +688,13 @@ const VideoPlayerSection = () => {
     void retryStream();
   }, [streamQueryEnabled, hasStreamFile, streamError, retryStream]);
 
-  const playerTracks = useMemo(
-    () => streamData?.tracks ?? EMPTY_PLAYER_TRACKS,
-    [streamData?.tracks],
-  );
+  const playerTracks = useMemo(() => {
+    const raw = streamData?.tracks ?? EMPTY_PLAYER_TRACKS;
+    return raw.map((track) => {
+      const file = track.file?.trim() || (track as { url?: string }).url?.trim() || "";
+      return file ? { ...track, file } : track;
+    });
+  }, [streamData?.tracks]);
   const playerHeaders = useMemo(
     () => streamData?.headers ?? EMPTY_PLAYER_HEADERS,
     [streamData?.headers],
