@@ -28,6 +28,7 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "AnimeNexus",
   "Animetsu",
   "AniWaves",
+  "Anizen",
   "Senshi",
   "Animeya",
   "Anitaku",

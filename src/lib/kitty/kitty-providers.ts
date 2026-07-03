@@ -30,6 +30,7 @@ export const KITTY_PROVIDERS = [
   "AnimeOnsen",
   "AnimeNexus",
   "Animeya",
+  "Anizen",
   "AniWaves",
 ] as const;
 
@@ -401,6 +402,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "ENG vs JPN locale streams · SUB · DUB",
   },
   {
+    id: "Anizen",
+    label: "Anizen",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "MegaPlay · Ryzex · Abyss · SUB · DUB · Hindi · VTT on SUB · /subs",
+  },
+  {
     id: "AniWaves",
     label: "AniWaves",
     group: "other",
@@ -418,7 +430,6 @@ export const DEFAULT_KITTY_PROVIDER: KittyProvider = "Miruro";
 
 const DEPRECATED_PROVIDERS = new Set([
   "AnimeParadise",
-  "Anizen",
   "AniNeko",
   "AnimeStream",
   "AniDao",
@@ -463,6 +474,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AnimeOnsen",
   "AnimeNexus",
   "Animeya",
+  "Anizen",
   "AniWaves",
   "AniSnatch",
 ]);
