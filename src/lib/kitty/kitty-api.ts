@@ -1,4 +1,4 @@
-export const DEFAULT_KITTY_API_BASE = "https://kittyapi.92-119-165-226.sslip.io";
+export const DEFAULT_KITTY_API_BASE = "https://kittyapi.176-125-240-251.sslip.io";
 
 const KITTY_API_BASE = process.env.KITTY_API_BASE ?? DEFAULT_KITTY_API_BASE;
 

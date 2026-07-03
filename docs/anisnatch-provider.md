@@ -58,7 +58,7 @@ Servers come from `api/loadSVs` grouped by audio type. Typical SUB servers (prio
 
 ## Endpoints (AnikiKittyAPI)
 
-Base: your API host (e.g. `https://kittyapi.92-119-165-226.sslip.io`).
+Base: your API host (e.g. `https://kittyapi.176-125-240-251.sslip.io`).
 
 | Step | Request |
 |------|---------|

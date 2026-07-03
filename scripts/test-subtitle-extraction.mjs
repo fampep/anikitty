@@ -4,7 +4,7 @@
  * Optional: node --env-file=.env.local scripts/test-subtitle-extraction.mjs
  */
 
-const KITTY_API = process.env.KITTY_API_BASE ?? "https://kittyapi.92-119-165-226.sslip.io";
+const KITTY_API = process.env.KITTY_API_BASE ?? "https://kittyapi.176-125-240-251.sslip.io";
 const LOCAL_API = process.env.LOCAL_API ?? "http://localhost:3002";
 const ANILIST_ID = 1535; // Death Note
 const EPISODE = 1;
