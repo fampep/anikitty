@@ -20,6 +20,7 @@ import { normalizeKittyProvider, MULTI_ROW_PROVIDERS, providerHasNativeSubs, typ
 import {
   DEFAULT_ANIMEX_SERVER,
   defaultAnimexServerForMode,
+  animexServerUsesInPlayerAudioSwitch,
   isAnimexServerId,
   type AnimexServerId,
 } from "@/lib/providers/animex-api";
@@ -40,7 +41,6 @@ import {
   DEFAULT_MKISSA_MIRROR,
   defaultAllanimeMirrorForMode,
   isAllanimeMirrorId,
-  pickDefaultAllanimeMirror,
   type AllanimeMirrorId,
 } from "@/lib/providers/allanime-api";
 import {
@@ -48,12 +48,6 @@ import {
   isAnimoServerId,
   type AnimoServerId,
 } from "@/lib/providers/animo-api";
-import {
-  resolveActiveStreamCapabilities,
-  supportsStreamAudioMode,
-} from "@/lib/kitty/stream-capabilities";
-
-import { useGetStreamCapabilities } from "@/query/stream/get-stream-capabilities";
 import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
@@ -278,81 +272,16 @@ const VideoPlayerSection = () => {
     return selectedEpisode ?? "";
   }, [currentEpisodeInfo?.number, episodeId, selectedEpisode]);
 
-  const {
-    data: streamCapabilities,
-    isLoading: capabilitiesLoading,
-    isFetching: capabilitiesFetching,
-  } = useGetStreamCapabilities(
-    anilistId,
-    episodeNo || undefined,
-    animeTitle,
-  );
-
-  const activeStreamCaps = useMemo(
-    () =>
-      resolveActiveStreamCapabilities(
-        streamCapabilities,
-        provider,
-        audioMode,
-        provider === "Animex" ? animexServer : undefined,
-        provider === "Miruro" ? miruroPipe : undefined,
-        provider === "Animo" ? animoServer : undefined,
-        provider === "AniSnatch" ? anisnatchServer : undefined,
-        provider === "Lunar" ? lunarServer : undefined,
-        provider === "AllAnime" ? allanimeMirror : undefined,
-        provider === "MKissa" ? mkissaMirror : undefined,
-      ),
-    [
-      streamCapabilities,
-      provider,
-      audioMode,
-      animexServer,
-      miruroPipe,
-      animoServer,
-      anisnatchServer,
-      lunarServer,
-      allanimeMirror,
-      mkissaMirror,
-    ],
-  );
-
-  const providerStreamCaps = useMemo(
-    () => streamCapabilities?.providers[provider] ?? null,
-    [streamCapabilities?.providers, provider],
-  );
-  const capsForAudioAvailability = useMemo(
-    () => providerStreamCaps ?? activeStreamCaps,
-    [providerStreamCaps, activeStreamCaps],
-  );
-
   const usesInPlayerHlsAudioSwitch = useMemo(
-    () => Boolean(capsForAudioAvailability?.multi),
-    [capsForAudioAvailability],
+    () =>
+      audioMode === "multi" &&
+      provider === "Animex" &&
+      animexServer != null &&
+      animexServerUsesInPlayerAudioSwitch(animexServer),
+    [audioMode, provider, animexServer],
   );
 
   const streamQueryAudio: "sub" | "dub" = usesInPlayerHlsAudioSwitch ? "sub" : streamAudio;
-
-  const canSelectSubAudio = useMemo(
-    () => supportsStreamAudioMode(capsForAudioAvailability, "sub"),
-    [capsForAudioAvailability],
-  );
-  const canSelectDubAudio = useMemo(
-    () => supportsStreamAudioMode(capsForAudioAvailability, "dub"),
-    [capsForAudioAvailability],
-  );
-
-  useEffect(() => {
-    if (!capsForAudioAvailability) return;
-    if (streamAudio === "dub" && !canSelectDubAudio && canSelectSubAudio) {
-      localStorage.setItem("kittyStreamAudio", "sub");
-      syncDubSearchParam(false);
-      setStreamAudio("sub");
-    } else if (streamAudio === "sub" && !canSelectSubAudio && canSelectDubAudio) {
-      localStorage.setItem("kittyStreamAudio", "dub");
-      syncDubSearchParam(true);
-      setStreamAudio("dub");
-    }
-  }, [capsForAudioAvailability, streamAudio, canSelectSubAudio, canSelectDubAudio, syncDubSearchParam]);
 
   // ── Resume position ──────────────────────────────────────────────
   const [savedResumeTime, setSavedResumeTime] = useState(0);
@@ -1004,32 +933,6 @@ const VideoPlayerSection = () => {
     t,
   ]);
 
-  useEffect(() => {
-    if (provider !== "AllAnime" || !streamCapabilities?.allanimeServerRows?.length) return;
-    const rows = streamCapabilities.allanimeServerRows;
-    const mirrors = rows.map((row) => row.mirror);
-    if (!mirrors.includes(allanimeMirror)) {
-      const next = pickDefaultAllanimeMirror(rows, "AllAnime");
-      if (next) {
-        setAllanimeMirror(next);
-        localStorage.setItem("allanimeMirror", next);
-      }
-    }
-  }, [provider, streamCapabilities?.allanimeServerRows, allanimeMirror]);
-
-  useEffect(() => {
-    if (provider !== "MKissa" || !streamCapabilities?.mkissaServerRows?.length) return;
-    const rows = streamCapabilities.mkissaServerRows;
-    const mirrors = rows.map((row) => row.mirror);
-    if (!mirrors.includes(mkissaMirror)) {
-      const next = pickDefaultAllanimeMirror(rows, "MKissa");
-      if (next) {
-        setMkissaMirror(next);
-        localStorage.setItem("mkissaMirror", next);
-      }
-    }
-  }, [provider, streamCapabilities?.mkissaServerRows, mkissaMirror]);
-
   if (!episodeId && !selectedEpisode) {
     return (
       <div className="w-full aspect-video bg-[#030303] flex flex-col items-center justify-center gap-4 rounded-xl border border-white/10 ring-1 ring-white/[0.06] shadow-2xl shadow-black/60 overflow-hidden relative">
@@ -1057,11 +960,6 @@ const VideoPlayerSection = () => {
           allanimeMirror={allanimeMirror}
           mkissaMirror={mkissaMirror}
           animoServer={animoServer}
-          streamAudio={streamAudio}
-          capabilities={streamCapabilities}
-          capabilitiesLoading={capabilitiesLoading}
-          capabilitiesFetching={capabilitiesFetching}
-          episodeNo={episodeNo || undefined}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}
@@ -1287,11 +1185,6 @@ const VideoPlayerSection = () => {
           allanimeMirror={allanimeMirror}
           mkissaMirror={mkissaMirror}
           animoServer={animoServer}
-          streamAudio={streamAudio}
-          capabilities={streamCapabilities}
-          capabilitiesLoading={capabilitiesLoading}
-          capabilitiesFetching={capabilitiesFetching}
-          episodeNo={episodeNo || undefined}
           onSelect={handleProviderGridSelect}
           onMultiToggle={handleMultiToggle}
           onMiruroPipeChange={handleMiruroPipeChange}

@@ -526,8 +526,10 @@ export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {
     if (mode === "multi") return p.supportsMulti === true;
-    if (mode === "dub") return p.supportsDub === true && !MULTI_ROW_PROVIDERS.has(p.id);
-    if (mode === "hardsub") return p.hardSub === true && !MULTI_ROW_PROVIDERS.has(p.id);
-    return !MULTI_ROW_PROVIDERS.has(p.id);
+    if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
+    if (mode === "dub") return p.supportsDub === true;
+    if (mode === "hardsub") return p.hardSub === true;
+    if (mode === "sub") return p.supportsSub === true;
+    return false;
   });
 }
