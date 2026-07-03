@@ -337,7 +337,19 @@ button, a, [role="button"] {
   display: none !important;
 }
 
-/* Bottom control bar — glass dock */
+/* Never blur the video layer — art-bottom spans the full player (inset: 0) */
+.art-kitty-player .art-backdrop-filter,
+.art-kitty-player .art-bottom {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.art-kitty-player .art-video,
+.art-kitty-player video {
+  filter: none !important;
+}
+
+/* Bottom control bar — gradient dock only (no backdrop blur) */
 .art-kitty-player .art-bottom {
   background: linear-gradient(
     to top,
@@ -345,8 +357,6 @@ button, a, [role="button"] {
     rgba(10, 10, 18, 0.82) 55%,
     transparent 100%
   ) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .art-kitty-player .art-progress {
