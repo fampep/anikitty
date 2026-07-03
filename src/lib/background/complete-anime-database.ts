@@ -52,9 +52,8 @@ export class AnimeCompletionTracker {
         console.log(`[CompletionTracker] Sync tick ${tickCount} - ${incompleteRemaining} anime remaining`);
 
         const result = await runSubtitleLibrarySyncTick({
-          maxIncompleteAnime: 999999, // Process ALL
-          episodesPerAnime: 10, // More episodes per tick to speed up
-          maxDiscover: 999999, // Discover all new anime
+          maxIncompleteAnime: 999999,
+          maxDiscover: 999999,
           backfillLimit: 999999,
           refreshLimit: 999999,
         });
@@ -107,7 +106,6 @@ export class AnimeCompletionTracker {
       try {
         const result = await runSubtitleLibrarySyncTick({
           maxIncompleteAnime: 999999,
-          episodesPerAnime: 8,
           maxDiscover: 999999,
           backfillLimit: 999999,
           refreshLimit: 999999,

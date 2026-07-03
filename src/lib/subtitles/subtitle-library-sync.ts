@@ -1,12 +1,12 @@
-import { ensureIncrementalSubtitleCache, cacheKittySubsBulkForAnime } from "@/lib/subtitles/subtitle-cache-store";
+import { cacheKittySubsBulkForAnime } from "@/lib/subtitles/subtitle-cache-store";
 import {
   backfillSubtitleLibraryAnime,
-  countIncompleteSubtitleAnimesFromDb,
-  listIncompleteSubtitleAnimesFromDb,
-  listAnimesWithMissingSubtitles,
-  countAnimesWithMissingSubtitles,
+  countNonCompleteLibraryAnimes,
+  listNonCompleteLibraryAnimes,
   refreshStaleCompletionStatuses,
   getStoredSubtitleLibraryMeta,
+  syncSubtitleLibraryAnime,
+  markSubtitleFetchAttempted,
 } from "@/lib/subtitles/subtitle-library-db";
 import {
   discoverSubtitleLibraryCandidates,
@@ -14,7 +14,10 @@ import {
 } from "@/lib/subtitles/subtitle-library-enrich";
 import {
   SUBTITLE_API_INTERVAL_MS,
-  SUBTITLE_SYNC_EPISODES_PER_TICK,
+  SUBTITLE_AUTO_SYNC_INTERVAL_MS,
+  SUBTITLE_SYNC_ANIME_PER_TICK,
+  SUBTITLE_SYNC_DISCOVER_PER_TICK,
+  sleep,
 } from "@/lib/subtitles/subtitle-sync-config";
 
 export type SubtitleLibrarySyncResult = {
@@ -27,31 +30,36 @@ export type SubtitleLibrarySyncResult = {
 };
 
 export type SubtitleLibrarySyncOptions = {
+  /** Max incomplete library anime to bulk-fetch this tick. */
   maxIncompleteAnime?: number;
-  episodesPerAnime?: number;
+  /** Max new AniList anime to discover when library is complete. */
   maxDiscover?: number;
   backfillLimit?: number;
   refreshLimit?: number;
 };
 
-/**
- * Actively fetch subtitles for anime using the Kitty Subs API
- * Used for anime with episodes but missing subtitles
- */
-async function fetchSubtitlesForAnime(opts: {
-  anilistId: number;
-  title?: string | null;
-}): Promise<number> {
+/** Bulk-fetch all episodes for one library anime and refresh its completion status. */
+async function bulkFetchLibraryAnime(anilistId: number): Promise<number> {
+  await fetchAnilistMetaBatch([anilistId]);
+
+  const metaMap = await getStoredSubtitleLibraryMeta([anilistId]);
+  const meta = metaMap.get(anilistId);
+
   const cached = await cacheKittySubsBulkForAnime({
-    anilistId: opts.anilistId,
+    anilistId,
     audio: "sub",
-    animeTitle: opts.title,
+    animeTitle: meta?.title ?? null,
   });
 
   if (cached > 0) {
+    await syncSubtitleLibraryAnime(anilistId, {
+      totalEpisodes: meta?.episodes ?? null,
+    });
     console.log(
-      `[SubtitleSync] Bulk Kitty /subs cached ${cached} episode(s) for anime ${opts.anilistId}`,
+      `[SubtitleSync] Bulk cached ${cached} episode(s) for anime ${anilistId}`,
     );
+  } else {
+    await markSubtitleFetchAttempted(anilistId);
   }
 
   return cached;
@@ -60,12 +68,10 @@ async function fetchSubtitlesForAnime(opts: {
 export async function runSubtitleLibrarySyncTick(
   opts: SubtitleLibrarySyncOptions = {},
 ): Promise<SubtitleLibrarySyncResult> {
-  // Process ALL incomplete anime (no limit) - systematically complete entire database
-  const maxIncompleteAnime = Math.max(0, opts.maxIncompleteAnime ?? 999999);
-  const episodesPerAnime = Math.max(1, opts.episodesPerAnime ?? SUBTITLE_SYNC_EPISODES_PER_TICK);
-  const maxDiscover = Math.max(0, opts.maxDiscover ?? 999999);
-  const backfillLimit = Math.max(0, opts.backfillLimit ?? 999999);
-  const refreshLimit = Math.max(0, opts.refreshLimit ?? 999999);
+  const maxIncompleteAnime = Math.max(0, opts.maxIncompleteAnime ?? SUBTITLE_SYNC_ANIME_PER_TICK);
+  const maxDiscover = Math.max(0, opts.maxDiscover ?? SUBTITLE_SYNC_DISCOVER_PER_TICK);
+  const backfillLimit = Math.max(0, opts.backfillLimit ?? 20);
+  const refreshLimit = Math.max(0, opts.refreshLimit ?? 15);
 
   const result: SubtitleLibrarySyncResult = {
     backfilled: 0,
@@ -84,89 +90,52 @@ export async function runSubtitleLibrarySyncTick(
     result.refreshed = await refreshStaleCompletionStatuses(refreshLimit);
   }
 
-  // PRIORITY 1: Anime with MISSING subtitles (episodes exist but no subs) - USE KITTY SUBS API
-  const missingSubsCount = await countAnimesWithMissingSubtitles();
-  if (missingSubsCount > 0 && maxIncompleteAnime > 0) {
-    const missingSubsIds = await listAnimesWithMissingSubtitles(
-      Math.min(1, maxIncompleteAnime),
-    );
+  const nonCompleteCount = await countNonCompleteLibraryAnimes();
+  result.incompleteRemaining = nonCompleteCount;
 
-    for (const anilistId of missingSubsIds) {
+  // Priority: finish every incomplete show already in the library.
+  if (nonCompleteCount > 0 && maxIncompleteAnime > 0) {
+    const ids = await listNonCompleteLibraryAnimes(maxIncompleteAnime);
+
+    for (let i = 0; i < ids.length; i++) {
+      const anilistId = ids[i];
       try {
-        console.log(
-          `[SubtitleSync] 🔴 PRIORITY: Actively fetching subtitles for anime ${anilistId} using Kitty Subs API (missing subs)`,
-        );
-
-        // First try to get metadata
-        const metaMap = await getStoredSubtitleLibraryMeta([anilistId]);
-        const meta = metaMap.get(anilistId);
-
-        if (!meta?.episodes) {
-          console.warn(`[SubtitleSync] No metadata for anime ${anilistId}, skipping`);
-          continue;
-        }
-
-        // Use Kitty Subs API to fetch subtitles
-        const fetched = await fetchSubtitlesForAnime({
-          anilistId,
-          title: meta.title,
-        });
-
+        const fetched = await bulkFetchLibraryAnime(anilistId);
         result.episodesFetched += fetched;
         if (fetched > 0) result.animeUpdated++;
       } catch (error) {
-        console.error(`Error fetching subtitles for anime ${anilistId}:`, error);
+        console.error(`[SubtitleSync] bulk fetch failed for anime ${anilistId}:`, error);
       }
-    }
-  }
 
-  // PRIORITY 2: Incomplete anime (missing episodes)
-  const incompleteRemaining = await countIncompleteSubtitleAnimesFromDb();
-  result.incompleteRemaining = incompleteRemaining;
-
-  if (incompleteRemaining > 0 && maxIncompleteAnime > 0) {
-    const incompleteIds = await listIncompleteSubtitleAnimesFromDb(maxIncompleteAnime);
-
-    // Process anime one at a time instead of in parallel
-    for (const anilistId of incompleteIds) {
-      try {
-        const tick = await ensureIncrementalSubtitleCache(anilistId, {
-          maxEpisodes: episodesPerAnime,
-          delayMs: SUBTITLE_API_INTERVAL_MS,
-        });
-
-        result.episodesFetched += tick.fetched;
-        if (tick.fetched > 0) result.animeUpdated++;
-      } catch (error) {
-        console.error(`Error fetching subtitles for anime ${anilistId}:`, error);
+      if (i + 1 < ids.length) {
+        await sleep(SUBTITLE_API_INTERVAL_MS);
       }
     }
 
-    result.incompleteRemaining = await countIncompleteSubtitleAnimesFromDb();
+    result.incompleteRemaining = await countNonCompleteLibraryAnimes();
     return result;
   }
 
+  // Library is complete — discover and fetch new anime from AniList.
   if (maxDiscover > 0) {
     const candidates = await discoverSubtitleLibraryCandidates(maxDiscover);
     if (candidates.length > 0) {
       await fetchAnilistMetaBatch(candidates);
     }
 
-    // Process discovered anime one at a time
-    for (const anilistId of candidates) {
+    for (let i = 0; i < candidates.length; i++) {
+      const anilistId = candidates[i];
       try {
-        const tick = await ensureIncrementalSubtitleCache(anilistId, {
-          maxEpisodes: episodesPerAnime,
-          delayMs: SUBTITLE_API_INTERVAL_MS,
-        });
-
-        if (tick.fetched > 0 || tick.cachedEpisodes > 0) {
-          result.animeDiscovered++;
-          result.episodesFetched += tick.fetched;
-          if (tick.fetched > 0) result.animeUpdated++;
-        }
+        const fetched = await bulkFetchLibraryAnime(anilistId);
+        result.animeDiscovered++;
+        result.episodesFetched += fetched;
+        if (fetched > 0) result.animeUpdated++;
       } catch (error) {
-        console.error(`Error discovering subtitles for anime ${anilistId}:`, error);
+        console.error(`[SubtitleSync] discover fetch failed for anime ${anilistId}:`, error);
+      }
+
+      if (i + 1 < candidates.length) {
+        await sleep(SUBTITLE_API_INTERVAL_MS);
       }
     }
   }
@@ -174,14 +143,13 @@ export async function runSubtitleLibrarySyncTick(
   return result;
 }
 
-const BACKGROUND_COOLDOWN_MS = 6_000;
-const AUTO_SYNC_INTERVAL_MS = 8_000;
+const BACKGROUND_COOLDOWN_MS = 4_000;
 
 let lastBackgroundSyncAt = 0;
 let backgroundSyncInFlight = false;
 let autoSyncLoopStarted = false;
 
-/** Fire-and-forget sync while someone browses the library (throttled per instance). */
+/** Fire-and-forget sync (throttled per server instance). */
 export function triggerBackgroundSubtitleLibrarySync(
   opts: SubtitleLibrarySyncOptions = {},
 ): void {
@@ -193,14 +161,7 @@ export function triggerBackgroundSubtitleLibrarySync(
   lastBackgroundSyncAt = now;
   backgroundSyncInFlight = true;
 
-  void runSubtitleLibrarySyncTick({
-    maxIncompleteAnime: 3,
-    episodesPerAnime: SUBTITLE_SYNC_EPISODES_PER_TICK,
-    maxDiscover: 2,
-    backfillLimit: 15,
-    refreshLimit: 12,
-    ...opts,
-  })
+  void runSubtitleLibrarySyncTick(opts)
     .catch((err) => {
       console.error("[subtitle-library-sync] background tick failed:", err);
     })
@@ -209,20 +170,19 @@ export function triggerBackgroundSubtitleLibrarySync(
     });
 }
 
-/** Continuous background sync — starts when the Node server boots. */
+/** Continuous background sync — runs on server boot and keeps the library growing. */
 export function startSubtitleLibraryAutoSync(): void {
   if (autoSyncLoopStarted || !process.env.DATABASE_URL) return;
+  if (process.env.SUBTITLE_AUTO_SYNC === "0") return;
+
   autoSyncLoopStarted = true;
+  console.log("[SubtitleSync] Starting automatic subtitle library sync loop");
 
   const tick = () => {
     if (backgroundSyncInFlight) return;
-    triggerBackgroundSubtitleLibrarySync({
-      maxIncompleteAnime: 4,
-      episodesPerAnime: SUBTITLE_SYNC_EPISODES_PER_TICK,
-      maxDiscover: 2,
-    });
+    triggerBackgroundSubtitleLibrarySync();
   };
 
   tick();
-  setInterval(tick, AUTO_SYNC_INTERVAL_MS);
+  setInterval(tick, SUBTITLE_AUTO_SYNC_INTERVAL_MS);
 }

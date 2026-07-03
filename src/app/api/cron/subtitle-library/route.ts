@@ -28,7 +28,6 @@ export async function GET(req: Request) {
   const result = await runSubtitleLibrarySyncTick({
     maxIncompleteAnime: incomplete,
     maxDiscover: discover,
-    episodesPerAnime: 8,
     backfillLimit: 50,
     refreshLimit: 30,
   });

@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { episodeSubtitles, subtitleLibraryAnime } from "@/db/schema";
 import type { SubtitleLibraryEntry } from "@/lib/subtitles/subtitle-cache-store";
 import { SUBTITLE_LIBRARY_PROVIDERS } from "@/lib/subtitles/subtitle-track-utils";
+import { SUBS_FETCH_RETRY_MS } from "@/lib/subtitles/subtitle-sync-config";
 
 function subtitleProviderFilter() {
   return inArray(episodeSubtitles.provider, [...SUBTITLE_LIBRARY_PROVIDERS]);
@@ -740,6 +741,75 @@ export async function searchCompletedSubtitleLibrary(opts: {
   } catch (err) {
     console.error("[subtitle-library-db] searchCompleted failed:", err);
     return { items: [], total: 0, page, limit, hasNextPage: false, cachedAnilistIds: [] };
+  }
+}
+
+/** Rows in the library that still need a subtitle fetch attempt. */
+function nonCompleteLibraryWhere() {
+  const retryBefore = new Date(Date.now() - SUBS_FETCH_RETRY_MS);
+  return and(
+    or(
+      eq(subtitleLibraryAnime.isComplete, false),
+      isNull(subtitleLibraryAnime.isComplete),
+    ),
+    or(
+      sql`coalesce(${subtitleLibraryAnime.trackCount}, 0) > 0`,
+      isNull(subtitleLibraryAnime.lastSubtitleAt),
+      sql`${subtitleLibraryAnime.lastSubtitleAt} < ${retryBefore}`,
+    ),
+  );
+}
+
+export async function markSubtitleFetchAttempted(anilistId: number): Promise<void> {
+  if (!dbAvailable()) return;
+
+  try {
+    const db = getDb();
+    const now = new Date();
+    await db
+      .update(subtitleLibraryAnime)
+      .set({ lastSubtitleAt: now, updatedAt: now })
+      .where(eq(subtitleLibraryAnime.anilistId, anilistId));
+  } catch {
+    /* best effort */
+  }
+}
+
+/** All library anime that are not fully complete (zero subs or partial coverage). */
+export async function listNonCompleteLibraryAnimes(limit: number): Promise<number[]> {
+  if (!dbAvailable()) return [];
+
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({ anilistId: subtitleLibraryAnime.anilistId })
+      .from(subtitleLibraryAnime)
+      .where(nonCompleteLibraryWhere())
+      .orderBy(
+        sql`case when coalesce(${subtitleLibraryAnime.trackCount}, 0) = 0 then 0 else 1 end`,
+        subtitleLibraryAnime.cachedEpisodeCount,
+      )
+      .limit(limit);
+
+    return rows.map((row) => row.anilistId);
+  } catch {
+    return [];
+  }
+}
+
+export async function countNonCompleteLibraryAnimes(): Promise<number> {
+  if (!dbAvailable()) return 0;
+
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(subtitleLibraryAnime)
+      .where(nonCompleteLibraryWhere());
+
+    return row?.count ?? 0;
+  } catch {
+    return 0;
   }
 }
 

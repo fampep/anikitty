@@ -17,5 +17,10 @@ export async function register() {
     await runReactiveTwoFactorMaintenance().catch((e) =>
       console.error("[2fa-reactive] maintenance failed:", e),
     );
+
+    const { startSubtitleLibraryAutoSync } = await import(
+      "./lib/subtitles/subtitle-library-sync"
+    );
+    startSubtitleLibraryAutoSync();
   }
 }
