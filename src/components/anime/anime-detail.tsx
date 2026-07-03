@@ -515,7 +515,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
           {/* ── Subtitles ── */}
           <TabsContent value="subtitles" className="mt-6">
-            <AnimeSubtitles anilistId={info.anilistId} />
+            <AnimeSubtitles anilistId={info.anilistId} title={info.name} />
           </TabsContent>
 
           {/* ── Media ── */}

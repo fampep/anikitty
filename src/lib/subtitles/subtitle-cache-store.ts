@@ -24,7 +24,7 @@ import {
   sleep,
 } from "@/lib/subtitles/subtitle-sync-config";
 import { fetchAnitakuSubtitleStreamFallback, fetchMiruroSubtitleStream } from "@/lib/providers/miruro-api";
-import { fetchKittySubsTracks, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
+import { fetchKittySubsTracks, fetchKittySubsBulk, KITTY_SUB_SOURCE_PROVIDER, tracksFromSubsEpisode } from "@/lib/kitty/kitty-subs-api";
 
 export type EpisodeSubtitleCacheContext = Pick<
   SubtitleCacheContext,
@@ -302,6 +302,42 @@ export async function ensureMiruroSubtitleCache(
 
 /** @deprecated Use ensureMiruroSubtitleCache */
 export const ensureAnitakuSubtitleCache = ensureMiruroSubtitleCache;
+
+/** Cache every episode from a bulk Kitty `/subs` response. Returns episodes cached. */
+export async function cacheKittySubsBulkForAnime(opts: {
+  anilistId: number;
+  audio: "sub" | "dub";
+  animeTitle?: string | null;
+  preferProvider?: string | null;
+}): Promise<number> {
+  if (opts.anilistId <= 0) return 0;
+
+  const bulk = await fetchKittySubsBulk({
+    anilistId: opts.anilistId,
+    audio: opts.audio,
+    title: opts.animeTitle,
+    preferProvider: opts.preferProvider,
+  });
+  if (!bulk?.episodes.length) return 0;
+
+  let cached = 0;
+  for (const row of bulk.episodes) {
+    const tracks = dedupeSubtitleTracks(tracksFromSubsEpisode(row));
+    if (tracks.length === 0) continue;
+
+    const stored = await cacheStreamSubtitleTracks(tracks, {
+      anilistId: opts.anilistId,
+      episode: row.episode,
+      audio: opts.audio,
+      provider: KITTY_SUB_SOURCE_PROVIDER,
+      animeTitle: bulk.animeTitle ?? opts.animeTitle ?? null,
+      headers: {},
+    });
+    if (stored.some(isSubtitleTrack)) cached++;
+  }
+
+  return cached;
+}
 
 async function upsertSubtitle(
   ctx: SubtitleCacheContext,
@@ -747,6 +783,7 @@ export type SubtitleLibraryStats = {
   completedAnimes: number;
   cachedEpisodes: number;
   totalEpisodes: number;
+  subsProviderCount?: number;
 };
 
 export type SubtitleLibraryEntry = {

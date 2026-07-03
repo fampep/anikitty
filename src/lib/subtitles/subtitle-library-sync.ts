@@ -1,5 +1,4 @@
-import { ensureIncrementalSubtitleCache } from "@/lib/subtitles/subtitle-cache-store";
-import { fetchKittySubsTracks } from "@/lib/kitty/kitty-subs-api";
+import { ensureIncrementalSubtitleCache, cacheKittySubsBulkForAnime } from "@/lib/subtitles/subtitle-cache-store";
 import {
   backfillSubtitleLibraryAnime,
   countIncompleteSubtitleAnimesFromDb,
@@ -41,37 +40,21 @@ export type SubtitleLibrarySyncOptions = {
  */
 async function fetchSubtitlesForAnime(opts: {
   anilistId: number;
-  totalEpisodes: number;
   title?: string | null;
-  episodesToFetch?: number;
 }): Promise<number> {
-  let fetched = 0;
-  const episodesToFetch = Math.min(opts.episodesToFetch ?? 5, opts.totalEpisodes);
+  const cached = await cacheKittySubsBulkForAnime({
+    anilistId: opts.anilistId,
+    audio: "sub",
+    animeTitle: opts.title,
+  });
 
-  for (let ep = 1; ep <= episodesToFetch; ep++) {
-    try {
-      const result = await fetchKittySubsTracks({
-        anilistId: opts.anilistId,
-        episode: ep,
-        audio: "sub",
-        title: opts.title,
-      });
-
-      if (result && result.tracks && result.tracks.length > 0) {
-        fetched++;
-        console.log(
-          `[SubtitleSync] Fetched subs for anime ${opts.anilistId} ep ${ep} from ${result.provider}`,
-        );
-      }
-
-      // Small delay between API calls
-      await new Promise((resolve) => setTimeout(resolve, SUBTITLE_API_INTERVAL_MS));
-    } catch (error) {
-      console.error(`Failed to fetch subs for anime ${opts.anilistId} ep ${ep}:`, error);
-    }
+  if (cached > 0) {
+    console.log(
+      `[SubtitleSync] Bulk Kitty /subs cached ${cached} episode(s) for anime ${opts.anilistId}`,
+    );
   }
 
-  return fetched;
+  return cached;
 }
 
 export async function runSubtitleLibrarySyncTick(
@@ -126,9 +109,7 @@ export async function runSubtitleLibrarySyncTick(
         // Use Kitty Subs API to fetch subtitles
         const fetched = await fetchSubtitlesForAnime({
           anilistId,
-          totalEpisodes: meta.episodes,
           title: meta.title,
-          episodesToFetch: Math.min(episodesPerAnime, meta.episodes),
         });
 
         result.episodesFetched += fetched;

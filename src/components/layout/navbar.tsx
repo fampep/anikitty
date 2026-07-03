@@ -118,26 +118,15 @@ function DesktopNav({ pathname }: { pathname: string }) {
   const secondaryActive = secondary.some((item) => pathname === item.href);
 
   return (
-    <>
-      <nav
-        className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-1 backdrop-blur-sm lg:flex 2xl:hidden"
-        aria-label={t("nav.aria.mainNav")}
-      >
-        {primary.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} compact />
-        ))}
-        <MoreNavMenu items={secondary} pathname={pathname} isActive={secondaryActive} compact />
-      </nav>
-
-      <nav
-        className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-1 backdrop-blur-sm 2xl:flex"
-        aria-label={t("nav.aria.mainNav")}
-      >
-        {menuItems.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} />
-        ))}
-      </nav>
-    </>
+    <nav
+      className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-1 backdrop-blur-sm lg:flex"
+      aria-label={t("nav.aria.mainNav")}
+    >
+      {primary.map((item) => (
+        <NavLink key={item.href} item={item} pathname={pathname} compact />
+      ))}
+      <MoreNavMenu items={secondary} pathname={pathname} isActive={secondaryActive} compact />
+    </nav>
   );
 }
 

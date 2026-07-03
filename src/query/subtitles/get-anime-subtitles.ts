@@ -23,13 +23,21 @@ export type AnimeSubtitleCoverageResult = {
 
 const getAnimeSubtitles = async (
   anilistId: number,
-  opts?: { episode?: number; fetch?: boolean; audio?: "sub" | "dub" },
+  opts?: {
+    episode?: number;
+    fetch?: boolean;
+    all?: boolean;
+    audio?: "sub" | "dub";
+    title?: string | null;
+  },
 ): Promise<AnimeSubtitleItem[]> => {
   const res = await api.get(`/api/anime/${anilistId}/subtitles`, {
     params: {
       episode: opts?.episode,
       fetch: opts?.fetch ? 1 : undefined,
+      all: opts?.all ? 1 : undefined,
       audio: opts?.audio,
+      title: opts?.title?.trim() || undefined,
     },
   });
   return res.data.data;
@@ -67,8 +75,22 @@ export const fetchAnimeEpisodeSubtitles = async (
   anilistId: number,
   episode: number,
   audio: "sub" | "dub" = "sub",
+  title?: string | null,
 ): Promise<AnimeSubtitleItem[]> => {
-  return getAnimeSubtitles(anilistId, { episode, fetch: true, audio });
+  return getAnimeSubtitles(anilistId, { episode, fetch: true, audio, title });
+};
+
+/** Bulk fetch all episodes via Kitty GET /subs (no episode param). */
+export const fetchAnimeAllSubtitles = async (
+  anilistId: number,
+  opts?: { audio?: "sub" | "dub"; title?: string | null },
+): Promise<AnimeSubtitleItem[]> => {
+  return getAnimeSubtitles(anilistId, {
+    fetch: true,
+    all: true,
+    audio: opts?.audio,
+    title: opts?.title,
+  });
 };
 
 export const fetchAnimeSubtitleCoverage = async (

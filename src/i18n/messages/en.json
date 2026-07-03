@@ -971,7 +971,8 @@
     "stats": {
       "animes": "Anime with subtitles",
       "tracks": "Total subtitle tracks",
-      "completed": "Completed series"
+      "completed": "Completed series",
+      "providers": "Subtitle providers"
     },
     "tabAll": "All shows",
     "tabCompleted": "Completed",

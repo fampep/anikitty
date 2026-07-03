@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSubtitleLibraryStats } from "@/lib/subtitles/subtitle-cache-store";
 import { searchEnrichedSubtitleLibrary } from "@/lib/subtitles/subtitle-library-enrich";
 import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
+import { listKittySubsProviders } from "@/lib/kitty/kitty-subs-api";
+import { triggerBackgroundSubtitleLibrarySync } from "@/lib/subtitles/subtitle-library-sync";
 
 const VALID_SORTS = new Set<SubtitleLibrarySort>(["latest", "tracks", "progress", "az"]);
 
@@ -16,14 +18,22 @@ export async function GET(req: Request) {
     ? (sortParam as SubtitleLibrarySort)
     : "latest";
 
+  if (url.searchParams.get("sync") === "1") {
+    triggerBackgroundSubtitleLibrarySync();
+  }
+
   try {
-    const [stats, result] = await Promise.all([
+    const [stats, result, subsProviders] = await Promise.all([
       getSubtitleLibraryStats(),
       searchEnrichedSubtitleLibrary({ q, page, limit, filter, sort }),
+      listKittySubsProviders().catch(() => [] as string[]),
     ]);
 
     return NextResponse.json({
-      stats,
+      stats: {
+        ...stats,
+        subsProviderCount: subsProviders.length,
+      },
       items: result.items,
       total: result.total,
       page: result.page,

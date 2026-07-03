@@ -5,7 +5,7 @@ import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
 import { GET_SUBTITLE_LIBRARY } from "@/constants/query-keys";
 
 export type SubtitleLibraryResponse = {
-  stats: SubtitleLibraryStats;
+  stats: SubtitleLibraryStats & { subsProviderCount?: number };
   items: SubtitleLibraryEntry[];
   total: number;
   page: number;
@@ -21,6 +21,7 @@ async function fetchSubtitleLibrary(opts: {
   limit?: number;
   filter?: SubtitleLibraryFilter;
   sort?: SubtitleLibrarySort;
+  sync?: boolean;
 }): Promise<SubtitleLibraryResponse> {
   const res = await api.get("/api/subtitle-library", {
     params: {
@@ -29,6 +30,7 @@ async function fetchSubtitleLibrary(opts: {
       limit: opts.limit ?? 24,
       filter: opts.filter ?? "all",
       sort: opts.sort ?? "latest",
+      sync: opts.sync ? 1 : undefined,
     },
   });
   return res.data;
@@ -56,4 +58,9 @@ export function useSubtitleLibrary(opts: {
       refetchIntervalInBackground: false,
     },
   );
+}
+
+/** Kick off a background Kitty /subs library sync (fire-and-forget). */
+export function triggerSubtitleLibrarySync(): void {
+  void fetchSubtitleLibrary({ page: 1, limit: 1, sync: true });
 }

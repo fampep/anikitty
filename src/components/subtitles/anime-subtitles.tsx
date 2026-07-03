@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/core/utils";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import {
+  fetchAnimeAllSubtitles,
   fetchAnimeEpisodeSubtitles,
   useGetAnimeSubtitles,
   type AnimeSubtitleItem,
@@ -29,6 +30,7 @@ const EPISODES_PER_PAGE = 10;
 
 type Props = {
   anilistId: number;
+  title?: string | null;
 };
 
 type EpisodeRow = {
@@ -38,7 +40,7 @@ type EpisodeRow = {
   tracks: AnimeSubtitleItem[];
 };
 
-export default function AnimeSubtitles({ anilistId }: Props) {
+export default function AnimeSubtitles({ anilistId, title }: Props) {
   const t = useT();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
@@ -47,6 +49,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
     () => searchParams.get("missing") === "1",
   );
   const [fetchingEps, setFetchingEps] = useState<Set<number>>(() => new Set());
+  const [fetchingAll, setFetchingAll] = useState(false);
 
   const { data: episodesData, isLoading: episodesLoading } = useGetAllEpisodes(String(anilistId));
   const { data: subtitles = [], isLoading: subtitlesLoading, refetch } = useGetAnimeSubtitles(anilistId);
@@ -170,7 +173,7 @@ export default function AnimeSubtitles({ anilistId }: Props) {
     async (episode: number, opts?: { silent?: boolean }) => {
       setFetchingEps((prev) => new Set(prev).add(episode));
       try {
-        const tracks = await fetchAnimeEpisodeSubtitles(anilistId, episode, "sub");
+        const tracks = await fetchAnimeEpisodeSubtitles(anilistId, episode, "sub", title);
         await refetch();
         if (!opts?.silent) {
           if (tracks.length === 0) {
@@ -191,10 +194,28 @@ export default function AnimeSubtitles({ anilistId }: Props) {
         });
       }
     },
-    [anilistId, refetch, t],
+    [anilistId, refetch, t, title],
   );
 
-  const busy = fetchingEps.size > 0;
+  const handleFetchAll = useCallback(async () => {
+    if (fetchingAll || fetchingEps.size > 0) return;
+    setFetchingAll(true);
+    try {
+      const tracks = await fetchAnimeAllSubtitles(anilistId, { audio: "sub", title });
+      await refetch();
+      if (tracks.length === 0) {
+        toast.error(t("anime.subtitles.fetchEmpty"));
+      } else {
+        toast.success(t("anime.subtitles.fetchAllSuccess"));
+      }
+    } catch {
+      toast.error(t("anime.subtitles.fetchAllError"));
+    } finally {
+      setFetchingAll(false);
+    }
+  }, [anilistId, fetchingAll, fetchingEps.size, refetch, t, title]);
+
+  const busy = fetchingEps.size > 0 || fetchingAll;
 
   return (
     <div className="flex flex-col gap-5">
@@ -216,6 +237,23 @@ export default function AnimeSubtitles({ anilistId }: Props) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {totalEpisodes > 0 && missingCount > 0 && (
+              <button
+                type="button"
+                onClick={handleFetchAll}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold border border-teal-500/30 bg-teal-500/15 text-teal-200 hover:bg-teal-500/25 transition-colors disabled:opacity-50"
+              >
+                {fetchingAll ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                {fetchingAll
+                  ? t("anime.subtitles.fetchAllProgress")
+                  : t("anime.subtitles.fetchAll")}
+              </button>
+            )}
             {totalEpisodes > 0 && missingCount > 0 && (
               <button
                 type="button"
@@ -368,8 +406,8 @@ export default function AnimeSubtitles({ anilistId }: Props) {
       ) : (
         <EmptySubtitles
           totalEpisodes={totalEpisodes}
-          fetching={fetchingEps.has(1)}
-          onFetchEpisode={handleFetchEpisode}
+          fetching={fetchingAll}
+          onFetchAll={handleFetchAll}
         />
       )}
     </div>
@@ -669,11 +707,11 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
 function EmptySubtitles({
   totalEpisodes,
   fetching,
-  onFetchEpisode,
+  onFetchAll,
 }: {
   totalEpisodes: number;
   fetching: boolean;
-  onFetchEpisode: (episode: number) => void;
+  onFetchAll: () => void;
 }) {
   const t = useT();
 
@@ -688,12 +726,12 @@ function EmptySubtitles({
       {totalEpisodes > 0 && !fetching && (
         <button
           type="button"
-          onClick={() => onFetchEpisode(1)}
+          onClick={onFetchAll}
           disabled={fetching}
           className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-teal-500/20 border border-teal-500/30 text-teal-200 hover:bg-teal-500/30 transition-colors disabled:opacity-50"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          {t("anime.subtitles.fetchEpisode", { n: 1 })}
+          {t("anime.subtitles.fetchAll")}
         </button>
       )}
       {fetching && (

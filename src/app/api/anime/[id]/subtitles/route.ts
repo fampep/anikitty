@@ -1,4 +1,5 @@
 import {
+  cacheKittySubsBulkForAnime,
   ensureMiruroSubtitleCache,
   getAnimeSubtitleEpisodeCoverage,
   listAnimeSubtitles,
@@ -24,15 +25,23 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const episodeParam = searchParams.get("episode");
   const fetch = searchParams.get("fetch") === "1";
+  const fetchAll = searchParams.get("all") === "1" || (fetch && !episodeParam);
   const includeCoverage = searchParams.get("coverage") === "1";
   const audioParam = searchParams.get("audio");
   const fetchAudio = audioParam === "dub" ? "dub" : "sub";
+  const titleParam = searchParams.get("title")?.trim() || null;
 
-  if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
+  if (fetchAll) {
+    await cacheKittySubsBulkForAnime({
+      anilistId,
+      audio: fetchAudio,
+      animeTitle: titleParam,
+    });
+  } else if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
     const episode = parseInt(episodeParam, 10);
     if (episode > 0) {
       await ensureMiruroSubtitleCache(
-        { anilistId, episode, audio: fetchAudio },
+        { anilistId, episode, audio: fetchAudio, animeTitle: titleParam },
         { force: true },
       );
     }
