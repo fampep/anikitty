@@ -200,6 +200,32 @@ function MoreNavMenu({
   );
 }
 
+function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
+  const t = useT();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group hidden h-9 shrink-0 items-center rounded-xl border border-white/[0.08] bg-white/[0.04]",
+        "text-white/55 transition-colors hover:border-violet-400/25 hover:bg-violet-500/[0.06] hover:text-white",
+        "lg:inline-flex",
+        "w-9 justify-center p-0",
+        "xl:w-[min(15rem,calc(100vw-42rem))] xl:justify-start xl:gap-2.5 xl:px-3",
+      )}
+      aria-label={t("nav.aria.openSearch")}
+    >
+      <SearchIcon className="h-4 w-4 shrink-0 text-white/40 transition-colors group-hover:text-violet-300/80" />
+      <span className="hidden min-w-0 flex-1 truncate text-left text-[13px] text-white/35 transition-colors group-hover:text-white/55 xl:block">
+        {t("search.placeholder")}
+      </span>
+      <kbd className="pointer-events-none hidden shrink-0 rounded-md border border-white/[0.08] bg-black/25 px-1.5 py-0.5 text-[10px] font-mono leading-none text-white/25 xl:inline-block">
+        Ctrl&nbsp;K
+      </kbd>
+    </button>
+  );
+}
+
 function KittycoinPill() {
   const t = useT();
   const auth = useAuthStore((s) => s.auth);
@@ -336,12 +362,12 @@ const NavBar = () => {
 
       <Container className="relative">
         {searchOpen && (
-          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-2 border-b border-white/[0.06] bg-[#050508]/95 px-4 backdrop-blur-2xl">
-            <SearchBar className="flex-1" autoFocus onAnimeClick={() => setSearchOpen(false)} />
+          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-white/[0.06] bg-[#050508]/98 px-4 backdrop-blur-2xl">
+            <SearchBar className="flex-1 max-w-3xl mx-auto" autoFocus onAnimeClick={() => setSearchOpen(false)} />
             <button
               type="button"
               onClick={() => setSearchOpen(false)}
-              className="shrink-0 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white"
+              className="shrink-0 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/8 hover:text-white"
               aria-label={t("nav.aria.closeSearch")}
             >
               <X className="h-4 w-4" />
@@ -349,9 +375,9 @@ const NavBar = () => {
           </div>
         )}
 
-        <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-4">
+        <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-x-6">
           {/* Brand */}
-          <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center lg:min-w-0">
+          <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center">
             <Image
               src={SITE_LOGO}
               alt="AniKitty"
@@ -364,26 +390,13 @@ const NavBar = () => {
           </Link>
 
           {/* Centered desktop navigation */}
-          <div className="relative z-10 hidden min-w-0 justify-center lg:flex">
+          <div className="relative z-10 hidden min-w-0 justify-center overflow-hidden px-1 lg:flex">
             <DesktopNav pathname={pathname} />
           </div>
 
           {/* Right actions */}
-          <div className="relative z-20 ml-auto flex shrink-0 items-center justify-end gap-1 sm:gap-2 lg:ml-0">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="hidden items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-white/55 transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-white lg:flex"
-              aria-label={t("nav.aria.openSearch")}
-            >
-              <SearchIcon className="h-4 w-4 shrink-0" />
-              <span className="hidden xl:inline text-xs text-white/35 max-w-[8rem] truncate">
-                {t("search.placeholder")}
-              </span>
-              <kbd className="hidden xl:inline-flex items-center gap-0.5 rounded border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-white/30">
-                Ctrl K
-              </kbd>
-            </button>
+          <div className="relative z-20 ml-auto flex min-w-0 shrink-0 items-center justify-end gap-2 sm:gap-2.5 lg:ml-0">
+            <DesktopSearchTrigger onClick={() => setSearchOpen(true)} />
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -393,7 +406,7 @@ const NavBar = () => {
               <SearchIcon className="h-5 w-5" />
             </button>
 
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="hidden items-center gap-1.5 sm:gap-2 lg:flex">
               {user && <KittycoinPill />}
               {user && <NotificationBell />}
               <LanguageSwitcher compact />

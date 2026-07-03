@@ -7,7 +7,7 @@ import {
   useGetHomeCriticalData,
   useGetHomeDiscoveryData,
 } from "@/query/home/get-home-page-data";
-import { IAnime, LatestCompletedAnime } from "@/types/anime";
+import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import { useEffect, useState } from "react";
 
@@ -25,7 +25,13 @@ export default function TrendingPage() {
   }, [critical]);
 
   const isLoading = criticalLoading;
-  const discoveryPending = discoveryEnabled && discoveryLoading && !discovery;
+  const discoveryLoadingState = discoveryEnabled && discoveryLoading && !discovery;
+
+  const featuredAnime = [
+    { title: t("home.mostFavorite"), anime: discovery?.mostFavoriteAnimes ?? [] },
+    { title: t("home.mostPopular"), anime: discovery?.mostPopularAnimes ?? [] },
+    { title: t("home.latestCompleted"), anime: discovery?.latestCompletedAnimes ?? [] },
+  ];
 
   return (
     <div className="min-h-screen pt-8 pb-24">
@@ -45,27 +51,23 @@ export default function TrendingPage() {
       <AnimeSections
         title={t("trending.trendingNow")}
         icon={<Flame className="w-4 h-4" />}
-        trendingAnime={critical?.trendingAnimes as IAnime[]}
+        trendingAnime={critical?.trendingAnimes ?? []}
         loading={isLoading}
         showRanks
       />
 
       <FeaturedCollection
         sectionId="featured"
-        loading={discoveryPending || isLoading}
-        featuredAnime={[
-          { title: t("home.mostFavorite"), anime: discovery?.mostFavoriteAnimes as IAnime[] },
-          { title: t("home.mostPopular"), anime: discovery?.mostPopularAnimes as IAnime[] },
-          { title: t("home.latestCompleted"), anime: discovery?.latestCompletedAnimes as LatestCompletedAnime[] },
-        ]}
+        loading={discoveryLoadingState || isLoading}
+        featuredAnime={featuredAnime}
       />
 
       <div id="upcoming">
         <AnimeSections
           title={t("trending.upcomingAnime")}
           icon={<CalendarClock className="w-4 h-4" />}
-          trendingAnime={discovery?.topUpcomingAnimes as IAnime[]}
-          loading={discoveryPending || isLoading}
+          trendingAnime={(discovery?.topUpcomingAnimes ?? []) as IAnime[]}
+          loading={discoveryLoadingState || isLoading}
         />
       </div>
     </div>

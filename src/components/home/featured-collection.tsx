@@ -4,16 +4,17 @@ import React from "react";
 import Container from "@/components/layout/container";
 import FeaturedCollectionCard from "./featured-collection-card";
 import { SectionHeading } from "./section-heading";
-import { IAnime, LatestCompletedAnime } from "@/types/anime";
+import { IAnime } from "@/types/anime";
 import { Layers } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 
+type FeaturedCategory = {
+  title: string;
+  anime: IAnime[];
+};
+
 type Props = {
-  featuredAnime: [
-    mostFavorite: { title: string; anime: IAnime[] },
-    mostPopular: { title: string; anime: IAnime[] },
-    latestCompleted: { title: string; anime: LatestCompletedAnime[] }
-  ];
+  featuredAnime: FeaturedCategory[];
   loading: boolean;
   sectionId?: string;
 };
@@ -30,7 +31,7 @@ const FeaturedCollection = ({ featuredAnime, loading, sectionId }: Props) => {
             title={category.title}
             key={idx}
             index={idx}
-            anime={category.anime}
+            anime={category.anime ?? []}
           />
         ))}
       </div>

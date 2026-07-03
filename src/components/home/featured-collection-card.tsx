@@ -10,7 +10,7 @@ type Props = {
   index?: number;
 };
 
-const FeaturedCollectionCard = ({ title, anime, index = 0 }: Props) => {
+const FeaturedCollectionCard = ({ title, anime = [], index = 0 }: Props) => {
   const cleanTitle = title.replace(/^[\p{Emoji}\s]+/u, "").trim() || title;
   const bgPoster = anime[0]?.poster;
   const ghostNum = String(index + 1).padStart(2, "0");
@@ -70,7 +70,7 @@ const FeaturedCollectionCard = ({ title, anime, index = 0 }: Props) => {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          {anime.slice(0, 5).map((item, i) => (
+          {(anime ?? []).slice(0, 5).map((item, i) => (
             <Link
               key={(item as any).id ?? i}
               href={`${ROUTES.ANIME_DETAILS}/${(item as any).id}`}
