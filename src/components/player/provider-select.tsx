@@ -29,6 +29,8 @@ import {
 import {
   type EpisodeStreamCapabilities,
   type StreamCapabilities,
+  providerHasStreamCapabilities,
+  supportsStreamAudioMode,
 } from "@/lib/kitty/stream-capabilities";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
@@ -181,7 +183,6 @@ export function ProviderQuickPick({
       onMkissaMirrorChange={onMkissaMirrorChange}
       onAnimoServerChange={onAnimoServerChange}
       className={className}
-      rows={["sub", "multi"]}
     />
   );
 }
@@ -250,11 +251,48 @@ function StreamCapabilityBadges({
   return <span className="inline-flex items-center gap-0.5 shrink-0 flex-wrap">{badges}</span>;
 }
 
-function providersForRow(mode: ProviderAudioMode): KittyProviderMeta[] {
+function providersForRow(
+  mode: ProviderAudioMode,
+  capabilities?: EpisodeStreamCapabilities,
+  capsReady = false,
+): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {
-    if (mode === "multi") return MULTI_ROW_PROVIDERS.has(p.id);
-    return !MULTI_ROW_PROVIDERS.has(p.id);
+    if (mode === "multi") {
+      if (!MULTI_ROW_PROVIDERS.has(p.id)) return false;
+      if (!capsReady || !capabilities) return true;
+      const caps = capabilities.providers[p.id];
+      return caps ? providerHasStreamCapabilities(caps) : false;
+    }
+    if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
+
+    if (!capsReady || !capabilities) {
+      return mode === "sub";
+    }
+
+    const caps = capabilities.providers[p.id];
+    if (!caps) return mode === "sub";
+
+    return supportsStreamAudioMode(caps, mode);
   });
+}
+
+function providerGridRows(
+  capabilities?: EpisodeStreamCapabilities,
+  capsReady = false,
+): ProviderAudioMode[] {
+  const rows: ProviderAudioMode[] = ["sub"];
+
+  if (capsReady && capabilities) {
+    const hasDub = KITTY_PROVIDER_META.some((p) => {
+      if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
+      const caps = capabilities.providers[p.id];
+      return caps && supportsStreamAudioMode(caps, "dub");
+    });
+    if (hasDub) rows.push("dub");
+  }
+
+  rows.push("multi");
+  return rows;
 }
 
 const PROVIDER_ROW_STYLES: Record<
@@ -334,10 +372,11 @@ export function ProviderGrid({
   capabilitiesLoading = false,
   disabled,
   className,
-  rows = ["sub", "multi"],
+  rows,
 }: ProviderGridProps) {
   const t = useT();
   const capsReady = !capabilitiesLoading && !!capabilities;
+  const visibleRows = rows ?? providerGridRows(capabilities, capsReady);
 
   const rowLabels: Record<ProviderAudioMode, string> = {
     sub: t("card.sub"),
@@ -362,8 +401,8 @@ export function ProviderGrid({
 
   return (
     <div className={cn("flex flex-col gap-2 w-full", className)}>
-      {rows.map((mode) => {
-        const items = providersForRow(mode);
+      {visibleRows.map((mode) => {
+        const items = providersForRow(mode, capabilities, capsReady);
         if (items.length === 0) return null;
         const styles = PROVIDER_ROW_STYLES[mode];
 
@@ -380,16 +419,12 @@ export function ProviderGrid({
             </span>
             <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
               {items.map((p) => {
-                const isMulti =
-                  p.id === "Miruro" ||
-                  p.id === "Animex" ||
-                  p.id === "AniSnatch" ||
-                  p.id === "Lunar";
+                const isMulti = MULTI_ROW_PROVIDERS.has(p.id);
                 const isActive =
                   provider === p.id &&
                   (mode === "multi" ? audioMode === "multi" : audioMode !== "multi");
                 const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
-                const providerCaps = isActive ? capabilities?.providers[p.id] : undefined;
+                const providerCaps = capabilities?.providers[p.id];
 
                 return (
                   <button
@@ -414,7 +449,9 @@ export function ProviderGrid({
                     )}
                   >
                     <span className="truncate">{p.label}</span>
-                    {capsReady && isActive && <StreamCapabilityBadges caps={providerCaps} />}
+                    {capsReady && providerCaps && (
+                      <StreamCapabilityBadges caps={providerCaps} />
+                    )}
                     {isMulti && mode === "multi" && (
                       <ChevronDown
                         className={cn(

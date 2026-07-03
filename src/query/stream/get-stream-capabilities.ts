@@ -5,7 +5,23 @@ import type {
   StreamCapabilityTarget,
 } from "@/lib/kitty/stream-capabilities";
 
-const getStreamCapabilities = async (
+const getEpisodeStreamCapabilities = async (
+  anilistId: number,
+  episode: string,
+  title?: string | null,
+): Promise<EpisodeStreamCapabilities> => {
+  const res = await api.get("/api/kitty/capabilities", {
+    params: {
+      anilistId,
+      episode,
+      scope: "episode",
+      ...(title ? { title } : {}),
+    },
+  });
+  return res.data;
+};
+
+const getActiveProviderStreamCapabilities = async (
   anilistId: number,
   episode: string,
   target: StreamCapabilityTarget,
@@ -29,7 +45,24 @@ const getStreamCapabilities = async (
   return res.data;
 };
 
+/** Probe sub/dub for every provider on the current episode. */
 export const useGetStreamCapabilities = (
+  anilistId: number | undefined,
+  episode: string | undefined,
+  title?: string | null,
+) => {
+  return useQuery({
+    queryKey: ["stream-capabilities", "episode", anilistId, episode, title ?? ""],
+    queryFn: () => getEpisodeStreamCapabilities(anilistId!, episode!, title),
+    enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+};
+
+/** Probe one active provider (legacy / targeted refresh). */
+export const useGetActiveProviderStreamCapabilities = (
   anilistId: number | undefined,
   episode: string | undefined,
   target: StreamCapabilityTarget | undefined,
@@ -38,6 +71,7 @@ export const useGetStreamCapabilities = (
   return useQuery({
     queryKey: [
       "stream-capabilities",
+      "provider",
       anilistId,
       episode,
       title ?? "",
@@ -50,7 +84,7 @@ export const useGetStreamCapabilities = (
       target?.mkissaMirror ?? "",
       target?.animoServer ?? "",
     ],
-    queryFn: () => getStreamCapabilities(anilistId!, episode!, target!, title),
+    queryFn: () => getActiveProviderStreamCapabilities(anilistId!, episode!, target!, title),
     enabled:
       !!anilistId &&
       !!episode &&

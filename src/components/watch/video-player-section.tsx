@@ -276,27 +276,12 @@ const VideoPlayerSection = () => {
     return selectedEpisode ?? "";
   }, [currentEpisodeInfo?.number, episodeId, selectedEpisode]);
 
-  const capabilityTarget = useMemo(
-    () => ({
-      provider,
-      ...(provider === "Miruro" ? { miruroPipe } : {}),
-      ...(provider === "Animex" ? { animexServer } : {}),
-      ...(provider === "AniSnatch" ? { anisnatchServer } : {}),
-      ...(provider === "Lunar" ? { lunarServer } : {}),
-      ...(provider === "AllAnime" ? { allanimeMirror } : {}),
-      ...(provider === "MKissa" ? { mkissaMirror } : {}),
-      ...(provider === "Animo" ? { animoServer } : {}),
-    }),
-    [provider, miruroPipe, animexServer, anisnatchServer, lunarServer, allanimeMirror, mkissaMirror, animoServer],
-  );
-
   const {
     data: streamCapabilities,
     isLoading: capabilitiesLoading,
   } = useGetStreamCapabilities(
     anilistId,
     episodeNo || undefined,
-    capabilityTarget,
     animeTitle,
   );
 

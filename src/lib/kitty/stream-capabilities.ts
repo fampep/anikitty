@@ -32,13 +32,26 @@ import {
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   isMiruroPipeProviderId,
+  probeMiruroEpisodeCapabilities,
   probeMiruroPipeCapabilities,
   type MiruroPipeProviderId,
 } from "@/lib/providers/miruro-api";
 import {
+  probeAnimexEpisodeCapabilities,
+} from "@/lib/providers/animex-api";
+import {
+  probeAnisnatchEpisodeCapabilities,
+} from "@/lib/providers/anisnatch-api";
+import {
+  probeLunarEpisodeCapabilities,
+} from "@/lib/providers/lunar-api";
+import {
+  probeAnimoEpisodeCapabilities,
+} from "@/lib/providers/animo-api";
+import {
   isKittyProvider,
+  KITTY_PROVIDERS,
   MULTI_ROW_PROVIDERS,
-  providerSupportsDub,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -92,6 +105,28 @@ const EMPTY_MULTI_SERVER_FIELDS = {
 };
 
 const PROBE_TIMEOUT_MS = 8_000;
+const DIRECT_PROBE_CONCURRENCY = 6;
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await fn(items[index]!);
+    }
+  }
+
+  const workers = Math.min(concurrency, items.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
 
 type StreamProbeResult = {
   hasFile: boolean;
@@ -178,15 +213,86 @@ async function probeDirectProviderCapabilities(
   episode: number,
   title?: string | null,
 ): Promise<StreamCapabilities> {
-  const subProbe = await probeStreamDirect(provider, anilistId, episode, "sub", title);
-  const dubProbe = providerSupportsDub(provider)
-    ? await probeStreamDirect(provider, anilistId, episode, "dub", title)
-    : null;
+  const [subProbe, dubProbe] = await Promise.all([
+    probeStreamDirect(provider, anilistId, episode, "sub", title),
+    probeStreamDirect(provider, anilistId, episode, "dub", title),
+  ]);
   const caps = capabilitiesFromProbes(subProbe, dubProbe);
-  if (MULTI_ROW_PROVIDERS.has(provider) && provider !== "AniSnatch" && provider !== "Lunar" && provider !== "AllAnime" && provider !== "MKissa" && caps.sub && caps.dub) {
+  if (
+    MULTI_ROW_PROVIDERS.has(provider) &&
+    provider !== "AniSnatch" &&
+    provider !== "Lunar" &&
+    provider !== "AllAnime" &&
+    provider !== "MKissa" &&
+    caps.sub &&
+    caps.dub
+  ) {
     return { ...caps, multi: true };
   }
   return caps;
+}
+
+const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(
+  (p) => !MULTI_ROW_PROVIDERS.has(p) && p !== "Animo",
+);
+
+/** Probe sub/dub/hardsub for every provider on an episode (dynamic per anime). */
+export async function fetchEpisodeStreamCapabilities(
+  anilistId: number,
+  episode: number,
+  title?: string | null,
+): Promise<EpisodeStreamCapabilities> {
+  const [
+    miruro,
+    animex,
+    anisnatch,
+    lunar,
+    allanime,
+    mkissa,
+    animo,
+    directCaps,
+  ] = await Promise.all([
+    probeMiruroEpisodeCapabilities(anilistId, episode),
+    probeAnimexEpisodeCapabilities(anilistId, episode, title),
+    probeAnisnatchEpisodeCapabilities(anilistId, episode, title),
+    probeLunarEpisodeCapabilities(anilistId, episode, title),
+    probeAllanimeEpisodeCapabilities("AllAnime", anilistId, episode, title),
+    probeAllanimeEpisodeCapabilities("MKissa", anilistId, episode, title),
+    probeAnimoEpisodeCapabilities(anilistId, episode, title),
+    mapWithConcurrency(DIRECT_PROBE_PROVIDERS, DIRECT_PROBE_CONCURRENCY, (provider) =>
+      probeDirectProviderCapabilities(provider, anilistId, episode, title).then((caps) => ({
+        provider,
+        caps,
+      })),
+    ),
+  ]);
+
+  const providers: Partial<Record<KittyProvider, StreamCapabilities>> = {
+    Miruro: miruro.provider,
+    Animex: animex.provider,
+    AniSnatch: anisnatch.provider,
+    Lunar: lunar.provider,
+    AllAnime: allanime.provider,
+    MKissa: mkissa.provider,
+    Animo: animo.provider,
+  };
+
+  for (const row of directCaps) {
+    providers[row.provider] = row.caps;
+  }
+
+  return {
+    providers,
+    miruroPipes: miruro.pipes,
+    animexServers: animex.servers,
+    animoServers: animo.servers,
+    anisnatchServers: anisnatch.servers,
+    lunarServers: lunar.servers,
+    allanimeServers: allanime.servers,
+    mkissaServers: mkissa.servers,
+    allanimeServerRows: allanime.serverRows,
+    mkissaServerRows: mkissa.serverRows,
+  };
 }
 
 /** Probe sub/dub/hardsub for the provider the user is currently watching. */
@@ -391,11 +497,11 @@ export function providerVisibleInAudioMode(
     return providerHasStreamCapabilities(caps);
   }
 
-  if (mode === "multi" || mode === "dub") return false;
+  if (mode === "multi") return false;
 
   if (!caps) return mode === "sub";
 
-  return providerHasStreamCapabilities(caps);
+  return supportsStreamAudioMode(caps, mode);
 }
 
 export function resolveActiveStreamCapabilities(
