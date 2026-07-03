@@ -1050,6 +1050,7 @@
     "switchProviderWhileLoading": "Slow or stuck? Switch to another source below — you don't have to wait for the current one.",
     "streamUnavailable": "Stream unavailable on {provider}",
     "streamNotFound": "This provider couldn't find the stream. Try a different one below.",
+    "streamLoadFailed": "Playback failed to load. Try another provider or refresh.",
     "episodeNotFoundOnProvider": "This episode couldn't be found on {provider}. Try another source below.",
     "retryWith": "Retry with {provider}",
     "miruroPipe": "Miruro",

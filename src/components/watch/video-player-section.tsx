@@ -366,9 +366,10 @@ const VideoPlayerSection = () => {
 
   // ── Resume position ──────────────────────────────────────────────
   const [savedResumeTime, setSavedResumeTime] = useState(0);
-  const [resumeReady, setResumeReady] = useState(false);
+  const [resumeReady, setResumeReady] = useState(true);
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
-  const resumeReadyRef = useRef(false);
+  const [playbackStarted, setPlaybackStarted] = useState(false);
+  const resumeReadyRef = useRef(true);
   const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
@@ -495,15 +496,18 @@ const VideoPlayerSection = () => {
     liveTimeRef.current = 0;
     liveDurationRef.current = 0;
     setResumeChoice(null);
-    setResumeReady(false);
+    setResumeReady(true);
+    setPlaybackStarted(false);
+    resumeReadyRef.current = true;
     setArtPlayer(null);
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
   }, [episodeId]);
 
-  // Fetch saved resume position when the episode changes
+  // Fetch saved resume position when the episode changes (non-blocking)
   useEffect(() => {
     if (!animeSlug || !episodeId) {
+      setSavedResumeTime(0);
       setResumeReady(true);
       resumeReadyRef.current = true;
       return;
@@ -514,47 +518,13 @@ const VideoPlayerSection = () => {
     const cached = useProgressStore.getState().getProgress(animeSlug, episodeId);
     const localTime = Math.max(urlTime, cached?.current ?? 0);
 
-    if (localTime > 10) {
-      setSavedResumeTime(localTime);
-      setResumeReady(true);
-      resumeReadyRef.current = true;
+    setSavedResumeTime(localTime > 10 ? localTime : 0);
+    setResumeReady(true);
+    resumeReadyRef.current = true;
 
-      if (auth) {
-        void anisurgeContinue
-          .getEpisode(animeSlug, episodeId)
-          .then((r: { currentTime?: number; duration?: number }) => {
-            if (cancelled) return;
-            const saved = r?.currentTime ?? 0;
-            const dur = r?.duration ?? 0;
-            if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
-              setSavedResumeTime((prev) => Math.max(prev, saved));
-            }
-          })
-          .catch(() => {});
-      }
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setResumeReady(false);
-    resumeReadyRef.current = false;
-
-    const finish = () => {
-      if (cancelled) return;
-      setResumeReady(true);
-      resumeReadyRef.current = true;
+    if (!auth) return () => {
+      cancelled = true;
     };
-
-    const safety = window.setTimeout(finish, 3000);
-
-    if (!auth) {
-      finish();
-      return () => {
-        cancelled = true;
-        window.clearTimeout(safety);
-      };
-    }
 
     void anisurgeContinue
       .getEpisode(animeSlug, episodeId)
@@ -563,18 +533,13 @@ const VideoPlayerSection = () => {
         const saved = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
         if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
-          setSavedResumeTime(saved);
+          setSavedResumeTime((prev) => Math.max(prev, saved));
         }
       })
-      .catch(() => {})
-      .finally(() => {
-        window.clearTimeout(safety);
-        finish();
-      });
+      .catch(() => {});
 
     return () => {
       cancelled = true;
-      window.clearTimeout(safety);
     };
   }, [auth, animeSlug, episodeId, timeFromUrl]);
 
@@ -585,7 +550,8 @@ const VideoPlayerSection = () => {
     savedResumeTime > 10 &&
     urlResumeTime <= 0 &&
     resumeChoice === null &&
-    !isW2gGuest;
+    !isW2gGuest &&
+    !playbackStarted;
 
   const playerStartTime =
     resumeChoice === "start"
@@ -597,6 +563,7 @@ const VideoPlayerSection = () => {
           : savedResumeTime;
 
   const handleStart = useCallback(async () => {
+    setPlaybackStarted(true);
     if (!auth || !anime?.anime?.info) return;
     const { id: slug, name, poster } = anime.anime.info;
     // Add to watchlist silently — doesn't gate progress saving
@@ -748,10 +715,10 @@ const VideoPlayerSection = () => {
 
   useEffect(() => {
     if (!streamQueryEnabled) return;
-    if (hasStreamFile) return;
+    if (hasStreamFile || isLoading || isFetching) return;
     if (!streamError || !isKittyStreamAbortError(streamError)) return;
     void retryStream();
-  }, [streamQueryEnabled, hasStreamFile, streamError, retryStream]);
+  }, [streamQueryEnabled, hasStreamFile, isLoading, isFetching, streamError, retryStream]);
   const streamSwitching = isFetching && hasStreamFile;
 
   const playerTracks = useMemo(
@@ -1214,15 +1181,6 @@ const VideoPlayerSection = () => {
           error={new Error(streamData?.error ?? t("watch.streamNotFound"))}
           onRetry={() => void retryStream()}
         />
-        {streamProviderControls}
-      </div>
-    );
-  }
-
-  if (!resumeReady) {
-    return (
-      <div className="flex flex-col gap-3">
-        <PlayerSkeleton label={t("watch.loadingStream")} />
         {streamProviderControls}
       </div>
     );

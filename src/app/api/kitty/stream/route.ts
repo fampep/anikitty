@@ -34,6 +34,7 @@ import {
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
 import { buildKittyStreamDirectUrl, kittyApiHeaders } from "@/lib/kitty/kitty-api";
+import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-hls-url";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
@@ -173,6 +174,10 @@ export async function GET(req: Request) {
         : null;
 
   async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
+    if (data.file) {
+      data.file = resolveKittyStreamUrl(data.file);
+    }
+
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
         if (!t.file && t.url) t.file = t.url;
