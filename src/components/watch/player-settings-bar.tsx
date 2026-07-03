@@ -81,12 +81,12 @@ export default function PlayerSettingsBar() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem("kitty-watch-mobile-defaults")) return;
+    if (localStorage.getItem("kitty-watch-mobile-defaults-v2")) return;
     if (!window.matchMedia("(max-width: 1023px)").matches) return;
     setPlayerSettingsOpen(false);
-    setShowPlayerControls(false);
-    setSimpleProviderPicker(true);
-    localStorage.setItem("kitty-watch-mobile-defaults", "1");
+    setShowPlayerControls(true);
+    setSimpleProviderPicker(false);
+    localStorage.setItem("kitty-watch-mobile-defaults-v2", "1");
   }, [setPlayerSettingsOpen, setShowPlayerControls, setSimpleProviderPicker]);
 
   return (
@@ -128,7 +128,7 @@ export default function PlayerSettingsBar() {
           type="button"
           onClick={() => setShowPlayerControls(!showPlayerControls)}
           className={cn(
-            "inline-flex items-center gap-1.5 shrink-0 h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors",
+            "inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors touch-manipulation",
             showPlayerControls
               ? "border-white/12 bg-white/[0.04] text-white/50 hover:text-white/75"
               : "border-violet-400/30 bg-violet-500/15 text-violet-200/90",
@@ -140,7 +140,7 @@ export default function PlayerSettingsBar() {
           }
         >
           <Server className="w-3 h-3" />
-          <span className="hidden sm:inline">
+          <span>
             {showPlayerControls
               ? t("watch.playerSettings.hideProvidersShort")
               : t("watch.playerSettings.showProvidersShort")}

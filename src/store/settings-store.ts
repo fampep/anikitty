@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   type SubtitleFontWeight,
@@ -37,6 +38,10 @@ interface ISettingsStore {
   /** Compact provider dropdown instead of full grid. */
   simpleProviderPicker: boolean;
   setSimpleProviderPicker: (val: boolean) => void;
+
+  /** Collapsed SUB / DUB / HARDSUB / MULTI rows in the provider grid. */
+  providerSectionHidden: Partial<Record<ProviderAudioMode, boolean>>;
+  toggleProviderSectionHidden: (mode: ProviderAudioMode) => void;
 
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
@@ -81,6 +86,15 @@ export const useSettingsStore = create<ISettingsStore>()(
       simpleProviderPicker: false,
       setSimpleProviderPicker: (simpleProviderPicker) => set({ simpleProviderPicker }),
 
+      providerSectionHidden: {},
+      toggleProviderSectionHidden: (mode) =>
+        set((s) => ({
+          providerSectionHidden: {
+            ...s.providerSectionHidden,
+            [mode]: !s.providerSectionHidden[mode],
+          },
+        })),
+
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
         set((s) => ({
@@ -107,7 +121,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 13,
+      version: 14,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -118,6 +132,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         theatreMode: state.theatreMode,
         providerAutoFallback: state.providerAutoFallback,
         simpleProviderPicker: state.simpleProviderPicker,
+        providerSectionHidden: state.providerSectionHidden,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -158,6 +173,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 13) {
           next.providerAutoFallback = false;
+        }
+        if (version < 14) {
+          next.providerSectionHidden = next.providerSectionHidden ?? {};
         }
         return next as ISettingsStore;
       },

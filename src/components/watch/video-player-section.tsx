@@ -48,7 +48,7 @@ import {
   isAnimoServerId,
   type AnimoServerId,
 } from "@/lib/providers/animo-api";
-import { ProviderGrid, ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
+import { ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   MIRURO_PIPE_PROVIDERS,
@@ -116,7 +116,7 @@ const VideoPlayerSection = () => {
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
   const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode } = useSettingsStore();
-  const compactProviderPicker = simpleProviderPicker || isMobile;
+  const compactProviderPicker = simpleProviderPicker;
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
@@ -292,6 +292,7 @@ const VideoPlayerSection = () => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const fallbackBusyRef = useRef(false);
+  const [playbackToken, setPlaybackToken] = useState(0);
 
   // Live position tracking — updated every timeupdate event (no re-render)
   const liveTimeRef = useRef(0);
@@ -418,6 +419,7 @@ const VideoPlayerSection = () => {
     setArtPlayer(null);
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
+    setPlaybackToken(0);
   }, [episodeId]);
 
   // Fetch saved resume position when the episode changes
@@ -524,7 +526,7 @@ const VideoPlayerSection = () => {
       .catch(() => {});
   }, [auth, anime, createOrUpdateBookMark]);
 
-  // Save progress directly — watchlist entry is not required
+  // Save progress directly — watchlist entry is not required (episode-level, not per provider)
   const saveProgress = useCallback(async (current: number, duration: number) => {
     if (!auth || !episodeId || !episodeNo || !animeSlug) return;
     if (!current || !duration) return;
@@ -541,6 +543,35 @@ const VideoPlayerSection = () => {
       },
     );
   }, [auth, episodeId, episodeNo, streamAudio, provider, animeSlug, syncWatchProgress]);
+
+  const getEpisodeResumeTime = useCallback(() => {
+    const stored =
+      animeSlug && episodeId
+        ? useProgressStore.getState().getProgress(animeSlug, episodeId)?.current ?? 0
+        : 0;
+    return Math.max(liveTimeRef.current, stored);
+  }, [animeSlug, episodeId]);
+
+  const commitResumeForSourceSwitch = useCallback(() => {
+    const current = getEpisodeResumeTime();
+    const dur = liveDurationRef.current;
+    if (current <= 5) return;
+
+    setSavedResumeTime(current);
+    setResumeChoice("resume");
+    setPlaybackToken((n) => n + 1);
+
+    if (animeSlug && episodeId) {
+      useProgressStore.getState().setProgress(
+        animeSlug,
+        episodeId,
+        current,
+        dur > 0 ? dur : current,
+      );
+      useProgressStore.getState().flush();
+    }
+    if (dur > 0) void saveProgress(current, dur);
+  }, [animeSlug, episodeId, getEpisodeResumeTime, saveProgress]);
 
   // Track live position in ref (fires every timeupdate — no state update)
   const handleLiveTime = useCallback((t: number, dur: number) => {
@@ -574,24 +605,9 @@ const VideoPlayerSection = () => {
       ),
     );
     fallbackBusyRef.current = false;
-    const current = liveTimeRef.current;
-    const dur = liveDurationRef.current;
-    if (current <= 5) return;
-    setSavedResumeTime(current);
-    if (animeSlug && episodeId) {
-      useProgressStore.getState().setProgress(
-        animeSlug,
-        episodeId,
-        current,
-        dur > 0 ? dur : current,
-      );
-      useProgressStore.getState().flush();
-    }
-    if (dur > 0) void saveProgress(current, dur);
+    commitResumeForSourceSwitch();
   }, [
-    animeSlug,
-    episodeId,
-    saveProgress,
+    commitResumeForSourceSwitch,
     queryClient,
     anilistId,
     episodeNo,
@@ -699,7 +715,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${resumeChoice ?? "auto"}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${playbackToken}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,
@@ -946,48 +962,47 @@ const VideoPlayerSection = () => {
     );
   }
 
-  const streamProviderControls = (
-    <>
-      {!compactProviderPicker ? (
-        <ProviderQuickPick
-          value={provider}
-          audioMode={audioMode}
-          multiPanel={multiPanel}
-          miruroPipe={miruroPipe}
-          animexServer={animexServer}
-          anisnatchServer={anisnatchServer}
-          lunarServer={lunarServer}
-          allanimeMirror={allanimeMirror}
-          mkissaMirror={mkissaMirror}
-          animoServer={animoServer}
-          onSelect={handleProviderGridSelect}
-          onMultiToggle={handleMultiToggle}
-          onMiruroPipeChange={handleMiruroPipeChange}
-          onAnimexServerChange={handleAnimexServerChange}
-          onAnisnatchServerChange={handleAnisnatchServerChange}
-          onLunarServerChange={handleLunarServerChange}
-          onAllanimeMirrorChange={handleAllanimeMirrorChange}
-          onMkissaMirrorChange={handleMkissaMirrorChange}
-          onAnimoServerChange={handleAnimoServerChange}
-        />
-      ) : (
-        <WatchSimpleProviderRow
-          provider={provider}
-          miruroPipe={miruroPipe}
-          animexServer={animexServer}
-          anisnatchServer={anisnatchServer}
-          lunarServer={lunarServer}
-          animoServer={animoServer}
-          onProviderChange={handleSimpleProviderChange}
-          onMiruroPipeChange={handleMiruroPipeChange}
-          onAnimexServerChange={handleAnimexServerChange}
-          onAnisnatchServerChange={handleAnisnatchServerChange}
-          onLunarServerChange={handleLunarServerChange}
-          onAnimoServerChange={handleAnimoServerChange}
-        />
-      )}
-    </>
+  const providerControlsBlock = compactProviderPicker ? (
+    <WatchSimpleProviderRow
+      provider={provider}
+      miruroPipe={miruroPipe}
+      animexServer={animexServer}
+      anisnatchServer={anisnatchServer}
+      lunarServer={lunarServer}
+      animoServer={animoServer}
+      onProviderChange={handleSimpleProviderChange}
+      onMiruroPipeChange={handleMiruroPipeChange}
+      onAnimexServerChange={handleAnimexServerChange}
+      onAnisnatchServerChange={handleAnisnatchServerChange}
+      onLunarServerChange={handleLunarServerChange}
+      onAnimoServerChange={handleAnimoServerChange}
+    />
+  ) : (
+    <ProviderQuickPick
+      value={provider}
+      audioMode={audioMode}
+      multiPanel={multiPanel}
+      miruroPipe={miruroPipe}
+      animexServer={animexServer}
+      anisnatchServer={anisnatchServer}
+      lunarServer={lunarServer}
+      allanimeMirror={allanimeMirror}
+      mkissaMirror={mkissaMirror}
+      animoServer={animoServer}
+      compact={isMobile}
+      onSelect={handleProviderGridSelect}
+      onMultiToggle={handleMultiToggle}
+      onMiruroPipeChange={handleMiruroPipeChange}
+      onAnimexServerChange={handleAnimexServerChange}
+      onAnisnatchServerChange={handleAnisnatchServerChange}
+      onLunarServerChange={handleLunarServerChange}
+      onAllanimeMirrorChange={handleAllanimeMirrorChange}
+      onMkissaMirrorChange={handleMkissaMirrorChange}
+      onAnimoServerChange={handleAnimoServerChange}
+    />
   );
+
+  const streamProviderControls = providerControlsBlock;
 
   const upstreamError = (streamError as { response?: { data?: { error?: string } } })?.response?.data?.error;
   const upstreamStatus = (streamError as { response?: { status?: number } })?.response?.status;
@@ -1044,7 +1059,7 @@ const VideoPlayerSection = () => {
     return (
       <div className="flex flex-col gap-3">
         <PlayerSkeleton label={t("watch.loadingStreamProvider", { provider })} />
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-3 space-y-2.5">
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-2.5 sm:px-3 py-3 space-y-2.5">
           <p className="text-[11px] font-mono text-white/40 leading-relaxed">
             {t("watch.switchProviderWhileLoading")}
           </p>
@@ -1153,53 +1168,16 @@ const VideoPlayerSection = () => {
       </div>
 
       {/* Controls bar */}
-      <div className="px-3 py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-white/8 space-y-2.5">
+      <div className="px-2 py-2.5 sm:px-3 sm:py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-white/8 space-y-2.5">
         <PlayerSettingsBar />
 
         {showPlayerControls && (
           <>
-        {compactProviderPicker ? (
-          <WatchSimpleProviderRow
-            provider={provider}
-            miruroPipe={miruroPipe}
-            animexServer={animexServer}
-            anisnatchServer={anisnatchServer}
-            lunarServer={lunarServer}
-            animoServer={animoServer}
-            onProviderChange={handleSimpleProviderChange}
-            onMiruroPipeChange={handleMiruroPipeChange}
-            onAnimexServerChange={handleAnimexServerChange}
-            onAnisnatchServerChange={handleAnisnatchServerChange}
-            onLunarServerChange={handleLunarServerChange}
-            onAnimoServerChange={handleAnimoServerChange}
-          />
-        ) : (
-        <ProviderGrid
-          provider={provider}
-          audioMode={audioMode}
-          multiPanel={multiPanel}
-          miruroPipe={miruroPipe}
-          animexServer={animexServer}
-          anisnatchServer={anisnatchServer}
-          lunarServer={lunarServer}
-          allanimeMirror={allanimeMirror}
-          mkissaMirror={mkissaMirror}
-          animoServer={animoServer}
-          onSelect={handleProviderGridSelect}
-          onMultiToggle={handleMultiToggle}
-          onMiruroPipeChange={handleMiruroPipeChange}
-          onAnimexServerChange={handleAnimexServerChange}
-          onAnisnatchServerChange={handleAnisnatchServerChange}
-          onLunarServerChange={handleLunarServerChange}
-          onAllanimeMirrorChange={handleAllanimeMirrorChange}
-          onMkissaMirrorChange={handleMkissaMirrorChange}
-          onAnimoServerChange={handleAnimoServerChange}
-        />
-        )}
+        {providerControlsBlock}
 
         {/* Row 2 — badges + actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap items-center gap-1.5 mr-auto min-w-0">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:mr-auto min-w-0">
             {(skipTimes?.intro || skipTimes?.outro) && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-white/[0.04] border border-white/10 text-white/70">
                 {t("watch.chapters")}
@@ -1236,7 +1214,7 @@ const VideoPlayerSection = () => {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0 w-full sm:w-auto sm:justify-end">
             {anilistId && episodeNo && allEpisodes?.episodes && (
               <WatchDownloadPanel
                 anilistId={anilistId}
