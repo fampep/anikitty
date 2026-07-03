@@ -36,6 +36,10 @@ import type { SkipInterval } from "@/hooks/use-aniskip";
 import { cn } from "@/lib/core/utils";
 import { PlayerSkipButton } from "@/components/player/player-skip-button";
 import { CountdownOverlay, NextEpisodeButton } from "@/components/player/player-overlays";
+import {
+  ANIKITTY_PLAYER_CSS_VAR,
+  ANIKITTY_PLAYER_THEME,
+} from "@/lib/kitty/artplayer-theme";
 
 function isArtPaused(art: Artplayer): boolean {
   return art.video?.paused ?? true;
@@ -514,6 +518,8 @@ export default function KittyPlayer({
       container,
       url: proxiedSrc,
       type: "m3u8",
+      theme: ANIKITTY_PLAYER_THEME,
+      cssVar: ANIKITTY_PLAYER_CSS_VAR,
       volume: 0.85,
       autoplay: true,
       muted: false,
@@ -850,7 +856,8 @@ export default function KittyPlayer({
     <div
       ref={wrapperRef}
       className={cn(
-        "art-kitty-player relative w-full overflow-hidden rounded-xl bg-black",
+        "art-kitty-player relative w-full overflow-hidden rounded-xl bg-[#030303]",
+        "shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.08]",
         orientClass,
       )}
       style={orientClass ? undefined : { aspectRatio: "16/9" }}
@@ -858,8 +865,8 @@ export default function KittyPlayer({
       <div ref={containerRef} className="art-kitty-player-mount absolute inset-0 z-0" />
 
       {showLoading && (
-        <div className="pointer-events-none absolute inset-0 z-[130] flex items-center justify-center bg-black/35 backdrop-blur-[1px] animate-in fade-in duration-300">
-          <LoadingGirl size={120} className="opacity-90" />
+        <div className="pointer-events-none absolute inset-0 z-[130] flex items-center justify-center bg-gradient-to-t from-violet-950/25 via-black/40 to-black/25 backdrop-blur-[2px] animate-in fade-in duration-300">
+          <LoadingGirl size={120} className="opacity-90 drop-shadow-[0_0_32px_rgba(124,58,237,0.35)]" />
         </div>
       )}
 

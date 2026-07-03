@@ -102,6 +102,13 @@ function parseResumeTimeParam(raw: string | null): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+/** Ignore start-over range and positions near the end (already finished). */
+function isResumableProgress(current: number, duration: number): boolean {
+  if (current <= 10) return false;
+  if (duration <= 0) return true;
+  return current < duration - 30;
+}
+
 const VideoPlayerSection = () => {
   const t = useT();
   const queryClient = useQueryClient();
@@ -297,6 +304,8 @@ const VideoPlayerSection = () => {
   // Live position tracking — updated every timeupdate event (no re-render)
   const liveTimeRef = useRef(0);
   const liveDurationRef = useRef(0);
+  /** Episode id currently playing — blocks progress writes during episode transitions. */
+  const progressEpisodeIdRef = useRef<string | null>(null);
 
   // ── Progress tracking ────────────────────────────────────────────
   const { auth } = useAuthStore();
@@ -382,6 +391,9 @@ const VideoPlayerSection = () => {
       if (isFs && playerWrapperRef.current) {
         playerWrapperRef.current.requestFullscreen().catch(() => {});
       }
+      progressEpisodeIdRef.current = null;
+      liveTimeRef.current = 0;
+      setSavedResumeTime(0);
       setAutoFullscreen(isFs);
       setResumeChoice(null);
       setSelectedEpisode(ep.episodeId);
@@ -414,6 +426,8 @@ const VideoPlayerSection = () => {
     watchedIdRef.current = null;
     liveTimeRef.current = 0;
     liveDurationRef.current = 0;
+    progressEpisodeIdRef.current = null;
+    setSavedResumeTime(0);
     setResumeChoice(null);
     setResumeReady(false);
     setArtPlayer(null);
@@ -425,18 +439,22 @@ const VideoPlayerSection = () => {
   // Fetch saved resume position when the episode changes
   useEffect(() => {
     if (!animeSlug || !episodeId) {
+      setSavedResumeTime(0);
       setResumeReady(true);
       resumeReadyRef.current = true;
       return;
     }
 
     let cancelled = false;
+    setSavedResumeTime(0);
+
     const urlTime = parseResumeTimeParam(timeFromUrl);
     const cached = useProgressStore.getState().getProgress(animeSlug, episodeId);
-    const localTime = Math.max(urlTime, cached?.current ?? 0);
+    const localCurrent = Math.max(urlTime, cached?.current ?? 0);
+    const localDuration = cached?.duration ?? 0;
 
-    if (localTime > 10) {
-      setSavedResumeTime(localTime);
+    if (isResumableProgress(localCurrent, localDuration)) {
+      setSavedResumeTime(localCurrent);
       setResumeReady(true);
       resumeReadyRef.current = true;
 
@@ -447,7 +465,7 @@ const VideoPlayerSection = () => {
             if (cancelled) return;
             const saved = r?.currentTime ?? 0;
             const dur = r?.duration ?? 0;
-            if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+            if (isResumableProgress(saved, dur)) {
               setSavedResumeTime((prev) => Math.max(prev, saved));
             }
           })
@@ -483,7 +501,7 @@ const VideoPlayerSection = () => {
         if (cancelled) return;
         const saved = r?.currentTime ?? 0;
         const dur = r?.duration ?? 0;
-        if (saved > 10 && (dur <= 0 || saved < dur - 30)) {
+        if (isResumableProgress(saved, dur)) {
           setSavedResumeTime(saved);
         }
       })
@@ -503,7 +521,11 @@ const VideoPlayerSection = () => {
   const isW2gGuest = Boolean(w2gCode && w2g.isMember && !w2g.isHost);
   const needsResumePrompt =
     resumeReady &&
-    savedResumeTime > 10 &&
+    isResumableProgress(
+      savedResumeTime,
+      useProgressStore.getState().getProgress(animeSlug ?? "", episodeId ?? "")?.duration ??
+        liveDurationRef.current,
+    ) &&
     urlResumeTime <= 0 &&
     resumeChoice === null &&
     !isW2gGuest;
@@ -577,10 +599,10 @@ const VideoPlayerSection = () => {
   const handleLiveTime = useCallback((t: number, dur: number) => {
     liveTimeRef.current = t;
     liveDurationRef.current = dur;
-    if (animeSlug && episodeId && t > 5 && dur > 0) {
-      useProgressStore.getState().setProgress(animeSlug, episodeId, t, dur);
-    }
-  }, [animeSlug, episodeId]);
+    const activeEpisodeId = progressEpisodeIdRef.current;
+    if (!animeSlug || !activeEpisodeId || t <= 5 || dur <= 0) return;
+    useProgressStore.getState().setProgress(animeSlug, activeEpisodeId, t, dur);
+  }, [animeSlug]);
 
   // Save on pauses as well as on the 10s interval
   const handleProgress = useCallback((current: number, duration: number) => {
@@ -674,6 +696,15 @@ const VideoPlayerSection = () => {
 
   const hasStreamFile = Boolean(streamData?.file);
   const streamPending = streamQueryEnabled && (isLoading || isFetching);
+
+  // Only persist progress once the stream for this episode is loaded (avoids cross-episode leaks).
+  useEffect(() => {
+    if (!episodeId || !hasStreamFile || isFetching) {
+      progressEpisodeIdRef.current = null;
+      return;
+    }
+    progressEpisodeIdRef.current = episodeId;
+  }, [episodeId, hasStreamFile, isFetching]);
   const streamFailed =
     streamQueryEnabled &&
     !streamPending &&
