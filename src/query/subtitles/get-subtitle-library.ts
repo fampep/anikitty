@@ -21,7 +21,6 @@ async function fetchSubtitleLibrary(opts: {
   limit?: number;
   filter?: SubtitleLibraryFilter;
   sort?: SubtitleLibrarySort;
-  sync?: boolean;
 }): Promise<SubtitleLibraryResponse> {
   const res = await api.get("/api/subtitle-library", {
     params: {
@@ -30,13 +29,10 @@ async function fetchSubtitleLibrary(opts: {
       limit: opts.limit ?? 24,
       filter: opts.filter ?? "all",
       sort: opts.sort ?? "latest",
-      sync: opts.sync ? 1 : undefined,
     },
   });
   return res.data;
 }
-
-const SUBTITLE_LIBRARY_POLL_MS = 60_000;
 
 export function useSubtitleLibrary(opts: {
   q?: string;
@@ -44,23 +40,14 @@ export function useSubtitleLibrary(opts: {
   limit?: number;
   filter?: SubtitleLibraryFilter;
   sort?: SubtitleLibrarySort;
-  autoRefresh?: boolean;
 }) {
-  const autoRefresh = opts.autoRefresh ?? false;
-
   return useQuery(
     [GET_SUBTITLE_LIBRARY, opts.q ?? "", opts.page ?? 1, opts.filter ?? "all", opts.sort ?? "latest"],
     () => fetchSubtitleLibrary(opts),
     {
       keepPreviousData: true,
-      staleTime: 15_000,
-      refetchInterval: autoRefresh ? SUBTITLE_LIBRARY_POLL_MS : false,
-      refetchIntervalInBackground: false,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
     },
   );
-}
-
-/** Kick off a background Kitty /subs library sync (fire-and-forget). */
-export function triggerSubtitleLibrarySync(): void {
-  void fetchSubtitleLibrary({ page: 1, limit: 1, sync: true });
 }

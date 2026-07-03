@@ -178,6 +178,11 @@ export function startSubtitleLibraryAutoSync(): void {
   autoSyncLoopStarted = true;
   console.log("[SubtitleSync] Starting automatic subtitle library sync loop");
 
+  // Warm Kitty /subs provider list cache for read-only library API routes.
+  void import("@/lib/kitty/kitty-subs-api")
+    .then((m) => m.listKittySubsProviders())
+    .catch(() => {});
+
   const tick = () => {
     if (backgroundSyncInFlight) return;
     triggerBackgroundSubtitleLibrarySync();

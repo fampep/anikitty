@@ -228,6 +228,17 @@ export async function listKittySubsProviders(): Promise<string[]> {
   }
 }
 
+/** In-memory provider count only — no Kitty API call (for read-only library routes). */
+export function getCachedSubsProviderCount(): number | null {
+  if (
+    !subsProviderOrderCache ||
+    Date.now() - subsProviderOrderCache.at >= SUBS_PROVIDER_LIST_TTL_MS
+  ) {
+    return null;
+  }
+  return subsProviderOrderCache.providers.length;
+}
+
 /** Runtime provider order from KittyAPI, merged with static fallback. */
 export async function getKittySubsProviderOrder(
   override?: readonly string[],

@@ -1,15 +1,11 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Captions, Loader2, Search } from "lucide-react";
 import Container from "@/components/layout/container";
 import SubtitleLibraryCard from "@/components/subtitles/subtitle-library-card";
 import CommunityHero from "@/components/community/community-hero";
-import {
-  useSubtitleLibrary,
-  triggerSubtitleLibrarySync,
-  type SubtitleLibraryFilter,
-} from "@/query/subtitles/get-subtitle-library";
+import { useSubtitleLibrary, type SubtitleLibraryFilter } from "@/query/subtitles/get-subtitle-library";
 import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
@@ -30,13 +26,6 @@ export default function SubtitlesPage() {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<SubtitleLibraryFilter>("all");
   const [sort, setSort] = useState<SubtitleLibrarySort>("latest");
-  const syncStarted = useRef(false);
-
-  useEffect(() => {
-    if (syncStarted.current) return;
-    syncStarted.current = true;
-    triggerSubtitleLibrarySync();
-  }, []);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(query.trim()), 300);
@@ -53,7 +42,6 @@ export default function SubtitlesPage() {
     filter,
     sort,
     limit: 24,
-    autoRefresh: true,
   });
 
   const stats = data?.stats;

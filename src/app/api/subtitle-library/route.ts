@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getSubtitleLibraryStats } from "@/lib/subtitles/subtitle-cache-store";
 import { searchEnrichedSubtitleLibrary } from "@/lib/subtitles/subtitle-library-enrich";
 import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
-import { listKittySubsProviders } from "@/lib/kitty/kitty-subs-api";
-import { triggerBackgroundSubtitleLibrarySync } from "@/lib/subtitles/subtitle-library-sync";
+import { getCachedSubsProviderCount } from "@/lib/kitty/kitty-subs-api";
 
 const VALID_SORTS = new Set<SubtitleLibrarySort>(["latest", "tracks", "progress", "az"]);
 
@@ -18,21 +17,18 @@ export async function GET(req: Request) {
     ? (sortParam as SubtitleLibrarySort)
     : "latest";
 
-  if (url.searchParams.get("sync") === "1") {
-    triggerBackgroundSubtitleLibrarySync();
-  }
-
   try {
-    const [stats, result, subsProviders] = await Promise.all([
+    const [stats, result] = await Promise.all([
       getSubtitleLibraryStats(),
       searchEnrichedSubtitleLibrary({ q, page, limit, filter, sort }),
-      listKittySubsProviders().catch(() => [] as string[]),
     ]);
+
+    const subsProviderCount = getCachedSubsProviderCount();
 
     return NextResponse.json({
       stats: {
         ...stats,
-        subsProviderCount: subsProviders.length,
+        ...(subsProviderCount != null ? { subsProviderCount } : {}),
       },
       items: result.items,
       total: result.total,
@@ -46,4 +42,4 @@ export async function GET(req: Request) {
   }
 }
 
-export const maxDuration = 30;
+export const maxDuration = 15;
