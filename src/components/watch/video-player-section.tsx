@@ -49,7 +49,6 @@ import {
   type AnimoServerId,
 } from "@/lib/providers/animo-api";
 import {
-  canToggleStreamAudio,
   resolveActiveStreamCapabilities,
   supportsStreamAudioMode,
 } from "@/lib/kitty/stream-capabilities";
@@ -70,7 +69,6 @@ import {
   Loader2,
   Cat,
   Users,
-  Mic,
   Link2,
 } from "lucide-react";
 import WatchDownloadPanel from "@/components/watch/watch-download-panel";
@@ -129,8 +127,14 @@ const VideoPlayerSection = () => {
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kittyAudioMode");
-      if (saved === "multi") return "multi";
-      if (saved === "sub" || saved === "dub") return "sub";
+      if (
+        saved === "multi" ||
+        saved === "hardsub" ||
+        saved === "dub" ||
+        saved === "sub"
+      ) {
+        return saved;
+      }
     }
     return "sub";
   });
@@ -148,7 +152,7 @@ const VideoPlayerSection = () => {
   useEffect(() => {
     if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
     setStreamAudio((prev) => (prev === "dub" ? prev : "dub"));
-    setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
+    setAudioMode((mode) => (mode === "multi" ? mode : "dub"));
   }, [dubSearchParam]);
 
   const syncDubSearchParam = useCallback(
@@ -327,11 +331,6 @@ const VideoPlayerSection = () => {
   );
 
   const streamQueryAudio: "sub" | "dub" = usesInPlayerHlsAudioSwitch ? "sub" : streamAudio;
-
-  const canSwitchStreamAudio = useMemo(
-    () => canToggleStreamAudio(capsForAudioAvailability),
-    [capsForAudioAvailability],
-  );
 
   const canSelectSubAudio = useMemo(
     () => supportsStreamAudioMode(capsForAudioAvailability, "sub"),
@@ -743,7 +742,6 @@ const VideoPlayerSection = () => {
     if (!streamError || !isKittyStreamAbortError(streamError)) return;
     void retryStream();
   }, [streamQueryEnabled, hasStreamFile, streamError, retryStream]);
-  const streamSwitching = isFetching && hasStreamFile;
 
   const playerTracks = useMemo(
     () => streamData?.tracks ?? EMPTY_PLAYER_TRACKS,
@@ -809,30 +807,14 @@ const VideoPlayerSection = () => {
     setAudioMode(mode);
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", mode);
-    if (mode === "multi") {
-      // Keep streamAudio — SUB/DUB toggle handles audio for multi providers.
-    } else if (mode === "sub") {
-      const caps = streamCapabilities?.providers[p];
-      if (caps?.dub && !caps.sub) {
-        setStreamAudio("dub");
-        localStorage.setItem("kittyStreamAudio", "dub");
-        syncDubSearchParam(true);
-      } else {
-        setStreamAudio("sub");
-        localStorage.setItem("kittyStreamAudio", "sub");
-        syncDubSearchParam(false);
-      }
-    } else {
-      const caps = streamCapabilities?.providers[p];
-      if (caps?.dub && !caps.sub && streamAudio === "sub") {
-        setStreamAudio("dub");
-        localStorage.setItem("kittyStreamAudio", "dub");
-        syncDubSearchParam(true);
-      } else if (caps?.sub && !caps.dub && streamAudio === "dub") {
-        setStreamAudio("sub");
-        localStorage.setItem("kittyStreamAudio", "sub");
-        syncDubSearchParam(false);
-      }
+    if (mode === "dub") {
+      setStreamAudio("dub");
+      localStorage.setItem("kittyStreamAudio", "dub");
+      syncDubSearchParam(true);
+    } else if (mode !== "multi") {
+      setStreamAudio("sub");
+      localStorage.setItem("kittyStreamAudio", "sub");
+      syncDubSearchParam(false);
     }
     if (mode !== "multi" || !MULTI_ROW_PROVIDERS.has(p)) {
       setMultiPanel(null);
@@ -866,16 +848,6 @@ const VideoPlayerSection = () => {
       setAnimoServer(DEFAULT_ANIMO_SERVER);
       localStorage.setItem("animoServer", DEFAULT_ANIMO_SERVER);
     }
-  };
-
-  const handleStreamAudioChange = (next: "sub" | "dub") => {
-    if (next === streamAudio) return;
-    if (next === "sub" && !canSelectSubAudio) return;
-    if (next === "dub" && !canSelectDubAudio) return;
-    preservePlaybackPosition();
-    setStreamAudio(next);
-    localStorage.setItem("kittyStreamAudio", next);
-    syncDubSearchParam(next === "dub");
   };
 
   const handleMultiToggle = (panel: MultiPanelProvider | null) => {
@@ -1372,40 +1344,6 @@ const VideoPlayerSection = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-            {canSwitchStreamAudio && (
-              <div className="flex items-center rounded-lg border border-white/12 bg-white/[0.03] p-0.5">
-                <button
-                  type="button"
-                  disabled={!canSelectSubAudio || streamSwitching}
-                  onClick={() => handleStreamAudioChange("sub")}
-                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:pointer-events-none ${
-                    streamAudio === "sub"
-                      ? "bg-teal-500/25 text-teal-100 border border-teal-400/35"
-                      : "text-white/40 hover:text-white/65"
-                  }`}
-                >
-                  <Captions className="w-3 h-3" />
-                  {t("card.sub")}
-                </button>
-                <button
-                  type="button"
-                  disabled={!canSelectDubAudio || streamSwitching}
-                  onClick={() => handleStreamAudioChange("dub")}
-                  className={`flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-30 disabled:pointer-events-none ${
-                    streamAudio === "dub"
-                      ? "bg-amber-500/25 text-amber-100 border border-amber-400/35"
-                      : "text-white/40 hover:text-white/65"
-                  }`}
-                >
-                  <Mic className="w-3 h-3" />
-                  {t("card.dub")}
-                </button>
-                {streamSwitching && (
-                  <Loader2 className="w-3.5 h-3.5 ml-1 animate-spin text-white/40" />
-                )}
-              </div>
-            )}
-
             {anilistId && episodeNo && allEpisodes?.episodes && (
               <WatchDownloadPanel
                 anilistId={anilistId}

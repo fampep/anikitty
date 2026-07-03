@@ -52,6 +52,7 @@ export function animexServersForAudioMode(mode: ProviderAudioMode) {
 export function defaultAnimexServerForMode(mode: ProviderAudioMode): AnimexServerId {
   if (mode === "multi") return "zen";
   if (mode === "dub") return "koto";
+  if (mode === "hardsub") return "mimi";
   return "beep";
 }
 

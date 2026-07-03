@@ -58,7 +58,7 @@ export type KittyProviderMeta = {
   hint?: string;
 };
 
-export type ProviderAudioMode = "sub" | "dub" | "multi";
+export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
@@ -527,6 +527,7 @@ export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProvid
   return KITTY_PROVIDER_META.filter((p) => {
     if (mode === "multi") return p.supportsMulti === true;
     if (mode === "dub") return p.supportsDub === true && !MULTI_ROW_PROVIDERS.has(p.id);
+    if (mode === "hardsub") return p.hardSub === true && !MULTI_ROW_PROVIDERS.has(p.id);
     return !MULTI_ROW_PROVIDERS.has(p.id);
   });
 }

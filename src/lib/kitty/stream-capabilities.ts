@@ -581,9 +581,13 @@ export function providerVisibleInAudioMode(
 
   if (mode === "multi") return false;
 
-  if (!caps) return mode === "sub";
+  if (!caps) return true;
 
-  return supportsStreamAudioMode(caps, mode);
+  if (mode === "hardsub") return Boolean(caps.hardSub && caps.sub);
+  if (mode === "dub") return supportsStreamAudioMode(caps, "dub");
+  if (mode === "sub") return supportsStreamAudioMode(caps, "sub") && !caps.hardSub;
+
+  return false;
 }
 
 export function resolveActiveStreamCapabilities(

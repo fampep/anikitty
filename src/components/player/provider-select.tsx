@@ -30,7 +30,7 @@ import {
   type EpisodeStreamCapabilities,
   type StreamCapabilities,
   providerHasStreamCapabilities,
-  supportsStreamAudioMode,
+  providerVisibleInAudioMode,
 } from "@/lib/kitty/stream-capabilities";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
@@ -257,107 +257,22 @@ function StreamCapabilityBadges({
   return <span className="inline-flex items-center gap-0.5 shrink-0 flex-wrap">{badges}</span>;
 }
 
-function EpisodeSourceStatus({
-  episodeNo,
-  loading,
-  updating,
-  capabilities,
-}: {
-  episodeNo?: string;
-  loading: boolean;
-  updating: boolean;
-  capabilities?: EpisodeStreamCapabilities;
-}) {
-  const t = useT();
-  const episode = episodeNo || "?";
-
-  if (loading) {
-    return (
-      <p className="text-[10px] font-mono text-white/45 leading-relaxed animate-pulse">
-        {t("watch.episodeSourceChecking", { episode })}
-      </p>
-    );
-  }
-
-  const withStream = capabilities
-    ? Object.values(capabilities.providers).filter(
-        (caps) => caps && providerHasStreamCapabilities(caps),
-      ).length
-    : 0;
-
-  if (withStream === 0) {
-    return (
-      <p className="text-[10px] font-mono text-amber-300/60 leading-relaxed">
-        {t("watch.episodeSourceNone", { episode })}
-      </p>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-0.5 min-w-0">
-      <p className="text-[10px] font-mono text-white/50 leading-relaxed">
-        {t("watch.episodeSourceReady", { episode, count: withStream })}
-      </p>
-      {updating && (
-        <p className="text-[10px] font-mono text-white/35 animate-pulse">
-          {t("watch.episodeSourceUpdating")}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function serverCapsVisible(
+function serverCapsAvailable(
   caps: StreamCapabilities | null | undefined,
   capsReady: boolean,
 ): boolean {
-  if (!capsReady) return false;
+  if (!capsReady) return true;
   return caps ? providerHasStreamCapabilities(caps) : false;
 }
 
-function providersForRow(
-  mode: ProviderAudioMode,
-  capabilities?: EpisodeStreamCapabilities,
-  capsReady = false,
-): KittyProviderMeta[] {
-  return KITTY_PROVIDER_META.filter((p) => {
-    if (mode === "multi") {
-      if (!MULTI_ROW_PROVIDERS.has(p.id)) return false;
-      if (!capsReady || !capabilities) return false;
-      const caps = capabilities.providers[p.id];
-      return caps ? providerHasStreamCapabilities(caps) : false;
-    }
-    if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
-
-    if (!capsReady || !capabilities) {
-      return false;
-    }
-
-    const caps = capabilities.providers[p.id];
-    if (!caps) return false;
-
-    return supportsStreamAudioMode(caps, mode);
-  });
-}
-
-function providerGridRows(
-  capabilities?: EpisodeStreamCapabilities,
-  capsReady = false,
-): ProviderAudioMode[] {
-  const rows: ProviderAudioMode[] = ["sub"];
-
-  if (capsReady && capabilities) {
-    const hasDub = KITTY_PROVIDER_META.some((p) => {
-      if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
-      const caps = capabilities.providers[p.id];
-      return caps && supportsStreamAudioMode(caps, "dub");
-    });
-    if (hasDub) rows.push("dub");
+function providersForRow(mode: ProviderAudioMode): KittyProviderMeta[] {
+  if (mode === "multi") {
+    return KITTY_PROVIDER_META.filter((p) => MULTI_ROW_PROVIDERS.has(p.id));
   }
-
-  rows.push("multi");
-  return rows;
+  return KITTY_PROVIDER_META.filter((p) => !MULTI_ROW_PROVIDERS.has(p.id));
 }
+
+const PROVIDER_GRID_ROWS: ProviderAudioMode[] = ["sub", "dub", "hardsub", "multi"];
 
 const PROVIDER_ROW_STYLES: Record<
   ProviderAudioMode,
@@ -373,6 +288,12 @@ const PROVIDER_ROW_STYLES: Record<
     label: "text-amber-300/70",
     active: "bg-amber-500/25 border-amber-400/45 text-amber-100",
     idle: "border-white/10 text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    expanded: "",
+  },
+  hardsub: {
+    label: "text-sky-300/70",
+    active: "bg-sky-500/25 border-sky-400/45 text-sky-100",
+    idle: "border-white/10 text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
     expanded: "",
   },
   multi: {
@@ -445,17 +366,19 @@ export function ProviderGrid({
   const t = useT();
   const capsReady = !capabilitiesLoading && !!capabilities;
   const capsBusy = capabilitiesLoading || capabilitiesFetching;
-  const visibleRows = rows ?? providerGridRows(capabilities, capsReady);
+  const visibleRows = rows ?? PROVIDER_GRID_ROWS;
 
   const rowLabels: Record<ProviderAudioMode, string> = {
     sub: t("card.sub"),
     dub: t("card.dub"),
+    hardsub: t("watch.hardSubBadge"),
     multi: t("watch.multi"),
   };
 
   const rowIcons: Record<ProviderAudioMode, ReactNode> = {
     sub: <Captions className="w-3 h-3 shrink-0" />,
     dub: <Mic className="w-3 h-3 shrink-0" />,
+    hardsub: <Captions className="w-3 h-3 shrink-0" />,
     multi: <Sparkles className="w-3 h-3 shrink-0" />,
   };
 
@@ -470,16 +393,8 @@ export function ProviderGrid({
 
   return (
     <div className={cn("flex flex-col gap-2 w-full", className)}>
-      <EpisodeSourceStatus
-        episodeNo={episodeNo}
-        loading={capabilitiesLoading}
-        updating={capabilitiesFetching && capsReady}
-        capabilities={capabilities}
-      />
-
       {visibleRows.map((mode) => {
-        const items = providersForRow(mode, capabilities, capsReady);
-        if (items.length === 0) return null;
+        const items = providersForRow(mode);
         const styles = PROVIDER_ROW_STYLES[mode];
 
         return (
@@ -496,17 +411,20 @@ export function ProviderGrid({
             <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
               {items.map((p) => {
                 const isMulti = MULTI_ROW_PROVIDERS.has(p.id);
-                const isActive =
-                  provider === p.id &&
-                  (mode === "multi" ? audioMode === "multi" : audioMode !== "multi");
+                const isActive = provider === p.id && audioMode === mode;
                 const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
                 const providerCaps = capabilities?.providers[p.id];
+                const rowAvailable = providerVisibleInAudioMode(
+                  p.id,
+                  mode,
+                  providerCaps,
+                );
 
                 return (
                   <button
                     key={`${mode}-${p.id}`}
                     type="button"
-                    disabled={disabled}
+                    disabled={disabled || (capsReady && !rowAvailable)}
                     onClick={() =>
                       isMulti && mode === "multi"
                         ? handleMultiClick(p.id as MultiPanelProvider)
@@ -517,7 +435,7 @@ export function ProviderGrid({
                       "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none",
                       isActive ? styles.active : styles.idle,
                       isExpanded && styles.expanded,
-                      capsBusy && "opacity-60 animate-pulse",
+                      capsBusy && !isActive && "opacity-70",
                       p.id === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
                       p.id === "AniSnatch" && isActive && "border-fuchsia-400/40 bg-fuchsia-500/20 text-fuchsia-100",
                       p.id === "Lunar" && isActive && "border-sky-400/40 bg-sky-500/20 text-sky-100",
@@ -547,13 +465,13 @@ export function ProviderGrid({
       {multiPanel === "Miruro" && provider === "Miruro" && onMiruroPipeChange && miruroPipe != null && (
         <MultiServerPanel accent="violet" label={t("watch.miruroPipe")}>
           <div className="flex flex-wrap gap-1.5">
-            {MIRURO_PIPE_PROVIDERS.filter(
-              (p) => !capsReady || serverCapsVisible(capabilities?.miruroPipes[p.id], capsReady),
-            ).map((p) => (
+            {MIRURO_PIPE_PROVIDERS.map((p) => {
+              const pipeCaps = capabilities?.miruroPipes[p.id];
+              return (
               <button
                 key={p.id}
                 type="button"
-                disabled={disabled}
+                disabled={disabled || !serverCapsAvailable(pipeCaps, capsReady)}
                 onClick={() => onMiruroPipeChange(p.id)}
                 title={p.native ? undefined : "embed"}
                 className={cn(
@@ -566,10 +484,11 @@ export function ProviderGrid({
               >
                 <span>{p.native ? p.label : `${p.label}*`}</span>
                 {capsReady && (
-                  <StreamCapabilityBadges caps={capabilities?.miruroPipes[p.id]} />
+                  <StreamCapabilityBadges caps={pipeCaps} />
                 )}
               </button>
-            ))}
+            );
+            })}
           </div>
         </MultiServerPanel>
       )}
@@ -577,13 +496,13 @@ export function ProviderGrid({
       {multiPanel === "Animex" && provider === "Animex" && onAnimexServerChange && animexServer != null && (
         <MultiServerPanel accent="rose" label={t("watch.animexServer")}>
           <div className="flex flex-wrap gap-1.5">
-            {ANIMEX_SERVERS.filter(
-              (s) => !capsReady || serverCapsVisible(capabilities?.animexServers[s.id], capsReady),
-            ).map((s) => (
+            {ANIMEX_SERVERS.map((s) => {
+              const serverCaps = capabilities?.animexServers[s.id];
+              return (
               <button
                 key={s.id}
                 type="button"
-                disabled={disabled}
+                disabled={disabled || !serverCapsAvailable(serverCaps, capsReady)}
                 onClick={() => onAnimexServerChange(s.id)}
                 title={s.hint}
                 className={cn(
@@ -596,10 +515,11 @@ export function ProviderGrid({
               >
                 <span>{s.label}</span>
                 {capsReady && (
-                  <StreamCapabilityBadges caps={capabilities?.animexServers[s.id]} />
+                  <StreamCapabilityBadges caps={serverCaps} />
                 )}
               </button>
-            ))}
+            );
+            })}
           </div>
         </MultiServerPanel>
       )}
@@ -610,14 +530,13 @@ export function ProviderGrid({
         anisnatchServer != null && (
           <MultiServerPanel accent="fuchsia" label={t("watch.anisnatchServer")}>
             <div className="flex flex-wrap gap-1.5">
-              {ANISNATCH_SERVERS.filter(
-                (s) =>
-                  !capsReady || serverCapsVisible(capabilities?.anisnatchServers[s.id], capsReady),
-              ).map((s) => (
+              {ANISNATCH_SERVERS.map((s) => {
+                const serverCaps = capabilities?.anisnatchServers[s.id];
+                return (
                 <button
                   key={s.id}
                   type="button"
-                  disabled={disabled}
+                  disabled={disabled || !serverCapsAvailable(serverCaps, capsReady)}
                   onClick={() => onAnisnatchServerChange(s.id)}
                   title={s.hint}
                   className={cn(
@@ -630,10 +549,11 @@ export function ProviderGrid({
                 >
                   <span>{s.label}</span>
                   {capsReady && (
-                    <StreamCapabilityBadges caps={capabilities?.anisnatchServers[s.id]} />
+                    <StreamCapabilityBadges caps={serverCaps} />
                   )}
                 </button>
-              ))}
+              );
+              })}
             </div>
           </MultiServerPanel>
         )}
@@ -644,13 +564,13 @@ export function ProviderGrid({
         lunarServer != null && (
           <MultiServerPanel accent="sky" label={t("watch.lunarServer")}>
             <div className="flex flex-wrap gap-1.5">
-              {LUNAR_SERVERS.filter(
-                (s) => !capsReady || serverCapsVisible(capabilities?.lunarServers[s.id], capsReady),
-              ).map((s) => (
+              {LUNAR_SERVERS.map((s) => {
+                const serverCaps = capabilities?.lunarServers[s.id];
+                return (
                 <button
                   key={s.id}
                   type="button"
-                  disabled={disabled}
+                  disabled={disabled || !serverCapsAvailable(serverCaps, capsReady)}
                   onClick={() => onLunarServerChange(s.id)}
                   title={s.hint}
                   className={cn(
@@ -663,10 +583,11 @@ export function ProviderGrid({
                 >
                   <span>{s.label}</span>
                   {capsReady && (
-                    <StreamCapabilityBadges caps={capabilities?.lunarServers[s.id]} />
+                    <StreamCapabilityBadges caps={serverCaps} />
                   )}
                 </button>
-              ))}
+              );
+              })}
             </div>
           </MultiServerPanel>
         )}
@@ -677,15 +598,13 @@ export function ProviderGrid({
         allanimeMirror != null && (
           <MultiServerPanel accent="teal" label={t("watch.allAnimeMirror")}>
             <div className="flex flex-wrap gap-1.5">
-              {(capabilities?.allanimeServerRows ?? []).filter(
-                (s) =>
-                  !capsReady ||
-                  serverCapsVisible(capabilities?.allanimeServers[s.mirror], capsReady),
-              ).map((s) => (
+              {(capabilities?.allanimeServerRows ?? []).map((s) => {
+                const serverCaps = capabilities?.allanimeServers[s.mirror];
+                return (
                 <button
                   key={s.mirror}
                   type="button"
-                  disabled={disabled}
+                  disabled={disabled || !serverCapsAvailable(serverCaps, capsReady)}
                   onClick={() => onAllanimeMirrorChange(s.mirror)}
                   title={s.name}
                   className={cn(
@@ -698,10 +617,11 @@ export function ProviderGrid({
                 >
                   <span>{s.mirror}</span>
                   {capsReady && (
-                    <StreamCapabilityBadges caps={capabilities?.allanimeServers[s.mirror]} />
+                    <StreamCapabilityBadges caps={serverCaps} />
                   )}
                 </button>
-              ))}
+              );
+              })}
             </div>
           </MultiServerPanel>
         )}
@@ -712,15 +632,13 @@ export function ProviderGrid({
         mkissaMirror != null && (
           <MultiServerPanel accent="amber" label={t("watch.mkissaMirror")}>
             <div className="flex flex-wrap gap-1.5">
-              {(capabilities?.mkissaServerRows ?? []).filter(
-                (s) =>
-                  !capsReady ||
-                  serverCapsVisible(capabilities?.mkissaServers[s.mirror], capsReady),
-              ).map((s) => (
+              {(capabilities?.mkissaServerRows ?? []).map((s) => {
+                const serverCaps = capabilities?.mkissaServers[s.mirror];
+                return (
                 <button
                   key={s.mirror}
                   type="button"
-                  disabled={disabled}
+                  disabled={disabled || !serverCapsAvailable(serverCaps, capsReady)}
                   onClick={() => onMkissaMirrorChange(s.mirror)}
                   title={s.name}
                   className={cn(
@@ -733,10 +651,11 @@ export function ProviderGrid({
                 >
                   <span>{s.mirror}</span>
                   {capsReady && (
-                    <StreamCapabilityBadges caps={capabilities?.mkissaServers[s.mirror]} />
+                    <StreamCapabilityBadges caps={serverCaps} />
                   )}
                 </button>
-              ))}
+              );
+              })}
             </div>
           </MultiServerPanel>
         )}
@@ -744,13 +663,13 @@ export function ProviderGrid({
       {provider === "Animo" && onAnimoServerChange && animoServer != null && (
         <MultiServerPanel accent="cyan" label={t("watch.animoServer")}>
           <div className="flex flex-wrap gap-1.5">
-            {ANIMO_SERVERS.filter(
-              (s) => !capsReady || serverCapsVisible(capabilities?.animoServers[s.id], capsReady),
-            ).map((s) => (
+            {ANIMO_SERVERS.map((s) => {
+              const serverCaps = capabilities?.animoServers[s.id];
+              return (
               <button
                 key={s.id}
                 type="button"
-                disabled={disabled}
+                disabled={disabled || !serverCapsAvailable(serverCaps, capsReady)}
                 onClick={() => onAnimoServerChange(s.id)}
                 title={s.hint}
                 className={cn(
@@ -763,10 +682,11 @@ export function ProviderGrid({
               >
                 <span>{s.label}</span>
                 {capsReady && (
-                  <StreamCapabilityBadges caps={capabilities?.animoServers[s.id]} />
+                  <StreamCapabilityBadges caps={serverCaps} />
                 )}
               </button>
-            ))}
+            );
+            })}
           </div>
         </MultiServerPanel>
       )}
