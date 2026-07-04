@@ -759,16 +759,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerSubtitleSig = useMemo(
-    () =>
-      playerTracks
-        .filter(isSubtitleTrack)
-        .map((track) => track.file)
-        .join("|"),
-    [playerTracks],
-  );
-
-  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${playbackToken}-${playerSubtitleSig}-${kittyProxyNode}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${playbackToken}-${kittyProxyNode}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,

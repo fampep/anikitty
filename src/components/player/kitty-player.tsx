@@ -155,49 +155,54 @@ function buildSubtitleSwitchOptions(track: { file: string; label?: string }) {
   };
 }
 
+type SubtitleStyleSettings = Parameters<typeof applySubtitleStyles>[1];
+
 function switchExternalSubtitle(
   art: Artplayer,
   url: string,
   track: { file: string; label?: string },
-  settings: Parameters<typeof applySubtitleStyles>[1],
+  settings: SubtitleStyleSettings,
+  activeUrlRef: { current: string | null },
 ) {
   disableEmbeddedTextTracks(art.video);
   art.subtitle.show = true;
+
+  if (activeUrlRef.current === url) {
+    ensureArtplayerSubtitleTrack(art);
+    applySubtitleStyles(art, settings);
+    return;
+  }
+
+  activeUrlRef.current = url;
   void art.subtitle
     .switch(url, buildSubtitleSwitchOptions({ ...track, file: url }))
     .then(() => {
+      if (activeUrlRef.current !== url) return;
       ensureArtplayerSubtitleTrack(art);
       applySubtitleStyles(art, settings);
     })
-    .catch(() => {});
-}
-
-function scheduleSubtitleReapply(apply: () => void): () => void {
-  const timers = [0, 400, 1200].map((delay) => window.setTimeout(apply, delay));
-  return () => timers.forEach((id) => window.clearTimeout(id));
+    .catch(() => {
+      if (activeUrlRef.current === url) activeUrlRef.current = null;
+    });
 }
 
 function applySubtitleMode(
   art: Artplayer,
   tracks: StreamTrack[],
   preferSubtitles: boolean,
-  settings: {
-    fontSize: number;
-    color: string;
-    fontWeight: number;
-    backgroundOpacity: number;
-    bottomOffset: number;
-  },
+  settings: SubtitleStyleSettings,
+  activeUrlRef: { current: string | null },
 ): SubtitleMode {
   const subTracks = resolveSubtitleTracks(tracks);
 
   if (preferSubtitles && subTracks.length > 0) {
     const active = subTracks.find((track) => track.default) ?? subTracks[0];
     const url = resolveTrackSrc(active.file);
-    switchExternalSubtitle(art, url, { ...active, file: url }, settings);
-    applySubtitleStyles(art, settings);
+    switchExternalSubtitle(art, url, { ...active, file: url }, settings, activeUrlRef);
     return "external";
   }
+
+  activeUrlRef.current = null;
 
   if (subTracks.length > 0) {
     art.subtitle.show = false;
@@ -244,6 +249,11 @@ function applySubtitleStyles(
 function refreshHlsControls(art: Artplayer) {
   const plugin = art.plugins?.artplayerPluginHlsControl as { update?: () => void } | undefined;
   plugin?.update?.();
+}
+
+function hlsLoadFromVideoTime(hls: Hls, video: HTMLVideoElement | null | undefined) {
+  const time = video?.currentTime ?? 0;
+  hls.startLoad(Math.max(0, time - 0.25));
 }
 
 export default function KittyPlayer({
@@ -301,6 +311,7 @@ export default function KittyPlayer({
   const nextEpisodeRef = useRef(nextEpisode);
   const preferSubtitlesRef = useRef(preferSubtitles);
   const tracksRef = useRef(tracks);
+  const activeSubtitleUrlRef = useRef<string | null>(null);
   const subtitleModeRef = useRef<SubtitleMode>("off");
   const startFiredRef = useRef(false);
   const outroFiredRef = useRef(false);
@@ -315,6 +326,9 @@ export default function KittyPlayer({
   const startTimeRef = useRef(startTime);
   const resumeAppliedRef = useRef(false);
   const resumeSeekTargetRef = useRef<number | null>(null);
+  const playbackStartedRef = useRef(false);
+  const isSeekingRef = useRef(false);
+  const bufferingShowTimerRef = useRef<number | null>(null);
   const isPlayerFullscreenRef = useRef(false);
   const preferDubAudioRef = useRef(preferDubAudio);
 
@@ -443,6 +457,13 @@ export default function KittyPlayer({
     skipUiRef.current = null;
     resumeAppliedRef.current = false;
     resumeSeekTargetRef.current = null;
+    playbackStartedRef.current = false;
+    isSeekingRef.current = false;
+    if (bufferingShowTimerRef.current != null) {
+      window.clearTimeout(bufferingShowTimerRef.current);
+      bufferingShowTimerRef.current = null;
+    }
+    activeSubtitleUrlRef.current = null;
     setActiveSkip(null);
     setCurrentTime(0);
     setCountdown(null);
@@ -454,57 +475,53 @@ export default function KittyPlayer({
 
   useEffect(() => {
     const art = artRef.current;
-    if (!art || resumeAppliedRef.current) return;
+    if (!art || resumeAppliedRef.current || playbackStartedRef.current) return;
     if (startFiredRef.current && art.currentTime > 5) return;
     applyResume(art);
   }, [startTime, applyResume]);
 
-  const reapplyExternalSubtitles = useCallback(
-    (art: Artplayer) => {
-      const subTracks = resolveSubtitleTracks(tracksRef.current);
-      if (!preferSubtitlesRef.current || subTracks.length === 0) return;
-      subtitleModeRef.current = applySubtitleMode(
-        art,
-        tracksRef.current,
-        preferSubtitlesRef.current,
-        subtitleSettings,
-      );
-    },
-    [subtitleSettings],
+  const {
+    fontSize: subtitleFontSize,
+    color: subtitleColor,
+    fontWeight: subtitleFontWeight,
+    backgroundOpacity: subtitleBackgroundOpacity,
+    bottomOffset: subtitleBottomOffset,
+  } = subtitleSettings;
+
+  const subtitleStyleSettings = useMemo(
+    () => ({
+      fontSize: subtitleFontSize,
+      color: subtitleColor,
+      fontWeight: subtitleFontWeight,
+      backgroundOpacity: subtitleBackgroundOpacity,
+      bottomOffset: subtitleBottomOffset,
+    }),
+    [
+      subtitleFontSize,
+      subtitleColor,
+      subtitleFontWeight,
+      subtitleBackgroundOpacity,
+      subtitleBottomOffset,
+    ],
   );
-  const reapplyExternalSubtitlesRef = useRef(reapplyExternalSubtitles);
-  useEffect(() => {
-    reapplyExternalSubtitlesRef.current = reapplyExternalSubtitles;
-  }, [reapplyExternalSubtitles]);
 
   useEffect(() => {
     const art = artRef.current;
     if (!art || !ready) return;
-
-    const apply = () => {
-      if (!artRef.current) return;
-      subtitleModeRef.current = applySubtitleMode(
-        artRef.current,
-        tracksRef.current,
-        preferSubtitlesRef.current,
-        subtitleSettings,
-      );
-    };
-
-    apply();
-    return scheduleSubtitleReapply(apply);
-  }, [tracks, preferSubtitles, ready, subtitleSettings, externalSubtitleSig]);
+    applySubtitleStyles(art, subtitleStyleSettings);
+  }, [ready, subtitleStyleSettings]);
 
   useEffect(() => {
     const art = artRef.current;
-    if (!art || !ready || !externalSubtitleSig) return;
-    if (!preferSubtitlesRef.current) return;
-
-    const id = window.requestAnimationFrame(() => {
-      reapplyExternalSubtitlesRef.current(art);
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [externalSubtitleSig, ready, preferSubtitles]);
+    if (!art || !ready) return;
+    subtitleModeRef.current = applySubtitleMode(
+      art,
+      tracksRef.current,
+      preferSubtitlesRef.current,
+      subtitleStyleSettings,
+      activeSubtitleUrlRef,
+    );
+  }, [externalSubtitleSig, preferSubtitles, ready]);
 
   useEffect(() => {
     const cfg = w2gRef.current;
@@ -653,13 +670,14 @@ export default function KittyPlayer({
             });
             hls.on(Hls.Events.ERROR, (_event, data) => {
               if (!data.fatal) return;
+              const video = artRef.current?.video;
               if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                 hls.recoverMediaError();
                 return;
               }
               if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 3) {
                 hlsNetworkRecoveries += 1;
-                hls.startLoad();
+                hlsLoadFromVideoTime(hls, video);
               }
             });
 
@@ -735,7 +753,13 @@ export default function KittyPlayer({
                   subtitleModeRef.current = "external";
                   const active = subTracks.find((tr) => tr.default) ?? subTracks[0];
                   const url = resolveTrackSrc(active.file);
-                  switchExternalSubtitle(art, url, { ...active, file: url }, subtitleSettings);
+                  switchExternalSubtitle(
+                    art,
+                    url,
+                    { ...active, file: url },
+                    subtitleStyleSettings,
+                    activeSubtitleUrlRef,
+                  );
                 } else if (!show) {
                   subtitleModeRef.current = enableNativeHlsSubtitles(art.video)
                     ? "native"
@@ -754,7 +778,8 @@ export default function KittyPlayer({
                 art,
                 url,
                 { file: url, label: item.html },
-                subtitleSettings,
+                subtitleStyleSettings,
+                activeSubtitleUrlRef,
               );
             }
             return item.html ?? "Subtitle";
@@ -772,7 +797,8 @@ export default function KittyPlayer({
         art,
         tracksRef.current,
         preferSubtitlesRef.current,
-        subtitleSettings,
+        subtitleStyleSettings,
+        activeSubtitleUrlRef,
       );
       applyResume(art);
       refreshHlsControls(art);
@@ -817,37 +843,81 @@ export default function KittyPlayer({
     });
 
     art.on("resize", () => {
-      applySubtitleStyles(art, subtitleSettings);
+      applySubtitleStyles(art, subtitleStyleSettings);
     });
 
+    const setBufferingDebounced = (show: boolean) => {
+      if (show) {
+        if (bufferingShowTimerRef.current != null) return;
+        bufferingShowTimerRef.current = window.setTimeout(() => {
+          bufferingShowTimerRef.current = null;
+          setBuffering(true);
+        }, 300);
+        return;
+      }
+      if (bufferingShowTimerRef.current != null) {
+        window.clearTimeout(bufferingShowTimerRef.current);
+        bufferingShowTimerRef.current = null;
+      }
+      setBuffering(false);
+    };
+
     art.on("video:loadedmetadata", () => {
-      if (!resumeAppliedRef.current) applyResume(art);
+      if (!resumeAppliedRef.current && !playbackStartedRef.current) applyResume(art);
+    });
+
+    art.on("video:seeking", () => {
+      isSeekingRef.current = true;
     });
 
     art.on("video:seeked", () => {
+      isSeekingRef.current = false;
       const target = resumeSeekTargetRef.current;
-      if (target == null) return;
-      if (Math.abs(art.currentTime - target) <= 3) {
+      if (target != null && Math.abs(art.currentTime - target) <= 3) {
         resumeAppliedRef.current = true;
         resumeSeekTargetRef.current = null;
       }
+      const video = art.video;
+      const hls = hlsRef.current;
+      if (hls && video && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+        hlsLoadFromVideoTime(hls, video);
+      }
     });
 
-    art.on("video:waiting", () => setBuffering(true));
+    art.on("video:waiting", () => setBufferingDebounced(true));
     art.on("video:canplay", () => {
-      setBuffering(false);
+      setBufferingDebounced(false);
       setReady(true);
-      reapplyExternalSubtitlesRef.current(art);
+      if (
+        preferSubtitlesRef.current &&
+        resolveSubtitleTracks(tracksRef.current).length > 0 &&
+        !activeSubtitleUrlRef.current
+      ) {
+        subtitleModeRef.current = applySubtitleMode(
+          art,
+          tracksRef.current,
+          preferSubtitlesRef.current,
+          subtitleStyleSettings,
+          activeSubtitleUrlRef,
+        );
+      } else if (subtitleModeRef.current === "external") {
+        disableEmbeddedTextTracks(art.video);
+        ensureArtplayerSubtitleTrack(art);
+      }
     });
-    art.on("video:playing", () => setBuffering(false));
+    art.on("video:playing", () => {
+      playbackStartedRef.current = true;
+      setBufferingDebounced(false);
+    });
 
     art.on("play", () => {
+      playbackStartedRef.current = true;
       if (!startFiredRef.current) {
         startFiredRef.current = true;
         onStartRef.current?.();
       }
       reportW2g(true, art.currentTime);
-      setBuffering(false);
+      setBufferingDebounced(false);
     });
 
     art.on("pause", () => {
@@ -913,6 +983,10 @@ export default function KittyPlayer({
     });
 
     return () => {
+      if (bufferingShowTimerRef.current != null) {
+        window.clearTimeout(bufferingShowTimerRef.current);
+        bufferingShowTimerRef.current = null;
+      }
       art.destroy();
       artRef.current = null;
       if (hlsForCleanup) {
@@ -921,7 +995,7 @@ export default function KittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, externalSubtitleSig, t, applyResume, reportW2g]);
+  }, [proxiedSrc, t, applyResume, reportW2g]);
 
   if (!proxiedSrc) return null;
 

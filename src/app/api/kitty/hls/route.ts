@@ -139,6 +139,33 @@ export async function GET(req: Request) {
     });
   }
 
+  const segmentType =
+    contentType && !contentType.includes("text")
+      ? contentType
+      : decoded.includes(".mp4")
+        ? "video/mp4"
+        : "video/MP2T";
+
+  const segmentHeaders = corsHeaders(segmentType);
+  const contentLength = upstream.headers.get("content-length");
+  const contentRange = upstream.headers.get("content-range");
+  const acceptRanges = upstream.headers.get("accept-ranges");
+  if (contentLength) (segmentHeaders as Record<string, string>)["Content-Length"] = contentLength;
+  if (contentRange) (segmentHeaders as Record<string, string>)["Content-Range"] = contentRange;
+  if (acceptRanges) (segmentHeaders as Record<string, string>)["Accept-Ranges"] = acceptRanges;
+
+  const status = upstream.status === 206 ? 206 : 200;
+  const likelyMediaSegment =
+    decoded.includes(".ts") ||
+    decoded.includes(".mp4") ||
+    decoded.includes(".m4s") ||
+    contentType.includes("video") ||
+    contentType.includes("octet-stream");
+
+  if (likelyMediaSegment && upstream.body) {
+    return new Response(upstream.body, { status, headers: segmentHeaders });
+  }
+
   const buffer = await upstream.arrayBuffer();
   const peek = new TextDecoder("utf-8", { fatal: false }).decode(buffer.slice(0, 16)).trimStart();
   if (peek.startsWith("#EXTM3U")) {
@@ -150,25 +177,7 @@ export async function GET(req: Request) {
     });
   }
 
-  const segmentType =
-    contentType && !contentType.includes("text")
-      ? contentType
-      : decoded.includes(".mp4")
-        ? "video/mp4"
-        : "video/MP2T";
-
-  const headers = corsHeaders(segmentType);
-  const contentLength = upstream.headers.get("content-length");
-  const contentRange = upstream.headers.get("content-range");
-  const acceptRanges = upstream.headers.get("accept-ranges");
-  if (contentLength) (headers as Record<string, string>)["Content-Length"] = contentLength;
-  if (contentRange) (headers as Record<string, string>)["Content-Range"] = contentRange;
-  if (acceptRanges) (headers as Record<string, string>)["Accept-Ranges"] = acceptRanges;
-
-  return new Response(buffer, {
-    status: upstream.status === 206 ? 206 : 200,
-    headers,
-  });
+  return new Response(buffer, { status, headers: segmentHeaders });
 }
 
 export async function OPTIONS() {
