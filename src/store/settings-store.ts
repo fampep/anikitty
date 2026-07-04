@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
-import { DEFAULT_KITTY_API_NODE_ID } from "@/lib/kitty/kitty-api-nodes";
+import { DEFAULT_KITTY_API_NODE_ID, isKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   type SubtitleFontWeight,
@@ -140,7 +140,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 16,
+      version: 17,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -203,6 +203,12 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 16) {
           next.kittyProxyManual = next.kittyProxyManual ?? false;
+        }
+        if (version < 17) {
+          const node = next.kittyProxyNode;
+          if (typeof node !== "string" || !isKittyApiNodeId(node)) {
+            next.kittyProxyNode = DEFAULT_KITTY_API_NODE_ID;
+          }
         }
         return next as ISettingsStore;
       },

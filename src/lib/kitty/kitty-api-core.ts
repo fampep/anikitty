@@ -1,6 +1,7 @@
 import {
   DEFAULT_KITTY_API_NODE_ID,
   getKittyApiNodeUrl,
+  KITTY_API_NODES,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";
 
@@ -24,7 +25,7 @@ function normalizeBase(base: string): string {
 export function getKittyApiBases(): string[] {
   const envBase = process.env.KITTY_API_BASE?.trim();
   if (envBase) return [normalizeBase(envBase)];
-  return [getKittyApiNodeUrl("primary"), getKittyApiNodeUrl("fallback")];
+  return KITTY_API_NODES.map((node) => getKittyApiNodeUrl(node.id));
 }
 
 export function getKittyApiBase(nodeId?: KittyApiNodeId): string {
