@@ -75,10 +75,27 @@ function generateHighlights(
 
 type SubtitleMode = "external" | "native" | "off";
 
-function disableNativeTextTracks(video: HTMLVideoElement | null | undefined) {
+function isEmbeddedTextTrackKind(kind: string): boolean {
+  const k = kind.toLowerCase();
+  return k === "subtitles" || k === "captions";
+}
+
+/** Disable HLS embedded subs/captions only — Artplayer uses a metadata track for external VTT. */
+function disableEmbeddedTextTracks(video: HTMLVideoElement | null | undefined) {
   if (!video?.textTracks) return;
   for (let i = 0; i < video.textTracks.length; i++) {
-    video.textTracks[i].mode = "disabled";
+    const track = video.textTracks[i];
+    if (isEmbeddedTextTrackKind(track.kind)) {
+      track.mode = "disabled";
+    }
+  }
+}
+
+/** Keep Artplayer's metadata cue track active so the .art-subtitle layer updates. */
+function ensureArtplayerSubtitleTrack(art: Artplayer) {
+  const track = art.subtitle?.textTrack;
+  if (track && track.kind.toLowerCase() === "metadata") {
+    track.mode = "hidden";
   }
 }
 
@@ -88,14 +105,32 @@ function enableNativeHlsSubtitles(video: HTMLVideoElement | null | undefined) {
   for (let i = 0; i < video.textTracks.length; i++) {
     const track = video.textTracks[i];
     const kind = track.kind.toLowerCase();
-    if (!enabled && (kind === "subtitles" || kind === "captions")) {
+    if (kind === "metadata") continue;
+    if (!enabled && isEmbeddedTextTrackKind(kind)) {
       track.mode = "showing";
       enabled = true;
-    } else {
+    } else if (isEmbeddedTextTrackKind(kind)) {
       track.mode = "hidden";
     }
   }
   return enabled;
+}
+
+function handleTextTrackAdded(
+  track: TextTrack,
+  mode: SubtitleMode,
+  onNativeSync: () => void,
+) {
+  const kind = track.kind.toLowerCase();
+  if (mode === "external") {
+    if (kind === "metadata") {
+      track.mode = "hidden";
+    } else if (isEmbeddedTextTrackKind(kind)) {
+      track.mode = "disabled";
+    }
+    return;
+  }
+  onNativeSync();
 }
 
 function resolveSubtitleTracks(tracks: StreamTrack[]) {
@@ -115,11 +150,26 @@ function buildSubtitleSwitchOptions(track: { file: string; label?: string }) {
     type,
     encoding: "utf-8",
     escape: false,
-    onVttLoad:
-      type === "ass"
-        ? undefined
-        : (vtt: string) => sanitizeVttOrSrtContent(vtt),
+    onVttLoad: (vtt: string) =>
+      type === "ass" ? vtt : sanitizeVttOrSrtContent(vtt),
   };
+}
+
+function switchExternalSubtitle(
+  art: Artplayer,
+  url: string,
+  track: { file: string; label?: string },
+  settings: Parameters<typeof applySubtitleStyles>[1],
+) {
+  disableEmbeddedTextTracks(art.video);
+  art.subtitle.show = true;
+  void art.subtitle
+    .switch(url, buildSubtitleSwitchOptions({ ...track, file: url }))
+    .then(() => {
+      ensureArtplayerSubtitleTrack(art);
+      applySubtitleStyles(art, settings);
+    })
+    .catch(() => {});
 }
 
 function scheduleSubtitleReapply(apply: () => void): () => void {
@@ -144,9 +194,7 @@ function applySubtitleMode(
   if (preferSubtitles && subTracks.length > 0) {
     const active = subTracks.find((track) => track.default) ?? subTracks[0];
     const url = resolveTrackSrc(active.file);
-    disableNativeTextTracks(art.video);
-    art.subtitle.show = true;
-    art.subtitle.switch(url, buildSubtitleSwitchOptions({ ...active, file: url }));
+    switchExternalSubtitle(art, url, { ...active, file: url }, settings);
     applySubtitleStyles(art, settings);
     return "external";
   }
@@ -415,7 +463,6 @@ export default function KittyPlayer({
     (art: Artplayer) => {
       const subTracks = resolveSubtitleTracks(tracksRef.current);
       if (!preferSubtitlesRef.current || subTracks.length === 0) return;
-      disableNativeTextTracks(art.video);
       subtitleModeRef.current = applySubtitleMode(
         art,
         tracksRef.current,
@@ -504,10 +551,8 @@ export default function KittyPlayer({
             type: defaultSubType,
             encoding: "utf-8",
             escape: false,
-            onVttLoad:
-              defaultSubType === "ass"
-                ? undefined
-                : (vtt: string) => sanitizeVttOrSrtContent(vtt),
+            onVttLoad: (vtt: string) =>
+              defaultSubType === "ass" ? vtt : sanitizeVttOrSrtContent(vtt),
             style: {
               color: subtitleSettings.color,
               fontSize: `${subtitleSettings.fontSize}px`,
@@ -524,10 +569,7 @@ export default function KittyPlayer({
         type,
         encoding: "utf-8",
         escape: false,
-        onVttLoad:
-          type === "ass"
-            ? undefined
-            : (vtt: string) => sanitizeVttOrSrtContent(vtt),
+        onVttLoad: (vtt: string) => (type === "ass" ? vtt : sanitizeVttOrSrtContent(vtt)),
       };
     });
 
@@ -540,9 +582,14 @@ export default function KittyPlayer({
       preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0;
 
     const syncNativeSubsIfNeeded = (video: HTMLVideoElement) => {
-      if (subtitleModeRef.current === "external") return;
+      if (subtitleModeRef.current === "external") {
+        disableEmbeddedTextTracks(video);
+        const currentArt = artRef.current;
+        if (currentArt) ensureArtplayerSubtitleTrack(currentArt);
+        return;
+      }
       if (shouldUseExternalSubs()) {
-        disableNativeTextTracks(video);
+        disableEmbeddedTextTracks(video);
         return;
       }
       const enabled = enableNativeHlsSubtitles(video);
@@ -686,7 +733,9 @@ export default function KittyPlayer({
                 item.tooltip = show ? "Hide" : "Show";
                 if (show && subTracks.length > 0) {
                   subtitleModeRef.current = "external";
-                  disableNativeTextTracks(art.video);
+                  const active = subTracks.find((tr) => tr.default) ?? subTracks[0];
+                  const url = resolveTrackSrc(active.file);
+                  switchExternalSubtitle(art, url, { ...active, file: url }, subtitleSettings);
                 } else if (!show) {
                   subtitleModeRef.current = enableNativeHlsSubtitles(art.video)
                     ? "native"
@@ -700,11 +749,12 @@ export default function KittyPlayer({
           onSelect(item: { html?: string; url?: string; type?: string }) {
             if (item.url) {
               subtitleModeRef.current = "external";
-              disableNativeTextTracks(art.video);
-              art.subtitle.show = true;
-              art.subtitle.switch(
-                item.url,
-                buildSubtitleSwitchOptions({ file: item.url, label: item.html }),
+              const url = resolveTrackSrc(item.url);
+              switchExternalSubtitle(
+                art,
+                url,
+                { file: url, label: item.html },
+                subtitleSettings,
               );
             }
             return item.html ?? "Subtitle";
@@ -730,12 +780,12 @@ export default function KittyPlayer({
 
       const video = art.video;
       if (video?.textTracks) {
-        video.textTracks.addEventListener("addtrack", () => {
-          if (subtitleModeRef.current === "external") {
-            disableNativeTextTracks(video);
-            return;
-          }
-          syncNativeSubsIfNeeded(video);
+        video.textTracks.addEventListener("addtrack", (ev: Event) => {
+          const track = (ev as TrackEvent).track;
+          if (!track) return;
+          handleTextTrackAdded(track, subtitleModeRef.current, () =>
+            syncNativeSubsIfNeeded(video),
+          );
         });
       }
 
@@ -871,7 +921,7 @@ export default function KittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, t, applyResume, reportW2g]);
+  }, [proxiedSrc, externalSubtitleSig, t, applyResume, reportW2g]);
 
   if (!proxiedSrc) return null;
 
