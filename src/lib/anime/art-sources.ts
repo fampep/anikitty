@@ -37,11 +37,44 @@ type RawTvdbArtwork = {
   score?: number;
 };
 
-const BG_TYPES = new Set([3, 17, 22]);
-const POSTER_TYPES = new Set([2, 23]);
-const BANNER_TYPES = new Set([1, 24]);
-const CLEARART_TYPES = new Set([14, 25]);
-const CLEARLOGO_TYPES = new Set([15, 26]);
+const SERIES_BG_TYPES = new Set([3, 8, 17, 22]);
+const SERIES_POSTER_TYPES = new Set([2]);
+const SERIES_BANNER_TYPES = new Set([1]);
+const SERIES_CLEARART_TYPES = new Set([14]);
+const SERIES_CLEARLOGO_TYPES = new Set([15]);
+
+const MOVIE_BG_TYPES = new Set([15]);
+const MOVIE_POSTER_TYPES = new Set([23]);
+const MOVIE_BANNER_TYPES = new Set([24]);
+const MOVIE_CLEARART_TYPES = new Set([25]);
+const MOVIE_CLEARLOGO_TYPES = new Set([26]);
+
+function pushTvdbBackground(groups: ArtworkGroups, item: ArtworkItem) {
+  const entry = { ...item, title: item.title ?? "TVDB" };
+  groups.backgrounds.push(entry);
+  groups.fanart.push(entry);
+}
+
+function classifyTvdbArtwork(
+  type: number,
+  kind: "series" | "movies",
+): keyof ArtworkGroups | null {
+  if (kind === "movies") {
+    if (MOVIE_POSTER_TYPES.has(type)) return "posters";
+    if (MOVIE_BANNER_TYPES.has(type)) return "banners";
+    if (MOVIE_BG_TYPES.has(type)) return "backgrounds";
+    if (MOVIE_CLEARART_TYPES.has(type)) return "clearArt";
+    if (MOVIE_CLEARLOGO_TYPES.has(type)) return "clearLogo";
+    return null;
+  }
+
+  if (SERIES_POSTER_TYPES.has(type)) return "posters";
+  if (SERIES_BANNER_TYPES.has(type)) return "banners";
+  if (SERIES_BG_TYPES.has(type)) return "backgrounds";
+  if (SERIES_CLEARART_TYPES.has(type)) return "clearArt";
+  if (SERIES_CLEARLOGO_TYPES.has(type)) return "clearLogo";
+  return null;
+}
 
 function emptyGroups(): ArtworkGroups {
   return {
@@ -198,18 +231,23 @@ async function fetchTvdbArtworks(tvdbId: number): Promise<ArtworkGroups> {
   const token = await getTvdbToken();
   if (!token) return groups;
 
+  const sourceUrl = `https://www.thetvdb.com/?id=${tvdbId}&tab=series`;
+
   let raw: RawTvdbArtwork[] = [];
+  let recordKind: "series" | "movies" = "series";
   for (const kind of ["series", "movies"] as const) {
     try {
       const res = await fetch(`${TVDB_API}/${kind}/${tvdbId}/artworks`, {
         headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(8000),
+        next: { revalidate: 86400 },
       });
       if (!res.ok) continue;
       const data = await res.json();
       const artworks: RawTvdbArtwork[] = data?.data?.artworks ?? [];
       if (artworks.length > 0) {
         raw = artworks;
+        recordKind = kind;
         break;
       }
     } catch {
@@ -219,12 +257,21 @@ async function fetchTvdbArtworks(tvdbId: number): Promise<ArtworkGroups> {
 
   raw.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   for (const art of raw) {
-    const item = { image: art.image, thumbnail: art.thumbnail };
-    if (BG_TYPES.has(art.type)) groups.backgrounds.push(item);
-    else if (POSTER_TYPES.has(art.type)) groups.posters.push(item);
-    else if (BANNER_TYPES.has(art.type)) groups.banners.push(item);
-    else if (CLEARART_TYPES.has(art.type)) groups.clearArt.push(item);
-    else if (CLEARLOGO_TYPES.has(art.type)) groups.clearLogo.push(item);
+    const bucket = classifyTvdbArtwork(art.type, recordKind);
+    if (!bucket) continue;
+
+    const item: ArtworkItem = {
+      image: art.image,
+      thumbnail: art.thumbnail,
+      title: "TVDB",
+      sourceUrl,
+    };
+
+    if (bucket === "backgrounds") {
+      pushTvdbBackground(groups, item);
+    } else {
+      groups[bucket].push(item);
+    }
   }
 
   return groups;
@@ -256,7 +303,9 @@ function mergeAniZipBasics(
 ) {
   if (!aniZipImages) return;
   if (aniZipImages.fanart) {
-    prependUnique(groups, "backgrounds", [{ image: aniZipImages.fanart, thumbnail: aniZipImages.fanart }]);
+    const fanartItem = { image: aniZipImages.fanart, thumbnail: aniZipImages.fanart, title: "TVDB" };
+    prependUnique(groups, "backgrounds", [fanartItem]);
+    prependUnique(groups, "fanart", [fanartItem]);
   }
   if (aniZipImages.banner) {
     prependUnique(groups, "banners", [{ image: aniZipImages.banner, thumbnail: aniZipImages.banner }]);

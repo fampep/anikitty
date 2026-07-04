@@ -196,6 +196,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         Object.values(mapImages.artworks).some((items) => (items?.length ?? 0) > 0),
     );
 
+  const fanartItems = mapImages?.artworks?.fanart ?? [];
+  const tvdbFanartItems = fanartItems.filter((item) => item.title === "TVDB");
+  const communityFanartItems = fanartItems.filter((item) => item.title !== "TVDB");
+
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (info.anilistId)           externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(info.anilistId) });
   if (mappings?.mal_id)         externalLinks.push({ ...DB_LINKS[1], url: DB_LINKS[1].url(mappings.mal_id) });
@@ -527,10 +531,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {hasArtTab && mapImages && (
             <TabsContent value="art" className="mt-6">
               <div className="space-y-10">
-                {(mapImages.artworks?.fanart?.length ?? 0) > 0 && (
+                {communityFanartItems.length > 0 && (
                   <ArtSection
                     label={t("anime.artSections.communityFanart")}
-                    items={mapImages.artworks!.fanart!}
+                    items={communityFanartItems}
+                    wide
+                  />
+                )}
+                {tvdbFanartItems.length > 0 && (
+                  <ArtSection
+                    label={t("anime.artSections.tvdbFanart")}
+                    items={tvdbFanartItems}
                     wide
                   />
                 )}
