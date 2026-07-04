@@ -66,6 +66,14 @@ interface ISettingsStore {
   /** Disable animations and reduce background polling for slower devices. */
   liteMode: boolean;
   setLiteMode: (val: boolean) => void;
+
+  /** Automatically skip intro/outro segments when chapter markers exist. */
+  autoSkipIntro: boolean;
+  setAutoSkipIntro: (val: boolean) => void;
+
+  /** Play opening theme on anime detail pages (AnimeThemes.moe). */
+  playThemeSong: boolean;
+  setPlayThemeSong: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -144,10 +152,16 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       liteMode: false,
       setLiteMode: (liteMode) => set({ liteMode }),
+
+      autoSkipIntro: true,
+      setAutoSkipIntro: (autoSkipIntro) => set({ autoSkipIntro }),
+
+      playThemeSong: true,
+      setPlayThemeSong: (playThemeSong) => set({ playThemeSong }),
     }),
     {
       name: "kitty-settings",
-      version: 18,
+      version: 20,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -162,6 +176,8 @@ export const useSettingsStore = create<ISettingsStore>()(
         kittyProxyNode: state.kittyProxyNode,
         kittyProxyManual: state.kittyProxyManual,
         liteMode: state.liteMode,
+        autoSkipIntro: state.autoSkipIntro,
+        playThemeSong: state.playThemeSong,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -220,6 +236,12 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 18) {
           next.liteMode = next.liteMode ?? false;
+        }
+        if (version < 19) {
+          next.autoSkipIntro = next.autoSkipIntro ?? true;
+        }
+        if (version < 20) {
+          next.playThemeSong = next.playThemeSong ?? true;
         }
         return next as ISettingsStore;
       },

@@ -10,8 +10,9 @@ import { useAnimeStore } from "@/store/anime-store";
 import EpisodePlaylist from "@/components/watch/episode-playlist";
 import WatchCommentsPreview from "@/components/watch/watch-comments-preview";
 import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
-import WatchPageHeader from "@/components/watch/watch-page-header";
 import WatchQuickNav from "@/components/watch/watch-quick-nav";
+import AnimeClearLogo from "@/components/anime/anime-clear-logo";
+import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime/anime-carousel";
 import dynamic from "next/dynamic";
@@ -258,23 +259,27 @@ const Layout = (props: Props) => {
   if (!info) return null;
 
   const stats = info.stats;
+  const listSelector = (
+    <Select
+      placeholder={t("anime.addToList")}
+      value={bookmarks?.[0]?.status || selected}
+      options={bookmarkOptions}
+      onChange={handleSelect}
+    />
+  );
 
   return (
     <Container className="mt-16 sm:mt-20 pb-16 pb-safe">
-      <WatchPageHeader
-        animeId={info.id}
-        name={info.name}
-        poster={info.poster}
-        episodeNumber={currentEpisode?.number}
-        listSelector={
-          <Select
-            placeholder={t("anime.addToList")}
-            value={bookmarks?.[0]?.status || selected}
-            options={bookmarkOptions}
-            onChange={handleSelect}
-          />
-        }
-      />
+      <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
+        <AnimeClearLogo
+          name={info.name}
+          logoUrl={pickAnimeClearLogo(mappingData?.images)}
+          href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
+          size="md"
+          className="min-w-0 flex-1"
+        />
+        <div className="shrink-0">{listSelector}</div>
+      </div>
 
       <WatchQuickNav
         activeTab={watchTab}

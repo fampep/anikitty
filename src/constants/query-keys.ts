@@ -14,3 +14,4 @@ export const GET_HOME_PAGE_DATA = "get-home-page-data";
 export const GET_HOME_CRITICAL = "get-home-critical";
 export const GET_HOME_DISCOVERY = "get-home-discovery";
 export const GET_ANIME_MAPPINGS = "get-anime-mappings";
+export const GET_ANIME_THEMES = "get-anime-themes";

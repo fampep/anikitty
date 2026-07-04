@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Coins,
   Gauge,
+  Music2,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -431,11 +432,15 @@ function PlaybackSection({
   setPreferDub,
   autoPlay,
   setAutoPlay,
+  playThemeSong,
+  setPlayThemeSong,
 }: {
   preferDub: boolean;
   setPreferDub: (v: boolean) => void;
   autoPlay: boolean;
   setAutoPlay: (v: boolean) => void;
+  playThemeSong: boolean;
+  setPlayThemeSong: (v: boolean) => void;
 }) {
   const t = useT();
 
@@ -460,6 +465,13 @@ function PlaybackSection({
           description={t("settings.autoPlayDesc")}
           value={autoPlay}
           onChange={setAutoPlay}
+        />
+        <ToggleRow
+          icon={<Music2 className="w-4 h-4" />}
+          label={t("settings.playThemeSong")}
+          description={t("settings.playThemeSongDesc")}
+          value={playThemeSong}
+          onChange={setPlayThemeSong}
         />
       </SectionBody>
     </SectionCard>
@@ -587,7 +599,7 @@ export default function SettingsPage() {
   const pathname = usePathname();
   const episodeLayouts = useEpisodeLayouts(t);
   const { auth } = useAuthStore();
-  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay } =
+  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong } =
     useSettingsStore();
 
   const defaultTab = useMemo((): SettingsTab => {
@@ -654,6 +666,8 @@ export default function SettingsPage() {
                 setPreferDub={setPreferDub}
                 autoPlay={autoPlay}
                 setAutoPlay={setAutoPlay}
+                playThemeSong={playThemeSong}
+                setPlayThemeSong={setPlayThemeSong}
               />
               <EpisodeLayoutSection
                 episodeLayouts={episodeLayouts}
@@ -749,6 +763,8 @@ export default function SettingsPage() {
               setPreferDub={setPreferDub}
               autoPlay={autoPlay}
               setAutoPlay={setAutoPlay}
+              playThemeSong={playThemeSong}
+              setPlayThemeSong={setPlayThemeSong}
             />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}

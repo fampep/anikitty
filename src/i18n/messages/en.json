@@ -454,7 +454,7 @@
     "layoutThumbnail": "Thumbnail",
     "layoutThumbnailDesc": "Poster-style cards showing episode artwork",
     "playback": "Playback",
-    "playbackDesc": "Default behaviour when watching anime",
+    "playbackDesc": "Default behaviour when watching anime — synced across devices when signed in",
     "ads": {
       "title": "Ads",
       "desc": "Lightweight click ads help cover the ~€100/month it costs to run AniKitty",
@@ -478,6 +478,8 @@
     "preferDubDesc": "Default to English dub when available",
     "autoPlay": "Auto-play next episode",
     "autoPlayDesc": "Automatically play the next episode when one ends",
+    "playThemeSong": "Play theme on anime pages",
+    "playThemeSongDesc": "Automatically play the opening theme on anime detail pages (AnimeThemes)",
     "videoPlayer": "Video player",
     "videoPlayerDesc": "Choose which player layout to use on the watch page",
     "audioSubtitles": "Audio & Subtitles",
@@ -865,6 +867,11 @@
       "turnOff": "Turn off all alerts"
     },
     "watchTrailer": "Watch Trailer",
+    "themeNowPlaying": "Now playing",
+    "themePlay": "Play theme",
+    "themePause": "Pause theme",
+    "themeUnmute": "Unmute theme",
+    "themeMuted": "Mute theme",
     "tabs": {
       "overview": "Overview",
       "episodes": "Episodes",
@@ -1091,6 +1098,13 @@
       "info": "Info",
       "related": "Related",
       "animePage": "Anime page"
+    },
+    "toolbar": {
+      "autoNext": "Auto Next",
+      "autoSkip": "Auto Skip",
+      "shortcuts": "Shortcuts",
+      "lightsOff": "Lights Off",
+      "episodeNav": "Episode {n}"
     },
     "selectEpisodeHint": "Pick an episode from the list below",
     "fullAnimePage": "Full anime page",

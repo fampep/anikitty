@@ -34,7 +34,13 @@ import { cn } from "@/lib/core/utils";
 import dynamic from "next/dynamic";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
+import AnimeClearLogo from "@/components/anime/anime-clear-logo";
+import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
+
+const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
+  ssr: false,
+});
 
 const WatchTrailer = dynamic(() => import("@/components/watch/watch-trailer"), { ssr: false });
 const AnimeEpisodeAlertButton = dynamic(() => import("@/components/anime/anime-episode-alert-button"), {
@@ -189,6 +195,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     mapImages?.artworks?.banners?.[0]?.image ||
     info.poster;
 
+  const clearLogo = pickAnimeClearLogo(mapImages);
+
   const hasArtTab =
     Boolean(mapImages?.fanart || mapImages?.banner || mapImages?.poster) ||
     Boolean(
@@ -241,6 +249,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-background/50 dark:via-black/40 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
         <WatchTrailer videoHref={info.promotionalVideos[0]?.source} />
+        {info.anilistId ? (
+          <div className="absolute bottom-4 right-4 left-4 sm:left-auto sm:max-w-md z-10">
+            <AnimeThemePlayer anilistId={info.anilistId} />
+          </div>
+        ) : null}
       </div>
 
       <Container className="pb-28">
@@ -267,11 +280,15 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
           <div className="flex flex-col gap-2.5 sm:gap-3 pb-4 md:pb-10 min-w-0 flex-1">
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-[2.75rem] font-black text-foreground dark:text-white leading-[1.1] tracking-tight">
-                {info.name}
-              </h1>
+              <AnimeClearLogo
+                name={info.name}
+                logoUrl={clearLogo}
+                size="lg"
+              />
               {moreInfo.japanese && (
-                <p className="text-xs sm:text-sm text-muted-foreground dark:text-white/35 mt-1.5 font-mono tracking-wide">{moreInfo.japanese}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground dark:text-white/35 mt-1.5 font-mono tracking-wide">
+                  {moreInfo.japanese}
+                </p>
               )}
             </div>
 

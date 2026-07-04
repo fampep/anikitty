@@ -75,6 +75,7 @@ import {
 import WatchDownloadPanel from "@/components/watch/watch-download-panel";
 import PlayerSettingsBar from "@/components/watch/player-settings-bar";
 import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
+import WatchPlayerToolbar from "@/components/watch/watch-player-toolbar";
 import WatchResumePrompt from "@/components/watch/watch-resume-prompt";
 import WatchKeyboardHelp from "@/components/watch/watch-keyboard-help";
 import WatchSimpleProviderRow from "@/components/watch/watch-simple-provider-row";
@@ -1215,23 +1216,6 @@ const VideoPlayerSection = () => {
     <div className="flex flex-col gap-3">
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
-    {currentEpisodeInfo && allEpisodes && (
-      <WatchEpisodeBar
-        currentEpisode={currentEpisodeInfo}
-        episodes={allEpisodes}
-        animePoster={anime?.anime?.info?.poster}
-        animeName={animeTitle}
-        prevEpisode={prevEpisode ?? null}
-        nextEpisode={nextEpisode ?? null}
-        playlistOpen={false}
-        onTogglePlaylist={handleToggleMobilePlaylist}
-        onPrev={handlePrevEpisode}
-        onNext={handleNextEpisode}
-        watchedEpisodes={watchedEpisodes}
-        getLivePreview={getLivePreview}
-      />
-    )}
-
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-border dark:ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — fullscreen is held here during episode transitions */}
       <div ref={playerWrapperRef} className="contents">
@@ -1272,6 +1256,17 @@ const VideoPlayerSection = () => {
       )}
       </div>
       </div>
+
+      <WatchPlayerToolbar
+        provider={provider}
+        hasPrev={Boolean(prevEpisode)}
+        hasNext={Boolean(nextEpisode)}
+        prevEpisodeNumber={prevEpisode?.number}
+        nextEpisodeNumber={nextEpisode?.number}
+        onPrev={handlePrevEpisode}
+        onNext={handleNextEpisode}
+        onShowShortcuts={() => setShortcutsOpen(true)}
+      />
 
       {/* Controls bar */}
       <div className="px-2 py-2.5 sm:px-3 sm:py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-border dark:border-white/8 space-y-2.5">
@@ -1378,6 +1373,23 @@ const VideoPlayerSection = () => {
         )}
       </div>
     </div>
+
+    {currentEpisodeInfo && allEpisodes && (
+      <WatchEpisodeBar
+        currentEpisode={currentEpisodeInfo}
+        episodes={allEpisodes}
+        animePoster={anime?.anime?.info?.poster}
+        animeName={animeTitle}
+        prevEpisode={prevEpisode ?? null}
+        nextEpisode={nextEpisode ?? null}
+        playlistOpen={false}
+        onTogglePlaylist={handleToggleMobilePlaylist}
+        onPrev={handlePrevEpisode}
+        onNext={handleNextEpisode}
+        watchedEpisodes={watchedEpisodes}
+        getLivePreview={getLivePreview}
+      />
+    )}
 
     {w2gCode && w2g.isMember && (
       <W2gPanel

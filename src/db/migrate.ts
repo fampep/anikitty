@@ -389,6 +389,7 @@ export async function migrateDb() {
       )`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS supporter_until TIMESTAMP`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS show_ads BOOLEAN NOT NULL DEFAULT TRUE`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB NOT NULL DEFAULT '{}'::jsonb`,
       `CREATE TABLE IF NOT EXISTS kofi_webhook_events (
         message_id VARCHAR(64) PRIMARY KEY,
         kofi_transaction_id VARCHAR(64),

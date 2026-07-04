@@ -286,11 +286,17 @@ export default function KittyPlayer({
   }, [onPlayerReady]);
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
   const autoPlay = useSettingsStore((s) => s.autoPlay);
+  const autoSkipRef = useRef(useSettingsStore.getState().autoSkipIntro);
+  const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
 
   useEffect(() => {
     autoNextRef.current = autoPlay;
   }, [autoPlay]);
+
+  useEffect(() => {
+    autoSkipRef.current = autoSkipIntro;
+  }, [autoSkipIntro]);
 
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -317,6 +323,8 @@ export default function KittyPlayer({
   const outroFiredRef = useRef(false);
   const endHandledRef = useRef(false);
   const autoNextStartedRef = useRef(false);
+  const introAutoSkippedRef = useRef(false);
+  const outroAutoSkippedRef = useRef(false);
   const lastProgressTs = useRef(0);
   const skipUiRef = useRef<"intro" | "outro" | null>(null);
   const lastUiTimeRef = useRef(0);
@@ -467,6 +475,8 @@ export default function KittyPlayer({
     outroFiredRef.current = false;
     endHandledRef.current = false;
     autoNextStartedRef.current = false;
+    introAutoSkippedRef.current = false;
+    outroAutoSkippedRef.current = false;
     lastProgressTs.current = 0;
     skipUiRef.current = null;
     resumeAppliedRef.current = false;
@@ -955,8 +965,16 @@ export default function KittyPlayer({
       let nextSkip: "intro" | "outro" | null = null;
       if (st?.intro && current >= st.intro.start && current < st.intro.end) {
         nextSkip = "intro";
+        if (autoSkipRef.current && !introAutoSkippedRef.current) {
+          introAutoSkippedRef.current = true;
+          art.currentTime = st.intro.end;
+        }
       } else if (st?.outro && current >= st.outro.start && current < st.outro.end) {
         nextSkip = "outro";
+        if (autoSkipRef.current && !outroAutoSkippedRef.current) {
+          outroAutoSkippedRef.current = true;
+          art.currentTime = st.outro.end;
+        }
         if (!outroFiredRef.current && dur > 0) {
           outroFiredRef.current = true;
           onOutroStartRef.current?.(dur);
