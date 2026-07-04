@@ -6,19 +6,59 @@ import { measureAllKittyNodesFromClient } from "@/lib/kitty/kitty-node-ping-clie
 
 const PING_CACHE_TTL_MS = 60_000;
 
-let pingCache: { at: number; nodes: KittyNodePingResult[] } | null = null;
-let pingInflight: Promise<KittyNodePingResult[]> | null = null;
+type PingCache = {
+  at: number;
+  nodes: KittyNodePingResult[];
+  recommended: KittyApiNodeId | null;
+};
 
-async function fetchNodePings(): Promise<KittyNodePingResult[]> {
+let pingCache: PingCache | null = null;
+let pingInflight: Promise<PingCache> | null = null;
+
+async function fetchServerBenchmark(): Promise<{
+  nodes: KittyNodePingResult[];
+  recommended: KittyApiNodeId | null;
+} | null> {
+  try {
+    const res = await fetch("/api/kitty/nodes/ping", { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      nodes?: KittyNodePingResult[];
+      recommended?: KittyApiNodeId | null;
+    };
+    return {
+      nodes: data.nodes ?? [],
+      recommended: data.recommended ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchNodePings(): Promise<PingCache> {
   if (pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS) {
-    return pingCache.nodes;
+    return pingCache;
   }
 
   if (!pingInflight) {
-    pingInflight = measureAllKittyNodesFromClient()
-      .then((nodes) => {
-        pingCache = { at: Date.now(), nodes };
-        return nodes;
+    pingInflight = Promise.all([
+      measureAllKittyNodesFromClient(),
+      fetchServerBenchmark(),
+    ])
+      .then(([clientNodes, serverBenchmark]) => {
+        const clientReachable = clientNodes.some((n) => n.ok);
+        const nodes = clientReachable
+          ? clientNodes
+          : serverBenchmark?.nodes?.length
+            ? serverBenchmark.nodes
+            : clientNodes;
+        const result: PingCache = {
+          at: Date.now(),
+          nodes,
+          recommended: serverBenchmark?.recommended ?? null,
+        };
+        pingCache = result;
+        return result;
       })
       .finally(() => {
         pingInflight = null;
@@ -28,15 +68,23 @@ async function fetchNodePings(): Promise<KittyNodePingResult[]> {
   return pingInflight;
 }
 
-export function pickFastestKittyNode(nodes: KittyNodePingResult[]): KittyApiNodeId | null {
+export function pickFastestKittyNode(
+  nodes: KittyNodePingResult[],
+  recommended?: KittyApiNodeId | null,
+): KittyApiNodeId | null {
   const reachable = nodes.filter((n) => n.ok && n.pingMs != null);
-  if (!reachable.length) return null;
-  reachable.sort((a, b) => (a.pingMs ?? Infinity) - (b.pingMs ?? Infinity));
-  return reachable[0]!.id;
+  if (reachable.length) {
+    reachable.sort((a, b) => (a.pingMs ?? Infinity) - (b.pingMs ?? Infinity));
+    return reachable[0]!.id;
+  }
+  return recommended ?? null;
 }
 
 export function useKittyNodePing() {
   const [nodes, setNodes] = useState<KittyNodePingResult[]>(() => pingCache?.nodes ?? []);
+  const [recommended, setRecommended] = useState<KittyApiNodeId | null>(
+    () => pingCache?.recommended ?? null,
+  );
   const [ready, setReady] = useState(() => Boolean(pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS));
   const [loading, setLoading] = useState(!ready);
 
@@ -46,7 +94,8 @@ export function useKittyNodePing() {
     fetchNodePings()
       .then((result) => {
         if (cancelled) return;
-        setNodes(result);
+        setNodes(result.nodes);
+        setRecommended(result.recommended);
         setReady(true);
       })
       .catch(() => {
@@ -77,7 +126,10 @@ export function useKittyNodePing() {
     return map;
   }, [nodes]);
 
-  const fastestId = useMemo(() => pickFastestKittyNode(nodes), [nodes]);
+  const fastestId = useMemo(
+    () => pickFastestKittyNode(nodes, recommended),
+    [nodes, recommended],
+  );
 
-  return { nodes, pingByNode, bandwidthByNode, fastestId, ready, loading };
+  return { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading };
 }

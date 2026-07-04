@@ -416,3 +416,50 @@ export async function tryAutoClaimFromDm(
     return null;
   }
 }
+
+/** Admin panel: extend or grant supporter / donator access. */
+export async function adminGrantSupporterDays(
+  db: Db,
+  userId: string,
+  days: number,
+): Promise<{ supporterUntil: string; daysAdded: number }> {
+  if (!Number.isFinite(days) || days <= 0 || days > 3650) {
+    throw new Error("Days must be between 1 and 3650");
+  }
+
+  const [user] = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      role: users.role,
+      supporterUntil: users.supporterUntil,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) throw new Error("User not found");
+
+  const until = await grantSupporterAccess(db, user, Math.floor(days));
+  return { supporterUntil: until.toISOString(), daysAdded: Math.floor(days) };
+}
+
+/** Admin panel: remove supporter perks immediately. */
+export async function adminRevokeSupporter(db: Db, userId: string): Promise<void> {
+  const [user] = await db
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) throw new Error("User not found");
+  if (user.role === "admin") throw new Error("Cannot revoke admin supporter perks");
+
+  await db
+    .update(users)
+    .set({
+      supporterUntil: null,
+      ...(user.role === DONATOR_ROLE ? { role: "user" } : {}),
+    })
+    .where(eq(users.id, userId));
+}

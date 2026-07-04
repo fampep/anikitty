@@ -39,6 +39,31 @@ export async function GET(req: Request) {
   });
 }
 
+/** Dismiss a deletion request without deleting the account. */
+export async function PATCH(req: Request) {
+  if (!(await requireAdmin(req))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const requestId = typeof body.requestId === "string" ? body.requestId : "";
+  if (!requestId) {
+    return NextResponse.json({ error: "requestId required" }, { status: 400 });
+  }
+
+  const db = getDb();
+  const [row] = await db
+    .delete(accountDeletionRequests)
+    .where(eq(accountDeletionRequests.id, requestId))
+    .returning({ id: accountDeletionRequests.id });
+
+  if (!row) {
+    return NextResponse.json({ error: "Request not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(req: Request) {
   if (!(await requireAdmin(req))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

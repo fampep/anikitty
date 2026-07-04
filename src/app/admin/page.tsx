@@ -11,7 +11,7 @@ import {
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
-  VolumeX, Ban, Clock, Banknote,
+  VolumeX, Ban, Clock, Banknote, Coins, Sparkles, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
@@ -120,6 +120,8 @@ interface AdminUser {
   createdAt: string;
   lastActiveAt?: string | null;
   totpEnabled?: boolean;
+  kittycoinBalance?: number;
+  supporterUntil?: string | null;
   moderation?: {
     banned: boolean;
     banReason: string | null;
@@ -260,6 +262,22 @@ function fmtSecs(s: number): string {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+function toDatetimeLocalValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatSupporterUntil(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  if (d.getTime() <= Date.now()) return "Expired";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 const BUILTIN_ROLE_NAMES = new Set(["admin", "moderator", "user"]);
 
 function RolePermissionEditor({
@@ -372,10 +390,34 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   // Announcements
   const [anns, setAnns]             = useState<Announcement[]>([]);
   const [annsLoading, setAnnsLoading] = useState(false);
-  const [annForm, setAnnForm]       = useState({ title: "", body: "", severity: "info" as Announcement["severity"], dismissible: true, linkUrl: "", linkLabel: "" });
+  const [annForm, setAnnForm] = useState({
+    title: "",
+    body: "",
+    severity: "info" as Announcement["severity"],
+    dismissible: true,
+    linkUrl: "",
+    linkLabel: "",
+    startsAt: "",
+    endsAt: "",
+  });
   const [annCreating, setAnnCreating] = useState(false);
   const [annDeleting, setAnnDeleting] = useState<string | null>(null);
   const [annToggling, setAnnToggling] = useState<string | null>(null);
+  const [editingAnn, setEditingAnn] = useState<Announcement | null>(null);
+  const [annEditForm, setAnnEditForm] = useState({
+    title: "",
+    body: "",
+    severity: "info" as Announcement["severity"],
+    dismissible: true,
+    linkUrl: "",
+    linkLabel: "",
+    startsAt: "",
+    endsAt: "",
+  });
+  const [annSaving, setAnnSaving] = useState<string | null>(null);
+  const [annPosting, setAnnPosting] = useState<string | null>(null);
+  const [grantingUserId, setGrantingUserId] = useState<string | null>(null);
+  const [dismissingRequestId, setDismissingRequestId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Live chat moderation
@@ -839,16 +881,194 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           dismissible: annForm.dismissible,
           linkUrl: annForm.linkUrl || null,
           linkLabel: annForm.linkLabel || null,
+          startsAt: annForm.startsAt ? new Date(annForm.startsAt).toISOString() : null,
+          endsAt: annForm.endsAt ? new Date(annForm.endsAt).toISOString() : null,
           isActive: true,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
       const row = await res.json();
       setAnns((prev) => [row, ...prev]);
-      setAnnForm({ title: "", body: "", severity: "info", dismissible: true, linkUrl: "", linkLabel: "" });
+      setAnnForm({
+        title: "",
+        body: "",
+        severity: "info",
+        dismissible: true,
+        linkUrl: "",
+        linkLabel: "",
+        startsAt: "",
+        endsAt: "",
+      });
       toast.success("Announcement created");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Failed to create"); }
     finally { setAnnCreating(false); }
+  };
+
+  const openEditAnn = (a: Announcement) => {
+    setEditingAnn(a);
+    setAnnEditForm({
+      title: a.title,
+      body: a.body ?? "",
+      severity: (a.severity as Announcement["severity"]) ?? "info",
+      dismissible: a.dismissible,
+      linkUrl: a.linkUrl ?? "",
+      linkLabel: a.linkLabel ?? "",
+      startsAt: toDatetimeLocalValue(a.startsAt),
+      endsAt: toDatetimeLocalValue(a.endsAt),
+    });
+  };
+
+  const handleSaveAnn = async () => {
+    if (!editingAnn || !annEditForm.title.trim()) return;
+    setAnnSaving(editingAnn.id);
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          id: editingAnn.id,
+          title: annEditForm.title,
+          body: annEditForm.body,
+          severity: annEditForm.severity,
+          dismissible: annEditForm.dismissible,
+          linkUrl: annEditForm.linkUrl || null,
+          linkLabel: annEditForm.linkLabel || null,
+          startsAt: annEditForm.startsAt ? new Date(annEditForm.startsAt).toISOString() : null,
+          endsAt: annEditForm.endsAt ? new Date(annEditForm.endsAt).toISOString() : null,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+      const row = await res.json();
+      setAnns((prev) => prev.map((a) => (a.id === editingAnn.id ? row : a)));
+      setEditingAnn(null);
+      toast.success("Announcement updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update");
+    } finally {
+      setAnnSaving(null);
+    }
+  };
+
+  const handlePostAnnToForum = async (id: string) => {
+    setAnnPosting(id);
+    try {
+      const res = await fetch(`/api/admin/announcements/${id}/post-to-forum`, {
+        method: "POST",
+        headers: adminHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to post");
+      setAnns((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, forumThreadId: data.threadId } : a)),
+      );
+      toast.success(data.alreadyPosted ? "Forum thread already linked" : "Posted to forum");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to post to forum");
+    } finally {
+      setAnnPosting(null);
+    }
+  };
+
+  const handleGrantKittycoins = async (user: AdminUser) => {
+    const raw = prompt(`Grant kittycoins to @${user.username} (use negative to deduct):`, "100");
+    if (raw == null) return;
+    const delta = parseInt(raw, 10);
+    if (!Number.isFinite(delta) || delta === 0) {
+      toast.error("Enter a non-zero integer");
+      return;
+    }
+    setGrantingUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ action: "grantKittycoins", delta }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, kittycoinBalance: data.balance } : u)),
+      );
+      toast.success(`Balance updated: ${data.balance?.toLocaleString?.() ?? data.balance} coins`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to grant coins");
+    } finally {
+      setGrantingUserId(null);
+    }
+  };
+
+  const handleGrantSupporter = async (user: AdminUser) => {
+    const raw = prompt(`Grant supporter days to @${user.username}:`, "30");
+    if (raw == null) return;
+    const days = parseInt(raw, 10);
+    if (!Number.isFinite(days) || days <= 0) {
+      toast.error("Enter a positive number of days");
+      return;
+    }
+    setGrantingUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ action: "grantSupporter", days }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, supporterUntil: data.supporterUntil, role: u.role === "user" ? "donator" : u.role } : u,
+        ),
+      );
+      toast.success(`Supporter until ${formatSupporterUntil(data.supporterUntil)}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to grant supporter");
+    } finally {
+      setGrantingUserId(null);
+    }
+  };
+
+  const handleRevokeSupporter = async (user: AdminUser) => {
+    if (!confirm(`Revoke supporter perks for @${user.username}?`)) return;
+    setGrantingUserId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ action: "revokeSupporter" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id
+            ? { ...u, supporterUntil: null, role: u.role === "donator" ? "user" : u.role }
+            : u,
+        ),
+      );
+      toast.success("Supporter perks revoked");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to revoke");
+    } finally {
+      setGrantingUserId(null);
+    }
+  };
+
+  const handleDismissDeletionRequest = async (requestId: string) => {
+    setDismissingRequestId(requestId);
+    try {
+      const res = await fetch("/api/admin/deletion-requests", {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ requestId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+      setDeletionRequests((prev) => prev.filter((r) => r.id !== requestId));
+      toast.success("Deletion request dismissed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to dismiss");
+    } finally {
+      setDismissingRequestId(null);
+    }
   };
 
   const handleToggleAnn = async (id: string, current: boolean) => {
@@ -920,9 +1140,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           {((): { label: string; value: number | undefined; Icon: React.ElementType; color: string }[] => [
             { label: "Total Users",    value: stats?.totalUsers,         Icon: Users,         color: "#4d9fff" },
             { label: "Watch Sessions", value: stats?.totalSessions,      Icon: Activity,      color: "#a855f7" },
-            { label: "Active Today",   value: stats?.activeToday,          Icon: Zap,           color: "#f59e0b" },
-            { label: "Live Chat",      value: stats?.chatMessagesLive,     Icon: MessageCircle, color: "#c084fc" },
-            { label: "AniList Linked", value: stats?.anilistLinked,      Icon: TrendingUp,    color: "#22d3ee" },
+            { label: "Unique Anime",   value: stats?.uniqueAnime,        Icon: TrendingUp,    color: "#22d3ee" },
+            { label: "Active Today",   value: stats?.activeToday,        Icon: Zap,           color: "#f59e0b" },
+            { label: "Chat Messages",  value: stats?.totalChatMessages,  Icon: MessageCircle, color: "#c084fc" },
           ])().map(({ label, value, Icon, color }) => (
             <div key={label} className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-4 py-4">
               <div className="flex items-center gap-2 mb-3">
@@ -969,8 +1189,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               {[
                 { label: "Active this week",      value: stats?.activeWeek   ?? 0, sub: "unique viewers"  },
                 { label: "New signups this week",  value: stats?.newUsersWeek ?? 0, sub: "new accounts"    },
+                { label: "AniList linked",         value: stats?.anilistLinked ?? 0, sub: "accounts with sync" },
                 { label: "Comments & threads",   value: (stats?.totalComments ?? 0) + (stats?.totalThreads ?? 0), sub: `${stats?.totalComments ?? 0} comments · ${stats?.totalThreads ?? 0} threads` },
                 { label: "Chat messages today",  value: stats?.chatMessagesToday ?? 0, sub: `${stats?.chatMessagesLive ?? 0} visible in live window` },
+                { label: "Total chat stored",    value: stats?.totalChatMessages ?? 0, sub: "all time in database" },
               ].map((c) => (
                 <div key={c.label} className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-5 py-5">
                   <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
@@ -1165,19 +1387,34 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             </p>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteUser(req)}
-                          disabled={deletingUserId === req.userId}
-                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-300 text-[11px] font-medium hover:bg-red-500/15 disabled:opacity-40 transition-all"
-                        >
-                          {deletingUserId === req.userId ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
-                          Delete account
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleDismissDeletionRequest(req.id)}
+                            disabled={dismissingRequestId === req.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/15 text-muted-foreground dark:text-white/55 text-[11px] font-medium hover:bg-accent dark:bg-white/8 disabled:opacity-40 transition-all"
+                          >
+                            {dismissingRequestId === req.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <X className="w-3.5 h-3.5" />
+                            )}
+                            Dismiss
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(req)}
+                            disabled={deletingUserId === req.userId}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-300 text-[11px] font-medium hover:bg-red-500/15 disabled:opacity-40 transition-all"
+                          >
+                            {deletingUserId === req.userId ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            Delete account
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1228,6 +1465,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">Role</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">Status</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">2FA</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden lg:table-cell">Perks</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">Joined</th>
                       <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden lg:table-cell">Last active</th>
                       <th className="px-4 py-3 w-40" />
@@ -1289,6 +1527,18 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             ) : (
                               <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">Off</span>
                             )}
+                          </td>
+                          <td className="px-4 py-3 hidden lg:table-cell">
+                            <div className="flex flex-col gap-0.5 text-[10px] font-mono">
+                              <span className="text-muted-foreground dark:text-white/45">
+                                <Coins className="w-3 h-3 inline mr-1 opacity-60" />
+                                {(u.kittycoinBalance ?? 0).toLocaleString()}
+                              </span>
+                              <span className="text-muted-foreground/80 dark:text-white/30">
+                                <Sparkles className="w-3 h-3 inline mr-1 opacity-60" />
+                                {formatSupporterUntil(u.supporterUntil)}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground/80 dark:text-white/25 text-xs hidden md:table-cell">
                             {new Date(u.createdAt).toLocaleDateString()}
@@ -1367,6 +1617,35 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                   ) : (
                                     <ShieldOff className="w-3 h-3" />
                                   )}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleGrantKittycoins(u)}
+                                disabled={grantingUserId === u.id}
+                                title="Grant kittycoins"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-amber-500/20 text-amber-300/70 text-[11px] hover:bg-amber-500/10 disabled:opacity-40 transition-all"
+                              >
+                                <Coins className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleGrantSupporter(u)}
+                                disabled={grantingUserId === u.id}
+                                title="Grant supporter days"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-violet-500/20 text-violet-300/70 text-[11px] hover:bg-violet-500/10 disabled:opacity-40 transition-all"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                              </button>
+                              {(u.supporterUntil || u.role === "donator") && u.role !== "admin" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRevokeSupporter(u)}
+                                  disabled={grantingUserId === u.id}
+                                  title="Revoke supporter"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-border dark:border-white/15 text-muted-foreground dark:text-white/40 text-[11px] hover:bg-accent dark:bg-white/8 disabled:opacity-40 transition-all"
+                                >
+                                  <X className="w-3 h-3" />
                                 </button>
                               )}
                               <button
@@ -1935,6 +2214,32 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 />
               </div>
 
+              {/* Schedule */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-wider flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Starts (optional)
+                  </span>
+                  <input
+                    type="datetime-local"
+                    value={annForm.startsAt}
+                    onChange={(e) => setAnnForm((f) => ({ ...f, startsAt: e.target.value }))}
+                    className="bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-wider flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Ends (optional)
+                  </span>
+                  <input
+                    type="datetime-local"
+                    value={annForm.endsAt}
+                    onChange={(e) => setAnnForm((f) => ({ ...f, endsAt: e.target.value }))}
+                    className="bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+                  />
+                </label>
+              </div>
+
               {/* Dismissible + Submit */}
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -2005,8 +2310,41 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                               {a.linkLabel ?? a.linkUrl}
                             </a>
                           )}
+                          {(a.startsAt || a.endsAt) && (
+                            <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/25 mt-1.5 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {a.startsAt ? new Date(a.startsAt).toLocaleString() : "Anytime"}
+                              {" → "}
+                              {a.endsAt ? new Date(a.endsAt).toLocaleString() : "No end"}
+                            </p>
+                          )}
+                          {a.forumThreadId && (
+                            <Link
+                              href={`/forum/${a.forumThreadId}`}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 text-[11px] text-violet-300/70 hover:text-violet-200 mt-1 transition-colors"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              Forum thread linked
+                            </Link>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+                          <button
+                            onClick={() => openEditAnn(a)}
+                            title="Edit"
+                            className="p-1.5 rounded-lg hover:bg-accent dark:bg-white/10 text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/70 transition-all"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handlePostAnnToForum(a.id)}
+                            disabled={annPosting === a.id}
+                            title="Post to forum"
+                            className="px-2 py-1 rounded-lg text-[11px] font-mono border border-violet-500/20 text-violet-300/70 hover:bg-violet-500/10 disabled:opacity-40 transition-all"
+                          >
+                            {annPosting === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Forum"}
+                          </button>
                           <button
                             onClick={() => handleToggleAnn(a.id, a.isActive)}
                             disabled={annToggling === a.id}
@@ -2029,6 +2367,65 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       </div>
                       {a.createdAt && (
                         <p className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15 pl-7">{timeAgo(a.createdAt)}</p>
+                      )}
+                      {editingAnn?.id === a.id && (
+                        <div className="mt-3 ml-7 rounded-xl border border-border dark:border-white/10 bg-black/30 p-4 flex flex-col gap-3">
+                          <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest">Edit announcement</p>
+                          <div className="flex gap-2">
+                            <select
+                              value={annEditForm.severity}
+                              onChange={(e) => setAnnEditForm((f) => ({ ...f, severity: e.target.value as Announcement["severity"] }))}
+                              className="shrink-0 bg-black border border-border dark:border-white/15 text-muted-foreground dark:text-white/70 text-[11px] font-mono rounded-lg px-2 py-2"
+                            >
+                              {Object.entries(SEVERITY_META).map(([k, v]) => (
+                                <option key={k} value={k} className="bg-black">{v.label}</option>
+                              ))}
+                            </select>
+                            <input
+                              value={annEditForm.title}
+                              onChange={(e) => setAnnEditForm((f) => ({ ...f, title: e.target.value }))}
+                              className="flex-1 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white"
+                            />
+                          </div>
+                          <textarea
+                            value={annEditForm.body}
+                            onChange={(e) => setAnnEditForm((f) => ({ ...f, body: e.target.value }))}
+                            rows={2}
+                            className="bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white resize-none"
+                          />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input
+                              type="datetime-local"
+                              value={annEditForm.startsAt}
+                              onChange={(e) => setAnnEditForm((f) => ({ ...f, startsAt: e.target.value }))}
+                              className="bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white"
+                            />
+                            <input
+                              type="datetime-local"
+                              value={annEditForm.endsAt}
+                              onChange={(e) => setAnnEditForm((f) => ({ ...f, endsAt: e.target.value }))}
+                              className="bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setEditingAnn(null)}
+                              className="px-3 py-1.5 rounded-lg text-[11px] font-mono text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleSaveAnn()}
+                              disabled={annSaving === a.id || !annEditForm.title.trim()}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent dark:bg-white/10 border border-border dark:border-white/15 text-[11px] font-semibold disabled:opacity-40"
+                            >
+                              {annSaving === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                              Save changes
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   );

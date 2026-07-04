@@ -5,6 +5,11 @@ import { requireAdmin } from "@/lib/auth/admin-auth";
 import { deleteUserAccount, DeleteUserError } from "@/lib/user/delete-user";
 import { hashPassword, validatePassword } from "@/lib/auth/local-auth";
 import { applyModerationAction, ModerationError } from "@/lib/security/moderation";
+import { grantKittycoins } from "@/lib/shop/kittycoins";
+import {
+  adminGrantSupporterDays,
+  adminRevokeSupporter,
+} from "@/lib/social/supporter-access";
 import { and, eq, isNull } from "drizzle-orm";
 
 export async function PATCH(
@@ -54,6 +59,45 @@ export async function PATCH(
       .where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
 
     return NextResponse.json({ ok: true });
+  }
+
+  if (action === "grantKittycoins") {
+    const delta = typeof body.delta === "number" ? Math.floor(body.delta) : parseInt(String(body.delta ?? ""), 10);
+    if (!Number.isFinite(delta) || delta === 0 || Math.abs(delta) > 1_000_000) {
+      return NextResponse.json({ error: "delta must be a non-zero integer (max ±1,000,000)" }, { status: 400 });
+    }
+    const reason =
+      typeof body.reason === "string" && body.reason.trim()
+        ? body.reason.trim().slice(0, 120)
+        : "admin_grant";
+    const result = await grantKittycoins(db, userId, delta, reason, `admin:${Date.now()}`);
+    return NextResponse.json({ ok: true, balance: result.balance, granted: result.granted });
+  }
+
+  if (action === "grantSupporter") {
+    const days =
+      typeof body.days === "number" ? body.days : parseInt(String(body.days ?? ""), 10);
+    try {
+      const result = await adminGrantSupporterDays(db, userId, days);
+      return NextResponse.json({ ok: true, ...result });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Failed to grant supporter" },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (action === "revokeSupporter") {
+    try {
+      await adminRevokeSupporter(db, userId);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Failed to revoke supporter" },
+        { status: 400 },
+      );
+    }
   }
 
   if (action === "mute" || action === "unmute" || action === "ban" || action === "unban") {

@@ -1,7 +1,9 @@
 import {
   KITTY_API_NODES,
+  type KittyApiNodeId,
   type KittyNodePingResult,
 } from "@/lib/kitty/kitty-api-nodes";
+import { buildKittySpeedtestPath } from "@/lib/kitty/kitty-api-core";
 
 const SPEEDTEST_BYTES = 65_536;
 const PING_TIMEOUT_MS = 8_000;
@@ -10,7 +12,7 @@ export async function measureKittyNodeFromClient(
   nodeUrl: string,
 ): Promise<Omit<KittyNodePingResult, "id">> {
   const base = nodeUrl.replace(/\/$/, "");
-  const url = `${base}/proxy/speedtest?bytes=${SPEEDTEST_BYTES}`;
+  const url = `${base}${buildKittySpeedtestPath(SPEEDTEST_BYTES)}`;
   const start = Date.now();
 
   try {

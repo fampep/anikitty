@@ -18,11 +18,11 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "primary",
     index: 1,
-    label: "Primary",
+    label: "Switzerland",
     ip: "92.119.165.226",
     url: "https://kittyapi.92-119-165-226.sslip.io",
     host: "kittyapi.92-119-165-226.sslip.io",
-    location: "Zug, Switzerland",
+    location: "Switzerland",
     timezone: "Europe/Zurich",
     operator: "LAIN / AS211507 (Julian Achter)",
     note:
@@ -31,11 +31,11 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "fallback",
     index: 2,
-    label: "Fallback",
+    label: "Sweden",
     ip: "176.125.240.251",
     url: "https://kittyapi.176-125-240-251.sslip.io",
     host: "kittyapi.176-125-240-251.sslip.io",
-    location: "Stockholm, Sweden",
+    location: "Sweden",
     timezone: "Europe/Stockholm",
     operator: "AlexHost SRL / AS200019",
     note:
@@ -44,7 +44,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "third-choice",
     index: 3,
-    label: "Third choice",
+    label: "Bulgaria",
     ip: "45.150.111.153",
     url: "https://kittyapi.45-150-111-153.sslip.io",
     host: "kittyapi.45-150-111-153.sslip.io",
@@ -62,6 +62,14 @@ export function getKittyApiNode(id: KittyApiNodeId): KittyApiNodeMeta {
 
 export function getKittyApiNodeUrl(id: KittyApiNodeId): string {
   return getKittyApiNode(id).url.replace(/\/$/, "");
+}
+
+/** Map a KittyAPI cluster origin URL to our node id. */
+export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined): KittyApiNodeId | null {
+  if (!origin?.trim()) return null;
+  const normalized = origin.trim().replace(/\/$/, "");
+  const match = KITTY_API_NODES.find((node) => node.url === normalized || node.host === normalized);
+  return match?.id ?? null;
 }
 
 export function parseKittyNodeParam(value: string | null | undefined): KittyApiNodeId {

@@ -1,4 +1,3 @@
-import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   fetchMiruroVideoStream,
@@ -10,14 +9,12 @@ import {
   isAnimoServerId,
 } from "@/lib/providers/animo-api";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
+import {
+  fetchKittyProviderStream,
+  type KittyRawStream,
+} from "@/lib/kitty/kitty-stream-api";
 
-export type KittyRawStream = {
-  file: string;
-  headers: Record<string, string>;
-  download?: string | null;
-  tracks?: Array<{ file?: string; url?: string; kind?: string; label?: string; default?: boolean }>;
-  server?: string | null;
-};
+export type { KittyRawStream } from "@/lib/kitty/kitty-stream-api";
 
 export async function fetchKittyStreamRaw(
   provider: string,
@@ -74,32 +71,11 @@ export async function fetchKittyStreamRaw(
     }
   }
 
-  const path = buildKittyStreamDirectPath({
+  return fetchKittyProviderStream({
     provider: provider as KittyProvider,
     anilistId,
     episode,
     audio,
     title,
   });
-
-  try {
-    const res = await kittyApiFetch(path, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(20_000),
-      headers: kittyStreamHeaders(),
-    });
-
-    const data = await res.json();
-    if (!res.ok || !data?.file) return null;
-
-    return {
-      file: data.file as string,
-      headers: (data.headers ?? {}) as Record<string, string>,
-      download: typeof data.download === "string" ? data.download : null,
-      tracks: Array.isArray(data.tracks) ? data.tracks : undefined,
-      server: typeof data.server === "string" ? data.server : null,
-    };
-  } catch {
-    return null;
-  }
 }

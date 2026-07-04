@@ -13,6 +13,7 @@ import {
 } from "@/lib/kitty/kitty-api-core";
 
 export {
+  buildKittyAutoStreamPath,
   buildKittyStreamDirectPath,
   kittyApiHeaders,
   kittyApiPath,

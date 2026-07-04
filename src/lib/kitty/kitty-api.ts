@@ -1,5 +1,9 @@
 /** Client-safe Kitty API helpers (no server-only request context). */
 export {
+  buildKittyAutoStreamPath,
+  buildKittyBenchmarkPath,
+  buildKittyHealthPath,
+  buildKittySpeedtestPath,
   buildKittyStreamDirectPath,
   buildKittyStreamDirectUrl,
   DEFAULT_KITTY_API_BASE,
@@ -9,12 +13,18 @@ export {
   getKittyApiNode,
   getKittyApiNodeUrl,
   isKittyApiNodeId,
+  isKittyPublicPath,
   KITTY_API_NODES,
   kittyApiFetch,
   kittyApiHeaders,
   kittyApiPath,
   kittyStreamHeaders,
   parseKittyNodeParam,
+  parseKittyStreamJson,
+  resolveKittyNodeIdFromOrigin,
   type KittyApiFetchOptions,
   type KittyApiNodeId,
+  type KittyBenchmarkNode,
+  type KittyBenchmarkResponse,
+  type KittyStreamPayload,
 } from "@/lib/kitty/kitty-api-core";

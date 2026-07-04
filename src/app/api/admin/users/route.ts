@@ -23,6 +23,8 @@ export async function GET(req: Request) {
         avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
         totpEnabled: users.totpEnabled,
+        kittycoinBalance: users.kittycoinBalance,
+        supporterUntil: users.supporterUntil,
         bannedAt: users.bannedAt,
         banReason: users.banReason,
         mutedUntil: users.mutedUntil,
@@ -59,6 +61,11 @@ export async function GET(req: Request) {
         ...u,
         createdAt: u.createdAt?.toISOString?.() ?? u.createdAt,
         totpEnabled: u.totpEnabled ?? false,
+        kittycoinBalance: u.kittycoinBalance ?? 0,
+        supporterUntil:
+          u.supporterUntil instanceof Date
+            ? u.supporterUntil.toISOString()
+            : u.supporterUntil ?? null,
         lastActiveAt: lastActiveMap.get(u.id) ?? null,
         moderation: toModerationStatus(u),
       })),
@@ -74,6 +81,8 @@ export async function GET(req: Request) {
       u.avatar_url AS "avatarUrl",
       u.created_at AS "createdAt",
       u.totp_enabled AS "totpEnabled",
+      u.kittycoin_balance AS "kittycoinBalance",
+      u.supporter_until AS "supporterUntil",
       u.banned_at AS "bannedAt",
       u.ban_reason AS "banReason",
       u.muted_until AS "mutedUntil",
@@ -95,6 +104,11 @@ export async function GET(req: Request) {
       avatarUrl: u.avatarUrl ?? null,
       createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
       totpEnabled: Boolean(u.totpEnabled),
+      kittycoinBalance: Number(u.kittycoinBalance ?? 0),
+      supporterUntil:
+        u.supporterUntil instanceof Date
+          ? u.supporterUntil.toISOString()
+          : u.supporterUntil ?? null,
       lastActiveAt: u.lastActiveAt instanceof Date ? u.lastActiveAt.toISOString() : (u.lastActiveAt ?? null),
       moderation: toModerationStatus({
         bannedAt: u.bannedAt instanceof Date ? u.bannedAt : (u.bannedAt ? new Date(String(u.bannedAt)) : null),

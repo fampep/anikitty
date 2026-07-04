@@ -33,7 +33,8 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { buildKittyStreamDirectPath, handleKittyApiRequest, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
+import { handleKittyApiRequest } from "@/lib/kitty/kitty-api-server";
+import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
@@ -221,6 +222,28 @@ export async function GET(req: Request) {
 
   if (provider === "Miruro") {
     try {
+      const direct = await fetchKittyProviderStream({
+        provider: "Miruro",
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: subtitleCtx.audio,
+        title: titleParam,
+        directOnly: true,
+      });
+
+      if (direct?.file) {
+        return finalizeStreamResponse(
+          {
+            file: direct.file,
+            headers: direct.headers,
+            tracks: direct.tracks,
+            download: direct.download,
+            server: direct.server,
+          },
+          "Miruro",
+        );
+      }
+
       const miruro = await fetchMiruroVideoStream({
         anilistId: subtitleCtx.anilistId,
         episode: subtitleCtx.episode,
@@ -416,46 +439,31 @@ export async function GET(req: Request) {
     }
   }
 
-  const path = buildKittyStreamDirectPath({
+  const streamResult = await fetchKittyProviderStream({
     provider,
-    anilistId,
-    episode,
-    audio: audio as "sub" | "dub",
+    anilistId: subtitleCtx.anilistId,
+    episode: subtitleCtx.episode,
+    audio: subtitleCtx.audio as "sub" | "dub",
     title: titleParam,
   });
 
-  try {
-    const res = await kittyApiFetch(path, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(20_000),
-      headers: kittyStreamHeaders(),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data?.file) {
-      return Response.json(
-        { file: null, error: data?.message ?? data?.error ?? "Provider unavailable" },
-        { status: 200 },
-      );
-    }
-
-    const payload = data as StreamPayload & { server?: string; serverName?: string };
-    const serverLabel = payload.server ?? payload.serverName;
+  if (streamResult?.file) {
+    const payload = streamResult as StreamPayload;
+    const serverLabel = payload.server;
     if (typeof serverLabel === "string") {
       const trimmed = serverLabel.trim();
       payload.server = trimmed || undefined;
     }
-
     return finalizeStreamResponse(payload, provider);
-  } catch (e: unknown) {
-    const err = e as { name?: string };
-    const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
-    return Response.json(
-      { file: null, error: timedOut ? `${provider} timed out` : "Failed to reach provider" },
-      { status: 200 },
-    );
   }
+
+  return Response.json(
+    {
+      file: null,
+      error: "Provider unavailable",
+    },
+    { status: 200 },
+  );
   });
 }
 
