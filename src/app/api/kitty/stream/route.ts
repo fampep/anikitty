@@ -1,5 +1,5 @@
 import {
-  ensureMiruroSubtitleCache,
+  ensurePlaybackSubtitleCache,
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitles/subtitle-cache-store";
 import {
@@ -51,10 +51,10 @@ import {
   isOurSubtitleUrl,
   stripSubtitleTracks,
   dedupeSubtitleTracks,
-  SUBTITLE_SOURCE_PROVIDER,
   subtitleProxyUrl,
   type StreamTrack,
 } from "@/lib/subtitles/subtitle-track-utils";
+import { KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
@@ -186,11 +186,14 @@ export async function GET(req: Request) {
       : [];
 
     data.tracks = stripSubtitleTracks(data.tracks);
-    const fetchedSubs = await ensureMiruroSubtitleCache({
-      ...subtitleCtx,
-      animeTitle: titleParam,
-      streamProvider: providerName,
-    });
+    const fetchedSubs = await ensurePlaybackSubtitleCache(
+      {
+        ...subtitleCtx,
+        animeTitle: titleParam,
+        streamProvider: providerName,
+      },
+      { allowBulk: false },
+    );
 
     data.tracks = await mergeCachedSubtitleTracks(
       data.tracks,
@@ -207,9 +210,9 @@ export async function GET(req: Request) {
     if (data.tracks.some(isSubtitleTrack)) {
       data.subtitleSource = providerSubtitleTracks.length
         ? providerName
-        : SUBTITLE_SOURCE_PROVIDER;
+        : KITTY_SUB_SOURCE_PROVIDER;
     } else {
-      data.subtitleSource = SUBTITLE_SOURCE_PROVIDER;
+      data.subtitleSource = KITTY_SUB_SOURCE_PROVIDER;
     }
 
     return Response.json(data);

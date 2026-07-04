@@ -1178,7 +1178,7 @@ const VideoPlayerSection = () => {
         src={streamData.file}
         tracks={playerTracks}
         headers={playerHeaders}
-        preferSubtitles={subtitleTracks.length > 0 || streamAudio === "sub"}
+        preferSubtitles={subtitleTracks.length > 0 ? true : streamAudio === "sub"}
         preferDubAudio={streamAudio === "dub"}
         skipTimes={skipTimes}
         startTime={

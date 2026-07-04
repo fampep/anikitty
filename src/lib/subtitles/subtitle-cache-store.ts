@@ -23,8 +23,12 @@ import {
   SUBTITLE_SYNC_BATCH_SIZE,
   sleep,
 } from "@/lib/subtitles/subtitle-sync-config";
-import { fetchAnitakuSubtitleStreamFallback, fetchMiruroSubtitleStream } from "@/lib/providers/miruro-api";
-import { fetchKittySubsTracks, fetchKittySubsBulk, KITTY_SUB_SOURCE_PROVIDER, tracksFromSubsEpisode } from "@/lib/kitty/kitty-subs-api";
+import {
+  fetchKittySubsTracks,
+  fetchKittySubsBulk,
+  KITTY_SUB_SOURCE_PROVIDER,
+  tracksFromSubsEpisode,
+} from "@/lib/kitty/kitty-subs-api";
 
 export type EpisodeSubtitleCacheContext = Pick<
   SubtitleCacheContext,
@@ -38,6 +42,8 @@ export type EpisodeSubtitleCacheContext = Pick<
 export type EnsureSubtitleCacheOptions = {
   /** Re-fetch from Kitty API even when cached tracks exist (adds new languages). */
   force?: boolean;
+  /** Await bulk Kitty /subs when single-episode fetch misses (off for stream API). */
+  allowBulk?: boolean;
 };
 
 /** Subtitle VTT content is stable per episode — refresh weekly. */
@@ -233,38 +239,122 @@ function dedupeSubtitleRows<T extends SubtitleRowForDedupe>(rows: T[]): T[] {
   return [...best.values()];
 }
 
-async function fetchMiruroSubtitleTracks(
-  ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
-): Promise<{ tracks?: StreamTrack[]; headers?: Record<string, string>; animeTitle?: string | null } | null> {
-  try {
-    let result = await fetchMiruroSubtitleStream({
-      anilistId: ctx.anilistId,
-      episode: ctx.episode,
-      audio: ctx.audio,
-    });
-
-    if (!result?.tracks?.length) {
-      result = await fetchAnitakuSubtitleStreamFallback({
-        anilistId: ctx.anilistId,
-        episode: ctx.episode,
-        audio: ctx.audio,
-      });
-    }
-
-    if (!result) return null;
-
-    return {
-      tracks: result.tracks,
-      headers: result.headers,
-      animeTitle: result.animeTitle,
-    };
-  } catch {
-    return null;
-  }
+function playbackStoreBase(
+  ctx: Pick<EpisodeSubtitleCacheContext, "anilistId" | "episode" | "animeTitle">,
+) {
+  return {
+    anilistId: ctx.anilistId,
+    episode: ctx.episode,
+    audio: "sub" as const,
+    animeTitle: ctx.animeTitle,
+  };
 }
 
-/** Fetch subtitle tracks on demand (Kitty /subs → Miruro) for one episode. */
-export async function ensureMiruroSubtitleCache(
+async function cacheKittySubsTracksForPlayback(
+  tracks: StreamTrack[],
+  ctx: EpisodeSubtitleCacheContext,
+  animeTitle?: string | null,
+): Promise<StreamTrack[]> {
+  if (tracks.length === 0) return [];
+  return cacheStreamSubtitleTracks(dedupeSubtitleTracks(tracks), {
+    ...playbackStoreBase(ctx),
+    provider: KITTY_SUB_SOURCE_PROVIDER,
+    animeTitle: animeTitle ?? ctx.animeTitle ?? null,
+    headers: {},
+  });
+}
+
+/** Cache remaining bulk episodes in the background (same as library sync). */
+function cacheBulkEpisodesInBackground(
+  bulk: NonNullable<Awaited<ReturnType<typeof fetchKittySubsBulk>>>,
+  ctx: EpisodeSubtitleCacheContext,
+  skipEpisode?: number,
+): void {
+  void (async () => {
+    for (const row of bulk.episodes) {
+      if (row.episode === skipEpisode) continue;
+      const tracks = dedupeSubtitleTracks(tracksFromSubsEpisode(row));
+      if (tracks.length === 0) continue;
+      await cacheStreamSubtitleTracks(tracks, {
+        anilistId: ctx.anilistId,
+        episode: row.episode,
+        audio: "sub",
+        provider: KITTY_SUB_SOURCE_PROVIDER,
+        animeTitle: bulk.animeTitle ?? ctx.animeTitle ?? null,
+        headers: {},
+      });
+    }
+  })().catch(() => {});
+}
+
+/** Fetch via Kitty /subs across all providers (single episode, then bulk like library sync). */
+async function fetchKittySubsForPlayback(
+  ctx: EpisodeSubtitleCacheContext,
+  opts?: { allowBulk?: boolean },
+): Promise<StreamTrack[]> {
+  const single = await fetchKittySubsTracks({
+    anilistId: ctx.anilistId,
+    episode: ctx.episode,
+    audio: ctx.audio,
+    title: ctx.animeTitle,
+    preferProvider: ctx.streamProvider,
+  });
+
+  if (single?.tracks.length) {
+    const stored = await cacheKittySubsTracksForPlayback(
+      single.tracks,
+      ctx,
+      single.animeTitle,
+    );
+    if (stored.some(isSubtitleTrack)) return stored;
+  }
+
+  if (opts?.allowBulk !== true) {
+    void fetchKittySubsBulk({
+      anilistId: ctx.anilistId,
+      audio: "sub",
+      title: ctx.animeTitle,
+      preferProvider: ctx.streamProvider,
+    })
+      .then((bulk) => {
+        if (!bulk?.episodes.length) return;
+        cacheBulkEpisodesInBackground(bulk, ctx);
+      })
+      .catch(() => {});
+    return loadStoredPlaybackSubtitleTracks(ctx);
+  }
+
+  const bulk = await fetchKittySubsBulk({
+    anilistId: ctx.anilistId,
+    audio: "sub",
+    title: ctx.animeTitle,
+    preferProvider: ctx.streamProvider,
+  });
+
+  if (!bulk?.episodes.length) return [];
+
+  const episodeRow = bulk.episodes.find((row) => row.episode === ctx.episode);
+  if (episodeRow) {
+    const tracks = dedupeSubtitleTracks(tracksFromSubsEpisode(episodeRow));
+    if (tracks.length) {
+      const stored = await cacheKittySubsTracksForPlayback(
+        tracks,
+        ctx,
+        bulk.animeTitle ?? ctx.animeTitle,
+      );
+      if (stored.some(isSubtitleTrack)) {
+        cacheBulkEpisodesInBackground(bulk, ctx, ctx.episode);
+        return stored;
+      }
+    }
+  }
+
+  cacheBulkEpisodesInBackground(bulk, ctx);
+  return loadStoredPlaybackSubtitleTracks(ctx);
+}
+
+/** Fetch subtitle tracks on demand via Kitty /subs (multi-provider, like library sync). */
+export async function ensurePlaybackSubtitleCache(
   ctx: EpisodeSubtitleCacheContext,
   opts?: EnsureSubtitleCacheOptions,
 ): Promise<StreamTrack[]> {
@@ -273,53 +363,19 @@ export async function ensureMiruroSubtitleCache(
     return cachedPlayback;
   }
 
-  /** Subtitle rows are keyed by sub audio so dub streams reuse the same tracks. */
-  const storeBase = {
-    anilistId: ctx.anilistId,
-    episode: ctx.episode,
-    audio: "sub" as const,
-    animeTitle: ctx.animeTitle,
-  };
-
-  const kitty = await fetchKittySubsTracks({
-    anilistId: ctx.anilistId,
-    episode: ctx.episode,
-    audio: ctx.audio,
-    title: ctx.animeTitle,
-    preferProvider: ctx.streamProvider,
+  const fetched = await fetchKittySubsForPlayback(ctx, {
+    allowBulk: opts?.allowBulk,
   });
+  if (fetched.some(isSubtitleTrack)) return fetched;
 
-  if (kitty?.tracks.length) {
-    return cacheStreamSubtitleTracks(dedupeSubtitleTracks(kitty.tracks), {
-      ...storeBase,
-      provider: KITTY_SUB_SOURCE_PROVIDER,
-      animeTitle: kitty.animeTitle,
-      headers: {},
-    });
-  }
-
-  let stream = await fetchMiruroSubtitleTracks(ctx);
-  const hasSubs = stream?.tracks?.some(isSubtitleTrack);
-
-  if (!hasSubs && ctx.audio === "dub") {
-    stream = await fetchMiruroSubtitleTracks({ ...ctx, audio: "sub" });
-  }
-
-  if (!stream?.tracks?.length) return cachedPlayback;
-
-  return cacheStreamSubtitleTracks(
-    dedupeSubtitleTracks(stream.tracks.filter(isSubtitleTrack)),
-    {
-      ...storeBase,
-      provider: SUBTITLE_SOURCE_PROVIDER,
-      animeTitle: stream.animeTitle,
-      headers: stream.headers,
-    },
-  );
+  return cachedPlayback;
 }
 
-/** @deprecated Use ensureMiruroSubtitleCache */
-export const ensureAnitakuSubtitleCache = ensureMiruroSubtitleCache;
+/** @deprecated Use ensurePlaybackSubtitleCache */
+export const ensureMiruroSubtitleCache = ensurePlaybackSubtitleCache;
+
+/** @deprecated Use ensurePlaybackSubtitleCache */
+export const ensureAnitakuSubtitleCache = ensurePlaybackSubtitleCache;
 
 /** Cache every episode from a bulk Kitty `/subs` response. Returns episodes cached. */
 export async function cacheKittySubsBulkForAnime(opts: {
@@ -346,7 +402,7 @@ export async function cacheKittySubsBulkForAnime(opts: {
     const stored = await cacheStreamSubtitleTracks(tracks, {
       anilistId: opts.anilistId,
       episode: row.episode,
-      audio: opts.audio,
+      audio: "sub",
       provider: KITTY_SUB_SOURCE_PROVIDER,
       animeTitle: bulk.animeTitle ?? opts.animeTitle ?? null,
       headers: {},
@@ -590,9 +646,9 @@ export async function ensureIncrementalSubtitleCache(
 
         await Promise.all(
           batch.map((ep) =>
-            ensureMiruroSubtitleCache(
+            ensurePlaybackSubtitleCache(
               { anilistId, episode: ep, audio: "sub", animeTitle },
-              { force },
+              { force, allowBulk: true },
             ),
           ),
         );
@@ -610,9 +666,9 @@ export async function ensureIncrementalSubtitleCache(
       // Unknown episode count — try next sequential episode after highest cached.
       const nextEp = cachedEps.size > 0 ? Math.max(...cachedEps) + 1 : 1;
       const before = cachedEps.size;
-      await ensureMiruroSubtitleCache(
+      await ensurePlaybackSubtitleCache(
         { anilistId, episode: nextEp, audio: "sub", animeTitle },
-        { force },
+        { force, allowBulk: true },
       );
       cachedEps = await getCachedEpisodeNumbers(anilistId);
       if (cachedEps.size > before) {
@@ -661,7 +717,7 @@ async function fetchAnilistEpisodeCount(anilistId: number): Promise<number> {
   }
 }
 
-/** Download subtitle tracks from Miruro, persist to Postgres, and rewrite file URLs to our API. */
+/** Download subtitle tracks, persist to Postgres, and rewrite file URLs to our API. */
 export async function cacheStreamSubtitleTracks(
   tracks: StreamTrack[] | undefined,
   ctx: SubtitleCacheContext,
@@ -696,7 +752,7 @@ export async function cacheStreamSubtitleTracks(
   return results;
 }
 
-/** Inject cached Miruro subtitle tracks (always sourced from SUBTITLE_SOURCE_PROVIDER). */
+/** Inject cached Kitty subtitle tracks for playback. */
 export async function mergeCachedSubtitleTracks(
   tracks: StreamTrack[] | undefined,
   ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,

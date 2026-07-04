@@ -113,12 +113,18 @@ function buildSubtitleSwitchOptions(track: { file: string; label?: string }) {
   return {
     name: track.label,
     type,
+    encoding: "utf-8",
     escape: false,
     onVttLoad:
       type === "ass"
         ? undefined
         : (vtt: string) => sanitizeVttOrSrtContent(vtt),
   };
+}
+
+function scheduleSubtitleReapply(apply: () => void): () => void {
+  const timers = [0, 400, 1200].map((delay) => window.setTimeout(apply, delay));
+  return () => timers.forEach((id) => window.clearTimeout(id));
 }
 
 function applySubtitleMode(
@@ -137,9 +143,10 @@ function applySubtitleMode(
 
   if (preferSubtitles && subTracks.length > 0) {
     const active = subTracks.find((track) => track.default) ?? subTracks[0];
+    const url = resolveTrackSrc(active.file);
     disableNativeTextTracks(art.video);
     art.subtitle.show = true;
-    art.subtitle.switch(active.file, buildSubtitleSwitchOptions(active));
+    art.subtitle.switch(url, buildSubtitleSwitchOptions({ ...active, file: url }));
     applySubtitleStyles(art, settings);
     return "external";
   }
@@ -426,12 +433,19 @@ export default function KittyPlayer({
   useEffect(() => {
     const art = artRef.current;
     if (!art || !ready) return;
-    subtitleModeRef.current = applySubtitleMode(
-      art,
-      tracks,
-      preferSubtitles,
-      subtitleSettings,
-    );
+
+    const apply = () => {
+      if (!artRef.current) return;
+      subtitleModeRef.current = applySubtitleMode(
+        artRef.current,
+        tracksRef.current,
+        preferSubtitlesRef.current,
+        subtitleSettings,
+      );
+    };
+
+    apply();
+    return scheduleSubtitleReapply(apply);
   }, [tracks, preferSubtitles, ready, subtitleSettings, externalSubtitleSig]);
 
   useEffect(() => {
@@ -474,7 +488,7 @@ export default function KittyPlayer({
     const container = containerRef.current;
     if (!container || !proxiedSrc) return;
 
-    const subTracks = resolveSubtitleTracks(tracks);
+    const subTracks = resolveSubtitleTracks(tracksRef.current);
     const hasExternalSubs = subTracks.length > 0;
     const showSubs = preferSubtitlesRef.current;
 
@@ -488,6 +502,7 @@ export default function KittyPlayer({
         ? {
             url: defaultSub.file,
             type: defaultSubType,
+            encoding: "utf-8",
             escape: false,
             onVttLoad:
               defaultSubType === "ass"
@@ -507,6 +522,7 @@ export default function KittyPlayer({
         html: track.label || labelToLanguage(track.label || ""),
         url: track.file,
         type,
+        encoding: "utf-8",
         escape: false,
         onVttLoad:
           type === "ass"
