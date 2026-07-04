@@ -1111,6 +1111,7 @@
       "proxyChooserAuto": "Auto-picks the lowest ping proxy. Tap another to override.",
       "proxyChooserManual": "Using your chosen proxy. Tap a location to switch.",
       "proxyPingMs": "{ms} ms",
+      "proxyPingStats": "{ms} ms · ~{mbps} Mbps",
       "proxyPingLoading": "Measuring…",
       "proxyPingUnavailable": "Unreachable",
       "proxyFastest": "Fastest"

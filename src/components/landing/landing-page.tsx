@@ -21,7 +21,6 @@ import { nightTokyo } from "@/utils/fonts";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useAuthStore } from "@/store/auth-store";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
-import LanguageSwitcher from "@/components/layout/language-switcher";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { ROUTES } from "@/constants/routes";
@@ -143,7 +142,6 @@ export default function LandingPage({ initialPosters = [] }: Props) {
           />
         </Link>
         <div className="flex items-center gap-2">
-          <LanguageSwitcher compact className="hidden sm:inline-flex" />
           <Link
             href={ROUTES.SEARCH}
             prefetch

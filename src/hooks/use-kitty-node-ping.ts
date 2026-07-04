@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { KittyApiNodeId, KittyNodePingResult } from "@/lib/kitty/kitty-api-nodes";
+import { measureAllKittyNodesFromClient } from "@/lib/kitty/kitty-node-ping-client";
 
 const PING_CACHE_TTL_MS = 60_000;
 
@@ -14,11 +15,8 @@ async function fetchNodePings(): Promise<KittyNodePingResult[]> {
   }
 
   if (!pingInflight) {
-    pingInflight = fetch("/api/kitty/nodes/ping", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("ping failed");
-        const data = (await res.json()) as { nodes?: KittyNodePingResult[] };
-        const nodes = Array.isArray(data.nodes) ? data.nodes : [];
+    pingInflight = measureAllKittyNodesFromClient()
+      .then((nodes) => {
         pingCache = { at: Date.now(), nodes };
         return nodes;
       })
@@ -71,7 +69,15 @@ export function useKittyNodePing() {
     return map;
   }, [nodes]);
 
+  const bandwidthByNode = useMemo(() => {
+    const map: Partial<Record<KittyApiNodeId, number | null>> = {};
+    for (const row of nodes) {
+      map[row.id] = row.bandwidthMbps;
+    }
+    return map;
+  }, [nodes]);
+
   const fastestId = useMemo(() => pickFastestKittyNode(nodes), [nodes]);
 
-  return { nodes, pingByNode, fastestId, ready, loading };
+  return { nodes, pingByNode, bandwidthByNode, fastestId, ready, loading };
 }

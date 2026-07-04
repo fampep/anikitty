@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import LanguageSwitcher from "@/components/layout/language-switcher";
 import { ROUTES } from "@/constants/routes";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { useT } from "@/providers/i18n-provider";
@@ -32,7 +31,6 @@ export default function LandingFooter() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <LanguageSwitcher compact />
           <a
             href={DISCORD_INVITE_URL}
             target="_blank"

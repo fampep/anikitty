@@ -8,7 +8,6 @@ import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare } fro
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
-import LanguageSwitcher from "@/components/layout/language-switcher";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 
@@ -87,9 +86,6 @@ const Footer = () => {
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.account")}</p>
             <NavLink href="/settings" label={t("footer.settings")} />
             <NavLink href="/faq" label={t("nav.faq")} />
-            <div className="pt-1">
-              <LanguageSwitcher compact />
-            </div>
             <a
               href="https://www.anisurge.lol/"
               target="_blank"

@@ -1,30 +1,51 @@
-import { KITTY_API_NODES, type KittyApiNodeId, type KittyNodePingResult } from "@/lib/kitty/kitty-api-nodes";
-import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
+import { KITTY_API_NODES, type KittyNodePingResult } from "@/lib/kitty/kitty-api-nodes";
 
 export const dynamic = "force-dynamic";
 
-const PING_TIMEOUT_MS = 5_000;
+const PING_TIMEOUT_MS = 20_000;
 
-async function measureNodePing(nodeUrl: string): Promise<{ pingMs: number | null; ok: boolean }> {
-  const start = Date.now();
+type BenchmarkNode = {
+  origin?: string;
+  online?: boolean;
+  latencyMs?: number;
+  bandwidthMbps?: number;
+};
+
+async function measureNodePing(nodeUrl: string): Promise<Omit<KittyNodePingResult, "id">> {
+  const base = nodeUrl.replace(/\/$/, "");
+
   try {
-    const res = await fetch(`${nodeUrl.replace(/\/$/, "")}/health`, {
+    const res = await fetch(`${base}/proxy/benchmark?refresh=1`, {
       cache: "no-store",
       signal: AbortSignal.timeout(PING_TIMEOUT_MS),
-      headers: kittyStreamHeaders(),
     });
-    return { pingMs: Math.round(Date.now() - start), ok: res.ok };
+    if (!res.ok) {
+      return { pingMs: null, bandwidthMbps: null, ok: false };
+    }
+
+    const data = (await res.json()) as { nodes?: BenchmarkNode[] };
+    const entry = data.nodes?.find((node) => node.origin?.replace(/\/$/, "") === base);
+
+    if (!entry?.online) {
+      return { pingMs: null, bandwidthMbps: null, ok: false };
+    }
+
+    return {
+      pingMs: entry.latencyMs ?? null,
+      bandwidthMbps: entry.bandwidthMbps ?? null,
+      ok: true,
+    };
   } catch {
-    return { pingMs: null, ok: false };
+    return { pingMs: null, bandwidthMbps: null, ok: false };
   }
 }
 
 export async function GET() {
   const nodes: KittyNodePingResult[] = await Promise.all(
-    KITTY_API_NODES.map(async (node) => {
-      const result = await measureNodePing(node.url);
-      return { id: node.id, ...result };
-    }),
+    KITTY_API_NODES.map(async (node) => ({
+      id: node.id,
+      ...(await measureNodePing(node.url)),
+    })),
   );
 
   return Response.json({ nodes });

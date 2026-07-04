@@ -19,7 +19,6 @@ import {
   Shield,
   Palette,
   EyeOff,
-  Languages,
   ExternalLink,
   Coins,
 } from "lucide-react";
@@ -44,8 +43,7 @@ import DiscordConnect from "@/components/auth/discord-connect";
 import AnisurgeConnect from "@/components/auth/anisurge-connect";
 import { RoleBadge } from "@/components/profile/role-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useI18n, useT } from "@/providers/i18n-provider";
-import { locales, localeLabels, type Locale } from "@/i18n/config";
+import { useT } from "@/providers/i18n-provider";
 import { ROUTES } from "@/constants/routes";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 
@@ -343,64 +341,6 @@ function AppearanceSection() {
   );
 }
 
-function LanguageSection() {
-  const t = useT();
-  const { locale, setLocale } = useI18n();
-  const [saving, setSaving] = useState<Locale | null>(null);
-
-  const handleSelect = async (code: Locale) => {
-    if (code === locale) return;
-    setSaving(code);
-    try {
-      await setLocale(code);
-    } finally {
-      setSaving(null);
-    }
-  };
-
-  return (
-    <SectionCard>
-      <SectionHeader
-        icon={<Languages className="w-4 h-4" />}
-        title={t("settings.language")}
-        description={t("settings.languageDesc")}
-      />
-      <SectionBody>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {locales.map((code) => {
-            const selected = locale === code;
-            const pending = saving === code;
-            return (
-              <button
-                key={code}
-                type="button"
-                onClick={() => void handleSelect(code)}
-                disabled={pending}
-                className={cn(
-                  "flex items-center justify-between gap-2 rounded-xl border px-3.5 py-3 text-left transition-all duration-200",
-                  selected
-                    ? "border-white/40 bg-white/8 ring-1 ring-white/20"
-                    : "border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5",
-                  pending && "opacity-60",
-                )}
-              >
-                <span className={cn("text-sm font-medium", selected ? "text-white" : "text-white/65")}>
-                  {localeLabels[code]}
-                </span>
-                {pending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white/40 shrink-0" />
-                ) : selected ? (
-                  <div className="w-2 h-2 rounded-full bg-white/60 shrink-0" />
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </SectionBody>
-    </SectionCard>
-  );
-}
-
 function EpisodeLayoutSection({
   episodeLayouts,
   episodeLayout,
@@ -541,11 +481,9 @@ function AudioHelpSection() {
 
 function SettingsHero({
   layoutLabel,
-  localeLabel,
   preferDub,
 }: {
   layoutLabel: string;
-  localeLabel: string;
   preferDub: boolean;
 }) {
   const t = useT();
@@ -610,8 +548,7 @@ function SettingsHero({
             </p>
 
             <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 justify-center sm:justify-start">
-              <StatPill label={localeLabel} accent />
-              <StatPill label={layoutLabel} />
+              <StatPill label={layoutLabel} accent />
               <StatPill label={preferDub ? t("settings.preferDub") : t("card.sub")} />
               {auth?.role && auth.role !== "user" && <RoleBadge role={auth.role} size="sm" />}
             </div>
@@ -624,7 +561,6 @@ function SettingsHero({
 
 export default function SettingsPage() {
   const t = useT();
-  const { locale } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -659,7 +595,6 @@ export default function SettingsPage() {
 
   const layoutLabel =
     episodeLayouts.find((o) => o.value === episodeLayout)?.label ?? episodeLayout;
-  const localeLabel = localeLabels[locale as Locale] ?? locale;
 
   const tabs = useMemo(() => {
     const items: { value: SettingsTab; label: string }[] = [
@@ -677,7 +612,7 @@ export default function SettingsPage() {
 
   return (
     <div className="w-full min-h-screen pb-28">
-      <SettingsHero layoutLabel={layoutLabel} localeLabel={localeLabel} preferDub={preferDub} />
+      <SettingsHero layoutLabel={layoutLabel} preferDub={preferDub} />
 
       <Container>
         {auth ? (
@@ -691,7 +626,6 @@ export default function SettingsPage() {
             </TabsList>
 
             <TabsContent value="general" className="mt-8 space-y-5">
-              <LanguageSection />
               {auth && <ShopSection />}
               <PlaybackSection
                 preferDub={preferDub}
@@ -787,7 +721,6 @@ export default function SettingsPage() {
           </Tabs>
         ) : (
           <div className="mt-2 space-y-5">
-            <LanguageSection />
             <PlaybackSection
               preferDub={preferDub}
               setPreferDub={setPreferDub}

@@ -8,13 +8,24 @@ import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useT } from "@/providers/i18n-provider";
 import { Globe2, Loader2 } from "lucide-react";
 
+function formatMbps(mbps: number): string | number {
+  return mbps >= 10 ? Math.round(mbps) : mbps.toFixed(1);
+}
+
 function formatPing(
   pingMs: number | null | undefined,
+  bandwidthMbps: number | null | undefined,
   loading: boolean,
   t: (key: string, vars?: Record<string, string | number>) => string,
 ) {
   if (loading && pingMs == null) return t("watch.playerSettings.proxyPingLoading");
   if (pingMs == null) return t("watch.playerSettings.proxyPingUnavailable");
+  if (bandwidthMbps != null && bandwidthMbps > 0) {
+    return t("watch.playerSettings.proxyPingStats", {
+      ms: pingMs,
+      mbps: formatMbps(bandwidthMbps),
+    });
+  }
   return t("watch.playerSettings.proxyPingMs", { ms: pingMs });
 }
 
@@ -23,7 +34,7 @@ export default function KittyProxyChooser() {
   const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const kittyProxyManual = useSettingsStore((s) => s.kittyProxyManual);
   const selectKittyProxyNode = useSettingsStore((s) => s.selectKittyProxyNode);
-  const { pingByNode, fastestId, loading } = useKittyNodePing();
+  const { pingByNode, bandwidthByNode, fastestId, loading } = useKittyNodePing();
 
   return (
     <div className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 space-y-2.5">
@@ -46,6 +57,7 @@ export default function KittyProxyChooser() {
         {KITTY_API_NODES.map((node) => {
           const selected = kittyProxyNode === node.id;
           const pingMs = pingByNode[node.id];
+          const bandwidthMbps = bandwidthByNode[node.id];
           const isFastest = fastestId === node.id && pingMs != null;
 
           return (
@@ -76,7 +88,7 @@ export default function KittyProxyChooser() {
                   pingMs != null ? "text-white/40" : "text-white/25",
                 )}
               >
-                {formatPing(pingMs, loading, t)}
+                {formatPing(pingMs, bandwidthMbps, loading, t)}
               </p>
             </button>
           );

@@ -67,5 +67,6 @@ export function isKittyApiNodeId(value: string): value is KittyApiNodeId {
 export type KittyNodePingResult = {
   id: KittyApiNodeId;
   pingMs: number | null;
+  bandwidthMbps: number | null;
   ok: boolean;
 };

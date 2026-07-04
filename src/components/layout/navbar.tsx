@@ -27,7 +27,6 @@ import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
-import LanguageSwitcher from "./language-switcher";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import NotificationBell from "./notification-bell";
@@ -398,7 +397,6 @@ const NavBar = () => {
             <div className="hidden items-center gap-1.5 sm:gap-2 lg:flex">
               {user && <KittycoinPill />}
               {user && <NotificationBell />}
-              <LanguageSwitcher compact />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
 
@@ -495,10 +493,6 @@ const MobileMenuSheet = ({
               );
             })}
           </nav>
-
-          <div className="border-t border-white/[0.06] p-4">
-            <LanguageSwitcher className="w-full justify-between" />
-          </div>
         </div>
       </SheetContent>
     </Sheet>
