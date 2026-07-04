@@ -1,3 +1,4 @@
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { KittyProvider } from "@/query/stream/get-kitty-stream";
 
 export function buildVideoDownloadFilename(
@@ -9,16 +10,17 @@ export function buildVideoDownloadFilename(
   return `${anilistId}-ep${episode}-${audio}.${extension}`;
 }
 
-export function buildVideoDownloadParams(
-  anilistId: number,
+export function buildVideoDownloadParams(  anilistId: number,
   episode: number,
   audio: "sub" | "dub",
   provider: KittyProvider,
+  kittyNode?: KittyApiNodeId,
 ): Record<string, string> {
   return {
     anilistId: String(anilistId),
     episode: String(episode),
     audio,
     provider,
+    kittyNode: kittyNode ?? "primary",
   };
 }

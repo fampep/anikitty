@@ -13,6 +13,7 @@ import {
 } from "@/query/stream/download-episode-video";
 import type { KittyProvider } from "@/query/stream/get-kitty-stream";
 import type { Episode } from "@/types/episodes";
+import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   anilistId: number;
@@ -30,6 +31,7 @@ export default function WatchDownloadPanel({
   provider,
 }: Props) {
   const t = useT();
+  const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(() => new Set());
   const [downloadingCurrent, setDownloadingCurrent] = useState(false);
@@ -59,7 +61,7 @@ export default function WatchDownloadPanel({
   const handleDownloadCurrent = async () => {
     setDownloadingCurrent(true);
     try {
-      await downloadEpisodeVideo(anilistId, currentEpisodeNumber, audio, provider);
+      await downloadEpisodeVideo(anilistId, currentEpisodeNumber, audio, provider, kittyProxyNode);
       toast.success(t("watch.downloadEpisodeSuccess"));
     } catch (err) {
       if (err instanceof VideoDownloadDisabledError) {
@@ -88,6 +90,7 @@ export default function WatchDownloadPanel({
             id: "watch-download-batch",
           });
         },
+        kittyProxyNode,
       );
       toast.dismiss("watch-download-batch");
       if (ok > 0) {

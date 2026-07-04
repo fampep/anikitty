@@ -1,4 +1,4 @@
-import { kittyApiFetch } from "@/lib/kitty/kitty-api";
+import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import type { AnilistMediaList } from "@/types/anilist-animes";
 
 export const ANILIST_STATUS_TO_FOLDER: Record<string, string> = {

@@ -1,44 +1,18 @@
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
-import { kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
+import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
+import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import {
+  DEFAULT_MIRURO_PIPE_PROVIDER,
+  MIRURO_PIPE_PROVIDERS,
+  MIRURO_SUB_PROVIDERS,
+  MIRURO_VIDEO_PROVIDER_ORDER,
+  isMiruroPipeProviderId,
+  type MiruroPipeProviderId,
+  type MiruroSkipTimes,
+} from "@/lib/providers/miruro-types";
 
-/** External VTT providers — bonk first (best subtitle support per Miruro pipe). */
-export const MIRURO_SUB_PROVIDERS = ["bonk", "ally", "kiwi", "moo", "pewe"] as const;
-
-/** Native Miruro pipe providers for video (iframe mirrors last). */
-export const MIRURO_PIPE_PROVIDERS = [
-  { id: "bonk", label: "Bonk", native: true },
-  { id: "kiwi", label: "Kiwi", native: true },
-  { id: "ally", label: "Ally", native: true },
-  { id: "moo", label: "Moo", native: true },
-  { id: "pewe", label: "Pewe", native: true },
-  { id: "bee", label: "Bee", native: true },
-  { id: "hop", label: "Hop", native: true },
-  { id: "nun", label: "Nun", native: false },
-  { id: "bun", label: "Bun", native: false },
-  { id: "twin", label: "Twin", native: false },
-  { id: "cog", label: "Cog", native: false },
-] as const;
-
-export type MiruroPipeProviderId = (typeof MIRURO_PIPE_PROVIDERS)[number]["id"];
-
-export const DEFAULT_MIRURO_PIPE_PROVIDER: MiruroPipeProviderId = "bonk";
-
-/** Auto-fallback order when no pipe provider is selected. */
-export const MIRURO_VIDEO_PROVIDER_ORDER: MiruroPipeProviderId[] = [
-  "bonk",
-  "kiwi",
-  "ally",
-  "moo",
-  "pewe",
-  "bee",
-  "hop",
-];
-
-export type MiruroSkipTimes = {
-  intro?: { start: number; end: number };
-  outro?: { start: number; end: number };
-};
+export * from "@/lib/providers/miruro-types";
 
 export type MiruroVideoStreamResult = {
   file: string;
@@ -472,10 +446,6 @@ function extractVideoUrl(data: Record<string, unknown>): { file: string; referer
   }
 
   return null;
-}
-
-export function isMiruroPipeProviderId(value: string): value is MiruroPipeProviderId {
-  return MIRURO_PIPE_PROVIDERS.some((p) => p.id === value);
 }
 
 /** Video + subtitles + skip times via GET /miruro/stream. */

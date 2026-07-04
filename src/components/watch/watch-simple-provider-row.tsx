@@ -8,11 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-api";
-import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-api";
-import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-api";
-import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-api";
-import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-api";
+import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-types";
+import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-config";
+import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-config";
+import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-config";
+import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";

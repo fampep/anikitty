@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import { DEFAULT_KITTY_API_NODE_ID } from "@/lib/kitty/kitty-api-nodes";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   type SubtitleFontWeight,
@@ -42,6 +44,10 @@ interface ISettingsStore {
   /** Collapsed SUB / DUB / HARDSUB / MULTI rows in the provider grid. */
   providerSectionHidden: Partial<Record<ProviderAudioMode, boolean>>;
   toggleProviderSectionHidden: (mode: ProviderAudioMode) => void;
+
+  /** KittyAPI proxy node for streaming (Primary / Fallback). */
+  kittyProxyNode: KittyApiNodeId;
+  setKittyProxyNode: (node: KittyApiNodeId) => void;
 
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
@@ -95,6 +101,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           },
         })),
 
+      kittyProxyNode: DEFAULT_KITTY_API_NODE_ID,
+      setKittyProxyNode: (kittyProxyNode) => set({ kittyProxyNode }),
+
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
         set((s) => ({
@@ -121,7 +130,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 14,
+      version: 15,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -133,6 +142,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         providerAutoFallback: state.providerAutoFallback,
         simpleProviderPicker: state.simpleProviderPicker,
         providerSectionHidden: state.providerSectionHidden,
+        kittyProxyNode: state.kittyProxyNode,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -176,6 +186,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 14) {
           next.providerSectionHidden = next.providerSectionHidden ?? {};
+        }
+        if (version < 15) {
+          next.kittyProxyNode = next.kittyProxyNode ?? DEFAULT_KITTY_API_NODE_ID;
         }
         return next as ISettingsStore;
       },

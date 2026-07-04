@@ -1,7 +1,7 @@
 import {
   KITTY_SUB_PROVIDERS_FALLBACK,
   KITTY_SUB_SOURCE_PROVIDER,
-} from "@/lib/kitty/kitty-subs-api";
+} from "@/lib/kitty/kitty-subs-config";
 
 /** Upstream Miruro stream subtitle cache rows (legacy). */
 export const SUBTITLE_SOURCE_PROVIDER = "Miruro";
@@ -9,7 +9,7 @@ export const SUBTITLE_SOURCE_PROVIDER = "Miruro";
 export {
   ANIKITTY_SUBTITLE_PROXY_LABEL,
   KITTY_SUB_SOURCE_PROVIDER,
-} from "@/lib/kitty/kitty-subs-api";
+} from "@/lib/kitty/kitty-subs-config";
 
 /** Legacy cached rows — still included in library stats and listings. */
 export const SUBTITLE_LEGACY_PROVIDERS = ["Anitaku"] as const;

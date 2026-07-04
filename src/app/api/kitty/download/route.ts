@@ -1,4 +1,5 @@
 import { fetchKittyStreamRaw } from "@/lib/kitty/kitty-stream-fetch";
+import { handleKittyApiRequest } from "@/lib/kitty/kitty-api-server";
 import { fetchSegment, resolveVideoDownload } from "@/lib/kitty/hls-download";
 import { buildVideoDownloadFilename } from "@/lib/kitty/video-download-utils";
 import { VIDEO_DOWNLOAD_ENABLED } from "@/lib/kitty/video-download-config";
@@ -11,6 +12,7 @@ export async function GET(req: Request) {
     return new Response("Video downloads are temporarily disabled", { status: 503 });
   }
 
+  return handleKittyApiRequest(req, async () => {
   const { searchParams } = new URL(req.url);
   const anilistId = searchParams.get("anilistId");
   const episode = searchParams.get("episode");
@@ -80,6 +82,7 @@ export async function GET(req: Request) {
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "private, no-cache",
     },
+  });
   });
 }
 

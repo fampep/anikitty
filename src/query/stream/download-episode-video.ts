@@ -4,6 +4,7 @@ import {
   VideoDownloadDisabledError,
 } from "@/lib/kitty/video-download-config";
 import { buildVideoDownloadFilename, buildVideoDownloadParams } from "@/lib/kitty/video-download-utils";
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { KittyProvider } from "@/query/stream/get-kitty-stream";
 
 export { VideoDownloadDisabledError };
@@ -13,9 +14,10 @@ export async function downloadEpisodeVideo(
   episode: number,
   audio: "sub" | "dub",
   provider: KittyProvider,
+  kittyNode?: KittyApiNodeId,
 ): Promise<void> {
   assertVideoDownloadEnabled();
-  const params = buildVideoDownloadParams(anilistId, episode, audio, provider);
+  const params = buildVideoDownloadParams(anilistId, episode, audio, provider, kittyNode);
 
   const res = await api.get("/api/kitty/download", {
     params,
@@ -44,6 +46,7 @@ export async function downloadEpisodeVideosBatch(
   audio: "sub" | "dub",
   provider: KittyProvider,
   onProgress?: (current: number, total: number, episode: number) => void,
+  kittyNode?: KittyApiNodeId,
 ): Promise<{ ok: number; failed: number }> {
   assertVideoDownloadEnabled();
 
@@ -54,7 +57,7 @@ export async function downloadEpisodeVideosBatch(
     const ep = episodes[i];
     onProgress?.(i + 1, episodes.length, ep);
     try {
-      await downloadEpisodeVideo(anilistId, ep, audio, provider);
+      await downloadEpisodeVideo(anilistId, ep, audio, provider, kittyNode);
       ok++;
       if (i < episodes.length - 1) {
         await new Promise((r) => setTimeout(r, 800));

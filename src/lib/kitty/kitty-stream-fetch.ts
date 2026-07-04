@@ -1,4 +1,4 @@
-import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
+import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   fetchMiruroVideoStream,

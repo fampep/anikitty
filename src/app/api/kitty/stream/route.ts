@@ -33,7 +33,7 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api";
+import { buildKittyStreamDirectPath, handleKittyApiRequest, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
@@ -79,6 +79,7 @@ type StreamPayload = {
 };
 
 export async function GET(req: Request) {
+  return handleKittyApiRequest(req, async () => {
   const { searchParams } = new URL(req.url);
   const anilistId = searchParams.get("anilistId");
   const episode = searchParams.get("episode");
@@ -455,6 +456,7 @@ export async function GET(req: Request) {
       { status: 200 },
     );
   }
+  });
 }
 
 export const maxDuration = 30;

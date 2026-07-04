@@ -5,12 +5,14 @@ import {
   fetchRestEpisodeStreamCapabilities,
   parseStreamCapabilityTarget,
 } from "@/lib/kitty/stream-capabilities";
+import { handleKittyApiRequest } from "@/lib/kitty/kitty-api-server";
 import { isKittyProvider } from "@/lib/kitty/kitty-providers";
 
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
 export async function GET(req: Request) {
+  return handleKittyApiRequest(req, async () => {
   const { searchParams } = new URL(req.url);
   const anilistIdRaw = searchParams.get("anilistId");
   const episodeRaw = searchParams.get("episode");
@@ -66,4 +68,5 @@ export async function GET(req: Request) {
   } catch {
     return Response.json({ error: "Capability probe failed" }, { status: 502 });
   }
+  });
 }

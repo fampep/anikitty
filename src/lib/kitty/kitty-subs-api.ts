@@ -1,47 +1,9 @@
-import { kittyApiFetch, kittyApiHeaders, kittyApiPath } from "@/lib/kitty/kitty-api";
+import { kittyApiFetch, kittyApiHeaders, kittyApiPath } from "@/lib/kitty/kitty-api-server";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import { dedupeSubtitleTracks } from "@/lib/subtitles/subtitle-track-utils";
+import { KITTY_SUB_PROVIDERS_FALLBACK, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-config";
 
-/** User-facing label for cached / proxied subtitle tracks (not upstream provider names). */
-export const ANIKITTY_SUBTITLE_PROXY_LABEL = "Anikitty proxy";
-
-/** Stored in Postgres — maps to {@link ANIKITTY_SUBTITLE_PROXY_LABEL} in the UI. */
-export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
-
-/**
- * Fallback order when GET /subs?list=providers is unavailable.
- * Providers with Kitty `/subs` support per KittyAPI reference.
- */
-export const KITTY_SUB_PROVIDERS_FALLBACK = [
-  "Miruro",
-  "Animex",
-  "AllAnime",
-  "MKissa",
-  "Animo",
-  "Anikoto",
-  "AnimeSogo",
-  "Anix",
-  "HiAnime",
-  "AniWatch",
-  "Animepahe",
-  "AnimeHub",
-  "AnimeNexus",
-  "Animetsu",
-  "AniWaves",
-  "Anizen",
-  "Senshi",
-  "Animeya",
-  "Anitaku",
-  "Nyanime",
-  "Animeverse",
-  "AniZone",
-  "AnimeOnsen",
-] as const;
-
-export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];
-
-/** @deprecated Use KITTY_SUB_PROVIDERS_FALLBACK */
-export const KITTY_SUB_PROVIDERS = KITTY_SUB_PROVIDERS_FALLBACK;
+export * from "@/lib/kitty/kitty-subs-config";
 
 let subsProviderOrderCache: { providers: string[]; at: number } | null = null;
 const SUBS_PROVIDER_LIST_TTL_MS = 10 * 60_000;

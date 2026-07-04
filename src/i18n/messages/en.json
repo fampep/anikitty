@@ -1105,7 +1105,9 @@
       "autoFallback": "Auto-switch sources",
       "autoFallbackDesc": "Try the next provider automatically when a stream fails",
       "simplePicker": "Simple source picker",
-      "simplePickerDesc": "Use a compact dropdown instead of the full provider grid"
+      "simplePickerDesc": "Use a compact dropdown instead of the full provider grid",
+      "proxyChooser": "Proxy chooser",
+      "proxyChooserDesc": "Pick which KittyAPI proxy handles streams for this session"
     },
     "resumePrompt": {
       "title": "Continue watching",

@@ -23,37 +23,37 @@ import {
   animexServerUsesInPlayerAudioSwitch,
   isAnimexServerId,
   type AnimexServerId,
-} from "@/lib/providers/animex-api";
+} from "@/lib/providers/animex-config";
 import {
   DEFAULT_ANISNATCH_SERVER,
   defaultAnisnatchServerForMode,
   isAnisnatchServerId,
   type AnisnatchServerId,
-} from "@/lib/providers/anisnatch-api";
+} from "@/lib/providers/anisnatch-config";
 import {
   DEFAULT_LUNAR_SERVER,
   defaultLunarServerForMode,
   isLunarServerId,
   type LunarServerId,
-} from "@/lib/providers/lunar-api";
+} from "@/lib/providers/lunar-config";
 import {
   DEFAULT_ALLANIME_MIRROR,
   DEFAULT_MKISSA_MIRROR,
   defaultAllanimeMirrorForMode,
   isAllanimeMirrorId,
   type AllanimeMirrorId,
-} from "@/lib/providers/allanime-api";
+} from "@/lib/providers/allanime-config";
 import {
   DEFAULT_ANIMO_SERVER,
   isAnimoServerId,
   type AnimoServerId,
-} from "@/lib/providers/animo-api";
+} from "@/lib/providers/animo-config";
 import { ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   MIRURO_PIPE_PROVIDERS,
   type MiruroPipeProviderId,
-} from "@/lib/providers/miruro-api";
+} from "@/lib/providers/miruro-types";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
 
 import { useSkipTimes } from "@/hooks/use-aniskip";
@@ -122,7 +122,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode } = useSettingsStore();
+  const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode } = useSettingsStore();
   const compactProviderPicker = simpleProviderPicker;
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
@@ -689,6 +689,7 @@ const VideoPlayerSection = () => {
     provider === "AllAnime" ? allanimeMirror : null,
     provider === "MKissa" ? mkissaMirror : null,
     provider === "Animo" ? animoServer : null,
+    kittyProxyNode,
   );
 
   const streamQueryEnabled =
@@ -758,7 +759,7 @@ const VideoPlayerSection = () => {
     [playerTracks],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${playbackToken}-${playerSubtitleSig}`;
+  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${playbackToken}-${playerSubtitleSig}-${kittyProxyNode}`;
 
   const { data: aniSkipTimes } = useSkipTimes(
     streamData?.tracks,

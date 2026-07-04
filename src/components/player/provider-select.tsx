@@ -11,16 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-api";
-import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-api";
-import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-api";
+import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-config";
+import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-config";
+import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-config";
 import {
   ALLANIME_MIRROR_OPTIONS,
   MKISSA_MIRROR_OPTIONS,
   type AllanimeMirrorId,
-} from "@/lib/providers/allanime-api";
-import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-api";
-import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-api";
+} from "@/lib/providers/allanime-config";
+import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config";
+import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import {
   DEFAULT_KITTY_PROVIDER,
   kittyProvidersByGroup,

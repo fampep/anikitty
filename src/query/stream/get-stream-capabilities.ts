@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "react-query";
 import { api } from "@/lib/core/api";
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
   mergeEpisodeStreamCapabilities,
   type EpisodeStreamCapabilities,
@@ -12,12 +13,14 @@ const getEpisodeStreamCapabilities = async (
   episode: string,
   title?: string | null,
   tier?: "featured" | "rest",
+  kittyNode?: KittyApiNodeId,
 ): Promise<EpisodeStreamCapabilities> => {
   const res = await api.get("/api/kitty/capabilities", {
     params: {
       anilistId,
       episode,
       scope: "episode",
+      kittyNode: kittyNode ?? "primary",
       ...(tier ? { tier } : {}),
       ...(title ? { title } : {}),
     },
@@ -31,11 +34,13 @@ const getActiveProviderStreamCapabilities = async (
   episode: string,
   target: StreamCapabilityTarget,
   title?: string | null,
+  kittyNode?: KittyApiNodeId,
 ): Promise<EpisodeStreamCapabilities> => {
   const res = await api.get("/api/kitty/capabilities", {
     params: {
       anilistId,
       episode,
+      kittyNode: kittyNode ?? "primary",
       provider: target.provider,
       ...(target.miruroPipe ? { miruroPipe: target.miruroPipe } : {}),
       ...(target.animexServer ? { animexServer: target.animexServer } : {}),

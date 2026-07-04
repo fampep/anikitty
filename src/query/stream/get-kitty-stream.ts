@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "react-query";
 import { api } from "@/lib/core/api";
-import type { AnimexServerId } from "@/lib/providers/animex-api";
-import type { AnisnatchServerId } from "@/lib/providers/anisnatch-api";
-import type { AllanimeMirrorId } from "@/lib/providers/allanime-api";
-import type { LunarServerId } from "@/lib/providers/lunar-api";
-import type { AnimoServerId } from "@/lib/providers/animo-api";
-import type { MiruroPipeProviderId } from "@/lib/providers/miruro-api";
+import type { AnimexServerId } from "@/lib/providers/animex-config";
+import type { AnisnatchServerId } from "@/lib/providers/anisnatch-config";
+import type { AllanimeMirrorId } from "@/lib/providers/allanime-config";
+import type { LunarServerId } from "@/lib/providers/lunar-config";
+import type { AnimoServerId } from "@/lib/providers/animo-config";
+import type { MiruroPipeProviderId } from "@/lib/providers/miruro-types";
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
   DEFAULT_KITTY_PROVIDER,
   KITTY_PROVIDERS,
@@ -53,6 +54,7 @@ const getKittyStream = async (
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  kittyNode?: KittyApiNodeId,
   signal?: AbortSignal,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
@@ -61,6 +63,7 @@ const getKittyStream = async (
       episode,
       audio,
       provider,
+      kittyNode: kittyNode ?? "primary",
       ...(title ? { title } : {}),
       ...(provider === "Miruro" && miruroPipe ? { miruroPipe } : {}),
       ...(provider === "Animex" && animexServer ? { animexServer } : {}),
@@ -91,6 +94,7 @@ export function buildKittyStreamQueryKey(
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  kittyNode?: KittyApiNodeId,
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -106,6 +110,7 @@ export function buildKittyStreamQueryKey(
     mkissaMirror ?? "",
     animoServer ?? "",
     title ?? "",
+    kittyNode ?? "primary",
   ];
 }
 
@@ -132,6 +137,7 @@ export const useGetKittyStream = (
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  kittyNode?: KittyApiNodeId,
 ) => {
   const abortRef = useRef<AbortController | null>(null);
 
@@ -156,6 +162,7 @@ export const useGetKittyStream = (
       allanimeMirror,
       mkissaMirror,
       animoServer,
+      kittyNode,
     ),
     queryFn: async () => {
       abortRef.current?.abort();
@@ -175,6 +182,7 @@ export const useGetKittyStream = (
           allanimeMirror,
           mkissaMirror,
           animoServer,
+          kittyNode,
           controller.signal,
         );
       } finally {
