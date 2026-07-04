@@ -77,7 +77,7 @@ function navLinkClass(isActive: boolean, compact = false) {
     compact ? "px-2.5 py-1.5 text-[13px]" : "px-3 py-1.5 text-sm",
     isActive
       ? "nav-link-active user-accent-nav-active font-semibold"
-      : "text-white/55 hover:bg-white/[0.07] hover:border-white/[0.08] hover:text-white/95",
+      : "text-muted-foreground hover:bg-accent hover:border-border hover:text-foreground dark:hover:text-white/55 dark:bg-white/[0.07] dark:border-white/[0.08] dark:text-white/95",
   );
 }
 
@@ -118,7 +118,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
 
   return (
     <nav
-      className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-1 backdrop-blur-sm lg:flex"
+      className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-border/60 bg-card/50 p-1 backdrop-blur-sm dark:border-white/[0.06] dark:bg-white/[0.03] lg:flex"
       aria-label={t("nav.aria.mainNav")}
     >
       {primary.map((item) => (
@@ -159,7 +159,7 @@ function MoreNavMenu({
       <PopoverContent
         align="center"
         sideOffset={10}
-        className="w-52 border-white/[0.08] bg-[#0a0a10]/95 p-1.5 backdrop-blur-xl"
+        className="w-52 border-border bg-popover/95 p-1.5 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0a0a10]/95"
       >
         <div className="flex flex-col gap-0.5">
           {items.map((item) => {
@@ -174,7 +174,7 @@ function MoreNavMenu({
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
                   active
                     ? "nav-link-active user-accent-nav-active font-semibold"
-                    : "text-white/60 hover:bg-white/[0.06] hover:text-white",
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground dark:hover:text-white/60 dark:bg-white/[0.06] dark:text-white",
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -195,19 +195,20 @@ function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       className={cn(
-        "group hidden h-9 shrink-0 items-center rounded-xl border border-white/[0.08] bg-white/[0.04]",
-        "text-white/55 transition-colors hover:border-violet-400/25 hover:bg-violet-500/[0.06] hover:text-white",
+        "group hidden h-9 shrink-0 items-center rounded-xl border border-border bg-muted/40",
+        "text-muted-foreground transition-colors hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-foreground",
+        "dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/55 dark:hover:border-violet-400/25 dark:hover:bg-violet-500/[0.06] dark:hover:text-white",
         "lg:inline-flex",
         "w-9 justify-center p-0",
         "xl:w-[min(15rem,calc(100vw-42rem))] xl:justify-start xl:gap-2.5 xl:px-3",
       )}
       aria-label={t("nav.aria.openSearch")}
     >
-      <SearchIcon className="h-4 w-4 shrink-0 text-white/40 transition-colors group-hover:text-violet-300/80" />
-      <span className="hidden min-w-0 flex-1 truncate text-left text-[13px] text-white/35 transition-colors group-hover:text-white/55 xl:block">
+      <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-violet-600 dark:text-white/40 dark:group-hover:text-violet-300/80" />
+      <span className="hidden min-w-0 flex-1 truncate text-left text-[13px] text-muted-foreground transition-colors group-hover:text-foreground xl:block dark:text-white/35 dark:group-hover:text-muted-foreground dark:text-white/55">
         {t("search.placeholder")}
       </span>
-      <kbd className="pointer-events-none hidden shrink-0 rounded-md border border-white/[0.08] bg-black/25 px-1.5 py-0.5 text-[10px] font-mono leading-none text-white/25 xl:inline-block">
+      <kbd className="pointer-events-none hidden shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono leading-none text-muted-foreground xl:inline-block dark:border-white/[0.08] dark:bg-black/25 dark:text-white/25">
         Ctrl&nbsp;K
       </kbd>
     </button>
@@ -337,8 +338,8 @@ const NavBar = () => {
       className={cn(
         "fixed left-0 right-0 top-0 z-[100] transition-all duration-300",
         isScrolled
-          ? "bg-[#08080f]/88 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
-          : "bg-gradient-to-b from-black/80 via-black/40 to-transparent",
+          ? "border-b border-border/50 bg-background/90 shadow-lg backdrop-blur-xl dark:border-transparent dark:bg-[#08080f]/88 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+          : "bg-gradient-to-b from-background/95 via-background/50 to-transparent dark:from-black/80 dark:via-black/40",
       )}
     >
       <div
@@ -350,12 +351,12 @@ const NavBar = () => {
 
       <Container className="relative">
         {searchOpen && (
-          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-white/[0.06] bg-[#050508]/98 px-4 backdrop-blur-2xl">
+          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border bg-background/98 px-4 backdrop-blur-2xl dark:border-white/[0.06] dark:bg-[#050508]/98">
             <SearchBar className="flex-1 max-w-3xl mx-auto" autoFocus onAnimeClick={() => setSearchOpen(false)} />
             <button
               type="button"
               onClick={() => setSearchOpen(false)}
-              className="shrink-0 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/8 hover:text-white"
+              className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:hover:text-white/50 dark:bg-white/8 dark:text-white"
               aria-label={t("nav.aria.closeSearch")}
             >
               <X className="h-4 w-4" />
@@ -388,7 +389,7 @@ const NavBar = () => {
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white lg:hidden"
+              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden dark:text-white/60 dark:bg-white/8 dark:text-white"
               aria-label={t("nav.aria.openSearch")}
             >
               <SearchIcon className="h-5 w-5" />
@@ -406,7 +407,7 @@ const NavBar = () => {
               <MobileMenuSheet
                 pathname={pathname}
                 onSearchClick={() => setSearchOpen(true)}
-                trigger={<MenuIcon className="h-5 w-5 text-white/70" suppressHydrationWarning />}
+                trigger={<MenuIcon className="h-5 w-5 text-muted-foreground dark:text-white/70" suppressHydrationWarning />}
               />
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
@@ -433,17 +434,17 @@ const MobileMenuSheet = ({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button type="button" className="rounded-lg p-2 transition-colors hover:bg-white/8" aria-label={t("nav.aria.openMenu")}>
+        <button type="button" className="rounded-lg p-2 transition-colors hover:bg-accent dark:bg-white/8" aria-label={t("nav.aria.openMenu")}>
           {trigger}
         </button>
       </SheetTrigger>
       <SheetContent
-        className="z-[150] flex w-[min(85vw,20rem)] flex-col border-white/[0.08] bg-[#050508]/98 backdrop-blur-2xl"
+        className="z-[150] flex w-[min(85vw,20rem)] flex-col border-border bg-background/98 backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#050508]/98"
         hideCloseButton
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4 dark:border-white/8">
             <Image
               src={SITE_LOGO}
               alt="AniKitty"
@@ -452,19 +453,19 @@ const MobileMenuSheet = ({
               className="h-8 w-auto object-contain"
               unoptimized
             />
-            <SheetClose className="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/8 hover:text-white">
+            <SheetClose className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:hover:text-white/50 dark:bg-white/8 dark:text-white">
               <X className="h-4 w-4" />
             </SheetClose>
           </div>
 
-          <div className="border-b border-white/[0.06] p-4">
+          <div className="border-b border-border p-4 dark:border-white/[0.06]">
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
                 onSearchClick?.();
               }}
-              className="flex w-full items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-white"
+              className="flex w-full items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/70 dark:border-white/15 dark:bg-white/[0.08] dark:text-white"
             >
               <SearchIcon className="h-4 w-4 shrink-0" />
               {t("nav.search")}
@@ -484,7 +485,7 @@ const MobileMenuSheet = ({
                     "flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-medium transition-all",
                     isActive
                       ? "nav-link-active user-accent-nav-active"
-                      : "text-white/55 hover:border-white/[0.06] hover:bg-white/[0.06] hover:text-white",
+                      : "text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground dark:hover:text-white/55 dark:border-white/[0.06] dark:bg-white/[0.06] dark:text-white",
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />

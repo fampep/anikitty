@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { w2gApi, type W2gMessage, type W2gMember, type W2gRoom } from "@/lib/social/w2g";
+import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
 
 const POLL_MS = 2_000;
 
@@ -123,11 +124,7 @@ export function useW2g({
       .finally(() => setLoading(false));
   }, [code, enabled, applyPayload]);
 
-  useEffect(() => {
-    if (!code || !enabled || !isMember) return;
-    const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
-  }, [code, enabled, isMember, refresh]);
+  useIntervalWhenVisible(refresh, POLL_MS, Boolean(code && enabled && isMember));
 
   const pushSync = useCallback(
     async (state: {

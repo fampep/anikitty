@@ -95,9 +95,9 @@ function EditProfileDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="bg-[#0d0d0d] border border-white/12 rounded-2xl max-w-lg w-full p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-white/8">
-          <DialogTitle className="text-white font-semibold text-base">{t("profile.editProfileTitle")}</DialogTitle>
+      <DialogContent className="bg-[#0d0d0d] border border-border dark:border-white/12 rounded-2xl max-w-lg w-full p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border dark:border-white/8">
+          <DialogTitle className="text-foreground dark:text-white font-semibold text-base">{t("profile.editProfileTitle")}</DialogTitle>
         </DialogHeader>
         <div className="px-6 py-5">
           <ProfileCustomizationForm
@@ -220,7 +220,7 @@ function UserComments({ username }: { username: string }) {
     return (
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse rounded-xl bg-white/[0.03] border border-white/6 px-4 py-3 h-16" />
+          <div key={i} className="animate-pulse rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/6 px-4 py-3 h-16" />
         ))}
       </div>
     );
@@ -229,9 +229,9 @@ function UserComments({ username }: { username: string }) {
   if (failed) {
     return (
       <div className="flex flex-col items-center gap-3 py-10 text-center">
-        <MessageSquare className="w-8 h-8 text-white/8" />
+        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
         <div>
-          <p className="text-sm text-white/50 font-medium">{t("profile.failedToLoadComments")}</p>
+          <p className="text-sm text-muted-foreground dark:text-white/50 font-medium">{t("profile.failedToLoadComments")}</p>
           <button
             onClick={() => {
               setFailed(false);
@@ -257,8 +257,8 @@ function UserComments({ username }: { username: string }) {
   if (!items.length) {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
-        <MessageSquare className="w-8 h-8 text-white/8" />
-        <p className="text-sm text-white/20 font-mono">{t("profile.noCommentsYet")}</p>
+        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
+        <p className="text-sm text-muted-foreground/70 dark:text-white/20 font-mono">{t("profile.noCommentsYet")}</p>
       </div>
     );
   }
@@ -270,15 +270,15 @@ function UserComments({ username }: { username: string }) {
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <Link
               href={userCommentHref(c)}
-              className="text-[11px] font-mono text-white/40 hover:text-white/70 transition-colors truncate max-w-[200px]"
+              className="text-[11px] font-mono text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 transition-colors truncate max-w-[200px]"
             >
               {formatAnimeLabel(c.animeId)}
               {c.episodeNumber ? ` · Ep ${c.episodeNumber}` : ""}
             </Link>
-            <span className="text-[10px] font-mono text-white/20 shrink-0">{relativeTime(c.createdAt, t)}</span>
+            <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20 shrink-0">{relativeTime(c.createdAt, t)}</span>
           </div>
           {c.body && (
-            <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words">{c.body}</p>
+            <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words">{c.body}</p>
           )}
           {c.gifUrl && (
             <div className={c.body ? "mt-2" : ""}>
@@ -394,8 +394,8 @@ function ProfilePage() {
         <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-4xl">
           🥷
         </div>
-        <p className="text-xl font-bold text-white">{t("profile.ninjaMode")}</p>
-        <p className="text-sm text-white/40 max-w-sm">
+        <p className="text-xl font-bold text-foreground dark:text-white">{t("profile.ninjaMode")}</p>
+        <p className="text-sm text-muted-foreground dark:text-white/40 max-w-sm">
           {t("profile.ninjaModeDesc", { username: profileUsername })}
         </p>
         <Link href="/home" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
@@ -408,8 +408,8 @@ function ProfilePage() {
   if (notFound || !profile) {
     return (
       <div className="min-h-screen pt-24 flex flex-col items-center gap-3 text-center px-4">
-        <p className="text-xl font-bold text-white">{t("profile.notFound")}</p>
-        <p className="text-sm text-white/40">{t("profile.notFoundDesc", { username: profileUsername })}</p>
+        <p className="text-xl font-bold text-foreground dark:text-white">{t("profile.notFound")}</p>
+        <p className="text-sm text-muted-foreground dark:text-white/40">{t("profile.notFoundDesc", { username: profileUsername })}</p>
         <Link href="/" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
           {t("profile.goHome")}
         </Link>
@@ -465,7 +465,7 @@ function ProfilePage() {
             }}
           />
         )}
-        {bannerUrl && <div className="absolute inset-0 bg-black/30" />}
+        {bannerUrl && <div className="absolute inset-0 bg-muted dark:bg-black/30" />}
         <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-black to-transparent" />
       </div>
 
@@ -485,11 +485,11 @@ function ProfilePage() {
           {/* Name + meta */}
           <div className="flex-1 text-center sm:text-left pb-1">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white tracking-tight">
                 @<CosmeticUsername username={profile.username} iconSlug={profile.equippedIcon} />
               </h1>
               {isOwn && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/15 bg-white/5 text-white/40 text-[11px] font-mono self-center sm:self-auto">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border dark:border-white/15 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/40 text-[11px] font-mono self-center sm:self-auto">
                   <ShieldCheck className="w-3 h-3" />
                   {t("profile.passphraseAccount")}
                 </span>
@@ -513,7 +513,7 @@ function ProfilePage() {
               {isOwn && (
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 mt-2 sm:mt-0 sm:ml-auto">
                   <div className="flex flex-col sm:items-end">
-                    <p className="text-[10px] font-mono text-white/30 uppercase">{t("nav.kittycoins")}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase">{t("nav.kittycoins")}</p>
                     <p className="text-[12px] font-bold text-amber-300/90 tabular-nums">
                       {kittycoinLoaded ? `${kittycoinBalance.toLocaleString()}` : "—"}
                     </p>
@@ -527,7 +527,7 @@ function ProfilePage() {
                     </Link>
                     <button
                       onClick={() => setEditOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/5 text-white/45 text-[12px] font-medium hover:bg-white/10 hover:text-white/80 hover:border-white/25 transition-all self-center sm:self-auto"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all self-center sm:self-auto"
                     >
                       <Pencil className="w-3 h-3" />
                       {t("profile.editProfile")}
@@ -555,11 +555,11 @@ function ProfilePage() {
             )}
 
             {profile.bio && (
-              <p className="text-sm text-white/45 mt-2 max-w-md">{profile.bio}</p>
+              <p className="text-sm text-muted-foreground dark:text-white/45 mt-2 max-w-md">{profile.bio}</p>
             )}
 
             {profile.createdAt && (
-              <p className="text-[11px] font-mono text-white/25 mt-1.5">
+              <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 mt-1.5">
                 {t("profile.joined")} {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </p>
             )}
@@ -567,10 +567,10 @@ function ProfilePage() {
             {/* Stats row */}
             <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3">
               <QuickStat label={t("profile.stats.total")} value={totalAnime} />
-              <div className="w-px h-4 bg-white/15 self-center" />
-              <QuickStat label={t("profile.stats.watching")}  value={counts.watching}  color="text-white/80" />
-              <QuickStat label={t("profile.stats.completed")} value={counts.completed} color="text-white/80" />
-              <QuickStat label={t("profile.stats.planToWatch")}      value={counts.plan}      color="text-white/80" />
+              <div className="w-px h-4 bg-muted dark:bg-white/15 self-center" />
+              <QuickStat label={t("profile.stats.watching")}  value={counts.watching}  color="text-foreground/90 dark:text-white/80" />
+              <QuickStat label={t("profile.stats.completed")} value={counts.completed} color="text-foreground/90 dark:text-white/80" />
+              <QuickStat label={t("profile.stats.planToWatch")}      value={counts.plan}      color="text-foreground/90 dark:text-white/80" />
               <QuickStat label={t("profile.stats.dropped")}   value={counts.dropped}   color="text-red-400" />
             </div>
 
@@ -592,7 +592,7 @@ function ProfilePage() {
           <section id="watchlist">
             <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.watchlist")} />
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="flex flex-wrap gap-1.5 h-auto bg-transparent p-0 mb-6 border-b border-white/10 pb-3">
+              <TabsList className="flex flex-wrap gap-1.5 h-auto bg-transparent p-0 mb-6 border-b border-border dark:border-white/10 pb-3">
                 {getStatusTabs(t).map((tab) => {
                   const count = counts[tab.key as keyof typeof counts];
                   const Icon = tab.icon;
@@ -600,7 +600,7 @@ function ProfilePage() {
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-white/35 data-[state=active]:bg-white/12 data-[state=active]:text-white/90 data-[state=active]:border-white/20 hover:text-white/60 transition-all bg-transparent"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-muted-foreground dark:text-white/35 data-[state=active]:bg-accent dark:bg-white/12 data-[state=active]:text-foreground dark:text-white/90 data-[state=active]:border-border dark:border-white/20 hover:text-muted-foreground dark:text-white/60 transition-all bg-transparent"
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {tab.label}
@@ -608,8 +608,8 @@ function ProfilePage() {
                         className={cn(
                           "ml-0.5 px-1.5 py-px rounded-full text-[10px] font-bold leading-none tabular-nums",
                           count > 0
-                            ? "bg-white/10 text-white/50 data-[state=active]:bg-white/20 data-[state=active]:text-white"
-                            : "bg-white/5 text-white/25",
+                            ? "bg-accent dark:bg-white/10 text-muted-foreground dark:text-white/50 data-[state=active]:bg-white/20 data-[state=active]:text-foreground dark:text-white"
+                            : "bg-muted/50 dark:bg-white/5 text-muted-foreground/80 dark:text-white/25",
                         )}
                       >
                         {count}
@@ -665,11 +665,11 @@ function ProfilePage() {
   );
 }
 
-function QuickStat({ label, value, color = "text-white/70" }: { label: string; value: number; color?: string }) {
+function QuickStat({ label, value, color = "text-muted-foreground dark:text-white/70" }: { label: string; value: number; color?: string }) {
   return (
     <div className="flex flex-col items-center sm:items-start">
       <span className={`text-lg font-bold leading-none ${color}`}>{value}</span>
-      <span className="text-[10px] text-white/30 font-mono mt-0.5">{label}</span>
+      <span className="text-[10px] text-muted-foreground dark:text-white/30 font-mono mt-0.5">{label}</span>
     </div>
   );
 }
@@ -677,8 +677,8 @@ function QuickStat({ label, value, color = "text-white/70" }: { label: string; v
 function SectionLabel({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2.5 mb-4">
-      <span className="text-white/40">{icon}</span>
-      <h2 className="text-base font-bold text-white/80">{title}</h2>
+      <span className="text-muted-foreground dark:text-white/40">{icon}</span>
+      <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{title}</h2>
       <div className="flex-1 h-px bg-gradient-to-r from-white/15 to-transparent ml-2" />
     </div>
   );

@@ -142,7 +142,7 @@ function AnimeLists({ status, username, isOwn }: Props) {
     return (
       <div className="flex gap-2.5 overflow-hidden w-full mt-2">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} style={{ width: CARD_W }} className="shrink-0 rounded-xl aspect-[2/3] animate-pulse bg-white/5" />
+          <div key={i} style={{ width: CARD_W }} className="shrink-0 rounded-xl aspect-[2/3] animate-pulse bg-muted/50 dark:bg-white/5" />
         ))}
       </div>
     );
@@ -151,9 +151,9 @@ function AnimeLists({ status, username, isOwn }: Props) {
   if (!bookmarks || bookmarks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <Tv2 className="w-10 h-10 text-white/15" />
-        <p className="text-white/30 text-sm font-mono">Nothing here yet</p>
-        <p className="text-white/20 text-xs">
+        <Tv2 className="w-10 h-10 text-muted-foreground/50 dark:text-white/15" />
+        <p className="text-muted-foreground dark:text-white/30 text-sm font-mono">Nothing here yet</p>
+        <p className="text-muted-foreground/70 dark:text-white/20 text-xs">
           {isOwn ? "Start watching anime to fill this list" : "This list is empty"}
         </p>
       </div>
@@ -222,7 +222,7 @@ function ScrollControls({ canScrollLeft, canScrollRight, onScroll }: { canScroll
         onClick={() => onScroll("left")}
         disabled={!canScrollLeft}
         aria-label={t("profile.scrollLeft")}
-        className="h-6 w-6 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+        className="h-6 w-6 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
@@ -230,7 +230,7 @@ function ScrollControls({ canScrollLeft, canScrollRight, onScroll }: { canScroll
         onClick={() => onScroll("right")}
         disabled={!canScrollRight}
         aria-label={t("profile.scrollRight")}
-        className="h-6 w-6 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+        className="h-6 w-6 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
       >
         <ChevronRight className="h-3.5 w-3.5" />
       </button>

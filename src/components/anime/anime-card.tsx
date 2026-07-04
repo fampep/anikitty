@@ -35,7 +35,7 @@ type Props = {
 
 const STATUS_COLORS: Record<string, string> = {
   RELEASING: "text-emerald-400",
-  FINISHED: "text-white/40",
+  FINISHED: "text-muted-foreground dark:text-white/40",
   NOT_YET_RELEASED: "text-amber-400",
   CANCELLED: "text-red-400",
 };
@@ -132,7 +132,7 @@ const AnimeCard = ({
                 "flex items-center justify-center min-w-[1.65rem] h-6 px-1.5 rounded-br-lg font-black tabular-nums shadow-lg",
                 rank <= 3
                   ? "bg-gradient-to-br from-amber-400 to-amber-600 text-black text-[10px]"
-                  : "bg-black/75 text-white/90 text-[9px] backdrop-blur-md border-r border-b border-white/10",
+                  : "bg-black/75 text-foreground dark:text-white/90 text-[9px] backdrop-blur-md border-r border-b border-border dark:border-white/10",
               )}
             >
               {String(rank).padStart(2, "0")}
@@ -152,7 +152,7 @@ const AnimeCard = ({
               {scoreDisplay}
             </span>
           ) : props.subTitle && !props.episodeCard ? (
-            <span className="rounded-md bg-black/65 text-white/75 text-[10px] font-mono font-semibold px-1.5 py-0.5 backdrop-blur-md border border-white/10">
+            <span className="rounded-md bg-black/65 text-foreground/85 dark:text-white/75 text-[10px] font-mono font-semibold px-1.5 py-0.5 backdrop-blur-md border border-border dark:border-white/10">
               {props.subTitle}
             </span>
           ) : (
@@ -167,7 +167,7 @@ const AnimeCard = ({
               </span>
             )}
             {props.year && (
-              <span className="rounded-md bg-black/55 text-white/55 text-[10px] font-mono px-1.5 py-0.5 backdrop-blur-md border border-white/8">
+              <span className="rounded-md bg-black/55 text-muted-foreground dark:text-white/55 text-[10px] font-mono px-1.5 py-0.5 backdrop-blur-md border border-border dark:border-white/8">
                 {props.year}
               </span>
             )}
@@ -198,7 +198,7 @@ const AnimeCard = ({
             <div className="absolute bottom-0 left-0 right-0 z-20 px-2.5 pb-2.5 pt-6 flex flex-col gap-1.5">
               <h5
                 className={cn(
-                  "line-clamp-2 font-semibold leading-snug text-white drop-shadow-md",
+                  "line-clamp-2 font-semibold leading-snug text-foreground dark:text-white drop-shadow-md",
                   compact ? "text-[10px]" : "text-[11px]",
                 )}
               >
@@ -207,12 +207,12 @@ const AnimeCard = ({
 
               {props.watchDetail && (
                 <>
-                  <p className="text-[9px] text-white/45 font-mono tabular-nums">
+                  <p className="text-[9px] text-muted-foreground dark:text-white/45 font-mono tabular-nums">
                     {t("common.ep")} {props.watchDetail.episodeNumber} ·{" "}
                     {formatSecondsToMMSS(props.watchDetail.current)}/
                     {formatSecondsToMMSS(props.watchDetail.timestamp)}
                   </p>
-                  <Progress value={percentage} className="h-[2px] bg-white/10 [&>div]:bg-violet-400/80" />
+                  <Progress value={percentage} className="h-[2px] bg-accent dark:bg-white/10 [&>div]:bg-violet-400/80" />
                 </>
               )}
 
@@ -226,11 +226,11 @@ const AnimeCard = ({
                   )}
                   {props.subTitle && (
                     <>
-                      {hasAudio && <span className="text-white/20 text-[8px]">·</span>}
+                      {hasAudio && <span className="text-muted-foreground/70 dark:text-white/20 text-[8px]">·</span>}
                       <span
                         className={cn(
                           "text-[9px] font-mono uppercase tracking-wide",
-                          STATUS_COLORS[props.status ?? ""] ?? "text-white/40",
+                          STATUS_COLORS[props.status ?? ""] ?? "text-muted-foreground dark:text-white/40",
                         )}
                       >
                         {props.subTitle}
@@ -241,7 +241,7 @@ const AnimeCard = ({
               )}
 
               {!props.episodeCard && !props.watchDetail && props.subTitle && scoreDisplay && (
-                <span className="text-[9px] text-white/40 font-mono">{props.subTitle}</span>
+                <span className="text-[9px] text-muted-foreground dark:text-white/40 font-mono">{props.subTitle}</span>
               )}
             </div>
           </>

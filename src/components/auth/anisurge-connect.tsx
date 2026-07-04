@@ -103,7 +103,7 @@ export default function AnisurgeConnect() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-white/30 text-sm font-mono py-2">
+      <div className="flex items-center gap-2 text-muted-foreground dark:text-white/30 text-sm font-mono py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         {t("settings.loading")}
       </div>
@@ -112,13 +112,13 @@ export default function AnisurgeConnect() {
 
   if (linked) {
     return (
-      <div className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-white/3 border border-white/10">
+      <div className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/10">
         <div className="flex items-center gap-3 min-w-0">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-white/80">{t("settings.connected")}</p>
+            <p className="text-sm font-medium text-foreground/90 dark:text-white/80">{t("settings.connected")}</p>
             {username && (
-              <p className="text-[11px] font-mono text-white/30 mt-0.5 truncate">@{username}</p>
+              <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30 mt-0.5 truncate">@{username}</p>
             )}
           </div>
         </div>
@@ -137,7 +137,7 @@ export default function AnisurgeConnect() {
 
   return (
     <div className="flex flex-col gap-2.5">
-      <p className="text-[11px] text-white/35 font-mono leading-relaxed">
+      <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
         {t("settings.anisurgeLinkHint")}
       </p>
       <input
@@ -145,7 +145,7 @@ export default function AnisurgeConnect() {
         value={identifier}
         onChange={(e) => setIdentifier(e.target.value)}
         placeholder={t("settings.anisurgePlaceholder")}
-        className="bg-white/4 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+        className="bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
       />
       <input
         type="password"
@@ -153,13 +153,13 @@ export default function AnisurgeConnect() {
         onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleConnect()}
         placeholder={t("settings.anisurgePassword")}
-        className="bg-white/4 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+        className="bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
       />
       <button
         type="button"
         onClick={handleConnect}
         disabled={connecting || !identifier.trim() || !password}
-        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/14 disabled:opacity-35 transition-all"
+        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent dark:bg-white/8 border border-border dark:border-white/15 text-muted-foreground dark:text-white/70 text-sm font-medium hover:bg-white/14 disabled:opacity-35 transition-all"
       >
         {connecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LinkIcon className="w-3.5 h-3.5" />}
         {t("settings.connectAnisurge")}

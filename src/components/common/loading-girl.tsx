@@ -21,7 +21,7 @@ export default function LoadingGirl({ size = 180, className, label }: LoadingGir
         priority
       />
       {label ? (
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/30 animate-pulse">
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground dark:text-white/30 animate-pulse">
           {label}
         </p>
       ) : null}

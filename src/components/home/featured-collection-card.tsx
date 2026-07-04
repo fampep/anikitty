@@ -16,7 +16,7 @@ const FeaturedCollectionCard = ({ title, anime = [], index = 0 }: Props) => {
   const ghostNum = String(index + 1).padStart(2, "0");
 
   return (
-    <div className="relative h-[13rem] flex rounded-2xl overflow-hidden bg-[#070707] border border-white/8 w-full group hover:border-white/15 transition-[border-color] duration-200">
+    <div className="relative h-[13rem] flex rounded-2xl overflow-hidden bg-[#070707] border border-border dark:border-white/8 w-full group hover:border-border dark:border-white/15 transition-[border-color] duration-200">
       {/* Blurred poster background */}
       {bgPoster && (
         <Image
@@ -31,10 +31,10 @@ const FeaturedCollectionCard = ({ title, anime = [], index = 0 }: Props) => {
 
       {/* Dark vignette */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/20" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background/95 dark:from-black/80 to-transparent" />
 
       {/* Ghost number watermark */}
-      <span className="absolute -bottom-4 right-2 text-[7rem] font-black text-white/[0.025] leading-none select-none pointer-events-none font-mono tracking-tighter group-hover:text-white/[0.04] transition-colors duration-200">
+      <span className="absolute -bottom-4 right-2 text-[7rem] font-black text-muted-foreground/15 leading-none select-none pointer-events-none font-mono tracking-tighter group-hover:text-muted-foreground/25 dark:text-white/[0.025] dark:group-hover:text-white/[0.04] transition-colors duration-200">
         {ghostNum}
       </span>
 
@@ -47,7 +47,7 @@ const FeaturedCollectionCard = ({ title, anime = [], index = 0 }: Props) => {
           </div>
         )}
         {anime[0] && (
-          <div className="absolute top-1/2 -translate-y-1/2 right-[36%] rotate-[-12deg] w-[4rem] sm:w-[6.5rem] shadow-2xl will-change-transform transition-transform duration-300 group-hover:rotate-[-16deg] group-hover:-translate-y-[calc(50%+6px)] overflow-hidden rounded-lg ring-1 ring-white/10">
+          <div className="absolute top-1/2 -translate-y-1/2 right-[36%] rotate-[-12deg] w-[4rem] sm:w-[6.5rem] shadow-2xl will-change-transform transition-transform duration-300 group-hover:rotate-[-16deg] group-hover:-translate-y-[calc(50%+6px)] overflow-hidden rounded-lg ring-1 ring-border dark:ring-white/10">
             <Image src={anime[0].poster} alt={anime[0].name} width={64} height={91} className="object-cover w-full h-[91px] sm:h-[148px]" unoptimized />
             <div className="absolute inset-0 bg-black/10" />
           </div>
@@ -64,7 +64,7 @@ const FeaturedCollectionCard = ({ title, anime = [], index = 0 }: Props) => {
       <div className="relative z-10 flex flex-col justify-between p-5 w-[55%] sm:w-[60%]">
         <div className="flex items-center gap-2">
           <div className="w-1 h-3 rounded-full bg-white/20" />
-          <p className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em]">
+          <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-[0.2em]">
             {cleanTitle}
           </p>
         </div>
@@ -86,7 +86,7 @@ const FeaturedCollectionCard = ({ title, anime = [], index = 0 }: Props) => {
               >
                 {i + 1}
               </span>
-              <span className="text-[12px] font-medium text-white/45 group-hover/row:text-white/85 transition-colors truncate leading-tight">
+              <span className="text-[12px] font-medium text-muted-foreground dark:text-white/45 group-hover/row:text-foreground dark:text-white/85 transition-colors truncate leading-tight">
                 {item.name}
               </span>
             </Link>

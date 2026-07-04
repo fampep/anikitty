@@ -35,14 +35,14 @@ function AnimeSchedule() {
   return (
     <Container className="flex flex-col items-center gap-5 py-10 lg:items-start">
       <div className="flex items-center gap-3">
-        <div className="h-5 w-0.5 shrink-0 bg-white/35" />
-        <CalendarDays className="h-4 w-4 text-white/50" />
-        <h5 className="text-xl font-bold tracking-tight text-white md:text-2xl">
+        <div className="h-5 w-0.5 shrink-0 bg-muted/30 dark:bg-white/35" />
+        <CalendarDays className="h-4 w-4 text-muted-foreground dark:text-white/50" />
+        <h5 className="text-xl font-bold tracking-tight text-foreground dark:text-white md:text-2xl">
           {t("nav.schedule")}
         </h5>
       </div>
 
-      <p className="text-sm font-mono text-white/35">{t("schedule.subtitle")}</p>
+      <p className="text-sm font-mono text-muted-foreground dark:text-white/35">{t("schedule.subtitle")}</p>
 
       <Tabs
         defaultValue={currentDay}
@@ -50,7 +50,7 @@ function AnimeSchedule() {
         value={currentSelectedTab}
         className="w-full"
       >
-        <TabsList className="flex h-auto w-full gap-0 overflow-x-auto border-b border-white/10 bg-transparent p-0">
+        <TabsList className="flex h-auto w-full gap-0 overflow-x-auto border-b border-border dark:border-white/10 bg-transparent p-0">
           {SCHEDULE_DAYS.map((day) => {
             const d = getDateForWeekday(day, currentDate);
             const isToday = day === currentDay;
@@ -60,17 +60,17 @@ function AnimeSchedule() {
                 value={day}
                 className={cn(
                   "flex shrink-0 flex-col items-center gap-0.5 rounded-none border-b-2 border-transparent px-3 py-2.5 transition-all",
-                  "bg-transparent text-white/35 hover:text-white/55",
-                  "data-[state=active]:border-white data-[state=active]:bg-white/4 data-[state=active]:text-white",
+                  "bg-transparent text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/55",
+                  "data-[state=active]:border-primary data-[state=active]:bg-accent dark:data-[state=active]:border-white dark:data-[state=active]:bg-white/4 data-[state=active]:text-foreground dark:text-white",
                 )}
               >
                 <span className="text-[11px] font-bold font-mono uppercase tracking-wider">
                   {day.slice(0, 3)}
                 </span>
-                <span className={cn("text-[10px] font-mono", isToday ? "text-white/60" : "text-white/25")}>
+                <span className={cn("text-[10px] font-mono", isToday ? "text-muted-foreground dark:text-white/60" : "text-muted-foreground/80 dark:text-white/25")}>
                   {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}
                 </span>
-                {isToday && <span className="mt-0.5 h-1 w-1 rounded-full bg-white/50" />}
+                {isToday && <span className="mt-0.5 h-1 w-1 rounded-full bg-muted/50 dark:bg-white/50" />}
               </TabsTrigger>
             );
           })}
@@ -88,7 +88,7 @@ function AnimeSchedule() {
               {day === currentSelectedTab && (
                 <div className="flex flex-col gap-2 pt-4">
                   {!data?.scheduledAnimes?.length ? (
-                    <div className="flex items-center justify-center py-12 text-sm font-mono text-white/25">
+                    <div className="flex items-center justify-center py-12 text-sm font-mono text-muted-foreground/80 dark:text-white/25">
                       {t("schedule.noSchedule")}
                     </div>
                   ) : (

@@ -77,10 +77,10 @@ function NavbarAvatar({ auth }: Props) {
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-60 mt-2 p-0 bg-[#0d0d0d] border border-white/10 rounded-xl shadow-2xl shadow-black/70 overflow-hidden"
+        className="w-60 mt-2 p-0 bg-[#0d0d0d] border border-border dark:border-white/10 rounded-xl shadow-2xl shadow-black/70 overflow-hidden"
       >
         {/* User header */}
-        <div className="relative px-4 py-3.5 border-b border-white/8 overflow-hidden">
+        <div className="relative px-4 py-3.5 border-b border-border dark:border-white/8 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
           <div className="relative flex items-center gap-3">
             <div className="relative shrink-0">
@@ -94,7 +94,7 @@ function NavbarAvatar({ auth }: Props) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 min-w-0">
-                <p className="text-white/90 font-semibold text-sm truncate leading-tight">
+                <p className="text-foreground dark:text-white/90 font-semibold text-sm truncate leading-tight">
                   <CosmeticUsername username={session.username} iconSlug={iconSlug} />
                 </p>
                 {isAdmin && (
@@ -105,7 +105,7 @@ function NavbarAvatar({ auth }: Props) {
               </div>
               <div className="flex items-center gap-1 mt-0.5">
                 <Zap className="w-2.5 h-2.5 text-violet-400/60 shrink-0" />
-                <p className="text-white/25 text-[10px] font-mono truncate">{t("nav.anisurge")}</p>
+                <p className="text-muted-foreground/80 dark:text-white/25 text-[10px] font-mono truncate">{t("nav.anisurge")}</p>
               </div>
             </div>
           </div>
@@ -131,7 +131,7 @@ function NavbarAvatar({ auth }: Props) {
                 </span>
               </div>
               {/* XP progress bar */}
-              <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+              <div className="h-1 w-full rounded-full bg-accent dark:bg-white/10 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-none"
                   style={{
@@ -141,10 +141,10 @@ function NavbarAvatar({ auth }: Props) {
                 />
               </div>
               <div className="flex justify-between mt-0.5">
-                <span className="text-[9px] font-mono text-white/20">
+                <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/20">
                   {t("navAvatar.xpSummary", { xp: level.xp, count: level.completedEpisodes })}
                 </span>
-                <span className="text-[9px] font-mono text-white/20">
+                <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/20">
                   {level.level < 100 && (level.xpToNext ?? level.episodesToNext) > 0
                     ? t("navAvatar.xpToNext", { xp: level.xpToNext ?? level.episodesToNext, level: level.level + 1 })
                     : t("navAvatar.max")}
@@ -195,7 +195,7 @@ function NavbarAvatar({ auth }: Props) {
           />
         </div>
 
-        <div className="border-t border-white/8 py-1.5">
+        <div className="border-t border-border dark:border-white/8 py-1.5">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-colors"
@@ -219,9 +219,9 @@ function MenuItem({ href, icon, label, onClick }: {
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-4 py-2 text-sm text-white/55 hover:bg-white/6 hover:text-white/90 transition-colors"
+      className="flex items-center gap-2.5 px-4 py-2 text-sm text-muted-foreground dark:text-white/55 hover:bg-muted/60 dark:bg-muted/60 dark:bg-white/6 hover:text-foreground dark:hover:text-white/90 transition-colors"
     >
-      <span className="text-white/30">{icon}</span>
+      <span className="text-muted-foreground dark:text-white/30">{icon}</span>
       {label}
     </Link>
   );

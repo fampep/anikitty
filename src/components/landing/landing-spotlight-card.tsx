@@ -24,7 +24,7 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
     return (
       <section className="relative z-10 px-4 sm:px-6 md:px-12 pb-4">
         <div className="max-w-6xl mx-auto">
-          <div className="h-[168px] sm:h-[180px] rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
+          <div className="h-[168px] sm:h-[180px] rounded-2xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/[0.06] animate-pulse" />
         </div>
       </section>
     );
@@ -37,7 +37,7 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
   return (
     <section className="relative z-10 px-4 sm:px-6 md:px-12 pb-2 sm:pb-4">
       <div className="max-w-6xl mx-auto">
-        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm">
+        <div className="group relative overflow-hidden rounded-2xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] backdrop-blur-sm">
           <div className="absolute inset-0 pointer-events-none">
             <Image
               src={anime.poster}
@@ -67,9 +67,9 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
                 <Sparkles className="w-3 h-3" />
                 {t("landing.spotlightLabel")}
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-white/95 mb-1.5 line-clamp-1">{anime.name}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-foreground dark:text-white/95 mb-1.5 line-clamp-1">{anime.name}</h2>
               {description ? (
-                <p className="text-[12px] sm:text-[13px] text-white/45 leading-relaxed line-clamp-2 mb-4 max-w-xl mx-auto sm:mx-0">
+                <p className="text-[12px] sm:text-[13px] text-muted-foreground dark:text-white/45 leading-relaxed line-clamp-2 mb-4 max-w-xl mx-auto sm:mx-0">
                   {description}
                   {description.length >= 140 ? "…" : ""}
                 </p>
@@ -78,7 +78,7 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
                 <Link
                   href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
                   onClick={() => trackEvent("landing_spotlight_details")}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/12 bg-white/[0.04] text-xs font-semibold text-white/70 hover:text-white hover:border-white/25 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-xs font-semibold text-muted-foreground dark:text-white/70 hover:text-foreground dark:text-white hover:border-border dark:border-white/25 transition-colors"
                 >
                   {t("landing.spotlightDetails")}
                 </Link>

@@ -24,7 +24,7 @@ export default function HomeQuickNav() {
           <Link
             key={key}
             href={href}
-            className="snap-start shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/10 bg-white/[0.03] text-[11px] font-semibold text-white/45 hover:text-white/85 hover:border-violet-400/25 hover:bg-violet-500/[0.08] transition-all"
+            className="site-chip snap-start shrink-0"
           >
             <Icon className="w-3.5 h-3.5 text-violet-300/70" />
             {t(`home.quickNav.${key}`)}
@@ -32,7 +32,7 @@ export default function HomeQuickNav() {
         ))}
         <Link
           href={ROUTES.SEARCH}
-          className="snap-start shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-dashed border-white/12 text-[11px] font-semibold text-white/30 hover:text-white/65 transition-all"
+          className="site-chip snap-start shrink-0 border-dashed dark:border-white/12 dark:text-white/30 dark:hover:text-white/65"
         >
           <Sparkles className="w-3.5 h-3.5" />
           {t("home.browseAll")} →

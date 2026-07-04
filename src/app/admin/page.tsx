@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
 import Image from "next/image";
 import Link from "next/link";
 import Container from "@/components/layout/container";
@@ -67,11 +68,11 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
     <div className="min-h-screen flex items-center justify-center bg-black px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <Lock className="w-5 h-5 text-white/50" />
+          <div className="w-12 h-12 rounded-2xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 flex items-center justify-center">
+            <Lock className="w-5 h-5 text-muted-foreground dark:text-white/50" />
           </div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Admin Access</h1>
-          <p className="text-sm text-white/35 text-center">This area is restricted. Enter the admin passphrase to continue.</p>
+          <h1 className="text-xl font-bold text-foreground dark:text-white tracking-tight">Admin Access</h1>
+          <p className="text-sm text-muted-foreground dark:text-white/35 text-center">This area is restricted. Enter the admin passphrase to continue.</p>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="relative">
@@ -81,12 +82,12 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Admin passphrase"
               autoFocus
-              className="w-full bg-white/[0.04] border border-white/12 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+              className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-xl px-4 py-3 pr-11 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
             />
             <button
               type="button"
               onClick={() => setShow((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/60 transition-colors"
             >
               {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -95,13 +96,13 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
           <button
             type="submit"
             disabled={!password.trim() || loading}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-sm hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-accent dark:bg-white/10 border border-border dark:border-white/15 text-foreground dark:text-white font-semibold text-sm hover:bg-muted dark:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             Enter
           </button>
         </form>
-        <p className="text-center text-[10px] font-mono text-white/15 mt-6">Session expires when tab is closed</p>
+        <p className="text-center text-[10px] font-mono text-muted-foreground/50 dark:text-white/15 mt-6">Session expires when tab is closed</p>
       </div>
     </div>
   );
@@ -280,18 +281,18 @@ function RolePermissionEditor({
   ];
 
   return (
-    <div className="mt-3 pt-3 border-t border-white/8 space-y-3">
+    <div className="mt-3 pt-3 border-t border-border dark:border-white/8 space-y-3">
       {role.name === "admin" ? (
-        <p className="text-[11px] text-white/35 font-mono">Admins always have full access.</p>
+        <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono">Admins always have full access.</p>
       ) : role.name === "user" ? (
-        <p className="text-[11px] text-white/35 font-mono">Regular users have no staff permissions.</p>
+        <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono">Regular users have no staff permissions.</p>
       ) : (
         groups.map((group) => {
           const perms = permissionDefs.filter((p) => p.group === group.key);
           if (!perms.length) return null;
           return (
             <div key={group.key}>
-              <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-2">{group.label}</p>
+              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-2">{group.label}</p>
               <div className="flex flex-col gap-2">
                 {perms.map((perm) => {
                   const checked = hasAll || role.permissions.includes(perm.id);
@@ -308,11 +309,11 @@ function RolePermissionEditor({
                         checked={checked}
                         disabled={readOnly || hasAll}
                         onChange={(e) => onToggle(role, perm.id, e.target.checked)}
-                        className="mt-0.5 rounded border-white/20 bg-transparent"
+                        className="mt-0.5 rounded border-border dark:border-white/20 bg-transparent"
                       />
                       <span>
-                        <span className="text-white/75 font-medium">{perm.label}</span>
-                        <span className="block text-white/30 text-[10px] mt-0.5">{perm.description}</span>
+                        <span className="text-foreground/85 dark:text-white/75 font-medium">{perm.label}</span>
+                        <span className="block text-muted-foreground dark:text-white/30 text-[10px] mt-0.5">{perm.description}</span>
                       </span>
                     </label>
                   );
@@ -591,11 +592,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   };
 
   useEffect(() => {
-    if (tab !== "chat") return;
-    fetchChat();
-    const id = setInterval(fetchChat, 10_000);
-    return () => clearInterval(id);
+    if (tab === "chat") void fetchChat();
   }, [tab, fetchChat]);
+
+  useIntervalWhenVisible(fetchChat, 15_000, tab === "chat");
 
   // ── Role handlers ────────────────────────────────────────────────────────
   const handleRoleChange = async (userId: string, role: string) => {
@@ -885,15 +885,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen pb-24">
       {/* Sticky header */}
-      <div className="border-b border-white/8 bg-black/80 backdrop-blur-sm sticky top-0 z-20">
+      <div className="border-b border-border dark:border-white/8 bg-black/80 backdrop-blur-sm sticky top-0 z-20">
         <Container className="py-3.5 flex items-center gap-3">
           <ShieldCheck className="w-4 h-4 text-[#ff4d6d] shrink-0" />
-          <span className="text-sm font-bold text-white tracking-tight">Admin Panel</span>
-          <span className="text-[11px] font-mono text-white/20 hidden sm:block">· anikitty.moe</span>
+          <span className="text-sm font-bold text-foreground dark:text-white tracking-tight">Admin Panel</span>
+          <span className="text-[11px] font-mono text-muted-foreground/70 dark:text-white/20 hidden sm:block">· anikitty.moe</span>
           <button
             onClick={refreshAll}
             disabled={refreshing}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all disabled:opacity-40"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/10 text-muted-foreground dark:text-white/35 text-[11px] font-mono hover:text-muted-foreground dark:text-white/70 hover:border-border dark:border-white/25 transition-all disabled:opacity-40"
           >
             <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -907,7 +907,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           </Link>
           <button
             onClick={onLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/10 text-muted-foreground dark:text-white/35 text-[11px] font-mono hover:text-muted-foreground dark:text-white/70 hover:border-border dark:border-white/25 transition-all"
           >
             <LogOut className="w-3 h-3" /> Logout
           </button>
@@ -924,12 +924,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             { label: "Live Chat",      value: stats?.chatMessagesLive,     Icon: MessageCircle, color: "#c084fc" },
             { label: "AniList Linked", value: stats?.anilistLinked,      Icon: TrendingUp,    color: "#22d3ee" },
           ])().map(({ label, value, Icon, color }) => (
-            <div key={label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
+            <div key={label} className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-4 py-4">
               <div className="flex items-center gap-2 mb-3">
                 <Icon className="w-3.5 h-3.5 shrink-0 opacity-60" style={{ color }} />
-                <span className="text-[10px] font-mono text-white/30 uppercase tracking-wider truncate">{label}</span>
+                <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider truncate">{label}</span>
               </div>
-              <span className="text-2xl font-bold text-white tabular-nums">
+              <span className="text-2xl font-bold text-foreground dark:text-white tabular-nums">
                 {statsLoading ? "…" : (value ?? 0).toLocaleString()}
               </span>
             </div>
@@ -937,7 +937,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         </div>
 
         {/* ── Tabs ───────────────────────────────────────────────── */}
-        <div className="flex items-center gap-1 mb-8 border-b border-white/8 pb-4 overflow-x-auto">
+        <div className="flex items-center gap-1 mb-8 border-b border-border dark:border-white/8 pb-4 overflow-x-auto">
           {([
             { value: "overview"       as const, label: "Overview",      icon: <BarChart2  className="w-4 h-4" /> },
             { value: "users"          as const, label: "Users",         icon: <Users      className="w-4 h-4" /> },
@@ -951,8 +951,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               onClick={() => setTab(t.value)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 tab === t.value
-                  ? "bg-white/10 text-white border border-white/15"
-                  : "text-white/40 hover:text-white/70"
+                  ? "bg-accent dark:bg-white/10 text-white border border-border dark:border-white/15"
+                  : "text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70"
               }`}
             >
               {t.icon}
@@ -972,20 +972,20 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 { label: "Comments & threads",   value: (stats?.totalComments ?? 0) + (stats?.totalThreads ?? 0), sub: `${stats?.totalComments ?? 0} comments · ${stats?.totalThreads ?? 0} threads` },
                 { label: "Chat messages today",  value: stats?.chatMessagesToday ?? 0, sub: `${stats?.chatMessagesLive ?? 0} visible in live window` },
               ].map((c) => (
-                <div key={c.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-5 py-5">
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
-                  <p className="text-3xl font-bold text-white tabular-nums">
+                <div key={c.label} className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-5 py-5">
+                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
+                  <p className="text-3xl font-bold text-foreground dark:text-white tabular-nums">
                     {statsLoading ? "…" : c.value.toLocaleString()}
                   </p>
-                  <p className="text-[10px] font-mono text-white/20 mt-1">{c.sub}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20 mt-1">{c.sub}</p>
                 </div>
               ))}
             </div>
 
             {/* Security status */}
             {stats?.security && (
-              <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5">
-                <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <div className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-5">
+                <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <ShieldCheck className="w-3.5 h-3.5" /> Security configuration
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -995,13 +995,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     { label: "Admin JWT", ok: stats.security.adminJwtSecret },
                     { label: "Database", ok: stats.security.databaseUrl },
                   ].map((item) => (
-                    <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/8 bg-black/20">
+                    <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border dark:border-white/8 bg-black/20">
                       {item.ok ? (
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       ) : (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                       )}
-                      <span className="text-[11px] font-mono text-white/50">{item.label}</span>
+                      <span className="text-[11px] font-mono text-muted-foreground dark:text-white/50">{item.label}</span>
                     </div>
                   ))}
                 </div>
@@ -1016,17 +1016,17 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
 
             {/* Site-wide click ads */}
-            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5">
-              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <div className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-5">
+              <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <Banknote className="w-3.5 h-3.5" /> Site settings
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white/85">Global click ads</p>
-                  <p className="text-[11px] text-white/35 mt-1 leading-relaxed max-w-xl">
+                  <p className="text-sm font-semibold text-foreground dark:text-white/85">Global click ads</p>
+                  <p className="text-[11px] text-muted-foreground dark:text-white/35 mt-1 leading-relaxed max-w-xl">
                     Turn the lightweight click-ad script on or off for everyone. Saved in the database — survives redeploys. User ad-free perks still apply when ads are on.
                   </p>
-                  <p className="text-[10px] font-mono text-white/25 mt-2">
+                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
                     Status:{" "}
                     {globalClickAdsEnabled == null
                       ? "Loading…"
@@ -1059,23 +1059,23 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
             {/* Top anime */}
             <div>
-              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <TrendingUp className="w-3.5 h-3.5" /> Most Watched Anime
               </p>
               {statsLoading ? (
-                <div className="flex items-center gap-2 py-8 text-white/25">
+                <div className="flex items-center gap-2 py-8 text-muted-foreground/80 dark:text-white/25">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span className="text-sm font-mono">Loading…</span>
                 </div>
               ) : (
-                <div className="rounded-xl border border-white/10 overflow-x-auto">
+                <div className="rounded-xl border border-border dark:border-white/10 overflow-x-auto">
                   <table className="w-full text-sm min-w-[480px]">
                     <thead>
-                      <tr className="border-b border-white/8 bg-white/[0.02]">
-                        <th className="w-10 px-4 py-3 text-left text-[11px] font-mono text-white/25">#</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-mono text-white/30 uppercase tracking-wider">Anime</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Sessions</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Viewers</th>
+                      <tr className="border-b border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
+                        <th className="w-10 px-4 py-3 text-left text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">#</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">Anime</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden sm:table-cell">Sessions</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">Viewers</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.05]">
@@ -1083,8 +1083,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                         const maxSessions = stats?.topAnime[0]?.sessionCount ?? 1;
                         const pct = Math.round((anime.sessionCount / maxSessions) * 100);
                         return (
-                          <tr key={anime.animeId} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="px-4 py-3 text-[12px] font-mono text-white/20">#{i + 1}</td>
+                          <tr key={anime.animeId} className="hover:bg-muted/30 dark:bg-white/[0.02] transition-colors">
+                            <td className="px-4 py-3 text-[12px] font-mono text-muted-foreground/70 dark:text-white/20">#{i + 1}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2.5">
                                 {anime.animeThumbnail && (
@@ -1093,20 +1093,20 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                   </div>
                                 )}
                                 <div className="min-w-0">
-                                  <p className="text-[12px] font-medium text-white/80 truncate max-w-[220px]">
+                                  <p className="text-[12px] font-medium text-foreground/90 dark:text-white/80 truncate max-w-[220px]">
                                     {anime.animeTitle ?? anime.animeId}
                                   </p>
-                                  <div className="mt-1 w-32 h-0.5 rounded-full bg-white/6 overflow-hidden">
+                                  <div className="mt-1 w-32 h-0.5 rounded-full bg-muted/60 dark:bg-muted/60 dark:bg-white/6 overflow-hidden">
                                     <div className="h-full rounded-full bg-white/25" style={{ width: `${pct}%` }} />
                                   </div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-4 py-3 hidden sm:table-cell">
-                              <span className="text-[12px] font-mono text-white/50">{anime.sessionCount.toLocaleString()}</span>
+                              <span className="text-[12px] font-mono text-muted-foreground dark:text-white/50">{anime.sessionCount.toLocaleString()}</span>
                             </td>
                             <td className="px-4 py-3 hidden md:table-cell">
-                              <span className="text-[12px] font-mono text-white/30">{anime.uniqueUsers.toLocaleString()}</span>
+                              <span className="text-[12px] font-mono text-muted-foreground dark:text-white/30">{anime.uniqueUsers.toLocaleString()}</span>
                             </td>
                           </tr>
                         );
@@ -1114,7 +1114,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     </tbody>
                   </table>
                   {(stats?.topAnime ?? []).length === 0 && (
-                    <p className="text-center text-white/20 text-sm font-mono py-8">No watch data yet</p>
+                    <p className="text-center text-muted-foreground/70 dark:text-white/20 text-sm font-mono py-8">No watch data yet</p>
                   )}
                 </div>
               )}
@@ -1139,13 +1139,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     type="button"
                     onClick={() => fetchDeletionRequests()}
                     disabled={deletionLoading}
-                    className="text-[11px] font-mono text-white/35 hover:text-white/60 transition-colors disabled:opacity-40"
+                    className="text-[11px] font-mono text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-colors disabled:opacity-40"
                   >
                     Refresh
                   </button>
                 </div>
                 {deletionLoading ? (
-                  <div className="flex items-center gap-2 px-4 py-4 text-white/25">
+                  <div className="flex items-center gap-2 px-4 py-4 text-muted-foreground/80 dark:text-white/25">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm font-mono">Loading requests…</span>
                   </div>
@@ -1154,13 +1154,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     {deletionRequests.map((req) => (
                       <div key={req.id} className="flex items-start justify-between gap-4 px-4 py-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-white/85">@{req.username}</p>
-                          <p className="text-xs text-white/35 mt-0.5">{req.email}</p>
+                          <p className="text-sm font-medium text-foreground dark:text-white/85">@{req.username}</p>
+                          <p className="text-xs text-muted-foreground dark:text-white/35 mt-0.5">{req.email}</p>
                           {req.reason && (
-                            <p className="text-xs text-white/45 mt-2 leading-relaxed">&ldquo;{req.reason}&rdquo;</p>
+                            <p className="text-xs text-muted-foreground dark:text-white/45 mt-2 leading-relaxed">&ldquo;{req.reason}&rdquo;</p>
                           )}
                           {req.requestedAt && (
-                            <p className="text-[10px] font-mono text-white/25 mt-1.5">
+                            <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-1.5">
                               Requested {new Date(req.requestedAt).toLocaleString()}
                             </p>
                           )}
@@ -1186,17 +1186,17 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
 
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 max-w-sm flex-1">
-                <Search className="w-4 h-4 text-white/30 shrink-0" />
+              <div className="flex items-center gap-2 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-xl px-4 py-2.5 max-w-sm flex-1">
+                <Search className="w-4 h-4 text-muted-foreground dark:text-white/30 shrink-0" />
                 <input
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search by username or email…"
-                  className="bg-transparent text-sm text-white placeholder:text-white/25 outline-none flex-1"
+                  className="bg-transparent text-sm text-foreground dark:text-white placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none flex-1"
                 />
               </div>
               {!usersLoading && (
-                <span className="text-[11px] font-mono text-white/25">
+                <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">
                   {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}
                   {roleFilter !== "all" ? ` · ${roleFilter}` : ""}
                 </span>
@@ -1204,7 +1204,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="bg-black border border-white/15 text-white/70 text-[11px] font-mono rounded-lg px-2.5 py-2 cursor-pointer hover:border-white/30 focus:outline-none"
+                className="bg-black border border-border dark:border-white/15 text-muted-foreground dark:text-white/70 text-[11px] font-mono rounded-lg px-2.5 py-2 cursor-pointer hover:border-border dark:border-white/30 focus:outline-none"
               >
                 <option value="all" className="bg-black">All roles</option>
                 {allRoleOptions.map((r) => (
@@ -1214,22 +1214,22 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </div>
 
             {usersLoading ? (
-              <div className="flex items-center gap-2 py-8 text-white/25">
+              <div className="flex items-center gap-2 py-8 text-muted-foreground/80 dark:text-white/25">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm font-mono">Loading users…</span>
               </div>
             ) : (
-              <div className="rounded-xl border border-white/10 overflow-x-auto">
+              <div className="rounded-xl border border-border dark:border-white/10 overflow-x-auto">
                 <table className="w-full text-sm min-w-[640px]">
                   <thead>
-                    <tr className="border-b border-white/8 bg-white/[0.02]">
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">User</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Email</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Role</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Status</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">2FA</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Joined</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden lg:table-cell">Last active</th>
+                    <tr className="border-b border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden sm:table-cell">Email</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">Role</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">Status</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">2FA</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">Joined</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden lg:table-cell">Last active</th>
                       <th className="px-4 py-3 w-40" />
                     </tr>
                   </thead>
@@ -1238,30 +1238,30 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       const selected = pendingRole[u.id] ?? u.role;
                       const dirty = pendingRole[u.id] !== undefined && pendingRole[u.id] !== u.role;
                       return (
-                        <tr key={u.id} className={cn("hover:bg-white/[0.02] transition-colors", deletionRequestUserIds.has(u.id) && "bg-amber-500/[0.03]")}>
+                        <tr key={u.id} className={cn("hover:bg-muted/30 dark:bg-white/[0.02] transition-colors", deletionRequestUserIds.has(u.id) && "bg-amber-500/[0.03]")}>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
                               {u.avatarUrl ? (
-                                <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-white/10 shrink-0">
+                                <div className="relative w-8 h-8 rounded-full overflow-hidden ring-1 ring-border dark:ring-white/10 shrink-0">
                                   <Image src={u.avatarUrl} alt={u.username} fill className="object-cover" unoptimized />
                                 </div>
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-[13px] font-bold text-white/60 shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-accent dark:bg-white/8 flex items-center justify-center text-[13px] font-bold text-muted-foreground dark:text-white/60 shrink-0">
                                   {u.username[0]?.toUpperCase()}
                                 </div>
                               )}
                               <div className="flex flex-col min-w-0">
-                                <span className="font-medium text-white/85 truncate">@{u.username}</span>
+                                <span className="font-medium text-foreground dark:text-white/85 truncate">@{u.username}</span>
                                 {u.role !== "user" && <RoleBadge role={u.role} size="xs" />}
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-white/35 text-xs hidden sm:table-cell">{u.email}</td>
+                          <td className="px-4 py-3 text-muted-foreground dark:text-white/35 text-xs hidden sm:table-cell">{u.email}</td>
                           <td className="px-4 py-3">
                             <select
                               value={selected}
                               onChange={(e) => setPendingRole((prev) => ({ ...prev, [u.id]: e.target.value }))}
-                              className="bg-black border border-white/15 text-white/70 text-[11px] font-mono rounded-lg px-2 py-1 cursor-pointer hover:border-white/30 focus:outline-none"
+                              className="bg-black border border-border dark:border-white/15 text-muted-foreground dark:text-white/70 text-[11px] font-mono rounded-lg px-2 py-1 cursor-pointer hover:border-border dark:border-white/30 focus:outline-none"
                             >
                               {allRoleOptions.map((r) => (
                                 <option key={r.id} value={r.name} className="bg-black">{r.name}</option>
@@ -1278,7 +1278,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 <VolumeX className="w-3 h-3" /> Muted
                               </span>
                             ) : (
-                              <span className="text-[10px] font-mono text-white/20">OK</span>
+                              <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">OK</span>
                             )}
                           </td>
                           <td className="px-4 py-3 hidden md:table-cell">
@@ -1287,13 +1287,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 <ShieldCheck className="w-3 h-3" /> On
                               </span>
                             ) : (
-                              <span className="text-[11px] font-mono text-white/25">Off</span>
+                              <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">Off</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-white/25 text-xs hidden md:table-cell">
+                          <td className="px-4 py-3 text-muted-foreground/80 dark:text-white/25 text-xs hidden md:table-cell">
                             {new Date(u.createdAt).toLocaleDateString()}
                           </td>
-                          <td className="px-4 py-3 text-white/25 text-xs hidden lg:table-cell">
+                          <td className="px-4 py-3 text-muted-foreground/80 dark:text-white/25 text-xs hidden lg:table-cell">
                             {u.lastActiveAt ? timeAgo(u.lastActiveAt) : "—"}
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -1302,7 +1302,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 <button
                                   onClick={() => handleRoleChange(u.id, selected)}
                                   disabled={savingRole === u.id}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-white/70 text-[11px] font-medium hover:bg-white/18 disabled:opacity-40 transition-all"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-accent dark:bg-white/10 border border-border dark:border-white/20 text-muted-foreground dark:text-white/70 text-[11px] font-medium hover:bg-white/18 disabled:opacity-40 transition-all"
                                 >
                                   {savingRole === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                                   Save
@@ -1374,7 +1374,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 onClick={() => handleResetPassword(u)}
                                 disabled={resettingPasswordUserId === u.id}
                                 title="Reset password"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/15 text-white/45 text-[11px] hover:bg-white/8 hover:text-white/70 disabled:opacity-40 transition-all"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-border dark:border-white/15 text-muted-foreground dark:text-white/45 text-[11px] hover:bg-accent dark:bg-white/8 hover:text-muted-foreground dark:text-white/70 disabled:opacity-40 transition-all"
                               >
                                 {resettingPasswordUserId === u.id ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -1403,7 +1403,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                   </tbody>
                 </table>
                 {filteredUsers.length === 0 && (
-                  <p className="text-center text-white/20 text-sm font-mono py-8">No users found</p>
+                  <p className="text-center text-muted-foreground/70 dark:text-white/20 text-sm font-mono py-8">No users found</p>
                 )}
               </div>
             )}
@@ -1413,27 +1413,27 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         {/* ── ROLES ──────────────────────────────────────────────── */}
         {tab === "roles" && (
           <div className="flex flex-col gap-8 max-w-2xl">
-            <p className="text-sm text-white/40 leading-relaxed">
+            <p className="text-sm text-muted-foreground dark:text-white/40 leading-relaxed">
               Assign roles to users on the Users tab. Customize what each role can do — e.g. a comments-only mod with just comment moderation, or full mods who can mute, timeout, and ban.
             </p>
 
             {rolesLoading ? (
-              <div className="flex items-center gap-2 py-4 text-white/25"><Loader2 className="w-4 h-4 animate-spin" /></div>
+              <div className="flex items-center gap-2 py-4 text-muted-foreground/80 dark:text-white/25"><Loader2 className="w-4 h-4 animate-spin" /></div>
             ) : (
               <>
                 <div>
-                  <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Built-in roles</p>
+                  <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">Built-in roles</p>
                   <div className="flex flex-col gap-3">
                     {builtinRoles.map((r) => {
                       const editing = editingPermissionsRole?.id === r.id;
                       const roleState = editing ? editingPermissionsRole! : r;
                       const canEditPerms = r.name === "moderator";
                       return (
-                        <div key={r.id} className="px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
+                        <div key={r.id} className="px-4 py-3 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
                             <RoleBadge role={r.name} color={r.color} size="sm" />
-                            <span className="text-[10px] text-white/20 font-mono">{r.color}</span>
+                            <span className="text-[10px] text-muted-foreground/70 dark:text-white/20 font-mono">{r.color}</span>
                             {canEditPerms && (
                               <div className="ml-auto flex items-center gap-1">
                                 {editing ? (
@@ -1441,18 +1441,18 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                     <button
                                       onClick={() => handleSavePermissions(roleState)}
                                       disabled={savingPermissions === r.id}
-                                      className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/70 hover:bg-white/18 disabled:opacity-40"
+                                      className="px-2.5 py-1 rounded-lg bg-accent dark:bg-white/10 text-[11px] text-muted-foreground dark:text-white/70 hover:bg-white/18 disabled:opacity-40"
                                     >
                                       {savingPermissions === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
                                     </button>
-                                    <button onClick={() => setEditingPermissionsRole(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/30">
+                                    <button onClick={() => setEditingPermissionsRole(null)} className="p-1.5 rounded-lg hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/30">
                                       <X className="w-3.5 h-3.5" />
                                     </button>
                                   </>
                                 ) : (
                                   <button
                                     onClick={() => setEditingPermissionsRole(r)}
-                                    className="px-2.5 py-1 rounded-lg border border-white/12 text-[11px] text-white/45 hover:text-white/70"
+                                    className="px-2.5 py-1 rounded-lg border border-border dark:border-white/12 text-[11px] text-muted-foreground dark:text-white/45 hover:text-muted-foreground dark:text-white/70"
                                   >
                                     Edit permissions
                                   </button>
@@ -1485,33 +1485,33 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-3">Custom roles</p>
+                  <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">Custom roles</p>
                   <div className="flex flex-col gap-3 mb-4">
                     {customRoles.length === 0 && (
-                      <p className="text-sm text-white/20 font-mono mb-2">No custom roles yet. Create one below — e.g. <span className="text-white/40">comments_mod</span>.</p>
+                      <p className="text-sm text-muted-foreground/70 dark:text-white/20 font-mono mb-2">No custom roles yet. Create one below — e.g. <span className="text-muted-foreground dark:text-white/40">comments_mod</span>.</p>
                     )}
                     {customRoles.map((r) => {
                       const editing = editingPermissionsRole?.id === r.id;
                       const roleState = editing ? editingPermissionsRole! : r;
                       return (
-                        <div key={r.id} className="px-4 py-3 rounded-xl border border-white/8 bg-white/[0.02]">
+                        <div key={r.id} className="px-4 py-3 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
                           {editingRole?.id === r.id ? (
                             <div className="flex items-center gap-3 flex-wrap">
                               <input
                                 type="color"
                                 value={editingRole.color}
                                 onChange={(e) => setEditingRole({ ...editingRole, color: e.target.value })}
-                                className="w-7 h-7 rounded-lg cursor-pointer border border-white/15 p-0.5 bg-transparent shrink-0"
+                                className="w-7 h-7 rounded-lg cursor-pointer border border-border dark:border-white/15 p-0.5 bg-transparent shrink-0"
                               />
                               <input
                                 value={editingRole.name}
                                 onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
-                                className="flex-1 bg-white/5 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-white/30"
+                                className="flex-1 bg-muted/50 dark:bg-white/5 border border-border dark:border-white/15 rounded-lg px-3 py-1.5 text-sm text-foreground dark:text-white outline-none focus:border-border dark:border-white/30"
                               />
-                              <button onClick={handleSaveRole} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/18 text-white/60 hover:text-white transition-all">
+                              <button onClick={handleSaveRole} className="p-1.5 rounded-lg bg-accent dark:bg-white/10 hover:bg-white/18 text-muted-foreground dark:text-white/60 hover:text-foreground dark:hover:text-white transition-all">
                                 <Check className="w-3.5 h-3.5" />
                               </button>
-                              <button onClick={() => setEditingRole(null)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/30 hover:text-white/60 transition-all">
+                              <button onClick={() => setEditingRole(null)} className="p-1.5 rounded-lg hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-all">
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -1519,21 +1519,21 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             <div className="flex items-center gap-3 flex-wrap">
                               <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
                               <RoleBadge role={r.name} color={r.color} size="sm" />
-                              <span className="text-[10px] text-white/25 font-mono">{r.color}</span>
+                              <span className="text-[10px] text-muted-foreground/80 dark:text-white/25 font-mono">{r.color}</span>
                               <div className="ml-auto flex items-center gap-1">
                                 <button
                                   onClick={() => setEditingPermissionsRole(r)}
-                                  className="px-2 py-1 rounded-lg border border-white/12 text-[10px] text-white/45 hover:text-white/70"
+                                  className="px-2 py-1 rounded-lg border border-border dark:border-white/12 text-[10px] text-muted-foreground dark:text-white/45 hover:text-muted-foreground dark:text-white/70"
                                 >
                                   Permissions
                                 </button>
-                                <button onClick={() => setEditingRole(r)} className="p-1.5 rounded-lg hover:bg-white/8 text-white/25 hover:text-white/60 transition-all">
+                                <button onClick={() => setEditingRole(r)} className="p-1.5 rounded-lg hover:bg-accent dark:bg-white/8 text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/60 transition-all">
                                   <Pencil className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteRole(r.id)}
                                   disabled={deletingRole === r.id}
-                                  className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
+                                  className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground/80 dark:text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
                                 >
                                   {deletingRole === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                                 </button>
@@ -1560,7 +1560,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                               <button
                                 onClick={() => handleSavePermissions(roleState)}
                                 disabled={savingPermissions === r.id}
-                                className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 text-xs text-white/70 hover:bg-white/18 disabled:opacity-40"
+                                className="mt-3 px-3 py-1.5 rounded-lg bg-accent dark:bg-white/10 text-xs text-muted-foreground dark:text-white/70 hover:bg-white/18 disabled:opacity-40"
                               >
                                 {savingPermissions === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin inline" /> : "Save permissions"}
                               </button>
@@ -1571,20 +1571,20 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     })}
                   </div>
 
-                  <div className="p-4 rounded-xl border border-dashed border-white/12 space-y-3">
-                    <p className="text-[11px] font-mono text-white/30 uppercase tracking-widest">Create role</p>
+                  <div className="p-4 rounded-xl border border-dashed border-border dark:border-white/12 space-y-3">
+                    <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">Create role</p>
                     <div className="flex items-center gap-3 flex-wrap">
                       <input
                         type="color"
                         value={newRoleColor}
                         onChange={(e) => setNewRoleColor(e.target.value)}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-white/15 p-0.5 bg-transparent shrink-0"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-border dark:border-white/15 p-0.5 bg-transparent shrink-0"
                       />
                       <input
                         value={newRoleName}
                         onChange={(e) => setNewRoleName(e.target.value)}
                         placeholder="e.g. comments_mod"
-                        className="flex-1 min-w-[140px] bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
+                        className="flex-1 min-w-[140px] bg-transparent text-sm text-foreground dark:text-white placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none"
                       />
                       {newRoleName.trim() && (
                         <RoleBadge role={newRoleName} color={newRoleColor} size="sm" />
@@ -1592,7 +1592,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       <button
                         onClick={handleCreateRole}
                         disabled={!newRoleName.trim() || creatingRole}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 border border-white/15 text-white/70 text-xs font-semibold hover:bg-white/18 hover:text-white disabled:opacity-25 transition-all"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-accent dark:bg-white/10 border border-border dark:border-white/15 text-muted-foreground dark:text-white/70 text-xs font-semibold hover:bg-white/18 hover:text-foreground dark:text-white disabled:opacity-25 transition-all"
                       >
                         {creatingRole ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                         Create
@@ -1623,22 +1623,22 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 {/* Feed / Live toggle */}
-                <div className="flex rounded-lg border border-white/10 overflow-hidden">
+                <div className="flex rounded-lg border border-border dark:border-white/10 overflow-hidden">
                   {(["feed", "live"] as const).map((v) => (
                     <button
                       key={v}
                       onClick={() => { setActivityView(v); fetchActivity(v); }}
                       className={`px-3.5 py-1.5 text-[11px] font-mono capitalize transition-all ${
                         activityView === v
-                          ? "bg-white/12 text-white"
-                          : "text-white/35 hover:text-white/65"
+                          ? "bg-accent dark:bg-white/12 text-white"
+                          : "text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65"
                       }`}
                     >
                       {v === "live" ? "⚡ Live" : "Feed"}
                     </button>
                   ))}
                 </div>
-                <span className="text-[11px] font-mono text-white/25">
+                <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">
                   {activityView === "live"
                     ? `${activity.length} active user${activity.length !== 1 ? "s" : ""}`
                     : `${activity.length} session${activity.length !== 1 ? "s" : ""}`}
@@ -1647,7 +1647,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               <button
                 onClick={() => fetchActivity(activityView)}
                 disabled={activityLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all disabled:opacity-30"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/10 text-muted-foreground dark:text-white/35 text-[11px] font-mono hover:text-muted-foreground dark:text-white/70 hover:border-border dark:border-white/25 transition-all disabled:opacity-30"
               >
                 <RefreshCw className={`w-3 h-3 ${activityLoading ? "animate-spin" : ""}`} />
                 Refresh
@@ -1655,21 +1655,21 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </div>
 
             {activityLoading ? (
-              <div className="flex items-center gap-2 py-8 text-white/25">
+              <div className="flex items-center gap-2 py-8 text-muted-foreground/80 dark:text-white/25">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm font-mono">Loading…</span>
               </div>
             ) : activity.length === 0 ? (
-              <p className="text-center text-white/20 text-sm font-mono py-8">No watch activity yet</p>
+              <p className="text-center text-muted-foreground/70 dark:text-white/20 text-sm font-mono py-8">No watch activity yet</p>
             ) : (
-              <div className="rounded-xl border border-white/10 overflow-x-auto">
+              <div className="rounded-xl border border-border dark:border-white/10 overflow-x-auto">
                 <table className="w-full text-sm min-w-[640px]">
                   <thead>
-                    <tr className="border-b border-white/8 bg-white/[0.02]">
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">User</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Anime</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Progress</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">When</th>
+                    <tr className="border-b border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">Anime</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">Progress</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden sm:table-cell">When</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.05]">
@@ -1681,20 +1681,20 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                         ? (typeof entry.updatedAt === "string" ? entry.updatedAt : String(entry.updatedAt))
                         : null;
                       return (
-                        <tr key={entry.progressId} className="hover:bg-white/[0.02] transition-colors">
+                        <tr key={entry.progressId} className="hover:bg-muted/30 dark:bg-white/[0.02] transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
                               {entry.avatarUrl ? (
-                                <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10 shrink-0">
+                                <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-border dark:ring-white/10 shrink-0">
                                   <Image src={entry.avatarUrl} alt={entry.username} fill className="object-cover" unoptimized />
                                 </div>
                               ) : (
-                                <div className="w-7 h-7 rounded-full bg-white/8 flex items-center justify-center text-[12px] font-bold text-white/60 shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-accent dark:bg-white/8 flex items-center justify-center text-[12px] font-bold text-muted-foreground dark:text-white/60 shrink-0">
                                   {entry.username[0]?.toUpperCase()}
                                 </div>
                               )}
                               <div className="flex flex-col min-w-0">
-                                <span className="text-[12px] font-medium text-white/80 truncate">@{entry.username}</span>
+                                <span className="text-[12px] font-medium text-foreground/90 dark:text-white/80 truncate">@{entry.username}</span>
                                 {entry.userRole !== "user" && <RoleBadge role={entry.userRole} size="xs" />}
                               </div>
                             </div>
@@ -1707,29 +1707,29 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <p className="text-[12px] font-medium text-white/75 truncate max-w-[180px]">
+                                <p className="text-[12px] font-medium text-foreground/85 dark:text-white/75 truncate max-w-[180px]">
                                   {entry.animeTitle ?? entry.animeId}
                                 </p>
-                                <p className="text-[10px] font-mono text-white/30">
+                                <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
                                   {entry.episodeId.replace("ep-", "EP ")} · {entry.language ?? "sub"}
-                                  {entry.server && <span className="ml-1 text-white/20">· {entry.server}</span>}
+                                  {entry.server && <span className="ml-1 text-muted-foreground/70 dark:text-white/20">· {entry.server}</span>}
                                 </p>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-3 hidden md:table-cell">
                             <div className="flex flex-col gap-1.5 min-w-[110px]">
-                              <div className="w-full h-1 rounded-full bg-white/8 overflow-hidden">
-                                <div className="h-full rounded-full bg-white/40" style={{ width: `${pct}%` }} />
+                              <div className="w-full h-1 rounded-full bg-accent dark:bg-white/8 overflow-hidden">
+                                <div className="h-full rounded-full bg-muted/40 dark:bg-white/40" style={{ width: `${pct}%` }} />
                               </div>
-                              <span className="text-[10px] font-mono text-white/25">
+                              <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25">
                                 {pct}% · {fmtSecs(entry.currentTime)}
                                 {entry.duration > 0 && <span> / {fmtSecs(entry.duration)}</span>}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-3 hidden sm:table-cell">
-                            <span className="text-[11px] font-mono text-white/30">
+                            <span className="text-[11px] font-mono text-muted-foreground dark:text-white/30">
                               {updatedAt ? timeAgo(updatedAt) : "—"}
                             </span>
                           </td>
@@ -1747,8 +1747,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-semibold text-white/80">Live chat moderation</p>
-                <p className="text-[11px] font-mono text-white/30">
+                <p className="text-sm font-semibold text-foreground/90 dark:text-white/80">Live chat moderation</p>
+                <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30">
                   Messages auto-expire after{" "}
                   {formatChatTtlLabel(chatData?.messageTtlMs ?? 2 * 60 * 60 * 1000)} · refreshes every 10s
                 </p>
@@ -1757,7 +1757,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 <button
                   onClick={() => fetchChat()}
                   disabled={chatLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/35 text-[11px] font-mono hover:text-white/70 hover:border-white/25 transition-all disabled:opacity-30"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/10 text-muted-foreground dark:text-white/35 text-[11px] font-mono hover:text-muted-foreground dark:text-white/70 hover:border-border dark:border-white/25 transition-all disabled:opacity-30"
                 >
                   <RefreshCw className={`w-3 h-3 ${chatLoading ? "animate-spin" : ""}`} />
                   Refresh
@@ -1787,8 +1787,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 { label: "Expired in DB", value: chatData?.expiredCount ?? 0, color: "#f59e0b" },
                 { label: "Total stored", value: chatData?.totalCount ?? 0, color: "#94a3b8" },
               ].map((c) => (
-                <div key={c.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
+                <div key={c.label} className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-4 py-4">
+                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-wider mb-2">{c.label}</p>
                   <p className="text-2xl font-bold tabular-nums" style={{ color: c.color }}>
                     {chatLoading ? "…" : c.value.toLocaleString()}
                   </p>
@@ -1797,21 +1797,21 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </div>
 
             {chatLoading && !chatData ? (
-              <div className="flex items-center gap-2 py-8 text-white/25">
+              <div className="flex items-center gap-2 py-8 text-muted-foreground/80 dark:text-white/25">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm font-mono">Loading chat…</span>
               </div>
             ) : (chatData?.messages ?? []).length === 0 ? (
-              <p className="text-center text-white/20 text-sm font-mono py-8">No chat messages</p>
+              <p className="text-center text-muted-foreground/70 dark:text-white/20 text-sm font-mono py-8">No chat messages</p>
             ) : (
-              <div className="rounded-xl border border-white/10 overflow-x-auto">
+              <div className="rounded-xl border border-border dark:border-white/10 overflow-x-auto">
                 <table className="w-full text-sm min-w-[720px]">
                   <thead>
-                    <tr className="border-b border-white/8 bg-white/[0.02]">
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">User</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider">Message</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden md:table-cell">Sent</th>
-                      <th className="text-left px-4 py-3 text-[11px] font-mono text-white/30 uppercase tracking-wider hidden sm:table-cell">Expires</th>
+                    <tr className="border-b border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider">Message</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden md:table-cell">Sent</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider hidden sm:table-cell">Expires</th>
                       <th className="px-4 py-3 w-16" />
                     </tr>
                   </thead>
@@ -1819,43 +1819,43 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     {(chatData?.messages ?? []).map((m) => (
                       <tr
                         key={m.id}
-                        className={`hover:bg-white/[0.02] transition-colors ${!m.active ? "opacity-50" : ""}`}
+                        className={`hover:bg-muted/30 dark:bg-white/[0.02] transition-colors ${!m.active ? "opacity-50" : ""}`}
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             {m.avatarUrl ? (
-                              <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10 shrink-0">
+                              <div className="relative w-7 h-7 rounded-full overflow-hidden ring-1 ring-border dark:ring-white/10 shrink-0">
                                 <Image src={m.avatarUrl} alt={m.username} fill className="object-cover" unoptimized />
                               </div>
                             ) : (
-                              <div className="w-7 h-7 rounded-full bg-white/8 flex items-center justify-center text-[12px] font-bold text-white/60 shrink-0">
+                              <div className="w-7 h-7 rounded-full bg-accent dark:bg-white/8 flex items-center justify-center text-[12px] font-bold text-muted-foreground dark:text-white/60 shrink-0">
                                 {m.username[0]?.toUpperCase()}
                               </div>
                             )}
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[12px] font-medium text-white/80 truncate">@{m.username}</span>
+                              <span className="text-[12px] font-medium text-foreground/90 dark:text-white/80 truncate">@{m.username}</span>
                               {m.role !== "user" && <RoleBadge role={m.role} size="xs" />}
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 max-w-md">
                           {m.body ? (
-                            <p className="text-[12px] text-white/65 whitespace-pre-wrap break-words line-clamp-3">{m.body}</p>
+                            <p className="text-[12px] text-muted-foreground dark:text-white/65 whitespace-pre-wrap break-words line-clamp-3">{m.body}</p>
                           ) : null}
                           {m.gifUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={m.gifUrl}
                               alt="GIF"
-                              className="mt-1.5 rounded-lg max-h-16 w-auto ring-1 ring-white/10"
+                              className="mt-1.5 rounded-lg max-h-16 w-auto ring-1 ring-border dark:ring-white/10"
                             />
                           ) : null}
                           {!m.body && !m.gifUrl && (
-                            <span className="text-[11px] font-mono text-white/25">—</span>
+                            <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
-                          <span className="text-[11px] font-mono text-white/30">{timeAgo(m.createdAt)}</span>
+                          <span className="text-[11px] font-mono text-muted-foreground dark:text-white/30">{timeAgo(m.createdAt)}</span>
                         </td>
                         <td className="px-4 py-3 hidden sm:table-cell">
                           <span className={`text-[11px] font-mono ${m.active ? "text-emerald-400/70" : "text-amber-400/70"}`}>
@@ -1866,7 +1866,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                           <button
                             onClick={() => handleDeleteChatMessage(m.id)}
                             disabled={chatDeleting === m.id}
-                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground/80 dark:text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
                             title="Delete message"
                           >
                             {chatDeleting === m.id ? (
@@ -1888,15 +1888,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         {tab === "announcements" && (
           <div className="flex flex-col gap-8 max-w-2xl">
             {/* Create form */}
-            <div className="rounded-xl border border-dashed border-white/12 p-5 flex flex-col gap-4">
-              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest">New Announcement</p>
+            <div className="rounded-xl border border-dashed border-border dark:border-white/12 p-5 flex flex-col gap-4">
+              <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest">New Announcement</p>
 
               {/* Severity + Title */}
               <div className="flex gap-2">
                 <select
                   value={annForm.severity}
                   onChange={(e) => setAnnForm((f) => ({ ...f, severity: e.target.value as Announcement["severity"] }))}
-                  className="shrink-0 bg-black border border-white/15 text-white/70 text-[11px] font-mono rounded-lg px-2 py-2 focus:outline-none focus:border-white/30"
+                  className="shrink-0 bg-black border border-border dark:border-white/15 text-muted-foreground dark:text-white/70 text-[11px] font-mono rounded-lg px-2 py-2 focus:outline-none focus:border-border dark:border-white/30"
                 >
                   {Object.entries(SEVERITY_META).map(([k, v]) => (
                     <option key={k} value={k} className="bg-black">{v.label}</option>
@@ -1906,7 +1906,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                   value={annForm.title}
                   onChange={(e) => setAnnForm((f) => ({ ...f, title: e.target.value }))}
                   placeholder="Title (required)"
-                  className="flex-1 bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                  className="flex-1 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
                 />
               </div>
 
@@ -1916,7 +1916,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 onChange={(e) => setAnnForm((f) => ({ ...f, body: e.target.value }))}
                 placeholder="Body text (optional)"
                 rows={2}
-                className="bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors resize-none"
+                className="bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors resize-none"
               />
 
               {/* Link */}
@@ -1925,13 +1925,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                   value={annForm.linkUrl}
                   onChange={(e) => setAnnForm((f) => ({ ...f, linkUrl: e.target.value }))}
                   placeholder="Link URL (optional)"
-                  className="flex-1 bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                  className="flex-1 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
                 />
                 <input
                   value={annForm.linkLabel}
                   onChange={(e) => setAnnForm((f) => ({ ...f, linkLabel: e.target.value }))}
                   placeholder="Button label"
-                  className="w-36 bg-white/[0.04] border border-white/12 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                  className="w-36 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
                 />
               </div>
 
@@ -1944,12 +1944,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     onChange={(e) => setAnnForm((f) => ({ ...f, dismissible: e.target.checked }))}
                     className="accent-white/60 w-3.5 h-3.5"
                   />
-                  <span className="text-[12px] text-white/45 font-mono">Dismissible</span>
+                  <span className="text-[12px] text-muted-foreground dark:text-white/45 font-mono">Dismissible</span>
                 </label>
                 <button
                   onClick={handleCreateAnn}
                   disabled={!annForm.title.trim() || annCreating}
-                  className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/10 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/18 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+                  className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-accent dark:bg-white/10 border border-border dark:border-white/15 text-muted-foreground dark:text-white/70 text-sm font-semibold hover:bg-white/18 hover:text-foreground dark:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all"
                 >
                   {annCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   Publish
@@ -1959,12 +1959,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
             {/* List */}
             {annsLoading ? (
-              <div className="flex items-center gap-2 py-4 text-white/25">
+              <div className="flex items-center gap-2 py-4 text-muted-foreground/80 dark:text-white/25">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm font-mono">Loading…</span>
               </div>
             ) : anns.length === 0 ? (
-              <p className="text-sm font-mono text-white/20 py-4">No announcements yet.</p>
+              <p className="text-sm font-mono text-muted-foreground/70 dark:text-white/20 py-4">No announcements yet.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {anns.map((a) => {
@@ -1973,13 +1973,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                   return (
                     <div
                       key={a.id}
-                      className={`rounded-xl border px-4 py-4 flex flex-col gap-2 transition-opacity ${a.isActive ? "border-white/12 bg-white/[0.02]" : "border-white/6 bg-white/[0.01] opacity-50"}`}
+                      className={`rounded-xl border px-4 py-4 flex flex-col gap-2 transition-opacity ${a.isActive ? "border-border dark:border-white/12 bg-muted/30 dark:bg-white/[0.02]" : "border-border dark:border-white/6 bg-muted/10 dark:bg-white/[0.01] opacity-50"}`}
                     >
                       <div className="flex items-start gap-3">
                         <SevIcon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: meta.color }} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[13px] font-semibold text-white/85 truncate">{a.title}</span>
+                            <span className="text-[13px] font-semibold text-foreground dark:text-white/85 truncate">{a.title}</span>
                             <span
                               className="text-[10px] font-mono px-1.5 py-0.5 rounded-md border"
                               style={{ color: meta.color, borderColor: `${meta.color}40`, backgroundColor: `${meta.color}10` }}
@@ -1987,19 +1987,19 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                               {meta.label}
                             </span>
                             {!a.dismissible && (
-                              <span className="text-[10px] font-mono text-white/25 border border-white/10 px-1.5 py-0.5 rounded-md">pinned</span>
+                              <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 border border-border dark:border-white/10 px-1.5 py-0.5 rounded-md">pinned</span>
                             )}
                             {!a.isActive && (
-                              <span className="text-[10px] font-mono text-white/20 border border-white/8 px-1.5 py-0.5 rounded-md">inactive</span>
+                              <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20 border border-border dark:border-white/8 px-1.5 py-0.5 rounded-md">inactive</span>
                             )}
                           </div>
-                          {a.body && <p className="text-[12px] text-white/45 mt-1 line-clamp-2">{a.body}</p>}
+                          {a.body && <p className="text-[12px] text-muted-foreground dark:text-white/45 mt-1 line-clamp-2">{a.body}</p>}
                           {a.linkUrl && (
                             <a
                               href={a.linkUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] text-white/35 hover:text-white/60 mt-1 transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 mt-1 transition-colors"
                             >
                               <ExternalLink className="w-3 h-3" />
                               {a.linkLabel ?? a.linkUrl}
@@ -2012,7 +2012,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             disabled={annToggling === a.id}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-mono border transition-all disabled:opacity-40 ${
                               a.isActive
-                                ? "border-white/15 text-white/40 hover:text-white/70 hover:border-white/25"
+                                ? "border-border dark:border-white/15 text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:border-border dark:border-white/25"
                                 : "border-emerald-500/25 text-emerald-400/60 hover:text-emerald-300 hover:border-emerald-400/40"
                             }`}
                           >
@@ -2021,14 +2021,14 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                           <button
                             onClick={() => handleDeleteAnn(a.id)}
                             disabled={annDeleting === a.id}
-                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground/80 dark:text-white/25 hover:text-red-400/70 transition-all disabled:opacity-40"
                           >
                             {annDeleting === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                           </button>
                         </div>
                       </div>
                       {a.createdAt && (
-                        <p className="text-[10px] font-mono text-white/15 pl-7">{timeAgo(a.createdAt)}</p>
+                        <p className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15 pl-7">{timeAgo(a.createdAt)}</p>
                       )}
                     </div>
                   );

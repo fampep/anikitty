@@ -21,6 +21,11 @@ body {
 }
 
 ::selection {
+  background: rgba(124, 58, 237, 0.22);
+  color: inherit;
+}
+
+.dark ::selection {
   background: rgba(167, 139, 250, 0.28);
   color: #fff;
 }
@@ -71,6 +76,20 @@ body {
     @apply relative z-[1] min-h-screen;
   }
 
+  /* Compact theme utilities — prefer these over long light/dark class pairs */
+  .site-chip {
+    @apply inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3.5 py-2 text-[11px] font-semibold text-muted-foreground transition-all dark:border-white/10 dark:bg-white/[0.03] dark:text-white/45;
+  }
+  .site-chip:hover {
+    @apply border-violet-400/25 bg-violet-500/[0.08] text-foreground dark:text-white/85;
+  }
+  .site-chip-active {
+    @apply border-violet-400/35 bg-violet-500/[0.12] text-foreground dark:text-white/90;
+  }
+  .site-input {
+    @apply rounded-xl border border-border bg-muted/50 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/20 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-white/25;
+  }
+
   .home-feed > * + * {
     margin-top: 0;
   }
@@ -79,11 +98,6 @@ body {
     margin-block: var(--home-section-gap);
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    .site-page {
-      animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-  }
   /* Momentum scrolling on iOS */
   .scroll-momentum {
     -webkit-overflow-scrolling: touch;
@@ -93,31 +107,33 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 8%;
-    --card: 0 0% 95%;
-    --card-foreground: 0 0% 8%;
-    --popover: 0 0% 95%;
-    --popover-foreground: 0 0% 8%;
-    --primary: 0 0% 6%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 90%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 88%;
-    --accent-foreground: 0 0% 10%;
+    --background: 260 20% 98%;
+    --foreground: 240 10% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 8%;
+    --primary: 270 91% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 260 15% 94%;
+    --secondary-foreground: 240 10% 12%;
+    --muted: 260 12% 94%;
+    --muted-foreground: 240 5% 42%;
+    --accent: 270 30% 94%;
+    --accent-foreground: 270 50% 25%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 85%;
-    --input: 0 0% 85%;
-    --ring: 0 0% 30%;
+    --border: 260 12% 88%;
+    --input: 260 12% 88%;
+    --ring: 270 75% 55%;
     --radius: 0.75rem;
-    --chart-1: 0 0% 20%;
-    --chart-2: 0 0% 35%;
-    --chart-3: 0 0% 50%;
-    --chart-4: 0 0% 65%;
-    --chart-5: 0 0% 80%;
+    --chart-1: 270 70% 55%;
+    --chart-2: 240 50% 50%;
+    --chart-3: 200 50% 45%;
+    --chart-4: 160 40% 42%;
+    --chart-5: 30 60% 50%;
+    --brand: 270 91% 55%;
+    --brand-muted: 270 40% 94%;
   }
 
   .dark {
@@ -158,6 +174,9 @@ body {
 
   body {
     @apply bg-background text-foreground antialiased;
+    background:
+      radial-gradient(ellipse 120% 70% at 50% -20%, rgba(124, 58, 237, 0.05), transparent 52%),
+      hsl(var(--background));
   }
 
   .dark body {
@@ -207,7 +226,15 @@ button, a, [role="button"] {
 
 @layer components {
   .site-panel {
-    @apply rounded-2xl border border-white/[0.08] bg-white/[0.035] backdrop-blur-md;
+    @apply rounded-2xl border border-border/70 bg-card/90 backdrop-blur-md;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 4px 24px rgba(15, 10, 30, 0.06),
+      0 1px 2px rgba(15, 10, 30, 0.04);
+  }
+
+  .dark .site-panel {
+    @apply border-white/[0.08] bg-white/[0.035];
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
       0 4px 24px rgba(0, 0, 0, 0.28),
@@ -219,28 +246,40 @@ button, a, [role="button"] {
   }
 
   .site-panel-hover:hover {
+    @apply border-border bg-card;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 12px 40px rgba(124, 58, 237, 0.08),
+      0 0 0 1px rgba(124, 58, 237, 0.06);
+    transform: translateY(-1px);
+  }
+
+  .dark .site-panel-hover:hover {
     @apply border-white/[0.14] bg-white/[0.05];
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 12px 40px rgba(0, 0, 0, 0.38),
       0 0 0 1px rgba(167, 139, 250, 0.06);
-    transform: translateY(-1px);
   }
 
   .site-label {
-    @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40;
+    @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:text-white/40;
   }
 
   .site-divider {
-    @apply h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent;
+    @apply h-px bg-gradient-to-r from-transparent via-border to-transparent dark:via-white/[0.1];
   }
 
   .site-ghost-btn {
-    @apply inline-flex items-center gap-1.5 rounded-xl border border-white/[0.1] bg-white/[0.045] px-3.5 py-2 text-xs font-semibold text-white/65 shadow-sm shadow-black/20 transition-all duration-200;
+    @apply inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/60 px-3.5 py-2 text-xs font-semibold text-muted-foreground shadow-sm transition-all duration-200 dark:border-white/[0.1] dark:bg-white/[0.045] dark:text-white/65 dark:shadow-black/20;
   }
 
   .site-ghost-btn:hover {
-    @apply border-white/20 bg-white/[0.09] text-white;
+    @apply border-border bg-accent text-foreground dark:border-white/20 dark:bg-white/[0.09] dark:text-white;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.08);
+  }
+
+  .dark .site-ghost-btn:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   }
 
@@ -255,10 +294,17 @@ button, a, [role="button"] {
   }
 
   .site-glass {
-    @apply border border-white/[0.08] bg-[#0a0a12]/80 backdrop-blur-xl;
+    @apply border border-border/80 bg-background/85 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0a0a12]/80;
   }
 
   .nav-link-active {
+    color: hsl(var(--primary)) !important;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(139, 92, 246, 0.06)) !important;
+    border-color: rgba(124, 58, 237, 0.28) !important;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.08);
+  }
+
+  .dark .nav-link-active {
     color: #ede9fe !important;
     background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(139, 92, 246, 0.1)) !important;
     border-color: rgba(167, 139, 250, 0.32) !important;
@@ -276,11 +322,19 @@ button, a, [role="button"] {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(167, 139, 250, 0.15);
+  background: rgba(124, 58, 237, 0.22);
   border-radius: 999px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(167, 139, 250, 0.15);
+}
+
 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.35);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(167, 139, 250, 0.28);
 }
 
@@ -661,7 +715,7 @@ html[data-user-theme] .art-kitty-player .art-setting-panel .art-setting-item.art
 /* Subtitle library feed (ryuo-style layout, Anikitty theme) */
 .subs-chip {
   @apply inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide;
-  @apply border border-white/[0.08] bg-white/[0.04] text-white/45;
+  @apply border border-border bg-muted/50 text-muted-foreground dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/45;
 }
 
 .subs-chip-complete {

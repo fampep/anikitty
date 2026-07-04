@@ -130,10 +130,10 @@ export default function WatchDownloadPanel({
 
       <PopoverContent
         align="end"
-        className="w-[min(92vw,340px)] p-0 bg-[#0c0c0c] border-white/10 overflow-hidden"
+        className="w-[min(92vw,340px)] p-0 bg-[#0c0c0c] border-border dark:border-white/10 overflow-hidden"
       >
-        <div className="px-4 py-3 border-b border-white/8">
-          <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-3">
+        <div className="px-4 py-3 border-b border-border dark:border-white/8">
+          <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-3">
             {t("watch.downloadPanelTitle")}
           </p>
           <button
@@ -151,8 +151,8 @@ export default function WatchDownloadPanel({
           </button>
         </div>
 
-        <div className="px-4 py-2.5 flex items-center justify-between gap-2 border-b border-white/6">
-          <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+        <div className="px-4 py-2.5 flex items-center justify-between gap-2 border-b border-border dark:border-white/6">
+          <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
             {t("watch.downloadBatchHeading")}
           </span>
           <div className="flex items-center gap-2">
@@ -160,18 +160,18 @@ export default function WatchDownloadPanel({
               type="button"
               onClick={selectAll}
               disabled={busy || sortedEpisodes.length === 0}
-              className="text-[10px] font-medium text-white/40 hover:text-white/70 disabled:opacity-40"
+              className="text-[10px] font-medium text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 disabled:opacity-40"
             >
               {t("watch.downloadSelectAll")}
             </button>
             {selected.size > 0 && (
               <>
-                <span className="text-white/15">·</span>
+                <span className="text-muted-foreground/50 dark:text-white/15">·</span>
                 <button
                   type="button"
                   onClick={clearSelection}
                   disabled={busy}
-                  className="text-[10px] font-medium text-white/40 hover:text-white/70"
+                  className="text-[10px] font-medium text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70"
                 >
                   {t("watch.downloadClearSelection")}
                 </button>
@@ -182,7 +182,7 @@ export default function WatchDownloadPanel({
 
         <div className="max-h-52 overflow-y-auto overscroll-contain px-2 py-2">
           {sortedEpisodes.length === 0 ? (
-            <p className="text-xs text-white/35 text-center py-6">{t("watch.downloadNoEpisodes")}</p>
+            <p className="text-xs text-muted-foreground dark:text-white/35 text-center py-6">{t("watch.downloadNoEpisodes")}</p>
           ) : (
             sortedEpisodes.map((ep) => {
               const isSelected = selected.has(ep.number);
@@ -195,7 +195,7 @@ export default function WatchDownloadPanel({
                   onClick={() => toggleEpisode(ep.number)}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors",
-                    isSelected ? "bg-violet-500/10" : "hover:bg-white/[0.04]",
+                    isSelected ? "bg-violet-500/10" : "hover:bg-muted/50 dark:bg-white/[0.04]",
                   )}
                 >
                   <span
@@ -203,15 +203,15 @@ export default function WatchDownloadPanel({
                       "w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-colors",
                       isSelected
                         ? "bg-violet-500 border-violet-400 text-white"
-                        : "border-white/20 bg-transparent",
+                        : "border-border dark:border-white/20 bg-transparent",
                     )}
                   >
                     {isSelected && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
                   </span>
-                  <span className="text-[11px] font-mono text-white/45 shrink-0 w-8">
+                  <span className="text-[11px] font-mono text-muted-foreground dark:text-white/45 shrink-0 w-8">
                     {ep.number}
                   </span>
-                  <span className="text-[11px] text-white/65 truncate flex-1">
+                  <span className="text-[11px] text-muted-foreground dark:text-white/65 truncate flex-1">
                     {ep.title}
                   </span>
                   {isCurrent && (
@@ -226,7 +226,7 @@ export default function WatchDownloadPanel({
         </div>
 
         {selected.size > 0 && (
-          <div className="px-4 py-3 border-t border-white/8 bg-white/[0.02]">
+          <div className="px-4 py-3 border-t border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
             <button
               type="button"
               onClick={handleDownloadSelected}

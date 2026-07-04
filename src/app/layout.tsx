@@ -90,7 +90,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#0a0a12",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a12" },
+  ],
 };
 
 export default async function RootLayout({
@@ -106,8 +109,13 @@ export default async function RootLayout({
   );
 
   return (
-    <html lang={locale} className="dark" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='anikitty-theme',s=localStorage.getItem(k),t=s||'dark';if(t==='system'){document.documentElement.classList.toggle('dark',window.matchMedia('(prefers-color-scheme: dark)').matches)}else{document.documentElement.classList.toggle('dark',t==='dark')}}catch(e){}})();`,
+          }}
+        />
         {ENABLE_ANALYTICS && (
           <>
             <Script
@@ -135,7 +143,8 @@ export default async function RootLayout({
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
-            forcedTheme="dark"
+            enableSystem
+            storageKey="anikitty-theme"
             disableTransitionOnChange
           >
             <QueryProvider>

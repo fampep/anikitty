@@ -34,7 +34,7 @@ export default function ProfileBadgesRow({ accountBadges, level, currentTierName
       )}
       {hasLevel && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-white/25 mr-0.5 shrink-0">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/80 dark:text-white/25 mr-0.5 shrink-0">
             {t("profile.badges.ranksLabel")}
           </span>
           <ProfileLevelBadges level={level!} currentTierName={currentTierName} />

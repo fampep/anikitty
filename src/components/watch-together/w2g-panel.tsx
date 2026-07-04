@@ -98,7 +98,7 @@ export default function W2gPanel({
       >
         <div className="flex items-center gap-2 min-w-0">
           <Users className="h-4 w-4 text-violet-400 shrink-0" />
-          <span className="text-xs font-bold text-white truncate">{t("watch.w2g.title")}</span>
+          <span className="text-xs font-bold text-foreground dark:text-white truncate">{t("watch.w2g.title")}</span>
           <span className="text-[10px] font-mono text-violet-300/80 bg-violet-500/15 px-1.5 py-0.5 rounded">
             {code}
           </span>
@@ -109,26 +109,26 @@ export default function W2gPanel({
           )}
         </div>
         {open ? (
-          <ChevronUp className="h-4 w-4 text-white/40 shrink-0" />
+          <ChevronUp className="h-4 w-4 text-muted-foreground dark:text-white/40 shrink-0" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-white/40 shrink-0" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground dark:text-white/40 shrink-0" />
         )}
       </button>
 
       {open && (
         <div className="flex flex-col max-h-[320px]">
-          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/8 flex-wrap">
+          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border dark:border-white/8 flex-wrap">
             <button
               type="button"
               onClick={copyCode}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-white/55 bg-white/5 hover:bg-white/10 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground dark:text-white/55 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/10 transition-colors"
             >
               <Copy className="h-3 w-3" /> {t("watch.w2g.code")}
             </button>
             <button
               type="button"
               onClick={copyInvite}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-white/55 bg-white/5 hover:bg-white/10 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground dark:text-white/55 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/10 transition-colors"
             >
               <Copy className="h-3 w-3" /> {t("watch.w2g.inviteLink")}
             </button>
@@ -141,8 +141,8 @@ export default function W2gPanel({
             </button>
           </div>
 
-          <div className="px-3 py-2 border-b border-white/8">
-            <p className="text-[10px] font-mono text-white/35 mb-1.5">
+          <div className="px-3 py-2 border-b border-border dark:border-white/8">
+            <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 mb-1.5">
               {t("watch.w2g.watchingCount", { count: members.length })} · {syncLabel}
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -153,7 +153,7 @@ export default function W2gPanel({
                     "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px]",
                     m.isHost
                       ? "border-amber-500/25 bg-amber-500/10 text-amber-200"
-                      : "border-white/10 bg-white/5 text-white/60",
+                      : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/60",
                   )}
                   title={m.isOnline ? t("watch.w2g.online") : t("watch.w2g.away")}
                 >
@@ -173,10 +173,10 @@ export default function W2gPanel({
           <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-[100px]">
             {loading ? (
               <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-white/30" />
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground dark:text-white/30" />
               </div>
             ) : messages.length === 0 ? (
-              <p className="text-[11px] text-white/30 text-center py-4">{t("watch.w2g.sayHi")}</p>
+              <p className="text-[11px] text-muted-foreground dark:text-white/30 text-center py-4">{t("watch.w2g.sayHi")}</p>
             ) : (
               messages.map((msg) => (
                 <div key={msg.id} className="flex gap-2">
@@ -187,25 +187,25 @@ export default function W2gPanel({
                   />
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-[11px] font-semibold text-white/75">{msg.username}</span>
-                      <span className="text-[9px] font-mono text-white/25">
+                      <span className="text-[11px] font-semibold text-foreground/85 dark:text-white/75">{msg.username}</span>
+                      <span className="text-[9px] font-mono text-muted-foreground/80 dark:text-white/25">
                         {formatW2gTime(msg.createdAt)}
                       </span>
                     </div>
-                    <p className="text-[12px] text-white/65 break-words">{msg.body}</p>
+                    <p className="text-[12px] text-muted-foreground dark:text-white/65 break-words">{msg.body}</p>
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          <form onSubmit={send} className="flex items-center gap-1.5 p-2 border-t border-white/8">
+          <form onSubmit={send} className="flex items-center gap-1.5 p-2 border-t border-border dark:border-white/8">
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder={t("watch.w2g.chatPlaceholder")}
               maxLength={500}
-              className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/40"
+              className="flex-1 min-w-0 bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:border-violet-500/40"
             />
             <button
               type="submit"

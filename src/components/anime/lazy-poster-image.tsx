@@ -57,7 +57,7 @@ export default function LazyPosterImage({
           className={cn("object-cover", imageClassName)}
         />
       ) : (
-        <div className="absolute inset-0 bg-white/[0.04]" aria-hidden />
+        <div className="absolute inset-0 bg-muted/50 dark:bg-white/[0.04]" aria-hidden />
       )}
     </div>
   );

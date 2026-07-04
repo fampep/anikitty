@@ -33,20 +33,20 @@ function ToggleRow({
   return (
     <button
       type="button"
-      className="flex w-full items-center justify-between gap-4 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-white/14 transition-colors text-left"
+      className="flex w-full items-center justify-between gap-4 px-3 py-2.5 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/[0.08] hover:border-border dark:border-white/14 transition-colors text-left"
       onClick={() => onChange(!value)}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <span className="text-white/35 shrink-0">{icon}</span>
+        <span className="text-muted-foreground dark:text-white/35 shrink-0">{icon}</span>
         <div className="min-w-0">
-          <p className="text-[13px] font-medium text-white/80">{label}</p>
-          <p className="text-[10px] text-white/30 font-mono mt-0.5 leading-snug">{description}</p>
+          <p className="text-[13px] font-medium text-foreground/90 dark:text-white/80">{label}</p>
+          <p className="text-[10px] text-muted-foreground dark:text-white/30 font-mono mt-0.5 leading-snug">{description}</p>
         </div>
       </div>
       <div
         className={cn(
           "relative w-9 h-5 rounded-full transition-colors duration-200 shrink-0",
-          value ? "bg-violet-500/70" : "bg-white/12",
+          value ? "bg-violet-500/70" : "bg-accent dark:bg-white/12",
         )}
         aria-hidden
       >
@@ -91,20 +91,20 @@ export default function PlayerSettingsBar() {
   }, [setPlayerSettingsOpen, setShowPlayerControls, setSimpleProviderPicker]);
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/[0.06]">
+    <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border dark:border-white/[0.06]">
         <button
           type="button"
           onClick={() => setPlayerSettingsOpen(!playerSettingsOpen)}
           className="flex flex-1 items-center gap-2 min-w-0 text-left group"
         >
           <Settings2 className="w-3.5 h-3.5 text-violet-400/70 shrink-0" />
-          <span className="text-[12px] font-bold text-white/75 truncate">
+          <span className="text-[12px] font-bold text-foreground/85 dark:text-white/75 truncate">
             {t("watch.playerSettings.title")}
           </span>
           <ChevronDown
             className={cn(
-              "w-3.5 h-3.5 text-white/30 shrink-0 transition-transform",
+              "w-3.5 h-3.5 text-muted-foreground dark:text-white/30 shrink-0 transition-transform",
               playerSettingsOpen && "rotate-180",
             )}
           />
@@ -117,7 +117,7 @@ export default function PlayerSettingsBar() {
             "inline-flex items-center gap-1.5 shrink-0 h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors",
             theatreMode
               ? "border-violet-400/30 bg-violet-500/15 text-violet-200/90"
-              : "border-white/12 bg-white/[0.04] text-white/50 hover:text-white/75",
+              : "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:text-white/75",
           )}
           title={t("watch.playerSettings.theatre")}
         >
@@ -131,7 +131,7 @@ export default function PlayerSettingsBar() {
           className={cn(
             "inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors touch-manipulation",
             showPlayerControls
-              ? "border-white/12 bg-white/[0.04] text-white/50 hover:text-white/75"
+              ? "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:text-white/75"
               : "border-violet-400/30 bg-violet-500/15 text-violet-200/90",
           )}
           title={
@@ -182,10 +182,10 @@ export default function PlayerSettingsBar() {
 
           <KittyProxyChooser />
 
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3">
+          <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3">
             <div className="flex items-center gap-2 mb-3">
               <SlidersHorizontal className="w-3.5 h-3.5 text-teal-400/70" />
-              <p className="text-[11px] font-bold text-white/70">
+              <p className="text-[11px] font-bold text-muted-foreground dark:text-white/70">
                 {t("settings.subtitleAppearance")}
               </p>
             </div>
@@ -195,8 +195,8 @@ export default function PlayerSettingsBar() {
       )}
 
       {!showPlayerControls && (
-        <div className="px-3 py-2 border-t border-white/[0.06]">
-          <p className="text-[10px] text-white/35 font-mono leading-relaxed">
+        <div className="px-3 py-2 border-t border-border dark:border-white/[0.06]">
+          <p className="text-[10px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
             {t("watch.playerSettings.providersHiddenHint")}
           </p>
         </div>

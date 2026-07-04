@@ -64,13 +64,13 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
     <Link
       href={href}
       className={cn(
-        "group flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] transition-colors",
-        "hover:border-white/16 hover:bg-white/[0.04]",
+        "group flex items-center gap-3 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] transition-colors",
+        "hover:border-white/16 hover:bg-muted/50 dark:bg-white/[0.04]",
         compact ? "px-2.5 py-2" : "px-3 py-2.5",
       )}
     >
       <div
-        className="relative shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 bg-white/[0.04]"
+        className="relative shrink-0 overflow-hidden rounded-lg ring-1 ring-border dark:ring-white/10 bg-muted/50 dark:bg-white/[0.04]"
         style={{ width: thumbW, height: thumbH }}
       >
         {anime.poster ? (
@@ -84,11 +84,11 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Film className={cn("text-white/15", compact ? "h-4 w-4" : "h-5 w-5")} />
+            <Film className={cn("text-muted-foreground/50 dark:text-white/15", compact ? "h-4 w-4" : "h-5 w-5")} />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 py-px text-[8px] font-mono font-bold text-white/90">
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 py-px text-[8px] font-mono font-bold text-foreground dark:text-white/90">
           {anime.episode}
         </span>
       </div>
@@ -98,13 +98,13 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
           className={cn(
             "truncate font-semibold leading-tight",
             compact ? "text-[12px]" : "text-[13px]",
-            aired ? "text-white/40" : "text-white/80 group-hover:text-white",
+            aired ? "text-muted-foreground dark:text-white/40" : "text-foreground/90 dark:text-white/80 group-hover:text-foreground dark:hover:text-white",
           )}
         >
           {anime.name}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1">
-          <span className="text-[10px] font-mono text-white/30">
+          <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
             {t("home.episode", { n: anime.episode })}
           </span>
           {audioTypes.map((type) => (
@@ -117,7 +117,7 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
         <div
           className={cn(
             "flex items-center justify-end gap-1 text-[10px] font-mono tabular-nums",
-            nearby ? "text-sky-300/90" : aired ? "text-white/30" : "text-white/50",
+            nearby ? "text-sky-300/90" : aired ? "text-muted-foreground dark:text-white/30" : "text-muted-foreground dark:text-white/50",
           )}
         >
           {nearby && (
@@ -127,7 +127,7 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
           <span className="truncate">{label}</span>
         </div>
         {sublabel && (
-          <p className="mt-0.5 truncate text-[9px] font-mono text-white/25">{sublabel}</p>
+          <p className="mt-0.5 truncate text-[9px] font-mono text-muted-foreground/80 dark:text-white/25">{sublabel}</p>
         )}
       </div>
     </Link>
@@ -138,21 +138,21 @@ export function ScheduleRowSkeleton({ compact = false }: { compact?: boolean }) 
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border border-white/6 bg-white/[0.02]",
+        "flex items-center gap-3 rounded-xl border border-border dark:border-white/6 bg-muted/30 dark:bg-white/[0.02]",
         compact ? "px-2.5 py-2" : "px-3 py-2.5",
       )}
     >
       <div
         className={cn(
-          "shrink-0 animate-pulse rounded-lg bg-white/[0.06]",
+          "shrink-0 animate-pulse rounded-lg bg-accent dark:bg-white/[0.06]",
           compact ? "h-14 w-10" : "h-[68px] w-12",
         )}
       />
       <div className="flex flex-1 flex-col gap-2">
-        <div className="h-3 w-3/4 animate-pulse rounded bg-white/[0.06]" />
-        <div className="h-2 w-1/3 animate-pulse rounded bg-white/[0.04]" />
+        <div className="h-3 w-3/4 animate-pulse rounded bg-accent dark:bg-white/[0.06]" />
+        <div className="h-2 w-1/3 animate-pulse rounded bg-muted/50 dark:bg-white/[0.04]" />
       </div>
-      <div className="h-3 w-12 animate-pulse rounded bg-white/[0.05]" />
+      <div className="h-3 w-12 animate-pulse rounded bg-muted/60 dark:bg-white/[0.05]" />
     </div>
   );
 }

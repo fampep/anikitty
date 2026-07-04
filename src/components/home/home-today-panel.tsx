@@ -40,10 +40,10 @@ export default function HomeTodayPanel() {
             />
           </div>
 
-          <div className="border-t border-white/[0.06] pt-4">
+          <div className="border-t border-border dark:border-white/[0.06] pt-4">
             <div className="flex items-center gap-2 mb-3">
-              <Tags className="w-3.5 h-3.5 text-white/30" />
-              <p className="text-[10px] font-mono text-white/30 uppercase tracking-[0.18em]">
+              <Tags className="w-3.5 h-3.5 text-muted-foreground dark:text-white/30" />
+              <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-[0.18em]">
                 {t("home.browseByGenre")}
               </p>
             </div>
@@ -52,14 +52,14 @@ export default function HomeTodayPanel() {
                 <Link
                   key={genre}
                   href={`${ROUTES.SEARCH}?genres=${genre}`}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-white/10 bg-white/[0.03] text-white/45 hover:text-white/85 hover:border-white/22 hover:bg-white/[0.06] transition-all"
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/85 hover:border-white/22 hover:bg-accent dark:bg-white/[0.06] transition-all"
                 >
                   {t(`search.filterGenres.${genreKey(genre)}`)}
                 </Link>
               ))}
               <Link
                 href={ROUTES.SEARCH}
-                className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-white/12 text-white/30 hover:text-white/60 transition-all"
+                className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-border dark:border-white/12 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-all"
               >
                 {t("home.allGenres")}
               </Link>

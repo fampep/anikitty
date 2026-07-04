@@ -87,9 +87,9 @@ export default function SubtitlesPage() {
         )}
 
         {stats && stats.totalEpisodes > 0 && (
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
+          <div className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-4 py-3">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-white/30">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30">
                 {t("subsLibrary.episodeCoverageMeta", {
                   cached: stats.cachedEpisodes,
                   total: stats.totalEpisodes,
@@ -99,7 +99,7 @@ export default function SubtitlesPage() {
                 {Math.round((stats.cachedEpisodes / stats.totalEpisodes) * 100)}%
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-teal-600 to-teal-400"
                 style={{
@@ -122,7 +122,7 @@ export default function SubtitlesPage() {
                     "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors",
                     filter === tab
                       ? "bg-teal-500/15 border-teal-500/30 text-teal-200"
-                      : "bg-white/[0.03] border-white/10 text-white/45 hover:text-white/70",
+                      : "bg-muted/40 dark:bg-white/[0.03] border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:text-muted-foreground dark:text-white/70",
                   )}
                 >
                   {tab === "all" ? t("subsLibrary.tabAll") : t("subsLibrary.tabCompleted")}
@@ -131,12 +131,12 @@ export default function SubtitlesPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-2 text-[11px] text-white/40 font-mono">
+              <label className="flex items-center gap-2 text-[11px] text-muted-foreground dark:text-white/40 font-mono">
                 <span className="hidden sm:inline">{t("subsLibrary.sortLabel")}</span>
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SubtitleLibrarySort)}
-                  className="h-8 rounded-lg bg-black/40 border border-white/10 text-white/75 text-xs px-2 outline-none focus:border-teal-500/30"
+                  className="h-8 rounded-lg bg-black/40 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 text-xs px-2 outline-none focus:border-teal-500/30"
                 >
                   {SORT_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -147,24 +147,24 @@ export default function SubtitlesPage() {
               </label>
 
               <div className="relative flex-1 min-w-[200px] lg:w-64 lg:flex-none">
-                <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
+                <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-muted-foreground dark:text-white/30 pointer-events-none" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t("subsLibrary.searchPlaceholder")}
-                  className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-black/30 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-teal-500/30"
+                  className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none focus:border-teal-500/30"
                 />
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-mono text-white/35">
+            <p className="text-xs font-mono text-muted-foreground dark:text-white/35">
               {isLoading ? t("subsLibrary.loading") : t("subsLibrary.resultsCount", { count: total })}
             </p>
             <div className="flex items-center gap-2">
               {isFetching && !isLoading && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-white/30" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground dark:text-white/30" />
               )}
             </div>
           </div>
@@ -183,9 +183,9 @@ export default function SubtitlesPage() {
           )}
 
           {!isError && !isLoading && items.length === 0 && (
-            <div className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-12 text-center">
-              <Captions className="w-8 h-8 text-white/15 mx-auto mb-3" />
-              <p className="text-sm text-white/40 font-mono">
+            <div className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-4 py-12 text-center">
+              <Captions className="w-8 h-8 text-muted-foreground/50 dark:text-white/15 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground dark:text-white/40 font-mono">
                 {debouncedQ ? t("subsLibrary.emptySearch") : t("subsLibrary.empty")}
               </p>
             </div>
@@ -205,16 +205,16 @@ export default function SubtitlesPage() {
                 type="button"
                 disabled={page <= 1 || isFetching}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-4 py-2 rounded-lg text-xs font-semibold border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-40"
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:text-white/80 disabled:opacity-40"
               >
                 {t("subsLibrary.pagerPrev")}
               </button>
-              <span className="text-[11px] font-mono text-white/30">{page}</span>
+              <span className="text-[11px] font-mono text-muted-foreground dark:text-white/30">{page}</span>
               <button
                 type="button"
                 disabled={!hasNextPage || isFetching}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-4 py-2 rounded-lg text-xs font-semibold border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-40"
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:text-white/80 disabled:opacity-40"
               >
                 {t("subsLibrary.pagerNext")}
               </button>

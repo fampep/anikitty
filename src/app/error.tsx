@@ -60,11 +60,11 @@ export default function Error({
           className="opacity-90"
         />
         <div className="w-full rounded-xl border border-rose-500/20 bg-[#0a0a0a] px-5 py-4">
-          <p className="font-bold text-2xl text-white">{t("common.error")}</p>
+          <p className="font-bold text-2xl text-foreground dark:text-white">{t("common.error")}</p>
           <p className="text-sm font-mono text-rose-400 mt-3 break-words leading-relaxed">
             {detail}
           </p>
-          <p className="text-sm text-white/35 mt-3 font-mono">{t("common.tryAgain")}</p>
+          <p className="text-sm text-muted-foreground dark:text-white/35 mt-3 font-mono">{t("common.tryAgain")}</p>
         </div>
         <div className="flex gap-3 items-center flex-wrap justify-center">
           <ButtonLink href={ROUTES.HOME}>{t("common.backHome")}</ButtonLink>

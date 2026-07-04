@@ -82,20 +82,20 @@ const AnimeEpisodes = ({ animeId }: Props) => {
     <div className="flex flex-col gap-5">
       {/* Controls */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+        <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
           {allEpisodes.length > 0 ? t("anime.episodes.count", { count: allEpisodes.length }) : t("anime.episodes.title")}
         </h3>
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/8 p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border dark:border-white/8 p-0.5">
             <button
               onClick={() => setView("thumbnail")}
               className={cn(
                 "p-1.5 rounded-md transition-all",
                 view === "thumbnail"
-                  ? "bg-white/10 text-white/80"
-                  : "text-white/30 hover:text-white/55",
+                  ? "bg-accent dark:bg-white/10 text-foreground/90 dark:text-white/80"
+                  : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
               )}
               title={t("anime.episodes.thumbnailView")}
             >
@@ -106,8 +106,8 @@ const AnimeEpisodes = ({ animeId }: Props) => {
               className={cn(
                 "p-1.5 rounded-md transition-all",
                 view === "list"
-                  ? "bg-white/10 text-white/80"
-                  : "text-white/30 hover:text-white/55",
+                  ? "bg-accent dark:bg-white/10 text-foreground/90 dark:text-white/80"
+                  : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
               )}
               title={t("anime.episodes.listView")}
             >
@@ -117,13 +117,13 @@ const AnimeEpisodes = ({ animeId }: Props) => {
 
           {ranges.length > 0 && (
             <Select onValueChange={handleRangeChange} value={selectedRange}>
-              <SelectTrigger className="h-8 text-xs w-[130px] bg-white/4 border-white/10 text-white/65 hover:bg-white/7 transition-colors">
+              <SelectTrigger className="h-8 text-xs w-[130px] bg-muted/40 dark:bg-white/4 border-border dark:border-white/10 text-muted-foreground dark:text-white/65 hover:bg-white/7 transition-colors">
                 <SelectValue placeholder={t("anime.episodes.range")} />
               </SelectTrigger>
-              <SelectContent className="bg-[#0e0e0e] border-white/10">
+              <SelectContent className="bg-[#0e0e0e] border-border dark:border-white/10">
                 <SelectGroup>
                   {ranges.map((range) => (
-                    <SelectItem key={range} value={range} className="text-xs text-white/70">
+                    <SelectItem key={range} value={range} className="text-xs text-muted-foreground dark:text-white/70">
                       {range}
                     </SelectItem>
                   ))}
@@ -133,12 +133,12 @@ const AnimeEpisodes = ({ animeId }: Props) => {
           )}
 
           <div className="relative">
-            <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
+            <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-muted-foreground dark:text-white/30 pointer-events-none" />
             <input
               value={query}
               placeholder={t("anime.episodes.searchPlaceholder")}
               onChange={handleSearch}
-              className="h-8 pl-8 pr-3 text-xs rounded-lg bg-white/4 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-white/25 focus:bg-white/7 transition-all w-44"
+              className="h-8 pl-8 pr-3 text-xs rounded-lg bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none focus:border-primary/40 dark:focus:border-white/25 focus:bg-white/7 transition-all w-44"
             />
           </div>
         </div>
@@ -181,10 +181,10 @@ function EmptyState({ colSpan, message }: { colSpan: string; message: string }) 
     <div
       className={cn(
         colSpan,
-        "flex items-center justify-center py-16 rounded-xl bg-white/3 border border-white/6",
+        "flex items-center justify-center py-16 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/6",
       )}
     >
-      <p className="text-white/25 text-sm font-mono">{message}</p>
+      <p className="text-muted-foreground/80 dark:text-white/25 text-sm font-mono">{message}</p>
     </div>
   );
 }
@@ -194,8 +194,8 @@ function ThumbnailSkeletons() {
     <>
       {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className="rounded-xl overflow-hidden animate-pulse">
-          <div className="aspect-[16/9] bg-white/6" />
-          <div className="h-8 bg-white/4 mt-0.5" />
+          <div className="aspect-[16/9] bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
+          <div className="h-8 bg-muted/40 dark:bg-white/4 mt-0.5" />
         </div>
       ))}
     </>
@@ -207,8 +207,8 @@ function ListSkeletons() {
     <>
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="flex gap-0 rounded-xl overflow-hidden animate-pulse h-[60px]">
-          <div className="w-[108px] shrink-0 bg-white/6" />
-          <div className="flex-1 bg-white/4 ml-0.5" />
+          <div className="w-[108px] shrink-0 bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
+          <div className="flex-1 bg-muted/40 dark:bg-white/4 ml-0.5" />
         </div>
       ))}
     </>

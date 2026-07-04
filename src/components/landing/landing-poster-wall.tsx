@@ -37,11 +37,11 @@ export default function LandingPosterWall({ posters, loaded }: Props) {
               />
             </div>
           ) : (
-            <div key={i} className="bg-white/[0.02] rounded-md aspect-[2/3]" />
+            <div key={i} className="bg-muted/30 dark:bg-white/[0.02] rounded-md aspect-[2/3]" />
           ),
         )}
       </div>
-      <div className="absolute inset-0 bg-black/25 sm:bg-black/20 sm:backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-muted dark:bg-black/25 sm:bg-black/20 sm:backdrop-blur-[2px]" />
     </div>
   );
 }

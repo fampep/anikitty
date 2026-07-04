@@ -33,6 +33,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
+import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
 
 export default function ThreadPage() {
   const t = useT();
@@ -109,10 +110,9 @@ export default function ThreadPage() {
     loadThread();
   }, [loadThread]);
 
-  useEffect(() => {
-    const id = setInterval(() => loadThread(true), 15_000);
-    return () => clearInterval(id);
-  }, [loadThread]);
+  useIntervalWhenVisible(() => {
+    void loadThread(true);
+  }, 30_000);
 
   const handleThreadVote = async (vote: 1 | -1) => {
     if (!thread) return;
@@ -290,14 +290,14 @@ export default function ThreadPage() {
         {/* Back link */}
         <Link
           href={ROUTES.FORUM}
-          className="inline-flex items-center gap-1.5 text-[12px] font-mono text-white/35 hover:text-white/70 transition-colors w-fit"
+          className="inline-flex items-center gap-1.5 text-[12px] font-mono text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/70 transition-colors w-fit"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           {t("forum.thread.backToForum")}
         </Link>
 
         {/* ── Thread card ── */}
-        <div className="flex gap-4 p-5 sm:p-6 rounded-2xl bg-white/[0.025] border border-white/10">
+        <div className="flex gap-4 p-5 sm:p-6 rounded-2xl bg-muted/30 dark:bg-white/[0.025] border border-border dark:border-white/10">
           <VoteButtons
             score={thread.score}
             myVote={thread.myVote}
@@ -314,7 +314,7 @@ export default function ThreadPage() {
                 </span>
               )}
               {thread.isLocked && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/40 bg-white/[0.04] border border-white/10 px-1.5 py-0.5 rounded-md">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground dark:text-white/40 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 px-1.5 py-0.5 rounded-md">
                   <Lock className="w-2.5 h-2.5" /> Locked
                 </span>
               )}
@@ -326,14 +326,14 @@ export default function ThreadPage() {
                   value={editThreadTitle}
                   onChange={(e) => setEditThreadTitle(e.target.value)}
                   maxLength={200}
-                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-base font-bold text-white focus:outline-none focus:border-white/30"
+                  className="w-full bg-black/40 border border-border dark:border-white/15 rounded-xl px-3 py-2 text-base font-bold text-foreground dark:text-white focus:outline-none focus:border-border dark:border-white/30"
                 />
                 <textarea
                   value={editThreadBody}
                   onChange={(e) => setEditThreadBody(e.target.value)}
                   maxLength={1000}
                   rows={5}
-                  className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/30 resize-none leading-relaxed"
+                  className="w-full bg-black/40 border border-border dark:border-white/15 rounded-xl px-3 py-2 text-sm text-foreground dark:text-white/90 focus:outline-none focus:border-border dark:border-white/30 resize-none leading-relaxed"
                 />
                 <div className="flex gap-2">
                   <button
@@ -344,7 +344,7 @@ export default function ThreadPage() {
                   </button>
                   <button
                     onClick={() => setEditingThread(false)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] text-white/70 border border-white/10 text-xs font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:bg-white/10 transition-colors"
                   >
                     <X className="w-3.5 h-3.5" /> Cancel
                   </button>
@@ -352,17 +352,17 @@ export default function ThreadPage() {
               </div>
             ) : (
               <>
-                <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white leading-tight tracking-tight">
                   {thread.title}
                 </h1>
-                <div className="text-[13.5px] sm:text-sm text-white/70 leading-relaxed">
+                <div className="text-[13.5px] sm:text-sm text-muted-foreground dark:text-white/70 leading-relaxed">
                   <FormattedBody text={thread.body} />
                 </div>
               </>
             )}
 
             {/* Author + actions */}
-            <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-white/6">
+            <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-border dark:border-white/6">
               <div className="flex items-center gap-2 flex-wrap">
                 <Avatar
                   username={thread.username}
@@ -371,7 +371,7 @@ export default function ThreadPage() {
                 />
                 <Link
                   href={`/profile/${thread.username}`}
-                  className="text-[12px] font-semibold text-white/75 hover:text-white transition-colors"
+                  className="text-[12px] font-semibold text-foreground/85 dark:text-white/75 hover:text-foreground dark:hover:text-white transition-colors"
                 >
                   {thread.username}
                 </Link>
@@ -383,11 +383,11 @@ export default function ThreadPage() {
                   levelRoleColor={thread.levelRoleColor}
                   levelTierIcon={thread.levelTierIcon}
                 />
-                <span className="text-[10.5px] font-mono text-white/30">
+                <span className="text-[10.5px] font-mono text-muted-foreground dark:text-white/30">
                   {forumTimeAgo(thread.createdAt)}
                 </span>
                 {thread.updatedAt && (
-                  <span className="text-[10.5px] font-mono text-white/25">{t("forum.thread.edited")}</span>
+                  <span className="text-[10.5px] font-mono text-muted-foreground/80 dark:text-white/25">{t("forum.thread.edited")}</span>
                 )}
               </div>
 
@@ -432,8 +432,8 @@ export default function ThreadPage() {
         {/* ── Replies header ── */}
         <div className="flex items-center justify-between gap-2 pt-2">
           <div className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4 text-white/40" />
-            <h2 className="text-sm font-bold text-white/80">
+            <MessageCircle className="w-4 h-4 text-muted-foreground dark:text-white/40" />
+            <h2 className="text-sm font-bold text-foreground/90 dark:text-white/80">
               {posts.length}{" "}
               {posts.length === 1 ? t("forum.thread.reply") : t("forum.thread.replies")}
             </h2>
@@ -441,7 +441,7 @@ export default function ThreadPage() {
           {posts.length > 0 && (
             <button
               onClick={scrollToReplies}
-              className="flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-white/70 transition-colors"
+              className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 transition-colors"
             >
               {t("forum.thread.jumpToLatest")}
               <ChevronDown className="w-3.5 h-3.5" />
@@ -452,9 +452,9 @@ export default function ThreadPage() {
         {/* ── Posts list ── */}
         <div className="flex flex-col gap-2">
           {posts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center py-10 px-6 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
-              <MessageCircle className="w-8 h-8 text-white/15 mb-2" />
-              <p className="text-[12.5px] text-white/40 font-mono">
+            <div className="flex flex-col items-center justify-center text-center py-10 px-6 rounded-2xl bg-muted/30 dark:bg-white/[0.02] border border-dashed border-border dark:border-white/10">
+              <MessageCircle className="w-8 h-8 text-muted-foreground/50 dark:text-white/15 mb-2" />
+              <p className="text-[12.5px] text-muted-foreground dark:text-white/40 font-mono">
                 {t("forum.thread.noReplies")}
               </p>
             </div>
@@ -492,12 +492,12 @@ export default function ThreadPage() {
 
         {/* ── Reply composer ── */}
         {thread.isLocked ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-center">
-            <Lock className="w-5 h-5 text-white/30 mx-auto mb-2" />
-            <p className="text-[13px] text-white/45 font-mono">{t("forum.thread.locked")}</p>
+          <div className="rounded-2xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.02] p-5 text-center">
+            <Lock className="w-5 h-5 text-muted-foreground dark:text-white/30 mx-auto mb-2" />
+            <p className="text-[13px] text-muted-foreground dark:text-white/45 font-mono">{t("forum.thread.locked")}</p>
           </div>
         ) : isLoggedIn ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3 sticky bottom-4 backdrop-blur-md" ref={bottomRef}>
+          <div className="rounded-2xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-4 flex flex-col gap-3 sticky bottom-4 backdrop-blur-md" ref={bottomRef}>
             <textarea
               ref={replyRef}
               value={reply}
@@ -508,10 +508,10 @@ export default function ThreadPage() {
               onKeyDown={(e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submitReply();
               }}
-              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white/90 placeholder:text-white/25 focus:outline-none focus:border-white/25 transition-colors resize-none leading-relaxed"
+              className="w-full bg-black/40 border border-border dark:border-white/10 rounded-xl px-4 py-3 text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors resize-none leading-relaxed"
             />
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-white/25">
+              <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">
                 {t("forum.thread.replyHint", { length: reply.length })}
               </span>
               <button
@@ -529,8 +529,8 @@ export default function ThreadPage() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[13px] text-white/55 font-mono">Sign in to join the discussion.</p>
+          <div className="rounded-2xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.02] p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-[13px] text-muted-foreground dark:text-white/55 font-mono">Sign in to join the discussion.</p>
             <LoginPopoverButton
               customTrigger={
                 <button className="flex items-center gap-2 px-4 py-2 bg-white text-black text-xs font-bold rounded-xl hover:bg-white/90 transition-colors">
@@ -565,10 +565,10 @@ function ActionButton({
       className={cn(
         "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors",
         danger
-          ? "text-white/40 hover:text-rose-300 hover:bg-rose-500/10"
+          ? "text-muted-foreground dark:text-white/40 hover:text-rose-300 hover:bg-rose-500/10"
           : active
             ? "text-amber-300 bg-amber-500/10"
-            : "text-white/40 hover:text-white hover:bg-white/8",
+            : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8",
       )}
       title={label}
     >
@@ -621,7 +621,7 @@ function PostRow({
   };
 
   return (
-    <div className="flex gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/8 hover:border-white/12 transition-colors">
+    <div className="flex gap-3 p-4 rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8 hover:border-border dark:border-white/12 transition-colors">
       <VoteButtons
         score={post.score}
         myVote={post.myVote}
@@ -638,7 +638,7 @@ function PostRow({
             />
             <Link
               href={`/profile/${post.username}`}
-              className="text-[12px] font-semibold text-white/75 hover:text-white transition-colors truncate"
+              className="text-[12px] font-semibold text-foreground/85 dark:text-white/75 hover:text-foreground dark:hover:text-white transition-colors truncate"
             >
               {post.username}
             </Link>
@@ -650,11 +650,11 @@ function PostRow({
               levelRoleColor={post.levelRoleColor}
               levelTierIcon={post.levelTierIcon}
             />
-            <span className="text-[10.5px] font-mono text-white/30">
+            <span className="text-[10.5px] font-mono text-muted-foreground dark:text-white/30">
               {forumTimeAgo(post.createdAt)}
             </span>
             {post.updatedAt && (
-              <span className="text-[10.5px] font-mono text-white/25">{t("forum.thread.edited")}</span>
+              <span className="text-[10.5px] font-mono text-muted-foreground/80 dark:text-white/25">{t("forum.thread.edited")}</span>
             )}
           </div>
 
@@ -662,7 +662,7 @@ function PostRow({
             {isLoggedIn && !editing && (
               <button
                 onClick={onQuote}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-white/35 hover:text-white/70 hover:bg-white/6 transition-colors"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/60 dark:bg-muted/60 dark:bg-white/6 transition-colors"
                 title={t("forum.thread.quote")}
               >
                 <Quote className="w-3.5 h-3.5" />
@@ -674,13 +674,13 @@ function PostRow({
               <button
                 onClick={() => setMenuOpen((v) => !v)}
                 onBlur={() => setTimeout(() => setMenuOpen(false), 150)}
-                className="p-1 rounded-lg text-white/30 hover:text-white hover:bg-white/8 transition-colors"
+                className="p-1 rounded-lg text-muted-foreground dark:text-white/30 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8 transition-colors"
                 aria-label="More"
               >
                 <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-7 z-10 min-w-[120px] rounded-xl bg-[#0d0d0d] border border-white/10 shadow-xl p-1 flex flex-col">
+                <div className="absolute right-0 top-7 z-10 min-w-[120px] rounded-xl bg-[#0d0d0d] border border-border dark:border-white/10 shadow-xl p-1 flex flex-col">
                   {isOwner && (
                     <button
                       onMouseDown={(e) => {
@@ -688,7 +688,7 @@ function PostRow({
                         setEditing(true);
                         setMenuOpen(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-white/70 hover:bg-white/8 hover:text-white transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" /> Edit
                     </button>
@@ -717,7 +717,7 @@ function PostRow({
               onChange={(e) => setDraft(e.target.value)}
               maxLength={1000}
               rows={3}
-              className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/30 resize-none leading-relaxed"
+              className="w-full bg-black/40 border border-border dark:border-white/15 rounded-xl px-3 py-2 text-sm text-foreground dark:text-white/90 focus:outline-none focus:border-border dark:border-white/30 resize-none leading-relaxed"
             />
             <div className="flex gap-2">
               <button
@@ -731,14 +731,14 @@ function PostRow({
                   setDraft(post.body);
                   setEditing(false);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] text-white/70 border border-white/10 text-xs font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:bg-white/10 transition-colors"
               >
                 <X className="w-3.5 h-3.5" /> Cancel
               </button>
             </div>
           </div>
         ) : (
-          <div className="text-[13.5px] text-white/75 leading-relaxed">
+          <div className="text-[13.5px] text-foreground/85 dark:text-white/75 leading-relaxed">
             <FormattedBody text={post.body} />
           </div>
         )}
@@ -750,23 +750,23 @@ function PostRow({
 function ThreadLoadingSkeleton() {
   return (
     <div className="flex flex-col gap-5 max-w-[900px] mx-auto animate-pulse">
-      <div className="h-4 w-32 bg-white/5 rounded" />
-      <div className="flex gap-4 p-6 rounded-2xl bg-white/[0.02] border border-white/8">
-        <div className="w-10 h-20 bg-white/5 rounded" />
+      <div className="h-4 w-32 bg-muted/50 dark:bg-white/5 rounded" />
+      <div className="flex gap-4 p-6 rounded-2xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8">
+        <div className="w-10 h-20 bg-muted/50 dark:bg-white/5 rounded" />
         <div className="flex-1 flex flex-col gap-3">
-          <div className="h-4 w-20 bg-white/5 rounded" />
-          <div className="h-6 w-2/3 bg-white/8 rounded" />
-          <div className="h-3 w-full bg-white/5 rounded" />
-          <div className="h-3 w-3/4 bg-white/5 rounded" />
+          <div className="h-4 w-20 bg-muted/50 dark:bg-white/5 rounded" />
+          <div className="h-6 w-2/3 bg-accent dark:bg-white/8 rounded" />
+          <div className="h-3 w-full bg-muted/50 dark:bg-white/5 rounded" />
+          <div className="h-3 w-3/4 bg-muted/50 dark:bg-white/5 rounded" />
         </div>
       </div>
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="flex gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/6">
-          <div className="w-8 h-16 bg-white/5 rounded" />
+        <div key={i} className="flex gap-3 p-4 rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/6">
+          <div className="w-8 h-16 bg-muted/50 dark:bg-white/5 rounded" />
           <div className="flex-1 flex flex-col gap-2">
-            <div className="h-3 w-32 bg-white/5 rounded" />
-            <div className="h-3 w-full bg-white/5 rounded" />
-            <div className="h-3 w-1/2 bg-white/5 rounded" />
+            <div className="h-3 w-32 bg-muted/50 dark:bg-white/5 rounded" />
+            <div className="h-3 w-full bg-muted/50 dark:bg-white/5 rounded" />
+            <div className="h-3 w-1/2 bg-muted/50 dark:bg-white/5 rounded" />
           </div>
         </div>
       ))}

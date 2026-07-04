@@ -54,13 +54,13 @@ const EpisodeCard = ({
             playActive
               ? "bg-violet-600 ring-1 ring-violet-400/50 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)]"
               : isActive
-                ? "bg-white/15 ring-1 ring-white/30 text-white"
-                : "bg-white/[0.06] hover:bg-white/10 text-white/60",
+                ? "bg-muted dark:bg-white/15 ring-1 ring-white/30 text-white"
+                : "bg-accent dark:bg-white/[0.06] hover:bg-accent dark:bg-white/10 text-muted-foreground dark:text-white/60",
             hasWatchedEpisode && !isActive && "opacity-50",
           )}
         >
           {playActive ? (
-            <Play className="w-4 h-4 fill-white text-white" />
+            <Play className="w-4 h-4 fill-white text-foreground dark:text-white" />
           ) : (
             <>
               <span className="font-mono font-bold text-[11px]">{props.episode.number}</span>
@@ -92,8 +92,8 @@ const EpisodeCard = ({
           className={cn(
             "group rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border",
             isActive
-              ? "border-white/35 ring-1 ring-white/15"
-              : "border-white/8 hover:border-white/20",
+              ? "border-primary/50 ring-1 ring-primary/20 dark:border-white/35 dark:ring-white/15"
+              : "border-border dark:border-white/8 hover:border-border dark:border-white/20",
           )}
         >
           {/* Thumbnail image area */}
@@ -110,7 +110,7 @@ const EpisodeCard = ({
             ) : (
               /* No screenshot available — show a clean dark numbered placeholder */
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
-                <span className="text-3xl font-black font-mono text-white/8 select-none">
+                <span className="text-3xl font-black font-mono text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8 select-none">
                   {String(props.episode.number).padStart(2, "0")}
                 </span>
               </div>
@@ -128,7 +128,7 @@ const EpisodeCard = ({
 
             {/* Bottom-left: ep number + filler badge */}
             <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-              <span className="text-[10px] font-mono font-bold text-white/85 bg-black/55 backdrop-blur-sm px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-bold text-foreground dark:text-white/85 bg-black/55 backdrop-blur-sm px-1.5 py-0.5 rounded">
                 EP {props.episode.number}
               </span>
               {props.episode.isFiller && (
@@ -142,7 +142,7 @@ const EpisodeCard = ({
             <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
               {isCompleted && (
                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/80 backdrop-blur-sm">
-                  <Check className="w-2.5 h-2.5 text-white" />
+                  <Check className="w-2.5 h-2.5 text-foreground dark:text-white" />
                 </span>
               )}
               {isInProgress && !isCompleted && (
@@ -173,12 +173,12 @@ const EpisodeCard = ({
           <div className="px-2.5 py-2 bg-[#0a0a0a] flex items-center gap-2 min-w-0">
             <p className={cn(
               "text-[11px] leading-tight line-clamp-1 font-medium flex-1 min-w-0",
-              isActive ? "text-white" : "text-white/50 group-hover:text-white/80",
+              isActive ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/50 group-hover:text-foreground/90 dark:text-white/80",
             )}>
               {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}
             </p>
             {isInProgress && current > 0 && (
-              <span className="text-[9px] font-mono text-white/25 shrink-0">
+              <span className="text-[9px] font-mono text-muted-foreground/80 dark:text-white/25 shrink-0">
                 {Math.floor(current / 60)}:{String(Math.floor(current % 60)).padStart(2, "0")}
               </span>
             )}
@@ -193,8 +193,8 @@ const EpisodeCard = ({
       <div className={cn("rounded-xl overflow-hidden relative cursor-pointer h-[8.625rem] min-w-[8.625rem] max-w-[10.625rem] md:h-[10.75rem] md:max-w-[12.5rem]", props.className)}>
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
         <div className="absolute bottom-0 flex flex-col gap-0.5 px-3 pb-2">
-          <span className="text-[10px] text-white/50 font-mono">EP {props.episode.number}</span>
-          <h5 className="line-clamp-1 text-xs font-semibold text-white">{props.episode.title}</h5>
+          <span className="text-[10px] text-muted-foreground dark:text-white/50 font-mono">EP {props.episode.number}</span>
+          <h5 className="line-clamp-1 text-xs font-semibold text-foreground dark:text-white">{props.episode.title}</h5>
         </div>
       </div>
     );
@@ -214,8 +214,8 @@ const EpisodeCard = ({
         className={cn(
           "group flex gap-0 mx-1 mb-0.5 rounded-xl cursor-pointer transition-all relative overflow-hidden",
           isActive
-            ? "bg-white/10 ring-1 ring-white/20"
-            : "hover:bg-white/[0.06]",
+            ? "bg-accent dark:bg-white/10 ring-1 ring-border dark:ring-white/20"
+            : "hover:bg-accent dark:bg-white/[0.06]",
           hasWatchedEpisode && !isActive && "opacity-60",
         )}
       >
@@ -233,7 +233,7 @@ const EpisodeCard = ({
               />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex items-center justify-center">
-                <span className="text-2xl font-black font-mono text-white/8 select-none">
+                <span className="text-2xl font-black font-mono text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8 select-none">
                   {String(props.episode.number).padStart(2, "0")}
                 </span>
               </div>
@@ -241,7 +241,7 @@ const EpisodeCard = ({
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
             {/* EP badge */}
-            <span className="absolute bottom-1.5 left-1.5 text-[9px] font-mono font-bold text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
+            <span className="absolute bottom-1.5 left-1.5 text-[9px] font-mono font-bold text-foreground dark:text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
               EP {props.episode.number}
             </span>
 
@@ -255,7 +255,7 @@ const EpisodeCard = ({
             {/* Completed check */}
             {listCompleted && (
               <div className="absolute top-1.5 left-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/90">
-                <Check className="w-2.5 h-2.5 text-white" />
+                <Check className="w-2.5 h-2.5 text-foreground dark:text-white" />
               </div>
             )}
 
@@ -273,7 +273,7 @@ const EpisodeCard = ({
           <p
             className={cn(
               "text-[12px] font-semibold leading-snug line-clamp-2",
-              isActive ? "text-white" : "text-white/75 group-hover:text-white/95",
+              isActive ? "text-foreground dark:text-white" : "text-foreground/85 dark:text-white/75 group-hover:text-foreground dark:group-hover:text-white/95",
             )}
           >
             {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}

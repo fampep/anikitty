@@ -157,13 +157,13 @@ export default function DonationContent() {
                 </div>
                 <div>
                   <p className="site-label mb-2">{t("donate.donationTitle")}</p>
-                  <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">
+                  <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground dark:text-white tabular-nums">
                     {t("donate.rateLine", {
                       amount: KOFI_DONATION_UNIT_EUR,
                       days: KOFI_DONATION_UNIT_DAYS,
                     })}
                   </p>
-                  <p className="mt-3 text-sm text-white/55 leading-relaxed max-w-lg">
+                  <p className="mt-3 text-sm text-muted-foreground dark:text-white/55 leading-relaxed max-w-lg">
                     {t("donate.donationDesc")}
                   </p>
                 </div>
@@ -180,14 +180,14 @@ export default function DonationContent() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-violet-500/20 bg-violet-500/8 px-4 py-4 flex flex-col gap-3">
-                  <p className="text-sm font-medium text-white/75">{t("donate.stepsTitle")}</p>
-                  <ol className="space-y-2.5 text-sm text-white/55 leading-relaxed list-decimal list-inside">
+                  <p className="text-sm font-medium text-foreground/85 dark:text-white/75">{t("donate.stepsTitle")}</p>
+                  <ol className="space-y-2.5 text-sm text-muted-foreground dark:text-white/55 leading-relaxed list-decimal list-inside">
                     {steps.map((step) => (
                       <li key={step}>{step}</li>
                     ))}
                   </ol>
                   {username ? (
-                    <div className="rounded-lg border border-white/8 bg-black/20 px-3.5 py-3 font-mono text-sm text-violet-200/90">
+                    <div className="rounded-lg border border-border dark:border-white/8 bg-black/20 px-3.5 py-3 font-mono text-sm text-violet-200/90">
                       @{username}
                     </div>
                   ) : null}
@@ -238,24 +238,24 @@ export default function DonationContent() {
         <section className="grid gap-3 sm:grid-cols-3">
           {perks.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="site-panel-hover p-4 sm:p-5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05] ring-1 ring-white/10 mb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/60 dark:bg-white/[0.05] ring-1 ring-border dark:ring-white/10 mb-3">
                 <Icon className="w-4 h-4 text-violet-300/90" />
               </div>
-              <h3 className="text-sm font-semibold text-white/90">{title}</h3>
-              <p className="mt-1.5 text-xs text-white/45 leading-relaxed">{desc}</p>
+              <h3 className="text-sm font-semibold text-foreground dark:text-white/90">{title}</h3>
+              <p className="mt-1.5 text-xs text-muted-foreground dark:text-white/45 leading-relaxed">{desc}</p>
             </div>
           ))}
         </section>
 
         <section className="site-panel p-5 sm:p-6">
-          <h2 className="text-sm font-semibold text-white/85 mb-3">{t("donate.faqTitle")}</h2>
-          <div className="space-y-3 text-sm text-white/50 leading-relaxed">
+          <h2 className="text-sm font-semibold text-foreground dark:text-white/85 mb-3">{t("donate.faqTitle")}</h2>
+          <div className="space-y-3 text-sm text-muted-foreground dark:text-white/50 leading-relaxed">
             <p>{t("donate.faqClickAds")}</p>
             <p>{t("donate.faqKoFi")}</p>
             <p>{t("donate.faqDonation")}</p>
             <p>{t("donate.faqVoluntary")}</p>
           </div>
-          <div className="mt-5 pt-5 border-t border-white/[0.06] flex flex-wrap gap-3">
+          <div className="mt-5 pt-5 border-t border-border dark:border-white/[0.06] flex flex-wrap gap-3">
             <a
               href={kofiPayUrl}
               target="_blank"

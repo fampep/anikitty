@@ -33,7 +33,7 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
         <span className="text-[11px] font-bold shrink-0" style={{ color: tier.color }}>
           Lv.{level.level}
         </span>
-        <div className="h-1 flex-1 min-w-[48px] max-w-[80px] rounded-full bg-white/10 overflow-hidden">
+        <div className="h-1 flex-1 min-w-[48px] max-w-[80px] rounded-full bg-accent dark:bg-white/10 overflow-hidden">
           <div
             className="h-full rounded-full"
             style={{ width: `${level.progressPct}%`, backgroundColor: tier.color }}
@@ -46,7 +46,7 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
   return (
     <div
       className={cn(
-        "flex items-start gap-3 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3",
+        "flex items-start gap-3 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-xl px-4 py-3",
         className,
       )}
     >
@@ -66,7 +66,7 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
             <span className="text-sm font-bold leading-tight" style={{ color: tier.color }}>
               {tier.name}
             </span>
-            <p className="text-[10px] font-mono text-white/25 mt-0.5">
+            <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-0.5">
               Level {level.level}
               {level.level < 100 && (level.xpToNext ?? level.episodesToNext) > 0 && (
                 <> · {(level.xpToNext ?? level.episodesToNext)} XP to Lv.{level.level + 1}</>
@@ -83,11 +83,11 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
 
         <div className="mt-2 space-y-1.5">
           <div>
-            <div className="flex justify-between text-[9px] font-mono text-white/25 mb-0.5">
+            <div className="flex justify-between text-[9px] font-mono text-muted-foreground/80 dark:text-white/25 mb-0.5">
               <span>Level progress</span>
               <span>{Math.round(level.progressPct)}%</span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+            <div className="h-1.5 w-full rounded-full bg-accent dark:bg-white/10 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{ width: `${level.progressPct}%`, backgroundColor: tier.color }}
@@ -97,11 +97,11 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
 
           {nextTier && tier.name !== nextTier.name && (
             <div>
-              <div className="flex justify-between text-[9px] font-mono text-white/20 mb-0.5">
+              <div className="flex justify-between text-[9px] font-mono text-muted-foreground/70 dark:text-white/20 mb-0.5">
                 <span>Tier · {tier.name}</span>
                 <span>{Math.round(tierProgressPct)}% → {nextTier.name}</span>
               </div>
-              <div className="h-1 w-full rounded-full bg-white/6 overflow-hidden">
+              <div className="h-1 w-full rounded-full bg-muted/60 dark:bg-muted/60 dark:bg-white/6 overflow-hidden">
                 <div
                   className="h-full rounded-full opacity-70"
                   style={{ width: `${tierProgressPct}%`, backgroundColor: tier.color }}
@@ -111,7 +111,7 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
           )}
         </div>
 
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-[10px] font-mono text-white/30">
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-[10px] font-mono text-muted-foreground dark:text-white/30">
           <span>{level.completedEpisodes} eps done</span>
           <span>{level.startedEpisodes} eps started</span>
           {(level.commentCount ?? 0) > 0 && (

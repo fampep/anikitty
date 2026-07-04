@@ -120,7 +120,7 @@ export default function ActiveSessionsSection() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-white/30 text-sm font-mono py-2">
+      <div className="flex items-center gap-2 text-muted-foreground dark:text-white/30 text-sm font-mono py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading sessions…
       </div>
@@ -129,7 +129,7 @@ export default function ActiveSessionsSection() {
 
   if (sessions.length === 0) {
     return (
-      <p className="text-sm text-white/40 font-mono">
+      <p className="text-sm text-muted-foreground dark:text-white/40 font-mono">
         No tracked sessions yet. Sign in again on this device to start tracking active logins.
       </p>
     );
@@ -139,7 +139,7 @@ export default function ActiveSessionsSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-white/45 leading-relaxed">
+      <p className="text-sm text-muted-foreground dark:text-white/45 leading-relaxed">
         These are browsers and devices where you&apos;re signed in. Revoke any session you don&apos;t recognize.
       </p>
 
@@ -156,26 +156,26 @@ export default function ActiveSessionsSection() {
                 "flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl border transition-all",
                 checked
                   ? "border-violet-400/35 bg-violet-500/8"
-                  : "border-white/8 bg-white/3 hover:border-white/15",
+                  : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/3 hover:border-border dark:border-white/15",
                 busy && "opacity-60 cursor-not-allowed",
               )}
             >
-              <span className="mt-0.5 text-white/35 shrink-0">
+              <span className="mt-0.5 text-muted-foreground dark:text-white/35 shrink-0">
                 {checked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
               </span>
-              <span className="mt-0.5 text-white/30 shrink-0">
+              <span className="mt-0.5 text-muted-foreground dark:text-white/30 shrink-0">
                 <MonitorSmartphone className="w-4 h-4" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-white/80">{session.deviceLabel}</span>
+                  <span className="text-sm font-medium text-foreground/90 dark:text-white/80">{session.deviceLabel}</span>
                   {session.current && (
                     <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
                       This device
                     </span>
                   )}
                 </span>
-                <span className="block text-[11px] font-mono text-white/30 mt-1">
+                <span className="block text-[11px] font-mono text-muted-foreground dark:text-white/30 mt-1">
                   Active {formatRelativeTime(session.lastActiveAt)}
                   {session.ipAddress ? ` · ${session.ipAddress}` : ""}
                 </span>
@@ -201,7 +201,7 @@ export default function ActiveSessionsSection() {
             type="button"
             disabled={busy}
             onClick={revokeAllOthers}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/6 border border-white/12 text-white/65 text-xs font-medium hover:bg-white/10 disabled:opacity-40 transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-muted/60 dark:bg-muted/60 dark:bg-white/6 border border-border dark:border-white/12 text-muted-foreground dark:text-white/65 text-xs font-medium hover:bg-accent dark:bg-white/10 disabled:opacity-40 transition-all"
           >
             Sign out all other devices
           </button>
@@ -212,7 +212,7 @@ export default function ActiveSessionsSection() {
             type="button"
             disabled={busy}
             onClick={selected.size === sessions.length ? clearSelection : selectAll}
-            className="px-3 py-2 rounded-lg text-white/40 text-xs font-mono hover:text-white/60 transition-colors"
+            className="px-3 py-2 rounded-lg text-muted-foreground dark:text-white/40 text-xs font-mono hover:text-muted-foreground dark:text-white/60 transition-colors"
           >
             {selected.size === sessions.length ? "Clear selection" : "Select all"}
           </button>

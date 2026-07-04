@@ -108,7 +108,7 @@ export default function DiscordConnect() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-white/30 text-sm font-mono py-2">
+      <div className="flex items-center gap-2 text-muted-foreground dark:text-white/30 text-sm font-mono py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         {t("settings.loading")}
       </div>
@@ -117,18 +117,18 @@ export default function DiscordConnect() {
 
   if (linked) {
     return (
-      <div className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-white/3 border border-white/10">
+      <div className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/10">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/25 text-[#5865F2]">
             <DiscordIcon className="w-5 h-5" />
           </span>
           <div>
-            <p className="text-sm font-medium text-white/80 flex items-center gap-1.5">
+            <p className="text-sm font-medium text-foreground/90 dark:text-white/80 flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               {t("settings.connected")}
             </p>
             {username && (
-              <p className="text-[11px] font-mono text-white/30 mt-0.5">{username}</p>
+              <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30 mt-0.5">{username}</p>
             )}
           </div>
         </div>

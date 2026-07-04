@@ -37,19 +37,19 @@ export default function KittyProxyChooser() {
   const { pingByNode, bandwidthByNode, fastestId, loading } = useKittyNodePing();
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 space-y-2.5">
+    <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3 space-y-2.5">
       <div className="flex items-center gap-2">
         <Globe2 className="w-3.5 h-3.5 text-sky-400/80 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold text-white/75">{t("watch.playerSettings.proxyChooser")}</p>
-          <p className="text-[10px] text-white/30 mt-0.5 leading-snug">
+          <p className="text-[11px] font-bold text-foreground/85 dark:text-white/75">{t("watch.playerSettings.proxyChooser")}</p>
+          <p className="text-[10px] text-muted-foreground dark:text-white/30 mt-0.5 leading-snug">
             {kittyProxyManual
               ? t("watch.playerSettings.proxyChooserManual")
               : t("watch.playerSettings.proxyChooserAuto")}
           </p>
         </div>
         {loading && !fastestId ? (
-          <Loader2 className="w-3.5 h-3.5 text-white/25 animate-spin shrink-0" />
+          <Loader2 className="w-3.5 h-3.5 text-muted-foreground/80 dark:text-white/25 animate-spin shrink-0" />
         ) : null}
       </div>
 
@@ -69,11 +69,11 @@ export default function KittyProxyChooser() {
                 "rounded-xl border px-3 py-2.5 text-left transition-colors",
                 selected
                   ? "border-sky-400/35 bg-sky-500/10 ring-1 ring-sky-400/20"
-                  : "border-white/[0.08] bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]",
+                  : "border-border dark:border-white/[0.08] bg-muted/40 dark:bg-white/[0.03] hover:border-border dark:border-white/14 hover:bg-muted/60 dark:bg-white/[0.05]",
               )}
             >
               <div className="flex items-start justify-between gap-2">
-                <p className={cn("text-[12px] font-medium min-w-0", selected ? "text-white/90" : "text-white/65")}>
+                <p className={cn("text-[12px] font-medium min-w-0", selected ? "text-foreground dark:text-white/90" : "text-muted-foreground dark:text-white/65")}>
                   {node.location}
                 </p>
                 {isFastest ? (
@@ -85,7 +85,7 @@ export default function KittyProxyChooser() {
               <p
                 className={cn(
                   "text-[10px] font-mono mt-1",
-                  pingMs != null ? "text-white/40" : "text-white/25",
+                  pingMs != null ? "text-muted-foreground dark:text-white/40" : "text-muted-foreground/80 dark:text-white/25",
                 )}
               >
                 {formatPing(pingMs, bandwidthMbps, loading, t)}

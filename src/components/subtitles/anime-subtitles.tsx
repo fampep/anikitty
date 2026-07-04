@@ -227,10 +227,10 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
               <Captions className="w-5 h-5 text-teal-300/90" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-lg font-bold text-white tracking-tight">
+              <h3 className="text-lg font-bold text-foreground dark:text-white tracking-tight">
                 {t("anime.subtitles.heading")}
               </h3>
-              <p className="text-xs text-white/45 mt-1 max-w-xl leading-relaxed">
+              <p className="text-xs text-muted-foreground dark:text-white/45 mt-1 max-w-xl leading-relaxed">
                 {t("anime.subtitles.description")}
               </p>
             </div>
@@ -263,7 +263,7 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
                   "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-50",
                   showMissingOnly
                     ? "bg-amber-500/20 border-amber-500/30 text-amber-200 hover:bg-amber-500/30"
-                    : "bg-white/8 border-white/12 text-white/75 hover:bg-white/12",
+                    : "bg-accent dark:bg-white/8 border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:bg-white/12",
                 )}
               >
                 {showMissingOnly
@@ -275,11 +275,11 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
         </div>
 
         {totalEpisodes > 0 && (
-          <div className="mt-4 pt-4 border-t border-white/8 space-y-4">
+          <div className="mt-4 pt-4 border-t border-border dark:border-white/8 space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-white/30">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30">
                     {t("anime.subtitles.cachedCount", {
                       cached: cachedEpisodes,
                       total: totalEpisodes,
@@ -287,7 +287,7 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
                   </span>
                   <span className="text-[11px] font-mono text-teal-300/70">{coveragePct}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="h-1.5 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-teal-600 to-teal-400 transition-all duration-500"
                     style={{ width: `${coveragePct}%` }}
@@ -296,12 +296,12 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
               </div>
 
               <div className="relative w-full lg:w-56">
-                <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
+                <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-muted-foreground dark:text-white/30 pointer-events-none" />
                 <input
                   value={query}
                   placeholder={t("anime.subtitles.searchPlaceholder")}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-black/30 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-teal-500/30 focus:bg-black/40 transition-all"
+                  className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none focus:border-teal-500/30 focus:bg-black/40 transition-all"
                 />
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
             {(subtitles.length > 0 || uniqueLanguages.length > 0) && (
               <div className="flex flex-wrap gap-1.5">
                 {subtitles.length > 0 && (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-mono bg-white/[0.05] border border-white/10 text-white/40">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-mono bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 text-muted-foreground dark:text-white/40">
                     {t("anime.subtitles.trackCount", { count: subtitles.length })}
                   </span>
                 )}
@@ -322,7 +322,7 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
                   </span>
                 ))}
                 {uniqueLanguages.length > 8 && (
-                  <span className="text-[10px] font-mono text-white/25 self-center">
+                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 self-center">
                     +{uniqueLanguages.length - 8}
                   </span>
                 )}
@@ -368,12 +368,12 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
 
         {totalEpisodes === 0 && (
           <div className="mt-4 relative max-w-md">
-            <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-white/30 pointer-events-none" />
+            <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-muted-foreground dark:text-white/30 pointer-events-none" />
             <input
               value={query}
               placeholder={t("anime.subtitles.searchPlaceholder")}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-black/30 border border-white/10 text-white/75 placeholder:text-white/25 outline-none focus:border-teal-500/30 focus:bg-black/40 transition-all"
+              className="h-9 w-full pl-8 pr-3 text-xs rounded-lg bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none focus:border-teal-500/30 focus:bg-black/40 transition-all"
             />
           </div>
         )}
@@ -431,34 +431,34 @@ function EpisodeSubtitleCard({
     <div
       id={`ep-${group.number}`}
       className={cn(
-        "rounded-xl border bg-white/[0.02] overflow-hidden transition-all hover:border-white/12 scroll-mt-24",
-        "border-white/8",
+        "rounded-xl border bg-muted/30 dark:bg-white/[0.02] overflow-hidden transition-all hover:border-border dark:border-white/12 scroll-mt-24",
+        "border-border dark:border-white/8",
         group.tracks.length === 0 && "border-amber-500/15",
       )}
     >
       <div className="flex flex-col sm:flex-row gap-0">
-        <div className="relative w-full sm:w-44 shrink-0 aspect-[16/9] sm:border-r border-white/6 overflow-hidden">
+        <div className="relative w-full sm:w-44 shrink-0 aspect-[16/9] sm:border-r border-border dark:border-white/6 overflow-hidden">
           <EpisodeThumbnail image={group.image} episode={group.number} />
           {fetching && (
             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 z-10">
               <Loader2 className="w-5 h-5 text-teal-300 animate-spin" />
             </div>
           )}
-          <span className="absolute bottom-1.5 left-1.5 z-[1] text-[9px] font-mono font-bold text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
+          <span className="absolute bottom-1.5 left-1.5 z-[1] text-[9px] font-mono font-bold text-foreground dark:text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
             EP {group.number}
           </span>
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/6 bg-white/[0.02] flex-wrap">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border dark:border-white/6 bg-muted/30 dark:bg-white/[0.02] flex-wrap">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white/85 truncate">
+              <p className="text-sm font-semibold text-foreground dark:text-white/85 truncate">
                 {t("anime.subtitles.episodeLabel", { n: group.number })}
                 {group.title !== `Episode ${group.number}` && (
-                  <span className="text-white/40 font-normal"> — {group.title}</span>
+                  <span className="text-muted-foreground dark:text-white/40 font-normal"> — {group.title}</span>
                 )}
               </p>
-              <p className="text-[10px] font-mono text-white/25 mt-0.5">
+              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-0.5">
                 {fetching
                   ? t("subsLibrary.fetching")
                   : group.tracks.length > 0
@@ -488,7 +488,7 @@ function EpisodeSubtitleCard({
                   type="button"
                   onClick={onFetch}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/45 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/50 dark:bg-white/5 transition-colors disabled:opacity-50"
                 >
                   {fetching ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -509,7 +509,7 @@ function EpisodeSubtitleCard({
             </div>
           ) : !fetching ? (
             <div className="flex-1 flex items-center justify-center px-4 py-5">
-              <p className="text-xs text-white/35">{t("anime.subtitles.noTracks")}</p>
+              <p className="text-xs text-muted-foreground dark:text-white/35">{t("anime.subtitles.noTracks")}</p>
             </div>
           ) : null}
         </div>
@@ -532,7 +532,7 @@ function EpisodeThumbnail({ image, episode }: { image?: string | null; episode: 
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-white/[0.02]">
-          <span className="text-2xl font-black font-mono text-white/10 select-none">
+          <span className="text-2xl font-black font-mono text-muted-foreground/25 dark:text-muted-foreground/25 dark:text-white/10 select-none">
             {String(episode).padStart(2, "0")}
           </span>
         </div>
@@ -559,13 +559,13 @@ function Pagination({
         type="button"
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
-        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:text-white/75 hover:bg-muted/50 dark:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
       >
         <ChevronLeft className="w-3.5 h-3.5" />
         {t("anime.subtitles.prevPage")}
       </button>
 
-      <span className="text-[11px] font-mono text-white/35">
+      <span className="text-[11px] font-mono text-muted-foreground dark:text-white/35">
         {t("anime.subtitles.pageInfo", { page, total: totalPages })}
       </span>
 
@@ -573,7 +573,7 @@ function Pagination({
         type="button"
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
-        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-white/10 text-white/50 hover:text-white/75 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:text-white/75 hover:bg-muted/50 dark:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
       >
         {t("anime.subtitles.nextPage")}
         <ChevronRight className="w-3.5 h-3.5" />
@@ -610,7 +610,7 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
   const totalCues = content ? (content.match(/-->/g) ?? []).length : null;
 
   return (
-    <div className="hover:bg-white/[0.02] transition-colors">
+    <div className="hover:bg-muted/30 dark:bg-white/[0.02] transition-colors">
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <button
           type="button"
@@ -621,7 +621,7 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
             <Captions className="w-3.5 h-3.5 text-teal-400/80" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-white/80 font-medium truncate flex items-center gap-2">
+            <p className="text-sm text-foreground/90 dark:text-white/80 font-medium truncate flex items-center gap-2">
               {track.label}
               {track.isDefault && (
                 <span className="text-[9px] font-mono uppercase px-1.5 py-px rounded bg-teal-500/15 text-teal-300/80 shrink-0">
@@ -630,12 +630,12 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
               )}
               <ChevronDown
                 className={cn(
-                  "w-3.5 h-3.5 text-white/30 shrink-0 transition-transform",
+                  "w-3.5 h-3.5 text-muted-foreground dark:text-white/30 shrink-0 transition-transform",
                   expanded && "rotate-180",
                 )}
               />
             </p>
-            <p className="text-[10px] font-mono text-white/25 mt-0.5 truncate">
+            <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-0.5 truncate">
               {track.filename}
               {track.fetchedAt &&
                 ` · ${new Date(track.fetchedAt).toLocaleDateString()}`}
@@ -661,13 +661,13 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
 
       {expanded && (
         <div className="px-4 pb-4">
-          <div className="rounded-xl border border-white/8 bg-black/50 overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-white/6 bg-white/[0.02]">
-              <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+          <div className="rounded-xl border border-border dark:border-white/8 bg-muted/80 dark:bg-black/50 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border dark:border-white/6 bg-muted/30 dark:bg-white/[0.02]">
+              <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
                 {t("anime.subtitles.preview")}
               </span>
               {totalCues !== null && (
-                <span className="text-[10px] font-mono text-white/25">
+                <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25">
                   {t("anime.subtitles.cueCount", { count: totalCues })}
                 </span>
               )}
@@ -679,21 +679,21 @@ function SubtitleTrackRow({ track }: { track: AnimeSubtitleItem }) {
             ) : cues.length > 0 ? (
               <div className="max-h-72 overflow-auto divide-y divide-white/[0.04]">
                 {cues.map((cue, i) => (
-                  <div key={i} className="px-3 py-2.5 hover:bg-white/[0.02]">
+                  <div key={i} className="px-3 py-2.5 hover:bg-muted/30 dark:bg-white/[0.02]">
                     <p className="text-[10px] font-mono text-teal-400/50 mb-1">
                       {formatCueTime(cue.start)} → {formatCueTime(cue.end)}
                     </p>
-                    <p className="text-[13px] text-white/75 leading-snug">{cue.text}</p>
+                    <p className="text-[13px] text-foreground/85 dark:text-white/75 leading-snug">{cue.text}</p>
                   </div>
                 ))}
                 {totalCues !== null && totalCues > cues.length && (
-                  <p className="px-3 py-2 text-[10px] font-mono text-white/25 text-center">
+                  <p className="px-3 py-2 text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 text-center">
                     … {totalCues - cues.length} more
                   </p>
                 )}
               </div>
             ) : (
-              <pre className="max-h-64 overflow-auto p-3 text-[11px] leading-relaxed font-mono text-white/55 whitespace-pre-wrap break-words">
+              <pre className="max-h-64 overflow-auto p-3 text-[11px] leading-relaxed font-mono text-muted-foreground dark:text-white/55 whitespace-pre-wrap break-words">
                 {content}
               </pre>
             )}
@@ -716,11 +716,11 @@ function EmptySubtitles({
   const t = useT();
 
   return (
-    <div className="rounded-2xl border border-dashed border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent px-6 py-14 text-center">
+    <div className="rounded-2xl border border-dashed border-border dark:border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent px-6 py-14 text-center">
       <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mx-auto mb-4">
         <Captions className="w-7 h-7 text-teal-400/50" />
       </div>
-      <p className="text-sm text-white/50 max-w-md mx-auto leading-relaxed">
+      <p className="text-sm text-muted-foreground dark:text-white/50 max-w-md mx-auto leading-relaxed">
         {fetching ? t("subsLibrary.fetching") : t("anime.subtitles.empty")}
       </p>
       {totalEpisodes > 0 && !fetching && (
@@ -749,12 +749,12 @@ function EpisodeThumbnailSkeletons() {
       {Array.from({ length: EPISODES_PER_PAGE }).map((_, i) => (
         <div
           key={i}
-          className="rounded-xl border border-white/6 bg-white/[0.02] overflow-hidden animate-pulse flex"
+          className="rounded-xl border border-border dark:border-white/6 bg-muted/30 dark:bg-white/[0.02] overflow-hidden animate-pulse flex"
         >
-          <div className="w-40 sm:w-44 shrink-0 aspect-[16/9] bg-white/6" />
+          <div className="w-40 sm:w-44 shrink-0 aspect-[16/9] bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
           <div className="flex-1 p-4 flex flex-col gap-2">
-            <div className="h-4 w-40 rounded bg-white/6" />
-            <div className="h-3 w-24 rounded bg-white/4" />
+            <div className="h-4 w-40 rounded bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
+            <div className="h-3 w-24 rounded bg-muted/40 dark:bg-white/4" />
           </div>
         </div>
       ))}

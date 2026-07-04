@@ -24,7 +24,7 @@ export default function WatchErrorPanel({ error, onRetry }: Props) {
           {detail}
         </p>
         {error.digest && detail !== error.digest ? (
-          <p className="text-[10px] font-mono text-white/25 break-all">{error.digest}</p>
+          <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 break-all">{error.digest}</p>
         ) : null}
         {onRetry ? (
           <Button

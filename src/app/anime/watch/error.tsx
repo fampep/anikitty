@@ -37,7 +37,7 @@ export default function WatchError({
 
   if (!showError) {
     return (
-      <div className="w-full aspect-video bg-black flex items-center justify-center rounded-xl border border-white/10">
+      <div className="w-full aspect-video bg-black flex items-center justify-center rounded-xl border border-border dark:border-white/10">
         <LoadingGirl size={160} label={t("watch.loadingStream")} />
       </div>
     );

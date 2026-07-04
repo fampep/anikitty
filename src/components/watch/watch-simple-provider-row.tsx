@@ -46,12 +46,12 @@ function ServerSelect<T extends string>({
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as T)}>
-      <SelectTrigger className="h-9 min-w-0 flex-1 text-[11px] font-mono bg-white/[0.04] border-white/12 text-white/70">
+      <SelectTrigger className="h-9 min-w-0 flex-1 text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="bg-[#0c0c0c] border-white/10 max-h-48">
+      <SelectContent className="bg-[#0c0c0c] border-border dark:border-white/10 max-h-48">
         {options.map((opt) => (
-          <SelectItem key={opt.id} value={opt.id} className="text-xs text-white/80">
+          <SelectItem key={opt.id} value={opt.id} className="text-xs text-foreground/90 dark:text-white/80">
             {opt.label}
           </SelectItem>
         ))}

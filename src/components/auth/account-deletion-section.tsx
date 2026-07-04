@@ -93,7 +93,7 @@ export default function AccountDeletionSection() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-white/35 text-sm py-2">
+      <div className="flex items-center gap-2 text-muted-foreground dark:text-white/35 text-sm py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading…
       </div>
@@ -107,12 +107,12 @@ export default function AccountDeletionSection() {
           <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-200/90">Deletion requested</p>
-            <p className="text-xs text-white/45 mt-1 leading-relaxed">
+            <p className="text-xs text-muted-foreground dark:text-white/45 mt-1 leading-relaxed">
               An admin will review and permanently delete your account. This removes your watchlist,
               progress, comments, forum posts, and profile.
             </p>
             {pending.requestedAt && (
-              <p className="text-[10px] font-mono text-white/25 mt-2">
+              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
                 Requested {new Date(pending.requestedAt).toLocaleString()}
               </p>
             )}
@@ -122,7 +122,7 @@ export default function AccountDeletionSection() {
           type="button"
           onClick={cancelRequest}
           disabled={busy}
-          className="self-start inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/12 text-xs text-white/60 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+          className="self-start inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 text-xs text-muted-foreground dark:text-white/60 hover:text-foreground dark:text-white hover:bg-muted/50 dark:bg-white/5 transition-colors disabled:opacity-50"
         >
           {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
           Cancel request
@@ -138,8 +138,8 @@ export default function AccountDeletionSection() {
           <Trash2 className="w-4 h-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white/85">Delete account</p>
-          <p className="text-xs text-white/40 mt-1 leading-relaxed">
+          <p className="text-sm font-semibold text-foreground dark:text-white/85">Delete account</p>
+          <p className="text-xs text-muted-foreground dark:text-white/40 mt-1 leading-relaxed">
             Request permanent deletion of your account and all associated data. An admin will
             process the request — this cannot be undone once completed.
           </p>
@@ -147,7 +147,7 @@ export default function AccountDeletionSection() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+        <label className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
           Reason (optional)
         </label>
         <textarea
@@ -156,19 +156,19 @@ export default function AccountDeletionSection() {
           placeholder="Why are you leaving? (optional)"
           rows={2}
           maxLength={500}
-          className="resize-none rounded-xl px-3 py-2 text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15"
+          className="resize-none rounded-xl px-3 py-2 text-sm bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15"
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
-          Type <span className="text-white/50">{auth?.username}</span> to confirm
+        <label className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
+          Type <span className="text-muted-foreground dark:text-white/50">{auth?.username}</span> to confirm
         </label>
         <input
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
           placeholder={auth?.username ?? "username"}
-          className="rounded-xl px-3 py-2 text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15"
+          className="rounded-xl px-3 py-2 text-sm bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15"
         />
       </div>
 

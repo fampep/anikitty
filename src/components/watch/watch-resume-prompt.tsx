@@ -25,11 +25,11 @@ export default function WatchResumePrompt({ resumeAt, onResume, onStartOver }: P
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0a0a0a]/95 p-5 shadow-2xl">
+      <div className="w-full max-w-sm rounded-2xl border border-border dark:border-white/10 bg-[#0a0a0a]/95 p-5 shadow-2xl">
         <p className="text-[10px] font-mono uppercase tracking-widest text-teal-400/70 mb-2">
           {t("watch.resumePrompt.title")}
         </p>
-        <p className="text-sm text-white/80 leading-relaxed mb-4">
+        <p className="text-sm text-foreground/90 dark:text-white/80 leading-relaxed mb-4">
           {t("watch.resumePrompt.message", { time: formatResumeTime(resumeAt) })}
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -44,7 +44,7 @@ export default function WatchResumePrompt({ resumeAt, onResume, onStartOver }: P
           <button
             type="button"
             onClick={onStartOver}
-            className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-white/[0.04] border border-white/12 text-white/60 text-sm font-semibold hover:text-white/85 hover:bg-white/[0.07] transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/12 text-muted-foreground dark:text-white/60 text-sm font-semibold hover:text-foreground dark:hover:text-white/85 hover:bg-accent dark:bg-white/[0.07] transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
             {t("watch.resumePrompt.startOver")}

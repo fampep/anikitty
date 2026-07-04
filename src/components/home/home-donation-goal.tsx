@@ -40,8 +40,8 @@ export default function HomeDonationGoal() {
                 <Heart className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-white/90">{t("home.donationGoalTitle")}</p>
-                <p className="mt-1 text-[12px] leading-relaxed text-white/45">
+                <p className="text-sm font-bold text-foreground dark:text-white/90">{t("home.donationGoalTitle")}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground dark:text-white/45">
                   {t("home.donationGoalBody")}
                 </p>
               </div>
@@ -50,7 +50,7 @@ export default function HomeDonationGoal() {
             {showProgress && goal && (
               <div className="space-y-2 pl-[52px]">
                 <div className="flex items-center justify-between gap-3 text-[11px] font-mono">
-                  <span className="text-white/40">{t("home.donationGoalProgress")}</span>
+                  <span className="text-muted-foreground dark:text-white/40">{t("home.donationGoalProgress")}</span>
                   <span className="text-fuchsia-200/80">
                     {t("home.donationGoalAmount", {
                       raised: goal.raisedEur.toFixed(0),
@@ -58,7 +58,7 @@ export default function HomeDonationGoal() {
                     })}
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full border border-white/8 bg-white/[0.04]">
+                <div className="h-2 overflow-hidden rounded-full border border-border dark:border-white/8 bg-muted/50 dark:bg-white/[0.04]">
                   <div
                     className={cn(
                       "h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-700",

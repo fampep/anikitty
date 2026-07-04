@@ -14,7 +14,7 @@ export default function CommunityHero({ icon, title, subtitle, children, classNa
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/10 via-black/40 to-cyan-500/5 px-5 py-5 sm:px-6 sm:py-6",
+        "relative overflow-hidden rounded-2xl border border-border dark:border-white/10 bg-gradient-to-br from-violet-500/10 via-background/50 dark:via-black/40 to-cyan-500/5 px-5 py-5 sm:px-6 sm:py-6",
         className,
       )}
     >
@@ -27,13 +27,13 @@ export default function CommunityHero({ icon, title, subtitle, children, classNa
       />
       <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/8 border border-white/10 text-violet-300">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent dark:bg-white/8 border border-border dark:border-white/10 text-violet-300">
             {icon}
           </div>
           <div className="min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{title}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white tracking-tight">{title}</h1>
             {subtitle && (
-              <p className="text-sm text-white/40 font-mono mt-1 leading-relaxed max-w-xl">{subtitle}</p>
+              <p className="text-sm text-muted-foreground dark:text-white/40 font-mono mt-1 leading-relaxed max-w-xl">{subtitle}</p>
             )}
           </div>
         </div>

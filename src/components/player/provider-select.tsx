@@ -57,8 +57,8 @@ export default function ProviderSelect({
       <SelectTrigger
         className={cn(
           compact
-            ? "h-8 min-w-[9.5rem] text-[11px] font-mono bg-white/[0.04] border-white/12 text-white/70 hover:bg-white/[0.07]"
-            : "h-9 min-w-[11rem] text-xs font-mono bg-white/[0.04] border-white/12 text-white/75 hover:bg-white/[0.07]",
+            ? "h-8 min-w-[9.5rem] text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/[0.07]"
+            : "h-9 min-w-[11rem] text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:bg-white/[0.07]",
           value === "Miruro" && "border-violet-500/25 bg-violet-500/[0.06] text-violet-100/85",
           value === "AnimeSogo" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
           value === "Animo" && "border-cyan-500/25 bg-cyan-500/[0.06] text-cyan-100/85",
@@ -70,14 +70,14 @@ export default function ProviderSelect({
           <SelectValue placeholder={t("watch.providerSelect")} />
         </div>
       </SelectTrigger>
-      <SelectContent className="bg-[#0c0c0c] border-white/10 max-h-[min(22rem,70vh)]">
+      <SelectContent className="bg-[#0c0c0c] border-border dark:border-white/10 max-h-[min(22rem,70vh)]">
         {(["featured", "other"] as const).map((group) => {
           const items = kittyProvidersByGroup(group);
           if (items.length === 0) return null;
 
           return (
             <SelectGroup key={group}>
-              <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-white/30 px-2 py-1.5">
+              <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30 px-2 py-1.5">
                 {group === "featured"
                   ? t("watch.providerGroupFeatured")
                   : t("watch.providerGroupOther")}
@@ -87,14 +87,14 @@ export default function ProviderSelect({
                   key={p.id}
                   value={p.id}
                   textValue={p.label}
-                  className="text-xs text-white/80 focus:bg-white/[0.06] focus:text-white py-2.5"
+                  className="text-xs text-foreground/90 dark:text-white/80 focus:bg-accent dark:bg-white/[0.06] focus:text-foreground dark:text-white py-2.5"
                 >
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{p.label}</span>
                     </div>
                     {p.hint && (
-                      <span className="text-[10px] font-mono text-white/35 truncate">{p.hint}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground dark:text-white/35 truncate">{p.hint}</span>
                     )}
                   </div>
                 </SelectItem>
@@ -188,25 +188,25 @@ const PROVIDER_ROW_STYLES: Record<
   sub: {
     label: "text-teal-300/70",
     active: "bg-teal-500/25 border-teal-400/45 text-teal-100",
-    idle: "border-white/10 text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
     expanded: "",
   },
   dub: {
     label: "text-amber-300/70",
     active: "bg-amber-500/25 border-amber-400/45 text-amber-100",
-    idle: "border-white/10 text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
     expanded: "",
   },
   hardsub: {
     label: "text-sky-300/70",
     active: "bg-sky-500/25 border-sky-400/45 text-sky-100",
-    idle: "border-white/10 text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
     expanded: "",
   },
   multi: {
     label: "text-violet-300/70",
     active: "bg-violet-500/25 border-violet-400/45 text-violet-100",
-    idle: "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
     expanded: "ring-1 ring-violet-400/35",
   },
 };
@@ -336,7 +336,7 @@ export function ProviderGrid({
   return (
     <div className={cn("flex flex-col w-full", compact ? "gap-2.5" : "gap-2", className)}>
       {compact && (
-        <p className="text-[10px] font-mono text-white/35 leading-relaxed px-0.5">
+        <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 leading-relaxed px-0.5">
           {t("watch.providerSectionsMobileHint")}
         </p>
       )}
@@ -382,14 +382,14 @@ export function ProviderGrid({
           return (
             <div
               key={mode}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden"
+              className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] overflow-hidden"
             >
               <button
                 type="button"
                 onClick={() => toggleProviderSectionHidden(mode)}
                 className={cn(
-                  "w-full flex items-center justify-between gap-2 px-3 py-2.5 min-h-11 touch-manipulation transition-colors active:bg-white/[0.04]",
-                  isHidden && "border-b border-white/[0.06]",
+                  "w-full flex items-center justify-between gap-2 px-3 py-2.5 min-h-11 touch-manipulation transition-colors active:bg-muted/50 dark:bg-white/[0.04]",
+                  isHidden && "border-b border-border dark:border-white/[0.06]",
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -398,7 +398,7 @@ export function ProviderGrid({
                     {rowLabels[mode]}
                   </span>
                   {!isHidden && (
-                    <span className="text-[10px] font-mono text-white/30 tabular-nums">
+                    <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 tabular-nums">
                       {items.length}
                     </span>
                   )}
@@ -486,7 +486,7 @@ export function ProviderGrid({
                 compact,
                 miruroPipe === p.id,
                 "bg-violet-500/25 border-violet-400/45 text-violet-100",
-                "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+                "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
               )}
             >
               <span>{p.native ? p.label : `${p.label}*`}</span>
@@ -508,7 +508,7 @@ export function ProviderGrid({
                 compact,
                 animexServer === s.id,
                 "bg-rose-500/25 border-rose-400/45 text-rose-100",
-                "border-white/10 text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
+                "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
               )}
             >
               <span>{s.label}</span>
@@ -533,7 +533,7 @@ export function ProviderGrid({
                   compact,
                   anisnatchServer === s.id,
                   "bg-fuchsia-500/25 border-fuchsia-400/45 text-fuchsia-100",
-                  "border-white/10 text-white/45 hover:border-fuchsia-500/30 hover:text-fuchsia-200/80 hover:bg-fuchsia-500/[0.06]",
+                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-fuchsia-500/30 hover:text-fuchsia-200/80 hover:bg-fuchsia-500/[0.06]",
                 )}
               >
                 <span>{s.label}</span>
@@ -558,7 +558,7 @@ export function ProviderGrid({
                   compact,
                   lunarServer === s.id,
                   "bg-sky-500/25 border-sky-400/45 text-sky-100",
-                  "border-white/10 text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
+                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
                 )}
               >
                 <span>{s.label}</span>
@@ -582,7 +582,7 @@ export function ProviderGrid({
                   compact,
                   allanimeMirror === mirror,
                   "bg-teal-500/25 border-teal-400/45 text-teal-100",
-                  "border-white/10 text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
                 )}
               >
                 <span>{mirror}</span>
@@ -606,7 +606,7 @@ export function ProviderGrid({
                   compact,
                   mkissaMirror === mirror,
                   "bg-amber-500/25 border-amber-400/45 text-amber-100",
-                  "border-white/10 text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
                 )}
               >
                 <span>{mirror}</span>
@@ -628,7 +628,7 @@ export function ProviderGrid({
                 compact,
                 animoServer === s.id,
                 "bg-cyan-500/25 border-cyan-400/45 text-cyan-100",
-                "border-white/10 text-white/45 hover:border-cyan-500/30 hover:text-cyan-200/80 hover:bg-cyan-500/[0.06]",
+                "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-cyan-500/30 hover:text-cyan-200/80 hover:bg-cyan-500/[0.06]",
               )}
             >
               <span>{s.label}</span>
@@ -718,8 +718,8 @@ export function ProviderChipRow<T extends string>({
       : "bg-violet-500/25 border-violet-400/45 text-violet-100";
   const accentIdle =
     accent === "rose"
-      ? "border-white/10 text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]"
-      : "border-white/10 text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]";
+      ? "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]"
+      : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]";
   const accentLabel = accent === "rose" ? "text-rose-300/70" : "text-violet-300/70";
 
   return (

@@ -99,7 +99,7 @@ export default function PasskeysSection() {
 
   if (supported === false) {
     return (
-      <p className="text-[11px] text-white/35 font-mono leading-relaxed">
+      <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
         {t("settings.passkeysUnsupported")}
       </p>
     );
@@ -107,7 +107,7 @@ export default function PasskeysSection() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-white/30 text-sm py-2">
+      <div className="flex items-center gap-2 text-muted-foreground dark:text-white/30 text-sm py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         {t("settings.passkeysLoading")}
       </div>
@@ -116,7 +116,7 @@ export default function PasskeysSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[11px] text-white/35 font-mono leading-relaxed">
+      <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
         {t("settings.passkeysHint")}
       </p>
 
@@ -125,15 +125,15 @@ export default function PasskeysSection() {
           {passkeys.map((passkey) => (
             <li
               key={passkey.id}
-              className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]"
+              className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/[0.08]"
             >
               <div className="flex items-start gap-3 min-w-0">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
                   <KeyRound className="w-4 h-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white/85 truncate">{passkey.deviceName}</p>
-                  <p className="text-[10px] font-mono text-white/30 mt-0.5">
+                  <p className="text-sm font-semibold text-foreground dark:text-white/85 truncate">{passkey.deviceName}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 mt-0.5">
                     {t("settings.passkeyAddedAt")}{" "}
                     {formatPasskeyDate(passkey.createdAt, typeof navigator !== "undefined" ? navigator.language : "en")}
                     {passkey.lastUsedAt && (
@@ -163,7 +163,7 @@ export default function PasskeysSection() {
 
       {showAdd ? (
         <div className="flex flex-col gap-3 p-4 rounded-xl border border-violet-500/20 bg-violet-500/[0.05]">
-          <label className="text-[11px] font-mono text-white/40 uppercase tracking-wider">
+          <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-wider">
             {t("settings.passkeyNameLabel")}
           </label>
           <input
@@ -171,7 +171,7 @@ export default function PasskeysSection() {
             value={deviceName}
             onChange={(e) => setDeviceName(e.target.value.slice(0, 120))}
             placeholder={t("settings.passkeyNamePlaceholder")}
-            className="h-10 px-3 rounded-xl bg-black/30 border border-white/10 text-white text-sm focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20"
+            className="h-10 px-3 rounded-xl bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground dark:text-white text-sm focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20"
           />
           <div className="flex flex-wrap gap-2">
             <button
@@ -198,7 +198,7 @@ export default function PasskeysSection() {
           onClick={() => setShowAdd(true)}
           disabled={busy}
           className={cn(
-            "inline-flex items-center gap-2 self-start rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/75 hover:bg-white/[0.08] disabled:opacity-50 transition-colors",
+            "inline-flex items-center gap-2 self-start rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-3 py-2 text-sm font-semibold text-foreground/85 dark:text-white/75 hover:bg-accent dark:bg-white/[0.08] disabled:opacity-50 transition-colors",
           )}
         >
           <Plus className="w-4 h-4" />

@@ -38,8 +38,8 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
     <div className={cn("flex flex-col gap-4", className)}>
       <div className="flex items-center gap-3">
         <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-white/70 to-white/20 shrink-0" />
-        <h5 className="text-xl font-bold text-white tracking-tight">{title}</h5>
-        <span className="text-[11px] font-mono text-white/25 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+        <h5 className="text-xl font-bold text-foreground dark:text-white tracking-tight">{title}</h5>
+        <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 px-2 py-0.5 rounded-full">
           {anime.length}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
@@ -47,7 +47,7 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
             onClick={() => scroll(-1)}
             disabled={!canLeft}
             aria-label="Scroll left"
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:bg-accent dark:bg-white/10 hover:border-border dark:border-white/25 hover:text-foreground/90 dark:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
           </button>
@@ -55,7 +55,7 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
             onClick={() => scroll(1)}
             disabled={!canRight}
             aria-label="Scroll right"
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:border-white/25 hover:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:bg-accent dark:bg-white/10 hover:border-border dark:border-white/25 hover:text-foreground/90 dark:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             <ArrowRight className="h-3.5 w-3.5" />
           </button>

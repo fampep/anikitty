@@ -47,7 +47,7 @@ function ScheduleDayPanel({ day, activeDay }: { day: ScheduleDay; activeDay: Sch
 
   if (!items.length) {
     return (
-      <p className="py-10 text-center text-sm font-mono text-white/25">{t("schedule.noSchedule")}</p>
+      <p className="py-10 text-center text-sm font-mono text-muted-foreground/80 dark:text-white/25">{t("schedule.noSchedule")}</p>
     );
   }
 
@@ -82,7 +82,7 @@ export default function HomeWeeklySchedule() {
 
       <div className="site-panel p-4 sm:p-5">
         <Tabs value={activeDay} onValueChange={(v) => setActiveDay(v as ScheduleDay)} className="w-full">
-          <TabsList className="mb-4 flex h-auto w-full gap-0 overflow-x-auto border-b border-white/10 bg-transparent p-0">
+          <TabsList className="mb-4 flex h-auto w-full gap-0 overflow-x-auto border-b border-border dark:border-white/10 bg-transparent p-0">
             {SCHEDULE_DAYS.map((day) => {
               const d = getDateForWeekday(day, currentDate);
               const isToday = day === currentDay;
@@ -92,14 +92,14 @@ export default function HomeWeeklySchedule() {
                   value={day}
                   className={cn(
                     "flex shrink-0 flex-col items-center gap-0.5 rounded-none border-b-2 border-transparent px-3 py-2.5 transition-all",
-                    "bg-transparent text-white/35 hover:text-white/55",
+                    "bg-transparent text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/55",
                     "data-[state=active]:border-violet-400 data-[state=active]:bg-violet-500/[0.06] data-[state=active]:text-white",
                   )}
                 >
                   <span className="text-[11px] font-bold font-mono uppercase tracking-wider">
                     {day.slice(0, 3)}
                   </span>
-                  <span className={cn("text-[10px] font-mono", isToday ? "text-white/60" : "text-white/25")}>
+                  <span className={cn("text-[10px] font-mono", isToday ? "text-muted-foreground dark:text-white/60" : "text-muted-foreground/80 dark:text-white/25")}>
                     {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}
                   </span>
                   {isToday && <span className="mt-0.5 h-1 w-1 rounded-full bg-violet-400" />}

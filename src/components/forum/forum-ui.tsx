@@ -56,7 +56,7 @@ export function VoteButtons({
         }}
         className={cn(
           "p-1 rounded-md transition-colors",
-          myVote === 1 ? "text-emerald-400 bg-emerald-500/10" : "text-white/30 hover:text-white/70 hover:bg-white/5",
+          myVote === 1 ? "text-emerald-400 bg-emerald-500/10" : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/70 hover:bg-muted/50 dark:bg-white/5",
         )}
         aria-label="Upvote"
       >
@@ -65,7 +65,7 @@ export function VoteButtons({
       <span
         className={cn(
           "text-[12px] font-bold tabular-nums min-w-[1.25rem] text-center",
-          myVote === 1 ? "text-emerald-400" : myVote === -1 ? "text-rose-400" : "text-white/55",
+          myVote === 1 ? "text-emerald-400" : myVote === -1 ? "text-rose-400" : "text-muted-foreground dark:text-white/55",
         )}
       >
         {score}
@@ -78,7 +78,7 @@ export function VoteButtons({
         }}
         className={cn(
           "p-1 rounded-md transition-colors",
-          myVote === -1 ? "text-rose-400 bg-rose-500/10" : "text-white/30 hover:text-white/70 hover:bg-white/5",
+          myVote === -1 ? "text-rose-400 bg-rose-500/10" : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/70 hover:bg-muted/50 dark:bg-white/5",
         )}
         aria-label="Downvote"
       >

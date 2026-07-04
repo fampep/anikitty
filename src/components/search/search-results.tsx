@@ -147,20 +147,20 @@ const SearchResults = () => {
       </div>
 
       {/* Filter panel */}
-      <div className="bg-white/4 border border-white/10 backdrop-blur-sm rounded-xl p-5 flex flex-col gap-5">
+      <div className="bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 backdrop-blur-sm rounded-xl p-5 flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-white/50" />
-            <span className="text-sm font-semibold text-white/80">{t("search.filters")}</span>
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground dark:text-white/50" />
+            <span className="text-sm font-semibold text-foreground/90 dark:text-white/80">{t("search.filters")}</span>
             {activeFilterCount > 0 && (
-              <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              <span className="bg-white/20 text-foreground dark:text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {activeFilterCount}
               </span>
             )}
           </div>
           <button
             onClick={resetFilters}
-            className="flex items-center gap-1 text-xs text-white/35 hover:text-white/60 transition-colors"
+            className="flex items-center gap-1 text-xs text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-colors"
           >
             <RotateCcw className="h-3 w-3" />
             {t("search.reset")}
@@ -175,7 +175,7 @@ const SearchResults = () => {
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">{t("search.genres")}</p>
+          <p className="text-xs font-semibold text-muted-foreground dark:text-white/40 uppercase tracking-widest mb-3">{t("search.genres")}</p>
           <ToggleGroup
             type="multiple"
             className="flex flex-wrap justify-start gap-1.5"
@@ -188,8 +188,8 @@ const SearchResults = () => {
                 key={genre.value}
                 size="sm"
                 className={cn(
-                  "border border-white/15 text-white/35 hover:border-white/30 hover:text-white/60 hover:bg-white/6 text-xs h-7 px-2.5 rounded-full transition-colors",
-                  "data-[state=on]:border-white/40 data-[state=on]:text-white/90 data-[state=on]:bg-white/12",
+                  "border border-border dark:border-white/15 text-muted-foreground dark:text-white/35 hover:border-border dark:border-white/30 hover:text-muted-foreground dark:text-white/60 hover:bg-muted/60 dark:bg-muted/60 dark:bg-white/6 text-xs h-7 px-2.5 rounded-full transition-colors",
+                  "data-[state=on]:border-primary/50 data-[state=on]:text-foreground dark:data-[state=on]:border-white/40 dark:data-[state=on]:text-white/90 data-[state=on]:bg-accent dark:data-[state=on]:bg-white/12",
                 )}
               >
                 {genre.label}
@@ -200,20 +200,20 @@ const SearchResults = () => {
 
         <button
           onClick={() => applyFilters(filters)}
-          className="self-start flex items-center gap-2 bg-white/10 text-white hover:bg-white/15 border border-white/10 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors lg:hidden"
+          className="self-start flex items-center gap-2 bg-accent dark:bg-white/10 text-foreground dark:text-white hover:bg-muted dark:bg-white/15 border border-border dark:border-white/10 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors lg:hidden"
         >
           <Search className="h-3.5 w-3.5" />
           {t("search.apply")}
         </button>
-        <p className="hidden lg:block text-[11px] text-white/25 font-mono">
+        <p className="hidden lg:block text-[11px] text-muted-foreground/80 dark:text-white/25 font-mono">
           {t("search.filtersAutoApply")}
         </p>
       </div>
 
       {/* Heading */}
       <div className="flex items-center gap-3">
-        <div className="h-5 w-1 bg-white/50 rounded-full" />
-        <h1 className="text-xl font-bold text-white/90">
+        <div className="h-5 w-1 bg-muted/50 dark:bg-white/50 rounded-full" />
+        <h1 className="text-xl font-bold text-foreground dark:text-white/90">
           {displayPhrase === "" ? (
             t("search.browseAnime")
           ) : (
@@ -221,7 +221,7 @@ const SearchResults = () => {
           )}
         </h1>
         {searchResults && !isLoading && (
-          <span className="text-xs text-white/35 font-mono">
+          <span className="text-xs text-muted-foreground dark:text-white/35 font-mono">
             {t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}
           </span>
         )}
@@ -230,11 +230,11 @@ const SearchResults = () => {
       {/* Grid */}
       {isError && !searchResults ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <p className="text-sm text-white/40 font-mono">{t("search.loadError")}</p>
+          <p className="text-sm text-muted-foreground dark:text-white/40 font-mono">{t("search.loadError")}</p>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
             {t("common.tryAgain")}
@@ -245,7 +245,7 @@ const SearchResults = () => {
           {Array.from({ length: 14 }).map((_, idx) => (
             <div
               key={idx}
-              className="rounded-xl h-[15rem] md:h-[18rem] animate-pulse bg-white/6"
+              className="rounded-xl h-[15rem] md:h-[18rem] animate-pulse bg-muted/60 dark:bg-muted/60 dark:bg-white/6"
             />
           ))}
         </div>
@@ -272,8 +272,8 @@ const SearchResults = () => {
           {searchResults?.animes.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
               <span className="text-5xl mb-4">🐱</span>
-              <p className="text-white/50 font-medium">{t("search.noResults")}</p>
-              <p className="text-white/35 text-sm mt-1">{t("search.noResultsHint")}</p>
+              <p className="text-muted-foreground dark:text-white/50 font-medium">{t("search.noResults")}</p>
+              <p className="text-muted-foreground dark:text-white/35 text-sm mt-1">{t("search.noResultsHint")}</p>
             </div>
           )}
         </div>

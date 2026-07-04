@@ -9,7 +9,7 @@ export default function WatchTogetherPage() {
     <Suspense
       fallback={
         <div className="min-h-screen pt-page flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-white/30" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground dark:text-white/30" />
         </div>
       }
     >

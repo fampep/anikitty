@@ -287,7 +287,7 @@ export function getIconImageUrl(slug: string | null | undefined): string | undef
 }
 
 export const RARITY_COLORS: Record<ShopItemRarity, string> = {
-  common: "text-white/50 border-white/15 bg-white/5",
+  common: "text-muted-foreground dark:text-white/50 border-border dark:border-white/15 bg-muted/50 dark:bg-white/5",
   rare: "text-sky-300/90 border-sky-400/25 bg-sky-500/10",
   epic: "text-violet-300/90 border-violet-400/30 bg-violet-500/10",
   legendary: "text-amber-300/90 border-amber-400/30 bg-amber-500/10",

@@ -59,16 +59,16 @@ function EmojiPickerPanel({
   return (
     <div
       ref={ref}
-      className="absolute bottom-full mb-2 left-0 sm:left-0 right-0 sm:right-auto sm:w-72 z-50 rounded-xl border border-white/10 bg-[#0d0d0d] shadow-2xl shadow-black/80 overflow-hidden"
+      className="absolute bottom-full mb-2 left-0 sm:left-0 right-0 sm:right-auto sm:w-72 z-50 rounded-xl border border-border dark:border-white/10 bg-[#0d0d0d] shadow-2xl shadow-black/80 overflow-hidden"
     >
-      <div className="flex border-b border-white/6 px-2 pt-2 gap-0.5">
+      <div className="flex border-b border-border dark:border-white/6 px-2 pt-2 gap-0.5">
         {EMOJI_GROUPS.map((g, i) => (
           <button
             key={EMOJI_GROUP_KEYS[i]}
             onClick={() => setTab(i)}
             aria-label={t(EMOJI_GROUP_KEYS[i])}
             className={`px-2.5 py-1.5 rounded-t-lg text-[10px] font-semibold transition-colors ${
-              tab === i ? "bg-white/8 text-white/80" : "text-white/30 hover:text-white/55"
+              tab === i ? "bg-accent dark:bg-white/8 text-foreground/90 dark:text-white/80" : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55"
             }`}
           >
             {t(EMOJI_GROUP_KEYS[i])}
@@ -81,7 +81,7 @@ function EmojiPickerPanel({
             key={emoji}
             onClick={() => onSelect(emoji)}
             aria-label={`Insert emoji ${emoji}`}
-            className="flex items-center justify-center text-xl p-1.5 rounded-lg hover:bg-white/10 transition-colors leading-none"
+            className="flex items-center justify-center text-xl p-1.5 rounded-lg hover:bg-accent dark:bg-white/10 transition-colors leading-none"
           >
             {emoji}
           </button>
@@ -188,16 +188,16 @@ function CommentSkeleton() {
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-white/8 to-white/[0.02] shrink-0" />
       <div className="flex-1 space-y-2.5 pt-0.5">
         <div className="flex gap-2 items-center">
-          <div className="h-3 w-24 rounded-full bg-white/6" />
-          <div className="h-3 w-14 rounded-full bg-white/[0.03]" />
+          <div className="h-3 w-24 rounded-full bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
+          <div className="h-3 w-14 rounded-full bg-muted/40 dark:bg-white/[0.03]" />
         </div>
         <div className="space-y-1.5">
-          <div className="h-3 w-full max-w-md rounded-full bg-white/[0.04]" />
-          <div className="h-3 w-2/3 max-w-xs rounded-full bg-white/[0.03]" />
+          <div className="h-3 w-full max-w-md rounded-full bg-muted/50 dark:bg-white/[0.04]" />
+          <div className="h-3 w-2/3 max-w-xs rounded-full bg-muted/40 dark:bg-white/[0.03]" />
         </div>
         <div className="flex gap-2 pt-1">
-          <div className="h-6 w-12 rounded-lg bg-white/[0.03]" />
-          <div className="h-6 w-12 rounded-lg bg-white/[0.03]" />
+          <div className="h-6 w-12 rounded-lg bg-muted/40 dark:bg-white/[0.03]" />
+          <div className="h-6 w-12 rounded-lg bg-muted/40 dark:bg-white/[0.03]" />
         </div>
       </div>
     </div>
@@ -581,7 +581,7 @@ export default function CommentSection({
   const renderAuthorName = (username: string, iconSlug?: string | null, className?: string) => (
     <Link
       href={`/profile/${encodeURIComponent(username)}`}
-      className={cn("hover:text-white transition-colors", className)}
+      className={cn("hover:text-foreground dark:hover:text-white transition-colors", className)}
       onClick={(e) => e.stopPropagation()}
     >
       <CosmeticUsername username={username} iconSlug={iconSlug} />
@@ -598,7 +598,7 @@ export default function CommentSection({
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === 1
             ? "text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20"
-            : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
+            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/80 dark:text-white/25 disabled:cursor-default",
         )}
       >
         <ThumbsUp className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -612,7 +612,7 @@ export default function CommentSection({
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === -1
             ? "text-rose-400 bg-rose-500/10 ring-1 ring-rose-500/20"
-            : "text-white/25 hover:text-white/55 hover:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-white/25 disabled:cursor-default",
+            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/80 dark:text-white/25 disabled:cursor-default",
         )}
       >
         <ThumbsDown className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -629,7 +629,7 @@ export default function CommentSection({
         <div className="relative ml-0.5">
           <button
             onClick={() => setReactionPickerFor(reactionPickerFor === c.id ? null : c.id)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-white/20 hover:text-white/55 hover:bg-white/5 transition-all"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5 transition-all"
             title={t("comments.addReaction")}
           >
             <SmilePlus className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -650,8 +650,8 @@ export default function CommentSection({
           className={cn(
             "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ml-0.5",
             replyingTo === c.id
-              ? "text-white/70 bg-white/10 ring-1 ring-white/15"
-              : "text-white/20 hover:text-white/55 hover:bg-white/5",
+              ? "text-muted-foreground dark:text-white/70 bg-accent dark:bg-white/10 ring-1 ring-white/15"
+              : "text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5",
           )}
         >
           <Reply className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -681,8 +681,8 @@ export default function CommentSection({
               className={cn(
                 "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all",
                 c.myReactions.includes(emoji)
-                  ? "bg-white/10 border-white/25 text-white/80"
-                  : "bg-white/[0.03] border-white/8 text-white/50 hover:border-white/20 hover:bg-white/7 disabled:cursor-default",
+                  ? "bg-accent dark:bg-white/10 border-border dark:border-white/25 text-foreground/90 dark:text-white/80"
+                  : "bg-muted/40 dark:bg-white/[0.03] border-border dark:border-white/8 text-muted-foreground dark:text-white/50 hover:border-border dark:border-white/20 hover:bg-white/7 disabled:cursor-default",
               )}
             >
               <span className="leading-none">{emoji}</span>
@@ -702,18 +702,18 @@ export default function CommentSection({
               className="relative cursor-pointer select-none mt-0.5"
               onClick={() => setRevealed((prev) => new Set([...prev, c.id]))}
             >
-              <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words blur-sm pointer-events-none">
+              <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words blur-sm pointer-events-none">
                 {c.body}
               </p>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="flex items-center gap-1.5 text-xs text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border dark:border-white/15">
                   <EyeOff className="w-3 h-3" />
                   {t("comments.spoilerReveal")}
                 </span>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
+            <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
               {c.body}
             </p>
           )
@@ -731,7 +731,7 @@ export default function CommentSection({
                   className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8 blur-md pointer-events-none"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="flex items-center gap-1.5 text-xs text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border dark:border-white/15">
                     <EyeOff className="w-3 h-3" />
                   {t("comments.spoilerReveal")}
                   </span>
@@ -758,7 +758,7 @@ export default function CommentSection({
       {/* Episode picker (anime detail page) */}
       {hasEpisodePicker && (
         <div className="flex flex-col gap-2.5">
-          <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest">
+          <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest">
             {t("comments.episodePicker")}
           </p>
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin -mx-1 px-1">
@@ -767,8 +767,8 @@ export default function CommentSection({
               className={cn(
                 "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all",
                 pickedEpisodeId === "all"
-                  ? "bg-white/12 text-white border-white/25 shadow-sm shadow-black/20"
-                  : "bg-white/[0.02] text-white/35 border-white/8 hover:border-white/15 hover:text-white/60",
+                  ? "bg-accent dark:bg-white/12 text-foreground dark:text-white border-border dark:border-white/25 shadow-sm shadow-black/20"
+                  : "bg-muted/30 dark:bg-white/[0.02] text-muted-foreground dark:text-white/35 border-border dark:border-white/8 hover:border-border dark:border-white/15 hover:text-muted-foreground dark:text-white/60",
               )}
             >
               {t("comments.allEpisodes")}
@@ -782,7 +782,7 @@ export default function CommentSection({
                   "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all max-w-[140px] truncate",
                   pickedEpisodeId === ep.episodeId
                     ? "bg-sky-500/15 text-sky-200 border-sky-500/30 shadow-sm shadow-sky-950/30"
-                    : "bg-white/[0.02] text-white/35 border-white/8 hover:border-white/15 hover:text-white/60",
+                    : "bg-muted/30 dark:bg-white/[0.02] text-muted-foreground dark:text-white/35 border-border dark:border-white/8 hover:border-border dark:border-white/15 hover:text-muted-foreground dark:text-white/60",
                 )}
               >
                 {t("comments.episodeShort", { n: ep.number })}
@@ -800,22 +800,22 @@ export default function CommentSection({
         )}
       >
         {isSheet ? (
-          <p className="text-sm font-semibold text-white/80">
+          <p className="text-sm font-semibold text-foreground/90 dark:text-white/80">
             {loading ? t("comments.loadingCount") : t("comments.count", { count: total })}
           </p>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <MessageSquare className="w-4 h-4 text-white/40 shrink-0" />
+            <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40 shrink-0" />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-base font-bold text-white tracking-tight">{t("comments.title")}</span>
+                <span className="text-base font-bold text-foreground dark:text-white tracking-tight">{t("comments.title")}</span>
                 {headerLabel && (
                   <span className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-[10px] font-mono text-sky-300/80">
                     {headerLabel}
                   </span>
                 )}
                 {total > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[11px] font-mono text-white/35">
+                  <span className="px-1.5 py-0.5 rounded-md bg-muted/60 dark:bg-muted/60 dark:bg-white/6 border border-border dark:border-white/8 text-[11px] font-mono text-muted-foreground dark:text-white/35">
                     {total}
                   </span>
                 )}
@@ -824,7 +824,7 @@ export default function CommentSection({
           </div>
         )}
         {!loading && (
-          <div className="flex items-center gap-0.5 rounded-xl border border-white/8 bg-white/[0.02] p-0.5 shrink-0">
+          <div className="flex items-center gap-0.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-0.5 shrink-0">
             {(["new", "top", "old"] as const).map((s) => (
               <button
                 key={s}
@@ -832,8 +832,8 @@ export default function CommentSection({
                 className={cn(
                   "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all",
                   sort === s
-                    ? "bg-white/12 text-white shadow-sm shadow-black/20"
-                    : "text-white/30 hover:text-white/55",
+                    ? "bg-accent dark:bg-white/12 text-foreground dark:text-white shadow-sm shadow-black/20"
+                    : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
                 )}
               >
                 {s === "new" ? t("comments.sortNew") : s === "top" ? t("comments.sortTop") : t("comments.sortOld")}
@@ -854,9 +854,9 @@ export default function CommentSection({
               className={cn(
                 "rounded-2xl border transition-all duration-200 overflow-hidden",
                 focused
-                  ? "border-violet-500/25 bg-white/[0.04] shadow-lg shadow-violet-950/20 ring-1 ring-violet-500/10"
-                  : "border-white/8 bg-white/[0.02] hover:border-white/12",
-                isSheet && !focused && "bg-white/[0.03]",
+                  ? "border-violet-500/25 bg-muted/50 dark:bg-white/[0.04] shadow-lg shadow-violet-950/20 ring-1 ring-violet-500/10"
+                  : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] hover:border-border dark:border-white/12",
+                isSheet && !focused && "bg-muted/40 dark:bg-white/[0.03]",
               )}
             >
               <textarea
@@ -872,7 +872,7 @@ export default function CommentSection({
                 rows={focused ? (isSheet ? 2 : 3) : 1}
                 maxLength={1000}
                 className={cn(
-                  "w-full bg-transparent px-4 text-sm text-white/85 placeholder:text-white/25 resize-none focus:outline-none transition-all duration-200 leading-relaxed",
+                  "w-full bg-transparent px-4 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 resize-none focus:outline-none transition-all duration-200 leading-relaxed",
                   isSheet ? "pt-3 pb-2" : "pt-3 pb-2",
                   !focused && isSheet && "py-3.5",
                 )}
@@ -880,29 +880,29 @@ export default function CommentSection({
 
               {selectedGif && (
                 <div className="px-4 pb-3">
-                  <div className="relative inline-block rounded-lg overflow-hidden ring-1 ring-white/10">
+                  <div className="relative inline-block rounded-lg overflow-hidden ring-1 ring-border dark:ring-white/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <GifImage src={selectedGif} alt="GIF" className="max-h-32 w-auto block" />
                     <button
                       onClick={() => setSelectedGif(null)}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 flex items-center justify-center hover:bg-black transition-colors"
                     >
-                      <X className="w-3 h-3 text-white" />
+                      <X className="w-3 h-3 text-foreground dark:text-white" />
                     </button>
                   </div>
                 </div>
               )}
 
               {showToolbar && (
-                <div className="flex items-center justify-between px-3 pb-2.5 pt-1 border-t border-white/6">
+                <div className="flex items-center justify-between px-3 pb-2.5 pt-1 border-t border-border dark:border-white/6">
                   <div className="flex items-center gap-1 relative">
                     <button
                       onClick={() => { setShowEmojiPicker((v) => !v); setShowGifPanel(false); }}
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                         showEmojiPicker
-                          ? "bg-white/12 text-white border-white/20"
-                          : "text-white/30 hover:text-white/60 hover:bg-white/5 border-transparent",
+                          ? "bg-accent dark:bg-white/12 text-foreground dark:text-white border-border dark:border-white/20"
+                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:bg-white/5 border-transparent",
                       )}
                     >
                       <SmilePlus className="w-3.5 h-3.5" />
@@ -920,8 +920,8 @@ export default function CommentSection({
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                         showGifPanel || selectedGif
-                          ? "bg-white/12 text-white border-white/20"
-                          : "text-white/30 hover:text-white/60 hover:bg-white/5 border-transparent",
+                          ? "bg-accent dark:bg-white/12 text-foreground dark:text-white border-border dark:border-white/20"
+                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:bg-white/5 border-transparent",
                       )}
                     >
                       <ImagePlay className="w-3.5 h-3.5" />
@@ -941,7 +941,7 @@ export default function CommentSection({
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                         isSpoiler
                           ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                          : "text-white/30 hover:text-white/60 hover:bg-white/5 border-transparent",
+                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:bg-white/5 border-transparent",
                       )}
                     >
                       <EyeOff className="w-3.5 h-3.5" />
@@ -953,7 +953,7 @@ export default function CommentSection({
                     <span
                       className={cn(
                         "hidden sm:block text-[10px] font-mono tabular-nums transition-colors",
-                        charNearLimit ? "text-amber-400/70" : "text-white/15",
+                        charNearLimit ? "text-amber-400/70" : "text-muted-foreground/50 dark:text-white/15",
                       )}
                     >
                       {draft.length}/1000
@@ -975,17 +975,17 @@ export default function CommentSection({
               )}
             </div>
             {focused && (
-              <p className="hidden sm:block text-[10px] text-white/15 font-mono mt-1.5 pl-1">
+              <p className="hidden sm:block text-[10px] text-muted-foreground/50 dark:text-white/15 font-mono mt-1.5 pl-1">
                 {t("comments.ctrlEnterPost")}
               </p>
             )}
           </div>
         </div>
       ) : !auth ? (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 px-4 rounded-2xl bg-gradient-to-r from-white/[0.03] to-violet-500/[0.04] border border-white/8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 px-4 rounded-2xl bg-gradient-to-r from-white/[0.03] to-violet-500/[0.04] border border-border dark:border-white/8">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <SmilePlus className="w-4 h-4 text-white/20 shrink-0" />
-            <p className="text-sm text-white/30">{t("comments.signInToJoin")}</p>
+            <SmilePlus className="w-4 h-4 text-muted-foreground/70 dark:text-white/20 shrink-0" />
+            <p className="text-sm text-muted-foreground dark:text-white/30">{t("comments.signInToJoin")}</p>
           </div>
           <LoginPopoverButton />
         </div>
@@ -994,17 +994,17 @@ export default function CommentSection({
       {/* Comment list */}
       {requiresEpisode ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <MessageSquare className="w-8 h-8 text-white/8" />
-          <p className="text-sm text-white/25 font-mono">{t("comments.selectEpisode")}</p>
-          <p className="text-xs text-white/15">{t("comments.scopedPerEpisode")}</p>
+          <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
+          <p className="text-sm text-muted-foreground/80 dark:text-white/25 font-mono">{t("comments.selectEpisode")}</p>
+          <p className="text-xs text-muted-foreground/50 dark:text-white/15">{t("comments.scopedPerEpisode")}</p>
         </div>
       ) : loadError ? (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
-          <MessageSquare className="w-8 h-8 text-white/8" />
+          <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
           <p className="text-sm text-red-400/80 font-mono">{loadError}</p>
           <button
             onClick={() => fetchComments(1, sort, false)}
-            className="px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/8 text-white/60 text-xs font-semibold transition-colors"
+            className="px-4 py-1.5 rounded-lg border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/60 text-xs font-semibold transition-colors"
           >
             {t("comments.retry")}
           </button>
@@ -1014,15 +1014,15 @@ export default function CommentSection({
           {[...Array(4)].map((_, i) => <CommentSkeleton key={i} />)}
         </div>
       ) : comments.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-12 px-6 text-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015]">
-          <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-            <MessageSquare className="w-6 h-6 text-white/20" />
+        <div className="flex flex-col items-center gap-3 py-12 px-6 text-center rounded-2xl border border-dashed border-border dark:border-white/[0.08] bg-muted/20 dark:bg-white/[0.015]">
+          <div className="w-14 h-14 rounded-2xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/[0.08] flex items-center justify-center">
+            <MessageSquare className="w-6 h-6 text-muted-foreground/70 dark:text-white/20" />
           </div>
           <div>
-            <p className="text-sm text-white/35 font-medium">
+            <p className="text-sm text-muted-foreground dark:text-white/35 font-medium">
               {activeEpisodeId ? t("comments.noCommentsEpisode") : t("comments.noComments")}
             </p>
-            <p className="text-xs text-white/20 mt-1">{t("comments.firstComment")}</p>
+            <p className="text-xs text-muted-foreground/70 dark:text-white/20 mt-1">{t("comments.firstComment")}</p>
           </div>
         </div>
       ) : (
@@ -1037,10 +1037,10 @@ export default function CommentSection({
                 key={c.id}
                 className={cn(
                   "flex gap-3 py-4 px-2 -mx-2 rounded-2xl transition-colors group",
-                  index > 0 && "border-t border-white/[0.04]",
+                  index > 0 && "border-t border-border dark:border-white/[0.04]",
                   isHighlighted
-                    ? "bg-white/[0.025] hover:bg-white/[0.035]"
-                    : "hover:bg-white/[0.02]",
+                    ? "bg-muted/30 dark:bg-white/[0.025] hover:bg-muted/40 dark:bg-white/[0.035]"
+                    : "hover:bg-muted/30 dark:bg-white/[0.02]",
                   isOwn && "ring-1 ring-violet-500/10",
                 )}
               >
@@ -1049,7 +1049,7 @@ export default function CommentSection({
 
                   {/* Header */}
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="text-[13px] font-semibold text-white/90 leading-none">
+                    <span className="text-[13px] font-semibold text-foreground dark:text-white/90 leading-none">
                       {renderAuthorName(c.username, c.equippedIcon)}
                     </span>
                     <UserBadges
@@ -1071,10 +1071,10 @@ export default function CommentSection({
                         {t("comments.episodeShort", { n: c.episodeNumber })}
                       </span>
                     )}
-                    <span className="text-[11px] font-mono text-white/18 leading-none">
+                    <span className="text-[11px] font-mono text-muted-foreground/60 dark:text-white/18 leading-none">
                       {relativeTime(c.createdAt, t)}
                       {c.updatedAt && (
-                        <span className="ml-1 text-white/15">{t("comments.edited")}</span>
+                        <span className="ml-1 text-muted-foreground/50 dark:text-white/15">{t("comments.edited")}</span>
                       )}
                     </span>
 
@@ -1084,7 +1084,7 @@ export default function CommentSection({
                           <button
                             onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
                             aria-label={t("comments.editComment")}
-                            className="p-1.5 rounded-lg hover:bg-white/8 text-white/35 hover:text-white/60 transition-all"
+                            className="p-1.5 rounded-lg hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-all"
                           >
                             <Pencil className="w-3 h-3" />
                           </button>
@@ -1092,7 +1092,7 @@ export default function CommentSection({
                         <button
                           onClick={() => handleDelete(c.id)}
                           aria-label={t("comments.deleteComment")}
-                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/35 hover:text-red-400/70 transition-all"
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground dark:text-white/35 hover:text-red-400/70 transition-all"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -1113,16 +1113,16 @@ export default function CommentSection({
                         autoFocus
                         rows={3}
                         maxLength={1000}
-                        className="w-full bg-white/[0.04] border border-white/15 rounded-lg px-3 py-2 text-sm text-white/85 placeholder:text-white/20 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
+                        className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/15 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-none focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors leading-relaxed"
                       />
                       <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] font-mono text-white/15">
+                        <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15">
                           {editDraft.length}/1000
                         </span>
                         <div className="ml-auto flex items-center gap-1.5">
                           <button
                             onClick={() => { setEditingId(null); setEditDraft(""); }}
-                            className="px-2.5 py-1 rounded-lg text-xs text-white/35 hover:text-white/65 hover:bg-white/5 transition-all"
+                            className="px-2.5 py-1 rounded-lg text-xs text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 hover:bg-muted/50 dark:bg-white/5 transition-all"
                           >
                             {t("comments.cancel")}
                           </button>
@@ -1155,10 +1155,10 @@ export default function CommentSection({
 
                   {/* Inline reply composer */}
                   {replyingTo === c.id && (
-                    <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/25 mb-2">
+                    <div className="mt-3 rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-3">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/80 dark:text-white/25 mb-2">
                         {t("comments.replyingTo")}{" "}
-                        <span className="text-white/50">@{c.username}</span>
+                        <span className="text-muted-foreground dark:text-white/50">@{c.username}</span>
                       </p>
                       <div className="flex gap-2.5">
                       <CommentAvatar
@@ -1183,12 +1183,12 @@ export default function CommentSection({
                           placeholder={t("comments.replyTo", { user: c.username })}
                           rows={2}
                           maxLength={1000}
-                          className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-sm text-white/85 placeholder:text-white/20 resize-none focus:outline-none focus:border-violet-500/25 transition-colors leading-relaxed"
+                          className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-none focus:outline-none focus:border-violet-500/25 transition-colors leading-relaxed"
                         />
                         <div className="flex items-center justify-end gap-2 mt-1.5">
                           <button
                             onClick={() => { setReplyingTo(null); setReplyDraft(""); }}
-                            className="text-xs text-white/30 hover:text-white/55 transition-colors px-2 py-1"
+                            className="text-xs text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55 transition-colors px-2 py-1"
                           >
                             {t("comments.cancel")}
                           </button>
@@ -1218,7 +1218,7 @@ export default function CommentSection({
                           onClick={() =>
                             setExpandedReplies((prev) => new Set([...prev, c.id]))
                           }
-                          className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 py-1 transition-colors"
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 py-1 transition-colors"
                         >
                           <ChevronDown className="w-3.5 h-3.5" />
                           {c.replies.length === 1
@@ -1234,7 +1234,7 @@ export default function CommentSection({
                             return (
                               <div
                                 key={reply.id}
-                                className="flex gap-2.5 py-3 group/reply border-t border-white/[0.04] first:border-t-0"
+                                className="flex gap-2.5 py-3 group/reply border-t border-border dark:border-white/[0.04] first:border-t-0"
                               >
                                 <CommentAvatar
                                   username={reply.username}
@@ -1244,7 +1244,7 @@ export default function CommentSection({
                                 />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <span className="text-[12px] font-semibold text-white/85 leading-none">
+                                    <span className="text-[12px] font-semibold text-foreground dark:text-white/85 leading-none">
                                       {renderAuthorName(reply.username, reply.equippedIcon, "text-[12px]")}
                                     </span>
                                     <UserBadges
@@ -1255,10 +1255,10 @@ export default function CommentSection({
                                       levelRoleColor={reply.levelRoleColor}
                                       size="xs"
                                     />
-                                    <span className="text-[10px] font-mono text-white/18 leading-none">
+                                    <span className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/18 leading-none">
                                       {relativeTime(reply.createdAt, t)}
                                       {reply.updatedAt && (
-                                        <span className="ml-1 text-white/15">{t("comments.edited")}</span>
+                                        <span className="ml-1 text-muted-foreground/50 dark:text-white/15">{t("comments.edited")}</span>
                                       )}
                                     </span>
                                     {(replyOwn || canModerateComments) && !replyEditing && (
@@ -1270,7 +1270,7 @@ export default function CommentSection({
                                               setEditDraft(reply.body);
                                             }}
                                             aria-label={t("comments.editReply")}
-                                            className="p-1 rounded-lg hover:bg-white/8 text-white/35 hover:text-white/60 transition-all"
+                                            className="p-1 rounded-lg hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-all"
                                           >
                                             <Pencil className="w-3 h-3" />
                                           </button>
@@ -1278,7 +1278,7 @@ export default function CommentSection({
                                         <button
                                           onClick={() => handleDelete(reply.id)}
                                           aria-label={t("comments.deleteReply")}
-                                          className="p-1 rounded-lg hover:bg-red-500/10 text-white/35 hover:text-red-400/70 transition-all"
+                                          className="p-1 rounded-lg hover:bg-red-500/10 text-muted-foreground dark:text-white/35 hover:text-red-400/70 transition-all"
                                         >
                                           <Trash2 className="w-3 h-3" />
                                         </button>
@@ -1302,12 +1302,12 @@ export default function CommentSection({
                                         autoFocus
                                         rows={2}
                                         maxLength={1000}
-                                        className="w-full bg-white/[0.04] border border-white/15 rounded-lg px-3 py-2 text-sm text-white/85 resize-none focus:outline-none focus:border-white/25 transition-colors leading-relaxed"
+                                        className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/15 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white/85 resize-none focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors leading-relaxed"
                                       />
                                       <div className="flex items-center justify-end gap-1.5 mt-1.5">
                                         <button
                                           onClick={() => { setEditingId(null); setEditDraft(""); }}
-                                          className="px-2.5 py-1 rounded-lg text-xs text-white/35 hover:text-white/65 hover:bg-white/5 transition-all"
+                                          className="px-2.5 py-1 rounded-lg text-xs text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 hover:bg-muted/50 dark:bg-white/5 transition-all"
                                         >
                                           {t("comments.cancel")}
                                         </button>
@@ -1326,7 +1326,7 @@ export default function CommentSection({
                                       </div>
                                     </div>
                                   ) : (
-                                    <p className="text-sm text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
+                                    <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
                                       {reply.body}
                                     </p>
                                   )}
@@ -1350,7 +1350,7 @@ export default function CommentSection({
                                 return s;
                               })
                             }
-                            className="flex items-center gap-1.5 text-xs text-white/20 hover:text-white/45 py-2 transition-colors"
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/45 py-2 transition-colors"
                           >
                             <ChevronUp className="w-3.5 h-3.5" />
                             {t("comments.hideReplies")}
@@ -1372,7 +1372,7 @@ export default function CommentSection({
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm text-white/40 hover:text-white/70 hover:bg-white/5 border border-white/6 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/50 dark:bg-white/5 border border-border dark:border-white/6 transition-all disabled:opacity-50"
           >
             {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {t("comments.loadMore")}

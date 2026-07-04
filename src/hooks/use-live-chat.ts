@@ -8,6 +8,7 @@ import {
   type ChatMessage,
 } from "@/lib/social/chat";
 import { CHAT_MESSAGE_TTL_MS } from "@/lib/social/chat-config";
+import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
 
 const POLL_MS = 3_000;
 const PRUNE_MS = 30_000;
@@ -94,14 +95,8 @@ export function useLiveChat() {
     loadInitial();
   }, [loadInitial]);
 
-  useEffect(() => {
-    const pollId = setInterval(pollNew, POLL_MS);
-    const pruneId = setInterval(pruneExpired, PRUNE_MS);
-    return () => {
-      clearInterval(pollId);
-      clearInterval(pruneId);
-    };
-  }, [pollNew, pruneExpired]);
+  useIntervalWhenVisible(pollNew, POLL_MS);
+  useIntervalWhenVisible(pruneExpired, PRUNE_MS);
 
   const sendMessage = useCallback(
     async (opts: { body?: string; gifUrl?: string | null }) => {

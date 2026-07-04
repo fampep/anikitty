@@ -19,12 +19,12 @@ const Footer = () => {
   if (pathname === "/") return null;
 
   return (
-    <footer className="w-full mt-20 relative overflow-hidden border-t border-white/[0.08]">
+    <footer className="w-full mt-20 relative overflow-hidden border-t border-border dark:border-white/[0.08]">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/[0.03] to-violet-500/[0.02] pointer-events-none" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/25 to-transparent" />
 
       <div className="mx-auto w-full max-w-[1400px] 2xl:max-w-[1600px] px-4 md:px-6 lg:px-8 py-16 relative">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-white/[0.06]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-border dark:border-white/[0.06]">
 
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">
             <Image
@@ -35,7 +35,7 @@ const Footer = () => {
               className="h-8 w-auto object-contain"
               unoptimized
             />
-            <p className="text-[11px] text-white/20 font-mono leading-relaxed max-w-[180px]">
+            <p className="text-[11px] text-muted-foreground font-mono leading-relaxed max-w-[180px]">
               {t("footer.tagline")}
             </p>
 
@@ -45,7 +45,7 @@ const Footer = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                 </span>
-                <span className="text-[11px] text-white/30 font-mono">
+                <span className="text-[11px] text-muted-foreground font-mono">
                   {t("footer.online", { count: count.toLocaleString() })}
                 </span>
               </div>
@@ -56,7 +56,7 @@ const Footer = () => {
                 href="https://github.com/fampep/anikitty"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 rounded-lg border border-white/10 text-white/30 hover:text-white/70 hover:border-white/25 transition-all"
+                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-muted-foreground dark:text-white/70 dark:border-white/25"
               >
                 <GitHubLogoIcon width="14" height="14" />
               </a>
@@ -64,7 +64,7 @@ const Footer = () => {
                 href={DISCORD_INVITE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 rounded-lg border border-white/10 text-white/30 hover:text-white/70 hover:border-white/25 transition-all"
+                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-muted-foreground dark:text-white/70 dark:border-white/25"
               >
                 <DiscordLogoIcon width="14" height="14" />
               </a>
@@ -72,7 +72,7 @@ const Footer = () => {
           </div>
 
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.browse")}</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.browse")}</p>
             <NavLink href="/home" label={t("nav.home")} />
             <NavLink href="/new" label={t("nav.newReleases")} icon={<Tv2 className="w-3 h-3" />} />
             <NavLink href="/search" label={t("nav.search")} icon={<Search className="w-3 h-3" />} />
@@ -83,28 +83,28 @@ const Footer = () => {
           </div>
 
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.account")}</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.account")}</p>
             <NavLink href="/settings" label={t("footer.settings")} />
             <NavLink href="/faq" label={t("nav.faq")} />
             <a
               href="https://www.anisurge.lol/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-white/35 hover:text-white/65 transition-colors"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-muted-foreground dark:text-white/65"
             >
               {t("footer.anisurgeExternal")}
             </a>
           </div>
 
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">{t("footer.project")}</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.project")}</p>
             <NavLink href="/donate" label={t("footer.donate")} icon={<Coffee className="w-3 h-3" />} />
             <NavLink href="/faq" label={t("footer.faqPrivacy")} />
             <a
               href="https://github.com/fampep/anikitty"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-white/35 hover:text-white/65 transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-muted-foreground dark:text-white/65"
             >
               <GitHubLogoIcon width="13" height="13" />
               {t("footer.github")}
@@ -113,7 +113,7 @@ const Footer = () => {
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-white/35 hover:text-white/65 transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-muted-foreground dark:text-white/65"
             >
               <DiscordLogoIcon width="13" height="13" />
               {t("footer.discord")}
@@ -122,10 +122,10 @@ const Footer = () => {
         </div>
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[11px] text-white/18 text-center sm:text-left leading-relaxed max-w-lg">
+          <p className="text-[11px] text-muted-foreground/80 text-center sm:text-left leading-relaxed max-w-lg dark:text-white/18">
             {t("footer.disclaimer")}
           </p>
-          <p className="text-[11px] text-white/15 shrink-0 font-mono">
+          <p className="text-[11px] text-muted-foreground/70 shrink-0 font-mono dark:text-white/15">
             © {new Date().getFullYear()} anikitty.moe
           </p>
         </div>
@@ -136,8 +136,8 @@ const Footer = () => {
 
 function NavLink({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1.5 text-sm text-white/40 hover:text-violet-200/90 transition-colors">
-      {icon && <span className="text-white/25">{icon}</span>}
+    <Link href={href} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors dark:text-white/40 dark:hover:text-violet-200/90">
+      {icon && <span className="text-muted-foreground/70 dark:text-white/25">{icon}</span>}
       {label}
     </Link>
   );

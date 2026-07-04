@@ -89,16 +89,16 @@ export default function SubtitleLibraryCard({ entry }: Props) {
       </div>
 
       <div className="px-0.5 space-y-1.5">
-        <p className="text-[10px] font-mono text-white/45 leading-snug">{progressLine}</p>
+        <p className="text-[10px] font-mono text-muted-foreground dark:text-white/45 leading-snug">{progressLine}</p>
         {coveragePct != null && (
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[9px] font-mono uppercase tracking-widest text-white/25">
+              <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/25">
                 {t("subsLibrary.coverage")}
               </span>
               <span className="text-[9px] font-mono text-teal-300/70">{coveragePct}%</span>
             </div>
-            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-1 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-500",
@@ -132,14 +132,14 @@ export default function SubtitleLibraryCard({ entry }: Props) {
         )}
 
         {showMissing && (
-          <div className="rounded-lg border border-white/8 bg-black/30 p-2 space-y-2">
+          <div className="rounded-lg border border-border dark:border-white/8 bg-muted dark:bg-black/30 p-2 space-y-2">
             {loadingMissing ? (
-              <p className="text-[10px] font-mono text-white/35 text-center py-2">
+              <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 text-center py-2">
                 {t("subsLibrary.episodesLoading")}
               </p>
             ) : missingEpisodes && missingEpisodes.length > 0 ? (
               <>
-                <p className="text-[9px] font-mono uppercase tracking-widest text-white/30">
+                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30">
                   {t("subsLibrary.missingEpisodesLabel")}
                 </p>
                 <div className="flex flex-wrap gap-1">
@@ -156,7 +156,7 @@ export default function SubtitleLibraryCard({ entry }: Props) {
                 </div>
                 {cachedEpisodes && cachedEpisodes.length > 0 && (
                   <>
-                    <p className="text-[9px] font-mono uppercase tracking-widest text-white/25 pt-1">
+                    <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/25 pt-1">
                       {t("subsLibrary.episodeLegendCached")}
                     </p>
                     <div className="flex flex-wrap gap-1 max-h-16 overflow-auto">
@@ -175,7 +175,7 @@ export default function SubtitleLibraryCard({ entry }: Props) {
                 )}
               </>
             ) : (
-              <p className="text-[10px] font-mono text-white/35 text-center py-1">
+              <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 text-center py-1">
                 {t("subsLibrary.fullSubs")}
               </p>
             )}

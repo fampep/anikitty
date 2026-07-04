@@ -22,7 +22,7 @@ export default function FramedAvatar({
   onClick,
 }: Props) {
   const frameImage = getFrameImageUrl(frameSlug);
-  const frameClass = frameImage ? undefined : (getFrameClass(frameSlug) ?? "ring-1 ring-white/10");
+  const frameClass = frameImage ? undefined : (getFrameClass(frameSlug) ?? "ring-1 ring-border dark:ring-white/10");
 
   return (
     <div

@@ -21,14 +21,14 @@ export default function SiteBetaBadge() {
       )}
       aria-label={t("site.betaVersionAria", { version: SITE_VERSION })}
     >
-      <div className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/70 backdrop-blur-sm px-2 py-1 font-mono text-[10px] shadow-lg shadow-black/40">
+      <div className="flex items-center gap-1.5 rounded-md border border-border dark:border-white/10 bg-black/70 backdrop-blur-sm px-2 py-1 font-mono text-[10px] shadow-lg shadow-black/40">
         <span className="rounded px-1 py-px bg-amber-500/20 text-amber-300/95 font-semibold uppercase tracking-wider text-[9px]">
           {t("site.beta")}
         </span>
-        <span className="text-white/20" aria-hidden>
+        <span className="text-muted-foreground/70 dark:text-white/20" aria-hidden>
           ·
         </span>
-        <span className="text-white/40">{t("site.version", { version: SITE_VERSION })}</span>
+        <span className="text-muted-foreground dark:text-white/40">{t("site.version", { version: SITE_VERSION })}</span>
       </div>
     </div>
   );

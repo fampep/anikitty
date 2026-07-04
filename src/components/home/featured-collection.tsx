@@ -43,13 +43,13 @@ const LoadingSkeleton = ({ sectionId }: { sectionId?: string }) => (
   <Container id={sectionId} className="flex flex-col gap-5 py-10 items-center lg:items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
     <div className="flex items-center gap-3">
       <div className="w-0.5 h-5 bg-white/20 animate-pulse" />
-      <div className="h-6 w-48 animate-pulse bg-white/8 rounded" />
+      <div className="h-6 w-48 animate-pulse bg-accent dark:bg-white/8 rounded" />
     </div>
     <div className="grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {[0, 1, 2].map((_, idx) => (
         <div
           key={idx}
-          className="rounded-xl h-[18rem] animate-pulse bg-white/5"
+          className="rounded-xl h-[18rem] animate-pulse bg-muted/50 dark:bg-white/5"
         />
       ))}
     </div>

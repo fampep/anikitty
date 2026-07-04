@@ -45,7 +45,7 @@ type Props = {
 
 function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/8 text-white/45 text-[12px] font-medium backdrop-blur-sm">
+    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 text-muted-foreground dark:text-white/45 text-[12px] font-medium backdrop-blur-sm">
       <span className="text-violet-300/70">{icon}</span>
       {label}
     </div>
@@ -54,10 +54,10 @@ function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) 
 
 function HeroStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm px-3 py-2.5 text-center">
+    <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/40 dark:bg-white/[0.03] backdrop-blur-sm px-3 py-2.5 text-center">
       <div className="flex items-center justify-center gap-1.5 text-violet-300/80 mb-0.5">{icon}</div>
-      <p className="text-sm font-bold text-white/90 tabular-nums">{value}</p>
-      <p className="text-[10px] font-medium text-white/35 mt-0.5">{label}</p>
+      <p className="text-sm font-bold text-foreground dark:text-white/90 tabular-nums">{value}</p>
+      <p className="text-[10px] font-medium text-muted-foreground dark:text-white/35 mt-0.5">{label}</p>
     </div>
   );
 }
@@ -119,7 +119,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
   }, [t]);
 
   return (
-    <div className="relative min-h-screen bg-black text-white overflow-x-hidden flex flex-col">
+    <div className="relative min-h-screen bg-black text-foreground dark:text-white overflow-x-hidden flex flex-col">
       <LandingPosterWall posters={posters} loaded={postersLoaded} />
 
       <div className="absolute inset-0 pointer-events-none">
@@ -146,7 +146,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
             href={ROUTES.SEARCH}
             prefetch
             onClick={() => trackEvent("landing_search")}
-            className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-white/12 bg-white/[0.04] text-white/50 text-xs font-semibold hover:text-white/80 hover:border-white/20 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 text-xs font-semibold hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/20 transition-colors"
           >
             <Search className="w-3.5 h-3.5" />
             {t("nav.search")}
@@ -190,19 +190,19 @@ export default function LandingPage({ initialPosters = [] }: Props) {
             "text-[3rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[7.5rem] font-black tracking-widest leading-none mb-4 sm:mb-5 select-none drop-shadow-2xl",
           )}
         >
-          <span className="text-white">Ani</span>
+          <span className="text-foreground dark:text-white">Ani</span>
           <span className="bg-gradient-to-br from-violet-300 via-fuchsia-200/80 to-white/30 bg-clip-text text-transparent">
             Kitty
           </span>
         </h1>
 
-        <p className="text-white/70 text-base sm:text-lg md:text-xl font-light mb-2 leading-relaxed tracking-wide max-w-xl">
+        <p className="text-muted-foreground dark:text-white/70 text-base sm:text-lg md:text-xl font-light mb-2 leading-relaxed tracking-wide max-w-xl">
           {t("landing.tagline")}
         </p>
-        <p className="text-white/28 text-xs sm:text-sm font-mono mb-7 sm:mb-8 flex items-center gap-2 flex-wrap justify-center">
+        <p className="text-muted-foreground/70 dark:text-muted-foreground/70 dark:text-white/28 text-xs sm:text-sm font-mono mb-7 sm:mb-8 flex items-center gap-2 flex-wrap justify-center">
           {statsLine.map((part, i) => (
             <span key={part} className="inline-flex items-center gap-2">
-              {i > 0 && <span className="w-1 h-1 rounded-full bg-white/15" />}
+              {i > 0 && <span className="w-1 h-1 rounded-full bg-muted dark:bg-white/15" />}
               {part}
             </span>
           ))}
@@ -211,10 +211,10 @@ export default function LandingPage({ initialPosters = [] }: Props) {
         <Link
           href={ROUTES.SEARCH}
           onClick={() => trackEvent("landing_search_hero")}
-          className="group w-full max-w-md mb-6 flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-white/12 bg-white/[0.04] hover:bg-white/[0.07] hover:border-white/20 transition-all text-left"
+          className="group w-full max-w-md mb-6 flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] hover:bg-accent dark:bg-white/[0.07] hover:border-border dark:border-white/20 transition-all text-left"
         >
-          <Search className="w-4 h-4 text-white/35 group-hover:text-violet-300/80 shrink-0 transition-colors" />
-          <span className="text-sm text-white/35 group-hover:text-white/50 transition-colors truncate">
+          <Search className="w-4 h-4 text-muted-foreground dark:text-white/35 group-hover:text-violet-300/80 shrink-0 transition-colors" />
+          <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-muted-foreground dark:text-white/50 transition-colors truncate">
             {t("landing.searchPlaceholder")}
           </span>
         </Link>
@@ -236,7 +236,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
           {!isLoggedIn ? (
             <LoginPopoverButton
               customTrigger={
-                <button className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center">
+                <button className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 font-semibold rounded-2xl hover:bg-accent dark:bg-white/8 hover:text-foreground dark:text-white hover:border-border dark:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center">
                   <LogIn className="w-4 h-4" />
                   {t("landing.signIn")}
                 </button>
@@ -247,7 +247,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
               href={ROUTES.HOME}
               prefetch
               onClick={() => trackEvent("landing_home_signed_in")}
-              className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center"
+              className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 font-semibold rounded-2xl hover:bg-accent dark:bg-white/8 hover:text-foreground dark:text-white hover:border-border dark:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center"
             >
               {t("landing.continueAs", { username: auth.auth?.username ?? "" })}
               <ArrowRight className="w-3.5 h-3.5" />
@@ -282,7 +282,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
 
         <a
           href="#trending"
-          className="mt-10 sm:mt-12 inline-flex flex-col items-center gap-1 text-white/25 hover:text-white/45 transition-colors"
+          className="mt-10 sm:mt-12 inline-flex flex-col items-center gap-1 text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/45 transition-colors"
           aria-label={t("landing.scrollHint")}
         >
           <span className="text-[10px] font-mono uppercase tracking-widest">{t("landing.scrollHint")}</span>

@@ -66,7 +66,7 @@ export default function WatchEpisodeBar({
   const total = episodes.totalEpisodes || episodes.episodes.length;
 
   return (
-    <div className="rounded-xl border border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-visible">
+    <div className="rounded-xl border border-border dark:border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-visible">
       <div className="flex items-stretch min-h-[4.5rem]">
         <button
           type="button"
@@ -74,10 +74,10 @@ export default function WatchEpisodeBar({
           disabled={!prevEpisode}
           title={prevEpisode ? t("watch.episodeShort", { n: prevEpisode.number }) : undefined}
           className={cn(
-            "flex items-center justify-center w-10 sm:w-11 shrink-0 border-r border-white/8 transition-colors",
+            "flex items-center justify-center w-10 sm:w-11 shrink-0 border-r border-border dark:border-white/8 transition-colors",
             prevEpisode
-              ? "text-white/45 hover:text-white hover:bg-white/[0.04]"
-              : "text-white/12 cursor-not-allowed",
+              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:text-white hover:bg-muted/50 dark:bg-white/[0.04]"
+              : "text-muted-foreground/30 dark:text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >
           <ChevronLeft className="w-5 h-5" />
@@ -90,7 +90,7 @@ export default function WatchEpisodeBar({
             fallbackImage={thumb}
             resolvePreviewImage={getLivePreview}
           >
-            <div className="relative w-16 sm:w-[4.5rem] aspect-video rounded-lg overflow-hidden bg-white/[0.04] ring-1 ring-white/10 cursor-default">
+            <div className="relative w-16 sm:w-[4.5rem] aspect-video rounded-lg overflow-hidden bg-muted/50 dark:bg-white/[0.04] ring-1 ring-border dark:ring-white/10 cursor-default">
               {thumb ? (
                 <Image
                   src={thumb}
@@ -101,11 +101,11 @@ export default function WatchEpisodeBar({
                   sizes="72px"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/[0.04]">
-                  <Play className="w-4 h-4 text-white/25 fill-white/25" />
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/50 dark:bg-white/[0.04]">
+                  <Play className="w-4 h-4 text-muted-foreground/80 dark:text-white/25 fill-white/25" />
                 </div>
               )}
-              <span className="absolute bottom-0.5 left-0.5 z-[1] px-1 py-px rounded text-[8px] font-mono font-bold bg-black/70 text-white/90">
+              <span className="absolute bottom-0.5 left-0.5 z-[1] px-1 py-px rounded text-[8px] font-mono font-bold bg-black/70 text-foreground dark:text-white/90">
                 {currentEpisode.number}
               </span>
             </div>
@@ -113,11 +113,11 @@ export default function WatchEpisodeBar({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-0.5">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-white/35">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground dark:text-white/35">
                 {t("watch.episode", { n: currentEpisode.number })}
               </p>
-              <span className="text-[10px] font-mono text-white/20">·</span>
-              <p className="text-[10px] font-mono text-white/30">
+              <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
+              <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
                 {t("watch.episodeIndex", {
                   current: currentEpisode.number,
                   total,
@@ -125,7 +125,7 @@ export default function WatchEpisodeBar({
               </p>
               {currentEpisode.isFiller && (
                 <>
-                  <span className="text-[10px] font-mono text-white/20">·</span>
+                  <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
                   <span className="px-1.5 py-px text-[9px] rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/70 uppercase tracking-wide">
                     {t("watch.filler")}
                   </span>
@@ -133,7 +133,7 @@ export default function WatchEpisodeBar({
               )}
               {completed && (
                 <>
-                  <span className="text-[10px] font-mono text-white/20">·</span>
+                  <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
                   <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-teal-400/70 uppercase">
                     <Check className="w-2.5 h-2.5" />
                     {t("watch.episodeWatched")}
@@ -142,12 +142,12 @@ export default function WatchEpisodeBar({
               )}
             </div>
 
-            <p className="text-sm sm:text-[15px] font-semibold text-white leading-snug line-clamp-2">
+            <p className="text-sm sm:text-[15px] font-semibold text-foreground dark:text-white leading-snug line-clamp-2">
               {title}
             </p>
 
             {inProgress && (
-              <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden max-w-xs">
+              <div className="mt-2 h-1 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden max-w-xs">
                 <div
                   className="h-full rounded-full bg-teal-500/70 transition-all"
                   style={{ width: `${progressPct}%` }}
@@ -159,10 +159,10 @@ export default function WatchEpisodeBar({
               <button
                 type="button"
                 onClick={onNext}
-                className="mt-1.5 hidden sm:flex items-center gap-1 text-[10px] font-mono text-white/25 hover:text-white/50 transition-colors truncate max-w-full"
+                className="mt-1.5 hidden sm:flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/50 transition-colors truncate max-w-full"
               >
                 <span className="shrink-0">{t("watch.nextEpisode")}:</span>
-                <span className="truncate text-white/40">
+                <span className="truncate text-muted-foreground dark:text-white/40">
                   {episodeTitle(nextEpisode, animeName, t)}
                 </span>
                 <ChevronRight className="w-3 h-3 shrink-0 opacity-60" />
@@ -174,7 +174,7 @@ export default function WatchEpisodeBar({
         <button
           type="button"
           onClick={onTogglePlaylist}
-          className="lg:hidden flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-white/8 text-white/40 hover:text-white/70 hover:bg-white/[0.03] transition-colors shrink-0"
+          className="lg:hidden flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border dark:border-white/8 text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/40 dark:bg-white/[0.03] transition-colors shrink-0"
         >
           <span className="text-[9px] font-mono uppercase tracking-wide leading-none">
             {t("anime.episodes.title")}
@@ -190,10 +190,10 @@ export default function WatchEpisodeBar({
           disabled={!nextEpisode}
           title={nextEpisode ? t("watch.episodeShort", { n: nextEpisode.number }) : undefined}
           className={cn(
-            "flex items-center justify-center w-10 sm:w-11 shrink-0 border-l border-white/8 transition-colors",
+            "flex items-center justify-center w-10 sm:w-11 shrink-0 border-l border-border dark:border-white/8 transition-colors",
             nextEpisode
-              ? "text-white/45 hover:text-white hover:bg-white/[0.04]"
-              : "text-white/12 cursor-not-allowed",
+              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:text-white hover:bg-muted/50 dark:bg-white/[0.04]"
+              : "text-muted-foreground/30 dark:text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >
           <ChevronRight className="w-5 h-5" />

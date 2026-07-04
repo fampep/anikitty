@@ -46,19 +46,14 @@ export default function AnimeQuickNav({ tabs, activeTab, onTabChange, className 
             key={value}
             type="button"
             onClick={() => onTabChange(value)}
-            className={cn(
-              "snap-start shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-[11px] font-semibold transition-all",
-              active
-                ? "border-violet-400/35 bg-violet-500/[0.12] text-white/90"
-                : "border-white/10 bg-white/[0.03] text-white/45 hover:text-white/85 hover:border-violet-400/25 hover:bg-violet-500/[0.08]",
-            )}
+            className={cn("site-chip snap-start shrink-0", active && "site-chip-active")}
           >
             <Icon className={cn("w-3.5 h-3.5", active ? "text-violet-300" : "text-violet-300/70")} />
             {label}
           </button>
         );
       })}
-      <span className="snap-start shrink-0 self-center text-[10px] font-mono text-white/20 px-1 hidden sm:inline">
+      <span className="snap-start shrink-0 self-center text-[10px] font-mono text-muted-foreground/70 dark:text-white/20 px-1 hidden sm:inline">
         {t("anime.quickNavHint")}
       </span>
     </div>

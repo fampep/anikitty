@@ -160,7 +160,7 @@ const EpisodePlaylist = ({
     >
       <div
         className={cn(
-          "shrink-0 border-b border-white/8",
+          "shrink-0 border-b border-border dark:border-white/8",
           isWatch ? "px-3 py-3 space-y-2.5" : "px-4 pt-3.5 pb-3 space-y-2.5",
         )}
       >
@@ -171,7 +171,7 @@ const EpisodePlaylist = ({
                 value={currentGroup}
                 onChange={(e) => handleGroupChange(e.target.value)}
                 disabled={Boolean(search.trim())}
-                className="h-9 min-w-[6.5rem] max-w-[38%] shrink-0 rounded-lg bg-white/[0.05] border border-white/10 px-2 text-[11px] font-mono text-white/70 focus:outline-none focus:border-white/25 disabled:opacity-40"
+                className="h-9 min-w-[6.5rem] max-w-[38%] shrink-0 rounded-lg bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 px-2 text-[11px] font-mono text-muted-foreground dark:text-white/70 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 disabled:opacity-40"
               >
                 {ranges.map((r) => (
                   <option key={r.value} value={r.value} className="bg-[#111]">
@@ -182,12 +182,12 @@ const EpisodePlaylist = ({
             )}
 
             <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 pointer-events-none" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/80 dark:text-white/25 pointer-events-none" />
               <input
                 placeholder={t("watch.playlist.filterPlaceholder")}
                 value={search}
                 onChange={handleSearch}
-                className="w-full h-9 pl-8 pr-3 rounded-lg bg-white/[0.05] border border-white/10 text-[12px] text-white/70 placeholder:text-white/25 focus:outline-none focus:border-white/25 transition-colors"
+                className="w-full h-9 pl-8 pr-3 rounded-lg bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 text-[12px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
               />
             </div>
 
@@ -199,13 +199,13 @@ const EpisodePlaylist = ({
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
                 hideWatched
                   ? "border-violet-500/35 bg-violet-500/15 text-violet-200"
-                  : "border-white/10 bg-white/[0.04] text-white/40 hover:text-white/65",
+                  : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65",
               )}
             >
               {hideWatched ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
 
-            <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8 shrink-0">
+            <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-lg p-0.5 border border-border dark:border-white/8 shrink-0">
               {LAYOUT_OPTIONS.filter((o) => o.value !== "list").map((opt) => (
                 <button
                   key={opt.value}
@@ -215,8 +215,8 @@ const EpisodePlaylist = ({
                   className={cn(
                     "p-1.5 rounded-md transition-all duration-150",
                     layout === opt.value
-                      ? "bg-white/15 text-white"
-                      : "text-white/25 hover:text-white/55",
+                      ? "bg-muted dark:bg-white/15 text-foreground dark:text-white"
+                      : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55",
                   )}
                 >
                   {opt.icon}
@@ -228,15 +228,15 @@ const EpisodePlaylist = ({
           <>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="text-[13px] font-semibold text-white leading-none">
+                <h3 className="text-[13px] font-semibold text-foreground dark:text-white leading-none">
                   {t("watch.playlist.title")}
                 </h3>
-                <p className="text-[11px] text-white/30 mt-1 font-mono leading-none">
+                <p className="text-[11px] text-muted-foreground dark:text-white/30 mt-1 font-mono leading-none">
                   {total} {total === 1 ? t("watch.playlist.episode") : t("watch.playlist.episodes")}
                 </p>
               </div>
 
-              <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/8 shrink-0">
+              <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-lg p-0.5 border border-border dark:border-white/8 shrink-0">
                 {LAYOUT_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
@@ -246,8 +246,8 @@ const EpisodePlaylist = ({
                     className={cn(
                       "p-1.5 rounded-md transition-all duration-150",
                       episodeLayout === opt.value
-                        ? "bg-white/15 text-white"
-                        : "text-white/25 hover:text-white/55",
+                        ? "bg-muted dark:bg-white/15 text-foreground dark:text-white"
+                        : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55",
                     )}
                   >
                     {opt.icon}
@@ -257,12 +257,12 @@ const EpisodePlaylist = ({
             </div>
 
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/25 pointer-events-none" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/80 dark:text-white/25 pointer-events-none" />
               <input
                 placeholder={t("watch.playlist.searchPlaceholder")}
                 value={search}
                 onChange={handleSearch}
-                className="w-full h-8 pl-7 pr-3 rounded-md bg-white/5 border border-white/10 text-[12px] text-white/70 placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                className="w-full h-8 pl-7 pr-3 rounded-md bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-[12px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
               />
             </div>
 
@@ -276,8 +276,8 @@ const EpisodePlaylist = ({
                     className={cn(
                       "px-2.5 py-0.5 rounded-full text-[10px] font-mono border transition-colors",
                       currentGroup === r.value
-                        ? "bg-white/15 border-white/30 text-white"
-                        : "bg-transparent border-white/10 text-white/35 hover:border-white/20 hover:text-white/55",
+                        ? "bg-muted dark:bg-white/15 border-border dark:border-white/30 text-foreground dark:text-white"
+                        : "bg-transparent border-border dark:border-white/10 text-muted-foreground dark:text-white/35 hover:border-border dark:border-white/20 hover:text-muted-foreground dark:text-white/55",
                     )}
                   >
                     {r.label}
@@ -299,7 +299,7 @@ const EpisodePlaylist = ({
         {isLoading ? (
           <PlaylistSkeleton />
         ) : filteredEpisodes.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-white/25 text-xs font-mono">
+          <div className="flex items-center justify-center py-12 text-muted-foreground/80 dark:text-white/25 text-xs font-mono">
             {t("watch.playlist.noEpisodes")}
           </div>
         ) : layout === "compact" ? (
@@ -351,7 +351,7 @@ const EpisodePlaylist = ({
 const PlaylistSkeleton = () => (
   <div className="space-y-0.5 px-1">
     {Array.from({ length: 7 }).map((_, i) => (
-      <div key={i} className="h-[61px] rounded-xl animate-pulse bg-white/5" />
+      <div key={i} className="h-[61px] rounded-xl animate-pulse bg-muted/50 dark:bg-white/5" />
     ))}
   </div>
 );

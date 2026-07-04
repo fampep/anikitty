@@ -14,18 +14,18 @@ type PreviewProps = {
 function PreviewPopover({ image, title, episodeNumber, live }: PreviewProps) {
   return (
     <div className="pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 z-50 w-[min(14rem,70vw)] -translate-x-1/2 animate-in fade-in zoom-in-95 duration-150">
-      <div className="rounded-lg overflow-hidden border border-white/15 bg-[#0a0a0a] shadow-xl shadow-black/60 ring-1 ring-white/10">
+      <div className="rounded-lg overflow-hidden border border-border dark:border-white/15 bg-[#0a0a0a] shadow-xl shadow-black/60 ring-1 ring-border dark:ring-white/10">
         <div className="relative aspect-video bg-black/80">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/[0.04]">
-              <Play className="w-6 h-6 text-white/25 fill-white/25" />
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/50 dark:bg-white/[0.04]">
+              <Play className="w-6 h-6 text-muted-foreground/80 dark:text-white/25 fill-white/25" />
             </div>
           )}
           {episodeNumber != null && (
-            <span className="absolute bottom-1 left-1 z-[1] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-black/75 text-white/90">
+            <span className="absolute bottom-1 left-1 z-[1] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-black/75 text-foreground dark:text-white/90">
               {episodeNumber}
             </span>
           )}
@@ -36,7 +36,7 @@ function PreviewPopover({ image, title, episodeNumber, live }: PreviewProps) {
           )}
         </div>
         {title ? (
-          <p className="px-2 py-1.5 text-[10px] font-medium text-white/75 leading-snug line-clamp-2">{title}</p>
+          <p className="px-2 py-1.5 text-[10px] font-medium text-foreground/85 dark:text-white/75 leading-snug line-clamp-2">{title}</p>
         ) : null}
       </div>
     </div>

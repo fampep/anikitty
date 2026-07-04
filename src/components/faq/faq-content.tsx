@@ -23,13 +23,13 @@ type FaqSection = { id: string; title: string; icon: React.ReactNode; items: Faq
 function FaqBlock({ item }: { item: FaqItem }) {
   return (
     <details className="group site-panel overflow-hidden">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold text-white/85 hover:bg-white/[0.03] transition-colors [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold text-foreground dark:text-white/85 hover:bg-muted/40 dark:bg-white/[0.03] transition-colors [&::-webkit-details-marker]:hidden">
         <span>{item.q}</span>
-        <span className="text-white/25 text-lg leading-none group-open:rotate-45 transition-transform shrink-0">
+        <span className="text-muted-foreground/80 dark:text-white/25 text-lg leading-none group-open:rotate-45 transition-transform shrink-0">
           +
         </span>
       </summary>
-      <div className="px-5 pb-4 pt-0 text-sm text-white/50 leading-relaxed border-t border-white/[0.06]">
+      <div className="px-5 pb-4 pt-0 text-sm text-muted-foreground dark:text-white/50 leading-relaxed border-t border-border dark:border-white/[0.06]">
         <div className="pt-3">{item.a}</div>
       </div>
     </details>
@@ -130,11 +130,11 @@ export default function FaqContent() {
     <div className="min-h-screen pt-8 pb-24">
       <Container className="max-w-3xl">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-0.5 h-6 bg-white/35 shrink-0" />
-          <HelpCircle className="w-5 h-5 text-white/50" />
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{t("faq.title")}</h1>
+          <div className="w-0.5 h-6 bg-muted/30 dark:bg-white/35 shrink-0" />
+          <HelpCircle className="w-5 h-5 text-muted-foreground dark:text-white/50" />
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white tracking-tight">{t("faq.title")}</h1>
         </div>
-        <p className="text-sm text-white/35 font-mono ml-[1.375rem] pl-8 mb-10 max-w-2xl leading-relaxed">
+        <p className="text-sm text-muted-foreground dark:text-white/35 font-mono ml-[1.375rem] pl-8 mb-10 max-w-2xl leading-relaxed">
           {t("faq.subtitle")} {lastUpdated}.
         </p>
 
@@ -143,7 +143,7 @@ export default function FaqContent() {
             <a
               key={s.id}
               href={`#${s.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.03] text-white/45 hover:text-white/80 hover:border-white/20 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/20 transition-colors"
             >
               {s.icon}
               {s.title}
@@ -156,7 +156,7 @@ export default function FaqContent() {
             <section key={section.id} id={section.id} className="scroll-mt-24">
               <div className="flex items-center gap-2.5 mb-4">
                 <span className="text-violet-400/70">{section.icon}</span>
-                <h2 className="text-lg font-bold text-white/90">{section.title}</h2>
+                <h2 className="text-lg font-bold text-foreground dark:text-white/90">{section.title}</h2>
               </div>
               <div className="flex flex-col gap-2">
                 {section.items.map((item) => (
@@ -168,14 +168,14 @@ export default function FaqContent() {
         </div>
 
         <div className={cn("mt-14 site-panel p-5 sm:p-6")}>
-          <p className="text-sm font-semibold text-white/80 mb-2">{t("faq.stillQuestions")}</p>
-          <p className="text-sm text-white/45 leading-relaxed mb-4">{t("faq.contactDesc")}</p>
+          <p className="text-sm font-semibold text-foreground/90 dark:text-white/80 mb-2">{t("faq.stillQuestions")}</p>
+          <p className="text-sm text-muted-foreground dark:text-white/45 leading-relaxed mb-4">{t("faq.contactDesc")}</p>
           <div className="flex flex-wrap gap-3">
             <a
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/12 text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
             >
               {t("footer.discord")}
               <ExternalLink className="w-3.5 h-3.5 opacity-50" />
@@ -184,7 +184,7 @@ export default function FaqContent() {
               href="https://github.com/fampep/anikitty"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/12 text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
             >
               {t("footer.github")}
               <ExternalLink className="w-3.5 h-3.5 opacity-50" />

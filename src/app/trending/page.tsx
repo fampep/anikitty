@@ -37,13 +37,13 @@ export default function TrendingPage() {
     <div className="min-h-screen pt-8 pb-24">
       <Container className="pb-2">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-0.5 h-6 bg-white/35 shrink-0" />
-          <TrendingUp className="w-5 h-5 text-white/50" />
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+          <div className="w-0.5 h-6 bg-muted/30 dark:bg-white/35 shrink-0" />
+          <TrendingUp className="w-5 h-5 text-muted-foreground dark:text-white/50" />
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white tracking-tight">
             {t("trending.title")}
           </h1>
         </div>
-        <p className="text-sm text-white/35 font-mono pl-[3.25rem]">
+        <p className="text-sm text-muted-foreground dark:text-white/35 font-mono pl-[3.25rem]">
           {t("trending.subtitle")}
         </p>
       </Container>

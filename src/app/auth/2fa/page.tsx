@@ -45,15 +45,15 @@ function TwoFactorForm() {
 
   return (
     <Container className="max-w-md pt-24 pb-24">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 sm:p-8">
+      <div className="rounded-2xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.02] p-6 sm:p-8">
         <div className="flex items-center gap-2 text-violet-300/80 mb-2">
           <ShieldCheck className="w-5 h-5" />
-          <h1 className="text-lg font-bold text-white">{t("auth.twoFactor")}</h1>
+          <h1 className="text-lg font-bold text-foreground dark:text-white">{t("auth.twoFactor")}</h1>
         </div>
-        <p className="text-sm text-white/40 font-mono leading-relaxed mb-6">
+        <p className="text-sm text-muted-foreground dark:text-white/40 font-mono leading-relaxed mb-6">
           {t("auth.twoFactorHint")}
         </p>
-        <label className="text-[11px] font-mono text-white/40 uppercase tracking-wider block mb-1.5">
+        <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-wider block mb-1.5">
           {t("auth.authCode")}
         </label>
         <input
@@ -64,7 +64,7 @@ function TwoFactorForm() {
           onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           onKeyDown={(e) => e.key === "Enter" && handleVerify()}
           placeholder="000000"
-          className="w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 text-white text-center text-lg tracking-[0.3em] font-mono focus:outline-none focus:border-white/25 mb-4"
+          className="w-full h-11 px-4 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white text-center text-lg tracking-[0.3em] font-mono focus:outline-none focus:border-primary/40 dark:focus:border-white/25 mb-4"
         />
         <button
           onClick={handleVerify}
@@ -84,7 +84,7 @@ export default function Auth2faPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-white/30" />
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground dark:text-white/30" />
         </div>
       }
     >

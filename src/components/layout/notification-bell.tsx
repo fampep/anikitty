@@ -53,7 +53,7 @@ export default function NotificationBell() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="relative rounded-lg p-2 text-white/60 transition-colors hover:bg-white/8 hover:text-white"
+          className="relative rounded-lg p-2 text-muted-foreground dark:text-white/60 transition-colors hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white"
           aria-label={t("notifications.title")}
         >
           <Bell className="h-5 w-5" />
@@ -67,10 +67,10 @@ export default function NotificationBell() {
 
       <PopoverContent
         align="end"
-        className="w-[min(22rem,calc(100vw-2rem))] p-0 bg-[#0a0a0a] border border-white/12 rounded-xl shadow-2xl overflow-hidden"
+        className="w-[min(22rem,calc(100vw-2rem))] p-0 bg-[#0a0a0a] border border-border dark:border-white/12 rounded-xl shadow-2xl overflow-hidden"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-          <p className="text-sm font-semibold text-white">{t("notifications.title")}</p>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-white/8">
+          <p className="text-sm font-semibold text-foreground dark:text-white">{t("notifications.title")}</p>
           {notifications.some((n) => !n.readAt) && (
             <button
               type="button"
@@ -84,11 +84,11 @@ export default function NotificationBell() {
 
         <div className="max-h-[min(24rem,50vh)] overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-white/40">
+            <div className="flex items-center justify-center py-10 text-muted-foreground dark:text-white/40">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           ) : notifications.length === 0 ? (
-            <p className="py-10 text-center text-sm text-white/35 font-mono">{t("notifications.empty")}</p>
+            <p className="py-10 text-center text-sm text-muted-foreground dark:text-white/35 font-mono">{t("notifications.empty")}</p>
           ) : (
             notifications.map((n) => (
               <Link
@@ -96,7 +96,7 @@ export default function NotificationBell() {
                 href={n.linkUrl ?? (n.type === "episode" ? ROUTES.HOME : ROUTES.MESSAGES)}
                 onClick={() => onNotificationClick(n)}
                 className={cn(
-                  "flex gap-3 px-4 py-3 border-b border-white/5 hover:bg-white/[0.04] transition-colors",
+                  "flex gap-3 px-4 py-3 border-b border-border/60 dark:border-white/5 hover:bg-muted/50 dark:bg-white/[0.04] transition-colors",
                   !n.readAt && "bg-violet-500/[0.06]",
                 )}
               >
@@ -115,15 +115,15 @@ export default function NotificationBell() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-white/85 truncate">
+                    <p className="text-xs font-semibold text-foreground dark:text-white/85 truncate">
                       {n.title ?? n.actorUsername ?? t("notifications.generic")}
                     </p>
-                    <span className="text-[10px] font-mono text-white/30 shrink-0">
+                    <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 shrink-0">
                       {dmTimeAgo(n.createdAt)}
                     </span>
                   </div>
                   {n.body && (
-                    <p className="text-[11px] text-white/45 mt-0.5 line-clamp-2">{n.body}</p>
+                    <p className="text-[11px] text-muted-foreground dark:text-white/45 mt-0.5 line-clamp-2">{n.body}</p>
                   )}
                 </div>
               </Link>
@@ -131,11 +131,11 @@ export default function NotificationBell() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-px bg-white/8 border-t border-white/8">
+        <div className="grid grid-cols-2 gap-px bg-accent dark:bg-white/8 border-t border-border dark:border-white/8">
           <Link
             href={ROUTES.MESSAGES}
             onClick={() => setOpen(false)}
-            className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-white/70 hover:bg-white/[0.04] hover:text-white transition-colors"
+            className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-muted-foreground dark:text-white/70 hover:bg-muted/50 dark:bg-white/[0.04] hover:text-foreground dark:hover:text-white transition-colors"
           >
             <Mail className="h-3.5 w-3.5" />
             {t("notifications.openMessages")}
@@ -143,7 +143,7 @@ export default function NotificationBell() {
           <Link
             href={ROUTES.CHAT}
             onClick={() => setOpen(false)}
-            className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-white/70 hover:bg-white/[0.04] hover:text-white transition-colors"
+            className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-muted-foreground dark:text-white/70 hover:bg-muted/50 dark:bg-white/[0.04] hover:text-foreground dark:hover:text-white transition-colors"
           >
             <MessageCircle className="h-3.5 w-3.5" />
             {t("notifications.openChat")}

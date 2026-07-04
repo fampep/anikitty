@@ -219,12 +219,12 @@ export default function ForumPage() {
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           {/* Search */}
           <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground dark:text-white/30" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("forum.searchPlaceholder")}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/25 focus:bg-white/[0.05] transition-colors"
+              className="w-full bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 focus:bg-accent dark:bg-white/[0.05] transition-colors"
             />
           </div>
 
@@ -236,15 +236,15 @@ export default function ForumPage() {
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors",
                   mine
-                    ? "bg-white/10 text-white border-white/15"
-                    : "bg-white/[0.03] text-white/45 border-white/8 hover:text-white/75",
+                    ? "bg-accent dark:bg-white/10 text-foreground dark:text-white border-border dark:border-white/15"
+                    : "bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 border-border dark:border-white/8 hover:text-foreground/85 dark:text-white/75",
                 )}
               >
                 <User className="w-3.5 h-3.5" />
                 {t("forum.myThreads")}
               </button>
             )}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/8">
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/8">
               {SORT_IDS.map((s) => (
                 <button
                   key={s}
@@ -252,8 +252,8 @@ export default function ForumPage() {
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors",
                     sort === s
-                      ? "bg-white/10 text-white"
-                      : "text-white/45 hover:text-white/75",
+                      ? "bg-accent dark:bg-white/10 text-foreground dark:text-white"
+                      : "text-muted-foreground dark:text-white/45 hover:text-foreground/85 dark:text-white/75",
                   )}
                 >
                   {sortLabel(s)}
@@ -274,7 +274,7 @@ export default function ForumPage() {
           ) : (
             <LoginPopoverButton
               customTrigger={
-                <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/[0.05] text-white/70 border border-white/12 text-sm font-semibold rounded-xl hover:bg-white/8 hover:text-white transition-all shrink-0">
+                <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-muted/60 dark:bg-white/[0.05] text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 text-sm font-semibold rounded-xl hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-all shrink-0">
                   <LogIn className="w-4 h-4" />
                   {t("forum.signInToPost")}
                 </button>
@@ -317,12 +317,12 @@ export default function ForumPage() {
               />
             ))}
 
-            <div className="hidden lg:flex flex-col gap-2 mt-4 p-3.5 rounded-xl bg-white/[0.02] border border-white/8">
-              <div className="flex items-center gap-2 text-[12px] font-semibold text-white/70">
+            <div className="hidden lg:flex flex-col gap-2 mt-4 p-3.5 rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8">
+              <div className="flex items-center gap-2 text-[12px] font-semibold text-muted-foreground dark:text-white/70">
                 <HelpCircle className="w-3.5 h-3.5" />
                 {t("forum.communityTips")}
               </div>
-              <ul className="text-[10.5px] text-white/35 font-mono space-y-1.5 leading-relaxed">
+              <ul className="text-[10.5px] text-muted-foreground dark:text-white/35 font-mono space-y-1.5 leading-relaxed">
                 <li>· {t("forum.tipRecommendations")}</li>
                 <li>· {t("forum.tipSearch")}</li>
                 <li>· {t("forum.tipUpvote")}</li>
@@ -334,7 +334,7 @@ export default function ForumPage() {
           {/* Thread list */}
           <div className="flex flex-col gap-2 min-w-0">
             {!loading && total > 0 && (
-              <p className="text-[11px] font-mono text-white/30 px-1">
+              <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30 px-1">
                 {t("forum.showingThreads", { shown: threads.length, total })}
                 {mine ? t("forum.showingMine") : ""}
               </p>
@@ -352,7 +352,7 @@ export default function ForumPage() {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="mt-2 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/8 text-sm font-semibold text-white/55 hover:text-white hover:bg-white/[0.06] hover:border-white/15 transition-colors disabled:opacity-40"
+                    className="mt-2 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/8 text-sm font-semibold text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/[0.06] hover:border-border dark:border-white/15 transition-colors disabled:opacity-40"
                   >
                     {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {t("forum.loadMore")}
@@ -369,7 +369,7 @@ export default function ForumPage() {
 
 function StatPill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/8 text-[11px] font-mono text-white/45">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 text-[11px] font-mono text-muted-foreground dark:text-white/45">
       {icon}
       {label}
     </span>
@@ -397,8 +397,8 @@ function CategoryFilter({
       className={cn(
         "flex flex-col items-start text-left px-3.5 py-2.5 rounded-xl border shrink-0 transition-colors min-w-[140px]",
         active
-          ? "bg-white/[0.06] border-white/15 text-white"
-          : "bg-white/[0.02] border-white/8 text-white/55 hover:text-white/85 hover:bg-white/[0.04]",
+          ? "bg-accent dark:bg-white/[0.06] border-border dark:border-white/15 text-foreground dark:text-white"
+          : "bg-muted/30 dark:bg-white/[0.02] border-border dark:border-white/8 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white/85 hover:bg-muted/50 dark:bg-white/[0.04]",
       )}
     >
       <span className="text-[13px] font-semibold leading-tight flex items-center gap-2 w-full">
@@ -416,11 +416,11 @@ function CategoryFilter({
         )}
         <span className="truncate">{label}</span>
         {typeof count === "number" && count > 0 && (
-          <span className="text-[10px] font-mono text-white/30 ml-auto shrink-0">{count}</span>
+          <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 ml-auto shrink-0">{count}</span>
         )}
       </span>
       {description && (
-        <span className="hidden lg:block text-[10.5px] font-mono text-white/30 mt-0.5">
+        <span className="hidden lg:block text-[10.5px] font-mono text-muted-foreground dark:text-white/30 mt-0.5">
           {description}
         </span>
       )}
@@ -437,7 +437,7 @@ function ThreadRow({
 }) {
   const t = useT();
   return (
-    <div className="group flex gap-3 sm:gap-4 p-4 rounded-xl bg-white/[0.025] border border-white/8 hover:border-white/15 hover:bg-white/[0.04] transition-colors">
+    <div className="group flex gap-3 sm:gap-4 p-4 rounded-xl bg-muted/30 dark:bg-white/[0.025] border border-border dark:border-white/8 hover:border-border dark:border-white/15 hover:bg-muted/50 dark:bg-white/[0.04] transition-colors">
       <VoteButtons
         score={thread.score}
         myVote={thread.myVote}
@@ -453,7 +453,7 @@ function ThreadRow({
             </span>
           )}
           {thread.isLocked && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/40 bg-white/[0.04] border border-white/10 px-1.5 py-0.5 rounded-md">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground dark:text-white/40 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 px-1.5 py-0.5 rounded-md">
               <Lock className="w-2.5 h-2.5" /> {t("forum.locked")}
             </span>
           )}
@@ -465,12 +465,12 @@ function ThreadRow({
         </div>
 
         <Link href={`${ROUTES.FORUM}/${thread.id}`} className="block">
-          <h2 className="text-[15px] sm:text-base font-bold text-white/90 group-hover:text-white leading-snug line-clamp-2">
+          <h2 className="text-[15px] sm:text-base font-bold text-foreground dark:text-white/90 group-hover:text-foreground dark:group-hover:text-white leading-snug line-clamp-2">
             {thread.title}
           </h2>
         </Link>
 
-        <p className="text-[12.5px] text-white/45 line-clamp-2 leading-relaxed">
+        <p className="text-[12.5px] text-muted-foreground dark:text-white/45 line-clamp-2 leading-relaxed">
           {forumBodyPreview(thread.body)}
         </p>
 
@@ -481,7 +481,7 @@ function ThreadRow({
               url={thread.avatarUrl ?? undefined}
               className="w-5 h-5 shrink-0"
             />
-            <span className="text-[11.5px] font-semibold text-white/65 hover:text-white transition-colors">
+            <span className="text-[11.5px] font-semibold text-muted-foreground dark:text-white/65 hover:text-foreground dark:hover:text-white transition-colors">
               {thread.username}
             </span>
           </Link>
@@ -493,26 +493,26 @@ function ThreadRow({
             levelRoleColor={thread.levelRoleColor}
             levelTierIcon={thread.levelTierIcon}
           />
-          <span className="text-[10px] font-mono text-white/30">
+          <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
             {forumTimeAgo(thread.createdAt)}
           </span>
           {thread.lastActivityAt && (
             <>
-              <span className="text-[10px] font-mono text-white/15">·</span>
-              <span className="text-[10px] font-mono text-white/30">
+              <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15">·</span>
+              <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
                 {t("forum.activeAgo", { time: forumTimeAgo(thread.lastActivityAt) })}
               </span>
             </>
           )}
-          <span className="text-[10px] font-mono text-white/15">·</span>
-          <span className="inline-flex items-center gap-1 text-[10.5px] font-mono text-white/35">
+          <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15">·</span>
+          <span className="inline-flex items-center gap-1 text-[10.5px] font-mono text-muted-foreground dark:text-white/35">
             <MessageCircle className="w-3 h-3" />
             {thread.replyCount}
           </span>
           {thread.updatedAt && (
             <>
-              <span className="text-[10px] font-mono text-white/15">·</span>
-              <span className="text-[10px] font-mono text-white/25">{t("forum.edited")}</span>
+              <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15">·</span>
+              <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25">{t("forum.edited")}</span>
             </>
           )}
         </div>
@@ -527,14 +527,14 @@ function ThreadSkeleton({ count }: { count: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/6 animate-pulse"
+          className="flex gap-4 p-4 rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/6 animate-pulse"
         >
-          <div className="w-8 h-16 rounded bg-white/5" />
+          <div className="w-8 h-16 rounded bg-muted/50 dark:bg-white/5" />
           <div className="flex-1 flex flex-col gap-2">
-            <div className="h-3 w-16 bg-white/5 rounded" />
-            <div className="h-4 w-3/4 bg-white/8 rounded" />
-            <div className="h-3 w-full bg-white/5 rounded" />
-            <div className="h-3 w-1/3 bg-white/5 rounded mt-1" />
+            <div className="h-3 w-16 bg-muted/50 dark:bg-white/5 rounded" />
+            <div className="h-4 w-3/4 bg-accent dark:bg-white/8 rounded" />
+            <div className="h-3 w-full bg-muted/50 dark:bg-white/5 rounded" />
+            <div className="h-3 w-1/3 bg-muted/50 dark:bg-white/5 rounded mt-1" />
           </div>
         </div>
       ))}
@@ -545,12 +545,12 @@ function ThreadSkeleton({ count }: { count: number }) {
 function EmptyState({ query, category }: { query: string; category: string }) {
   const t = useT();
   return (
-    <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
-      <MessagesSquare className="w-10 h-10 text-white/15 mb-3" />
-      <h3 className="text-base font-bold text-white/75 mb-1">
+    <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl bg-muted/30 dark:bg-white/[0.02] border border-dashed border-border dark:border-white/10">
+      <MessagesSquare className="w-10 h-10 text-muted-foreground/50 dark:text-white/15 mb-3" />
+      <h3 className="text-base font-bold text-foreground/85 dark:text-white/75 mb-1">
         {query ? t("forum.emptyQueryTitle") : t("forum.emptyTitle")}
       </h3>
-      <p className="text-[12.5px] text-white/35 font-mono max-w-xs">
+      <p className="text-[12.5px] text-muted-foreground dark:text-white/35 font-mono max-w-xs">
         {query
           ? t("forum.emptySearch")
           : category !== "all"

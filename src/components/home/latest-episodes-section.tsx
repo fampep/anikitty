@@ -54,14 +54,14 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
-            className="h-7 w-7 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+            className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
-            className="h-7 w-7 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+            className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -112,12 +112,12 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
 const LoadingSkeleton = () => (
   <Container className="relative z-20 flex flex-col items-start gap-4 py-8">
     <div className="flex items-center gap-3">
-      <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
-      <div className="h-6 w-44 animate-pulse bg-white/8 rounded" />
+      <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
+      <div className="h-6 w-44 animate-pulse bg-accent dark:bg-white/8 rounded" />
     </div>
     <div className="flex gap-4 overflow-hidden w-full">
       {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} style={{ width: CARD_W }} className="shrink-0 rounded-xl aspect-[2/3] animate-pulse bg-white/5" />
+        <div key={i} style={{ width: CARD_W }} className="shrink-0 rounded-xl aspect-[2/3] animate-pulse bg-muted/50 dark:bg-white/5" />
       ))}
     </div>
   </Container>

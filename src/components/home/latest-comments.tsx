@@ -67,7 +67,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
       {comments.map((c) => (
         <div
           key={c.id}
-          className="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-white/8 hover:bg-white/[0.025] transition-colors group"
+          className="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-border dark:border-white/8 hover:bg-muted/30 dark:bg-white/[0.025] transition-colors group"
         >
           <Link href={`/profile/${encodeURIComponent(c.username)}`} className="shrink-0">
             <FramedAvatar
@@ -81,7 +81,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
             <div className="flex items-center gap-1.5 flex-wrap mb-1">
               <Link
                 href={`/profile/${encodeURIComponent(c.username)}`}
-                className="text-[12.5px] font-semibold text-white/85 hover:text-white transition-colors"
+                className="text-[12.5px] font-semibold text-foreground dark:text-white/85 hover:text-foreground dark:hover:text-white transition-colors"
               >
                 <CosmeticUsername username={c.username} iconSlug={c.equippedIcon} />
               </Link>
@@ -93,19 +93,19 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
                 levelRoleColor={c.levelRoleColor}
                 size="xs"
               />
-              <span className="text-[10px] text-white/25 font-mono">{timeAgo(c.createdAt, t)}</span>
+              <span className="text-[10px] text-muted-foreground/80 dark:text-white/25 font-mono">{timeAgo(c.createdAt, t)}</span>
             </div>
             {c.body && (
-              <p className="text-[12.5px] text-white/55 line-clamp-2 leading-relaxed group-hover:text-white/70 transition-colors">
+              <p className="text-[12.5px] text-muted-foreground dark:text-white/55 line-clamp-2 leading-relaxed group-hover:text-muted-foreground dark:text-white/70 transition-colors">
                 {c.body}
               </p>
             )}
             {c.gifUrl && !c.body && (
-              <p className="text-[11px] text-white/30 font-mono italic">{t("home.sharedGif")}</p>
+              <p className="text-[11px] text-muted-foreground dark:text-white/30 font-mono italic">{t("home.sharedGif")}</p>
             )}
             <Link
               href={commentLink(c)}
-              className="inline-flex items-center gap-1.5 mt-1.5 text-[10px] text-white/30 hover:text-white/65 font-mono transition-colors max-w-full flex-wrap"
+              className="inline-flex items-center gap-1.5 mt-1.5 text-[10px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/65 font-mono transition-colors max-w-full flex-wrap"
             >
               <span className="truncate">{animeLabel(c)}</span>
               {c.episodeNumber && (
@@ -166,16 +166,16 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
 const BareLoadingSkeleton = () => (
   <div className="flex flex-col gap-4">
     <div className="flex items-center gap-3">
-      <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
-      <div className="h-5 w-40 animate-pulse bg-white/8 rounded" />
+      <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
+      <div className="h-5 w-40 animate-pulse bg-accent dark:bg-white/8 rounded" />
     </div>
     <div className="flex flex-col gap-1.5">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex items-start gap-3 p-3 rounded-xl">
-          <div className="w-9 h-9 rounded-full bg-white/8 animate-pulse shrink-0" />
+          <div className="w-9 h-9 rounded-full bg-accent dark:bg-white/8 animate-pulse shrink-0" />
           <div className="flex-1 flex flex-col gap-1.5">
-            <div className="h-3 w-32 rounded bg-white/8 animate-pulse" />
-            <div className="h-3 w-full rounded bg-white/5 animate-pulse" />
+            <div className="h-3 w-32 rounded bg-accent dark:bg-white/8 animate-pulse" />
+            <div className="h-3 w-full rounded bg-muted/50 dark:bg-white/5 animate-pulse" />
           </div>
         </div>
       ))}
@@ -186,16 +186,16 @@ const BareLoadingSkeleton = () => (
 const LoadingSkeleton = () => (
   <Container className="flex flex-col gap-4 py-8">
     <div className="flex items-center gap-3">
-      <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
-      <div className="h-5 w-40 animate-pulse bg-white/8 rounded" />
+      <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
+      <div className="h-5 w-40 animate-pulse bg-accent dark:bg-white/8 rounded" />
     </div>
     <div className="flex flex-col divide-y divide-white/5">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="flex items-start gap-3 py-3">
-          <div className="w-8 h-8 rounded-full bg-white/8 animate-pulse shrink-0" />
+          <div className="w-8 h-8 rounded-full bg-accent dark:bg-white/8 animate-pulse shrink-0" />
           <div className="flex-1 flex flex-col gap-1.5">
-            <div className="h-3 w-32 rounded bg-white/8 animate-pulse" />
-            <div className="h-3 w-full rounded bg-white/5 animate-pulse" />
+            <div className="h-3 w-32 rounded bg-accent dark:bg-white/8 animate-pulse" />
+            <div className="h-3 w-full rounded bg-muted/50 dark:bg-white/5 animate-pulse" />
           </div>
         </div>
       ))}

@@ -17,7 +17,7 @@ export default function HomeDonationSlim() {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/15 border border-fuchsia-400/20 text-fuchsia-300">
             <Coffee className="h-4 w-4" />
           </span>
-          <p className="text-[12px] text-white/50 leading-relaxed pt-1.5">
+          <p className="text-[12px] text-muted-foreground dark:text-white/50 leading-relaxed pt-1.5">
             {t("home.donationSlim")}
           </p>
         </div>

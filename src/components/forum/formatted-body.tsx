@@ -15,7 +15,7 @@ export function FormattedBody({ text }: { text: string }) {
           return (
             <blockquote
               key={i}
-              className="border-l-2 border-white/20 pl-3 text-white/55 text-[13px] italic"
+              className="border-l-2 border-border dark:border-white/20 pl-3 text-muted-foreground dark:text-white/55 text-[13px] italic"
             >
               {linkifyLine(line.slice(2))}
             </blockquote>

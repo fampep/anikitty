@@ -128,7 +128,7 @@ function AnilistImport() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Import from Anilist
-              <Badge className="bg-blue-500 text-white hover:bg-blue-500">
+              <Badge className="bg-blue-500 text-foreground dark:text-white hover:bg-blue-500">
                 Beta
               </Badge>
             </DialogTitle>

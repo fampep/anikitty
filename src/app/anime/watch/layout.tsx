@@ -40,7 +40,7 @@ import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import { useSettingsStore } from "@/store/settings-store";
 
 const CommentSection = dynamic(() => import("@/components/comments/comment-section"), {
-  loading: () => <div className="h-32 animate-pulse rounded-xl bg-white/[0.04] border border-white/8" />,
+  loading: () => <div className="h-32 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
 });
 
 const DB_LINKS = [
@@ -294,7 +294,7 @@ const Layout = (props: Props) => {
 
           {/* Tabs: Comments | Info | Related */}
           <Tabs value={watchTab} onValueChange={handleWatchTabChangeWithMobile} className="w-full">
-            <TabsList className="hidden lg:flex items-center justify-start w-fit h-fit bg-transparent border-b border-white/8 rounded-none gap-0 px-0 pb-0">
+            <TabsList className="hidden lg:flex items-center justify-start w-fit h-fit bg-transparent border-b border-border dark:border-white/8 rounded-none gap-0 px-0 pb-0">
               {[
                 { value: "comments", label: t("watch.tabs.comments"), icon: <MessageSquare className="w-3.5 h-3.5" /> },
                 { value: "info", label: t("watch.tabs.info"), icon: <Info className="w-3.5 h-3.5" /> },
@@ -303,7 +303,7 @@ const Layout = (props: Props) => {
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400 data-[state=active]:text-white data-[state=active]:bg-violet-500/[0.06] text-white/35 hover:text-white/65 transition-all bg-transparent"
+                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400 data-[state=active]:text-white data-[state=active]:bg-violet-500/[0.06] text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 transition-all bg-transparent"
                 >
                   {tab.icon}
                   {tab.label}
@@ -330,13 +330,13 @@ const Layout = (props: Props) => {
               {/* Synopsis */}
               {info.description && (
                 <div className="site-panel p-5 sm:p-6">
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
-                  <p className="text-[13px] text-white/55 leading-7">
+                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
+                  <p className="text-[13px] text-muted-foreground dark:text-white/55 leading-7">
                     {parse(info.description as string)}
                   </p>
                   <Link
                     href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-                    className="inline-flex items-center gap-1 mt-3 text-[11px] text-white/30 hover:text-white/60 transition-colors font-mono"
+                    className="inline-flex items-center gap-1 mt-3 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
                   >
                     {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
                   </Link>
@@ -345,7 +345,7 @@ const Layout = (props: Props) => {
 
               {/* Details grid */}
               <div className="site-panel p-5 sm:p-6">
-                <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.details")}</p>
+                <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.details")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { label: t("anime.detailFields.type"), value: stats?.type },
@@ -355,9 +355,9 @@ const Layout = (props: Props) => {
                     { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
                     { label: t("anime.detailFields.rating"), value: stats?.rating },
                   ].filter((r) => r.value).map((row) => (
-                    <div key={row.label} className="rounded-lg bg-white/3 border border-white/6 px-3 py-2">
-                      <span className="text-[9px] font-mono text-white/20 uppercase tracking-wider block mb-0.5">{row.label}</span>
-                      <span className="text-[12px] text-white/65 font-medium">{row.value}</span>
+                    <div key={row.label} className="rounded-lg bg-muted/30 dark:bg-white/3 border border-border dark:border-white/6 px-3 py-2">
+                      <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/20 uppercase tracking-wider block mb-0.5">{row.label}</span>
+                      <span className="text-[12px] text-muted-foreground dark:text-white/65 font-medium">{row.value}</span>
                     </div>
                   ))}
                 </div>
@@ -366,7 +366,7 @@ const Layout = (props: Props) => {
               {/* External links */}
               {externalLinks.length > 0 && (
                 <div className="site-panel p-5 sm:p-6">
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</p>
                   <div className="flex flex-wrap gap-2">
                     {externalLinks.map((link) => (
                       <a
@@ -390,7 +390,7 @@ const Layout = (props: Props) => {
               {/* DB IDs (raw) */}
               {mappings && (
                 <div className="site-panel p-5 sm:p-6">
-                  <p className="text-[10px] font-mono text-white/25 uppercase tracking-widest mb-3">{t("watch.databaseIds")}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("watch.databaseIds")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { label: "AniList",    value: anilistId              },
@@ -401,9 +401,9 @@ const Layout = (props: Props) => {
                       { label: "Kitsu",      value: mappings.kitsu_id      },
                       { label: "LiveChart",  value: mappings.livechart_id  },
                     ].filter((r) => r.value).map((row) => (
-                      <div key={row.label} className="rounded-lg bg-white/[0.02] border border-white/5 px-3 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono text-white/20">{row.label}</span>
-                        <span className="text-[11px] font-mono text-white/40">{row.value}</span>
+                      <div key={row.label} className="rounded-lg bg-muted/30 dark:bg-white/[0.02] border border-border/60 dark:border-border/60 dark:border-white/5 px-3 py-2 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">{row.label}</span>
+                        <span className="text-[11px] font-mono text-muted-foreground dark:text-white/40">{row.value}</span>
                       </div>
                     ))}
                   </div>

@@ -37,11 +37,11 @@ export default function Home() {
   if (isError && !critical) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6">
-        <p className="text-sm text-white/40 font-mono">{t("home.loadError")}</p>
+        <p className="text-sm text-muted-foreground dark:text-white/40 font-mono">{t("home.loadError")}</p>
         <button
           onClick={handleRetry}
           disabled={isFetching}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
           {t("home.tryAgain")}

@@ -76,7 +76,7 @@ export default function HomeScheduleStrip() {
   if (loading) {
     return (
       <Container className="py-6">
-        <div className="h-24 rounded-2xl border border-white/8 bg-white/[0.02] animate-pulse" />
+        <div className="h-24 rounded-2xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] animate-pulse" />
       </Container>
     );
   }
@@ -84,12 +84,12 @@ export default function HomeScheduleStrip() {
   if (loadError) {
     return (
       <Container className="py-4">
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-white/8 bg-white/[0.02]">
-          <p className="text-xs text-white/40 font-mono">{t("home.scheduleLoadError")}</p>
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
+          <p className="text-xs text-muted-foreground dark:text-white/40 font-mono">{t("home.scheduleLoadError")}</p>
           <button
             type="button"
             onClick={() => setRetryTick((n) => n + 1)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-white/60 text-xs font-semibold hover:bg-white/5"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/10 text-muted-foreground dark:text-white/60 text-xs font-semibold hover:bg-muted/50 dark:bg-white/5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             {t("home.retry")}
@@ -116,14 +116,14 @@ export default function HomeScheduleStrip() {
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
-            className="h-7 w-7 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+            className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
-            className="h-7 w-7 rounded-full border border-white/12 flex items-center justify-center text-white/40 hover:text-white/80 hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+            className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -142,14 +142,14 @@ export default function HomeScheduleStrip() {
               <Link
                 key={`${item.id}-${item.episode}`}
                 href={`${ROUTES.WATCH}?anime=${item.id}`}
-                className="group shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-white/8 bg-white/[0.025] hover:border-white/18 hover:bg-white/[0.04] transition-all min-w-[200px] max-w-[280px]"
+                className="group shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.025] hover:border-border dark:border-white/18 hover:bg-muted/50 dark:bg-white/[0.04] transition-all min-w-[200px] max-w-[280px]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold text-white/75 group-hover:text-white truncate leading-tight">
+                  <p className="text-[12px] font-semibold text-foreground/85 dark:text-white/75 group-hover:text-foreground dark:group-hover:text-white truncate leading-tight">
                     {item.name}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-1">
-                    <p className="text-[10px] font-mono text-white/30">{t("home.episode", { n: item.episode })}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30">{t("home.episode", { n: item.episode })}</p>
                     {audioTypes.map((type) => {
                       const isSub = type === "sub";
                       return (
@@ -173,7 +173,7 @@ export default function HomeScheduleStrip() {
                   className={cn(
                     "shrink-0 flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-lg border",
                     aired
-                      ? "text-white/25 border-white/8 bg-white/[0.02]"
+                      ? "text-muted-foreground/80 dark:text-white/25 border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]"
                       : "text-sky-300/80 border-sky-500/20 bg-sky-500/10",
                   )}
                 >

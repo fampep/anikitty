@@ -164,7 +164,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         {customTrigger ? (
           <span>{customTrigger}</span>
         ) : (
-          <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-white/20 text-white/70 text-sm font-semibold hover:bg-white/10 hover:border-white/40 hover:text-white transition-all">
+          <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-border text-muted-foreground text-sm font-semibold hover:bg-accent hover:border-primary/40 hover:text-foreground transition-all dark:border-white/20 dark:text-white/70 dark:hover:bg-white/10 dark:hover:border-white/40 dark:hover:text-white">
             <LogIn className="w-4 h-4" />
             {t("auth.login")}
           </button>
@@ -174,22 +174,22 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
       <PopoverContent
         side="bottom"
         align="end"
-        className="p-0 bg-[#0a0a0a] border border-white/12 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+        className="p-0 bg-[#0a0a0a] border border-border dark:border-white/12 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
         style={{ width: "22rem" }}
       >
         {/* Header */}
         <div className="px-5 pt-5 pb-0 flex flex-col gap-3">
-          <p className="text-white/50 text-xs font-mono">{t("auth.accountHint")}</p>
+          <p className="text-muted-foreground dark:text-white/50 text-xs font-mono">{t("auth.accountHint")}</p>
 
           {/* Tabs */}
           {tab !== "2fa" && (
-          <div className="flex rounded-lg bg-white/[0.04] border border-white/8 p-0.5">
+          <div className="flex rounded-lg bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 p-0.5">
             <button
               onClick={() => setTab("login")}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 tab === "login"
-                  ? "bg-white/10 text-white border border-white/12"
-                  : "text-white/35 hover:text-white/60"
+                  ? "bg-accent dark:bg-white/10 text-white border border-border dark:border-white/12"
+                  : "text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60"
               }`}
             >
               <LogIn className="w-3.5 h-3.5" />
@@ -199,8 +199,8 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               onClick={() => setTab("signup")}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 tab === "signup"
-                  ? "bg-white/10 text-white border border-white/12"
-                  : "text-white/35 hover:text-white/60"
+                  ? "bg-accent dark:bg-white/10 text-white border border-border dark:border-white/12"
+                  : "text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60"
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
@@ -214,9 +214,9 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
           <div className="p-5 flex flex-col gap-3.5">
             <div className="flex items-center gap-2 text-violet-300/80">
               <ShieldCheck className="w-4 h-4" />
-              <p className="text-sm font-semibold text-white/85">{t("auth.twoFactor")}</p>
+              <p className="text-sm font-semibold text-foreground dark:text-white/85">{t("auth.twoFactor")}</p>
             </div>
-            <p className="text-[11px] text-white/40 font-mono leading-relaxed">
+            <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
               {t("auth.twoFactorHint")}
             </p>
             <Field
@@ -237,7 +237,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
             <button
               type="button"
               onClick={() => { setTab("login"); setPendingToken(""); setTotpCode(""); }}
-              className="text-xs text-white/40 hover:text-white/70 transition-colors"
+              className="text-xs text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 transition-colors"
             >
               {t("auth.backToSignIn")}
             </button>
@@ -273,16 +273,16 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
             {(passkeySupported || discordEnabled) && (
               <>
                 <div className="flex items-center gap-3 py-1">
-                  <div className="h-px flex-1 bg-white/8" />
-                  <span className="text-[10px] font-mono text-white/25 uppercase">{t("auth.or")}</span>
-                  <div className="h-px flex-1 bg-white/8" />
+                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
+                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
                 </div>
                 {passkeySupported && (
                   <button
                     type="button"
                     onClick={handlePasskeyLogin}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white/[0.06] border border-white/12 text-white/85 font-semibold text-sm hover:bg-white/10 disabled:opacity-60 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent dark:bg-white/[0.06] border border-border dark:border-white/12 text-foreground dark:text-white/85 font-semibold text-sm hover:bg-accent dark:bg-white/10 disabled:opacity-60 transition-colors"
                   >
                     <Fingerprint className="w-4 h-4" />
                     {t("auth.signInWithPasskey")}
@@ -341,9 +341,9 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
             {discordEnabled && (
               <>
                 <div className="flex items-center gap-3 py-1">
-                  <div className="h-px flex-1 bg-white/8" />
-                  <span className="text-[10px] font-mono text-white/25 uppercase">{t("auth.or")}</span>
-                  <div className="h-px flex-1 bg-white/8" />
+                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
+                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
                 </div>
                 <button
                   type="button"
@@ -380,7 +380,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-mono text-white/40 uppercase tracking-wider">{label}</label>
+      <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-wider">{label}</label>
       <input
         type={type}
         value={value}
@@ -388,7 +388,7 @@ function Field({
         onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
         placeholder={placeholder}
         autoComplete={type === "password" ? "current-password" : type === "email" ? "email" : "username"}
-        className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-white/85 placeholder:text-white/20 text-sm focus:outline-none focus:border-white/28 transition-colors"
+        className="h-9 px-3 rounded-lg bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 text-sm focus:outline-none focus:border-white/28 transition-colors"
       />
     </div>
   );

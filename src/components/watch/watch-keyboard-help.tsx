@@ -36,15 +36,15 @@ export default function WatchKeyboardHelp({ open, onClose }: Props) {
       aria-label={t("watch.shortcuts.title")}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0c0c0c] p-5 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-border dark:border-white/10 bg-[#0c0c0c] p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="text-sm font-bold text-white/90">{t("watch.shortcuts.title")}</h2>
+          <h2 className="text-sm font-bold text-foreground dark:text-white/90">{t("watch.shortcuts.title")}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/[0.06] transition-colors"
             aria-label={t("watch.cancel")}
           >
             <X className="w-4 h-4" />
@@ -56,8 +56,8 @@ export default function WatchKeyboardHelp({ open, onClose }: Props) {
               key={row.keys}
               className="flex items-center justify-between gap-4 text-[12px]"
             >
-              <span className="text-white/55">{t(row.labelKey)}</span>
-              <kbd className="shrink-0 px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 font-mono text-[10px] text-white/70">
+              <span className="text-muted-foreground dark:text-white/55">{t(row.labelKey)}</span>
+              <kbd className="shrink-0 px-2 py-0.5 rounded-md bg-accent dark:bg-white/[0.06] border border-border dark:border-white/10 font-mono text-[10px] text-muted-foreground dark:text-white/70">
                 {row.keys}
               </kbd>
             </li>

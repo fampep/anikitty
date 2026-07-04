@@ -25,14 +25,14 @@ export default function HomeFeaturePromos() {
             href={href}
             className={`site-panel-hover group flex items-center gap-3 p-4 bg-gradient-to-br ${bg} to-transparent`}
           >
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 ${color}`}>
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 ${color}`}>
               <Icon className="w-4 h-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white/80">{t(`home.promos.${key}.title`)}</p>
-              <p className="text-[11px] text-white/30 font-mono mt-0.5 line-clamp-1">{t(`home.promos.${key}.desc`)}</p>
+              <p className="text-sm font-semibold text-foreground/90 dark:text-white/80">{t(`home.promos.${key}.title`)}</p>
+              <p className="text-[11px] text-muted-foreground dark:text-white/30 font-mono mt-0.5 line-clamp-1">{t(`home.promos.${key}.desc`)}</p>
             </div>
-            <ChevronRight className="w-4 h-4 shrink-0 text-white/15 group-hover:text-violet-300/70 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground/50 dark:text-white/15 group-hover:text-violet-300/70 group-hover:translate-x-0.5 transition-all" />
           </Link>
         ))}
       </div>

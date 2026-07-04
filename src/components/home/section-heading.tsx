@@ -26,18 +26,18 @@ export const SectionHeading = ({
           <span className="text-violet-300/80 flex items-center shrink-0">{icon}</span>
         )}
         <div className="min-w-0">
-          <h5 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-tight">
+          <h5 className="text-xl md:text-2xl font-bold text-foreground dark:text-white tracking-tight leading-tight">
             {title}
           </h5>
           {subtitle && (
-            <p className="text-[11px] text-white/40 font-medium mt-0.5">{subtitle}</p>
+            <p className="text-[11px] text-muted-foreground dark:text-white/40 font-medium mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
       {href && (
         <Link
           href={href}
-          className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-white/40 hover:text-violet-200 transition-all duration-200 shrink-0 group px-3.5 py-2 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:border-violet-400/30 hover:bg-violet-500/[0.1] hover:shadow-glow-violet"
+          className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground dark:text-white/40 hover:text-violet-200 transition-all duration-200 shrink-0 group px-3.5 py-2 rounded-xl border border-border dark:border-white/[0.08] bg-muted/50 dark:bg-white/[0.04] hover:border-violet-400/30 hover:bg-violet-500/[0.1] hover:shadow-glow-violet"
         >
           {t("common.viewAll")}
           <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
