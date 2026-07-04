@@ -224,6 +224,21 @@ button, a, [role="button"] {
   }
 }
 
+/* Lite mode — user opt-in, same effect as reduced motion */
+html.lite-mode *,
+html.lite-mode *::before,
+html.lite-mode *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.lite-mode .site-panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 @layer components {
   .site-panel {
     @apply rounded-2xl border border-border/70 bg-card/90 backdrop-blur-md;

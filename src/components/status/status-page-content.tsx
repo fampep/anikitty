@@ -6,6 +6,7 @@ import Container from "@/components/layout/container";
 import { KITTY_API_NODES, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
+import { useSettingsStore } from "@/store/settings-store";
 import { ROUTES } from "@/constants/routes";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { cn } from "@/lib/core/utils";
@@ -59,6 +60,7 @@ const STATUS_META: Record<
 
 export default function StatusPageContent() {
   const t = useT();
+  const liteMode = useSettingsStore((s) => s.liteMode);
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
     useKittyNodePing();
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -71,7 +73,7 @@ export default function StatusPageContent() {
     refresh();
   }, [refresh]);
 
-  useIntervalWhenVisible(handleRefresh, 60_000, true);
+  useIntervalWhenVisible(handleRefresh, liteMode ? 0 : 60_000, !liteMode);
 
   const overall = useMemo(
     () => resolveOverallStatus(loading, ready, nodes),
@@ -125,7 +127,9 @@ export default function StatusPageContent() {
               <p className="text-[12px] text-muted-foreground dark:text-white/40 mt-0.5">
                 {lastRefresh
                   ? t("status.lastChecked", { time: lastRefresh.toLocaleTimeString() })
-                  : t("status.autoRefresh")}
+                  : liteMode
+                    ? t("status.manualRefreshLite")
+                    : t("status.autoRefresh")}
               </p>
             </div>
           </div>

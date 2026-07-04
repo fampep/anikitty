@@ -21,6 +21,7 @@ import {
   EyeOff,
   ExternalLink,
   Coins,
+  Gauge,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile/profile-customization-form";
 import { ThemeModeSelect } from "@/components/settings/theme-mode-select";
+import { LiteModeToggle } from "@/components/settings/lite-mode-toggle";
 import ProfileMediaPreview from "@/components/profile/profile-media-preview";
 import { applyUserThemeColor } from "@/lib/core/theme-color";
 import { withAuth } from "@/lib/auth/auth-fetch";
@@ -407,6 +409,23 @@ function EpisodeLayoutSection({
   );
 }
 
+function PerformanceSection() {
+  const t = useT();
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<Gauge className="w-4 h-4" />}
+        title={t("settings.performance")}
+        description={t("settings.performanceDesc")}
+      />
+      <SectionBody>
+        <LiteModeToggle />
+      </SectionBody>
+    </SectionCard>
+  );
+}
+
 function PlaybackSection({
   preferDub,
   setPreferDub,
@@ -629,6 +648,7 @@ export default function SettingsPage() {
 
             <TabsContent value="general" className="mt-8 space-y-5">
               {auth && <ShopSection />}
+              <PerformanceSection />
               <PlaybackSection
                 preferDub={preferDub}
                 setPreferDub={setPreferDub}
@@ -723,6 +743,7 @@ export default function SettingsPage() {
           </Tabs>
         ) : (
           <div className="mt-2 space-y-5">
+            <PerformanceSection />
             <PlaybackSection
               preferDub={preferDub}
               setPreferDub={setPreferDub}

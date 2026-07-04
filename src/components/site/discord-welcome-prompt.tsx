@@ -7,12 +7,14 @@ import {
   readDiscordPromptDismissed,
   writeDiscordPromptDismissed,
 } from "@/lib/site/discord-prompt-storage";
+import { useSettingsStore } from "@/store/settings-store";
 
 const SHOW_DELAY_MS = 1400;
 const SKIP_PATH_PREFIXES = ["/admin"];
 
 export default function DiscordWelcomePrompt() {
   const pathname = usePathname();
+  const liteMode = useSettingsStore((s) => s.liteMode);
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -27,10 +29,10 @@ export default function DiscordWelcomePrompt() {
 
     const timer = window.setTimeout(() => {
       if (!readDiscordPromptDismissed()) setOpen(true);
-    }, SHOW_DELAY_MS);
+    }, liteMode ? 0 : SHOW_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [ready, pathname]);
+  }, [ready, pathname, liteMode]);
 
   const dismiss = () => writeDiscordPromptDismissed();
 

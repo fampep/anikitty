@@ -14,6 +14,11 @@ type PingCache = {
 
 let pingCache: PingCache | null = null;
 let pingInflight: Promise<PingCache> | null = null;
+const pingListeners = new Set<() => void>();
+
+function emitPingUpdate() {
+  pingListeners.forEach((listener) => listener());
+}
 
 async function fetchServerBenchmark(): Promise<{
   nodes: KittyNodePingResult[];
@@ -58,6 +63,7 @@ async function fetchNodePings(): Promise<PingCache> {
           recommended: serverBenchmark?.recommended ?? null,
         };
         pingCache = result;
+        emitPingUpdate();
         return result;
       })
       .finally(() => {
@@ -85,14 +91,29 @@ export function pickFastestKittyNode(
   return recommended ?? null;
 }
 
-export function useKittyNodePing() {
+type UseKittyNodePingOptions = {
+  enabled?: boolean;
+};
+
+export function useKittyNodePing(options?: UseKittyNodePingOptions) {
+  const enabled = options?.enabled ?? true;
   const [refreshKey, setRefreshKey] = useState(0);
   const [nodes, setNodes] = useState<KittyNodePingResult[]>(() => pingCache?.nodes ?? []);
   const [recommended, setRecommended] = useState<KittyApiNodeId | null>(
     () => pingCache?.recommended ?? null,
   );
-  const [ready, setReady] = useState(() => Boolean(pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS));
-  const [loading, setLoading] = useState(!ready);
+  const [ready, setReady] = useState(
+    () => Boolean(pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS),
+  );
+  const [loading, setLoading] = useState(() => enabled && !ready);
+
+  const syncFromCache = useCallback(() => {
+    if (!pingCache) return;
+    setNodes(pingCache.nodes);
+    setRecommended(pingCache.recommended);
+    setReady(true);
+    setLoading(false);
+  }, []);
 
   const refresh = useCallback(() => {
     invalidateKittyNodePingCache();
@@ -100,26 +121,40 @@ export function useKittyNodePing() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
-    setLoading(true);
-    fetchNodePings()
-      .then((result) => {
-        if (cancelled) return;
-        setNodes(result.nodes);
-        setRecommended(result.recommended);
-        setReady(true);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setReady(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const onUpdate = () => {
+      if (!cancelled) syncFromCache();
+    };
+
+    pingListeners.add(onUpdate);
+
+    const cacheFresh = Boolean(pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS);
+    if (cacheFresh) {
+      syncFromCache();
+    } else {
+      setLoading(true);
+      fetchNodePings()
+        .then(() => {
+          if (!cancelled) syncFromCache();
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setReady(true);
+            setLoading(false);
+          }
+        });
+    }
+
     return () => {
       cancelled = true;
+      pingListeners.delete(onUpdate);
     };
-  }, [refreshKey]);
+  }, [enabled, refreshKey, syncFromCache]);
 
   const pingByNode = useMemo(() => {
     const map: Partial<Record<KittyApiNodeId, number | null>> = {};

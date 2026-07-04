@@ -17,6 +17,7 @@ import UserThemeSync from "@/components/layout/user-theme-sync";
 import ClickAdsScript from "@/components/ads/click-ads-script";
 import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
+import LiteModeSync from "@/components/layout/lite-mode-sync";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -114,7 +115,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='anikitty-theme',s=localStorage.getItem(k),t=s||'dark';if(t==='system'){document.documentElement.classList.toggle('dark',window.matchMedia('(prefers-color-scheme: dark)').matches)}else{document.documentElement.classList.toggle('dark',t==='dark')}}catch(e){}})();`,
+            __html: `(function(){try{var k='anikitty-theme',s=localStorage.getItem(k),t=s||'dark';if(t==='system'){document.documentElement.classList.toggle('dark',window.matchMedia('(prefers-color-scheme: dark)').matches)}else{document.documentElement.classList.toggle('dark',t==='dark')}var st=localStorage.getItem('kitty-settings');if(st){var lm=JSON.parse(st).state;if(lm&&lm.liteMode)document.documentElement.classList.add('lite-mode')}}catch(e){}})();`,
           }}
         />
         {ENABLE_ANALYTICS && (
@@ -157,6 +158,7 @@ export default async function RootLayout({
               <Footer />
               <SiteBetaBadge />
               <DiscordWelcomePrompt />
+              <LiteModeSync />
             </QueryProvider>
           </ThemeProvider>
         </I18nRoot>

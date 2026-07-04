@@ -62,6 +62,10 @@ interface ISettingsStore {
   setSubtitleFontWeight: (fontWeight: SubtitleFontWeight) => void;
   setSubtitleBottomOffset: (bottomOffset: number) => void;
   resetSubtitleSettings: () => void;
+
+  /** Disable animations and reduce background polling for slower devices. */
+  liteMode: boolean;
+  setLiteMode: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -137,10 +141,13 @@ export const useSettingsStore = create<ISettingsStore>()(
         })),
       resetSubtitleSettings: () =>
         set({ subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } }),
+
+      liteMode: false,
+      setLiteMode: (liteMode) => set({ liteMode }),
     }),
     {
       name: "kitty-settings",
-      version: 17,
+      version: 18,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -154,6 +161,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         providerSectionHidden: state.providerSectionHidden,
         kittyProxyNode: state.kittyProxyNode,
         kittyProxyManual: state.kittyProxyManual,
+        liteMode: state.liteMode,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -209,6 +217,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           if (typeof node !== "string" || !isKittyApiNodeId(node)) {
             next.kittyProxyNode = DEFAULT_KITTY_API_NODE_ID;
           }
+        }
+        if (version < 18) {
+          next.liteMode = next.liteMode ?? false;
         }
         return next as ISettingsStore;
       },

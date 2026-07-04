@@ -1,6 +1,10 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { readLiteModeFromStorage } from "@/lib/core/lite-mode";
+
+const POLL_MS = 30_000;
+const LITE_POLL_MS = 90_000;
 
 function getOrCreateSid(): string {
   try {
@@ -17,7 +21,7 @@ function getOrCreateSid(): string {
 
 let count: number | null = null;
 let sid: string | null = null;
-let interval: ReturnType<typeof setInterval> | null = null;
+let interval: ReturnType<typeof setTimeout> | null = null;
 let subscribers = 0;
 const listeners = new Set<() => void>();
 let teardown: (() => void) | null = null;
@@ -49,7 +53,14 @@ function startPolling() {
   if (interval) return;
 
   void beat();
-  interval = setInterval(beat, 30_000);
+
+  const scheduleNext = () => {
+    const ms = readLiteModeFromStorage() ? LITE_POLL_MS : POLL_MS;
+    interval = setTimeout(() => {
+      void beat().finally(scheduleNext);
+    }, ms);
+  };
+  scheduleNext();
 
   const onVisibility = () => {
     if (!document.hidden) void beat();
@@ -75,7 +86,7 @@ function startPolling() {
 
 function stopPolling() {
   if (interval) {
-    clearInterval(interval);
+    clearTimeout(interval);
     interval = null;
   }
   teardown?.();
