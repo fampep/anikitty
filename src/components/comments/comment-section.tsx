@@ -19,6 +19,8 @@ import { useT } from "@/providers/i18n-provider";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import FramedAvatar from "@/components/common/framed-avatar";
 import { CosmeticUsername } from "@/components/common/user-cosmetics";
+import CommentRulesDialog from "@/components/comments/comment-rules-dialog";
+import { useCommentRulesAccepted } from "@/hooks/use-comment-rules-accepted";
 
 // ── Emoji picker ──────────────────────────────────────────────────────────────
 
@@ -234,6 +236,9 @@ export default function CommentSection({
   const t = useT();
   const { auth } = useAuthStore();
   const { canModerateComments } = usePermissions();
+  const { accepted: rulesAccepted, ready: rulesReady, accept: acceptRules } = useCommentRulesAccepted();
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [rulesReadOnly, setRulesReadOnly] = useState(false);
 
   const hasEpisodePicker = !!episodes?.length;
   const [pickedEpisodeId, setPickedEpisodeId] = useState<string | "all">("all");
@@ -296,6 +301,32 @@ export default function CommentSection({
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const openRulesDialog = useCallback((opts?: { readOnly?: boolean }) => {
+    setRulesReadOnly(!!opts?.readOnly);
+    setRulesOpen(true);
+  }, []);
+
+  const ensureRulesAccepted = useCallback((): boolean => {
+    if (!rulesReady || rulesAccepted) return rulesAccepted;
+    openRulesDialog();
+    return false;
+  }, [rulesReady, rulesAccepted, openRulesDialog]);
+
+  const handleRulesAccept = useCallback(() => {
+    acceptRules();
+    setRulesOpen(false);
+  }, [acceptRules]);
+
+  const handleComposerFocus = useCallback(() => {
+    if (!rulesReady) return;
+    if (!rulesAccepted) {
+      textareaRef.current?.blur();
+      openRulesDialog();
+      return;
+    }
+    setFocused(true);
+  }, [rulesReady, rulesAccepted, openRulesDialog]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -367,6 +398,7 @@ export default function CommentSection({
     const body = draft.trim();
     if ((!body && !selectedGif) || submitting) return;
     if (!auth) return;
+    if (!ensureRulesAccepted()) return;
 
     setSubmitting(true);
     try {
@@ -407,6 +439,7 @@ export default function CommentSection({
     const body = replyDraft.trim();
     if (!body || submittingReply) return;
     if (!auth) return;
+    if (!ensureRulesAccepted()) return;
 
     setSubmittingReply(true);
     try {
@@ -646,7 +679,14 @@ export default function CommentSection({
 
       {showReply && auth && (
         <button
-          onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
+          onClick={() => {
+            if (replyingTo === c.id) {
+              setReplyingTo(null);
+              return;
+            }
+            if (!ensureRulesAccepted()) return;
+            setReplyingTo(c.id);
+          }}
           className={cn(
             "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ml-0.5",
             replyingTo === c.id
@@ -754,6 +794,13 @@ export default function CommentSection({
 
   return (
     <div className={cn("flex flex-col", isSheet ? "gap-4 py-3" : "gap-5")}>
+
+      <CommentRulesDialog
+        open={rulesOpen}
+        onOpenChange={setRulesOpen}
+        onAccept={rulesReadOnly ? undefined : handleRulesAccept}
+        readOnly={rulesReadOnly}
+      />
 
       {/* Episode picker (anime detail page) */}
       {hasEpisodePicker && (
@@ -863,7 +910,7 @@ export default function CommentSection({
                 ref={textareaRef}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                onFocus={() => setFocused(true)}
+                onFocus={handleComposerFocus}
                 onBlur={() => { if (!draft && !selectedGif) setFocused(false); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit();
@@ -979,6 +1026,13 @@ export default function CommentSection({
                 {t("comments.ctrlEnterPost")}
               </p>
             )}
+            <button
+              type="button"
+              onClick={() => openRulesDialog({ readOnly: rulesAccepted })}
+              className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/25 hover:text-violet-400/80 dark:hover:text-violet-300/70 transition-colors mt-1 pl-1 text-left"
+            >
+              {t("comments.viewRules")}
+            </button>
           </div>
         </div>
       ) : !auth ? (

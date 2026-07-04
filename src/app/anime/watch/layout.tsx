@@ -32,6 +32,11 @@ import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
+import {
+  findPlayableEpisode,
+  firstPlayableEpisode,
+  lastPlayableEpisode,
+} from "@/lib/anime/episode-availability";
 import Link from "next/link";
 import { cn } from "@/lib/core/utils";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
@@ -117,7 +122,7 @@ const Layout = (props: Props) => {
 
   const { data: episodes, isLoading: episodeLoading } = useGetAllEpisodes(animeId as string);
 
-  // Auto-pick episode when URL has anime but no episode (continue watching → ep 1)
+  // Auto-pick episode when URL has anime but no episode (continue watching → first aired)
   useEffect(() => {
     if (episodeId || episodeLoading || !episodes?.episodes?.length || !animeId) return;
 
@@ -125,15 +130,19 @@ const Layout = (props: Props) => {
     (async () => {
       const isLatest = watchType === "latest";
       let target = isLatest
-        ? episodes.episodes[episodes.episodes.length - 1].episodeId
-        : episodes.episodes[0].episodeId;
+        ? lastPlayableEpisode(episodes.episodes)?.episodeId
+        : firstPlayableEpisode(episodes.episodes)?.episodeId;
+      if (!target) return;
       if (auth && !isLatest) {
         try {
           const res = await anisurgeContinue.getByAnime(animeId, 1);
           const latest = res?.data?.[0];
-          if (latest?.episodeId) target = latest.episodeId;
+          if (latest?.episodeId) {
+            const resumeEp = findPlayableEpisode(episodes.episodes, latest.episodeId);
+            if (resumeEp) target = resumeEp.episodeId;
+          }
         } catch {
-          /* use first episode */
+          /* use first aired episode */
         }
       }
       if (cancelled) return;
@@ -148,6 +157,20 @@ const Layout = (props: Props) => {
       cancelled = true;
     };
   }, [episodeId, episodeLoading, episodes, animeId, router, setSelectedEpisode, auth, watchType, searchParamsKey]);
+
+  // Redirect manual URLs to unreleased episodes
+  useEffect(() => {
+    if (!episodeId || episodeLoading || !episodes || !animeId) return;
+    const playable = findPlayableEpisode(episodes.episodes, episodeId);
+    if (playable) return;
+    const fallback = firstPlayableEpisode(episodes.episodes);
+    if (!fallback) return;
+    setSelectedEpisode(fallback.episodeId);
+    const params = new URLSearchParams(searchParamsKey);
+    params.set("anime", animeId);
+    params.set("episode", fallback.episodeId);
+    router.replace(`${ROUTES.WATCH}?${params.toString()}`, { scroll: false });
+  }, [episodeId, episodeLoading, episodes, animeId, router, setSelectedEpisode, searchParamsKey]);
 
   const anilistId = anime?.anime?.info?.anilistId;
   const { data: mappingData } = useGetAnimeMappings(anilistId);

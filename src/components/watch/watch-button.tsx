@@ -9,6 +9,7 @@ import { ButtonLink } from "@/components/common/button-link";
 import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
 
 import { useGetLastEpisodeWatched } from "@/hooks/use-get-last-episode-watched";
+import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import { useT } from "@/providers/i18n-provider";
 
 const WatchButton = () => {
@@ -18,6 +19,11 @@ const WatchButton = () => {
 
   const { hasWatchedAnime } = useHasAnimeWatched(animeId);
   const latestEpisodeWatched = useGetLastEpisodeWatched(animeId);
+  const { data: episodes, isLoading } = useGetAllEpisodes(animeId);
+
+  if (!isLoading && (episodes?.totalEpisodes ?? 0) === 0) {
+    return null;
+  }
 
   return (
     <ButtonLink

@@ -61,6 +61,11 @@ import { useSkipTimes } from "@/hooks/use-aniskip";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import {
+  findPlayableEpisode,
+  isEpisodePlayable,
+  lastPlayableEpisode,
+} from "@/lib/anime/episode-availability";
+import {
   Captions,
   Loader2,
   Cat,
@@ -273,11 +278,13 @@ const VideoPlayerSection = () => {
   const animeTitle = anime?.anime?.info?.name || undefined;
 
   // Episode list for next-episode navigation (also resolves episode number for stream API)
-  const { data: allEpisodes } = useGetAllEpisodes(animeSlug ?? "");
+  const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(animeSlug ?? "");
   const currentEpisodeInfo = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
-    return allEpisodes.episodes.find((e) => e.episodeId === episodeId);
+    return findPlayableEpisode(allEpisodes.episodes, episodeId);
   }, [allEpisodes, episodeId]);
+
+  const episodePlayable = Boolean(currentEpisodeInfo);
 
   const episodeNo = useMemo(() => {
     if (currentEpisodeInfo?.number != null) return String(currentEpisodeInfo.number);
@@ -384,9 +391,12 @@ const VideoPlayerSection = () => {
   const nextEpisode = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
     const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
-    return idx >= 0 && idx < allEpisodes.episodes.length - 1
-      ? allEpisodes.episodes[idx + 1]
-      : undefined;
+    if (idx < 0) return undefined;
+    for (let i = idx + 1; i < allEpisodes.episodes.length; i++) {
+      const ep = allEpisodes.episodes[i];
+      if (isEpisodePlayable(ep)) return ep;
+    }
+    return undefined;
   }, [allEpisodes, episodeId]);
 
   const [autoFullscreen, setAutoFullscreen] = useState(false);
@@ -708,7 +718,10 @@ const VideoPlayerSection = () => {
   );
 
   const streamQueryEnabled =
-    !!anilistId && !!episodeNo && parseInt(episodeNo, 10) > 0;
+    !!anilistId &&
+    !!episodeNo &&
+    parseInt(episodeNo, 10) > 0 &&
+    episodePlayable;
 
   const hasStreamFile = Boolean(streamData?.file);
   const streamStale = Boolean(isPreviousData);
@@ -1002,6 +1015,18 @@ const VideoPlayerSection = () => {
   ]);
 
   if (!episodeId && !selectedEpisode) {
+    if (!episodesLoading && (allEpisodes?.totalEpisodes ?? 0) === 0) {
+      return (
+        <div className="w-full aspect-video bg-[#030303] flex flex-col items-center justify-center gap-4 rounded-xl border border-border dark:border-white/10 ring-1 ring-white/[0.06] shadow-2xl shadow-black/60 overflow-hidden relative">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.1),transparent_60%)] pointer-events-none" />
+          <Cat className="text-violet-300/30 w-12 h-12 relative z-10" />
+          <div className="text-center relative z-10 px-6">
+            <p className="text-muted-foreground dark:text-white/50 text-sm font-medium">{t("watch.animeNotAiredYet")}</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full aspect-video bg-[#030303] flex flex-col items-center justify-center gap-4 rounded-xl border border-border dark:border-white/10 ring-1 ring-white/[0.06] shadow-2xl shadow-black/60 overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.1),transparent_60%)] pointer-events-none" />
@@ -1010,6 +1035,34 @@ const VideoPlayerSection = () => {
           <p className="text-muted-foreground dark:text-white/50 text-sm font-medium">{t("watch.selectEpisode")}</p>
           <p className="text-muted-foreground/80 dark:text-white/25 text-[11px] font-mono mt-1.5">{t("watch.selectEpisodeHint")}</p>
         </div>
+      </div>
+    );
+  }
+
+  const activeEpisodeId = episodeId ?? selectedEpisode;
+  if (activeEpisodeId && episodesLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        <PlayerSkeleton label={t("watch.loadingStream")} />
+      </div>
+    );
+  }
+
+  if (activeEpisodeId && !episodePlayable) {
+    const fallback = lastPlayableEpisode(allEpisodes?.episodes ?? []);
+    return (
+      <div className="flex flex-col gap-3">
+        <WatchErrorPanel error={new Error(t("watch.notAiredYet"))} />
+        {fallback && animeSlug ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-border dark:border-white/15 text-muted-foreground dark:text-white/60 hover:bg-accent dark:bg-white/10 w-fit text-xs"
+            onClick={() => navigateToEpisode(fallback)}
+          >
+            {t("watch.watchLatestAired", { n: fallback.number })}
+          </Button>
+        ) : null}
       </div>
     );
   }

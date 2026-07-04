@@ -4,6 +4,10 @@ import {
   resolveEpisodeImage,
   resolveEpisodeTitle,
 } from "@/lib/anime/episode-thumbnails";
+import {
+  isEpisodeAiredByDate,
+  resolveAiredEpisodeCount,
+} from "@/lib/anime/episode-availability";
 
 export const revalidate = 3600;
 
@@ -11,6 +15,7 @@ const QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
       episodes
+      status
       nextAiringEpisode { episode }
       streamingEpisodes {
         title
@@ -36,18 +41,21 @@ export async function GET(
     const m = raw.Media;
     if (!m) return Response.json({ error: "Not found" }, { status: 404 });
 
-    const totalEpisodes = m.nextAiringEpisode
-      ? m.nextAiringEpisode.episode - 1
-      : (m.episodes ?? 1);
+    const streamingEpisodes = m.streamingEpisodes ?? [];
+    const airedUpTo = resolveAiredEpisodeCount({
+      status: m.status,
+      episodes: m.episodes,
+      nextAiringEpisode: m.nextAiringEpisode?.episode ?? null,
+      streamingEpisodeCount: streamingEpisodes.length,
+    });
 
-    const count = Math.max(totalEpisodes, 1);
+    if (airedUpTo <= 0) {
+      return Response.json({ data: { totalEpisodes: 0, episodes: [] } });
+    }
 
-    const sources = await fetchAllEpisodeImageSources(
-      numId,
-      m.streamingEpisodes ?? [],
-    );
+    const sources = await fetchAllEpisodeImageSources(numId, streamingEpisodes);
 
-    const episodes = Array.from({ length: count }, (_, i) => {
+    const episodes = Array.from({ length: airedUpTo }, (_, i) => {
       const num = i + 1;
       const title = resolveEpisodeTitle(num, sources) ?? `Episode ${num}`;
       const zip = sources.anizip[num];
@@ -61,9 +69,11 @@ export async function GET(
         overview: zip?.overview ?? null,
         airDate: zip?.airDate ?? null,
       };
-    });
+    }).filter((ep) => isEpisodeAiredByDate(ep.airDate));
 
-    return Response.json({ data: { totalEpisodes: count, episodes } });
+    return Response.json({
+      data: { totalEpisodes: episodes.length, episodes },
+    });
   } catch (err) {
     console.error("Episodes fetch error:", err);
     return Response.json({ error: "Failed to fetch episodes" }, { status: 500 });

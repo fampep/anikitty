@@ -1052,6 +1052,9 @@
     "fullAnimePage": "Full anime page",
     "databaseIds": "Database IDs",
     "selectEpisode": "Select an episode to start watching",
+    "notAiredYet": "This episode hasn't aired yet. Check back after the release date.",
+    "watchLatestAired": "Watch latest aired episode ({n})",
+    "animeNotAiredYet": "This anime hasn't aired yet — no episodes are available to watch.",
     "loadingStream": "Loading stream",
     "loadingStreamProvider": "Loading from {provider}…",
     "switchProviderWhileLoading": "Slow or stuck? Switch to another source below — you don't have to wait for the current one.",
@@ -1262,6 +1265,21 @@
     "editReply": "Edit reply",
     "deleteReply": "Delete reply",
     "markSpoiler": "Mark as spoiler",
+    "viewRules": "Community rules",
+    "rules": {
+      "title": "Comment community rules",
+      "intro": "Before you post, please read and follow these rules. They keep discussions fun and safe for everyone.",
+      "agreeLabel": "I have read and agree to follow these community rules.",
+      "accept": "I understand — let me comment",
+      "gotIt": "Got it",
+      "items": {
+        "spoilers": "Mark spoilers with the Spoiler button. Don't reveal plot twists, endings, or future events without tagging them.",
+        "respect": "Be respectful. Harassment, hate speech, slurs, and personal attacks are not allowed.",
+        "nsfw": "No NSFW content — sexual, overly graphic, or inappropriate material is not allowed in comments or GIFs.",
+        "spam": "No spam, ads, scam links, or off-topic flooding. Keep comments about the anime and episode.",
+        "moderation": "Moderators may remove comments or restrict accounts that break these rules."
+      }
+    },
     "emojiPopular": "Popular",
     "emojiReactions": "Reactions",
     "emojiAnime": "Anime",
