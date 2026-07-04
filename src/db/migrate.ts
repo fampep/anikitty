@@ -461,6 +461,14 @@ export async function migrateDb() {
     `.catch((e: unknown) =>
       console.error("[migrate] role permissions seed failed:", e),
     );
+
+    await client`
+      INSERT INTO app_settings (key, value)
+      VALUES ('global_click_ads_enabled', 'true')
+      ON CONFLICT (key) DO NOTHING
+    `.catch((e: unknown) =>
+      console.error("[migrate] global click ads seed failed:", e),
+    );
   } finally {
     await client.end();
   }

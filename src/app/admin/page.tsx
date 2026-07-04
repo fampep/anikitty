@@ -10,7 +10,7 @@ import {
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
-  VolumeX, Ban, Clock,
+  VolumeX, Ban, Clock, Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
@@ -383,6 +383,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [chatDeleting, setChatDeleting] = useState<string | null>(null);
   const [chatPurging, setChatPurging]   = useState<"expired" | "all" | null>(null);
 
+  // Site-wide click ads
+  const [globalClickAdsEnabled, setGlobalClickAdsEnabled] = useState<boolean | null>(null);
+  const [globalClickAdsSaving, setGlobalClickAdsSaving] = useState(false);
+
   // ── Fetch helpers ────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async (q?: string) => {
     setUsersLoading(true);
@@ -462,6 +466,38 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setDeletionLoading(false); }
   }, [onLogout]);
 
+  const fetchGlobalClickAds = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/settings/click-ads", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) return;
+      const data = (await res.json()) as { enabled?: boolean };
+      setGlobalClickAdsEnabled(data.enabled !== false);
+    } catch { toast.error("Failed to load click ads setting"); }
+  }, [onLogout]);
+
+  const saveGlobalClickAds = async (enabled: boolean) => {
+    setGlobalClickAdsSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings/click-ads", {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ enabled }),
+      });
+      if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) {
+        toast.error("Failed to update click ads setting");
+        return;
+      }
+      setGlobalClickAdsEnabled(enabled);
+      toast.success(enabled ? "Click ads enabled site-wide" : "Click ads disabled site-wide");
+    } catch {
+      toast.error("Failed to update click ads setting");
+    } finally {
+      setGlobalClickAdsSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
@@ -470,7 +506,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     fetchAnnouncements();
     fetchChat();
     fetchDeletionRequests();
-  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements, fetchChat, fetchDeletionRequests]);
+    fetchGlobalClickAds();
+  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements, fetchChat, fetchDeletionRequests, fetchGlobalClickAds]);
 
   const refreshAll = async () => {
     setRefreshing(true);
@@ -483,6 +520,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         fetchAnnouncements(),
         fetchChat(),
         fetchDeletionRequests(),
+        fetchGlobalClickAds(),
       ]);
       toast.success("Dashboard refreshed");
     } finally {
@@ -976,6 +1014,48 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 )}
               </div>
             )}
+
+            {/* Site-wide click ads */}
+            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5">
+              <p className="text-[11px] font-mono text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Banknote className="w-3.5 h-3.5" /> Site settings
+              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white/85">Global click ads</p>
+                  <p className="text-[11px] text-white/35 mt-1 leading-relaxed max-w-xl">
+                    Turn the lightweight click-ad script on or off for everyone. Saved in the database — survives redeploys. User ad-free perks still apply when ads are on.
+                  </p>
+                  <p className="text-[10px] font-mono text-white/25 mt-2">
+                    Status:{" "}
+                    {globalClickAdsEnabled == null
+                      ? "Loading…"
+                      : globalClickAdsEnabled
+                        ? "Enabled site-wide"
+                        : "Disabled site-wide"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={globalClickAdsEnabled == null || globalClickAdsSaving}
+                  onClick={() => void saveGlobalClickAds(!globalClickAdsEnabled)}
+                  className={cn(
+                    "shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed",
+                    globalClickAdsEnabled
+                      ? "border-amber-400/25 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15"
+                      : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15",
+                  )}
+                >
+                  {globalClickAdsSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : globalClickAdsEnabled ? (
+                    "Turn off globally"
+                  ) : (
+                    "Turn on globally"
+                  )}
+                </button>
+              </div>
+            </div>
 
             {/* Top anime */}
             <div>
