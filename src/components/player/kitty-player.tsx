@@ -315,6 +315,8 @@ export default function KittyPlayer({
   const subtitleModeRef = useRef<SubtitleMode>("off");
   const startFiredRef = useRef(false);
   const outroFiredRef = useRef(false);
+  const endHandledRef = useRef(false);
+  const autoNextStartedRef = useRef(false);
   const lastProgressTs = useRef(0);
   const skipUiRef = useRef<"intro" | "outro" | null>(null);
   const lastUiTimeRef = useRef(0);
@@ -405,12 +407,22 @@ export default function KittyPlayer({
     if (countdown === null) return;
     if (countdown === 0) {
       setCountdown(null);
-      onNextEpisodeRef.current?.();
+      if (!autoNextStartedRef.current) {
+        autoNextStartedRef.current = true;
+        onNextEpisodeRef.current?.();
+      }
       return;
     }
     const timer = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
+
+  const triggerNextEpisode = useCallback(() => {
+    if (autoNextStartedRef.current) return;
+    autoNextStartedRef.current = true;
+    setCountdown(null);
+    onNextEpisodeRef.current?.();
+  }, []);
 
   const proxiedSrc = buildKittyHlsUrl(src, headers);
 
@@ -453,6 +465,8 @@ export default function KittyPlayer({
   useEffect(() => {
     startFiredRef.current = false;
     outroFiredRef.current = false;
+    endHandledRef.current = false;
+    autoNextStartedRef.current = false;
     lastProgressTs.current = 0;
     skipUiRef.current = null;
     resumeAppliedRef.current = false;
@@ -976,8 +990,11 @@ export default function KittyPlayer({
     });
 
     art.on("video:ended", () => {
+      if (endHandledRef.current) return;
+      endHandledRef.current = true;
       onEndedRef.current?.();
-      if (nextEpisodeRef.current && autoNextRef.current) {
+      if (nextEpisodeRef.current && autoNextRef.current && !autoNextStartedRef.current) {
+        autoNextStartedRef.current = true;
         setCountdown(5);
       }
     });
@@ -1033,7 +1050,7 @@ export default function KittyPlayer({
         <NextEpisodeButton
           episode={nextEpisode}
           stackClass={overlayBottom}
-          onClick={() => onNextEpisodeRef.current?.()}
+          onClick={triggerNextEpisode}
         />
       )}
 
@@ -1051,10 +1068,7 @@ export default function KittyPlayer({
         <CountdownOverlay
           episode={nextEpisode}
           countdown={countdown}
-          onSkip={() => {
-            setCountdown(null);
-            onNextEpisodeRef.current?.();
-          }}
+          onSkip={triggerNextEpisode}
           onCancel={() => setCountdown(null)}
         />
       )}

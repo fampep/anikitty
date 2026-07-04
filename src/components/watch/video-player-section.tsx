@@ -391,11 +391,15 @@ const VideoPlayerSection = () => {
 
   const [autoFullscreen, setAutoFullscreen] = useState(false);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
+  const navigatingRef = useRef(false);
   const watchedEpisodes = useEpisodeProgress(animeSlug);
 
   const navigateToEpisode = useCallback(
     (ep: Episode) => {
-      if (!animeSlug) return;
+      if (!animeSlug || navigatingRef.current) return;
+      if (ep.episodeId === episodeId) return;
+      navigatingRef.current = true;
+      setArtPlayer(null);
       const isFs = !!document.fullscreenElement;
       if (isFs && playerWrapperRef.current) {
         playerWrapperRef.current.requestFullscreen().catch(() => {});
@@ -406,6 +410,7 @@ const VideoPlayerSection = () => {
       setAutoFullscreen(isFs);
       setResumeChoice(null);
       setSelectedEpisode(ep.episodeId);
+      setPlaybackToken((n) => n + 1);
       if (w2g.isHost && w2gCode) {
         w2g.syncEpisode(
           ep.episodeId,
@@ -418,7 +423,7 @@ const VideoPlayerSection = () => {
         `/anime/watch?anime=${animeSlug}&episode=${ep.episodeId}${w2gCode ? `&w2g=${w2gCode}` : ""}`,
       );
     },
-    [animeSlug, setSelectedEpisode, router, w2g, w2gCode],
+    [animeSlug, episodeId, setSelectedEpisode, router, w2g, w2gCode],
   );
 
   const handlePrevEpisode = useCallback(() => {
@@ -431,6 +436,7 @@ const VideoPlayerSection = () => {
 
   // Reset refs when episode changes so we don't cross-contaminate
   useEffect(() => {
+    navigatingRef.current = false;
     bookmarkIdRef.current = null;
     watchedIdRef.current = null;
     liveTimeRef.current = 0;
@@ -442,7 +448,6 @@ const VideoPlayerSection = () => {
     setArtPlayer(null);
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
-    setPlaybackToken(0);
   }, [episodeId]);
 
   // Fetch saved resume position when the episode changes
@@ -683,6 +688,7 @@ const VideoPlayerSection = () => {
     data: streamData,
     isLoading,
     isFetching,
+    isPreviousData,
     error: streamError,
     refetch: retryStream,
   } = useGetKittyStream(
@@ -705,29 +711,31 @@ const VideoPlayerSection = () => {
     !!anilistId && !!episodeNo && parseInt(episodeNo, 10) > 0;
 
   const hasStreamFile = Boolean(streamData?.file);
-  const streamPending = streamQueryEnabled && (isLoading || isFetching);
+  const streamStale = Boolean(isPreviousData);
+  const streamReady = hasStreamFile && !streamStale;
+  const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
 
   // Only persist progress once the stream for this episode is loaded (avoids cross-episode leaks).
   useEffect(() => {
-    if (!episodeId || !hasStreamFile || isFetching) {
+    if (!episodeId || !streamReady) {
       progressEpisodeIdRef.current = null;
       return;
     }
     progressEpisodeIdRef.current = episodeId;
-  }, [episodeId, hasStreamFile, isFetching]);
+  }, [episodeId, streamReady]);
   const streamFailed =
     streamQueryEnabled &&
     !streamPending &&
-    !hasStreamFile &&
+    !streamReady &&
     (Boolean(streamError && !isKittyStreamAbortError(streamError)) ||
       Boolean(streamData?.error));
 
   useEffect(() => {
     if (!streamQueryEnabled) return;
-    if (hasStreamFile) return;
+    if (streamReady) return;
     if (!streamError || !isKittyStreamAbortError(streamError)) return;
     void retryStream();
-  }, [streamQueryEnabled, hasStreamFile, streamError, retryStream]);
+  }, [streamQueryEnabled, streamReady, streamError, retryStream]);
 
   const playerTracks = useMemo(() => {
     const raw = streamData?.tracks ?? EMPTY_PLAYER_TRACKS;
@@ -941,7 +949,7 @@ const VideoPlayerSection = () => {
   }, []);
 
   useWatchKeyboard({
-    enabled: Boolean(streamData?.file) && !needsResumePrompt,
+    enabled: streamReady && !needsResumePrompt,
     art: artPlayer,
     onPrevEpisode: handlePrevEpisode,
     onNextEpisode: handleNextEpisode,
@@ -954,7 +962,7 @@ const VideoPlayerSection = () => {
 
   useEffect(() => {
     if (!providerAutoFallback || !streamQueryEnabled) return;
-    if (streamPending || hasStreamFile) return;
+    if (streamPending || streamReady) return;
     if (!streamFailed) return;
     if (streamError && isKittyStreamAbortError(streamError)) return;
     if (fallbackBusyRef.current) return;
@@ -985,7 +993,7 @@ const VideoPlayerSection = () => {
     providerAutoFallback,
     streamQueryEnabled,
     streamPending,
-    hasStreamFile,
+    streamReady,
     streamFailed,
     streamError,
     provider,
@@ -1067,7 +1075,7 @@ const VideoPlayerSection = () => {
 
   const showStreamError = streamFailed;
 
-  const showStreamLoading = streamQueryEnabled && !hasStreamFile && streamPending;
+  const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
 
   if (showStreamError) {
     const rawMessage =
@@ -1115,7 +1123,7 @@ const VideoPlayerSection = () => {
 
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
-  if (!streamData?.file) {
+  if (!streamReady || !streamData?.file) {
     if (showStreamLoading) {
       return (
         <div className="flex flex-col gap-3">
