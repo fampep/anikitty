@@ -47,7 +47,13 @@ interface ISettingsStore {
 
   /** KittyAPI proxy node for streaming (Primary / Fallback). */
   kittyProxyNode: KittyApiNodeId;
+  /** When true, skip auto-selecting the lowest-ping proxy. */
+  kittyProxyManual: boolean;
   setKittyProxyNode: (node: KittyApiNodeId) => void;
+  /** User picked a proxy in the chooser — do not override with auto ping. */
+  selectKittyProxyNode: (node: KittyApiNodeId) => void;
+  /** Apply lowest-ping proxy only when the user has not chosen manually. */
+  applyAutoKittyProxyNode: (node: KittyApiNodeId) => void;
 
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
@@ -102,7 +108,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         })),
 
       kittyProxyNode: DEFAULT_KITTY_API_NODE_ID,
+      kittyProxyManual: false,
       setKittyProxyNode: (kittyProxyNode) => set({ kittyProxyNode }),
+      selectKittyProxyNode: (kittyProxyNode) => set({ kittyProxyNode, kittyProxyManual: true }),
+      applyAutoKittyProxyNode: (kittyProxyNode) =>
+        set((s) => (s.kittyProxyManual ? s : { kittyProxyNode })),
 
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
@@ -130,7 +140,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 15,
+      version: 16,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -143,6 +153,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         simpleProviderPicker: state.simpleProviderPicker,
         providerSectionHidden: state.providerSectionHidden,
         kittyProxyNode: state.kittyProxyNode,
+        kittyProxyManual: state.kittyProxyManual,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -189,6 +200,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 15) {
           next.kittyProxyNode = next.kittyProxyNode ?? DEFAULT_KITTY_API_NODE_ID;
+        }
+        if (version < 16) {
+          next.kittyProxyManual = next.kittyProxyManual ?? false;
         }
         return next as ISettingsStore;
       },

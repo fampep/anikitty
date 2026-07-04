@@ -58,6 +58,7 @@ import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
 import { captureVideoFrame } from "@/lib/kitty/capture-video-frame";
 
 import { useSkipTimes } from "@/hooks/use-aniskip";
+import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import {
   Captions,
@@ -123,7 +124,13 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode } = useSettingsStore();
+  const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode } = useSettingsStore();
+  const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing();
+
+  useEffect(() => {
+    if (!proxyPingReady || kittyProxyManual || !fastestProxyId) return;
+    applyAutoKittyProxyNode(fastestProxyId);
+  }, [proxyPingReady, kittyProxyManual, fastestProxyId, applyAutoKittyProxyNode]);
   const compactProviderPicker = simpleProviderPicker;
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {

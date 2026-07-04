@@ -1107,7 +1107,13 @@
       "simplePicker": "Simple source picker",
       "simplePickerDesc": "Use a compact dropdown instead of the full provider grid",
       "proxyChooser": "Proxy chooser",
-      "proxyChooserDesc": "Pick which KittyAPI proxy handles streams for this session"
+      "proxyChooserDesc": "Pick which KittyAPI proxy handles streams for this session",
+      "proxyChooserAuto": "Auto-picks the lowest ping proxy. Tap another to override.",
+      "proxyChooserManual": "Using your chosen proxy. Tap a location to switch.",
+      "proxyPingMs": "{ms} ms",
+      "proxyPingLoading": "Measuring…",
+      "proxyPingUnavailable": "Unreachable",
+      "proxyFastest": "Fastest"
     },
     "resumePrompt": {
       "title": "Continue watching",

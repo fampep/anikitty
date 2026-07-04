@@ -63,3 +63,9 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
 export function isKittyApiNodeId(value: string): value is KittyApiNodeId {
   return value === "primary" || value === "fallback";
 }
+
+export type KittyNodePingResult = {
+  id: KittyApiNodeId;
+  pingMs: number | null;
+  ok: boolean;
+};
