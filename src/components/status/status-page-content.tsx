@@ -180,9 +180,6 @@ export default function StatusPageContent() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] font-mono text-muted-foreground dark:text-white/35 mt-0.5 truncate">
-                      {node.host}
-                    </p>
                     <p className="text-[11px] text-muted-foreground/80 dark:text-white/25 mt-1.5">
                       {online ? t("status.nodeOnline") : t("status.nodeOffline")}
                       {ping != null && (
