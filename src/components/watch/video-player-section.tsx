@@ -55,6 +55,7 @@ import {
   type MiruroPipeProviderId,
 } from "@/lib/providers/miruro-types";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
+import { captureVideoFrame } from "@/lib/kitty/capture-video-frame";
 
 import { useSkipTimes } from "@/hooks/use-aniskip";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
@@ -296,6 +297,7 @@ const VideoPlayerSection = () => {
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
   const resumeReadyRef = useRef(false);
   const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
+  const getLivePreview = useCallback(() => captureVideoFrame(artPlayer?.video ?? null), [artPlayer]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const fallbackBusyRef = useRef(false);
@@ -1167,6 +1169,7 @@ const VideoPlayerSection = () => {
         onPrev={handlePrevEpisode}
         onNext={handleNextEpisode}
         watchedEpisodes={watchedEpisodes}
+        getLivePreview={getLivePreview}
       />
     )}
 

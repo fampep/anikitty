@@ -54,17 +54,21 @@ export async function kittyApiFetch(
   return fetch(kittyApiPath(path, base), init);
 }
 
+function kittyAuthHeaders(apiKey: string | undefined): HeadersInit {
+  const key = apiKey?.trim();
+  if (!key) return {};
+  return {
+    Authorization: `Bearer ${key}`,
+    "x-api-key": key,
+  };
+}
+
 export function kittyStreamHeaders(): HeadersInit {
-  return {};
+  return kittyAuthHeaders(process.env.KITTY_API_KEY);
 }
 
 export function kittyApiHeaders(): HeadersInit {
-  const apiKey = process.env.KITTY_API_KEY;
-  if (!apiKey) return {};
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "x-api-key": apiKey,
-  };
+  return kittyAuthHeaders(process.env.KITTY_API_KEY);
 }
 
 export function buildKittyStreamDirectPath(opts: {

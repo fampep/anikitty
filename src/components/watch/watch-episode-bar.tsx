@@ -12,6 +12,7 @@ import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 import type { Episode, IEpisodes } from "@/types/episodes";
 import type { WatchHistory } from "@/hooks/use-get-bookmark";
+import { EpisodeThumbPreview } from "@/components/watch/episode-nav-preview";
 
 type Props = {
   currentEpisode: Episode;
@@ -25,6 +26,7 @@ type Props = {
   onPrev: () => void;
   onNext: () => void;
   watchedEpisodes?: WatchHistory[];
+  getLivePreview?: () => string | null;
 };
 
 function episodeTitle(ep: Episode, animeName: string | undefined, t: (key: string, vars?: Record<string, string | number>) => string) {
@@ -47,6 +49,7 @@ export default function WatchEpisodeBar({
   onPrev,
   onNext,
   watchedEpisodes = [],
+  getLivePreview,
 }: Props) {
   const t = useT();
 
@@ -63,7 +66,7 @@ export default function WatchEpisodeBar({
   const total = episodes.totalEpisodes || episodes.episodes.length;
 
   return (
-    <div className="rounded-xl border border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
+    <div className="rounded-xl border border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-visible">
       <div className="flex items-stretch min-h-[4.5rem]">
         <button
           type="button"
@@ -81,25 +84,32 @@ export default function WatchEpisodeBar({
         </button>
 
         <div className="flex items-center gap-3 flex-1 min-w-0 px-3 py-2.5">
-          <div className="relative w-16 sm:w-[4.5rem] aspect-video rounded-lg overflow-hidden shrink-0 bg-white/[0.04] ring-1 ring-white/10">
-            {thumb ? (
-              <Image
-                src={thumb}
-                alt={title}
-                fill
-                className="object-cover"
-                unoptimized
-                sizes="72px"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/[0.04]">
-                <Play className="w-4 h-4 text-white/25 fill-white/25" />
-              </div>
-            )}
-            <span className="absolute bottom-0.5 left-0.5 z-[1] px-1 py-px rounded text-[8px] font-mono font-bold bg-black/70 text-white/90">
-              {currentEpisode.number}
-            </span>
-          </div>
+          <EpisodeThumbPreview
+            title={title}
+            episodeNumber={currentEpisode.number}
+            fallbackImage={thumb}
+            resolvePreviewImage={getLivePreview}
+          >
+            <div className="relative w-16 sm:w-[4.5rem] aspect-video rounded-lg overflow-hidden bg-white/[0.04] ring-1 ring-white/10 cursor-default">
+              {thumb ? (
+                <Image
+                  src={thumb}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  sizes="72px"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/[0.04]">
+                  <Play className="w-4 h-4 text-white/25 fill-white/25" />
+                </div>
+              )}
+              <span className="absolute bottom-0.5 left-0.5 z-[1] px-1 py-px rounded text-[8px] font-mono font-bold bg-black/70 text-white/90">
+                {currentEpisode.number}
+              </span>
+            </div>
+          </EpisodeThumbPreview>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-0.5">
