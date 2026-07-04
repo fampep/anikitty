@@ -248,12 +248,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-background/50 dark:via-black/40 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
-        <WatchTrailer videoHref={info.promotionalVideos[0]?.source} />
-        {info.anilistId ? (
-          <div className="absolute bottom-4 right-4 left-4 sm:left-auto sm:max-w-md z-10">
-            <AnimeThemePlayer anilistId={info.anilistId} />
-          </div>
-        ) : null}
+        <div className="absolute bottom-4 right-4 left-4 sm:left-auto z-10 flex flex-col items-stretch sm:items-end gap-2.5 sm:max-w-md md:bottom-10 md:right-10">
+          <WatchTrailer videoHref={info.promotionalVideos[0]?.source} inline />
+          {info.anilistId ? <AnimeThemePlayer anilistId={info.anilistId} /> : null}
+        </div>
       </div>
 
       <Container className="pb-28">

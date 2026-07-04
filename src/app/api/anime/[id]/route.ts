@@ -140,8 +140,12 @@ export async function GET(
             type: toFormat(m.format),
             duration: m.duration ? `${m.duration} min` : "N/A",
           },
-          promotionalVideos: m.trailer?.site === "youtube"
-            ? [{ title: "Trailer", source: `https://youtube.com/watch?v=${m.trailer.id}`, thumbnail: "" }]
+          promotionalVideos: m.trailer?.site === "youtube" && m.trailer.id
+            ? [{
+                title: "Trailer",
+                source: `https://www.youtube.com/embed/${m.trailer.id}`,
+                thumbnail: "",
+              }]
             : [],
           charactersVoiceActors: (m.characters?.edges ?? []).map((edge: any) => ({
             character: {

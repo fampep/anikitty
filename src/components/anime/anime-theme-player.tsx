@@ -12,47 +12,56 @@ type AnimeThemePlayerProps = {
   className?: string;
 };
 
+const UNMUTE_EVENTS = ["pointerdown", "keydown", "touchstart", "scroll", "wheel"] as const;
+
 export default function AnimeThemePlayer({ anilistId, className }: AnimeThemePlayerProps) {
   const t = useT();
   const playThemeSong = useSettingsStore((s) => s.playThemeSong);
   const { data: themes, isLoading } = useGetAnimeThemes(anilistId);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const unmutedRef = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
 
   const playback = themes?.playback;
 
-  const tryPlay = useCallback(async (preferUnmuted: boolean) => {
+  const applyUnmuted = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || unmutedRef.current) return;
+    video.muted = false;
+    video.volume = 1;
+    setMuted(false);
+    unmutedRef.current = true;
+  }, []);
+
+  const tryPlay = useCallback(async () => {
     const video = videoRef.current;
     if (!video) return false;
 
-    video.muted = !preferUnmuted;
-    setMuted(!preferUnmuted);
+    video.volume = 1;
+    video.muted = false;
+    setMuted(false);
 
     try {
       await video.play();
       setPlaying(true);
       setNeedsGesture(false);
+      unmutedRef.current = true;
       return true;
     } catch {
-      if (preferUnmuted) {
-        video.muted = true;
-        setMuted(true);
-        try {
-          await video.play();
-          setPlaying(true);
-          setNeedsGesture(false);
-          return true;
-        } catch {
-          setPlaying(false);
-          setNeedsGesture(true);
-          return false;
-        }
+      video.muted = true;
+      setMuted(true);
+      try {
+        await video.play();
+        setPlaying(true);
+        setNeedsGesture(false);
+        return true;
+      } catch {
+        setPlaying(false);
+        setNeedsGesture(true);
+        return false;
       }
-      setPlaying(false);
-      setNeedsGesture(true);
-      return false;
     }
   }, []);
 
@@ -60,25 +69,32 @@ export default function AnimeThemePlayer({ anilistId, className }: AnimeThemePla
     const video = videoRef.current;
     if (!playThemeSong || !playback?.videoUrl || !video) return;
 
+    unmutedRef.current = false;
     video.src = playback.videoUrl;
     video.loop = true;
+    video.volume = 1;
+    video.muted = false;
     video.load();
-    void tryPlay(true);
+    void tryPlay();
   }, [playThemeSong, playback?.videoUrl, tryPlay]);
 
   useEffect(() => {
-    if (!playing || !muted) return;
+    if (!playing) return;
 
     const unmuteOnInteraction = () => {
-      const video = videoRef.current;
-      if (!video || !video.muted) return;
-      video.muted = false;
-      setMuted(false);
+      applyUnmuted();
     };
 
-    document.addEventListener("pointerdown", unmuteOnInteraction, { once: true });
-    return () => document.removeEventListener("pointerdown", unmuteOnInteraction);
-  }, [playing, muted]);
+    for (const event of UNMUTE_EVENTS) {
+      window.addEventListener(event, unmuteOnInteraction, { passive: true });
+    }
+
+    return () => {
+      for (const event of UNMUTE_EVENTS) {
+        window.removeEventListener(event, unmuteOnInteraction);
+      }
+    };
+  }, [playing, applyUnmuted]);
 
   useEffect(() => {
     return () => {
@@ -116,7 +132,8 @@ export default function AnimeThemePlayer({ anilistId, className }: AnimeThemePla
       return;
     }
 
-    await tryPlay(!muted);
+    applyUnmuted();
+    await tryPlay();
   };
 
   const toggleMute = async () => {
@@ -126,14 +143,16 @@ export default function AnimeThemePlayer({ anilistId, className }: AnimeThemePla
     const nextMuted = !muted;
     video.muted = nextMuted;
     setMuted(nextMuted);
+    unmutedRef.current = !nextMuted;
 
     if (!playing) {
-      await tryPlay(!nextMuted);
+      await tryPlay();
     }
   };
 
   const handleStart = async () => {
-    await tryPlay(true);
+    applyUnmuted();
+    await tryPlay();
   };
 
   return (
@@ -157,9 +176,6 @@ export default function AnimeThemePlayer({ anilistId, className }: AnimeThemePla
             {t("anime.themeNowPlaying")}
           </p>
           <p className="text-xs sm:text-sm font-semibold text-white/90 truncate">{label}</p>
-          {playing && muted && !needsGesture && (
-            <p className="text-[10px] text-violet-200/70 mt-0.5">{t("anime.themeTapToUnmute")}</p>
-          )}
         </div>
 
         {needsGesture ? (
