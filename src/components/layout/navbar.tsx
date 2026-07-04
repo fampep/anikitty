@@ -22,6 +22,7 @@ import {
   SearchIcon,
   Users,
   X,
+  Activity,
 } from "lucide-react";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -49,6 +50,7 @@ const MENU_DEFS = [
   { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together" },
   { href: ROUTES.SHOP, icon: Coins, titleKey: "nav.shop", shortKey: "nav.short.shop" },
   { href: ROUTES.DONATE, icon: Coffee, titleKey: "nav.donate", shortKey: "nav.short.donate" },
+  { href: ROUTES.STATUS, icon: Activity, titleKey: "nav.status", shortKey: "nav.short.status" },
   { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq" },
 ] as const;
 

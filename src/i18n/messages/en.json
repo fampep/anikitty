@@ -12,6 +12,7 @@
     "donate": "Support",
     "shop": "Shop",
     "faq": "FAQ",
+    "status": "Status",
     "more": "More",
     "search": "Search",
     "login": "Log in",
@@ -28,7 +29,8 @@
       "together": "Together",
       "donate": "Support",
       "shop": "Shop",
-      "faq": "FAQ"
+      "faq": "FAQ",
+      "status": "Status"
     },
     "aria": {
       "mainNav": "Main navigation",
@@ -72,6 +74,43 @@
     "donate": "Support us",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
+  },
+  "discordPrompt": {
+    "title": "Join our Discord",
+    "intro": "Stay in the loop about AniKitty — site updates, streaming status, and downtime notices.",
+    "points": {
+      "updates": "Get announcements when new features ship or schedules change.",
+      "status": "Check proxy health anytime on the status page, or hear about issues in Discord first.",
+      "community": "Chat with other fans, report bugs, and reach moderators quickly."
+    },
+    "joinDiscord": "Join Discord",
+    "viewStatus": "View status page",
+    "maybeLater": "Maybe later"
+  },
+  "status": {
+    "eyebrow": "System status",
+    "title": "Streaming proxy health",
+    "subtitle": "Live checks against AniKitty's KittyAPI proxy nodes. Latency and bandwidth are measured from your browser when possible, with a server-side fallback.",
+    "checking": "Checking proxies…",
+    "overall": {
+      "operational": "All proxies operational",
+      "degraded": "Some proxies degraded",
+      "outage": "All proxies unreachable"
+    },
+    "lastChecked": "Last checked {time}",
+    "autoRefresh": "Auto-refreshes every 60 seconds",
+    "refresh": "Refresh now",
+    "proxyNodes": "Proxy nodes",
+    "recommended": "Recommended",
+    "nodeOnline": "Reachable",
+    "nodeOffline": "Unreachable",
+    "latency": "{ms} ms",
+    "bandwidth": "{mbps} Mbps",
+    "up": "Online",
+    "down": "Offline",
+    "discordTitle": "Want live updates?",
+    "discordBody": "Join the Discord for downtime alerts, maintenance notices, and support from the team.",
+    "faqLink": "Questions about streaming? Read the FAQ →"
   },
   "landing": {
     "browse": "Browse",

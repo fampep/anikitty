@@ -83,6 +83,11 @@ export const PAGE_SEO = {
     description: "How AniKitty works — streaming, accounts, and privacy.",
     path: "/faq",
   },
+  status: {
+    title: "Status | AniKitty",
+    description: "Live health of AniKitty streaming proxies — latency, bandwidth, and uptime.",
+    path: "/status",
+  },
   donate: {
     title: "Support AniKitty | Donate",
     description: "Donate on Ko-fi for ad-free viewing. Time scales with your donation amount.",

@@ -16,6 +16,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import UserThemeSync from "@/components/layout/user-theme-sync";
 import ClickAdsScript from "@/components/ads/click-ads-script";
 import PwaRegister from "@/components/pwa/pwa-register";
+import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -155,6 +156,7 @@ export default async function RootLayout({
               <div className="site-page">{children}</div>
               <Footer />
               <SiteBetaBadge />
+              <DiscordWelcomePrompt />
             </QueryProvider>
           </ThemeProvider>
         </I18nRoot>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { KittyApiNodeId, KittyNodePingResult } from "@/lib/kitty/kitty-api-nodes";
 import { measureAllKittyNodesFromClient } from "@/lib/kitty/kitty-node-ping-client";
 
@@ -68,6 +68,11 @@ async function fetchNodePings(): Promise<PingCache> {
   return pingInflight;
 }
 
+export function invalidateKittyNodePingCache(): void {
+  pingCache = null;
+  pingInflight = null;
+}
+
 export function pickFastestKittyNode(
   nodes: KittyNodePingResult[],
   recommended?: KittyApiNodeId | null,
@@ -81,12 +86,18 @@ export function pickFastestKittyNode(
 }
 
 export function useKittyNodePing() {
+  const [refreshKey, setRefreshKey] = useState(0);
   const [nodes, setNodes] = useState<KittyNodePingResult[]>(() => pingCache?.nodes ?? []);
   const [recommended, setRecommended] = useState<KittyApiNodeId | null>(
     () => pingCache?.recommended ?? null,
   );
   const [ready, setReady] = useState(() => Boolean(pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS));
   const [loading, setLoading] = useState(!ready);
+
+  const refresh = useCallback(() => {
+    invalidateKittyNodePingCache();
+    setRefreshKey((key) => key + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +119,7 @@ export function useKittyNodePing() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   const pingByNode = useMemo(() => {
     const map: Partial<Record<KittyApiNodeId, number | null>> = {};
@@ -131,5 +142,5 @@ export function useKittyNodePing() {
     [nodes, recommended],
   );
 
-  return { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading };
+  return { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh };
 }

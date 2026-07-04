@@ -4,12 +4,13 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare } from "lucide-react";
+import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
+import { ROUTES } from "@/constants/routes";
 
 const Footer = () => {
   const t = useT();
@@ -86,6 +87,7 @@ const Footer = () => {
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.account")}</p>
             <NavLink href="/settings" label={t("footer.settings")} />
             <NavLink href="/faq" label={t("nav.faq")} />
+            <NavLink href={ROUTES.STATUS} label={t("nav.status")} icon={<Activity className="w-3 h-3" />} />
             <a
               href="https://www.anisurge.lol/"
               target="_blank"
@@ -99,6 +101,7 @@ const Footer = () => {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.project")}</p>
             <NavLink href="/donate" label={t("footer.donate")} icon={<Coffee className="w-3 h-3" />} />
+            <NavLink href={ROUTES.STATUS} label={t("nav.status")} icon={<Activity className="w-3 h-3" />} />
             <NavLink href="/faq" label={t("footer.faqPrivacy")} />
             <a
               href="https://github.com/fampep/anikitty"
