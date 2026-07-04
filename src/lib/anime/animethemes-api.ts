@@ -71,11 +71,18 @@ type RawAnime = {
 
 const API_BASE = "https://api.animethemes.moe";
 
+/** Per https://api-docs.animethemes.moe/intro/jsonapi/ — nested includes must be explicit. */
+const ANIME_INCLUDE =
+  "animethemes,animethemes.animethemeentries.videos,animethemes.song,animethemes.song.artists";
+
+const FETCH_HEADERS = {
+  Accept: "application/json",
+  "User-Agent": "AniKitty/1.0 (+https://github.com/fampep/anikitty)",
+};
+
 function pickBestVideo(videos: AnimeThemeVideo[]): AnimeThemeVideo | null {
   if (!videos.length) return null;
-  const withLyrics = videos.filter((v) => !v.nc);
-  const pool = withLyrics.length ? withLyrics : videos;
-  return [...pool].sort((a, b) => b.resolution - a.resolution)[0] ?? null;
+  return [...videos].sort((a, b) => b.resolution - a.resolution)[0] ?? null;
 }
 
 function normalizeTheme(theme: RawTheme): AnimeThemeTrack | null {
@@ -160,19 +167,23 @@ function parseAnimePayload(anime: RawAnime | null | undefined): AnimeThemesResul
   };
 }
 
+/**
+ * Fetch OP/ED themes by AniList id.
+ * @see https://api-docs.animethemes.moe/intro/jsonapi/
+ */
 export async function fetchAnimeThemesByAnilistId(
   anilistId: number,
 ): Promise<AnimeThemesResult | null> {
   const params = new URLSearchParams({
     "filter[has]": "resources",
-    "filter[site]": "AniList",
+    "filter[site]": "Anilist",
     "filter[external_id]": String(anilistId),
-    include: "animethemes.animethemeentries.videos,animethemes.song.artists",
+    include: ANIME_INCLUDE,
   });
 
   const res = await fetch(`${API_BASE}/anime?${params}`, {
     signal: AbortSignal.timeout(12_000),
-    headers: { Accept: "application/json" },
+    headers: FETCH_HEADERS,
     next: { revalidate: 86_400 },
   });
 

@@ -872,6 +872,7 @@
     "themePause": "Pause theme",
     "themeUnmute": "Unmute theme",
     "themeMuted": "Mute theme",
+    "themeTapToUnmute": "Tap anywhere to unmute",
     "tabs": {
       "overview": "Overview",
       "episodes": "Episodes",
