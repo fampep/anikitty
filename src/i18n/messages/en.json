@@ -951,6 +951,8 @@
   "anime": {
     "airing": "AIRING",
     "addToList": "Add to list",
+    "addToPlanToWatch": "Add to Plan to Watch",
+    "addedToPlanToWatch": "Added to Plan to Watch",
     "listError": "Error adding to list",
     "episodeAlerts": {
       "title": "Episode alerts",

@@ -10,6 +10,7 @@ import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { Progress } from "@/components/ui/progress";
 import { useT } from "@/providers/i18n-provider";
 import LazyPosterImage from "./lazy-poster-image";
+import QuickAddButton from "./quick-add-button";
 
 type Props = {
   className?: string;
@@ -78,6 +79,12 @@ const AnimeCard = ({
   const isAiring = props.status === "RELEASING";
   const hasAudio = props.episodeCard && ((props.sub ?? 0) > 0 || (props.dub ?? 0) > 0);
 
+  // Quick-add applies to anime detail cards (not episode / watch links).
+  const quickAddId =
+    !props.episodeCard && props.href && !props.href.includes("/watch")
+      ? props.href.split("/anime/")[1]?.split(/[/?#]/)[0]
+      : undefined;
+
   return (
     <Link
       href={props.href as string}
@@ -117,6 +124,10 @@ const AnimeCard = ({
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/5 opacity-80 transition-opacity duration-300 [@media(hover:hover)]:group-hover:opacity-95" />
+
+        {quickAddId && (
+          <QuickAddButton animeId={quickAddId} title={props.title} poster={props.poster} />
+        )}
 
         <div className="absolute inset-0 overflow-hidden opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none hidden [@media(hover:hover)]:block">
           <div
