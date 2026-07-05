@@ -11,8 +11,6 @@ import { CHAT_MESSAGE_TTL_MS } from "@/lib/social/chat-config";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
 import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 
-const PRUNE_MS = 30_000;
-
 function mergeMessages(prev: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
   if (incoming.length === 0) return prev;
   const map = new Map(prev.map((m) => [m.id, m]));
@@ -34,6 +32,7 @@ function latestActivityAt(list: ChatMessage[]): string | null {
 
 export function useLiveChat() {
   const pollMs = usePollingIntervalMs("liveChat");
+  const pruneMs = usePollingIntervalMs("chatPrune");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageTtlMs, setMessageTtlMs] = useState(CHAT_MESSAGE_TTL_MS);
   const [loading, setLoading] = useState(true);
@@ -97,7 +96,7 @@ export function useLiveChat() {
   }, [loadInitial]);
 
   useIntervalWhenVisible(pollNew, pollMs);
-  useIntervalWhenVisible(pruneExpired, PRUNE_MS);
+  useIntervalWhenVisible(pruneExpired, pruneMs);
 
   const sendMessage = useCallback(
     async (opts: { body?: string; gifUrl?: string | null }) => {

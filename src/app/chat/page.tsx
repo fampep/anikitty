@@ -26,6 +26,7 @@ import CommunityHero from "@/components/community/community-hero";
 import { ROUTES } from "@/constants/routes";
 import { useLiveChat } from "@/hooks/use-live-chat";
 import { useOnlineCount } from "@/hooks/use-online-count";
+import { useSettingsStore } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
@@ -151,7 +152,8 @@ export default function ChatPage() {
   const t = useT();
   const { auth } = useAuthStore();
   const { canModerateChat } = usePermissions();
-  const onlineCount = useOnlineCount();
+  const showOnlineCount = useSettingsStore((s) => s.showOnlineCount);
+  const onlineCount = useOnlineCount(showOnlineCount);
   const { messages, messageTtlMs, loading, sending, error, sendMessage, editMessage, deleteMessage } =
     useLiveChat();
   const [draft, setDraft] = useState("");

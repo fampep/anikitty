@@ -234,6 +234,10 @@ html.lite-mode *::after {
   scroll-behavior: auto !important;
 }
 
+html.lite-mode .animate-ping {
+  animation: none !important;
+}
+
 html.lite-mode .site-panel {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;

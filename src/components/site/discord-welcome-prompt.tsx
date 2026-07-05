@@ -23,6 +23,7 @@ export default function DiscordWelcomePrompt() {
   }, []);
 
   useEffect(() => {
+    if (liteMode) return;
     if (!ready || !pathname) return;
     if (SKIP_PATH_PREFIXES.some((p) => pathname.startsWith(p))) return;
     if (readDiscordPromptDismissed()) return;
@@ -35,6 +36,8 @@ export default function DiscordWelcomePrompt() {
   }, [ready, pathname, liteMode]);
 
   const dismiss = () => writeDiscordPromptDismissed();
+
+  if (liteMode) return null;
 
   return (
     <DiscordWelcomeDialog

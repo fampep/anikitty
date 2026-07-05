@@ -6,6 +6,7 @@ import Container from "@/components/layout/container";
 import { KITTY_API_NODES, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
+import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 import { useSettingsStore } from "@/store/settings-store";
 import { ROUTES } from "@/constants/routes";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
@@ -61,6 +62,7 @@ const STATUS_META: Record<
 export default function StatusPageContent() {
   const t = useT();
   const liteMode = useSettingsStore((s) => s.liteMode);
+  const statusPollMs = usePollingIntervalMs("status");
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
     useKittyNodePing();
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -73,7 +75,7 @@ export default function StatusPageContent() {
     refresh();
   }, [refresh]);
 
-  useIntervalWhenVisible(handleRefresh, liteMode ? 0 : 60_000, !liteMode);
+  useIntervalWhenVisible(handleRefresh, statusPollMs, !liteMode && statusPollMs > 0);
 
   const overall = useMemo(
     () => resolveOverallStatus(loading, ready, nodes),

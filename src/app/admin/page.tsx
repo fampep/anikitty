@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
+import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 import Image from "next/image";
 import Link from "next/link";
 import Container from "@/components/layout/container";
@@ -349,6 +350,7 @@ function RolePermissionEditor({
 // Admin panel
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
+  const adminChatPollMs = usePollingIntervalMs("adminChat");
   const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat">("overview");
 
   // Users
@@ -637,7 +639,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     if (tab === "chat") void fetchChat();
   }, [tab, fetchChat]);
 
-  useIntervalWhenVisible(fetchChat, 15_000, tab === "chat");
+  useIntervalWhenVisible(fetchChat, adminChatPollMs, tab === "chat");
 
   // ── Role handlers ────────────────────────────────────────────────────────
   const handleRoleChange = async (userId: string, role: string) => {

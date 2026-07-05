@@ -62,11 +62,13 @@ export default function SiteAnnouncementBanner() {
   useEffect(() => {
     setDismissed(readDismissed());
     setHydrated(true);
+    if (!showAnnouncementBanner) return;
+
     fetch("/api/announcements")
       .then((r) => r.json())
       .then((data) => setItems(Array.isArray(data.announcements) ? data.announcements : []))
       .catch(() => {});
-  }, []);
+  }, [showAnnouncementBanner]);
 
   const handleDismiss = (id: string) => {
     setDismissed((prev) => {

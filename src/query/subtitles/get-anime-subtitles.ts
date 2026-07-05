@@ -1,4 +1,5 @@
 import { useQuery } from "react-query";
+import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 import { api } from "@/lib/core/api";
 
 import type { SubtitleEpisodeCoverage } from "@/lib/subtitles/subtitle-cache-store";
@@ -54,12 +55,14 @@ export const useGetAnimeSubtitles = (anilistId: number | undefined) => {
 
 /** Cached subtitle tracks for one anime, fetched lazily (e.g. when a card expands). */
 export const useAnimeSubtitleTracks = (anilistId: number, enabled: boolean) => {
+  const refetchIntervalMs = usePollingIntervalMs("subtitleTracks");
+
   return useQuery({
     queryKey: ["anime-subtitle-tracks", anilistId],
     queryFn: () => listAnimeSubtitleTracks(anilistId),
     enabled: enabled && anilistId > 0,
-    staleTime: 10_000,
-    refetchInterval: enabled ? 10_000 : false,
+    staleTime: refetchIntervalMs,
+    refetchInterval: enabled ? refetchIntervalMs : false,
     refetchIntervalInBackground: false,
   });
 };

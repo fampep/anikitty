@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { w2gApi, type W2gMessage, type W2gMember, type W2gRoom } from "@/lib/social/w2g";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
-
-const POLL_MS = 2_000;
+import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 
 export type W2gSyncState = {
   version: number;
@@ -30,6 +29,7 @@ export function useW2g({
   enabled,
   onEpisodeChange,
 }: UseW2gOptions) {
+  const pollMs = usePollingIntervalMs("w2g");
   const [room, setRoom] = useState<W2gRoom | null>(null);
   const [members, setMembers] = useState<W2gMember[]>([]);
   const [messages, setMessages] = useState<W2gMessage[]>([]);
@@ -124,7 +124,7 @@ export function useW2g({
       .finally(() => setLoading(false));
   }, [code, enabled, applyPayload]);
 
-  useIntervalWhenVisible(refresh, POLL_MS, Boolean(code && enabled && isMember));
+  useIntervalWhenVisible(refresh, pollMs, Boolean(code && enabled && isMember));
 
   const pushSync = useCallback(
     async (state: {
