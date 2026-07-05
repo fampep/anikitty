@@ -2,7 +2,11 @@ import { getDb } from "@/db";
 import { userFollows, userNotifications, users } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { getUserByUsername } from "@/lib/user/public-user";
-import { and, desc, eq } from "drizzle-orm";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { and, desc, eq, gt } from "drizzle-orm";
+
+// Don't re-notify the same person about the same follower more than once a day.
+const FOLLOW_NOTIFY_DEDUPE_MS = 24 * 60 * 60 * 1000;
 
 async function resolveActorAndTarget(req: Request, username: string) {
   const token = extractToken(req);
@@ -19,6 +23,9 @@ async function resolveActorAndTarget(req: Request, username: string) {
 
 export async function POST(req: Request, { params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
+  const limited = checkRateLimit(`follow:${getClientIp(req)}`, 30, 60_000);
+  if (limited) return limited;
+
   const r = await resolveActorAndTarget(req, username);
   if ("error" in r) return Response.json({ error: r.error }, { status: r.status });
 
@@ -28,25 +35,40 @@ export async function POST(req: Request, { params }: { params: Promise<{ usernam
     .onConflictDoNothing()
     .returning({ id: userFollows.id });
 
-  // Notify only on a new follow (not a repeat request).
+  // Notify on a new follow, but not repeatedly for unfollow→refollow churn.
   if (inserted.length > 0) {
-    const [actor] = await r.db
-      .select({ username: users.username })
-      .from(users)
-      .where(eq(users.id, r.viewerId))
+    const [recent] = await r.db
+      .select({ id: userNotifications.id })
+      .from(userNotifications)
+      .where(
+        and(
+          eq(userNotifications.userId, r.target.id),
+          eq(userNotifications.actorUserId, r.viewerId),
+          eq(userNotifications.type, "follow"),
+          gt(userNotifications.createdAt, new Date(Date.now() - FOLLOW_NOTIFY_DEDUPE_MS)),
+        ),
+      )
       .limit(1);
-    void r.db
-      .insert(userNotifications)
-      .values({
-        userId: r.target.id,
-        type: "follow",
-        actorUserId: r.viewerId,
-        title: actor?.username ?? "Someone",
-        body: "started following you",
-        linkUrl: `/profile/${actor?.username ?? ""}`,
-        referenceType: "user",
-      })
-      .catch(() => {});
+
+    if (!recent) {
+      const [actor] = await r.db
+        .select({ username: users.username })
+        .from(users)
+        .where(eq(users.id, r.viewerId))
+        .limit(1);
+      void r.db
+        .insert(userNotifications)
+        .values({
+          userId: r.target.id,
+          type: "follow",
+          actorUserId: r.viewerId,
+          title: actor?.username ?? "Someone",
+          body: "started following you",
+          linkUrl: `/profile/${actor?.username ?? ""}`,
+          referenceType: "user",
+        })
+        .catch(() => {});
+    }
   }
 
   return Response.json({ ok: true, following: true });

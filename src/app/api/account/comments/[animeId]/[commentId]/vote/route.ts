@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import { commentVotes } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { and, eq } from "drizzle-orm";
 
 export async function POST(
@@ -11,6 +12,9 @@ export async function POST(
   const token = extractToken(req);
   const payload = token ? await verifyToken(token) : null;
   if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = checkRateLimit(`vote:${payload.userId}`, 60, 60_000);
+  if (limited) return limited;
 
   const { vote } = await req.json();
   if (vote !== 1 && vote !== -1) return Response.json({ error: "Invalid vote" }, { status: 400 });

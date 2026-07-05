@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { commentReactions, comments } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { and, eq } from "drizzle-orm";
 
 const ALLOWED_EMOJIS = new Set([
@@ -19,6 +20,9 @@ export async function POST(
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const payload = await verifyToken(token);
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = checkRateLimit(`react:${payload.userId}`, 60, 60_000);
+  if (limited) return limited;
 
   const { emoji } = await req.json();
   if (!emoji || !ALLOWED_EMOJIS.has(emoji))
