@@ -623,6 +623,15 @@ export default function KittyPlayer({
     subtitleModeRef.current =
       showSubs && hasExternalSubs ? "external" : hasExternalSubs ? "off" : "native";
 
+    // Persisted volume / mute / speed so they survive episode changes + reloads.
+    const readNum = (key: string, fallback: number) => {
+      const n = parseFloat(localStorage.getItem(key) ?? "");
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const savedVolume = Math.min(1, Math.max(0, readNum("kittyVolume", 0.85)));
+    const savedMuted = localStorage.getItem("kittyMuted") === "1";
+    const savedRate = Math.min(4, Math.max(0.25, readNum("kittyPlaybackRate", 1)));
+
     const shouldUseExternalSubs = () =>
       preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0;
 
@@ -647,9 +656,9 @@ export default function KittyPlayer({
       type: "m3u8",
       theme: ANIKITTY_PLAYER_THEME,
       cssVar: ANIKITTY_PLAYER_CSS_VAR,
-      volume: 0.85,
+      volume: savedVolume,
       autoplay: true,
-      muted: false,
+      muted: savedMuted,
       pip: true,
       setting: true,
       playbackRate: true,
@@ -834,6 +843,7 @@ export default function KittyPlayer({
       );
       applyResume(art);
       refreshHlsControls(art);
+      if (savedRate !== 1) art.playbackRate = savedRate;
       onPlayerReadyRef.current?.(art);
 
       const video = art.video;
@@ -876,6 +886,15 @@ export default function KittyPlayer({
 
     art.on("resize", () => {
       applySubtitleStyles(art, subtitleStyleSettings);
+    });
+
+    // Remember volume / mute / playback speed across episodes and sessions.
+    art.on("video:volumechange", () => {
+      localStorage.setItem("kittyVolume", String(art.volume));
+      localStorage.setItem("kittyMuted", art.muted ? "1" : "0");
+    });
+    art.on("video:ratechange", () => {
+      localStorage.setItem("kittyPlaybackRate", String(art.playbackRate));
     });
 
     const setBufferingDebounced = (show: boolean) => {
@@ -942,6 +961,12 @@ export default function KittyPlayer({
       setBufferingDebounced(false);
     });
 
+    const setMediaPlaybackState = (state: "playing" | "paused") => {
+      if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = state;
+      }
+    };
+
     art.on("play", () => {
       playbackStartedRef.current = true;
       if (!startFiredRef.current) {
@@ -950,6 +975,7 @@ export default function KittyPlayer({
       }
       reportW2g(true, art.currentTime);
       setBufferingDebounced(false);
+      setMediaPlaybackState("playing");
     });
 
     art.on("pause", () => {
@@ -957,6 +983,7 @@ export default function KittyPlayer({
       const dur = art.duration;
       if (current > 5 && dur > 0) onProgressRef.current?.(current, dur);
       reportW2g(false, current);
+      setMediaPlaybackState("paused");
     });
 
     art.on("video:timeupdate", () => {
