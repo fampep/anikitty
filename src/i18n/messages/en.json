@@ -51,8 +51,10 @@
   },
   "site": {
     "beta": "Beta",
+    "stable": "Stable",
     "version": "v{version}",
-    "betaVersionAria": "AniKitty beta, version {version}"
+    "betaVersionAria": "AniKitty beta, version {version}",
+    "stableVersionAria": "AniKitty stable, version {version}"
   },
   "announcements": {
     "readMore": "Read more",
@@ -426,8 +428,8 @@
     "densityComfortable": "Comfortable",
     "densityCompact": "Compact",
     "siteChrome": "Site elements",
-    "showBetaBadge": "Beta badge",
-    "showBetaBadgeDesc": "Show the version badge in the corner",
+    "showBetaBadge": "Version badge",
+    "showBetaBadgeDesc": "Show the Stable version badge in the corner",
     "showOnlineCount": "Online count",
     "showOnlineCountDesc": "Show live viewer count in the footer and home bar",
     "showAnnouncements": "Announcements",
