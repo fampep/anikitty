@@ -200,6 +200,7 @@ export async function migrateDb() {
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS episode_id VARCHAR(100)`,
       `ALTER TABLE comments ADD COLUMN IF NOT EXISTS episode_number INTEGER`,
       `CREATE INDEX IF NOT EXISTS comments_anime_episode_idx ON comments (anime_id, episode_id)`,
+      `ALTER TABLE comments ADD COLUMN IF NOT EXISTS pinned_at TIMESTAMP`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_color VARCHAR(7)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE`,

@@ -160,6 +160,8 @@ export const comments = pgTable(
     body: text("body").notNull().default(""),
     gifUrl: text("gif_url"),
     isSpoiler: boolean("is_spoiler").notNull().default(false),
+    // Set when a moderator pins a top-level comment to the top of the thread.
+    pinnedAt: timestamp("pinned_at"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at"),
   },

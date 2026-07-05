@@ -6,6 +6,7 @@ import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import { useProgressStore } from "@/store/progress-store";
+import { usePlayerSeekStore } from "@/store/player-seek-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import dynamic from "next/dynamic";
@@ -706,6 +707,16 @@ const VideoPlayerSection = () => {
       window.removeEventListener("pagehide", flushProgress);
     };
   }, [saveProgress]);
+
+  // Let comment timestamps seek this player.
+  useEffect(() => {
+    if (!artPlayer) return;
+    usePlayerSeekStore.getState().setSeek((seconds) => {
+      artPlayer.seek = seconds;
+      artPlayer.play?.();
+    });
+    return () => usePlayerSeekStore.getState().clearSeek();
+  }, [artPlayer]);
 
   const {
     data: streamData,

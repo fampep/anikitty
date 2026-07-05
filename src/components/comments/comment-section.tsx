@@ -7,8 +7,10 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import {
   MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
-  ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp,
+  ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin,
 } from "lucide-react";
+import CommentBody from "@/components/comments/comment-body";
+import { useMentionSuggestions } from "@/hooks/use-mention-suggestions";
 import { toast } from "sonner";
 import { UserBadges } from "@/components/profile/user-badges";
 import { GifUrlPanel } from "@/components/shared/gif-url-panel";
@@ -106,6 +108,7 @@ interface Comment {
   body: string;
   gifUrl?: string | null;
   isSpoiler: boolean;
+  pinnedAt?: string | null;
   createdAt: string;
   updatedAt?: string | null;
   userId: string;
@@ -488,6 +491,21 @@ export default function CommentSection({
     }
   };
 
+  const handlePin = async (commentId: string) => {
+    if (!auth || !canModerateComments) return;
+    try {
+      const res = await fetch(
+        `/api/account/comments/${encodeURIComponent(animeId)}/${commentId}/pin`,
+        withAuth({ method: "POST" }),
+      );
+      if (!res.ok) throw new Error();
+      // Re-fetch so pinned ordering is applied server-side.
+      fetchComments(1, sort, false);
+    } catch {
+      toast.error(t("comments.pinFailed"));
+    }
+  };
+
   const saveEdit = async (commentId: string) => {
     const body = editDraft.trim();
     if (!body || savingEdit) return;
@@ -610,6 +628,16 @@ export default function CommentSection({
   const canSubmit = (draft.trim().length > 0 || !!selectedGif) && !submitting;
   const showToolbar = focused || !!draft || !!selectedGif || isSpoiler;
   const charNearLimit = draft.length > 850;
+
+  const {
+    suggestions: mentionSuggestions,
+    open: mentionOpen,
+    scan: mentionScan,
+    apply: applyMention,
+  } = useMentionSuggestions(draft, setDraft, textareaRef);
+  useEffect(() => {
+    mentionScan();
+  }, [mentionScan]);
 
   const renderAuthorName = (username: string, iconSlug?: string | null, className?: string) => (
     <Link
@@ -754,7 +782,7 @@ export default function CommentSection({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
-              {c.body}
+              <CommentBody body={c.body} />
             </p>
           )
         )}
@@ -912,7 +940,14 @@ export default function CommentSection({
                 onChange={(e) => setDraft(e.target.value)}
                 onFocus={handleComposerFocus}
                 onBlur={() => { if (!draft && !selectedGif) setFocused(false); }}
+                onKeyUp={mentionScan}
+                onClick={mentionScan}
                 onKeyDown={(e) => {
+                  if (mentionOpen && e.key === "Tab") {
+                    e.preventDefault();
+                    applyMention(mentionSuggestions[0].username);
+                    return;
+                  }
                   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit();
                 }}
                 placeholder={composerPlaceholder}
@@ -924,6 +959,22 @@ export default function CommentSection({
                   !focused && isSheet && "py-3.5",
                 )}
               />
+
+              {mentionOpen && (
+                <div className="mx-3 mb-1 rounded-lg border border-border dark:border-white/10 bg-popover dark:bg-[#111] shadow-xl overflow-hidden">
+                  {mentionSuggestions.map((u) => (
+                    <button
+                      key={u.username}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); applyMention(u.username); }}
+                      className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-accent dark:hover:bg-white/8 transition-colors"
+                    >
+                      <FramedAvatar username={u.username} url={u.avatarUrl ?? undefined} className="w-5 h-5" />
+                      <span className="text-[13px] text-foreground dark:text-white/80">@{u.username}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {selectedGif && (
                 <div className="px-4 pb-3">
@@ -1113,6 +1164,12 @@ export default function CommentSection({
                       levelRole={c.levelRole}
                       levelRoleColor={c.levelRoleColor}
                     />
+                    {c.pinnedAt && (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
+                        <Pin className="w-2.5 h-2.5" />
+                        {t("comments.pinnedBadge")}
+                      </span>
+                    )}
                     {c.isSpoiler && (
                       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-400/70">
                         <EyeOff className="w-2.5 h-2.5" />
@@ -1134,6 +1191,20 @@ export default function CommentSection({
 
                     {(isOwn || canModerateComments) && !isEditing && (
                       <div className="ml-auto flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        {canModerateComments && (
+                          <button
+                            onClick={() => handlePin(c.id)}
+                            aria-label={c.pinnedAt ? t("comments.unpin") : t("comments.pin")}
+                            className={cn(
+                              "p-1.5 rounded-lg transition-all",
+                              c.pinnedAt
+                                ? "text-violet-300 hover:bg-violet-500/10"
+                                : "hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60",
+                            )}
+                          >
+                            <Pin className="w-3 h-3" />
+                          </button>
+                        )}
                         {isOwn && (
                           <button
                             onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
@@ -1381,7 +1452,7 @@ export default function CommentSection({
                                     </div>
                                   ) : (
                                     <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
-                                      {reply.body}
+                                      <CommentBody body={reply.body} />
                                     </p>
                                   )}
 

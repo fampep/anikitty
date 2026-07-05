@@ -12,6 +12,7 @@ import {
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { grantCommentKittycoins } from "@/lib/shop/kittycoins";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
+import { notifyCommentTargets } from "@/lib/social/comment-notifications";
 
 const PAGE_SIZE = 20;
 
@@ -20,6 +21,7 @@ const BASE_SELECT = {
   body: comments.body,
   gifUrl: comments.gifUrl,
   isSpoiler: comments.isSpoiler,
+  pinnedAt: comments.pinnedAt,
   createdAt: comments.createdAt,
   updatedAt: comments.updatedAt,
   userId: comments.userId,
@@ -39,6 +41,7 @@ type RawRow = {
   body: string;
   gifUrl: string | null;
   isSpoiler: boolean;
+  pinnedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
   userId: string;
@@ -91,6 +94,9 @@ export async function GET(
     .where(topLevelWhere);
   const total = countRow?.count ?? 0;
 
+  // Pinned comments always sort above the rest.
+  const pinnedFirst = desc(sql<boolean>`(${comments.pinnedAt} is not null)`);
+
   // Top-level comments — sort via IIFE to keep types consistent
   const topLevel: RawRow[] = await (async () => {
     const base = db
@@ -101,10 +107,11 @@ export async function GET(
       .where(topLevelWhere);
 
     if (sort === "old")
-      return base.orderBy(asc(comments.createdAt)).limit(PAGE_SIZE).offset(offset);
+      return base.orderBy(pinnedFirst, asc(comments.createdAt)).limit(PAGE_SIZE).offset(offset);
     if (sort === "top")
       return base
         .orderBy(
+          pinnedFirst,
           desc(
             sql<number>`COALESCE((SELECT SUM(CASE WHEN vote=1 THEN 1 WHEN vote=-1 THEN -1 ELSE 0 END) FROM comment_votes WHERE comment_id = ${comments.id}), 0)`,
           ),
@@ -112,7 +119,7 @@ export async function GET(
         )
         .limit(PAGE_SIZE)
         .offset(offset);
-    return base.orderBy(desc(comments.createdAt)).limit(PAGE_SIZE).offset(offset);
+    return base.orderBy(pinnedFirst, desc(comments.createdAt)).limit(PAGE_SIZE).offset(offset);
   })();
 
   const topLevelIds = topLevel.map((c) => c.id);
@@ -320,6 +327,20 @@ export async function POST(
 
   const xpStats = await getUsersXpStats(db, [payload.userId]);
   const levelFields = attachLevelRole({ userId: payload.userId }, xpStats);
+
+  if (body && user?.username) {
+    const linkUrl = resolvedEpisodeId
+      ? `/anime/watch?anime=${encodeURIComponent(animeId)}&episode=${encodeURIComponent(resolvedEpisodeId)}`
+      : `/anime/${encodeURIComponent(animeId)}`;
+    void notifyCommentTargets(db, {
+      actorUserId: payload.userId,
+      actorUsername: user.username,
+      commentId: row.id,
+      parentId,
+      body,
+      linkUrl,
+    });
+  }
 
   return Response.json(
     {
