@@ -3,6 +3,7 @@ import { userFollows, userNotifications, users } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { getUserByUsername } from "@/lib/user/public-user";
 import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { getNotificationPrefs } from "@/lib/social/notification-prefs";
 import { and, desc, eq, gt } from "drizzle-orm";
 
 // Don't re-notify the same person about the same follower more than once a day.
@@ -35,8 +36,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ usernam
     .onConflictDoNothing()
     .returning({ id: userFollows.id });
 
-  // Notify on a new follow, but not repeatedly for unfollow→refollow churn.
-  if (inserted.length > 0) {
+  // Notify on a new follow, but not repeatedly for unfollow→refollow churn,
+  // and only if the target hasn't turned off follow notifications.
+  if (inserted.length > 0 && (await getNotificationPrefs(r.db, r.target.id)).follows) {
     const [recent] = await r.db
       .select({ id: userNotifications.id })
       .from(userNotifications)

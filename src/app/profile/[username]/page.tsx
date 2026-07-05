@@ -50,6 +50,7 @@ import type { AccountBadges } from "@/lib/user/account-badges";
 import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/profile/level-progress-card";
 import AnimeLists from "@/components/profile/anime-lists";
+import FollowListModal, { type FollowListType } from "@/components/profile/follow-list-modal";
 import { useT } from "@/providers/i18n-provider";
 import { useI18n } from "@/providers/i18n-provider";
 import { useKittycoins } from "@/hooks/use-kittycoins";
@@ -327,6 +328,7 @@ function ProfilePage() {
   const [accountBadges, setAccountBadges] = useState<AccountBadges | null>(null);
   const [follow, setFollow] = useState<FollowSummary | null>(null);
   const [followBusy, setFollowBusy] = useState(false);
+  const [followListType, setFollowListType] = useState<FollowListType | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profileHidden, setProfileHidden] = useState(false);
@@ -677,8 +679,12 @@ function ProfilePage() {
             <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3">
               {follow && (
                 <>
-                  <QuickStat label={t("profile.followers")} value={follow.followers} color="text-foreground/90 dark:text-white/80" />
-                  <QuickStat label={t("profile.following")} value={follow.following} color="text-foreground/90 dark:text-white/80" />
+                  <button type="button" onClick={() => setFollowListType("followers")} className="rounded-lg hover:bg-accent dark:hover:bg-white/[0.04] transition-colors -mx-1 px-1">
+                    <QuickStat label={t("profile.followers")} value={follow.followers} color="text-foreground/90 dark:text-white/80" />
+                  </button>
+                  <button type="button" onClick={() => setFollowListType("following")} className="rounded-lg hover:bg-accent dark:hover:bg-white/[0.04] transition-colors -mx-1 px-1">
+                    <QuickStat label={t("profile.following")} value={follow.following} color="text-foreground/90 dark:text-white/80" />
+                  </button>
                   <div className="w-px h-4 bg-muted dark:bg-white/15 self-center" />
                 </>
               )}
@@ -762,6 +768,13 @@ function ProfilePage() {
           </section>
         </div>
       </Container>
+
+      <FollowListModal
+        username={profileUsername}
+        type={followListType}
+        open={followListType !== null}
+        onOpenChange={(open) => { if (!open) setFollowListType(null); }}
+      />
 
       {isOwn && auth && (
         <EditProfileDialog

@@ -36,6 +36,9 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     showBetaBadge: s.showBetaBadge,
     showOnlineCount: s.showOnlineCount,
     showAnnouncementBanner: s.showAnnouncementBanner,
+    notifyMentions: s.notifyMentions,
+    notifyReplies: s.notifyReplies,
+    notifyFollows: s.notifyFollows,
   });
 }
 
@@ -62,6 +65,9 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.showBetaBadge !== undefined) patch.showBetaBadge = prefs.showBetaBadge;
   if (prefs.showOnlineCount !== undefined) patch.showOnlineCount = prefs.showOnlineCount;
   if (prefs.showAnnouncementBanner !== undefined) patch.showAnnouncementBanner = prefs.showAnnouncementBanner;
+  if (prefs.notifyMentions !== undefined) patch.notifyMentions = prefs.notifyMentions;
+  if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;
+  if (prefs.notifyFollows !== undefined) patch.notifyFollows = prefs.notifyFollows;
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);

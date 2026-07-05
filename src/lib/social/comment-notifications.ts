@@ -1,6 +1,7 @@
 import { comments, userNotifications, users } from "@/db/schema";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type { getDb } from "@/db";
+import { getNotificationPrefsFor } from "@/lib/social/notification-prefs";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -58,6 +59,16 @@ export async function notifyCommentTargets(
     for (const u of mentioned) recipients.set(u.id, "mention");
   }
 
+  if (recipients.size === 0) return;
+
+  // Respect each recipient's notification preferences.
+  const prefs = await getNotificationPrefsFor(db, [...recipients.keys()]);
+  for (const [userId, type] of [...recipients.entries()]) {
+    const p = prefs.get(userId);
+    if (!p) continue;
+    if (type === "mention" && !p.mentions) recipients.delete(userId);
+    if (type === "comment_reply" && !p.replies) recipients.delete(userId);
+  }
   if (recipients.size === 0) return;
 
   const rows = [...recipients.entries()].map(([userId, type]) => ({

@@ -25,6 +25,10 @@ import {
   Music2,
   SkipForward,
   Maximize2,
+  Bell,
+  AtSign,
+  CornerUpLeft,
+  UserPlus,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -280,6 +284,48 @@ function StatPill({ label, accent }: { label: string; accent?: boolean }) {
     >
       {label}
     </span>
+  );
+}
+
+function NotificationsSection() {
+  const t = useT();
+  const {
+    notifyMentions, setNotifyMentions,
+    notifyReplies, setNotifyReplies,
+    notifyFollows, setNotifyFollows,
+  } = useSettingsStore();
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<Bell className="w-4 h-4" />}
+        title={t("settings.notifications")}
+        description={t("settings.notificationsDesc")}
+      />
+      <SectionBody className="space-y-2">
+        <ToggleRow
+          icon={<AtSign className="w-4 h-4" />}
+          label={t("settings.notifyMentions")}
+          description={t("settings.notifyMentionsDesc")}
+          value={notifyMentions}
+          onChange={setNotifyMentions}
+        />
+        <ToggleRow
+          icon={<CornerUpLeft className="w-4 h-4" />}
+          label={t("settings.notifyReplies")}
+          description={t("settings.notifyRepliesDesc")}
+          value={notifyReplies}
+          onChange={setNotifyReplies}
+        />
+        <ToggleRow
+          icon={<UserPlus className="w-4 h-4" />}
+          label={t("settings.notifyFollows")}
+          description={t("settings.notifyFollowsDesc")}
+          value={notifyFollows}
+          onChange={setNotifyFollows}
+        />
+      </SectionBody>
+    </SectionCard>
   );
 }
 
@@ -742,6 +788,7 @@ export default function SettingsPage() {
                 </SectionBody>
               </SectionCard>
               <AppearanceSection />
+              {auth && <NotificationsSection />}
             </TabsContent>
 
             <TabsContent value="security" className="mt-8 space-y-5">

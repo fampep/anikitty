@@ -105,6 +105,13 @@ interface ISettingsStore {
 
   showAnnouncementBanner: boolean;
   setShowAnnouncementBanner: (val: boolean) => void;
+
+  notifyMentions: boolean;
+  setNotifyMentions: (val: boolean) => void;
+  notifyReplies: boolean;
+  setNotifyReplies: (val: boolean) => void;
+  notifyFollows: boolean;
+  setNotifyFollows: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -237,6 +244,13 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       showAnnouncementBanner: true,
       setShowAnnouncementBanner: (showAnnouncementBanner) => set({ showAnnouncementBanner }),
+
+      notifyMentions: true,
+      setNotifyMentions: (notifyMentions) => set({ notifyMentions }),
+      notifyReplies: true,
+      setNotifyReplies: (notifyReplies) => set({ notifyReplies }),
+      notifyFollows: true,
+      setNotifyFollows: (notifyFollows) => set({ notifyFollows }),
     }),
     {
       name: "kitty-settings",
@@ -263,6 +277,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         showBetaBadge: state.showBetaBadge,
         showOnlineCount: state.showOnlineCount,
         showAnnouncementBanner: state.showAnnouncementBanner,
+        notifyMentions: state.notifyMentions,
+        notifyReplies: state.notifyReplies,
+        notifyFollows: state.notifyFollows,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -338,6 +355,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.showBetaBadge = next.showBetaBadge ?? true;
           next.showOnlineCount = next.showOnlineCount ?? true;
           next.showAnnouncementBanner = next.showAnnouncementBanner ?? true;
+          next.notifyMentions = next.notifyMentions ?? true;
+          next.notifyReplies = next.notifyReplies ?? true;
+          next.notifyFollows = next.notifyFollows ?? true;
         }
         return next as ISettingsStore;
       },
