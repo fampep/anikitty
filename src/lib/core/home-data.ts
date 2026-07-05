@@ -75,7 +75,7 @@ function hasStreamableEpisodes(episodes: { sub: number | null; dub: number | nul
   return (episodes.sub ?? 0) > 0 || (episodes.dub ?? 0) > 0;
 }
 
-function toAnime(m: {
+export function toAnime(m: {
   id: number;
   title?: { english?: string | null; romaji?: string | null };
   coverImage?: { extraLarge?: string | null };

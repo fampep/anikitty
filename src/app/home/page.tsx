@@ -1,6 +1,7 @@
 "use client";
 
 import ContinueWatching from "@/components/home/continue-watching";
+import HomeRecommendations from "@/components/home/home-recommendations";
 import HomeExploreBar from "@/components/home/home-explore-bar";
 import HomeQuickNav from "@/components/home/home-quick-nav";
 import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
@@ -67,6 +68,10 @@ export default function Home() {
           <ContinueWatching />
         </LazyMount>
       </div>
+
+      <LazyMount minHeight={200}>
+        <HomeRecommendations />
+      </LazyMount>
 
       <LazyMount minHeight={280}>
         <AnimeSections
