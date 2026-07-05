@@ -7,6 +7,16 @@ import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 const touchThrottleMs = 5 * 60 * 1000;
 const lastTouch = new Map<string, number>();
 
+// Drop entries older than the throttle window so the map doesn't grow unbounded.
+let lastTouchSweep = Date.now();
+function sweepLastTouch(now: number) {
+  if (now - lastTouchSweep < touchThrottleMs) return;
+  lastTouchSweep = now;
+  for (const [id, at] of lastTouch) {
+    if (now - at >= touchThrottleMs) lastTouch.delete(id);
+  }
+}
+
 export type SessionRow = {
   id: string;
   deviceLabel: string | null;
@@ -48,6 +58,7 @@ export async function isSessionActive(sessionId: string): Promise<boolean> {
 
 export async function touchSession(sessionId: string) {
   const now = Date.now();
+  sweepLastTouch(now);
   const prev = lastTouch.get(sessionId) ?? 0;
   if (now - prev < touchThrottleMs) return;
 

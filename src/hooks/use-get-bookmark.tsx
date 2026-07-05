@@ -161,6 +161,8 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
       language?: "sub" | "dub";
       server?: string;
     },
+    /** keepalive for saves during page teardown. */
+    opts?: { keepalive?: boolean },
   ): Promise<null> => {
     if (!auth || !animeId) return null;
     if (episodeData.current < 10 || episodeData.duration <= 0) return null;
@@ -172,19 +174,22 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
     const infoPoster = animeData?.anime?.info?.poster ?? undefined;
 
     try {
-      await anisurgeProgress.save({
-        animeId,
-        ...(anilistId ? { anilistId } : {}),
-        ...(malId ? { malId } : {}),
-        episodeId: episodeData.episodeId,
-        episodeNumber: episodeData.episodeNumber,
-        currentTime: Math.round(episodeData.current),
-        duration: Math.round(episodeData.duration),
-        language: episodeData.language ?? "sub",
-        server: episodeData.server ?? "default",
-        ...(infoTitle ? { animeTitle: infoTitle } : {}),
-        ...(infoPoster ? { animeThumbnail: infoPoster } : {}),
-      });
+      await anisurgeProgress.save(
+        {
+          animeId,
+          ...(anilistId ? { anilistId } : {}),
+          ...(malId ? { malId } : {}),
+          episodeId: episodeData.episodeId,
+          episodeNumber: episodeData.episodeNumber,
+          currentTime: Math.round(episodeData.current),
+          duration: Math.round(episodeData.duration),
+          language: episodeData.language ?? "sub",
+          server: episodeData.server ?? "default",
+          ...(infoTitle ? { animeTitle: infoTitle } : {}),
+          ...(infoPoster ? { animeThumbnail: infoPoster } : {}),
+        },
+        opts,
+      );
       useProgressStore.getState().notify();
     } catch (e) {
       console.error("syncWatchProgress error:", e);

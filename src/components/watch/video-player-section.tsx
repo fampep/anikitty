@@ -577,7 +577,7 @@ const VideoPlayerSection = () => {
   }, [auth, anime, createOrUpdateBookMark]);
 
   // Save progress directly — watchlist entry is not required (episode-level, not per provider)
-  const saveProgress = useCallback(async (current: number, duration: number) => {
+  const saveProgress = useCallback(async (current: number, duration: number, opts?: { keepalive?: boolean }) => {
     if (!auth || !episodeId || !episodeNo || !animeSlug) return;
     if (!current || !duration) return;
     watchedIdRef.current = await syncWatchProgress(
@@ -591,6 +591,7 @@ const VideoPlayerSection = () => {
         language: streamAudio,
         server: provider,
       },
+      opts,
     );
   }, [auth, episodeId, episodeNo, streamAudio, provider, animeSlug, syncWatchProgress]);
 
@@ -684,18 +685,26 @@ const VideoPlayerSection = () => {
     if (dur > 0) saveProgress(dur, dur);
   }, [saveProgress]);
 
-  // Save progress on tab close / navigation away
+  // Save progress on hide/teardown — bfcache-safe and reliable on mobile,
+  // unlike beforeunload.
   useEffect(() => {
-    const onUnload = () => {
+    const flushProgress = () => {
       const t = liveTimeRef.current;
       const dur = liveDurationRef.current;
       if (t > 5 && dur > 0) {
-        saveProgress(t, dur);
+        void saveProgress(t, dur, { keepalive: true });
       }
       useProgressStore.getState().flush();
     };
-    window.addEventListener("beforeunload", onUnload);
-    return () => window.removeEventListener("beforeunload", onUnload);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flushProgress();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", flushProgress);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", flushProgress);
+    };
   }, [saveProgress]);
 
   const {

@@ -231,19 +231,28 @@ export const anilistSync = {
 
 // ── Progress ─────────────────────────────────────────────────────────
 export const anisurgeProgress = {
-  save: (body: {
-    animeId: string;
-    anilistId?: number;
-    malId?: number;
-    episodeId: string;
-    episodeNumber?: number;
-    currentTime: number;
-    duration: number;
-    language?: "sub" | "dub";
-    server?: string;
-    animeTitle?: string;
-    animeThumbnail?: string;
-  }) => bff("/watch/progress", { method: "POST", body: JSON.stringify(body) }),
+  save: (
+    body: {
+      animeId: string;
+      anilistId?: number;
+      malId?: number;
+      episodeId: string;
+      episodeNumber?: number;
+      currentTime: number;
+      duration: number;
+      language?: "sub" | "dub";
+      server?: string;
+      animeTitle?: string;
+      animeThumbnail?: string;
+    },
+    /** keepalive lets the request survive page teardown. */
+    opts?: { keepalive?: boolean },
+  ) =>
+    bff("/watch/progress", {
+      method: "POST",
+      body: JSON.stringify(body),
+      ...(opts?.keepalive ? { keepalive: true } : {}),
+    }),
 };
 
 // ── Continue watching ────────────────────────────────────────────────

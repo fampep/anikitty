@@ -61,6 +61,8 @@ type MemoryEntry = {
   ctx: AudioCacheContext;
 };
 
+// Bounded LRU — oldest key evicts first.
+const MEMORY_CACHE_MAX = 2000;
 const memoryCache = new Map<string, MemoryEntry>();
 
 function cacheContext(opts: AudioAvailabilityOpts): AudioCacheContext {
@@ -109,7 +111,14 @@ function toCounts(sub: number, dub: number): AudioAvailability {
 }
 
 function remember(anilistId: number, value: AudioAvailability, ctx: AudioCacheContext) {
-  memoryCache.set(String(anilistId), { at: Date.now(), value, ctx });
+  const key = String(anilistId);
+  // Re-insert to mark as most-recently used.
+  memoryCache.delete(key);
+  memoryCache.set(key, { at: Date.now(), value, ctx });
+  if (memoryCache.size > MEMORY_CACHE_MAX) {
+    const oldest = memoryCache.keys().next().value;
+    if (oldest !== undefined) memoryCache.delete(oldest);
+  }
 }
 
 function memoryIsFresh(entry: MemoryEntry, ctx: AudioCacheContext): boolean {

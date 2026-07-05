@@ -2,6 +2,17 @@ type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
 
+// Drop expired buckets so the map doesn't grow unbounded.
+let lastSweep = Date.now();
+const SWEEP_INTERVAL_MS = 60_000;
+function maybeSweep(now: number) {
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
+  lastSweep = now;
+  for (const [key, entry] of buckets) {
+    if (now > entry.resetAt) buckets.delete(key);
+  }
+}
+
 /** Simple in-memory rate limiter (per server instance). */
 export function rateLimit(
   key: string,
@@ -9,6 +20,7 @@ export function rateLimit(
   windowMs: number,
 ): { ok: true } | { ok: false; retryAfterSec: number } {
   const now = Date.now();
+  maybeSweep(now);
   const entry = buckets.get(key);
 
   if (!entry || now > entry.resetAt) {

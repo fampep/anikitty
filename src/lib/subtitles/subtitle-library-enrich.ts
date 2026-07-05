@@ -17,7 +17,17 @@ import {
 export type { AnilistMeta };
 
 const META_CACHE_TTL_MS = 60 * 60 * 1000;
+const META_CACHE_MAX = 5000;
 const metaCache = new Map<number, { meta: AnilistMeta; at: number }>();
+
+// Cap size, evicting the oldest entry, so the map doesn't grow unbounded.
+function rememberMeta(id: number, meta: AnilistMeta, at: number) {
+  metaCache.set(id, { meta, at });
+  if (metaCache.size > META_CACHE_MAX) {
+    const oldest = metaCache.keys().next().value;
+    if (oldest !== undefined) metaCache.delete(oldest);
+  }
+}
 
 const META_QUERY = `
   query ($ids: [Int], $page: Int, $perPage: Int) {
@@ -58,7 +68,7 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
   for (const [id, meta] of dbMap) {
     if (hasAnilistPoster(meta.poster)) {
       map.set(id, meta);
-      metaCache.set(id, { meta, at: now });
+      rememberMeta(id, meta, now);
     }
   }
 
@@ -107,7 +117,7 @@ export async function fetchAnilistMetaBatch(anilistIds: number[]): Promise<Map<n
           year: m.seasonYear ?? null,
         };
         map.set(m.id, meta);
-        metaCache.set(m.id, { meta, at: Date.now() });
+        rememberMeta(m.id, meta, Date.now());
         void persistSubtitleLibraryMeta(meta);
       }
     } catch {

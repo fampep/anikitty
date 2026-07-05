@@ -184,6 +184,11 @@ async function getMiruroEpisodesPayload(anilistId: number): Promise<MiruroEpisod
   const data = await miruroFetch<MiruroEpisodesPayload>(`/episodes/${anilistId}`);
   if (!data?.providers) return null;
 
+  // Cap size so unrequested keys don't linger forever.
+  if (episodeListCache.size > 1000) {
+    const oldest = episodeListCache.keys().next().value;
+    if (oldest !== undefined) episodeListCache.delete(oldest);
+  }
   episodeListCache.set(anilistId, { payload: data, at: Date.now() });
   return data;
 }
