@@ -1,7 +1,7 @@
 "use client";
 
 import React, { ReactNode, useState } from "react";
-import { QueryClient, QueryClientProvider } from "react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 type Props = {
   children: ReactNode;
@@ -14,7 +14,7 @@ const QueryProvider = (props: Props) => {
         defaultOptions: {
           queries: {
             staleTime: 60_000,
-            cacheTime: 5 * 60_000,
+            gcTime: 5 * 60_000,
             refetchOnWindowFocus: false,
             retry: 1,
           },

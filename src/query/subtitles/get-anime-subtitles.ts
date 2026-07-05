@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 import { api } from "@/lib/core/api";
 

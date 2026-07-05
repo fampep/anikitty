@@ -85,7 +85,7 @@ import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { getNextFallbackProvider } from "@/lib/kitty/provider-fallback";
 import type { Episode } from "@/types/episodes";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useQueryClient } from "react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
@@ -638,8 +638,8 @@ const VideoPlayerSection = () => {
   }, [saveProgress]);
 
   const preservePlaybackPosition = useCallback(() => {
-    void queryClient.cancelQueries(
-      buildKittyStreamQueryKey(
+    void queryClient.cancelQueries({
+      queryKey: buildKittyStreamQueryKey(
         anilistId,
         episodeNo || undefined,
         streamQueryAudio,
@@ -653,7 +653,7 @@ const VideoPlayerSection = () => {
         provider === "MKissa" ? mkissaMirror : null,
         provider === "Animo" ? animoServer : null,
       ),
-    );
+    });
     fallbackBusyRef.current = false;
     commitResumeForSourceSwitch();
   }, [
@@ -702,7 +702,7 @@ const VideoPlayerSection = () => {
     data: streamData,
     isLoading,
     isFetching,
-    isPreviousData,
+    isPlaceholderData,
     error: streamError,
     refetch: retryStream,
   } = useGetKittyStream(
@@ -728,7 +728,7 @@ const VideoPlayerSection = () => {
     episodePlayable;
 
   const hasStreamFile = Boolean(streamData?.file);
-  const streamStale = Boolean(isPreviousData);
+  const streamStale = Boolean(isPlaceholderData);
   const streamReady = hasStreamFile && !streamStale;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
 

@@ -2,13 +2,13 @@ import { GET_HOME_CRITICAL, GET_HOME_DISCOVERY, GET_HOME_PAGE_DATA } from "@/con
 import { api } from "@/lib/core/api";
 import type { HomeCriticalData, HomeDiscoveryData } from "@/lib/core/home-data";
 import { IAnimeData } from "@/types/anime";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 const homeQueryDefaults = {
   refetchOnWindowFocus: false,
   refetchOnMount: false,
   staleTime: 1000 * 60 * 10,
-  cacheTime: 1000 * 60 * 30,
+  gcTime: 1000 * 60 * 30,
 } as const;
 
 const getHomePageData = async () => {

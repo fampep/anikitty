@@ -10,7 +10,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package*.json ./
 # npm install (not ci) so a stale package-lock.json on the branch still builds in Coolify/Docker.
-RUN npm install --no-fund --no-audit
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+RUN npm install --no-fund --no-audit --no-update-notifier
 
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /app

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/core/api";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {

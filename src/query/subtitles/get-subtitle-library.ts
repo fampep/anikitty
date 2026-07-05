@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { api } from "@/lib/core/api";
 import type { SubtitleLibraryEntry, SubtitleLibraryStats } from "@/lib/subtitles/subtitle-cache-store";
 import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
@@ -41,13 +41,11 @@ export function useSubtitleLibrary(opts: {
   filter?: SubtitleLibraryFilter;
   sort?: SubtitleLibrarySort;
 }) {
-  return useQuery(
-    [GET_SUBTITLE_LIBRARY, opts.q ?? "", opts.page ?? 1, opts.filter ?? "all", opts.sort ?? "latest"],
-    () => fetchSubtitleLibrary(opts),
-    {
-      keepPreviousData: true,
-      staleTime: 60_000,
-      refetchOnWindowFocus: false,
-    },
-  );
+  return useQuery({
+    queryKey: [GET_SUBTITLE_LIBRARY, opts.q ?? "", opts.page ?? 1, opts.filter ?? "all", opts.sort ?? "latest"],
+    queryFn: () => fetchSubtitleLibrary(opts),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
 }

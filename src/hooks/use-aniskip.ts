@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { KittyTrack } from "@/query/stream/get-kitty-stream";
 import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
 import { clientApiHeaders } from "@/lib/security/anti-scrape";

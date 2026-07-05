@@ -1,7 +1,7 @@
 import { GET_ANIME_THEMES } from "@/constants/query-keys";
 import { api } from "@/lib/core/api";
 import type { AnimeThemesResult } from "@/lib/anime/animethemes-api";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 type AnimeThemesResponse = {
   themes: AnimeThemesResult | null;

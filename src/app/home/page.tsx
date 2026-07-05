@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 import React from "react";
 import { Flame, RefreshCw } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
-import { useQueryClient } from "react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { GET_HOME_CRITICAL } from "@/constants/query-keys";
 import LazyMount from "@/components/shared/lazy-mount";
 import { useT } from "@/providers/i18n-provider";
@@ -30,7 +30,7 @@ export default function Home() {
   } = useGetHomeCriticalData();
 
   const handleRetry = () => {
-    queryClient.invalidateQueries([GET_HOME_CRITICAL]);
+    queryClient.invalidateQueries({ queryKey: [GET_HOME_CRITICAL] });
     refetch();
   };
 

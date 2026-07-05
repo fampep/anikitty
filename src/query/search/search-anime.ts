@@ -1,7 +1,7 @@
 import { SEARCH_ANIME } from "@/constants/query-keys";
 import { api } from "@/lib/core/api";
 import { ISuggestionAnime } from "@/types/anime";
-import { useQuery } from "react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 const searchAnime = async (q: string): Promise<ISuggestionAnime[]> => {
   const res = await api.get("/api/search/suggestion", { params: { q } });
@@ -14,6 +14,6 @@ export const useSearchAnime = (query: string) => {
     queryFn: () => searchAnime(query),
     enabled: query.trim().length > 0,
     staleTime: 30 * 1000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 };

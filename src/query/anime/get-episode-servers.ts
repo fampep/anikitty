@@ -1,7 +1,7 @@
 import { GET_EPISODE_SERVERS } from "@/constants/query-keys";
 import { api } from "@/lib/core/api";
 import { IEpisodeServers } from "@/types/episodes";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 const getEpisodeServers = async (episodeId: string) => {
   const res = await api.get("/api/episode/servers", {

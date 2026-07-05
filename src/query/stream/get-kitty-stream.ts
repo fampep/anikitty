@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useQuery } from "react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { api } from "@/lib/core/api";
 import type { AnimexServerId } from "@/lib/providers/animex-config";
 import type { AnisnatchServerId } from "@/lib/providers/anisnatch-config";
@@ -195,8 +195,8 @@ export const useGetKittyStream = (
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     staleTime: 30_000,
-    cacheTime: 5 * 60 * 1000,
-    keepPreviousData: true,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     retry: false,
   });
 };
