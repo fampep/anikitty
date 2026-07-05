@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity } from "lucide-react";
+import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity, ScrollText } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useSettingsStore } from "@/store/settings-store";
@@ -125,6 +125,7 @@ const Footer = () => {
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.project")}</p>
             <NavLink href="/donate" label={t("footer.donate")} icon={<Coffee className="w-3 h-3" />} />
             <NavLink href={ROUTES.STATUS} label={t("nav.status")} icon={<Activity className="w-3 h-3" />} />
+            <NavLink href={ROUTES.CHANGELOG} label={t("footer.changelog")} icon={<ScrollText className="w-3 h-3" />} />
             <NavLink href="/faq" label={t("footer.faqPrivacy")} />
             <a
               href="https://github.com/fampep/anikitty"

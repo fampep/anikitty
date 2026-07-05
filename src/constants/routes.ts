@@ -17,4 +17,5 @@ export const ROUTES = {
   STATUS: "/status",
   DONATE: "/donate",
   SHOP: "/shop",
+  CHANGELOG: "/changelog",
 };
