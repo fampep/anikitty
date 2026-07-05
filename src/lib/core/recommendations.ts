@@ -53,7 +53,9 @@ type RecMedia = {
  * recommendations for the anime they've watched, aggregate the ratings,
  * drop anything already watched, and rank.
  */
-export async function getRecommendationsForUser(userId: string): Promise<IAnime[]> {
+export type RecommendationResult = { items: IAnime[]; hasHistory: boolean };
+
+export async function getRecommendationsForUser(userId: string): Promise<RecommendationResult> {
   const db = getDb();
 
   const rows = await db
@@ -65,7 +67,7 @@ export async function getRecommendationsForUser(userId: string): Promise<IAnime[
 
   const watchedIds = new Set<number>();
   for (const r of rows) if (r.anilistId) watchedIds.add(r.anilistId);
-  if (watchedIds.size === 0) return [];
+  if (watchedIds.size === 0) return { items: [], hasHistory: false };
 
   const seeds = [...watchedIds].slice(0, SEED_LIMIT);
 
@@ -73,7 +75,7 @@ export async function getRecommendationsForUser(userId: string): Promise<IAnime[
   try {
     raw = await queryAniList(RECS_QUERY, { ids: seeds });
   } catch {
-    return [];
+    return { items: [], hasHistory: true };
   }
 
   // Aggregate recommendation ratings across all seed anime.
@@ -96,5 +98,5 @@ export async function getRecommendationsForUser(userId: string): Promise<IAnime[
     .map((entry) => toAnime(entry.media));
 
   const enriched = await enrichAnimeListWithAudio(ranked);
-  return enriched as unknown as IAnime[];
+  return { items: enriched as unknown as IAnime[], hasHistory: true };
 }

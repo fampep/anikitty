@@ -7,13 +7,13 @@ export async function GET(req: Request) {
   if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const data = await getRecommendationsForUser(payload.userId);
+    const result = await getRecommendationsForUser(payload.userId);
     return Response.json(
-      { data },
+      { data: result.items, hasHistory: result.hasHistory },
       { headers: { "Cache-Control": "private, max-age=600" } },
     );
   } catch (err) {
     console.error("recommendations error:", err);
-    return Response.json({ data: [] });
+    return Response.json({ data: [], hasHistory: true });
   }
 }

@@ -100,6 +100,8 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   sw: "sw.js",
   scope: "/",
+  // Served when a navigation request fails with no connection.
+  fallbacks: { document: "/offline" },
   workboxOptions: {
     skipWaiting: true,
     clientsClaim: true,
