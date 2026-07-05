@@ -1,3 +1,8 @@
+import {
+  MEGAPLAY_FAMILY_PROVIDERS,
+  MEGAPLAY_PROVIDER_CONFIG,
+} from "@/lib/kitty/megaplay-providers";
+
 export const KITTY_PROVIDERS = [
   "Miruro",
   "Animex",
@@ -104,9 +109,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
+    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "MegaPlay · HD-1 / HD-2 · SUB · DUB · VTT on SUB",
+    hint: MEGAPLAY_PROVIDER_CONFIG.AnimeSogo.hint,
   },
   {
     id: "Anix",
@@ -115,9 +121,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
+    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "MegaPlay · SUB · DUB · VTT on SUB",
+    hint: MEGAPLAY_PROVIDER_CONFIG.Anix.hint,
   },
   {
     id: "HiAnime",
@@ -126,9 +133,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
+    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "MegaPlay · SUB · DUB · VTT on SUB",
+    hint: MEGAPLAY_PROVIDER_CONFIG.HiAnime.hint,
   },
   {
     id: "AniWatch",
@@ -193,9 +201,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
+    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "MegaPlay + animepahe catalog · SUB · DUB · VTT on SUB",
+    hint: MEGAPLAY_PROVIDER_CONFIG.Animepahe.hint,
   },
   {
     id: "Anikoto",
@@ -207,7 +216,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "MegaPlay · SUB · DUB · VTT on SUB · HS: hard-sub servers",
+    hint: MEGAPLAY_PROVIDER_CONFIG.Anikoto.hint,
   },
   {
     id: "AnimeHub",
@@ -438,19 +447,21 @@ const DEPRECATED_PROVIDERS = new Set([
   "KimoiTV",
 ]);
 
-/** MegaPlay family — SUB and DUB via Kitty stream-direct; VTT on SUB responses. */
-export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([
-  "Animo",
-  "AnimeSogo",
-  "Anix",
-  "HiAnime",
-  "Animepahe",
-  "Anikoto",
-]);
+/** MegaPlay family — Anikoto, AnimeSogo, Anix, HiAnime, Animepahe (KittyAPI shared provider). */
+export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>(
+  MEGAPLAY_FAMILY_PROVIDERS as unknown as KittyProvider[],
+);
+
+export {
+  MEGAPLAY_FAMILY_PROVIDERS,
+  MEGAPLAY_PROVIDER_CONFIG,
+  isMegaplayFamilyProvider,
+} from "@/lib/kitty/megaplay-providers";
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
-  ...KITTY_MEGAPLAY_PROVIDERS,
+  ...MEGAPLAY_FAMILY_PROVIDERS,
+  "Animo",
   "Miruro",
   "Animex",
   "AllAnime",
