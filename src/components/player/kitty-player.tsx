@@ -7,6 +7,7 @@ import Hls from "hls.js";
 import { pickHlsAudioTrack } from "@/lib/kitty/hls-audio";
 import LoadingGirl from "@/components/common/loading-girl";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
+import artplayerPluginChromecast from "artplayer-plugin-chromecast";
 import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import {
@@ -740,6 +741,10 @@ export default function KittyPlayer({
             title: t("watch.streamAudio"),
             auto: t("watch.streamAuto"),
           },
+        }),
+        artplayerPluginChromecast({
+          url: resolveTrackSrc(proxiedSrc),
+          mimeType: "application/x-mpegURL",
         }),
       ],
       highlight: [
