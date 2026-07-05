@@ -38,6 +38,7 @@
       "closeSearch": "Close search",
       "openSearch": "Search",
       "openMenu": "Open menu",
+      "closeMenu": "Close menu",
       "mobileNav": "Mobile navigation"
     },
     "admin": "Admin",
@@ -52,6 +53,10 @@
     "beta": "Beta",
     "version": "v{version}",
     "betaVersionAria": "AniKitty beta, version {version}"
+  },
+  "announcements": {
+    "readMore": "Read more",
+    "learnMore": "Learn more"
   },
   "banner": {
     "adsPromoGuestTitle": "Have an account? Turn off click ads in Settings",
@@ -507,6 +512,10 @@
     "preferDubDesc": "Default to English dub when available",
     "autoPlay": "Auto-play next episode",
     "autoPlayDesc": "Automatically play the next episode when one ends",
+    "autoSkipIntro": "Auto-skip intro",
+    "autoSkipIntroDesc": "Skip opening sequences when outro markers are available",
+    "theatreMode": "Theatre mode",
+    "theatreModeDesc": "Expand the player and hide the episode list by default",
     "playThemeSong": "Play theme on anime pages",
     "playThemeSongDesc": "Automatically play the opening theme on anime detail pages (AnimeThemes)",
     "videoPlayer": "Video player",
@@ -597,6 +606,10 @@
       "kage": "Kage"
     },
     "message": "Message",
+    "copyLink": "Copy link",
+    "linkCopied": "Profile link copied",
+    "linkCopyFailed": "Could not copy link",
+    "openSettings": "Settings",
     "editProfile": "Edit profile",
     "editProfileTitle": "Customize profile",
     "joined": "Joined",
@@ -873,7 +886,9 @@
     "live": "Live",
     "backHome": "Back to Home",
     "reload": "Reload",
-    "close": "Close"
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "skipToContent": "Skip to content"
   },
   "navAvatar": {
     "xpSummary": "{xp} XP · {count} done",

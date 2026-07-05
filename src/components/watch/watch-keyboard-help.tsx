@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 
@@ -24,6 +25,17 @@ const ROWS: Array<{ keys: string; labelKey: string }> = [
 
 export default function WatchKeyboardHelp({ open, onClose }: Props) {
   const t = useT();
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -42,10 +54,11 @@ export default function WatchKeyboardHelp({ open, onClose }: Props) {
         <div className="flex items-center justify-between gap-3 mb-4">
           <h2 className="text-sm font-bold text-foreground dark:text-white/90">{t("watch.shortcuts.title")}</h2>
           <button
+            ref={closeRef}
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/[0.06] transition-colors"
-            aria-label={t("watch.cancel")}
+            aria-label={t("common.close")}
           >
             <X className="w-4 h-4" />
           </button>

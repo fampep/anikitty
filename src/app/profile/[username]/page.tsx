@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Container from "@/components/layout/container";
 import FramedAvatar from "@/components/common/framed-avatar";
 import { CosmeticUsername, ProfileStickerBadge } from "@/components/common/user-cosmetics";
@@ -35,9 +35,12 @@ import {
   ShieldCheck,
   Pencil,
   MessageSquare,
+  Link2,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
+import { toast } from "sonner";
 import { RoleBadge } from "@/components/profile/role-badge";
 import { LevelRoleBadge } from "@/components/profile/user-badges";
 import ProfileBadgesRow from "@/components/profile/profile-badges-row";
@@ -46,6 +49,7 @@ import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/profile/level-progress-card";
 import AnimeLists from "@/components/profile/anime-lists";
 import { useT } from "@/providers/i18n-provider";
+import { useI18n } from "@/providers/i18n-provider";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 
 type ProfileCounts = {
@@ -294,6 +298,7 @@ function UserComments({ username }: { username: string }) {
 
 function ProfilePage() {
   const t = useT();
+  const { locale } = useI18n();
   const params = useParams();
   const profileUsername = decodeURIComponent((params.username as string) ?? "");
   const { auth, setAuth } = useAuthStore();
@@ -319,6 +324,14 @@ function ProfilePage() {
 
   const isOwn = !!auth && auth.username === profileUsername;
   const { balance: kittycoinBalance, loaded: kittycoinLoaded } = useKittycoins(isOwn && !!auth);
+
+  const copyProfileLink = useCallback(() => {
+    const url = `${window.location.origin}/profile/${encodeURIComponent(profileUsername)}`;
+    void navigator.clipboard.writeText(url).then(
+      () => toast.success(t("profile.linkCopied")),
+      () => toast.error(t("profile.linkCopyFailed")),
+    );
+  }, [profileUsername, t]);
 
   const applyProfilePayload = (data: {
     user?: ProfileData;
@@ -496,7 +509,7 @@ function ProfilePage() {
               )}
               {isOwn && profile.profilePrivate && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-violet-400/25 bg-violet-500/10 text-violet-200/90 text-[11px] font-mono self-center sm:self-auto">
-                  🥷 ninja mode
+                  🥷 {t("profile.ninjaMode")}
                 </span>
               )}
               {displayLevel && (
@@ -518,7 +531,7 @@ function ProfilePage() {
                       {kittycoinLoaded ? `${kittycoinBalance.toLocaleString()}` : "—"}
                     </p>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 justify-center sm:justify-end">
                     <Link
                       href={ROUTES.SHOP}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-400/25 bg-amber-500/10 text-amber-200/90 text-[12px] font-medium hover:bg-amber-500/20 transition-all self-center sm:self-auto"
@@ -526,23 +539,51 @@ function ProfilePage() {
                       {t("settings.openShop")}
                     </Link>
                     <button
+                      type="button"
                       onClick={() => setEditOpen(true)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all self-center sm:self-auto"
                     >
                       <Pencil className="w-3 h-3" />
                       {t("profile.editProfile")}
                     </button>
+                    <Link
+                      href={`${ROUTES.SETTINGS}?tab=profile`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all self-center sm:self-auto"
+                    >
+                      <Settings className="w-3 h-3" />
+                      {t("profile.openSettings")}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={copyProfileLink}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all self-center sm:self-auto"
+                    >
+                      <Link2 className="w-3 h-3" />
+                      {t("profile.copyLink")}
+                    </button>
                   </div>
                 </div>
               )}
-              {!isOwn && auth && (
-                <Link
-                  href={`${ROUTES.MESSAGES}?user=${encodeURIComponent(profile.username)}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-500/25 bg-violet-500/10 text-violet-200/90 text-[12px] font-medium hover:bg-violet-500/20 transition-all self-center sm:self-auto sm:ml-auto"
-                >
-                  <MessageSquare className="w-3 h-3" />
-                  {t("profile.message")}
-                </Link>
+              {!isOwn && (
+                <div className="flex flex-wrap gap-1.5 mt-2 sm:mt-0 sm:ml-auto self-center sm:self-auto">
+                  {auth && (
+                    <Link
+                      href={`${ROUTES.MESSAGES}?user=${encodeURIComponent(profile.username)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-500/25 bg-violet-500/10 text-violet-200/90 text-[12px] font-medium hover:bg-violet-500/20 transition-all"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      {t("profile.message")}
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={copyProfileLink}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all"
+                  >
+                    <Link2 className="w-3 h-3" />
+                    {t("profile.copyLink")}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -560,7 +601,8 @@ function ProfilePage() {
 
             {profile.createdAt && (
               <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 mt-1.5">
-                {t("profile.joined")} {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                {t("profile.joined")}{" "}
+                {new Date(profile.createdAt).toLocaleDateString(locale, { month: "long", year: "numeric" })}
               </p>
             )}
 

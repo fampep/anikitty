@@ -11,12 +11,16 @@ export function LiteModeToggle() {
   const setLiteMode = useSettingsStore((s) => s.setLiteMode);
 
   return (
-    <div
-      className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/8 hover:border-border dark:border-white/14 transition-colors cursor-pointer"
+    <button
+      type="button"
+      role="switch"
+      aria-checked={liteMode}
+      aria-label={t("settings.liteMode")}
       onClick={() => setLiteMode(!liteMode)}
+      className="flex w-full items-center justify-between gap-4 px-4 py-3 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/8 hover:border-border dark:border-white/14 transition-colors cursor-pointer text-left"
     >
       <div className="flex items-center gap-3">
-        <span className="text-muted-foreground dark:text-white/30">
+        <span className="text-muted-foreground dark:text-white/30" aria-hidden>
           <Gauge className="w-4 h-4" />
         </span>
         <div>
@@ -29,6 +33,7 @@ export function LiteModeToggle() {
         </div>
       </div>
       <div
+        aria-hidden
         className={cn(
           "relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0",
           liteMode ? "bg-muted/60 dark:bg-muted/60 dark:bg-white/60" : "bg-accent dark:bg-white/12",
@@ -41,6 +46,6 @@ export function LiteModeToggle() {
           )}
         />
       </div>
-    </div>
+    </button>
   );
 }

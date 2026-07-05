@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Info, AlertTriangle, AlertOctagon, CheckCircle2, X, MessageSquare, ArrowRight, Megaphone } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useSettingsStore } from "@/store/settings-store";
+import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 
 interface Announcement {
@@ -50,6 +51,7 @@ function writeDismissed(set: Set<string>) {
 }
 
 export default function SiteAnnouncementBanner() {
+  const t = useT();
   const pathname = usePathname();
   const showAnnouncementBanner = useSettingsStore((s) => s.showAnnouncementBanner);
   const [items, setItems] = useState<Announcement[]>([]);
@@ -136,7 +138,7 @@ export default function SiteAnnouncementBanner() {
           const style = STYLES[a.severity] ?? STYLES.info;
           const Icon = style.icon;
           const href = a.linkUrl ?? (a.forumThreadId ? `${ROUTES.FORUM}/${a.forumThreadId}` : null);
-          const linkLabel = a.linkLabel ?? (a.forumThreadId ? "Read more" : "Learn more");
+          const linkLabel = a.linkLabel ?? (a.forumThreadId ? t("announcements.readMore") : t("announcements.learnMore"));
 
           return (
             <div
@@ -175,7 +177,7 @@ export default function SiteAnnouncementBanner() {
                 <button
                   onClick={() => handleDismiss(a.id)}
                   className="shrink-0 p-1 rounded-md text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8 transition-colors"
-                  aria-label="Dismiss"
+                  aria-label={t("common.dismiss")}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

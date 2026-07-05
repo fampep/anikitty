@@ -455,7 +455,10 @@ const MobileMenuSheet = ({
               className="h-8 w-auto object-contain"
               unoptimized
             />
-            <SheetClose className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:hover:text-white/50 dark:bg-white/8 dark:text-white">
+            <SheetClose
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:hover:text-white/50 dark:bg-white/8 dark:text-white"
+              aria-label={t("nav.aria.closeMenu")}
+            >
               <X className="h-4 w-4" />
             </SheetClose>
           </div>

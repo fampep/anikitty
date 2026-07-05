@@ -23,6 +23,8 @@ import {
   Coins,
   Gauge,
   Music2,
+  SkipForward,
+  Maximize2,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -231,18 +233,25 @@ function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div
-      className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/8 hover:border-border dark:border-white/14 transition-colors cursor-pointer"
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
+      className="flex w-full items-center justify-between gap-4 px-4 py-3 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/8 hover:border-border dark:border-white/14 transition-colors cursor-pointer text-left"
     >
       <div className="flex items-center gap-3">
-        <span className="text-muted-foreground dark:text-white/30">{icon}</span>
+        <span className="text-muted-foreground dark:text-white/30" aria-hidden>
+          {icon}
+        </span>
         <div>
           <p className="text-sm font-medium text-foreground/85 dark:text-white/75">{label}</p>
           <p className="text-[10px] text-muted-foreground/80 dark:text-white/25 font-mono mt-0.5">{description}</p>
         </div>
       </div>
       <div
+        aria-hidden
         className={cn(
           "relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0",
           value ? "bg-muted/60 dark:bg-muted/60 dark:bg-white/60" : "bg-accent dark:bg-white/12",
@@ -255,7 +264,7 @@ function ToggleRow({
           )}
         />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -450,6 +459,10 @@ function PlaybackSection({
   setAutoPlay,
   playThemeSong,
   setPlayThemeSong,
+  autoSkipIntro,
+  setAutoSkipIntro,
+  theatreMode,
+  setTheatreMode,
 }: {
   preferDub: boolean;
   setPreferDub: (v: boolean) => void;
@@ -457,6 +470,10 @@ function PlaybackSection({
   setAutoPlay: (v: boolean) => void;
   playThemeSong: boolean;
   setPlayThemeSong: (v: boolean) => void;
+  autoSkipIntro: boolean;
+  setAutoSkipIntro: (v: boolean) => void;
+  theatreMode: boolean;
+  setTheatreMode: (v: boolean) => void;
 }) {
   const t = useT();
 
@@ -481,6 +498,20 @@ function PlaybackSection({
           description={t("settings.autoPlayDesc")}
           value={autoPlay}
           onChange={setAutoPlay}
+        />
+        <ToggleRow
+          icon={<SkipForward className="w-4 h-4" />}
+          label={t("settings.autoSkipIntro")}
+          description={t("settings.autoSkipIntroDesc")}
+          value={autoSkipIntro}
+          onChange={setAutoSkipIntro}
+        />
+        <ToggleRow
+          icon={<Maximize2 className="w-4 h-4" />}
+          label={t("settings.theatreMode")}
+          description={t("settings.theatreModeDesc")}
+          value={theatreMode}
+          onChange={setTheatreMode}
         />
         <ToggleRow
           icon={<Music2 className="w-4 h-4" />}
@@ -615,7 +646,7 @@ export default function SettingsPage() {
   const pathname = usePathname();
   const episodeLayouts = useEpisodeLayouts(t);
   const { auth } = useAuthStore();
-  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong } =
+  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong, autoSkipIntro, setAutoSkipIntro, theatreMode, setTheatreMode } =
     useSettingsStore();
 
   const defaultTab = useMemo((): SettingsTab => {
@@ -685,6 +716,10 @@ export default function SettingsPage() {
                 setAutoPlay={setAutoPlay}
                 playThemeSong={playThemeSong}
                 setPlayThemeSong={setPlayThemeSong}
+                autoSkipIntro={autoSkipIntro}
+                setAutoSkipIntro={setAutoSkipIntro}
+                theatreMode={theatreMode}
+                setTheatreMode={setTheatreMode}
               />
               <EpisodeLayoutSection
                 episodeLayouts={episodeLayouts}
@@ -783,6 +818,10 @@ export default function SettingsPage() {
               setAutoPlay={setAutoPlay}
               playThemeSong={playThemeSong}
               setPlayThemeSong={setPlayThemeSong}
+              autoSkipIntro={autoSkipIntro}
+              setAutoSkipIntro={setAutoSkipIntro}
+              theatreMode={theatreMode}
+              setTheatreMode={setTheatreMode}
             />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}

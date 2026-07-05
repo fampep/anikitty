@@ -80,6 +80,7 @@ const Footer = () => {
                 href="https://github.com/fampep/anikitty"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={t("footer.github")}
                 className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-muted-foreground dark:text-white/70 dark:border-white/25"
               >
                 <GitHubLogoIcon width="14" height="14" />
@@ -88,6 +89,7 @@ const Footer = () => {
                 href={DISCORD_INVITE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={t("footer.discord")}
                 className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-muted-foreground dark:text-white/70 dark:border-white/25"
               >
                 <DiscordLogoIcon width="14" height="14" />
@@ -109,8 +111,6 @@ const Footer = () => {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.account")}</p>
             <NavLink href="/settings" label={t("footer.settings")} />
-            <NavLink href="/faq" label={t("nav.faq")} />
-            <NavLink href={ROUTES.STATUS} label={t("nav.status")} icon={<Activity className="w-3 h-3" />} />
             <a
               href="https://www.anisurge.lol/"
               target="_blank"

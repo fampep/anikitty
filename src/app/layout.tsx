@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 
 import NavBar from "@/components/layout/navbar";
+import SkipToContent from "@/components/layout/skip-to-content";
 import Footer from "@/components/layout/footer";
 import SiteBetaBadge from "@/components/layout/site-beta-badge";
 import SiteAnnouncementBanner from "@/components/layout/site-announcement-banner";
@@ -153,9 +154,12 @@ export default async function RootLayout({
             <QueryProvider>
               <ClickAdsScript />
               <SiteDisplaySync />
+              <SkipToContent />
               <NavBar />
               <SiteAnnouncementBanner />
-              <div className="site-page">{children}</div>
+              <main id="main" tabIndex={-1} className="site-page">
+                {children}
+              </main>
               <Footer />
               <SiteBetaBadge />
               <DiscordWelcomePrompt />

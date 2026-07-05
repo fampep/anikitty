@@ -65,6 +65,9 @@ function ToggleChip({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
       className={cn(
         "flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
@@ -78,11 +81,11 @@ function ToggleChip({
         <p className="text-[10px] text-muted-foreground dark:text-white/30 font-mono mt-0.5">{description}</p>
       </div>
       <div
+        aria-hidden
         className={cn(
           "relative w-9 h-5 rounded-full shrink-0 transition-colors",
           value ? "bg-violet-500/70" : "bg-accent dark:bg-white/12",
         )}
-        aria-hidden
       >
         <div
           className={cn(
