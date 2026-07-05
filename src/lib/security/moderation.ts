@@ -2,6 +2,7 @@ import type { getDb } from "@/db";
 import { userSessions, users } from "@/db/schema";
 import { countAdmins } from "@/lib/user/delete-user";
 import { canStaffTargetRole } from "@/lib/security/permissions";
+import { recordAudit } from "@/lib/security/audit-log";
 import { and, eq, isNull } from "drizzle-orm";
 
 type Db = ReturnType<typeof getDb>;
@@ -188,6 +189,14 @@ export async function applyModerationAction(
       })
       .where(eq(users.id, targetUserId));
 
+    void recordAudit(db, {
+      actorUserId,
+      action: "mute",
+      targetType: "user",
+      targetId: targetUserId,
+      targetUserId,
+      reason: reason || null,
+    });
     return toModerationStatus({
       ...target,
       mutedUntil,
@@ -201,6 +210,13 @@ export async function applyModerationAction(
       .set({ mutedUntil: null, muteReason: null, mutedBy: null })
       .where(eq(users.id, targetUserId));
 
+    void recordAudit(db, {
+      actorUserId,
+      action: "unmute",
+      targetType: "user",
+      targetId: targetUserId,
+      targetUserId,
+    });
     return toModerationStatus({
       ...target,
       mutedUntil: null,
@@ -231,6 +247,14 @@ export async function applyModerationAction(
 
     await revokeAllSessions(db, targetUserId);
 
+    void recordAudit(db, {
+      actorUserId,
+      action: "ban",
+      targetType: "user",
+      targetId: targetUserId,
+      targetUserId,
+      reason: reason || null,
+    });
     return toModerationStatus({
       bannedAt,
       banReason: reason || null,
@@ -245,6 +269,13 @@ export async function applyModerationAction(
       .set({ bannedAt: null, banReason: null, bannedBy: null })
       .where(eq(users.id, targetUserId));
 
+    void recordAudit(db, {
+      actorUserId,
+      action: "unban",
+      targetType: "user",
+      targetId: targetUserId,
+      targetUserId,
+    });
     return toModerationStatus({
       ...target,
       bannedAt: null,

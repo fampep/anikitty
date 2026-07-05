@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { comments, users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { roleHasPermission } from "@/lib/security/permissions";
+import { recordAudit } from "@/lib/security/audit-log";
 import { and, eq } from "drizzle-orm";
 
 export async function PATCH(
@@ -52,7 +53,24 @@ export async function DELETE(
     ? eq(comments.id, commentId)
     : and(eq(comments.id, commentId), eq(comments.userId, payload.userId));
 
+  // Capture the owner before deleting so a mod-delete can be audited.
+  const [target] = await db
+    .select({ userId: comments.userId })
+    .from(comments)
+    .where(condition)
+    .limit(1);
+
   await db.delete(comments).where(condition);
+
+  if (isMod && target && target.userId !== payload.userId) {
+    void recordAudit(db, {
+      actorUserId: payload.userId,
+      action: "delete_comment",
+      targetType: "comment",
+      targetId: commentId,
+      targetUserId: target.userId,
+    });
+  }
 
   return Response.json({ ok: true });
 }

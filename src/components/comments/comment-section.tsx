@@ -7,7 +7,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import {
   MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
-  ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin,
+  ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin, Flag,
 } from "lucide-react";
 import CommentBody from "@/components/comments/comment-body";
 import { useMentionSuggestions } from "@/hooks/use-mention-suggestions";
@@ -277,7 +277,7 @@ export default function CommentSection({
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<"new" | "top" | "old">("new");
+  const [sort, setSort] = useState<"new" | "best" | "top" | "old">("new");
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -341,7 +341,7 @@ export default function CommentSection({
   // ── Fetch ───────────────────────────────────────────────────────────────────
 
   const fetchComments = useCallback(
-    async (p: number, s: "new" | "top" | "old", append: boolean) => {
+    async (p: number, s: "new" | "best" | "top" | "old", append: boolean) => {
       if (requiresEpisode) {
         setComments([]);
         setTotal(0);
@@ -503,6 +503,26 @@ export default function CommentSection({
       fetchComments(1, sort, false);
     } catch {
       toast.error(t("comments.pinFailed"));
+    }
+  };
+
+  const handleReport = async (commentId: string) => {
+    if (!auth) return;
+    const reason = window.prompt(t("comments.reportPrompt"));
+    if (!reason) return;
+    try {
+      const res = await fetch(
+        "/api/reports",
+        withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetType: "comment", targetId: commentId, reason: "other", details: reason }),
+        }),
+      );
+      if (!res.ok && res.status !== 201) throw new Error();
+      toast.success(t("comments.reportThanks"));
+    } catch {
+      toast.error(t("comments.reportFailed"));
     }
   };
 
@@ -726,6 +746,17 @@ export default function CommentSection({
           {t("comments.reply")}
         </button>
       )}
+
+      {auth && c.userId !== auth.id && (
+        <button
+          onClick={() => handleReport(c.id)}
+          title={t("comments.report")}
+          aria-label={t("comments.report")}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/50 dark:text-white/15 hover:text-rose-400/70 hover:bg-rose-500/5 transition-all ml-0.5"
+        >
+          <Flag className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
+        </button>
+      )}
     </div>
   );
 
@@ -900,7 +931,7 @@ export default function CommentSection({
         )}
         {!loading && (
           <div className="flex items-center gap-0.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-0.5 shrink-0">
-            {(["new", "top", "old"] as const).map((s) => (
+            {(["new", "best", "top", "old"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setSort(s)}
@@ -911,7 +942,13 @@ export default function CommentSection({
                     : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
                 )}
               >
-                {s === "new" ? t("comments.sortNew") : s === "top" ? t("comments.sortTop") : t("comments.sortOld")}
+                {s === "new"
+                  ? t("comments.sortNew")
+                  : s === "best"
+                    ? t("comments.sortBest")
+                    : s === "top"
+                      ? t("comments.sortTop")
+                      : t("comments.sortOld")}
               </button>
             ))}
           </div>

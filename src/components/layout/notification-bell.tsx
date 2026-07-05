@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, Loader2, Mail, MessageCircle, Tv } from "lucide-react";
+import { AtSign, Bell, CornerUpLeft, Loader2, Mail, MessageCircle, Tv } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Avatar from "@/components/common/avatar";
 import { ROUTES } from "@/constants/routes";
@@ -11,6 +11,27 @@ import { useAuthStore } from "@/store/auth-store";
 import { useInboxSummary } from "@/hooks/use-inbox-summary";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
+
+/** Small badge overlaid on the actor avatar so notification kinds are scannable. */
+function NotificationTypeBadge({ type }: { type: string }) {
+  const map: Record<string, { icon: React.ReactNode; className: string }> = {
+    mention: { icon: <AtSign className="h-2.5 w-2.5" />, className: "bg-violet-500 text-white" },
+    comment_reply: { icon: <CornerUpLeft className="h-2.5 w-2.5" />, className: "bg-sky-500 text-white" },
+    dm: { icon: <Mail className="h-2.5 w-2.5" />, className: "bg-emerald-500 text-white" },
+  };
+  const entry = map[type];
+  if (!entry) return null;
+  return (
+    <span
+      className={cn(
+        "absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-[#0a0a0a]",
+        entry.className,
+      )}
+    >
+      {entry.icon}
+    </span>
+  );
+}
 
 export default function NotificationBell() {
   const t = useT();
@@ -102,7 +123,7 @@ export default function NotificationBell() {
                   !n.readAt && "bg-violet-500/[0.06]",
                 )}
               >
-                <div className="shrink-0">
+                <div className="relative shrink-0">
                   {n.type === "episode" ? (
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
                       <Tv className="h-4 w-4" />
@@ -114,6 +135,7 @@ export default function NotificationBell() {
                       className="h-9 w-9 shrink-0"
                     />
                   )}
+                  <NotificationTypeBadge type={n.type} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">

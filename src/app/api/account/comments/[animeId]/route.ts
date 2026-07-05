@@ -108,6 +108,27 @@ export async function GET(
 
     if (sort === "old")
       return base.orderBy(pinnedFirst, asc(comments.createdAt)).limit(PAGE_SIZE).offset(offset);
+    if (sort === "best")
+      // Wilson lower bound of the positive-vote fraction (95% confidence) — ranks
+      // by "how good", not just net score, so a 5/5 beats an early 30/25.
+      return base
+        .orderBy(
+          pinnedFirst,
+          desc(sql<number>`COALESCE((
+            SELECT CASE WHEN (l + d) = 0 THEN 0 ELSE
+              ((l + 1.9208) / (l + d) - 1.96 * sqrt((l * d)::float / (l + d) + 0.9604) / (l + d)) / (1 + 3.8416 / (l + d))
+            END
+            FROM (
+              SELECT
+                SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END)::float AS l,
+                SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END)::float AS d
+              FROM comment_votes WHERE comment_id = ${comments.id}
+            ) v
+          ), 0)`),
+          desc(comments.createdAt),
+        )
+        .limit(PAGE_SIZE)
+        .offset(offset);
     if (sort === "top")
       return base
         .orderBy(

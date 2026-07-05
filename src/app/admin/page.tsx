@@ -12,7 +12,7 @@ import {
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
-  VolumeX, Ban, Clock, Banknote, Coins, Sparkles, Calendar,
+  VolumeX, Ban, Clock, Banknote, Coins, Sparkles, Calendar, Flag, ScrollText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
@@ -172,6 +172,34 @@ interface ActivityEntry {
   username: string;
   avatarUrl: string | null;
   userRole: string;
+}
+
+interface ReportRow {
+  id: string;
+  targetType: string;
+  targetId: string;
+  reason: string;
+  details: string | null;
+  status: string;
+  createdAt: string | null;
+  reporterUsername: string | null;
+  targetUsername: string | null;
+  targetUserId: string | null;
+  commentBody: string | null;
+  commentAnimeId: string | null;
+}
+
+interface AuditRow {
+  id: string;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  reason: string | null;
+  metadata: unknown;
+  createdAt: string | null;
+  actorUsername: string | null;
+  actorAvatarUrl: string | null;
+  targetUsername: string | null;
 }
 
 interface StatsData {
@@ -351,7 +379,7 @@ function RolePermissionEditor({
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const adminChatPollMs = usePollingIntervalMs("adminChat");
-  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat" | "reports" | "audit">("overview");
 
   // Users
   const [users, setUsers]           = useState<AdminUser[]>([]);
@@ -384,6 +412,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [activity, setActivity]         = useState<ActivityEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityView, setActivityView] = useState<"feed" | "live">("feed");
+
+  // Reports + audit
+  const [reports, setReports]           = useState<ReportRow[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [audit, setAudit]               = useState<AuditRow[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   // Stats
   const [stats, setStats]           = useState<StatsData | null>(null);
@@ -465,6 +499,40 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       setActivity(data.activity ?? []);
     } catch { toast.error("Failed to load activity"); }
     finally { setActivityLoading(false); }
+  }, [onLogout]);
+
+  const fetchReports = useCallback(async () => {
+    setReportsLoading(true);
+    try {
+      const res = await fetch("/api/admin/reports?status=open", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      const data = await res.json();
+      setReports(data.reports ?? []);
+    } catch { toast.error("Failed to load reports"); }
+    finally { setReportsLoading(false); }
+  }, [onLogout]);
+
+  const resolveReport = useCallback(async (id: string, action: "resolve" | "dismiss") => {
+    try {
+      const res = await fetch("/api/admin/reports", {
+        method: "PATCH",
+        headers: { ...adminHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+      if (!res.ok) throw new Error();
+      setReports((prev) => prev.filter((r) => r.id !== id));
+    } catch { toast.error("Failed to update report"); }
+  }, []);
+
+  const fetchAudit = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const res = await fetch("/api/admin/audit?limit=150", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      const data = await res.json();
+      setAudit(data.entries ?? []);
+    } catch { toast.error("Failed to load audit log"); }
+    finally { setAuditLoading(false); }
   }, [onLogout]);
 
   const fetchStats = useCallback(async () => {
@@ -637,7 +705,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => {
     if (tab === "chat") void fetchChat();
-  }, [tab, fetchChat]);
+    if (tab === "reports") void fetchReports();
+    if (tab === "audit") void fetchAudit();
+  }, [tab, fetchChat, fetchReports, fetchAudit]);
 
   useIntervalWhenVisible(fetchChat, adminChatPollMs, tab === "chat");
 
@@ -1165,6 +1235,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             { value: "users"          as const, label: "Users",         icon: <Users      className="w-4 h-4" /> },
             { value: "roles"          as const, label: "Roles",         icon: <Tag        className="w-4 h-4" /> },
             { value: "activity"       as const, label: "Activity",      icon: <Activity   className="w-4 h-4" /> },
+            { value: "reports"        as const, label: "Reports",       icon: <Flag       className="w-4 h-4" /> },
+            { value: "audit"          as const, label: "Audit Log",     icon: <ScrollText className="w-4 h-4" /> },
             { value: "chat"           as const, label: "Live Chat",     icon: <MessageCircle className="w-4 h-4" /> },
             { value: "announcements"  as const, label: "Announcements", icon: <Megaphone  className="w-4 h-4" /> },
           ]).map((t) => (
@@ -2023,6 +2095,107 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
           </div>
         )}
+        {/* ── REPORTS ────────────────────────────────────────────── */}
+        {tab === "reports" && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Open reports</h2>
+              <button
+                onClick={() => fetchReports()}
+                className="text-xs font-mono text-white/40 hover:text-white/70"
+              >
+                Refresh
+              </button>
+            </div>
+            {reportsLoading ? (
+              <p className="text-sm text-white/40 py-10 text-center font-mono">Loading…</p>
+            ) : reports.length === 0 ? (
+              <p className="text-sm text-white/40 py-10 text-center font-mono">No open reports 🎉</p>
+            ) : (
+              reports.map((r) => (
+                <div key={r.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 font-mono uppercase">{r.reason}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 font-mono">{r.targetType}</span>
+                    <span className="text-white/40">
+                      reported by <span className="text-white/70">{r.reporterUsername ?? "?"}</span>
+                      {r.targetUsername && <> · against <span className="text-white/70">{r.targetUsername}</span></>}
+                    </span>
+                  </div>
+                  {r.commentBody != null && (
+                    <p className="text-sm text-white/70 bg-black/30 rounded-lg px-3 py-2 border border-white/5 line-clamp-4 whitespace-pre-wrap">
+                      {r.commentBody || <span className="text-white/30 italic">(no text)</span>}
+                    </p>
+                  )}
+                  {r.details && <p className="text-xs text-white/45 italic">“{r.details}”</p>}
+                  <div className="flex items-center gap-2 pt-1">
+                    {r.targetType === "comment" && r.commentAnimeId && (
+                      <a
+                        href={`/anime/${r.commentAnimeId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs px-3 py-1.5 rounded-lg border border-white/12 text-white/60 hover:text-white/90 hover:bg-white/5"
+                      >
+                        View
+                      </a>
+                    )}
+                    <button
+                      onClick={() => resolveReport(r.id, "resolve")}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
+                    >
+                      Resolve
+                    </button>
+                    <button
+                      onClick={() => resolveReport(r.id, "dismiss")}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-white/12 text-white/50 hover:text-white/80 hover:bg-white/5"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ── AUDIT LOG ──────────────────────────────────────────── */}
+        {tab === "audit" && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Moderation audit log</h2>
+              <button
+                onClick={() => fetchAudit()}
+                className="text-xs font-mono text-white/40 hover:text-white/70"
+              >
+                Refresh
+              </button>
+            </div>
+            {auditLoading ? (
+              <p className="text-sm text-white/40 py-10 text-center font-mono">Loading…</p>
+            ) : audit.length === 0 ? (
+              <p className="text-sm text-white/40 py-10 text-center font-mono">No actions logged yet.</p>
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/5">
+                {audit.map((a) => (
+                  <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 text-xs">
+                    <span className="px-2 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-300 font-mono shrink-0">
+                      {a.action}
+                    </span>
+                    <span className="text-white/70 shrink-0">{a.actorUsername ?? "Admin panel"}</span>
+                    {a.targetUsername && (
+                      <span className="text-white/40">→ <span className="text-white/60">{a.targetUsername}</span></span>
+                    )}
+                    {a.reason && <span className="text-white/35 italic truncate">“{a.reason}”</span>}
+                    <span className="ml-auto text-white/25 font-mono shrink-0">
+                      {a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── LIVE CHAT ──────────────────────────────────────────── */}
         {tab === "chat" && (
           <div className="flex flex-col gap-5">

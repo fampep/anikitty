@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { comments, users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { roleHasPermission } from "@/lib/security/permissions";
+import { recordAudit } from "@/lib/security/audit-log";
 import { and, eq, isNull } from "drizzle-orm";
 
 // Toggle a top-level comment's pinned state. Moderators only.
@@ -38,6 +39,13 @@ export async function POST(
     .update(comments)
     .set({ pinnedAt: pinned ? new Date() : null })
     .where(eq(comments.id, commentId));
+
+  void recordAudit(db, {
+    actorUserId: payload.userId,
+    action: pinned ? "pin_comment" : "unpin_comment",
+    targetType: "comment",
+    targetId: commentId,
+  });
 
   return Response.json({ ok: true, pinned });
 }

@@ -646,3 +646,52 @@ export const kittycoinLedger = pgTable(
     userIdx: index("kittycoin_ledger_user_id_idx").on(t.userId),
   }),
 );
+
+// ── Moderation ──────────────────────────────────────────────────────────────
+// Immutable log of staff actions (bans, mutes, comment deletes, pins, etc).
+export const modAuditLog = pgTable(
+  "mod_audit_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    action: varchar("action", { length: 40 }).notNull(),
+    targetType: varchar("target_type", { length: 20 }),
+    targetId: varchar("target_id", { length: 255 }),
+    targetUserId: uuid("target_user_id").references(() => users.id, { onDelete: "set null" }),
+    reason: text("reason"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    createdIdx: index("mod_audit_log_created_idx").on(t.createdAt),
+    actorIdx: index("mod_audit_log_actor_idx").on(t.actorUserId),
+  }),
+);
+
+// User reports of comments/users, resolved from the moderation queue.
+export const userReports = pgTable(
+  "user_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reporterUserId: uuid("reporter_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetType: varchar("target_type", { length: 20 }).notNull(), // comment | user
+    targetId: varchar("target_id", { length: 255 }).notNull(),
+    targetUserId: uuid("target_user_id").references(() => users.id, { onDelete: "set null" }),
+    reason: varchar("reason", { length: 40 }).notNull(),
+    details: text("details"),
+    status: varchar("status", { length: 20 }).notNull().default("open"), // open | resolved | dismissed
+    resolvedByUserId: uuid("resolved_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    resolvedAt: timestamp("resolved_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    statusIdx: index("user_reports_status_idx").on(t.status, t.createdAt),
+    reporterTargetUnique: unique("user_reports_reporter_target").on(
+      t.reporterUserId,
+      t.targetType,
+      t.targetId,
+    ),
+  }),
+);
