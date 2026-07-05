@@ -162,6 +162,10 @@ export const comments = pgTable(
     isSpoiler: boolean("is_spoiler").notNull().default(false),
     // Set when a moderator pins a top-level comment to the top of the thread.
     pinnedAt: timestamp("pinned_at"),
+    // Denormalized vote tallies — kept in sync by the vote route so list
+    // sorting doesn't need a per-row subquery over comment_votes.
+    likeCount: integer("like_count").notNull().default(0),
+    dislikeCount: integer("dislike_count").notNull().default(0),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at"),
   },

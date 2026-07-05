@@ -1,8 +1,8 @@
 import { getDb } from "@/db";
-import { commentVotes } from "@/db/schema";
+import { comments, commentVotes } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { checkRateLimit } from "@/lib/security/rate-limit";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 export async function POST(
   req: Request,
@@ -40,6 +40,16 @@ export async function POST(
         set: { vote },
       });
   }
+
+  // Recompute the denormalized tallies for just this comment — robust against
+  // drift and cheap (single-comment subqueries), unlike keeping running deltas.
+  await db
+    .update(comments)
+    .set({
+      likeCount: sql`COALESCE((SELECT count(*)::int FROM comment_votes WHERE comment_id = ${commentId} AND vote = 1), 0)`,
+      dislikeCount: sql`COALESCE((SELECT count(*)::int FROM comment_votes WHERE comment_id = ${commentId} AND vote = -1), 0)`,
+    })
+    .where(eq(comments.id, commentId));
 
   return Response.json({ ok: true });
 }

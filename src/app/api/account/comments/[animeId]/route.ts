@@ -22,6 +22,8 @@ const BASE_SELECT = {
   gifUrl: comments.gifUrl,
   isSpoiler: comments.isSpoiler,
   pinnedAt: comments.pinnedAt,
+  likeCount: comments.likeCount,
+  dislikeCount: comments.dislikeCount,
   createdAt: comments.createdAt,
   updatedAt: comments.updatedAt,
   userId: comments.userId,
@@ -42,6 +44,8 @@ type RawRow = {
   gifUrl: string | null;
   isSpoiler: boolean;
   pinnedAt: Date | null;
+  likeCount: number;
+  dislikeCount: number;
   createdAt: Date | null;
   updatedAt: Date | null;
   userId: string;
@@ -111,20 +115,15 @@ export async function GET(
     if (sort === "best")
       // Wilson lower bound of the positive-vote fraction (95% confidence) — ranks
       // by "how good", not just net score, so a 5/5 beats an early 30/25.
+      // Uses the denormalized tallies, so no per-row subquery over votes.
       return base
         .orderBy(
           pinnedFirst,
-          desc(sql<number>`COALESCE((
-            SELECT CASE WHEN (l + d) = 0 THEN 0 ELSE
-              ((l + 1.9208) / (l + d) - 1.96 * sqrt((l * d)::float / (l + d) + 0.9604) / (l + d)) / (1 + 3.8416 / (l + d))
-            END
-            FROM (
-              SELECT
-                SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END)::float AS l,
-                SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END)::float AS d
-              FROM comment_votes WHERE comment_id = ${comments.id}
-            ) v
-          ), 0)`),
+          desc(sql<number>`CASE WHEN (${comments.likeCount} + ${comments.dislikeCount}) = 0 THEN 0 ELSE
+            ((${comments.likeCount} + 1.9208) / (${comments.likeCount} + ${comments.dislikeCount})
+              - 1.96 * sqrt((${comments.likeCount}::float * ${comments.dislikeCount}) / (${comments.likeCount} + ${comments.dislikeCount}) + 0.9604) / (${comments.likeCount} + ${comments.dislikeCount}))
+            / (1 + 3.8416 / (${comments.likeCount} + ${comments.dislikeCount}))
+          END`),
           desc(comments.createdAt),
         )
         .limit(PAGE_SIZE)
@@ -133,9 +132,7 @@ export async function GET(
       return base
         .orderBy(
           pinnedFirst,
-          desc(
-            sql<number>`COALESCE((SELECT SUM(CASE WHEN vote=1 THEN 1 WHEN vote=-1 THEN -1 ELSE 0 END) FROM comment_votes WHERE comment_id = ${comments.id}), 0)`,
-          ),
+          desc(sql<number>`(${comments.likeCount} - ${comments.dislikeCount})`),
           desc(comments.createdAt),
         )
         .limit(PAGE_SIZE)
@@ -161,25 +158,14 @@ export async function GET(
   const allUserIds = [...new Set([...topLevel, ...replyRows].map((r) => r.userId))];
   const xpStatsMap = await getUsersXpStats(db, allUserIds);
 
-  // Vote + reaction aggregates — parallelized, guarded against missing table
-  let voteAgg: { commentId: string; likes: number; dislikes: number }[] = [];
+  // Like/dislike totals come straight off the denormalized columns; we only
+  // need to look up the viewer's own vote + reactions here.
   let myVotes: { commentId: string; vote: number }[] = [];
   let reactionRows: { commentId: string; emoji: string; count: number }[] = [];
   let myReactionRows: { commentId: string; emoji: string }[] = [];
 
   if (allIds.length > 0) {
-    [voteAgg, myVotes, reactionRows, myReactionRows] = await Promise.all([
-      db
-        .select({
-          commentId: commentVotes.commentId,
-          likes: sql<number>`sum(case when ${commentVotes.vote} = 1 then 1 else 0 end)::int`,
-          dislikes: sql<number>`sum(case when ${commentVotes.vote} = -1 then 1 else 0 end)::int`,
-        })
-        .from(commentVotes)
-        .where(inArray(commentVotes.commentId, allIds))
-        .groupBy(commentVotes.commentId)
-        .catch(() => []),
-
+    [myVotes, reactionRows, myReactionRows] = await Promise.all([
       payload
         ? db
             .select({ commentId: commentVotes.commentId, vote: commentVotes.vote })
@@ -210,7 +196,6 @@ export async function GET(
   }
 
   // Build lookup maps
-  const voteMap = new Map(voteAgg.map((v) => [v.commentId, v]));
   const myVoteMap = new Map(myVotes.map((v) => [v.commentId, v.vote]));
   const reactionMap = new Map<string, Record<string, number>>();
   for (const r of reactionRows) {
@@ -229,8 +214,8 @@ export async function GET(
     const withLevel = attachLevelRole(row, xpStatsMap);
     return {
       ...withLevel,
-      likes: voteMap.get(row.id)?.likes ?? 0,
-      dislikes: voteMap.get(row.id)?.dislikes ?? 0,
+      likes: row.likeCount ?? 0,
+      dislikes: row.dislikeCount ?? 0,
       myVote: (myVoteMap.get(row.id) ?? 0) as 0 | 1 | -1,
       reactions: reactionMap.get(row.id) ?? {},
       myReactions: myReactionMap.get(row.id) ?? [],
