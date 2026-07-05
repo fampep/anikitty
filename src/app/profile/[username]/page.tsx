@@ -229,7 +229,7 @@ function UserComments({ username }: { username: string }) {
   if (failed) {
     return (
       <div className="flex flex-col items-center gap-3 py-10 text-center">
-        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
+        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-white/8" />
         <div>
           <p className="text-sm text-muted-foreground dark:text-white/50 font-medium">{t("profile.failedToLoadComments")}</p>
           <button
@@ -257,7 +257,7 @@ function UserComments({ username }: { username: string }) {
   if (!items.length) {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
-        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
+        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-white/8" />
         <p className="text-sm text-muted-foreground/70 dark:text-white/20 font-mono">{t("profile.noCommentsYet")}</p>
       </div>
     );

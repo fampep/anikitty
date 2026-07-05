@@ -5,6 +5,7 @@ import { cn } from "@/lib/core/utils";
 import {
   SUBTITLE_COLOR_PRESETS,
   SUBTITLE_STYLE_PRESETS,
+  sanitizeSubtitleSettings,
   subtitleSettingsMatchPreset,
   subtitleSettingsToInlineStyles,
   type SubtitleFontFamily,
@@ -13,7 +14,8 @@ import {
 } from "@/lib/subtitles/subtitle-settings";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Copy, ClipboardPaste } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   compact?: boolean;
@@ -121,6 +123,28 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
     applySubtitlePreset,
     resetSubtitleSettings,
   } = useSettingsStore();
+
+  const exportSubtitleSettings = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(subtitleSettings, null, 2),
+      );
+      toast.success(t("settings.subtitleExportSuccess"));
+    } catch {
+      toast.error(t("settings.subtitleImportError"));
+    }
+  };
+
+  const importSubtitleSettings = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const parsed = JSON.parse(text) as unknown;
+      applySubtitlePreset(sanitizeSubtitleSettings(parsed));
+      toast.success(t("settings.subtitleImportSuccess"));
+    } catch {
+      toast.error(t("settings.subtitleImportError"));
+    }
+  };
 
   const weights: { value: SubtitleFontWeight; label: string }[] = [
     { value: 400, label: t("settings.subtitleWeightNormal") },
@@ -347,14 +371,32 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={resetSubtitleSettings}
-        className="inline-flex items-center gap-1.5 self-start text-[11px] font-medium text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65 transition-colors"
-      >
-        <RotateCcw className="w-3 h-3" />
-        {t("settings.subtitleReset")}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={resetSubtitleSettings}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65 transition-colors"
+        >
+          <RotateCcw className="w-3 h-3" />
+          {t("settings.subtitleReset")}
+        </button>
+        <button
+          type="button"
+          onClick={() => void exportSubtitleSettings()}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65 transition-colors"
+        >
+          <Copy className="w-3 h-3" />
+          {t("settings.subtitleExport")}
+        </button>
+        <button
+          type="button"
+          onClick={() => void importSubtitleSettings()}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65 transition-colors"
+        >
+          <ClipboardPaste className="w-3 h-3" />
+          {t("settings.subtitleImport")}
+        </button>
+      </div>
     </div>
   );
 }

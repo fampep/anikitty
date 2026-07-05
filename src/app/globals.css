@@ -239,6 +239,25 @@ html.lite-mode .site-panel {
   -webkit-backdrop-filter: none;
 }
 
+html.density-compact {
+  --nav-height: 3.5rem;
+  --home-section-gap: 1.75rem;
+  --home-hero-max-h: 460px;
+}
+
+html.density-compact .site-panel {
+  border-radius: 0.875rem;
+}
+
+html.density-compact .site-chip {
+  padding: 0.375rem 0.625rem;
+  font-size: 10px;
+}
+
+html.density-compact .site-page {
+  letter-spacing: -0.01em;
+}
+
 @layer components {
   .site-panel {
     @apply rounded-2xl border border-border/70 bg-card/90 backdrop-blur-md;
@@ -730,6 +749,34 @@ html[data-user-theme] .art-kitty-player .art-selector-item.art-current,
 html[data-user-theme] .art-kitty-player .art-setting-panel .art-setting-item.art-current {
   background: rgb(var(--user-accent-rgb) / 0.2) !important;
   color: rgb(var(--user-accent-rgb) / 1) !important;
+}
+
+html[data-user-theme] .site-brand-btn {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--user-accent-rgb) / 0.88),
+    rgb(var(--user-accent-rgb) / 1)
+  ) !important;
+  box-shadow: 0 8px 28px rgb(var(--user-accent-rgb) / 0.32) !important;
+}
+
+html[data-user-theme] .site-brand-btn:hover {
+  filter: brightness(1.08);
+}
+
+html[data-user-theme] .site-chip-active {
+  border-color: rgb(var(--user-accent-rgb) / 0.35) !important;
+  background-color: rgb(var(--user-accent-rgb) / 0.12) !important;
+  color: rgb(var(--user-accent-rgb) / 1) !important;
+}
+
+html[data-user-theme] ::selection {
+  background: rgb(var(--user-accent-rgb) / 0.28);
+  color: inherit;
+}
+
+html[data-user-theme] .dark ::selection {
+  color: #fff;
 }
 
 /* Subtitle library feed (ryuo-style layout, Anikitty theme) */

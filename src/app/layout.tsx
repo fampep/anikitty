@@ -13,7 +13,7 @@ import QueryProvider from "@/providers/query-provider";
 import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
-import UserThemeSync from "@/components/layout/user-theme-sync";
+import SiteDisplaySync from "@/components/layout/site-display-sync";
 import ClickAdsScript from "@/components/ads/click-ads-script";
 import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
@@ -152,7 +152,7 @@ export default async function RootLayout({
           >
             <QueryProvider>
               <ClickAdsScript />
-              <UserThemeSync />
+              <SiteDisplaySync />
               <NavBar />
               <SiteAnnouncementBanner />
               <div className="site-page">{children}</div>

@@ -40,35 +40,52 @@ async function fetchServerBenchmark(): Promise<{
   }
 }
 
-async function fetchNodePings(): Promise<PingCache> {
+type UseKittyNodePingOptions = {
+  enabled?: boolean;
+  /** Server benchmark only — skips heavy client speedtest downloads (~200KB). */
+  lightweight?: boolean;
+};
+
+async function fetchNodePings(lightweight = false): Promise<PingCache> {
   if (pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS) {
     return pingCache;
   }
 
   if (!pingInflight) {
-    pingInflight = Promise.all([
-      measureAllKittyNodesFromClient(),
-      fetchServerBenchmark(),
-    ])
-      .then(([clientNodes, serverBenchmark]) => {
-        const clientReachable = clientNodes.some((n) => n.ok);
-        const nodes = clientReachable
-          ? clientNodes
-          : serverBenchmark?.nodes?.length
-            ? serverBenchmark.nodes
-            : clientNodes;
-        const result: PingCache = {
-          at: Date.now(),
-          nodes,
-          recommended: serverBenchmark?.recommended ?? null,
-        };
-        pingCache = result;
-        emitPingUpdate();
-        return result;
-      })
-      .finally(() => {
-        pingInflight = null;
-      });
+    pingInflight = (lightweight
+      ? fetchServerBenchmark().then((serverBenchmark) => {
+          const nodes = serverBenchmark?.nodes?.length ? serverBenchmark.nodes : [];
+          const result: PingCache = {
+            at: Date.now(),
+            nodes,
+            recommended: serverBenchmark?.recommended ?? null,
+          };
+          pingCache = result;
+          emitPingUpdate();
+          return result;
+        })
+      : Promise.all([
+          measureAllKittyNodesFromClient(),
+          fetchServerBenchmark(),
+        ]).then(([clientNodes, serverBenchmark]) => {
+          const clientReachable = clientNodes.some((n) => n.ok);
+          const nodes = clientReachable
+            ? clientNodes
+            : serverBenchmark?.nodes?.length
+              ? serverBenchmark.nodes
+              : clientNodes;
+          const result: PingCache = {
+            at: Date.now(),
+            nodes,
+            recommended: serverBenchmark?.recommended ?? null,
+          };
+          pingCache = result;
+          emitPingUpdate();
+          return result;
+        })
+    ).finally(() => {
+      pingInflight = null;
+    });
   }
 
   return pingInflight;
@@ -91,12 +108,9 @@ export function pickFastestKittyNode(
   return recommended ?? null;
 }
 
-type UseKittyNodePingOptions = {
-  enabled?: boolean;
-};
-
 export function useKittyNodePing(options?: UseKittyNodePingOptions) {
   const enabled = options?.enabled ?? true;
+  const lightweight = options?.lightweight ?? false;
   const [refreshKey, setRefreshKey] = useState(0);
   const [nodes, setNodes] = useState<KittyNodePingResult[]>(() => pingCache?.nodes ?? []);
   const [recommended, setRecommended] = useState<KittyApiNodeId | null>(
@@ -138,7 +152,7 @@ export function useKittyNodePing(options?: UseKittyNodePingOptions) {
       syncFromCache();
     } else {
       setLoading(true);
-      fetchNodePings()
+      fetchNodePings(lightweight)
         .then(() => {
           if (!cancelled) syncFromCache();
         })
@@ -154,7 +168,7 @@ export function useKittyNodePing(options?: UseKittyNodePingOptions) {
       cancelled = true;
       pingListeners.delete(onUpdate);
     };
-  }, [enabled, refreshKey, syncFromCache]);
+  }, [enabled, lightweight, refreshKey, syncFromCache]);
 
   const pingByNode = useMemo(() => {
     const map: Partial<Record<KittyApiNodeId, number | null>> = {};

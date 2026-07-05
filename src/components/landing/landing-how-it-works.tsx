@@ -30,7 +30,7 @@ export default function LandingHowItWorks() {
                 <Icon className="w-5 h-5" />
               </span>
               <p className="text-sm font-bold text-foreground dark:text-white/90 mb-1.5">{t(`landing.howSteps.${key}.title`)}</p>
-              <p className="text-[12px] text-muted-foreground dark:text-muted-foreground dark:text-white/42 leading-relaxed">{t(`landing.howSteps.${key}.desc`)}</p>
+              <p className="text-[12px] text-muted-foreground dark:text-white/42 leading-relaxed">{t(`landing.howSteps.${key}.desc`)}</p>
             </div>
           ))}
         </div>

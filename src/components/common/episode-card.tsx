@@ -110,7 +110,7 @@ const EpisodeCard = ({
             ) : (
               /* No screenshot available — show a clean dark numbered placeholder */
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
-                <span className="text-3xl font-black font-mono text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8 select-none">
+                <span className="text-3xl font-black font-mono text-muted-foreground/20 dark:text-white/8 select-none">
                   {String(props.episode.number).padStart(2, "0")}
                 </span>
               </div>
@@ -233,7 +233,7 @@ const EpisodeCard = ({
               />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex items-center justify-center">
-                <span className="text-2xl font-black font-mono text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8 select-none">
+                <span className="text-2xl font-black font-mono text-muted-foreground/20 dark:text-white/8 select-none">
                   {String(props.episode.number).padStart(2, "0")}
                 </span>
               </div>

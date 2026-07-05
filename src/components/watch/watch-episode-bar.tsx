@@ -77,7 +77,7 @@ export default function WatchEpisodeBar({
             "flex items-center justify-center w-10 sm:w-11 shrink-0 border-r border-border dark:border-white/8 transition-colors",
             prevEpisode
               ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:text-white hover:bg-muted/50 dark:bg-white/[0.04]"
-              : "text-muted-foreground/30 dark:text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
+              : "text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >
           <ChevronLeft className="w-5 h-5" />
@@ -193,7 +193,7 @@ export default function WatchEpisodeBar({
             "flex items-center justify-center w-10 sm:w-11 shrink-0 border-l border-border dark:border-white/8 transition-colors",
             nextEpisode
               ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:text-white hover:bg-muted/50 dark:bg-white/[0.04]"
-              : "text-muted-foreground/30 dark:text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
+              : "text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >
           <ChevronRight className="w-5 h-5" />

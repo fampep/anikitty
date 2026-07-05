@@ -34,6 +34,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
+import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 
 export default function ThreadPage() {
   const t = useT();
@@ -110,9 +111,11 @@ export default function ThreadPage() {
     loadThread();
   }, [loadThread]);
 
+  const pollMs = usePollingIntervalMs("forum");
+
   useIntervalWhenVisible(() => {
     void loadThread(true);
-  }, 30_000);
+  }, pollMs);
 
   const handleThreadVote = async (vote: 1 | -1) => {
     if (!thread) return;

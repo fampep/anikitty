@@ -429,7 +429,7 @@ function EpisodeThumbnail({ image, episode }: { image?: string | null; episode: 
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-white/[0.02]">
-          <Film className="w-8 h-8 text-muted-foreground/25 dark:text-muted-foreground/25 dark:text-white/10" />
+          <Film className="w-8 h-8 text-muted-foreground/25 dark:text-white/10" />
         </div>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />

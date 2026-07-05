@@ -2,14 +2,16 @@
 
 import { usePathname } from "next/navigation";
 import { SITE_IS_BETA, SITE_VERSION } from "@/constants/site-meta";
+import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 
 export default function SiteBetaBadge() {
   const t = useT();
   const pathname = usePathname();
+  const showBetaBadge = useSettingsStore((s) => s.showBetaBadge);
 
-  if (!SITE_IS_BETA) return null;
+  if (!SITE_IS_BETA || !showBetaBadge) return null;
 
   const onWatch = pathname?.startsWith("/anime/watch");
 

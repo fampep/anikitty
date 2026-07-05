@@ -532,7 +532,7 @@ function EpisodeThumbnail({ image, episode }: { image?: string | null; episode: 
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-white/[0.02]">
-          <span className="text-2xl font-black font-mono text-muted-foreground/25 dark:text-muted-foreground/25 dark:text-white/10 select-none">
+          <span className="text-2xl font-black font-mono text-muted-foreground/25 dark:text-white/10 select-none">
             {String(episode).padStart(2, "0")}
           </span>
         </div>

@@ -6,6 +6,9 @@ import {
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 
+import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
+import { isValidThemeColor } from "@/lib/core/theme-color";
+
 export type SyncedUserPreferences = {
   episodeLayout?: EpisodeLayout;
   preferDub?: boolean;
@@ -22,6 +25,12 @@ export type SyncedUserPreferences = {
   liteMode?: boolean;
   autoSkipIntro?: boolean;
   playThemeSong?: boolean;
+  siteAccentColor?: string | null;
+  uiFontScale?: UiFontScale;
+  interfaceDensity?: InterfaceDensity;
+  showBetaBadge?: boolean;
+  showOnlineCount?: boolean;
+  showAnnouncementBanner?: boolean;
 };
 
 export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
@@ -43,6 +52,22 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.liteMode === "boolean") out.liteMode = input.liteMode;
   if (typeof input.autoSkipIntro === "boolean") out.autoSkipIntro = input.autoSkipIntro;
   if (typeof input.playThemeSong === "boolean") out.playThemeSong = input.playThemeSong;
+  if (input.uiFontScale === "small" || input.uiFontScale === "default" || input.uiFontScale === "large") {
+    out.uiFontScale = input.uiFontScale;
+  }
+  if (input.interfaceDensity === "comfortable" || input.interfaceDensity === "compact") {
+    out.interfaceDensity = input.interfaceDensity;
+  }
+  if (typeof input.showBetaBadge === "boolean") out.showBetaBadge = input.showBetaBadge;
+  if (typeof input.showOnlineCount === "boolean") out.showOnlineCount = input.showOnlineCount;
+  if (typeof input.showAnnouncementBanner === "boolean") {
+    out.showAnnouncementBanner = input.showAnnouncementBanner;
+  }
+  if (input.siteAccentColor === null) {
+    out.siteAccentColor = null;
+  } else if (typeof input.siteAccentColor === "string" && isValidThemeColor(input.siteAccentColor)) {
+    out.siteAccentColor = input.siteAccentColor.toLowerCase();
+  }
 
   if (input.subtitleSettings && typeof input.subtitleSettings === "object") {
     out.subtitleSettings = sanitizeSubtitleSettings(input.subtitleSettings);

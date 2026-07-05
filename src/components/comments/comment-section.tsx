@@ -1048,13 +1048,13 @@ export default function CommentSection({
       {/* Comment list */}
       {requiresEpisode ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
+          <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-white/8" />
           <p className="text-sm text-muted-foreground/80 dark:text-white/25 font-mono">{t("comments.selectEpisode")}</p>
           <p className="text-xs text-muted-foreground/50 dark:text-white/15">{t("comments.scopedPerEpisode")}</p>
         </div>
       ) : loadError ? (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
-          <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
+          <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-white/8" />
           <p className="text-sm text-red-400/80 font-mono">{loadError}</p>
           <button
             onClick={() => fetchComments(1, sort, false)}

@@ -18,6 +18,7 @@ import { ButtonLink } from "@/components/common/button-link";
 import { SpotlightAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useSettingsStore } from "@/store/settings-store";
 import { trackEvent } from "@/lib/analytics";
 
 function stripHtml(html: string): string {
@@ -37,6 +38,8 @@ type IHeroSectionProps = {
 
 const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   const reducedMotion = usePrefersReducedMotion();
+  const liteMode = useSettingsStore((s) => s.liteMode);
+  const pauseCarousel = reducedMotion || liteMode;
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
@@ -49,7 +52,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   }, [api]);
 
   useEffect(() => {
-    if (!api || !count || reducedMotion) return;
+    if (!api || !count || pauseCarousel) return;
     const root = document.querySelector(".home-hero-carousel");
     if (!root || typeof IntersectionObserver === "undefined") {
       const timer = setInterval(() => {
@@ -76,7 +79,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
       observer.disconnect();
       if (timer) clearInterval(timer);
     };
-  }, [api, count, reducedMotion]);
+  }, [api, count, pauseCarousel]);
 
   useEffect(() => {
     if (!api) return;

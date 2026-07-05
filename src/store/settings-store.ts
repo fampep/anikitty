@@ -11,6 +11,7 @@ import {
   type SubtitleSettings,
   type SubtitleTextShadow,
 } from "@/lib/subtitles/subtitle-settings";
+import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
@@ -85,6 +86,25 @@ interface ISettingsStore {
   /** Play opening theme on anime detail pages (AnimeThemes.moe). */
   playThemeSong: boolean;
   setPlayThemeSong: (val: boolean) => void;
+
+  /** Guest/local accent when no profile theme is set. */
+  siteAccentColor: string | null;
+  setSiteAccentColor: (color: string | null) => void;
+
+  uiFontScale: UiFontScale;
+  setUiFontScale: (scale: UiFontScale) => void;
+
+  interfaceDensity: InterfaceDensity;
+  setInterfaceDensity: (density: InterfaceDensity) => void;
+
+  showBetaBadge: boolean;
+  setShowBetaBadge: (val: boolean) => void;
+
+  showOnlineCount: boolean;
+  setShowOnlineCount: (val: boolean) => void;
+
+  showAnnouncementBanner: boolean;
+  setShowAnnouncementBanner: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -199,10 +219,28 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       playThemeSong: true,
       setPlayThemeSong: (playThemeSong) => set({ playThemeSong }),
+
+      siteAccentColor: null,
+      setSiteAccentColor: (siteAccentColor) => set({ siteAccentColor }),
+
+      uiFontScale: "default",
+      setUiFontScale: (uiFontScale) => set({ uiFontScale }),
+
+      interfaceDensity: "comfortable",
+      setInterfaceDensity: (interfaceDensity) => set({ interfaceDensity }),
+
+      showBetaBadge: true,
+      setShowBetaBadge: (showBetaBadge) => set({ showBetaBadge }),
+
+      showOnlineCount: true,
+      setShowOnlineCount: (showOnlineCount) => set({ showOnlineCount }),
+
+      showAnnouncementBanner: true,
+      setShowAnnouncementBanner: (showAnnouncementBanner) => set({ showAnnouncementBanner }),
     }),
     {
       name: "kitty-settings",
-      version: 21,
+      version: 22,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -219,6 +257,12 @@ export const useSettingsStore = create<ISettingsStore>()(
         liteMode: state.liteMode,
         autoSkipIntro: state.autoSkipIntro,
         playThemeSong: state.playThemeSong,
+        siteAccentColor: state.siteAccentColor,
+        uiFontScale: state.uiFontScale,
+        interfaceDensity: state.interfaceDensity,
+        showBetaBadge: state.showBetaBadge,
+        showOnlineCount: state.showOnlineCount,
+        showAnnouncementBanner: state.showAnnouncementBanner,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -286,6 +330,14 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 21) {
           next.subtitleSettings = sanitizeSubtitleSettings(next.subtitleSettings);
+        }
+        if (version < 22) {
+          next.siteAccentColor = next.siteAccentColor ?? null;
+          next.uiFontScale = next.uiFontScale ?? "default";
+          next.interfaceDensity = next.interfaceDensity ?? "comfortable";
+          next.showBetaBadge = next.showBetaBadge ?? true;
+          next.showOnlineCount = next.showOnlineCount ?? true;
+          next.showAnnouncementBanner = next.showAnnouncementBanner ?? true;
         }
         return next as ISettingsStore;
       },

@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dmApi, mergeDmMessages, type DmConversation, type DmMessage } from "@/lib/social/dm";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
-
-const POLL_MS = 3_000;
+import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 
 export function useDmConversation(conversationId: string | null) {
+  const pollMs = usePollingIntervalMs("dm");
   const [conversation, setConversation] = useState<DmConversation | null>(null);
   const [messages, setMessages] = useState<DmMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,7 +66,7 @@ export function useDmConversation(conversationId: string | null) {
     loadInitial();
   }, [conversationId, loadInitial]);
 
-  useIntervalWhenVisible(pollNew, POLL_MS, Boolean(conversationId));
+  useIntervalWhenVisible(pollNew, pollMs, Boolean(conversationId));
 
   const sendMessage = useCallback(
     async (opts: { body?: string; gifUrl?: string | null }) => {

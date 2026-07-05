@@ -7,13 +7,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import Avatar from "@/components/common/avatar";
 import { ROUTES } from "@/constants/routes";
 import { dmApi, dmTimeAgo, type UserNotification } from "@/lib/social/dm";
+import { useAuthStore } from "@/store/auth-store";
 import { useInboxSummary } from "@/hooks/use-inbox-summary";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 
 export default function NotificationBell() {
   const t = useT();
-  const { summary, refresh: refreshSummary } = useInboxSummary();
+  const auth = useAuthStore((s) => s.auth);
+  const { summary, refresh: refreshSummary } = useInboxSummary(Boolean(auth));
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [loading, setLoading] = useState(false);

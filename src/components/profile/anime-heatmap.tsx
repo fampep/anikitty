@@ -65,7 +65,7 @@ function AnimeHeatmap({ username }: Props) {
   if (failed) {
     return (
       <div className="flex flex-col items-center gap-3 py-10 text-center">
-        <Activity className="w-8 h-8 text-muted-foreground/20 dark:text-muted-foreground/20 dark:text-white/8" />
+        <Activity className="w-8 h-8 text-muted-foreground/20 dark:text-white/8" />
         <div>
           <p className="text-sm text-muted-foreground dark:text-white/50 font-medium">{t("profile.failedToLoadActivity")}</p>
           <button

@@ -30,6 +30,12 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     liteMode: s.liteMode,
     autoSkipIntro: s.autoSkipIntro,
     playThemeSong: s.playThemeSong,
+    siteAccentColor: s.siteAccentColor,
+    uiFontScale: s.uiFontScale,
+    interfaceDensity: s.interfaceDensity,
+    showBetaBadge: s.showBetaBadge,
+    showOnlineCount: s.showOnlineCount,
+    showAnnouncementBanner: s.showAnnouncementBanner,
   });
 }
 
@@ -50,6 +56,12 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.liteMode !== undefined) patch.liteMode = prefs.liteMode;
   if (prefs.autoSkipIntro !== undefined) patch.autoSkipIntro = prefs.autoSkipIntro;
   if (prefs.playThemeSong !== undefined) patch.playThemeSong = prefs.playThemeSong;
+  if (prefs.siteAccentColor !== undefined) patch.siteAccentColor = prefs.siteAccentColor;
+  if (prefs.uiFontScale !== undefined) patch.uiFontScale = prefs.uiFontScale;
+  if (prefs.interfaceDensity !== undefined) patch.interfaceDensity = prefs.interfaceDensity;
+  if (prefs.showBetaBadge !== undefined) patch.showBetaBadge = prefs.showBetaBadge;
+  if (prefs.showOnlineCount !== undefined) patch.showOnlineCount = prefs.showOnlineCount;
+  if (prefs.showAnnouncementBanner !== undefined) patch.showAnnouncementBanner = prefs.showAnnouncementBanner;
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);
@@ -70,6 +82,7 @@ export default function SettingsSync() {
   const readyRef = useRef(false);
   const applyingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastPushedRef = useRef<string>("");
 
   useEffect(() => {
     if (!useAuthStore.persist.hasHydrated() || !useSettingsStore.persist.hasHydrated()) {
@@ -99,8 +112,10 @@ export default function SettingsSync() {
           await pushLocalPreferences();
         }
         readyRef.current = true;
+        lastPushedRef.current = JSON.stringify(pickLocalSyncedPreferences());
       } catch {
         readyRef.current = true;
+        lastPushedRef.current = JSON.stringify(pickLocalSyncedPreferences());
       } finally {
         window.setTimeout(() => {
           applyingRef.current = false;
@@ -119,8 +134,12 @@ export default function SettingsSync() {
     const unsub = useSettingsStore.subscribe(() => {
       if (!readyRef.current || applyingRef.current) return;
 
+      const next = JSON.stringify(pickLocalSyncedPreferences());
+      if (next === lastPushedRef.current) return;
+
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        lastPushedRef.current = next;
         void pushLocalPreferences().catch(() => undefined);
       }, SYNC_DEBOUNCE_MS);
     });

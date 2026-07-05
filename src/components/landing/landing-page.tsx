@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/core/utils";
 import { nightTokyo } from "@/utils/fonts";
 import { useOnlineCount } from "@/hooks/use-online-count";
+import { useSettingsStore } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
@@ -64,7 +65,8 @@ function HeroStat({ icon, label, value }: { icon: React.ReactNode; label: string
 
 export default function LandingPage({ initialPosters = [] }: Props) {
   const t = useT();
-  const count = useOnlineCount();
+  const showOnlineCount = useSettingsStore((s) => s.showOnlineCount);
+  const count = useOnlineCount(showOnlineCount);
   const auth = useAuthStore();
   const isLoggedIn = !!auth.auth;
   const { data: homeData, isLoading: homeLoading } = useGetHomeCriticalData();
@@ -168,7 +170,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
         <div
           className={cn(
             "inline-flex items-center gap-2 px-3.5 py-1.5 mb-5 sm:mb-7 rounded-full border text-[11px] font-mono transition-all duration-500",
-            count !== null
+            count !== null && showOnlineCount
               ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300/80 opacity-100"
               : "opacity-0 pointer-events-none",
           )}
@@ -179,7 +181,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
               !reducedMotion && "animate-pulse",
             )}
           />
-          {count !== null && (
+          {count !== null && showOnlineCount && (
             <>{t("landing.watchingNow", { count: count.toLocaleString(), people: count === 1 ? t("landing.person") : t("landing.people") })}</>
           )}
         </div>
@@ -199,7 +201,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
         <p className="text-muted-foreground dark:text-white/70 text-base sm:text-lg md:text-xl font-light mb-2 leading-relaxed tracking-wide max-w-xl">
           {t("landing.tagline")}
         </p>
-        <p className="text-muted-foreground/70 dark:text-muted-foreground/70 dark:text-white/28 text-xs sm:text-sm font-mono mb-7 sm:mb-8 flex items-center gap-2 flex-wrap justify-center">
+        <p className="text-muted-foreground/70 dark:text-white/28 text-xs sm:text-sm font-mono mb-7 sm:mb-8 flex items-center gap-2 flex-wrap justify-center">
           {statsLine.map((part, i) => (
             <span key={part} className="inline-flex items-center gap-2">
               {i > 0 && <span className="w-1 h-1 rounded-full bg-muted dark:bg-white/15" />}
@@ -264,7 +266,7 @@ export default function LandingPage({ initialPosters = [] }: Props) {
           <HeroStat
             icon={<Users className="w-3.5 h-3.5" />}
             label={t("landing.statOnline")}
-            value={count !== null ? count.toLocaleString() : "—"}
+            value={showOnlineCount && count !== null ? count.toLocaleString() : "—"}
           />
           <HeroStat
             icon={<Sparkles className="w-3.5 h-3.5" />}

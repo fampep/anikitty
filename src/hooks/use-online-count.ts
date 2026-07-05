@@ -1,10 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { readLiteModeFromStorage } from "@/lib/core/lite-mode";
-
-const POLL_MS = 30_000;
-const LITE_POLL_MS = 90_000;
+import { resolvePollIntervalMs } from "@/lib/core/polling-intervals";
 
 function getOrCreateSid(): string {
   try {
@@ -30,6 +27,13 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+function clearScheduledBeat() {
+  if (interval) {
+    clearTimeout(interval);
+    interval = null;
+  }
+}
+
 async function beat() {
   if (typeof document !== "undefined" && document.hidden) return;
   if (!sid) sid = getOrCreateSid();
@@ -49,21 +53,29 @@ async function beat() {
   }
 }
 
+function scheduleNextBeat() {
+  clearScheduledBeat();
+  if (typeof document !== "undefined" && document.hidden) return;
+
+  const ms = resolvePollIntervalMs("online");
+  interval = setTimeout(() => {
+    void beat().finally(scheduleNextBeat);
+  }, ms);
+}
+
 function startPolling() {
-  if (interval) return;
+  if (teardown) return;
 
   void beat();
-
-  const scheduleNext = () => {
-    const ms = readLiteModeFromStorage() ? LITE_POLL_MS : POLL_MS;
-    interval = setTimeout(() => {
-      void beat().finally(scheduleNext);
-    }, ms);
-  };
-  scheduleNext();
+  scheduleNextBeat();
 
   const onVisibility = () => {
-    if (!document.hidden) void beat();
+    if (document.hidden) {
+      clearScheduledBeat();
+      return;
+    }
+    void beat();
+    scheduleNextBeat();
   };
   document.addEventListener("visibilitychange", onVisibility);
 
@@ -81,14 +93,11 @@ function startPolling() {
   teardown = () => {
     document.removeEventListener("visibilitychange", onVisibility);
     window.removeEventListener("beforeunload", onUnload);
+    clearScheduledBeat();
   };
 }
 
 function stopPolling() {
-  if (interval) {
-    clearTimeout(interval);
-    interval = null;
-  }
   teardown?.();
   teardown = null;
 }
@@ -113,6 +122,11 @@ function getServerSnapshot() {
   return null;
 }
 
-export function useOnlineCount() {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+/** Pass `active={false}` to avoid subscribing until the count is needed (e.g. footer below fold). */
+export function useOnlineCount(active = true) {
+  return useSyncExternalStore(
+    (listener) => (active ? subscribe(listener) : () => {}),
+    getSnapshot,
+    getServerSnapshot,
+  );
 }

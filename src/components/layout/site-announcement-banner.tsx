@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Info, AlertTriangle, AlertOctagon, CheckCircle2, X, MessageSquare, ArrowRight, Megaphone } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
+import { useSettingsStore } from "@/store/settings-store";
 import { cn } from "@/lib/core/utils";
 
 interface Announcement {
@@ -50,6 +51,7 @@ function writeDismissed(set: Set<string>) {
 
 export default function SiteAnnouncementBanner() {
   const pathname = usePathname();
+  const showAnnouncementBanner = useSettingsStore((s) => s.showAnnouncementBanner);
   const [items, setItems] = useState<Announcement[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
@@ -75,7 +77,7 @@ export default function SiteAnnouncementBanner() {
     });
   };
 
-  const hideOnPage = !hydrated || pathname === "/" || pathname?.startsWith("/anime/watch");
+  const hideOnPage = !hydrated || !showAnnouncementBanner || pathname === "/" || pathname?.startsWith("/anime/watch");
 
   const visible = useMemo(() => {
     if (hideOnPage) return [];

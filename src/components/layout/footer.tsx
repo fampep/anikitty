@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
+import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
@@ -15,7 +16,25 @@ import { ROUTES } from "@/constants/routes";
 const Footer = () => {
   const t = useT();
   const pathname = usePathname();
-  const count = useOnlineCount();
+  const onlineRef = useRef<HTMLDivElement>(null);
+  const [onlineActive, setOnlineActive] = useState(false);
+  const showOnlineCountPref = useSettingsStore((s) => s.showOnlineCount);
+
+  useEffect(() => {
+    const el = onlineRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setOnlineActive(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setOnlineActive(entry?.isIntersecting ?? false),
+      { rootMargin: "240px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const count = useOnlineCount(onlineActive && showOnlineCountPref);
 
   if (pathname === "/") return null;
 
@@ -40,16 +59,20 @@ const Footer = () => {
               {t("footer.tagline")}
             </p>
 
-            {count !== null && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                </span>
-                <span className="text-[11px] text-muted-foreground font-mono">
-                  {t("footer.online", { count: count.toLocaleString() })}
-                </span>
-              </div>
+            {showOnlineCountPref && (
+            <div ref={onlineRef} className="flex items-center gap-2 mt-1 min-h-[1.25rem]">
+              {count !== null && (
+                <>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    {t("footer.online", { count: count.toLocaleString() })}
+                  </span>
+                </>
+              )}
+            </div>
             )}
 
             <div className="flex items-center gap-2 mt-1">

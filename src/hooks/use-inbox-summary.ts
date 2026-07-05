@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { dmApi, type InboxSummary } from "@/lib/social/dm";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
-
-const POLL_MS = 30_000;
+import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 
 export function useInboxSummary(enabled = true) {
+  const pollMs = usePollingIntervalMs("inbox");
   const [summary, setSummary] = useState<InboxSummary>({
     unreadNotifications: 0,
     unreadDm: 0,
@@ -34,7 +34,7 @@ export function useInboxSummary(enabled = true) {
     void refresh();
   }, [enabled, refresh]);
 
-  useIntervalWhenVisible(refresh, POLL_MS, enabled);
+  useIntervalWhenVisible(refresh, pollMs, enabled);
 
   return { summary, loading, refresh };
 }

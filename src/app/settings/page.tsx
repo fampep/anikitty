@@ -32,7 +32,6 @@ import AnilistConnect from "@/components/profile/anilist-connect";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile/profile-customization-form";
-import { ThemeModeSelect } from "@/components/settings/theme-mode-select";
 import { LiteModeToggle } from "@/components/settings/lite-mode-toggle";
 import ProfileMediaPreview from "@/components/profile/profile-media-preview";
 import { applyUserThemeColor } from "@/lib/core/theme-color";
@@ -43,6 +42,7 @@ import ActiveSessionsSection from "@/components/auth/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile/profile-privacy-section";
 import AccountDeletionSection from "@/components/auth/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
+import SiteDisplaySettings from "@/components/settings/site-display-settings";
 import DiscordConnect from "@/components/auth/discord-connect";
 import AnisurgeConnect from "@/components/auth/anisurge-connect";
 import { RoleBadge } from "@/components/profile/role-badge";
@@ -319,7 +319,6 @@ function AppearanceSection() {
         description={t("settings.appearanceDesc")}
       />
       <SectionBody>
-        <ThemeModeSelect />
         {loaded ? (
           <ProfileCustomizationForm
             initial={initial}
@@ -341,6 +340,23 @@ function AppearanceSection() {
             {t("settings.loading")}
           </div>
         )}
+      </SectionBody>
+    </SectionCard>
+  );
+}
+
+function SiteDisplaySection() {
+  const t = useT();
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<Palette className="w-4 h-4" />}
+        title={t("settings.siteDisplay")}
+        description={t("settings.siteDisplayDesc")}
+      />
+      <SectionBody>
+        <SiteDisplaySettings />
       </SectionBody>
     </SectionCard>
   );
@@ -660,6 +676,7 @@ export default function SettingsPage() {
 
             <TabsContent value="general" className="mt-8 space-y-5">
               {auth && <ShopSection />}
+              <SiteDisplaySection />
               <PerformanceSection />
               <PlaybackSection
                 preferDub={preferDub}
@@ -757,6 +774,7 @@ export default function SettingsPage() {
           </Tabs>
         ) : (
           <div className="mt-2 space-y-5">
+            <SiteDisplaySection />
             <PerformanceSection />
             <PlaybackSection
               preferDub={preferDub}

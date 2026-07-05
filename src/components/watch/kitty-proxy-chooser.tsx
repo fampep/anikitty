@@ -34,7 +34,9 @@ export default function KittyProxyChooser() {
   const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const kittyProxyManual = useSettingsStore((s) => s.kittyProxyManual);
   const selectKittyProxyNode = useSettingsStore((s) => s.selectKittyProxyNode);
-  const { pingByNode, bandwidthByNode, fastestId, loading } = useKittyNodePing();
+  const { pingByNode, bandwidthByNode, fastestId, loading } = useKittyNodePing({
+    lightweight: false,
+  });
 
   return (
     <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3 space-y-2.5">

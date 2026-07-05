@@ -131,7 +131,10 @@ const VideoPlayerSection = () => {
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
   const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode } = useSettingsStore();
-  const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing();
+  const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
+    enabled: !kittyProxyManual,
+    lightweight: true,
+  });
 
   useEffect(() => {
     if (!proxyPingReady || kittyProxyManual || !fastestProxyId) return;
