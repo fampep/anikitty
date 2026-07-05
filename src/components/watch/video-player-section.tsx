@@ -1285,9 +1285,9 @@ const VideoPlayerSection = () => {
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-border dark:ring-white/10 shadow-2xl shadow-black/60 bg-black">
-      {/* Persistent wrapper — fullscreen is held here during episode transitions */}
-      <div ref={playerWrapperRef} className="contents">
-      <div className="relative w-full">
+      {/* Persistent wrapper — a real (non-`contents`) element so it can hold
+          native fullscreen across episode transitions without dropping out. */}
+      <div ref={playerWrapperRef} className="relative w-full bg-black">
       {needsResumePrompt ? (
         <div className="relative w-full aspect-video bg-[#030303]">
           <WatchResumePrompt
@@ -1322,7 +1322,6 @@ const VideoPlayerSection = () => {
         w2g={playerW2g}
       />
       )}
-      </div>
       </div>
 
       <WatchPlayerToolbar
