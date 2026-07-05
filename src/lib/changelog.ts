@@ -26,4 +26,27 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 };
 
 // ── Entries (newest first) ───────────────────────────────────────────────────
-export const CHANGELOG: ChangelogEntry[] = [];
+export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "0.5.5",
+    date: "2026-07-05",
+    title: "Social, personalization & player upgrades",
+    changes: [
+      { type: "added", text: "Personalized \"Recommended for you\" row on the home page, based on what you've watched." },
+      { type: "added", text: "Follow other users — followers/following counts and lists on profiles, plus a notification when someone follows you." },
+      { type: "added", text: "Block users to hide their comments and stop them messaging or following you (manage the list in Settings → Privacy)." },
+      { type: "added", text: "Report comments to moderators with a flag button." },
+      { type: "added", text: "Comment upgrades: clickable timestamps that jump the video, @mentions, moderator-pinned comments, and inline ||spoilers||." },
+      { type: "added", text: "Quick-add: a \"+\" on anime cards adds a title to your watchlist without opening the page." },
+      { type: "added", text: "Notification preferences in Settings to control mention, reply, and follow alerts." },
+      { type: "added", text: "Lock-screen media controls on mobile — play/pause, seek, and next episode." },
+      { type: "added", text: "\"Best\" comment sort that surfaces genuinely well-received comments." },
+      { type: "added", text: "Offline page when your connection drops, and a new Changelog page." },
+      { type: "improved", text: "Watch progress now saves reliably, including when you background the app on mobile." },
+      { type: "improved", text: "Volume and playback speed are remembered across episodes and sessions." },
+      { type: "improved", text: "The notification bell now shows what each alert is at a glance." },
+      { type: "improved", text: "Faster comment loading on busy anime, plus better search-engine discovery and general performance." },
+      { type: "fixed", text: "The player no longer drops out of fullscreen when moving to the next episode." },
+    ],
+  },
+];
