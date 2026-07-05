@@ -28,6 +28,47 @@ export type EpisodeImageSources = {
 const EP_NUM_RE = /(?:episode|ep\.?)\s*(\d+)/i;
 const EP_PREFIX_RE = /^(?:episode|ep\.?)\s*\d+\s*[-:–]\s*/i;
 
+function firstDefined(...values: (string | null | undefined)[]): string | null {
+  for (const value of values) {
+    if (value) return value;
+  }
+  return null;
+}
+
+function mergeEpisodeMeta(existing: EpisodeMeta | undefined, next: EpisodeMeta): EpisodeMeta {
+  return {
+    image: existing?.image ?? next.image,
+    title: existing?.title ?? next.title,
+    tvdbId: existing?.tvdbId ?? next.tvdbId,
+    overview: existing?.overview ?? next.overview,
+    airDate: existing?.airDate ?? next.airDate,
+  };
+}
+
+function episodeIndexKeys(e: Record<string, unknown>, key: string): number[] {
+  const keys = new Set<number>();
+  const keyNum = parseInt(key, 10);
+  const absolute =
+    typeof e.absoluteEpisodeNumber === "number" ? e.absoluteEpisodeNumber : null;
+  const seasonNumber = typeof e.seasonNumber === "number" ? e.seasonNumber : null;
+  const episodeNumber =
+    typeof e.episodeNumber === "number"
+      ? e.episodeNumber
+      : typeof e.number === "number"
+        ? e.number
+        : Number.isFinite(keyNum)
+          ? keyNum
+          : null;
+
+  if (absolute != null && absolute > 0) keys.add(absolute);
+  if (episodeNumber != null && episodeNumber > 0) {
+    if (seasonNumber == null || seasonNumber <= 1) keys.add(episodeNumber);
+  }
+  if (Number.isFinite(keyNum) && keyNum > 0) keys.add(keyNum);
+
+  return [...keys];
+}
+
 export function buildAnilistEpisodeMaps(
   streamingEps: Array<{ title: string; thumbnail?: string }>,
 ): { imageMap: Record<number, string>; titleMap: Record<number, string> } {
@@ -67,13 +108,8 @@ export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
 
     for (const [key, val] of Object.entries(rawEps)) {
       const e = val as Record<string, unknown>;
-      const keyNum = parseInt(key, 10);
-      const abs =
-        typeof e.absoluteEpisodeNumber === "number"
-          ? e.absoluteEpisodeNumber
-          : keyNum;
-      const num = abs > 0 ? abs : keyNum;
-      if (!num || num <= 0 || Number.isNaN(num)) continue;
+      const nums = episodeIndexKeys(e, key);
+      if (!nums.length) continue;
 
       const titleObj = e.title as Record<string, string> | undefined;
       const title = titleObj?.en ?? titleObj?.["x-jat"] ?? titleObj?.ja ?? undefined;
@@ -81,15 +117,11 @@ export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
       const tvdbId = typeof e.tvdbId === "number" ? e.tvdbId : undefined;
       const overview = typeof e.overview === "string" ? e.overview : undefined;
       const airDate = typeof e.airDate === "string" ? e.airDate : undefined;
+      const meta: EpisodeMeta = { image, title, tvdbId, overview, airDate };
 
-      const existing = episodes[num];
-      episodes[num] = {
-        image: image ?? existing?.image,
-        title: title ?? existing?.title,
-        tvdbId: tvdbId ?? existing?.tvdbId,
-        overview: overview ?? existing?.overview,
-        airDate: airDate ?? existing?.airDate,
-      };
+      for (const num of nums) {
+        episodes[num] = mergeEpisodeMeta(episodes[num], meta);
+      }
     }
 
     return {
@@ -124,6 +156,7 @@ async function fetchTmdbEpisodeImages(
       .map((s) => s.season_number)
       .filter((n) => n > 0)
       .sort((a, b) => a - b);
+    const singleSeason = seasonNums.length === 1;
 
     let absolute = 0;
     for (const seasonNum of seasonNums) {
@@ -143,7 +176,7 @@ async function fetchTmdbEpisodeImages(
           if (!still) continue;
           const url = `${TMDB_IMAGE}${still}`;
           if (!map[absolute]) map[absolute] = url;
-          if (typeof ep.episode_number === "number" && seasonNum === 1) {
+          if (typeof ep.episode_number === "number" && (seasonNum === 1 || singleSeason)) {
             if (!map[ep.episode_number]) map[ep.episode_number] = url;
           }
         }
@@ -168,19 +201,12 @@ export async function fetchAllEpisodeImageSources(
   const tvdbId = aniZip.mappings?.thetvdb_id;
   const tmdbId = aniZip.mappings?.themoviedb_id;
 
-  const tmdb = tmdbId ? await fetchTmdbEpisodeImages(tmdbId) : {};
-  const tmdbCount = Object.keys(tmdb).length;
-  const anizipImageCount = Object.values(aniZip.episodes).filter((e) => e.image).length;
-  const anilistCount = Object.keys(imageMap).length;
-
-  // Skip TVDB episode fetch when other sources already cover thumbnails.
-  const shouldFetchTvdb =
-    Boolean(tvdbId) &&
-    tmdbCount + anizipImageCount + anilistCount < Math.max(3, streamingEpisodes.length * 0.25);
-
-  const tvdb = shouldFetchTvdb
-    ? await fetchTvdbEpisodeImages(tvdbId!)
-    : { byId: {}, byAiredOrder: {} };
+  const [tmdb, tvdb] = await Promise.all([
+    tmdbId ? fetchTmdbEpisodeImages(tmdbId) : Promise.resolve({}),
+    tvdbId
+      ? fetchTvdbEpisodeImages(tvdbId)
+      : Promise.resolve({ byId: {}, byAiredOrder: {} } as const),
+  ]);
 
   return {
     anilist: imageMap,
@@ -198,13 +224,12 @@ export function resolveEpisodeImage(
   sources: EpisodeImageSources,
 ): string | null {
   const zip = sources.anizip[num];
-  return (
-    sources.anilist[num] ??
-    zip?.image ??
-    sources.tmdb[num] ??
-    (zip?.tvdbId ? sources.tvdbById[zip.tvdbId] : undefined) ??
-    sources.tvdbByOrder[num] ??
-    null
+  return firstDefined(
+    sources.anilist[num],
+    zip?.image,
+    sources.tmdb[num],
+    zip?.tvdbId ? sources.tvdbById[zip.tvdbId] : undefined,
+    sources.tvdbByOrder[num],
   );
 }
 
