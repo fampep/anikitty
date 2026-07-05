@@ -1,23 +1,7 @@
 import type { Metadata } from "next";
-import { queryAniList } from "@/lib/oauth/anilist";
 import { animeShareDescription } from "@/lib/seo/site-seo";
+import { getAnimeSeoData, buildAnimeJsonLd } from "@/lib/seo/anime-seo-data";
 import AnimeDetail from "@/components/anime/anime-detail";
-
-const META_QUERY = `
-  query ($id: Int) {
-    Media(id: $id, type: ANIME) {
-      title { english romaji }
-      description(asHtml: false)
-      coverImage { extraLarge color }
-      bannerImage
-      genres
-      averageScore
-      episodes
-      format
-      status
-    }
-  }
-`;
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
@@ -27,8 +11,7 @@ export async function generateMetadata(
   if (isNaN(numId)) return { title: "Anime | AniKitty" };
 
   try {
-    const data = await queryAniList(META_QUERY, { id: numId });
-    const m = data?.Media;
+    const m = await getAnimeSeoData(numId);
     if (!m) return { title: "Anime | AniKitty" };
 
     const title  = m.title.english || m.title.romaji || "Anime";
@@ -71,5 +54,19 @@ export default async function Page(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  return <AnimeDetail slug={slug} />;
+  const numId = parseInt(slug, 10);
+  const seo = Number.isNaN(numId) ? null : await getAnimeSeoData(numId);
+
+  return (
+    <>
+      {seo && (
+        <script
+          type="application/ld+json"
+          // Structured data for search engines (TVSeries / Movie rich results).
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildAnimeJsonLd(numId, seo)) }}
+        />
+      )}
+      <AnimeDetail slug={slug} />
+    </>
+  );
 }

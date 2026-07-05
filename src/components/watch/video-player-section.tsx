@@ -629,6 +629,14 @@ const VideoPlayerSection = () => {
   const handleLiveTime = useCallback((t: number, dur: number) => {
     liveTimeRef.current = t;
     liveDurationRef.current = dur;
+    // Keep the lock-screen scrubber in sync.
+    if (typeof navigator !== "undefined" && "mediaSession" in navigator && dur > 0) {
+      try {
+        navigator.mediaSession.setPositionState?.({ duration: dur, position: Math.min(t, dur), playbackRate: 1 });
+      } catch {
+        /* invalid state during transitions */
+      }
+    }
     const activeEpisodeId = progressEpisodeIdRef.current;
     if (!animeSlug || !activeEpisodeId || t <= 5 || dur <= 0) return;
     useProgressStore.getState().setProgress(animeSlug, activeEpisodeId, t, dur);
@@ -717,6 +725,43 @@ const VideoPlayerSection = () => {
     });
     return () => usePlayerSeekStore.getState().clearSeek();
   }, [artPlayer]);
+
+  // Media Session: lock-screen / notification playback controls on mobile.
+  const animeName = anime?.anime?.info?.name;
+  const animePoster = anime?.anime?.info?.poster;
+  useEffect(() => {
+    if (!artPlayer || typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    if (!animeName) return;
+
+    const ms = navigator.mediaSession;
+    ms.metadata = new MediaMetadata({
+      title: currentEpisodeInfo ? t("watch.episode", { n: currentEpisodeInfo.number }) : animeName,
+      artist: animeName,
+      album: "AniKitty",
+      artwork: animePoster
+        ? [
+            { src: animePoster, sizes: "256x256", type: "image/jpeg" },
+            { src: animePoster, sizes: "512x512", type: "image/jpeg" },
+          ]
+        : [],
+    });
+
+    const set = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
+      try { ms.setActionHandler(action, handler); } catch { /* unsupported action */ }
+    };
+    set("play", () => void artPlayer.play?.());
+    set("pause", () => artPlayer.pause?.());
+    set("seekbackward", (d) => { artPlayer.seek = Math.max(0, (artPlayer.currentTime ?? 0) - (d.seekOffset || 10)); });
+    set("seekforward", (d) => { artPlayer.seek = (artPlayer.currentTime ?? 0) + (d.seekOffset || 10); });
+    set("previoustrack", prevEpisode ? () => handlePrevEpisode() : null);
+    set("nexttrack", nextEpisode ? () => handleNextEpisode() : null);
+
+    return () => {
+      for (const a of ["play", "pause", "seekbackward", "seekforward", "previoustrack", "nexttrack"] as const) {
+        set(a, null);
+      }
+    };
+  }, [artPlayer, animeName, animePoster, currentEpisodeInfo, prevEpisode, nextEpisode, handlePrevEpisode, handleNextEpisode, t]);
 
   const {
     data: streamData,
