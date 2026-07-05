@@ -29,6 +29,11 @@ import {
   type StreamTrack,
 } from "@/lib/subtitles/subtitle-track-utils";
 import { sanitizeVttOrSrtContent } from "@/lib/subtitles/vtt-parse";
+import {
+  subtitleSettingsToCssVars,
+  subtitleSettingsToInlineStyles,
+  type SubtitleSettings,
+} from "@/lib/subtitles/subtitle-settings";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import type { VideoPlayerProps } from "@/lib/kitty/video-player-types";
@@ -214,35 +219,56 @@ function applySubtitleMode(
   return nativeEnabled ? "native" : "off";
 }
 
-function applySubtitleStyles(
-  art: Artplayer,
-  settings: {
-    fontSize: number;
-    color: string;
-    fontWeight: number;
-    backgroundOpacity: number;
-    bottomOffset: number;
-  },
-) {
+function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
   const scaled = Math.max(14, Math.min(32, art.height * 0.04, settings.fontSize + 4));
+  const inline = subtitleSettingsToInlineStyles(settings, scaled);
+
   art.subtitle.style({
-    color: settings.color,
-    fontSize: `${scaled}px`,
-    fontWeight: String(settings.fontWeight),
-    textShadow: "2px 2px 4px rgba(0,0,0,0.85)",
+    color: inline.color,
+    fontSize: inline.fontSize,
+    fontWeight: String(inline.fontWeight),
+    textShadow: inline.textShadow,
   });
 
   const root = art.template?.$player as HTMLElement | undefined;
   if (root) {
     root.style.setProperty("--art-subtitle-bottom", `${settings.bottomOffset * 16}px`);
+    root.style.setProperty("--kitty-sub-letter-spacing", inline.letterSpacing);
+    root.style.setProperty("--kitty-sub-line-height", String(inline.lineHeight));
+    root.style.setProperty("--kitty-sub-font-family", inline.fontFamily);
+    root.style.setProperty("--kitty-sub-border-radius", inline.borderRadius);
+    root.style.setProperty("--kitty-sub-padding", inline.padding);
+    root.style.setProperty("--kitty-sub-text-shadow", inline.textShadow);
+    root.style.setProperty("--kitty-sub-font-weight", String(inline.fontWeight));
+    for (const [key, value] of Object.entries(subtitleSettingsToCssVars(settings))) {
+      root.style.setProperty(key, value);
+    }
+    if (inline.WebkitTextStroke) {
+      root.style.setProperty("--kitty-sub-text-stroke", inline.WebkitTextStroke);
+    } else {
+      root.style.removeProperty("--kitty-sub-text-stroke");
+    }
   }
 
   const subEl = art.template?.$subtitle as HTMLElement | undefined;
-  if (subEl && settings.backgroundOpacity > 0) {
-    subEl.style.setProperty(
-      "--art-subtitle-bg",
-      `rgba(0,0,0,${settings.backgroundOpacity / 100})`,
-    );
+  if (subEl) {
+    subEl.style.letterSpacing = inline.letterSpacing;
+    subEl.style.lineHeight = String(inline.lineHeight);
+    subEl.style.fontFamily = inline.fontFamily;
+    subEl.style.borderRadius = inline.borderRadius;
+    subEl.style.padding = inline.padding;
+    if (inline.WebkitTextStroke) {
+      subEl.style.webkitTextStroke = inline.WebkitTextStroke;
+    } else {
+      subEl.style.webkitTextStroke = "";
+    }
+    if (settings.backgroundOpacity > 0) {
+      subEl.style.setProperty("--art-subtitle-bg", inline.backgroundColor);
+      subEl.style.backgroundColor = inline.backgroundColor;
+    } else {
+      subEl.style.removeProperty("--art-subtitle-bg");
+      subEl.style.backgroundColor = "transparent";
+    }
   }
 }
 
@@ -504,30 +530,7 @@ export default function KittyPlayer({
     applyResume(art);
   }, [startTime, applyResume]);
 
-  const {
-    fontSize: subtitleFontSize,
-    color: subtitleColor,
-    fontWeight: subtitleFontWeight,
-    backgroundOpacity: subtitleBackgroundOpacity,
-    bottomOffset: subtitleBottomOffset,
-  } = subtitleSettings;
-
-  const subtitleStyleSettings = useMemo(
-    () => ({
-      fontSize: subtitleFontSize,
-      color: subtitleColor,
-      fontWeight: subtitleFontWeight,
-      backgroundOpacity: subtitleBackgroundOpacity,
-      bottomOffset: subtitleBottomOffset,
-    }),
-    [
-      subtitleFontSize,
-      subtitleColor,
-      subtitleFontWeight,
-      subtitleBackgroundOpacity,
-      subtitleBottomOffset,
-    ],
-  );
+  const subtitleStyleSettings = subtitleSettings;
 
   useEffect(() => {
     const art = artRef.current;

@@ -1,5 +1,8 @@
 import type { EpisodeLayout } from "@/store/settings-store";
-import type { SubtitleSettings } from "@/lib/subtitles/subtitle-settings";
+import {
+  sanitizeSubtitleSettings,
+  type SubtitleSettings,
+} from "@/lib/subtitles/subtitle-settings";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 
@@ -42,7 +45,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.playThemeSong === "boolean") out.playThemeSong = input.playThemeSong;
 
   if (input.subtitleSettings && typeof input.subtitleSettings === "object") {
-    out.subtitleSettings = input.subtitleSettings as SubtitleSettings;
+    out.subtitleSettings = sanitizeSubtitleSettings(input.subtitleSettings);
   }
   if (input.providerSectionHidden && typeof input.providerSectionHidden === "object") {
     out.providerSectionHidden = input.providerSectionHidden as Partial<

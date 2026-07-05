@@ -5,8 +5,11 @@ import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { DEFAULT_KITTY_API_NODE_ID, isKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
+  sanitizeSubtitleSettings,
+  type SubtitleFontFamily,
   type SubtitleFontWeight,
   type SubtitleSettings,
+  type SubtitleTextShadow,
 } from "@/lib/subtitles/subtitle-settings";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
@@ -61,6 +64,14 @@ interface ISettingsStore {
   setSubtitleBackgroundOpacity: (backgroundOpacity: number) => void;
   setSubtitleFontWeight: (fontWeight: SubtitleFontWeight) => void;
   setSubtitleBottomOffset: (bottomOffset: number) => void;
+  setSubtitleTextShadow: (textShadow: SubtitleTextShadow) => void;
+  setSubtitleOutlineWidth: (outlineWidth: number) => void;
+  setSubtitleLetterSpacing: (letterSpacing: number) => void;
+  setSubtitleLineHeight: (lineHeight: number) => void;
+  setSubtitleBackgroundColor: (backgroundColor: string) => void;
+  setSubtitleBorderRadius: (borderRadius: number) => void;
+  setSubtitleFontFamily: (fontFamily: SubtitleFontFamily) => void;
+  applySubtitlePreset: (settings: SubtitleSettings) => void;
   resetSubtitleSettings: () => void;
 
   /** Disable animations and reduce background polling for slower devices. */
@@ -147,6 +158,36 @@ export const useSettingsStore = create<ISettingsStore>()(
         set((s) => ({
           subtitleSettings: { ...s.subtitleSettings, bottomOffset },
         })),
+      setSubtitleTextShadow: (textShadow) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, textShadow },
+        })),
+      setSubtitleOutlineWidth: (outlineWidth) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, outlineWidth },
+        })),
+      setSubtitleLetterSpacing: (letterSpacing) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, letterSpacing },
+        })),
+      setSubtitleLineHeight: (lineHeight) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, lineHeight },
+        })),
+      setSubtitleBackgroundColor: (backgroundColor) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, backgroundColor },
+        })),
+      setSubtitleBorderRadius: (borderRadius) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, borderRadius },
+        })),
+      setSubtitleFontFamily: (fontFamily) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, fontFamily },
+        })),
+      applySubtitlePreset: (settings) =>
+        set({ subtitleSettings: { ...settings } }),
       resetSubtitleSettings: () =>
         set({ subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } }),
 
@@ -161,7 +202,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 20,
+      version: 21,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -242,6 +283,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 20) {
           next.playThemeSong = next.playThemeSong ?? true;
+        }
+        if (version < 21) {
+          next.subtitleSettings = sanitizeSubtitleSettings(next.subtitleSettings);
         }
         return next as ISettingsStore;
       },

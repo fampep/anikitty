@@ -1,9 +1,15 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { cn } from "@/lib/core/utils";
 import {
   SUBTITLE_COLOR_PRESETS,
+  SUBTITLE_STYLE_PRESETS,
+  subtitleSettingsMatchPreset,
+  subtitleSettingsToInlineStyles,
+  type SubtitleFontFamily,
   type SubtitleFontWeight,
+  type SubtitleTextShadow,
 } from "@/lib/subtitles/subtitle-settings";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
@@ -34,7 +40,9 @@ function SliderRow({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm text-muted-foreground dark:text-white/70">{label}</span>
-        <span className="text-[11px] font-mono text-muted-foreground dark:text-white/35 tabular-nums">{valueLabel}</span>
+        <span className="text-[11px] font-mono text-muted-foreground dark:text-white/35 tabular-nums">
+          {valueLabel}
+        </span>
       </div>
       <input
         type="range"
@@ -49,15 +57,68 @@ function SliderRow({
   );
 }
 
+function OptionButtons<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+  renderLabel,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+  renderLabel?: (option: { value: T; label: string }) => ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm text-muted-foreground dark:text-white/70">{label}</span>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={String(option.value)}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all",
+              value === option.value
+                ? "border-primary/50 bg-accent dark:border-white/40 dark:bg-white/12 text-foreground dark:text-white"
+                : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/45 hover:border-border dark:border-white/25",
+            )}
+          >
+            {renderLabel ? renderLabel(option) : option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 dark:text-white/25 pt-1">
+      {children}
+    </p>
+  );
+}
+
 export default function SubtitleSettingsPanel({ compact = false }: Props) {
   const t = useT();
   const {
     subtitleSettings,
     setSubtitleFontSize,
     setSubtitleColor,
+    setSubtitleBackgroundColor,
     setSubtitleBackgroundOpacity,
     setSubtitleFontWeight,
     setSubtitleBottomOffset,
+    setSubtitleTextShadow,
+    setSubtitleOutlineWidth,
+    setSubtitleLetterSpacing,
+    setSubtitleLineHeight,
+    setSubtitleBorderRadius,
+    setSubtitleFontFamily,
+    applySubtitlePreset,
     resetSubtitleSettings,
   } = useSettingsStore();
 
@@ -67,8 +128,51 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
     { value: 700, label: t("settings.subtitleWeightBold") },
   ];
 
+  const shadowOptions: { value: SubtitleTextShadow; label: string }[] = [
+    { value: "none", label: t("settings.subtitleShadowNone") },
+    { value: "soft", label: t("settings.subtitleShadowSoft") },
+    { value: "medium", label: t("settings.subtitleShadowMedium") },
+    { value: "strong", label: t("settings.subtitleShadowStrong") },
+  ];
+
+  const fontFamilyOptions: { value: SubtitleFontFamily; label: string }[] = [
+    { value: "system", label: t("settings.subtitleFontSystem") },
+    { value: "sans", label: t("settings.subtitleFontSans") },
+    { value: "mono", label: t("settings.subtitleFontMono") },
+  ];
+
+  const previewStyles = subtitleSettingsToInlineStyles(subtitleSettings);
+
   return (
     <div className={cn("flex flex-col gap-5", compact ? "gap-4" : "gap-5")}>
+      <div className="flex flex-col gap-2">
+        <span className="text-sm text-muted-foreground dark:text-white/70">
+          {t("settings.subtitlePresets")}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {SUBTITLE_STYLE_PRESETS.map((preset) => {
+            const active = subtitleSettingsMatchPreset(subtitleSettings, preset.settings);
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applySubtitlePreset(preset.settings)}
+                className={cn(
+                  "h-8 px-3 rounded-lg text-[11px] font-medium border transition-all",
+                  active
+                    ? "border-primary/50 bg-accent dark:border-white/40 dark:bg-white/12 text-foreground dark:text-white"
+                    : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/45 hover:border-border dark:border-white/25",
+                )}
+              >
+                {t(preset.labelKey)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <SectionLabel>{t("settings.subtitleSectionTypography")}</SectionLabel>
+
       <SliderRow
         label={t("settings.subtitleFontSize")}
         valueLabel={`${subtitleSettings.fontSize}px`}
@@ -78,6 +182,45 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         value={subtitleSettings.fontSize}
         onChange={setSubtitleFontSize}
       />
+
+      <OptionButtons
+        label={t("settings.subtitleFontWeight")}
+        options={weights}
+        value={subtitleSettings.fontWeight}
+        onChange={setSubtitleFontWeight}
+        renderLabel={(option) => (
+          <span style={{ fontWeight: option.value }}>{option.label}</span>
+        )}
+      />
+
+      <OptionButtons
+        label={t("settings.subtitleFontFamily")}
+        options={fontFamilyOptions}
+        value={subtitleSettings.fontFamily}
+        onChange={setSubtitleFontFamily}
+      />
+
+      <SliderRow
+        label={t("settings.subtitleLetterSpacing")}
+        valueLabel={`${subtitleSettings.letterSpacing}`}
+        min={0}
+        max={4}
+        step={0.1}
+        value={subtitleSettings.letterSpacing}
+        onChange={setSubtitleLetterSpacing}
+      />
+
+      <SliderRow
+        label={t("settings.subtitleLineHeight")}
+        valueLabel={subtitleSettings.lineHeight.toFixed(2)}
+        min={1.2}
+        max={1.8}
+        step={0.05}
+        value={subtitleSettings.lineHeight}
+        onChange={setSubtitleLineHeight}
+      />
+
+      <SectionLabel>{t("settings.subtitleSectionColors")}</SectionLabel>
 
       <div className="flex flex-col gap-2">
         <span className="text-sm text-muted-foreground dark:text-white/70">{t("settings.subtitleColor")}</span>
@@ -108,9 +251,28 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
               onChange={(e) => setSubtitleColor(e.target.value)}
               className="w-6 h-6 rounded border-0 bg-transparent cursor-pointer"
             />
-            <span className="text-[11px] text-muted-foreground dark:text-white/45">{t("settings.subtitleCustomColor")}</span>
+            <span className="text-[11px] text-muted-foreground dark:text-white/45">
+              {t("settings.subtitleCustomColor")}
+            </span>
           </label>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm text-muted-foreground dark:text-white/70">
+          {t("settings.subtitleBackgroundColor")}
+        </span>
+        <label className="inline-flex items-center gap-2 h-8 px-2 rounded-lg border border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 cursor-pointer w-fit">
+          <input
+            type="color"
+            value={subtitleSettings.backgroundColor}
+            onChange={(e) => setSubtitleBackgroundColor(e.target.value)}
+            className="w-6 h-6 rounded border-0 bg-transparent cursor-pointer"
+          />
+          <span className="text-[11px] text-muted-foreground dark:text-white/45 font-mono">
+            {subtitleSettings.backgroundColor}
+          </span>
+        </label>
       </div>
 
       <SliderRow
@@ -123,6 +285,31 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         onChange={setSubtitleBackgroundOpacity}
       />
 
+      <SectionLabel>{t("settings.subtitleSectionEffects")}</SectionLabel>
+
+      <OptionButtons
+        label={t("settings.subtitleTextShadow")}
+        options={shadowOptions}
+        value={subtitleSettings.textShadow}
+        onChange={setSubtitleTextShadow}
+      />
+
+      <SliderRow
+        label={t("settings.subtitleOutline")}
+        valueLabel={
+          subtitleSettings.outlineWidth === 0
+            ? t("settings.subtitleOutlineOff")
+            : `${subtitleSettings.outlineWidth}px`
+        }
+        min={0}
+        max={3}
+        step={1}
+        value={subtitleSettings.outlineWidth}
+        onChange={setSubtitleOutlineWidth}
+      />
+
+      <SectionLabel>{t("settings.subtitleSectionLayout")}</SectionLabel>
+
       <SliderRow
         label={t("settings.subtitlePosition")}
         valueLabel={`${subtitleSettings.bottomOffset}rem`}
@@ -133,44 +320,24 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         onChange={setSubtitleBottomOffset}
       />
 
-      <div className="flex flex-col gap-2">
-        <span className="text-sm text-muted-foreground dark:text-white/70">{t("settings.subtitleFontWeight")}</span>
-        <div className="flex flex-wrap gap-2">
-          {weights.map((w) => (
-            <button
-              key={w.value}
-              type="button"
-              onClick={() => setSubtitleFontWeight(w.value)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all",
-                subtitleSettings.fontWeight === w.value
-                  ? "border-primary/50 bg-accent dark:border-white/40 dark:bg-white/12 text-foreground dark:text-white"
-                  : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/45 hover:border-border dark:border-white/25",
-              )}
-              style={{ fontWeight: w.value }}
-            >
-              {w.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SliderRow
+        label={t("settings.subtitleBorderRadius")}
+        valueLabel={`${subtitleSettings.borderRadius}px`}
+        min={0}
+        max={16}
+        step={1}
+        value={subtitleSettings.borderRadius}
+        onChange={setSubtitleBorderRadius}
+      />
 
-      {/* Live preview */}
-      <div className="rounded-xl border border-border dark:border-white/10 bg-black/80 p-4 relative min-h-[100px] overflow-hidden">
+      <div className="rounded-xl border border-border dark:border-white/10 bg-black/80 p-4 relative min-h-[112px] overflow-hidden">
         <div
           className="absolute inset-x-0 flex justify-center px-3"
           style={{ bottom: `${Math.min(subtitleSettings.bottomOffset, 3)}rem` }}
         >
           <span
-            className="inline-block text-center max-w-[90%] px-2.5 py-1 rounded-md"
-            style={{
-              color: subtitleSettings.color,
-              fontSize: `${subtitleSettings.fontSize}px`,
-              fontWeight: subtitleSettings.fontWeight,
-              backgroundColor: `rgba(0, 0, 0, ${subtitleSettings.backgroundOpacity / 100})`,
-              textShadow: "0 1px 4px rgba(0,0,0,0.85)",
-              lineHeight: 1.45,
-            }}
+            className="inline-block text-center max-w-[90%]"
+            style={previewStyles}
           >
             {t("settings.subtitlePreviewText")}
           </span>
