@@ -1,0 +1,24 @@
+Name: AniKitty
+URLs: https://anikitty.moe
+---
+Type: mix (self-hosted site + scraper-based streaming from third-party anime sites)
+Scrapers: 34 third-party anime site sources (AniKitty does not host video files; availability depends entirely on these upstream sites)
+---
+Resolutions: 480p, 720p, 1080p (varies by provider, server, and title)
+---
+Site Language: English (UI only; only en locale enabled currently)
+Subs: y — primarily English (VTT/ASS/SRT where upstream provides them); some providers offer additional languages
+Dubs: y — English dub where available on the source
+Sub Types: soft, hard
+---
+Ads: n (click ads are currently disabled site-wide while growing the user base). When ads are enabled: y — lightweight click/popunder ads on pages outside the video player; no in-player video ads. Ad-free browsing requires a Ko-fi donation/supporter perk (€4+ ≈ 1 month ad-free), not a free account toggle.
+Adjustable Player Speed: y
+Comments: y (per-anime comments, forum, live chat, DMs)
+Downloads: n (download UI exists but episode downloads are currently disabled)
+List Sync: AniList (OAuth connect + import/sync); optional Anisurge link for watchlist/progress — not MAL, Kitsu, or Simkl
+Picture-in-Picture: y
+Schedule: y (weekly airing schedule)
+Watermark: n (no branding burned into video streams)
+---
+Are you staff on the site being submitted: y
+How long has the site being in development/released for: Started development in May 2026; v0.5.0 stable release July 2026

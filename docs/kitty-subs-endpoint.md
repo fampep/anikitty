@@ -12,6 +12,7 @@ Authorization: Bearer YOUR_API_KEY
 Examples (when enabled in your deployment):
 
 - MegaPlay family: Anikoto, AnimeSogo, Anix, HiAnime, Animepahe
+- PimpAnime (native CDN, VTT on SUB)
 - Animetsu, Animex, AllAnime, MKissa
 - AnimeOnsen (ASS subtitles via OAuth API)
 - AnimeNexus (multi-language ASS from stream API)

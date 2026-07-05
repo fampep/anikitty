@@ -37,6 +37,7 @@ export const KITTY_PROVIDERS = [
   "Animeya",
   "Anizen",
   "AniWaves",
+  "PimpAnime",
 ] as const;
 
 export type KittyProvider = (typeof KITTY_PROVIDERS)[number];
@@ -433,6 +434,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "sub + ssub + dub servers · VTT/ASS on SUB · some ssub in-stream",
   },
+  {
+    id: "PimpAnime",
+    label: "PimpAnime",
+    group: "other",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "pimpanime.nl · native CDN · SUB · DUB · VTT on SUB",
+  },
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = "Miruro";
@@ -487,6 +499,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Animeya",
   "Anizen",
   "AniWaves",
+  "PimpAnime",
   "AniSnatch",
 ]);
 
