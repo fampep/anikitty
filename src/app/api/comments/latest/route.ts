@@ -50,6 +50,7 @@ export async function GET() {
       animeId: comments.animeId,
       episodeId: comments.episodeId,
       episodeNumber: comments.episodeNumber,
+      isSpoiler: comments.isSpoiler,
       createdAt: comments.createdAt,
       userId: comments.userId,
       username: users.username,

@@ -1,10 +1,10 @@
 import { ImageResponse } from "next/og";
+import { APP_URL, SITE_FAVICON } from "@/lib/seo/site-seo";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.moe";
-const SITE_LOGO_URL = `${APP_URL}/anikitty-logo.png`;
+const SITE_ICON_URL = `${APP_URL}${SITE_FAVICON}`;
 
 export type OgAccent = "violet" | "teal" | "sky" | "emerald" | "rose";
 
@@ -107,9 +107,9 @@ export function renderOgCard(config: OgCardConfig) {
         <div style={{ display: "flex", alignItems: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={SITE_LOGO_URL}
+            src={SITE_ICON_URL}
             alt="AniKitty"
-            height={44}
+            height={48}
             style={{ objectFit: "contain" }}
           />
         </div>

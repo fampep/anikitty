@@ -2,22 +2,26 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, MessageSquare } from "lucide-react";
+import { ArrowRight, EyeOff, MessageSquare } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
+import { cn } from "@/lib/core/utils";
 
 type Snippet = {
   id: string;
   body: string;
+  gifUrl?: string | null;
   username: string;
   animeId: string;
   episodeNumber?: number | null;
+  isSpoiler?: boolean;
 };
 
 export default function LandingCommunitySnippets() {
   const t = useT();
   const [comments, setComments] = useState<Snippet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/comments/latest")
@@ -26,6 +30,12 @@ export default function LandingCommunitySnippets() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const revealSpoiler = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRevealed((prev) => new Set([...prev, id]));
+  };
 
   if (!loading && !comments.length) return null;
 
@@ -54,19 +64,64 @@ export default function LandingCommunitySnippets() {
             ? Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="site-panel h-[88px] animate-pulse" />
               ))
-            : comments.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
-                  className="site-panel-hover p-4 block min-h-[88px]"
-                >
-                  <p className="text-[11px] font-semibold text-muted-foreground dark:text-white/50 mb-1.5 truncate">
-                    {c.username}
-                    {c.episodeNumber ? ` · Ep ${c.episodeNumber}` : ""}
-                  </p>
-                  <p className="text-[12px] text-muted-foreground dark:text-white/60 line-clamp-2 leading-relaxed">{c.body}</p>
-                </Link>
-              ))}
+            : comments.map((c) => {
+                const spoilerHidden = Boolean(c.isSpoiler) && !revealed.has(c.id);
+
+                return (
+                  <Link
+                    key={c.id}
+                    href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
+                    className="site-panel-hover p-4 block min-h-[88px]"
+                  >
+                    <p className="text-[11px] font-semibold text-muted-foreground dark:text-white/50 mb-1.5 truncate">
+                      {c.username}
+                      {c.episodeNumber ? ` · Ep ${c.episodeNumber}` : ""}
+                      {c.isSpoiler ? (
+                        <span className="ml-1.5 text-[9px] font-mono uppercase tracking-wider text-amber-300/80">
+                          {t("comments.spoilerBadge")}
+                        </span>
+                      ) : null}
+                    </p>
+                    {c.body ? (
+                      spoilerHidden ? (
+                        <div
+                          className="relative cursor-pointer select-none"
+                          onClick={(e) => revealSpoiler(c.id, e)}
+                        >
+                          <p className="text-[12px] text-muted-foreground dark:text-white/60 line-clamp-2 leading-relaxed blur-sm pointer-events-none">
+                            {c.body}
+                          </p>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="flex items-center gap-1 text-[10px] text-muted-foreground dark:text-white/60 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full border border-border dark:border-white/15">
+                              <EyeOff className="w-3 h-3 shrink-0" />
+                              {t("comments.spoilerReveal")}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[12px] text-muted-foreground dark:text-white/60 line-clamp-2 leading-relaxed">
+                          {c.body}
+                        </p>
+                      )
+                    ) : c.gifUrl && spoilerHidden ? (
+                      <div
+                        className={cn("relative cursor-pointer select-none")}
+                        onClick={(e) => revealSpoiler(c.id, e)}
+                      >
+                        <p className="text-[12px] text-muted-foreground dark:text-white/60 blur-sm pointer-events-none">
+                          [GIF]
+                        </p>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="flex items-center gap-1 text-[10px] text-muted-foreground dark:text-white/60 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full border border-border dark:border-white/15">
+                            <EyeOff className="w-3 h-3 shrink-0" />
+                            {t("comments.spoilerReveal")}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </Link>
+                );
+              })}
         </div>
       </div>
     </section>
