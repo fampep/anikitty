@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
   icons: {
     icon: [
-      { url: SITE_FAVICON, type: "image/png" },
+      { url: SITE_FAVICON, type: "image/png", sizes: "96x96" },
       { url: SITE_LOGO, type: "image/png" },
     ],
     apple: SITE_APPLE_ICON,
@@ -135,7 +135,7 @@ export default async function RootLayout({
           </>
         )}
         <PublicEnvScript />
-        <link rel="icon" href={SITE_FAVICON} type="image/png" />
+        <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
       </head>
       <body
