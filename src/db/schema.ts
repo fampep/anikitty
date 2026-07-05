@@ -668,6 +668,26 @@ export const modAuditLog = pgTable(
   }),
 );
 
+// Directed social graph: followerId follows followingId.
+export const userFollows = pgTable(
+  "user_follows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    followingId: uuid("following_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    pair: unique("user_follows_pair").on(t.followerId, t.followingId),
+    followingIdx: index("user_follows_following_idx").on(t.followingId),
+    followerIdx: index("user_follows_follower_idx").on(t.followerId),
+  }),
+);
+
 // User reports of comments/users, resolved from the moderation queue.
 export const userReports = pgTable(
   "user_reports",

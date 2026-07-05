@@ -37,6 +37,8 @@ import {
   MessageSquare,
   Link2,
   Settings,
+  UserPlus,
+  UserCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
@@ -58,6 +60,13 @@ type ProfileCounts = {
   plan: number;
   onHold: number;
   dropped: number;
+};
+
+type FollowSummary = {
+  followers: number;
+  following: number;
+  isFollowing: boolean;
+  followsYou: boolean;
 };
 
 type ProfileData = {
@@ -316,6 +325,8 @@ function ProfilePage() {
   });
   const [levelData, setLevelData] = useState<UserLevelData | null>(null);
   const [accountBadges, setAccountBadges] = useState<AccountBadges | null>(null);
+  const [follow, setFollow] = useState<FollowSummary | null>(null);
+  const [followBusy, setFollowBusy] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profileHidden, setProfileHidden] = useState(false);
@@ -338,13 +349,45 @@ function ProfilePage() {
     counts?: ProfileCounts;
     level?: UserLevelData | null;
     accountBadges?: AccountBadges | null;
+    follow?: FollowSummary | null;
   }) => {
     if (!data?.user) return;
     setProfile(data.user);
     setCounts(data.counts ?? EMPTY_COUNTS);
     setLevelData(data.level ?? null);
     setAccountBadges(data.accountBadges ?? null);
+    if (data.follow) setFollow(data.follow);
   };
+
+  const toggleFollow = useCallback(async () => {
+    if (!auth || !profile || followBusy) return;
+    const next = !follow?.isFollowing;
+    setFollowBusy(true);
+    setFollow((prev) => ({
+      followers: (prev?.followers ?? 0) + (next ? 1 : -1),
+      following: prev?.following ?? 0,
+      isFollowing: next,
+      followsYou: prev?.followsYou ?? false,
+    }));
+    try {
+      const res = await fetch(
+        `/api/users/${encodeURIComponent(profileUsername)}/follow`,
+        withAuth({ method: next ? "POST" : "DELETE" }),
+      );
+      if (!res.ok) throw new Error();
+    } catch {
+      // Revert on failure.
+      setFollow((prev) => ({
+        followers: (prev?.followers ?? 0) + (next ? -1 : 1),
+        following: prev?.following ?? 0,
+        isFollowing: !next,
+        followsYou: prev?.followsYou ?? false,
+      }));
+      toast.error(t("profile.followFailed"));
+    } finally {
+      setFollowBusy(false);
+    }
+  }, [auth, profile, follow?.isFollowing, followBusy, profileUsername, t]);
 
   useEffect(() => {
     if (!profileUsername) {
@@ -565,7 +608,31 @@ function ProfilePage() {
                 </div>
               )}
               {!isOwn && (
-                <div className="flex flex-wrap gap-1.5 mt-2 sm:mt-0 sm:ml-auto self-center sm:self-auto">
+                <div className="flex flex-wrap items-center gap-1.5 mt-2 sm:mt-0 sm:ml-auto self-center sm:self-auto">
+                  {follow?.followsYou && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/5 text-muted-foreground dark:text-white/40 text-[10px] font-mono">
+                      {t("profile.followsYou")}
+                    </span>
+                  )}
+                  {auth && (
+                    <button
+                      type="button"
+                      onClick={toggleFollow}
+                      disabled={followBusy}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all disabled:opacity-60",
+                        follow?.isFollowing
+                          ? "border border-border dark:border-white/15 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/60 hover:border-rose-500/30 hover:text-rose-300"
+                          : "border border-violet-500/30 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25",
+                      )}
+                    >
+                      {follow?.isFollowing ? (
+                        <><UserCheck className="w-3 h-3" />{t("profile.following")}</>
+                      ) : (
+                        <><UserPlus className="w-3 h-3" />{t("profile.follow")}</>
+                      )}
+                    </button>
+                  )}
                   {auth && (
                     <Link
                       href={`${ROUTES.MESSAGES}?user=${encodeURIComponent(profile.username)}`}
@@ -608,6 +675,13 @@ function ProfilePage() {
 
             {/* Stats row */}
             <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3">
+              {follow && (
+                <>
+                  <QuickStat label={t("profile.followers")} value={follow.followers} color="text-foreground/90 dark:text-white/80" />
+                  <QuickStat label={t("profile.following")} value={follow.following} color="text-foreground/90 dark:text-white/80" />
+                  <div className="w-px h-4 bg-muted dark:bg-white/15 self-center" />
+                </>
+              )}
               <QuickStat label={t("profile.stats.total")} value={totalAnime} />
               <div className="w-px h-4 bg-muted dark:bg-white/15 self-center" />
               <QuickStat label={t("profile.stats.watching")}  value={counts.watching}  color="text-foreground/90 dark:text-white/80" />

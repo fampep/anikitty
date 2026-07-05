@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AtSign, Bell, CornerUpLeft, Loader2, Mail, MessageCircle, Tv } from "lucide-react";
+import { AtSign, Bell, CornerUpLeft, Loader2, Mail, MessageCircle, Tv, UserPlus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Avatar from "@/components/common/avatar";
 import { ROUTES } from "@/constants/routes";
@@ -18,6 +18,7 @@ function NotificationTypeBadge({ type }: { type: string }) {
     mention: { icon: <AtSign className="h-2.5 w-2.5" />, className: "bg-violet-500 text-white" },
     comment_reply: { icon: <CornerUpLeft className="h-2.5 w-2.5" />, className: "bg-sky-500 text-white" },
     dm: { icon: <Mail className="h-2.5 w-2.5" />, className: "bg-emerald-500 text-white" },
+    follow: { icon: <UserPlus className="h-2.5 w-2.5" />, className: "bg-fuchsia-500 text-white" },
   };
   const entry = map[type];
   if (!entry) return null;

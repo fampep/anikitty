@@ -608,6 +608,11 @@
       "kage": "Kage"
     },
     "message": "Message",
+    "follow": "Follow",
+    "following": "Following",
+    "followers": "Followers",
+    "followsYou": "Follows you",
+    "followFailed": "Couldn't update follow",
     "copyLink": "Copy link",
     "linkCopied": "Profile link copied",
     "linkCopyFailed": "Could not copy link",

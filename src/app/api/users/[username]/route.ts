@@ -5,6 +5,7 @@ import { getUserXpStats } from "@/lib/user/user-xp";
 import { getLevelProgress } from "@/lib/user/user-level";
 import { folderCountsFromRows } from "@/lib/watch/watchlist-response";
 import { getAccountBadgesForUser } from "@/lib/user/account-badges";
+import { getFollowSummary } from "@/lib/social/follows";
 import {
   publicUserFields,
   resolveVisibleProfileUser,
@@ -19,10 +20,10 @@ export async function GET(
   const resolved = await resolveVisibleProfileUser(req, raw);
   if (!resolved.ok) return resolved.response;
 
-  const { user } = resolved;
+  const { user, viewerId } = resolved;
   const db = getDb();
 
-  const [countRows, stats, accountBadges] = await Promise.all([
+  const [countRows, stats, accountBadges, follow] = await Promise.all([
     db
       .select({
         folder: watchlist.folder,
@@ -33,6 +34,7 @@ export async function GET(
       .groupBy(watchlist.folder),
     getUserXpStats(db, user.id),
     getAccountBadgesForUser(db, user.id),
+    getFollowSummary(db, user.id, viewerId),
   ]);
 
   const levelInfo = getLevelProgress(stats.xp);
@@ -41,6 +43,7 @@ export async function GET(
     user: publicUserFields(user),
     accountBadges,
     counts: folderCountsFromRows(countRows),
+    follow,
     level: {
       xp: stats.xp,
       watchXp: stats.watchXp,
