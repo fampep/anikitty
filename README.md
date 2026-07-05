@@ -98,7 +98,9 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 **Dockerfile** (recommended if Railpack cgroup issues persist):
 1. Set **Build Pack** to **Dockerfile**
 2. Expose port **3000**
-3. Add production env vars (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.)
+3. Add production env vars (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.) as **runtime** variables
+4. Only these need to be available at **build** time: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PROXY_URL`, `NEXT_PUBLIC_DONATION_RAISED_EUR`, `DISCORD_CLIENT_ID`
+5. Do **not** pass `ADMIN_PASSWORD`, `DATABASE_URL`, or JWT secrets as build arguments — Coolify injects them into the Dockerfile and values with `#` break parsing
 
 **Railpack** (faster builds when the host is configured):
 1. Set **Build Pack** to **Railpack**
@@ -161,6 +163,20 @@ EOF
 ```
 
 Then redeploy in Coolify. Confirm the service **Build Pack** is **Railpack**, not Dockerfile.
+
+#### Docker export failed (exit 255)
+
+If the Next.js build completes but deploy fails at `#18 exporting to image` with exit code **255**, the app code is fine — the Coolify host ran out of disk or BuildKit choked while saving the image.
+
+On the Coolify VPS:
+
+```bash
+sudo bash scripts/fix-coolify-docker-export.sh
+```
+
+Or manually: `docker system prune -af`, `docker builder prune -af`, then redeploy.
+
+Also in Coolify → your service → **Environment**: mark server secrets as **Runtime only** (unchecked for “Available at Build Time”). Only `NEXT_PUBLIC_*` vars should be build-time.
 
 ### Database
 
