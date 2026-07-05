@@ -4,6 +4,7 @@ import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { getUserByUsername } from "@/lib/user/public-user";
 import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 import { getNotificationPrefs } from "@/lib/social/notification-prefs";
+import { blockExistsBetween } from "@/lib/social/blocks";
 import { and, desc, eq, gt } from "drizzle-orm";
 
 // Don't re-notify the same person about the same follower more than once a day.
@@ -29,6 +30,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ usernam
 
   const r = await resolveActorAndTarget(req, username);
   if ("error" in r) return Response.json({ error: r.error }, { status: r.status });
+
+  if (await blockExistsBetween(r.db, r.viewerId, r.target.id)) {
+    return Response.json({ error: "Unavailable" }, { status: 403 });
+  }
 
   const inserted = await r.db
     .insert(userFollows)

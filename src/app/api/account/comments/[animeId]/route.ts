@@ -1,7 +1,8 @@
 import { getDb } from "@/db";
 import { comments, users, roles, commentVotes, commentReactions } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
-import { and, eq, desc, asc, sql, isNull, inArray } from "drizzle-orm";
+import { and, eq, desc, asc, sql, isNull, inArray, notInArray } from "drizzle-orm";
+import { getBlockedUserIds } from "@/lib/social/blocks";
 import {
   sanitizeBody,
   sanitizeAndResolveGifUrl,
@@ -87,10 +88,14 @@ export async function GET(
   const token = extractToken(req);
   const payload = token ? await verifyToken(token) : null;
 
+  // Hide comments from users the viewer has blocked.
+  const blockedIds = payload ? await getBlockedUserIds(db, payload.userId) : [];
+  const notBlocked = blockedIds.length > 0 ? notInArray(comments.userId, blockedIds) : undefined;
+
   const topLevelWhere =
     episodeFilter && episodeFilter !== "all"
-      ? and(eq(comments.animeId, animeId), isNull(comments.parentId), eq(comments.episodeId, episodeFilter))
-      : and(eq(comments.animeId, animeId), isNull(comments.parentId));
+      ? and(eq(comments.animeId, animeId), isNull(comments.parentId), eq(comments.episodeId, episodeFilter), notBlocked)
+      : and(eq(comments.animeId, animeId), isNull(comments.parentId), notBlocked);
 
   const [countRow] = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -150,7 +155,7 @@ export async function GET(
           .from(comments)
           .innerJoin(users, eq(users.id, comments.userId))
           .leftJoin(roles, eq(roles.name, users.role))
-          .where(inArray(comments.parentId, topLevelIds))
+          .where(and(inArray(comments.parentId, topLevelIds), notBlocked))
           .orderBy(asc(comments.createdAt))
       : [];
 

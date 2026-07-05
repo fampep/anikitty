@@ -6,6 +6,7 @@ import { getLevelProgress } from "@/lib/user/user-level";
 import { folderCountsFromRows } from "@/lib/watch/watchlist-response";
 import { getAccountBadgesForUser } from "@/lib/user/account-badges";
 import { getFollowSummary } from "@/lib/social/follows";
+import { hasBlocked } from "@/lib/social/blocks";
 import {
   publicUserFields,
   resolveVisibleProfileUser,
@@ -38,12 +39,14 @@ export async function GET(
   ]);
 
   const levelInfo = getLevelProgress(stats.xp);
+  const blocked = viewerId && viewerId !== user.id ? await hasBlocked(db, viewerId, user.id) : false;
 
   return NextResponse.json({
     user: publicUserFields(user),
     accountBadges,
     counts: folderCountsFromRows(countRows),
     follow,
+    blocked,
     level: {
       xp: stats.xp,
       watchXp: stats.watchXp,

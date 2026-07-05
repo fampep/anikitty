@@ -39,6 +39,7 @@ import {
   Settings,
   UserPlus,
   UserCheck,
+  Ban,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
@@ -329,6 +330,8 @@ function ProfilePage() {
   const [follow, setFollow] = useState<FollowSummary | null>(null);
   const [followBusy, setFollowBusy] = useState(false);
   const [followListType, setFollowListType] = useState<FollowListType | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profileHidden, setProfileHidden] = useState(false);
@@ -352,6 +355,7 @@ function ProfilePage() {
     level?: UserLevelData | null;
     accountBadges?: AccountBadges | null;
     follow?: FollowSummary | null;
+    blocked?: boolean;
   }) => {
     if (!data?.user) return;
     setProfile(data.user);
@@ -359,7 +363,34 @@ function ProfilePage() {
     setLevelData(data.level ?? null);
     setAccountBadges(data.accountBadges ?? null);
     if (data.follow) setFollow(data.follow);
+    setBlocked(Boolean(data.blocked));
   };
+
+  const toggleBlock = useCallback(async () => {
+    if (!auth || !profile || blockBusy) return;
+    const next = !blocked;
+    if (next && !window.confirm(t("profile.blockConfirm", { name: profile.username }))) return;
+    setBlockBusy(true);
+    setBlocked(next);
+    if (next) setFollow((prev) => (prev ? { ...prev, isFollowing: false, followsYou: false } : prev));
+    try {
+      const res = await fetch(
+        "/api/account/blocks",
+        withAuth({
+          method: next ? "POST" : "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: profile.username }),
+        }),
+      );
+      if (!res.ok) throw new Error();
+      toast.success(next ? t("profile.blocked") : t("profile.unblocked"));
+    } catch {
+      setBlocked(!next);
+      toast.error(t("profile.blockFailed"));
+    } finally {
+      setBlockBusy(false);
+    }
+  }, [auth, profile, blocked, blockBusy, t]);
 
   const toggleFollow = useCallback(async () => {
     if (!auth || !profile || followBusy) return;
@@ -616,7 +647,7 @@ function ProfilePage() {
                       {t("profile.followsYou")}
                     </span>
                   )}
-                  {auth && (
+                  {auth && !blocked && (
                     <button
                       type="button"
                       onClick={toggleFollow}
@@ -635,7 +666,7 @@ function ProfilePage() {
                       )}
                     </button>
                   )}
-                  {auth && (
+                  {auth && !blocked && (
                     <Link
                       href={`${ROUTES.MESSAGES}?user=${encodeURIComponent(profile.username)}`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-500/25 bg-violet-500/10 text-violet-200/90 text-[12px] font-medium hover:bg-violet-500/20 transition-all"
@@ -643,6 +674,22 @@ function ProfilePage() {
                       <MessageSquare className="w-3 h-3" />
                       {t("profile.message")}
                     </Link>
+                  )}
+                  {auth && (
+                    <button
+                      type="button"
+                      onClick={toggleBlock}
+                      disabled={blockBusy}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-all disabled:opacity-60",
+                        blocked
+                          ? "border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                          : "border-border dark:border-white/12 bg-muted/40 dark:bg-white/5 text-muted-foreground dark:text-white/45 hover:text-rose-300 hover:border-rose-500/30",
+                      )}
+                    >
+                      <Ban className="w-3 h-3" />
+                      {blocked ? t("profile.unblock") : t("profile.block")}
+                    </button>
                   )}
                   <button
                     type="button"

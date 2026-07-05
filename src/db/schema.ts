@@ -692,6 +692,26 @@ export const userFollows = pgTable(
   }),
 );
 
+// blockerId has blocked blockedId — hides their comments and blocks contact.
+export const userBlocks = pgTable(
+  "user_blocks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    blockerId: uuid("blocker_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blockedId: uuid("blocked_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    pair: unique("user_blocks_pair").on(t.blockerId, t.blockedId),
+    blockerIdx: index("user_blocks_blocker_idx").on(t.blockerId),
+    blockedIdx: index("user_blocks_blocked_idx").on(t.blockedId),
+  }),
+);
+
 // User reports of comments/users, resolved from the moderation queue.
 export const userReports = pgTable(
   "user_reports",

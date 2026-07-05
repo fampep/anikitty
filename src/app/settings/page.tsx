@@ -46,6 +46,7 @@ import TwoFactorSection from "@/components/auth/two-factor-section";
 import PasskeysSection from "@/components/auth/passkeys-section";
 import ActiveSessionsSection from "@/components/auth/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile/profile-privacy-section";
+import BlockedUsersSection from "@/components/profile/blocked-users-section";
 import AccountDeletionSection from "@/components/auth/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import SiteDisplaySettings from "@/components/settings/site-display-settings";
@@ -800,6 +801,10 @@ export default function SettingsPage() {
                 />
                 <SectionBody className="flex flex-col gap-8">
                   <ProfilePrivacySection />
+                  <div className="border-t border-border dark:border-white/6 pt-8">
+                    <SubSectionTitle>{t("settings.blockedUsers")}</SubSectionTitle>
+                    <BlockedUsersSection />
+                  </div>
                   <div className="border-t border-border dark:border-white/6 pt-8">
                     <SubSectionTitle>{t("settings.accountDeletion")}</SubSectionTitle>
                     <AccountDeletionSection />

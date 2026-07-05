@@ -7,6 +7,7 @@ import {
   users,
 } from "@/db/schema";
 import { canViewProfile } from "@/lib/user/profile-privacy";
+import { blockExistsBetween } from "@/lib/social/blocks";
 import { decryptStoredMessage, encryptStoredMessage } from "@/lib/security/message-crypto";
 import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 
@@ -54,7 +55,8 @@ export async function canInitiateDm(
   target: { id: string; profilePrivate: boolean },
 ): Promise<boolean> {
   if (senderId === target.id) return false;
-  return canViewProfile(target.profilePrivate, target.id, senderId);
+  if (!canViewProfile(target.profilePrivate, target.id, senderId)) return false;
+  return !(await blockExistsBetween(getDb(), senderId, target.id));
 }
 
 export async function markConversationRead(conversationId: string, userId: string) {
