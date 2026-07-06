@@ -153,14 +153,14 @@ function ContinueCard({
 
           {/* Play button on hover */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2.5 shadow-xl">
+            <div className="bg-white/90 rounded-full p-2.5 shadow-xl">
               <Play className="w-4 h-4 text-black fill-black" />
             </div>
           </div>
 
           {/* Episode badge */}
           <div className="absolute bottom-2 left-2">
-            <span className="text-[10px] font-mono font-bold bg-black/70 text-foreground dark:text-white/90 px-1.5 py-0.5 rounded backdrop-blur-sm">
+            <span className="text-[10px] font-mono font-bold bg-black/70 text-foreground dark:text-white/90 px-1.5 py-0.5 rounded">
               {t("common.ep")} {episodeNumber}
             </span>
           </div>
@@ -168,7 +168,7 @@ function ContinueCard({
           {/* Time remaining */}
           {remaining > 30 && (
             <div className="absolute bottom-2 right-2">
-              <span className="text-[9px] font-mono text-muted-foreground dark:text-white/55 bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm">
+              <span className="text-[9px] font-mono text-muted-foreground dark:text-white/55 bg-black/60 px-1.5 py-0.5 rounded">
                 {t("home.epLeft", { time: formatSecondsToMMSS(remaining) })}
               </span>
             </div>
@@ -199,7 +199,7 @@ function ContinueCard({
         aria-label={t("home.removeContinue")}
         className={cn(
           "absolute top-2 right-2 z-20 flex h-6 w-6 items-center justify-center rounded-lg",
-          "bg-black/60 backdrop-blur-md text-muted-foreground dark:text-white/45 ring-1 ring-border dark:ring-white/10",
+          "bg-black/60 text-muted-foreground dark:text-white/45 ring-1 ring-border dark:ring-white/10",
           "opacity-80 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
           "hover:bg-rose-500/15 hover:text-rose-300 hover:ring-rose-400/25",
           "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-violet-400/40",

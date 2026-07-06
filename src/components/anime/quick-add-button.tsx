@@ -61,7 +61,7 @@ export default function QuickAddButton({
       aria-label={t("anime.addToPlanToWatch")}
       title={t("anime.addToPlanToWatch")}
       className={cn(
-        "absolute top-2 right-2 z-30 flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-md ring-1 transition-all",
+        "absolute top-2 right-2 z-30 flex h-7 w-7 items-center justify-center rounded-full ring-1 transition-all",
         "opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100",
         state === "added"
           ? "bg-emerald-500/85 text-white ring-emerald-300/40 opacity-100"

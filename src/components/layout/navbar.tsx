@@ -340,7 +340,7 @@ const NavBar = () => {
       className={cn(
         "fixed left-0 right-0 top-0 z-[100] transition-all duration-300",
         isScrolled
-          ? "border-b border-border/50 bg-background/90 shadow-lg backdrop-blur-xl dark:border-transparent dark:bg-[#08080f]/88 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+          ? "border-b border-border/50 bg-background/96 shadow-lg dark:border-transparent dark:bg-[#08080f]/97 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
           : "bg-gradient-to-b from-background/95 via-background/50 to-transparent dark:from-black/80 dark:via-black/40",
       )}
     >
@@ -353,7 +353,7 @@ const NavBar = () => {
 
       <Container className="relative">
         {searchOpen && (
-          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border bg-background/98 px-4 backdrop-blur-2xl dark:border-white/[0.06] dark:bg-[#050508]/98">
+          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border bg-background px-4 dark:border-white/[0.06] dark:bg-[#050508]">
             <SearchBar className="flex-1 max-w-3xl mx-auto" autoFocus onAnimeClick={() => setSearchOpen(false)} />
             <button
               type="button"

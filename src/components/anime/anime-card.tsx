@@ -46,7 +46,7 @@ function AudioPill({ type, count }: { type: "sub" | "dub"; count: number }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums backdrop-blur-md",
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums",
         isSub
           ? "bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/25"
           : "bg-violet-500/20 text-violet-100 ring-1 ring-violet-400/25",
@@ -143,7 +143,7 @@ const AnimeCard = ({
                 "flex items-center justify-center min-w-[1.65rem] h-6 px-1.5 rounded-br-lg font-black tabular-nums shadow-lg",
                 rank <= 3
                   ? "bg-gradient-to-br from-amber-400 to-amber-600 text-black text-[10px]"
-                  : "bg-black/75 text-foreground dark:text-white/90 text-[9px] backdrop-blur-md border-r border-b border-border dark:border-white/10",
+                  : "bg-black/75 text-foreground dark:text-white/90 text-[9px] border-r border-b border-border dark:border-white/10",
               )}
             >
               {String(rank).padStart(2, "0")}
@@ -158,12 +158,12 @@ const AnimeCard = ({
           )}
         >
           {scoreDisplay && !props.watchDetail ? (
-            <span className="inline-flex items-center gap-0.5 rounded-md bg-black/65 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 backdrop-blur-md border border-amber-500/20 shadow-sm">
+            <span className="inline-flex items-center gap-0.5 rounded-md bg-black/65 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 border border-amber-500/20 shadow-sm">
               <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
               {scoreDisplay}
             </span>
           ) : props.subTitle && !props.episodeCard ? (
-            <span className="rounded-md bg-black/65 text-foreground/85 dark:text-white/75 text-[10px] font-mono font-semibold px-1.5 py-0.5 backdrop-blur-md border border-border dark:border-white/10">
+            <span className="rounded-md bg-black/65 text-foreground/85 dark:text-white/75 text-[10px] font-mono font-semibold px-1.5 py-0.5 border border-border dark:border-white/10">
               {props.subTitle}
             </span>
           ) : (
@@ -172,13 +172,13 @@ const AnimeCard = ({
 
           <div className="flex items-center gap-1 ml-auto shrink-0">
             {isAiring && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 backdrop-blur-md border border-emerald-500/25">
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 border border-emerald-500/25">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 {t("card.live")}
               </span>
             )}
             {props.year && (
-              <span className="rounded-md bg-black/55 text-muted-foreground dark:text-white/55 text-[10px] font-mono px-1.5 py-0.5 backdrop-blur-md border border-border dark:border-white/8">
+              <span className="rounded-md bg-black/55 text-muted-foreground dark:text-white/55 text-[10px] font-mono px-1.5 py-0.5 border border-border dark:border-white/8">
                 {props.year}
               </span>
             )}
