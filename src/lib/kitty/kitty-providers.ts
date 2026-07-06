@@ -38,6 +38,7 @@ export const KITTY_PROVIDERS = [
   "Anizen",
   "AniWaves",
   "PimpAnime",
+  "AnimaxAnime",
 ] as const;
 
 export type KittyProvider = (typeof KITTY_PROVIDERS)[number];
@@ -444,6 +445,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "pimpanime.nl · native CDN · SUB · DUB · VTT on SUB",
+  },
+  {
+    id: "AnimaxAnime",
+    label: "Animax",
+    group: "other",
+    supportsSub: true,
+    supportsDub: true,
+    // AniList-native; servers return muxed/hardsubbed streams with no soft tracks.
+    softSub: false,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "animaxanime.dpdns.org · AniList-native · Anineko · AllManga · Animegg · Crunchyroll · SUB · DUB · burned-in subs",
   },
 ];
 
