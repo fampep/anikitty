@@ -914,9 +914,17 @@
     "sub": "SUB",
     "dub": "DUB"
   },
+  "notFound": {
+    "title": "This page wandered off",
+    "description": "We couldn't find what you were looking for. The link may be broken, or the page may have moved.",
+    "home": "Home",
+    "search": "Search anime",
+    "trending": "Trending"
+  },
   "common": {
     "seeAll": "See all",
     "viewAll": "View All",
+    "backToTop": "Back to top",
     "loading": "Loading...",
     "error": "Something went wrong",
     "recommended": "Recommended",
