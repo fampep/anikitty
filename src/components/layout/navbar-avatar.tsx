@@ -63,14 +63,14 @@ function NavbarAvatar({ auth }: Props) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="relative rounded-full ring-2 ring-white/15 hover:ring-white/45 transition-all duration-200 group">
+        <button className="relative rounded-full transition-transform duration-200 hover:scale-105 active:scale-95 group">
           <FramedAvatar
             username={session.username}
             url={session.avatar || undefined}
             frameSlug={frameSlug}
             className="w-8 h-8"
           />
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-black shadow-sm shadow-emerald-400/50" />
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#0a0a12] shadow-sm shadow-emerald-400/50" />
         </button>
       </PopoverTrigger>
 
