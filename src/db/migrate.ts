@@ -481,6 +481,45 @@ export async function migrateDb() {
       )`,
       `CREATE INDEX IF NOT EXISTS user_blocks_blocker_idx ON user_blocks (blocker_id)`,
       `CREATE INDEX IF NOT EXISTS user_blocks_blocked_idx ON user_blocks (blocked_id)`,
+      // Ratings & reviews (first-party "AniKitty Score").
+      `CREATE TABLE IF NOT EXISTS anime_reviews (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        anime_id VARCHAR(255) NOT NULL,
+        score INTEGER NOT NULL,
+        body TEXT NOT NULL DEFAULT '',
+        has_spoiler BOOLEAN NOT NULL DEFAULT FALSE,
+        like_count INTEGER NOT NULL DEFAULT 0,
+        anime_title TEXT,
+        anime_thumbnail TEXT,
+        anilist_id INTEGER,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP,
+        CONSTRAINT anime_reviews_user_anime UNIQUE (user_id, anime_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS anime_reviews_anime_id_idx ON anime_reviews (anime_id)`,
+      `CREATE TABLE IF NOT EXISTS review_likes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        review_id UUID NOT NULL REFERENCES anime_reviews(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT review_likes_review_user UNIQUE (review_id, user_id)
+      )`,
+      // Native list state: rewatch counter.
+      `ALTER TABLE watchlist ADD COLUMN IF NOT EXISTS rewatch_count INTEGER NOT NULL DEFAULT 0`,
+      // Daily-login streak tracking.
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS login_streak INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS longest_streak INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_date VARCHAR(10)`,
+      // Achievements (catalog lives in code; rows record unlocks).
+      `CREATE TABLE IF NOT EXISTS user_achievements (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        slug VARCHAR(48) NOT NULL,
+        unlocked_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT user_achievements_user_slug UNIQUE (user_id, slug)
+      )`,
+      `CREATE INDEX IF NOT EXISTS user_achievements_user_idx ON user_achievements (user_id)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

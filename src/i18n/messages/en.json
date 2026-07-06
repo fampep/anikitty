@@ -658,6 +658,7 @@
     "goHome": "Go home",
     "watchlist": "Watchlist",
     "watchActivity": "Watch Activity",
+    "achievements": "Achievements",
     "comments": "Comments",
     "noCommentsYet": "No comments yet",
     "stats": {
@@ -1012,6 +1013,7 @@
       "characters": "Characters",
       "voiceActors": "Voice Actors",
       "relations": "Relations",
+      "reviews": "Reviews",
       "comments": "Comments"
     },
     "quickNavHint": "Jump to section",

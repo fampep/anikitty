@@ -37,6 +37,8 @@ export type Bookmark = {
   animeTitle: string;
   status: string;
   created: string;
+  rewatchCount?: number;
+  score?: number | null;
   expand: {
     watchHistory: WatchHistory[];
   };
@@ -63,6 +65,8 @@ function mapItem(item: any): Bookmark {
     animeTitle: title,
     status: folderToStatus(item.folder ?? "WATCHING"),
     created: item.addedAt ?? "",
+    rewatchCount: item.rewatchCount ?? 0,
+    score: item.score ?? null,
     expand: { watchHistory: [] },
   };
 }

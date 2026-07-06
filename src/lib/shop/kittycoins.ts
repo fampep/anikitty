@@ -188,9 +188,67 @@ export async function grantWelcomeKittycoins(db: Db, userId: string) {
   await grantKittycoins(db, userId, 100, "welcome", userId);
 }
 
-export async function grantDailyLoginKittycoins(db: Db, userId: string) {
+export type DailyLoginResult = {
+  granted: boolean;
+  balance: number;
+  streak: number;
+  longestStreak: number;
+  isNewDay: boolean;
+  streakBonus: number;
+};
+
+/**
+ * Grants the daily-login reward and advances the login streak. The 15-coin
+ * base reward is idempotent per day (ledger reason "daily"). Consecutive days
+ * grow the streak; every 7th day pays a 50-coin bonus.
+ */
+export async function grantDailyLoginKittycoins(
+  db: Db,
+  userId: string,
+): Promise<DailyLoginResult> {
   const today = new Date().toISOString().slice(0, 10);
-  return grantKittycoins(db, userId, 15, "daily", today);
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+
+  const [u] = await db
+    .select({
+      last: users.lastLoginDate,
+      streak: users.loginStreak,
+      longest: users.longestStreak,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  let streak = u?.streak ?? 0;
+  let longestStreak = u?.longest ?? 0;
+  let isNewDay = false;
+
+  if (u && u.last !== today) {
+    isNewDay = true;
+    streak = u.last === yesterday ? (u.streak ?? 0) + 1 : 1;
+    longestStreak = Math.max(longestStreak, streak);
+    await db
+      .update(users)
+      .set({ loginStreak: streak, longestStreak, lastLoginDate: today })
+      .where(eq(users.id, userId));
+  }
+
+  const base = await grantKittycoins(db, userId, 15, "daily", today);
+
+  let streakBonus = 0;
+  if (isNewDay && streak > 0 && streak % 7 === 0) {
+    streakBonus = 50;
+    await grantKittycoins(db, userId, streakBonus, "streak", `${today}:${streak}`);
+  }
+
+  return {
+    granted: base.granted,
+    balance: base.balance,
+    streak,
+    longestStreak,
+    isNewDay,
+    streakBonus,
+  };
 }
 
 export async function grantEpisodeKittycoins(

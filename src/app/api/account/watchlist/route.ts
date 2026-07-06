@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { watchlist } from "@/db/schema";
+import { animeReviews, watchlist } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -27,8 +27,15 @@ export async function GET(req: Request) {
 
   const [items, countResult] = await Promise.all([
     db
-      .select()
+      .select({ row: watchlist, score: animeReviews.score })
       .from(watchlist)
+      .leftJoin(
+        animeReviews,
+        and(
+          eq(animeReviews.userId, watchlist.userId),
+          eq(animeReviews.animeId, watchlist.animeId),
+        ),
+      )
       .where(and(...conditions))
       .orderBy(sql`${watchlist.updatedAt} DESC`)
       .limit(limit)
@@ -40,12 +47,14 @@ export async function GET(req: Request) {
   ]);
 
   return NextResponse.json({
-    results: items.map((item) => ({
+    results: items.map(({ row: item, score }) => ({
       animeId: item.animeId,
       folder: item.folder,
       addedAt: item.createdAt?.toISOString(),
       anilistId: item.anilistId,
       malId: item.malId,
+      rewatchCount: item.rewatchCount ?? 0,
+      score: score ?? null,
       anime: item.animeTitle
         ? {
             title: { english: item.animeTitle, romaji: item.animeTitle },

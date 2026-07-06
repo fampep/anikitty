@@ -16,11 +16,10 @@ export async function generateMetadata(
 
     const title  = m.title.english || m.title.romaji || "Anime";
     const desc   = animeShareDescription(title);
-
-    // Banner (wide) preferred for embeds, poster as fallback
-    const image  = m.bannerImage || m.coverImage?.extraLarge;
     const pageTitle = `${title} | AniKitty`;
 
+    // OG/Twitter images come from the sibling opengraph-image.tsx (branded
+    // poster card). Omitting images here lets that file convention apply.
     return {
       title: pageTitle,
       description: desc,
@@ -29,20 +28,11 @@ export async function generateMetadata(
         siteName: "AniKitty",
         title,
         description: desc,
-        ...(image && {
-          images: [{
-            url: image,
-            width: m.bannerImage ? 1920 : 460,
-            height: m.bannerImage ? 1080 : 650,
-            alt: title,
-          }],
-        }),
       },
       twitter: {
         card: "summary_large_image",
         title,
         description: desc,
-        ...(image && { images: [image] }),
       },
     };
   } catch {

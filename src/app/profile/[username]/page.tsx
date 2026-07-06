@@ -40,6 +40,7 @@ import {
   UserPlus,
   UserCheck,
   Ban,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
@@ -51,6 +52,7 @@ import type { AccountBadges } from "@/lib/user/account-badges";
 import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/profile/level-progress-card";
 import AnimeLists from "@/components/profile/anime-lists";
+import AchievementsSection from "@/components/profile/achievements-section";
 import FollowListModal, { type FollowListType } from "@/components/profile/follow-list-modal";
 import { useT } from "@/providers/i18n-provider";
 import { useI18n } from "@/providers/i18n-provider";
@@ -809,6 +811,13 @@ function ProfilePage() {
                 </TabsContent>
               ))}
             </Tabs>
+          </section>
+
+          <section>
+            <SectionLabel icon={<Trophy className="w-4 h-4" />} title={t("profile.achievements")} />
+            <div className="site-panel p-5">
+              <AchievementsSection username={profile.username} isOwn={isOwn} />
+            </div>
           </section>
 
           <section>

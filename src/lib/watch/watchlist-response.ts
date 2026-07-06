@@ -10,13 +10,17 @@ export const WATCHLIST_FOLDERS = [
 
 export type WatchlistRow = typeof watchlist.$inferSelect;
 
-export function mapWatchlistItem(item: WatchlistRow) {
+/** Maps a watchlist row to the API shape. `score` is the owner's own 1–10
+ * review score for the title (joined separately), null when unrated. */
+export function mapWatchlistItem(item: WatchlistRow & { score?: number | null }) {
   return {
     animeId: item.animeId,
     folder: item.folder,
     addedAt: item.createdAt?.toISOString(),
     anilistId: item.anilistId,
     malId: item.malId,
+    rewatchCount: item.rewatchCount ?? 0,
+    score: item.score ?? null,
     anime: item.animeTitle
       ? {
           title: { english: item.animeTitle, romaji: item.animeTitle },

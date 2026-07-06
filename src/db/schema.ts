@@ -50,6 +50,10 @@ export const users = pgTable("users", {
   equippedFrame: varchar("equipped_frame", { length: 64 }),
   equippedSticker: varchar("equipped_sticker", { length: 64 }),
   equippedIcon: varchar("equipped_icon", { length: 64 }),
+  // Daily-login streak tracking (see grantDailyLoginKittycoins).
+  loginStreak: integer("login_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  lastLoginDate: varchar("last_login_date", { length: 10 }), // YYYY-MM-DD (UTC)
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -107,6 +111,8 @@ export const watchlist = pgTable(
     animeThumbnail: text("anime_thumbnail"),
     anilistId: integer("anilist_id"),
     malId: integer("mal_id"),
+    // How many times the user has rewatched this title (MAL-style list state).
+    rewatchCount: integer("rewatch_count").notNull().default(0),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -713,6 +719,70 @@ export const userBlocks = pgTable(
     pair: unique("user_blocks_pair").on(t.blockerId, t.blockedId),
     blockerIdx: index("user_blocks_blocker_idx").on(t.blockerId),
     blockedIdx: index("user_blocks_blocked_idx").on(t.blockedId),
+  }),
+);
+
+// ── Ratings & reviews ────────────────────────────────────────────────────────
+// A user's own 1–10 score + optional written review for a title. One per user
+// per anime; the aggregate powers the first-party "AniKitty Score".
+export const animeReviews = pgTable(
+  "anime_reviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    animeId: varchar("anime_id", { length: 255 }).notNull(),
+    score: integer("score").notNull(), // 1–10
+    body: text("body").notNull().default(""),
+    hasSpoiler: boolean("has_spoiler").notNull().default(false),
+    // Denormalized "helpful" tally, kept in sync by the like route.
+    likeCount: integer("like_count").notNull().default(0),
+    animeTitle: text("anime_title"),
+    animeThumbnail: text("anime_thumbnail"),
+    anilistId: integer("anilist_id"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
+  },
+  (t) => ({
+    userAnime: unique("anime_reviews_user_anime").on(t.userId, t.animeId),
+    animeIdx: index("anime_reviews_anime_id_idx").on(t.animeId),
+  }),
+);
+
+// "Helpful" votes on a review.
+export const reviewLikes = pgTable(
+  "review_likes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => animeReviews.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    reviewUser: unique("review_likes_review_user").on(t.reviewId, t.userId),
+  }),
+);
+
+// ── Achievements ─────────────────────────────────────────────────────────────
+// Unlocked badges (catalog lives in code). One row per user per achievement.
+export const userAchievements = pgTable(
+  "user_achievements",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 48 }).notNull(),
+    unlockedAt: timestamp("unlocked_at").defaultNow(),
+  },
+  (t) => ({
+    userSlug: unique("user_achievements_user_slug").on(t.userId, t.slug),
+    userIdx: index("user_achievements_user_idx").on(t.userId),
   }),
 );
 

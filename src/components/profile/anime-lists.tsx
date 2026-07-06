@@ -8,7 +8,7 @@ import { anisurgeContinue, folderToStatus, statusToFolder } from "@/lib/oauth/an
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { useAuthStore } from "@/store/auth-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
-import { ChevronLeft, ChevronRight, Tv2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Tv2, Star, Repeat } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useT } from "@/providers/i18n-provider";
 
@@ -24,6 +24,8 @@ function mapPublicItem(item: {
   animeId: string;
   folder: string;
   addedAt?: string;
+  rewatchCount?: number;
+  score?: number | null;
   anime?: {
     title?: { english?: string; romaji?: string };
     cover_image?: { large?: string; extra_large?: string };
@@ -47,6 +49,8 @@ function mapPublicItem(item: {
     animeTitle: title,
     status: folderToStatus(item.folder ?? "WATCHING"),
     created: item.addedAt ?? "",
+    rewatchCount: item.rewatchCount ?? 0,
+    score: item.score ?? null,
     expand: { watchHistory: [] },
   };
 }
@@ -184,7 +188,19 @@ function AnimeLists({ status, username, isOwn }: Props) {
               : `${ROUTES.ANIME_DETAILS}/${bookmark.animeId}`;
 
             return (
-              <div key={bookmark.id} style={{ width: CARD_W }} className="shrink-0">
+              <div key={bookmark.id} style={{ width: CARD_W }} className="shrink-0 relative">
+                {typeof bookmark.score === "number" && (
+                  <span className="absolute top-1.5 left-1.5 z-20 inline-flex items-center gap-0.5 rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-400/30 pointer-events-none">
+                    <Star className="w-2.5 h-2.5" fill="currentColor" />
+                    {bookmark.score}
+                  </span>
+                )}
+                {(bookmark.rewatchCount ?? 0) > 0 && (
+                  <span className="absolute top-1.5 right-1.5 z-20 inline-flex items-center gap-0.5 rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300 ring-1 ring-cyan-400/30 pointer-events-none">
+                    <Repeat className="w-2.5 h-2.5" />
+                    {bookmark.rewatchCount}
+                  </span>
+                )}
                 <AnimeCard
                   compact
                   poster={bookmark.thumbnail}

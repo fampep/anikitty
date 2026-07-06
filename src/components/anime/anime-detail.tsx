@@ -42,6 +42,7 @@ import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
+import RewatchStepper from "@/components/anime/rewatch-stepper";
 
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
@@ -53,6 +54,9 @@ const AnimeEpisodeAlertButton = dynamic(() => import("@/components/anime/anime-e
 });
 const CommentSection = dynamic(() => import("@/components/comments/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
+});
+const AnimeReviews = dynamic(() => import("@/components/anime/anime-reviews"), {
+  loading: () => <div className="h-40 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
 });
 const AnimeSubtitles = dynamic(() => import("@/components/subtitles/anime-subtitles"), {
   loading: () => <div className="h-40 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
@@ -73,6 +77,7 @@ const DB_LINKS = [
 ] as const;
 
 const RATING_STYLES: Record<string, { label: string; color: string }> = {
+  anikitty: { label: "AniKitty", color: "border-violet-500/30 bg-violet-500/12 text-violet-200" },
   anilist: { label: "AniList", color: "border-teal-500/25 bg-teal-500/10 text-teal-300" },
   mal:     { label: "MAL", color: "border-blue-500/25 bg-blue-500/10 text-blue-300" },
   tvdb:    { label: "TVDB", color: "border-green-500/25 bg-green-500/10 text-green-300" },
@@ -125,6 +130,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       "characters",
       "voices",
       "relations",
+      "reviews",
       "comments",
     ]);
     return tab && valid.has(tab) ? tab : "overview";
@@ -163,6 +169,23 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     });
   };
 
+  // First-party "AniKitty Score" aggregate from user reviews.
+  const [anikittyAgg, setAnikittyAgg] = useState<{ average: number; count: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/anime/${slug}/reviews?limit=1`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        const agg = d?.aggregate;
+        setAnikittyAgg(agg && agg.count > 0 ? { average: agg.average, count: agg.count } : null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
   const providerRatings = (() => {
     if (!anime) return [];
     const list = [...(mappingData?.metadata?.ratings ?? [])];
@@ -175,6 +198,15 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         score: match ? parseFloat(match[1]) : null,
         label: rating,
         url: aid ? `https://anilist.co/anime/${aid}` : null,
+      });
+    }
+    if (anikittyAgg) {
+      list.unshift({
+        provider: "anikitty",
+        score: anikittyAgg.average,
+        label: anikittyAgg.average.toFixed(1),
+        url: null,
+        votes: anikittyAgg.count,
       });
     }
     return list;
@@ -259,6 +291,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     ...(anime.relatedAnimes?.length > 0
       ? [{ value: "relations", label: t("anime.tabs.relations") }]
       : []),
+    { value: "reviews", label: t("anime.tabs.reviews") },
     { value: "comments", label: t("anime.tabs.comments") },
   ];
 
@@ -416,6 +449,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   placeholderIcon={Heart}
                 />
               )}
+              {auth && (bookmarks?.[0]?.status || selected) === "completed" && (
+                <RewatchStepper animeId={slug} initial={bookmarks?.[0]?.rewatchCount ?? 0} />
+              )}
             </div>
           </div>
         </div>
@@ -500,6 +536,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                         )}
                       </div>
                     );
+                    if (rating.provider === "anikitty") {
+                      return (
+                        <button
+                          key={rating.provider}
+                          type="button"
+                          onClick={() => handleTabChange("reviews")}
+                          className="text-left hover:opacity-90 transition-opacity"
+                        >
+                          {inner}
+                        </button>
+                      );
+                    }
                     return rating.url ? (
                       <a
                         key={rating.provider}
@@ -664,6 +712,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </div>
             </TabsContent>
           )}
+
+          {/* ── Reviews ── */}
+          <TabsContent value="reviews" className="mt-6">
+            <div className="site-panel p-5 sm:p-6">
+              <AnimeReviews
+                animeId={slug}
+                animeTitle={info.name}
+                poster={info.poster}
+                anilistId={typeof anilistId === "number" ? anilistId : undefined}
+              />
+            </div>
+          </TabsContent>
 
           {/* ── Comments ── */}
           <TabsContent value="comments" className="mt-6">

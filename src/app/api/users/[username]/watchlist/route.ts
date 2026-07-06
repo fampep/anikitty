@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { watchlist } from "@/db/schema";
+import { animeReviews, watchlist } from "@/db/schema";
 import {
   mapWatchlistItem,
   WATCHLIST_FOLDERS,
@@ -29,8 +29,15 @@ export async function GET(
 
   const [items, countResult] = await Promise.all([
     db
-      .select()
+      .select({ row: watchlist, score: animeReviews.score })
       .from(watchlist)
+      .leftJoin(
+        animeReviews,
+        and(
+          eq(animeReviews.userId, watchlist.userId),
+          eq(animeReviews.animeId, watchlist.animeId),
+        ),
+      )
       .where(and(...conditions))
       .orderBy(sql`${watchlist.updatedAt} DESC`)
       .limit(limit)
@@ -42,7 +49,7 @@ export async function GET(
   ]);
 
   return NextResponse.json({
-    results: items.map(mapWatchlistItem),
+    results: items.map((r) => mapWatchlistItem({ ...r.row, score: r.score })),
     total: Number(countResult[0]?.count ?? 0),
   });
 }
