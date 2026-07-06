@@ -15,6 +15,7 @@ import { IAnime } from "@/types/anime";
 import AnimeCarousel from "@/components/anime/anime-carousel";
 import AnimeEpisodes from "@/components/anime/anime-episodes";
 import CharacterCard from "@/components/common/character-card";
+import VoiceActorsPanel from "@/components/anime/voice-actors-panel";
 import { ROUTES } from "@/constants/routes";
 import Select from "@/components/common/select";
 import {
@@ -119,6 +120,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       "media",
       "art",
       "characters",
+      "voices",
       "relations",
       "comments",
     ]);
@@ -234,7 +236,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     { value: "media", label: t("anime.tabs.media") },
     ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
     ...(info.charactersVoiceActors.length > 0
-      ? [{ value: "characters", label: t("anime.tabs.characters") }]
+      ? [
+          { value: "characters", label: t("anime.tabs.characters") },
+          { value: "voices", label: t("anime.tabs.voiceActors") },
+        ]
       : []),
     ...(anime.relatedAnimes?.length > 0
       ? [{ value: "relations", label: t("anime.tabs.relations") }]
@@ -612,6 +617,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   <CharacterCard key={idx} character={character} className="self-center justify-self-center" />
                 ))}
               </div>
+            </TabsContent>
+          )}
+
+          {/* ── Voice Actors ── */}
+          {info.charactersVoiceActors.length > 0 && (
+            <TabsContent value="voices" className="mt-6">
+              <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-5">{t("anime.voiceActorsAndRoles")}</h3>
+              <VoiceActorsPanel characters={info.charactersVoiceActors} />
             </TabsContent>
           )}
 

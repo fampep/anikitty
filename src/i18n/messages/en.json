@@ -980,6 +980,7 @@
       "media": "Media",
       "art": "Art",
       "characters": "Characters",
+      "voiceActors": "Voice Actors",
       "relations": "Relations",
       "comments": "Comments"
     },
@@ -990,6 +991,8 @@
     "details": "Details",
     "externalLinks": "External Links",
     "charactersAndVa": "Characters & Voice Actors",
+    "voiceActorsAndRoles": "Voice Actors & Their Roles",
+    "noVoiceActors": "No voice actor information available.",
     "relatedSeries": "Related Series",
     "fullSize": "Full size",
     "artSections": {
