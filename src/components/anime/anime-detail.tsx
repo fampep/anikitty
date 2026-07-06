@@ -16,6 +16,7 @@ import AnimeCarousel from "@/components/anime/anime-carousel";
 import AnimeEpisodes from "@/components/anime/anime-episodes";
 import CharacterCard from "@/components/common/character-card";
 import VoiceActorsPanel from "@/components/anime/voice-actors-panel";
+import { recordRecentlyViewed } from "@/lib/core/recently-viewed";
 import { ROUTES } from "@/constants/routes";
 import Select from "@/components/common/select";
 import {
@@ -132,6 +133,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab]);
+
+  // Record this anime for the home "Recently viewed" rail.
+  const viewedInfo = anime?.anime?.info;
+  useEffect(() => {
+    if (viewedInfo?.id && viewedInfo.name && viewedInfo.poster) {
+      recordRecentlyViewed({
+        id: String(viewedInfo.id),
+        name: viewedInfo.name,
+        poster: viewedInfo.poster,
+      });
+    }
+  }, [viewedInfo?.id, viewedInfo?.name, viewedInfo?.poster]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);

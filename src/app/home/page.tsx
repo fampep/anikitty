@@ -2,6 +2,7 @@
 
 import ContinueWatching from "@/components/home/continue-watching";
 import HomeRecommendations from "@/components/home/home-recommendations";
+import RecentlyViewed from "@/components/home/recently-viewed";
 import HomeExploreBar from "@/components/home/home-explore-bar";
 import HomeQuickNav from "@/components/home/home-quick-nav";
 import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
@@ -71,6 +72,10 @@ export default function Home() {
 
       <LazyMount minHeight={200}>
         <HomeRecommendations />
+      </LazyMount>
+
+      <LazyMount minHeight={200}>
+        <RecentlyViewed />
       </LazyMount>
 
       <LazyMount minHeight={280}>
