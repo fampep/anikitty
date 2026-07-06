@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Artplayer from "artplayer";
 import type { Option } from "artplayer";
 import Hls from "hls.js";
@@ -332,6 +333,10 @@ export default function KittyPlayer({
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
   const [buffering, setBuffering] = useState(true);
   const [ready, setReady] = useState(false);
+  // Host for the skip/next/countdown overlays, mounted INSIDE ArtPlayer's
+  // player element so they stay visible in every fullscreen mode.
+  const [overlayHost, setOverlayHost] = useState<HTMLElement | null>(null);
+  const overlayHostRef = useRef<HTMLDivElement | null>(null);
 
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
@@ -844,6 +849,17 @@ export default function KittyPlayer({
       applyResume(art);
       refreshHlsControls(art);
       if (savedRate !== 1) art.playbackRate = savedRate;
+
+      // Mount overlays inside the player element (the native-fullscreen target)
+      // so the skip/next/countdown UI shows in fullscreen.
+      const playerEl = (art.template?.$player ?? container) as HTMLElement;
+      const host = document.createElement("div");
+      host.className = "kitty-overlay-host";
+      host.style.cssText = "position:absolute;inset:0;z-index:120;pointer-events:none;";
+      playerEl.appendChild(host);
+      overlayHostRef.current = host;
+      setOverlayHost(host);
+
       onPlayerReadyRef.current?.(art);
 
       const video = art.video;
@@ -1057,6 +1073,11 @@ export default function KittyPlayer({
         window.clearTimeout(bufferingShowTimerRef.current);
         bufferingShowTimerRef.current = null;
       }
+      // Detach the overlay host before ArtPlayer tears down its DOM, and let
+      // React unmount the portal into it.
+      setOverlayHost(null);
+      overlayHostRef.current?.remove();
+      overlayHostRef.current = null;
       art.destroy();
       artRef.current = null;
       if (hlsForCleanup) {
@@ -1081,24 +1102,8 @@ export default function KittyPlayer({
   const overlayBottom = showNext ? "kitty-overlay--stacked" : "kitty-overlay--base";
   const showLoading = buffering && !ready;
 
-  return (
-    <div
-      ref={wrapperRef}
-      className={cn(
-        "art-kitty-player relative w-full overflow-hidden rounded-xl bg-[#030303]",
-        "shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.08]",
-        orientClass,
-      )}
-      style={orientClass ? undefined : { aspectRatio: "16/9" }}
-    >
-      <div ref={containerRef} className="art-kitty-player-mount absolute inset-0 z-0" />
-
-      {showLoading && (
-        <div className="pointer-events-none absolute inset-0 z-[130] flex items-center justify-center bg-black/40 animate-in fade-in duration-300">
-          <LoadingGirl size={120} className="opacity-90 drop-shadow-[0_0_32px_rgba(124,58,237,0.35)]" />
-        </div>
-      )}
-
+  const overlays = (
+    <>
       {showNext && nextEpisode && (
         <NextEpisodeButton
           episode={nextEpisode}
@@ -1125,6 +1130,29 @@ export default function KittyPlayer({
           onCancel={() => setCountdown(null)}
         />
       )}
+    </>
+  );
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={cn(
+        "art-kitty-player relative w-full overflow-hidden rounded-xl bg-[#030303]",
+        "shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.08]",
+        orientClass,
+      )}
+      style={orientClass ? undefined : { aspectRatio: "16/9" }}
+    >
+      <div ref={containerRef} className="art-kitty-player-mount absolute inset-0 z-0" />
+
+      {showLoading && (
+        <div className="pointer-events-none absolute inset-0 z-[130] flex items-center justify-center bg-black/40 animate-in fade-in duration-300">
+          <LoadingGirl size={120} className="opacity-90 drop-shadow-[0_0_32px_rgba(124,58,237,0.35)]" />
+        </div>
+      )}
+
+      {/* Mounted inside ArtPlayer's player element so they survive fullscreen. */}
+      {overlayHost ? createPortal(overlays, overlayHost) : overlays}
     </div>
   );
 }
