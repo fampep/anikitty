@@ -147,12 +147,21 @@ export default function AnimeReviews({
     setLoading(true);
     try {
       const res = await fetch(`/api/anime/${animeId}/reviews?sort=${sort}`, withAuth());
-      const data = await res.json();
-      setAggregate(data.aggregate);
-      setReviews(data.reviews ?? []);
-      setMine(data.mine ?? null);
+      const data = res.ok ? await res.json() : null;
+      if (data?.aggregate) {
+        setAggregate({
+          average: data.aggregate.average ?? null,
+          score100: data.aggregate.score100 ?? null,
+          count: data.aggregate.count ?? 0,
+          distribution: Array.isArray(data.aggregate.distribution)
+            ? data.aggregate.distribution
+            : Array(10).fill(0),
+        });
+      }
+      setReviews(Array.isArray(data?.reviews) ? data.reviews : []);
+      setMine(data?.mine ?? null);
     } catch {
-      /* ignore */
+      /* keep prior/default state */
     } finally {
       setLoading(false);
     }

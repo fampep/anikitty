@@ -24,26 +24,39 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const limit = parseInt(searchParams.get("limit") ?? "20", 10);
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
-  const db = getDb();
-  const viewer = await requireUser(req).catch(() => null);
+  const emptyAggregate = {
+    average: null,
+    score100: null,
+    count: 0,
+    distribution: Array<number>(10).fill(0),
+  };
 
-  const [aggregate, reviews, mine] = await Promise.all([
-    getReviewAggregate(db, id),
-    listReviews(db, id, { sort, limit, offset, viewerId: viewer?.id ?? null }),
-    viewer ? getUserReview(db, viewer.id, id) : Promise.resolve(null),
-  ]);
+  try {
+    const db = getDb();
+    const viewer = await requireUser(req).catch(() => null);
 
-  return NextResponse.json({
-    aggregate,
-    reviews,
-    mine: mine
-      ? {
-          score: mine.score,
-          body: mine.body,
-          hasSpoiler: mine.hasSpoiler,
-        }
-      : null,
-  });
+    const [aggregate, reviews, mine] = await Promise.all([
+      getReviewAggregate(db, id),
+      listReviews(db, id, { sort, limit, offset, viewerId: viewer?.id ?? null }),
+      viewer ? getUserReview(db, viewer.id, id) : Promise.resolve(null),
+    ]);
+
+    return NextResponse.json({
+      aggregate,
+      reviews,
+      mine: mine
+        ? {
+            score: mine.score,
+            body: mine.body,
+            hasSpoiler: mine.hasSpoiler,
+          }
+        : null,
+    });
+  } catch (e) {
+    console.error("[reviews GET]", e);
+    // Degrade gracefully (e.g. before the tables are migrated) instead of 500.
+    return NextResponse.json({ aggregate: emptyAggregate, reviews: [], mine: null });
+  }
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
