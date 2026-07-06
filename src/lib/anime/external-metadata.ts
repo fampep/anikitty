@@ -96,6 +96,34 @@ async function fetchMalExtras(
   }
 }
 
+async function fetchImdbRating(imdbId: string): Promise<ProviderRating | null> {
+  const id = imdbId.trim();
+  if (!/^tt\d+$/.test(id)) return null;
+  // Cinemeta (Stremio's public metadata addon) exposes IMDb ratings keyless.
+  for (const type of ["series", "movie"] as const) {
+    try {
+      const res = await fetch(`https://v3-cinemeta.strem.io/meta/${type}/${id}.json`, {
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 86400 },
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const raw = data?.meta?.imdbRating;
+      const score = raw ? parseFloat(String(raw)) : NaN;
+      if (!Number.isFinite(score) || score <= 0) continue;
+      return {
+        provider: "imdb",
+        score,
+        label: `${score.toFixed(1)}/10`,
+        url: `https://www.imdb.com/title/${id}/`,
+      };
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 async function fetchKitsuRating(kitsuId: number): Promise<ProviderRating | null> {
   try {
     const res = await fetch(`https://kitsu.io/api/edge/anime/${kitsuId}`, {
@@ -210,6 +238,7 @@ export async function fetchExternalMetadataExtras(opts: {
   tvdbId?: number | null;
   tmdbId?: number | string | null;
   kitsuId?: number | null;
+  imdbId?: string | null;
 }): Promise<Pick<ExternalMetadata, "mal" | "tvdb" | "tmdb"> & { ratings: ProviderRating[] }> {
   const tmdbRaw = opts.tmdbId;
   const tmdbNum =
@@ -217,14 +246,15 @@ export async function fetchExternalMetadataExtras(opts: {
       ? parseInt(String(tmdbRaw), 10)
       : NaN;
 
-  const [malResult, tvdb, tmdbResult, kitsuRating] = await Promise.all([
+  const [malResult, tvdb, tmdbResult, kitsuRating, imdbRating] = await Promise.all([
     opts.malId ? fetchMalExtras(opts.malId) : Promise.resolve({ mal: undefined, rating: null }),
     opts.tvdbId ? fetchTvdbExtras(opts.tvdbId) : Promise.resolve(undefined),
     Number.isFinite(tmdbNum) ? fetchTmdbExtras(tmdbNum) : Promise.resolve({ tmdb: undefined, rating: null }),
     opts.kitsuId ? fetchKitsuRating(opts.kitsuId) : Promise.resolve(null),
+    opts.imdbId ? fetchImdbRating(opts.imdbId) : Promise.resolve(null),
   ]);
 
-  const ratings = [malResult.rating, tmdbResult.rating, kitsuRating].filter(
+  const ratings = [malResult.rating, imdbRating, tmdbResult.rating, kitsuRating].filter(
     (r): r is ProviderRating => r != null,
   );
 

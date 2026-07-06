@@ -59,6 +59,7 @@ export async function GET(
         tvdbId: mappings?.thetvdb_id ?? null,
         tmdbId: mappings?.themoviedb_id ?? null,
         kitsuId: mappings?.kitsu_id ?? null,
+        imdbId: mappings?.imdb_id ?? null,
       }),
     ]);
 
