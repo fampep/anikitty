@@ -1,7 +1,7 @@
 "use client";
 
 import Loading from "@/app/loading";
-import parse from "html-react-parser";
+import AniListRichText from "@/components/anime/anilist-rich-text";
 import { ROUTES } from "@/constants/routes";
 
 import Container from "@/components/layout/container";
@@ -359,9 +359,10 @@ const Layout = (props: Props) => {
               {info.description && (
                 <div className="site-panel p-5 sm:p-6">
                   <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
-                  <p className="text-[13px] text-muted-foreground dark:text-white/55 leading-7">
-                    {parse(info.description as string)}
-                  </p>
+                  <AniListRichText
+                    text={info.description as string}
+                    className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
+                  />
                   <Link
                     href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
                     className="inline-flex items-center gap-1 mt-3 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
