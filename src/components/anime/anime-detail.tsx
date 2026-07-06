@@ -16,6 +16,7 @@ import AnimeCarousel from "@/components/anime/anime-carousel";
 import AnimeEpisodes from "@/components/anime/anime-episodes";
 import CharacterCard from "@/components/common/character-card";
 import VoiceActorsPanel from "@/components/anime/voice-actors-panel";
+import AniListRichText, { cleanAniListText } from "@/components/anime/anilist-rich-text";
 import { recordRecentlyViewed } from "@/lib/core/recently-viewed";
 import { ROUTES } from "@/constants/routes";
 import Select from "@/components/common/select";
@@ -388,7 +389,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             {info.description && (
               <p className="text-[12px] sm:text-[13px] text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 md:line-clamp-4 max-w-2xl">
-                {info.description}
+                {cleanAniListText(info.description as string)}
               </p>
             )}
 
@@ -443,7 +444,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-8 space-y-5">
             <OverviewPanel title={t("anime.synopsis")}>
-              <p className="text-sm text-muted-foreground dark:text-white/65 leading-8">{info.description}</p>
+              <AniListRichText
+                text={info.description as string}
+                className="text-sm text-muted-foreground dark:text-white/65 leading-8"
+              />
             </OverviewPanel>
 
             {moreInfo.synonyms && (
