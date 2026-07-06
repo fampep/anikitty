@@ -15,17 +15,13 @@ import { anisurgeAuth, clearAnisurgeToken } from "@/lib/oauth/anisurge";
 import { useUserLevel } from "@/hooks/use-user-level";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 import type { LevelTier } from "@/lib/user/user-level";
+import { LEVEL_TIER_ICONS } from "@/lib/user/level-tier-icons";
 import { useT } from "@/providers/i18n-provider";
 
 type Props = { auth: IAuthStore };
 
-// Map icon name string → Lucide component
-const TIER_ICONS: Record<string, React.ElementType> = {
-  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
-};
-
 function TierIcon({ tier, className }: { tier: LevelTier; className?: string }) {
-  const Icon = TIER_ICONS[tier.icon] ?? Star;
+  const Icon = LEVEL_TIER_ICONS[tier.icon] ?? Star;
   return <Icon className={className} style={{ color: tier.color }} />;
 }
 

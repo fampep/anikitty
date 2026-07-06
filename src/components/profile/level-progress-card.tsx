@@ -1,19 +1,14 @@
 "use client";
 
 import React from "react";
-import {
-  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
-} from "lucide-react";
+import { Star } from "lucide-react";
 import type { LevelTier } from "@/lib/user/user-level";
+import { LEVEL_TIER_ICONS } from "@/lib/user/level-tier-icons";
 import type { UserLevelData } from "@/hooks/use-user-level";
 import { cn } from "@/lib/core/utils";
 
-const TIER_ICONS: Record<string, React.ElementType> = {
-  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles,
-};
-
 function TierIcon({ tier, className }: { tier: LevelTier; className?: string }) {
-  const Icon = TIER_ICONS[tier.icon] ?? Star;
+  const Icon = LEVEL_TIER_ICONS[tier.icon] ?? Star;
   return <Icon className={className} style={{ color: tier.color }} />;
 }
 

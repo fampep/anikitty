@@ -1,14 +1,8 @@
 "use client";
 
-import type { ElementType } from "react";
-import {
-  Eye, Play, Tv, Star, Heart, Flame, Award, Shield, Crown, Sparkles, Zap,
-} from "lucide-react";
+import { Star } from "lucide-react";
 import { RoleBadge } from "./role-badge";
-
-const TIER_ICONS: Record<string, ElementType> = {
-  Eye, Play, Tv, Star, Heart, Zap, Flame, Award, Shield, Crown, Sparkles,
-};
+import { LEVEL_TIER_ICONS as TIER_ICONS } from "@/lib/user/level-tier-icons";
 
 type Props = {
   role?: string | null;

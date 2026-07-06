@@ -7,21 +7,30 @@ export type LevelTier = {
 };
 
 export const LEVEL_TIERS: LevelTier[] = [
-  { name: "Newcomer",      minLevel: 1,   maxLevel: 5,   color: "#94a3b8", icon: "Eye"       },
-  { name: "Watcher",       minLevel: 6,   maxLevel: 10,  color: "#60a5fa", icon: "Play"      },
-  { name: "Bingewatcher",  minLevel: 11,  maxLevel: 20,  color: "#22d3ee", icon: "Tv"        },
-  { name: "Enthusiast",    minLevel: 21,  maxLevel: 35,  color: "#2dd4bf", icon: "Star"      },
-  { name: "Fan",           minLevel: 36,  maxLevel: 50,  color: "#818cf8", icon: "Heart"     },
-  { name: "Weeb",          minLevel: 51,  maxLevel: 65,  color: "#a78bfa", icon: "Zap"       },
-  { name: "Otaku",         minLevel: 66,  maxLevel: 80,  color: "#c084fc", icon: "Flame"     },
-  { name: "Senpai",        minLevel: 81,  maxLevel: 90,  color: "#f472b6", icon: "Award"     },
-  { name: "Sensei",        minLevel: 91,  maxLevel: 99,  color: "#fb923c", icon: "Shield"    },
-  { name: "Kage",          minLevel: 100, maxLevel: 100, color: "#fbbf24", icon: "Crown"     },
+  { name: "Newcomer",      minLevel: 1,   maxLevel: 4,   color: "#94a3b8", icon: "Eye"       },
+  { name: "Watcher",       minLevel: 5,   maxLevel: 9,   color: "#60a5fa", icon: "Play"      },
+  { name: "Bingewatcher",  minLevel: 10,  maxLevel: 17,  color: "#22d3ee", icon: "Tv"        },
+  { name: "Enthusiast",    minLevel: 18,  maxLevel: 27,  color: "#2dd4bf", icon: "Star"      },
+  { name: "Devotee",       minLevel: 28,  maxLevel: 37,  color: "#34d399", icon: "Sparkles"  },
+  { name: "Fan",           minLevel: 38,  maxLevel: 47,  color: "#818cf8", icon: "Heart"     },
+  { name: "Superfan",      minLevel: 48,  maxLevel: 56,  color: "#6366f1", icon: "Gem"       },
+  { name: "Weeb",          minLevel: 57,  maxLevel: 65,  color: "#a78bfa", icon: "Zap"       },
+  { name: "Otaku",         minLevel: 66,  maxLevel: 74,  color: "#c084fc", icon: "Flame"     },
+  { name: "Connoisseur",   minLevel: 75,  maxLevel: 82,  color: "#d946ef", icon: "Swords"    },
+  { name: "Senpai",        minLevel: 83,  maxLevel: 89,  color: "#f472b6", icon: "Award"     },
+  { name: "Sensei",        minLevel: 90,  maxLevel: 95,  color: "#fb923c", icon: "Shield"    },
+  { name: "Grandmaster",   minLevel: 96,  maxLevel: 99,  color: "#f97316", icon: "Trophy"    },
+  { name: "Kage",          minLevel: 100, maxLevel: 114, color: "#fbbf24", icon: "Crown"     },
+  { name: "Legend",        minLevel: 115, maxLevel: 129, color: "#f59e0b", icon: "Medal"     },
+  { name: "Sage",          minLevel: 130, maxLevel: 149, color: "#fde047", icon: "Wand2"     },
+  { name: "Ascendant",     minLevel: 150, maxLevel: 169, color: "#38bdf8", icon: "Rocket"    },
+  { name: "Immortal",      minLevel: 170, maxLevel: 189, color: "#e879f9", icon: "Infinity"  },
+  { name: "Deity",         minLevel: 190, maxLevel: 200, color: "#f43f5e", icon: "Atom"      },
 ];
 
 /** Higher levels need cubically more XP — early levels stay approachable, 100 is a grind. */
 const XP_CURVE_DIVISOR = 12;
-const MAX_LEVEL = 100;
+const MAX_LEVEL = 200;
 
 export function levelToXpRequired(level: number): number {
   if (level <= 1) return 0;
