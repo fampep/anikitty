@@ -28,6 +28,30 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.0",
+    date: "2026-07-06",
+    title: "Reviews, achievements & richer anime pages",
+    changes: [
+      { type: "added", text: "Rate anime 1–10 and write reviews — every title now has its own community \"AniKitty Score\" and a Reviews tab, with helpful votes and spoiler tags." },
+      { type: "added", text: "Achievements: unlock badges for watching, reviewing, commenting, leveling up, and login streaks — shown on your profile." },
+      { type: "added", text: "Daily login streaks with bonus Kittycoins every 7 days in a row." },
+      { type: "added", text: "Link your MyAnimeList account (official MAL login) in Settings → Connections." },
+      { type: "added", text: "Rewatch counter on completed titles, and your personal score now shows on your list cards." },
+      { type: "added", text: "Ratings from MyAnimeList, TMDB, Kitsu and IMDb on every anime page." },
+      { type: "added", text: "Voice actor pages — search actors, browse their full filmography, and tap any actor on an anime to see their roles." },
+      { type: "added", text: "New level tiers all the way to level 200, including prestige ranks above 100 (Legend, Sage, Ascendant, Immortal, Deity)." },
+      { type: "added", text: "\"Recently viewed\" row on the home page, plus more content rows to browse." },
+      { type: "added", text: "Branded 404 page and a scroll-to-top button." },
+      { type: "improved", text: "Shared anime links now unfurl with a branded poster + score card on Discord and social." },
+      { type: "improved", text: "Anime synopses and voice-actor bios render properly with spoilers hidden until you tap." },
+      { type: "improved", text: "Clickable genres, a clearer \"resume episode\" label, animated tab switches, and a remembered profile list tab." },
+      { type: "improved", text: "Faster, smoother home page and a reworked status page; added a Singapore server node." },
+      { type: "fixed", text: "Avatars no longer look stretched or squished." },
+      { type: "fixed", text: "Autoplay now correctly counts down and advances to the next episode." },
+      { type: "fixed", text: "Skip, next-episode, and countdown buttons now show in fullscreen." },
+    ],
+  },
+  {
     version: "0.5.5",
     date: "2026-07-05",
     title: "Social, personalization & player upgrades",
