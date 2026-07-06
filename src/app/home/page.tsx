@@ -5,11 +5,14 @@ import HomeRecommendations from "@/components/home/home-recommendations";
 import RecentlyViewed from "@/components/home/recently-viewed";
 import HomeExploreBar from "@/components/home/home-explore-bar";
 import HomeQuickNav from "@/components/home/home-quick-nav";
-import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
+import {
+  useGetHomeCriticalData,
+  useGetHomeDiscoveryData,
+} from "@/query/home/get-home-page-data";
 import { IAnime, SpotlightAnime } from "@/types/anime";
 import dynamic from "next/dynamic";
-import React from "react";
-import { Flame, RefreshCw } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Flame, RefreshCw, Sparkles, Zap, TrendingUp, CalendarClock, Heart } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useQueryClient } from "@tanstack/react-query";
 import { GET_HOME_CRITICAL } from "@/constants/query-keys";
@@ -30,6 +33,15 @@ export default function Home() {
     refetch,
     isFetching,
   } = useGetHomeCriticalData();
+
+  // Load the discovery batch (popular / upcoming / favorites) once the
+  // critical data is in, so the home page has more to browse.
+  const [discoveryEnabled, setDiscoveryEnabled] = useState(false);
+  const { data: discovery, isLoading: discoveryLoading } = useGetHomeDiscoveryData(discoveryEnabled);
+  useEffect(() => {
+    if (critical) setDiscoveryEnabled(true);
+  }, [critical]);
+  const discoveryLoadingState = discoveryEnabled && discoveryLoading && !discovery;
 
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: [GET_HOME_CRITICAL] });
@@ -87,6 +99,62 @@ export default function Home() {
           loading={isLoading}
           layout="row"
           seeAllHref={ROUTES.TRENDING}
+        />
+      </LazyMount>
+
+      <LazyMount minHeight={280}>
+        <AnimeSections
+          sectionId="new-episodes"
+          title={t("home.newEpisodes")}
+          icon={<Zap className="w-4 h-4" />}
+          trendingAnime={(critical?.latestEpisodeAnimes as IAnime[]) ?? []}
+          loading={isLoading}
+          layout="row"
+        />
+      </LazyMount>
+
+      <LazyMount minHeight={280}>
+        <AnimeSections
+          sectionId="recently-added"
+          title={t("home.recentlyAdded")}
+          icon={<Sparkles className="w-4 h-4" />}
+          trendingAnime={(critical?.recentlyAddedAnimes as IAnime[]) ?? []}
+          loading={isLoading}
+          layout="row"
+        />
+      </LazyMount>
+
+      <LazyMount minHeight={280}>
+        <AnimeSections
+          sectionId="most-popular"
+          title={t("home.mostPopular")}
+          icon={<TrendingUp className="w-4 h-4" />}
+          trendingAnime={(discovery?.mostPopularAnimes as IAnime[]) ?? []}
+          loading={discoveryLoadingState}
+          layout="row"
+          seeAllHref={ROUTES.TRENDING}
+        />
+      </LazyMount>
+
+      <LazyMount minHeight={280}>
+        <AnimeSections
+          sectionId="top-upcoming"
+          title={t("home.topUpcoming")}
+          icon={<CalendarClock className="w-4 h-4" />}
+          trendingAnime={(discovery?.topUpcomingAnimes as IAnime[]) ?? []}
+          loading={discoveryLoadingState}
+          layout="row"
+        />
+      </LazyMount>
+
+      <LazyMount minHeight={280}>
+        <AnimeSections
+          sectionId="most-favorite"
+          title={t("home.mostFavorite")}
+          icon={<Heart className="w-4 h-4" />}
+          trendingAnime={(discovery?.mostFavoriteAnimes as IAnime[]) ?? []}
+          loading={discoveryLoadingState}
+          layout="row"
         />
       </LazyMount>
     </div>
