@@ -1,8 +1,8 @@
-export type KittyApiNodeId = "primary" | "fallback" | "third-choice";
+export type KittyApiNodeId = "primary" | "fallback" | "third-choice" | "fourth-choice";
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
-  /** Display number in the proxy chooser (1 = Primary, 2 = Fallback, 3 = Third choice). */
+  /** Display number in the proxy chooser (1 = Primary, 2 = Fallback, 3 = Third, 4 = Fourth). */
   index: number;
   label: string;
   ip: string;
@@ -52,6 +52,17 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     timezone: "Europe/Sofia",
     operator: "Third cluster node",
   },
+  {
+    id: "fourth-choice",
+    index: 4,
+    label: "Singapore",
+    ip: "23.111.15.143",
+    url: "https://kittyapi.23-111-15-143.sslip.io",
+    host: "kittyapi.23-111-15-143.sslip.io",
+    location: "Singapore",
+    timezone: "Asia/Singapore",
+    operator: "Fourth cluster node",
+  },
 ] as const;
 
 export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
@@ -74,6 +85,9 @@ export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined):
 
 export function parseKittyNodeParam(value: string | null | undefined): KittyApiNodeId {
   const normalized = value?.trim().toLowerCase();
+  if (normalized === "fourth-choice" || normalized === "fourthchoice" || normalized === "4") {
+    return "fourth-choice";
+  }
   if (normalized === "third-choice" || normalized === "thirdchoice" || normalized === "3") {
     return "third-choice";
   }
