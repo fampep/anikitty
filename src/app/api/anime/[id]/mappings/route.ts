@@ -58,14 +58,17 @@ export async function GET(
         malId: mappings?.mal_id ?? null,
         tvdbId: mappings?.thetvdb_id ?? null,
         tmdbId: mappings?.themoviedb_id ?? null,
+        kitsuId: mappings?.kitsu_id ?? null,
       }),
     ]);
 
+    const { ratings: extraRatings, ...extraMeta } = extras;
     const ratings = buildRatingsFromAniZip({
       anilistId: numId,
       anilistScore: anilistMedia?.averageScore ?? null,
       mappings,
       episodes: aniZipEpisodes,
+      extraRatings,
     });
 
     return Response.json({
@@ -73,7 +76,7 @@ export async function GET(
       images,
       metadata: {
         ratings,
-        ...extras,
+        ...extraMeta,
       },
     });
   } catch {

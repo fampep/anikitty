@@ -16,7 +16,7 @@ type AniZipEpisode = {
   episodeNumber?: number;
 };
 
-const RATING_ORDER = ["anilist", "mal", "imdb", "tmdb", "tvdb"] as const;
+const RATING_ORDER = ["anilist", "mal", "imdb", "tmdb", "tvdb", "kitsu"] as const;
 
 function parseRating(value: unknown): number | null {
   const n = typeof value === "number" ? value : parseFloat(String(value ?? ""));
@@ -63,8 +63,10 @@ export function buildRatingsFromAniZip(opts: {
   anilistScore?: number | null;
   mappings?: AniZipMappings | null;
   episodes?: Record<string, unknown> | null;
+  /** Ratings pulled from other providers (MAL, TMDB, Kitsu). */
+  extraRatings?: ProviderRating[];
 }): ProviderRating[] {
-  const ratings: ProviderRating[] = [];
+  const ratings: ProviderRating[] = [...(opts.extraRatings ?? [])];
   const m = opts.mappings;
 
   if (opts.anilistScore && opts.anilistScore > 0) {

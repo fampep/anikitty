@@ -60,24 +60,64 @@ async function getTvdbToken(): Promise<string | null> {
   }
 }
 
-async function fetchMalExtras(malId: number): Promise<ExternalMetadata["mal"]> {
+async function fetchMalExtras(
+  malId: number,
+): Promise<{ mal: ExternalMetadata["mal"]; rating: ProviderRating | null }> {
   try {
     const res = await fetch(`${JIKAN_API}/anime/${malId}`, {
       signal: AbortSignal.timeout(6000),
       next: { revalidate: 86400 },
     });
-    if (!res.ok) return undefined;
+    if (!res.ok) return { mal: undefined, rating: null };
     const data = res.json ? await res.json() : null;
     const row = data?.data;
-    if (!row) return undefined;
+    if (!row) return { mal: undefined, rating: null };
+
+    const score = typeof row.score === "number" && row.score > 0 ? row.score : null;
     return {
-      rank: row.rank ?? null,
-      popularity: row.popularity ?? null,
-      members: row.members ?? null,
-      scoredBy: row.scored_by ?? null,
+      mal: {
+        rank: row.rank ?? null,
+        popularity: row.popularity ?? null,
+        members: row.members ?? null,
+        scoredBy: row.scored_by ?? null,
+      },
+      rating: score
+        ? {
+            provider: "mal",
+            score,
+            label: `${score.toFixed(2)}/10`,
+            votes: row.scored_by ?? null,
+            url: `https://myanimelist.net/anime/${malId}`,
+          }
+        : null,
     };
   } catch {
-    return undefined;
+    return { mal: undefined, rating: null };
+  }
+}
+
+async function fetchKitsuRating(kitsuId: number): Promise<ProviderRating | null> {
+  try {
+    const res = await fetch(`https://kitsu.io/api/edge/anime/${kitsuId}`, {
+      headers: { Accept: "application/vnd.api+json" },
+      signal: AbortSignal.timeout(6000),
+      next: { revalidate: 86400 },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const attr = data?.data?.attributes;
+    const avg = attr?.averageRating ? parseFloat(attr.averageRating) : NaN;
+    if (!Number.isFinite(avg) || avg <= 0) return null;
+    const score = avg / 10; // Kitsu averageRating is 0–100.
+    return {
+      provider: "kitsu",
+      score,
+      label: `${score.toFixed(1)}/10`,
+      votes: typeof attr?.userCount === "number" ? attr.userCount : null,
+      url: `https://kitsu.app/anime/${kitsuId}`,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -122,51 +162,71 @@ async function fetchTvdbExtras(tvdbId: number): Promise<ExternalMetadata["tvdb"]
   return undefined;
 }
 
-async function fetchTmdbExtras(tmdbId: number): Promise<ExternalMetadata["tmdb"]> {
+async function fetchTmdbExtras(
+  tmdbId: number,
+): Promise<{ tmdb: ExternalMetadata["tmdb"]; rating: ProviderRating | null }> {
   const apiKey = process.env.TMDB_API_KEY?.trim();
-  if (!apiKey) return undefined;
+  if (!apiKey) return { tmdb: undefined, rating: null };
 
   try {
     const res = await fetch(
       `${TMDB_API}/tv/${tmdbId}?api_key=${encodeURIComponent(apiKey)}`,
       { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
     );
-    if (!res.ok) return undefined;
+    if (!res.ok) return { tmdb: undefined, rating: null };
     const data = await res.json();
 
+    const avg = typeof data.vote_average === "number" && data.vote_average > 0 ? data.vote_average : null;
     return {
-      status: data.status ? String(data.status) : null,
-      seasons: data.number_of_seasons ?? null,
-      episodes: data.number_of_episodes ?? null,
-      popularity: data.popularity ?? null,
-      networks: (data.networks ?? []).map((n: { name?: string }) => n.name).filter(Boolean),
-      production: (data.production_companies ?? [])
-        .map((c: { name?: string }) => c.name)
-        .filter(Boolean)
-        .slice(0, 4),
+      tmdb: {
+        status: data.status ? String(data.status) : null,
+        seasons: data.number_of_seasons ?? null,
+        episodes: data.number_of_episodes ?? null,
+        popularity: data.popularity ?? null,
+        networks: (data.networks ?? []).map((n: { name?: string }) => n.name).filter(Boolean),
+        production: (data.production_companies ?? [])
+          .map((c: { name?: string }) => c.name)
+          .filter(Boolean)
+          .slice(0, 4),
+      },
+      rating: avg
+        ? {
+            provider: "tmdb",
+            score: avg,
+            label: `${avg.toFixed(1)}/10`,
+            votes: typeof data.vote_count === "number" ? data.vote_count : null,
+            url: `https://www.themoviedb.org/tv/${tmdbId}`,
+          }
+        : null,
     };
   } catch {
-    return undefined;
+    return { tmdb: undefined, rating: null };
   }
 }
 
-/** Detail extras only — ratings come from ani.zip via buildRatingsFromAniZip. */
+/** Detail extras + the ratings we can pull from MAL, TMDB, and Kitsu. */
 export async function fetchExternalMetadataExtras(opts: {
   malId?: number | null;
   tvdbId?: number | null;
   tmdbId?: number | string | null;
-}): Promise<Pick<ExternalMetadata, "mal" | "tvdb" | "tmdb">> {
+  kitsuId?: number | null;
+}): Promise<Pick<ExternalMetadata, "mal" | "tvdb" | "tmdb"> & { ratings: ProviderRating[] }> {
   const tmdbRaw = opts.tmdbId;
   const tmdbNum =
     tmdbRaw != null && String(tmdbRaw).trim() !== ""
       ? parseInt(String(tmdbRaw), 10)
       : NaN;
 
-  const [mal, tvdb, tmdb] = await Promise.all([
-    opts.malId ? fetchMalExtras(opts.malId) : Promise.resolve(undefined),
+  const [malResult, tvdb, tmdbResult, kitsuRating] = await Promise.all([
+    opts.malId ? fetchMalExtras(opts.malId) : Promise.resolve({ mal: undefined, rating: null }),
     opts.tvdbId ? fetchTvdbExtras(opts.tvdbId) : Promise.resolve(undefined),
-    Number.isFinite(tmdbNum) ? fetchTmdbExtras(tmdbNum) : Promise.resolve(undefined),
+    Number.isFinite(tmdbNum) ? fetchTmdbExtras(tmdbNum) : Promise.resolve({ tmdb: undefined, rating: null }),
+    opts.kitsuId ? fetchKitsuRating(opts.kitsuId) : Promise.resolve(null),
   ]);
 
-  return { mal, tvdb, tmdb };
+  const ratings = [malResult.rating, tmdbResult.rating, kitsuRating].filter(
+    (r): r is ProviderRating => r != null,
+  );
+
+  return { mal: malResult.mal, tvdb, tmdb: tmdbResult.tmdb, ratings };
 }

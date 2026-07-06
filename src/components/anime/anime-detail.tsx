@@ -78,6 +78,7 @@ const RATING_STYLES: Record<string, { label: string; color: string }> = {
   tvdb:    { label: "TVDB", color: "border-green-500/25 bg-green-500/10 text-green-300" },
   tmdb:    { label: "TMDB", color: "border-sky-500/25 bg-sky-500/10 text-sky-300" },
   imdb:    { label: "IMDb", color: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
+  kitsu:   { label: "Kitsu", color: "border-pink-500/25 bg-pink-500/10 text-pink-300" },
 };
 
 // Map a display genre ("Slice of Life") to a searchable slug, when one exists.
