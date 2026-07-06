@@ -25,6 +25,16 @@ const WatchButton = () => {
     return null;
   }
 
+  const resumeNumber = hasWatchedAnime
+    ? episodes?.episodes?.find((e) => e.episodeId === latestEpisodeWatched)?.number
+    : undefined;
+
+  const label = !hasWatchedAnime
+    ? t("landing.startWatching")
+    : resumeNumber != null
+      ? t("anime.continueEpisode", { n: resumeNumber })
+      : t("home.continueWatching");
+
   return (
     <ButtonLink
       href={
@@ -36,7 +46,7 @@ const WatchButton = () => {
       LeftIcon={CirclePlay}
       classNames={{ leftIcon: "fill-white/20" }}
     >
-      {hasWatchedAnime ? t("home.continueWatching") : t("landing.startWatching")}
+      {label}
     </ButtonLink>
   );
 };

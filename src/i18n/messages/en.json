@@ -951,6 +951,7 @@
   },
   "anime": {
     "airing": "AIRING",
+    "continueEpisode": "Continue · Ep {n}",
     "addToList": "Add to list",
     "addToPlanToWatch": "Add to Plan to Watch",
     "addedToPlanToWatch": "Added to Plan to Watch",

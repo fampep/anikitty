@@ -1,7 +1,9 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { genres as GENRE_OPTIONS } from "@/constants/search-filters";
 
 import Container from "@/components/layout/container";
 import AnimeCard from "@/components/anime/anime-card";
@@ -74,6 +76,13 @@ const RATING_STYLES: Record<string, { label: string; color: string }> = {
   tmdb:    { label: "TMDB", color: "border-sky-500/25 bg-sky-500/10 text-sky-300" },
   imdb:    { label: "IMDb", color: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
 };
+
+// Map a display genre ("Slice of Life") to a searchable slug, when one exists.
+const GENRE_SLUGS = new Set(GENRE_OPTIONS.map((g) => g.value));
+function genreSearchSlug(genre: string): string | null {
+  const slug = genre.toLowerCase().replace(/\s+/g, "-");
+  return GENRE_SLUGS.has(slug) ? slug : null;
+}
 
 export default function AnimeDetail({ slug }: { slug: string }) {
   const t = useT();
@@ -342,14 +351,20 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             {moreInfo?.genres && (moreInfo.genres as string[]).length > 0 && (
               <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                {(moreInfo.genres as string[]).map((g) => (
-                  <span
-                    key={g}
-                    className="px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-full border border-violet-500/15 text-violet-200/55 bg-violet-500/[0.06] hover:bg-violet-500/10 hover:text-violet-100/80 transition-colors cursor-default"
-                  >
-                    {g}
-                  </span>
-                ))}
+                {(moreInfo.genres as string[]).map((g) => {
+                  const slug = genreSearchSlug(g);
+                  const className =
+                    "px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-full border border-violet-500/15 text-violet-200/55 bg-violet-500/[0.06] hover:bg-violet-500/10 hover:text-violet-100/80 transition-colors";
+                  return slug ? (
+                    <Link key={g} href={`${ROUTES.SEARCH}?genres=${slug}`} className={className}>
+                      {g}
+                    </Link>
+                  ) : (
+                    <span key={g} className={cn(className, "cursor-default")}>
+                      {g}
+                    </span>
+                  );
+                })}
               </div>
             )}
 
