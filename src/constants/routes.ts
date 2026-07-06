@@ -18,4 +18,6 @@ export const ROUTES = {
   DONATE: "/donate",
   SHOP: "/shop",
   CHANGELOG: "/changelog",
+  VOICE_ACTOR: "/voice-actor",
+  VOICE_ACTORS: "/voice-actors",
 };
