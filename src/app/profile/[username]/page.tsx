@@ -315,7 +315,18 @@ function ProfilePage() {
   const { auth, setAuth } = useAuthStore();
   const hasHydrated = useAuthHydrated();
   const watchlistVersion = useWatchlistStore((s) => s.version);
-  const [activeTab, setActiveTab] = useState<string>("watching");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window === "undefined") return "watching";
+    return new URLSearchParams(window.location.search).get("list") || "watching";
+  });
+  // Keep the selected list in the URL so it's shareable and survives refresh.
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+    const url = new URL(window.location.href);
+    if (value === "watching") url.searchParams.delete("list");
+    else url.searchParams.set("list", value);
+    window.history.replaceState(null, "", url.toString());
+  }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [counts, setCounts] = useState<ProfileCounts>({
@@ -760,7 +771,7 @@ function ProfilePage() {
 
           <section id="watchlist">
             <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.watchlist")} />
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="flex flex-wrap gap-1.5 h-auto bg-transparent p-0 mb-6 border-b border-border dark:border-white/10 pb-3">
                 {getStatusTabs(t).map((tab) => {
                   const count = counts[tab.key as keyof typeof counts];
