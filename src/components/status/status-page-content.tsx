@@ -59,9 +59,27 @@ const STATUS_META: Record<
   },
 };
 
+// Flag per cluster node for a quicker read than a generic globe.
+const NODE_FLAGS: Record<string, string> = {
+  primary: "🇨🇭",
+  fallback: "🇸🇪",
+  "third-choice": "🇧🇬",
+  "fourth-choice": "🇸🇬",
+};
+
+/** Color-code latency: green good, amber okay, red slow. */
+function latencyClass(ms: number | null | undefined): string {
+  if (ms == null) return "text-muted-foreground/60 dark:text-white/25";
+  if (ms < 120) return "text-emerald-400";
+  if (ms < 280) return "text-amber-400";
+  return "text-rose-400";
+}
+
 export default function StatusPageContent() {
   const t = useT();
   const liteMode = useSettingsStore((s) => s.liteMode);
+  const selectedNode = useSettingsStore((s) => s.kittyProxyNode);
+  const manualNode = useSettingsStore((s) => s.kittyProxyManual);
   const statusPollMs = usePollingIntervalMs("status");
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
     useKittyNodePing();
@@ -81,6 +99,10 @@ export default function StatusPageContent() {
     () => resolveOverallStatus(loading, ready, nodes),
     [loading, ready, nodes],
   );
+
+  const onlineCount = nodes.filter((n) => n.ok).length;
+  const fastestNode = KITTY_API_NODES.find((n) => n.id === (recommended ?? fastestId));
+  const fastestPing = fastestNode ? pingByNode[fastestNode.id as KittyApiNodeId] : null;
 
   const overallLabel =
     overall === "checking"
@@ -126,6 +148,17 @@ export default function StatusPageContent() {
             />
             <div>
               <p className="text-lg font-semibold text-foreground dark:text-white">{overallLabel}</p>
+              {ready && (
+                <p className="text-[12px] text-muted-foreground dark:text-white/50 mt-0.5">
+                  {t("status.nodesOnline", { online: onlineCount, total: nodes.length })}
+                  {fastestNode && fastestPing != null && (
+                    <>
+                      {" · "}
+                      {t("status.fastest")}: {NODE_FLAGS[fastestNode.id] ?? ""} {fastestNode.location} ({fastestPing}ms)
+                    </>
+                  )}
+                </p>
+              )}
               <p className="text-[12px] text-muted-foreground dark:text-white/40 mt-0.5">
                 {lastRefresh
                   ? t("status.lastChecked", { time: lastRefresh.toLocaleTimeString() })
@@ -167,13 +200,13 @@ export default function StatusPageContent() {
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                   <div
                     className={cn(
-                      "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
+                      "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 text-lg leading-none",
                       online
-                        ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20"
-                        : "bg-red-500/10 text-red-400 ring-red-500/20",
+                        ? "bg-emerald-500/10 ring-emerald-500/20"
+                        : "bg-red-500/10 ring-red-500/20 grayscale opacity-70",
                     )}
                   >
-                    <Globe2 className="w-4 h-4" />
+                    {NODE_FLAGS[node.id] ?? <Globe2 className="w-4 h-4 text-muted-foreground" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -185,13 +218,20 @@ export default function StatusPageContent() {
                           {t("status.recommended")}
                         </span>
                       )}
+                      {manualNode && selectedNode === node.id && (
+                        <span className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-400/25 text-violet-300/90">
+                          {t("status.yourNode")}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-muted-foreground/80 dark:text-white/25 mt-1.5">
                       {online ? t("status.nodeOnline") : t("status.nodeOffline")}
                       {ping != null && (
                         <>
                           {" · "}
-                          {t("status.latency", { ms: ping })}
+                          <span className={cn("font-medium", latencyClass(ping))}>
+                            {t("status.latency", { ms: ping })}
+                          </span>
                         </>
                       )}
                       {bandwidth != null && bandwidth > 0 && (
