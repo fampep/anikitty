@@ -29,7 +29,31 @@ export async function signToken(payload: {
     .sign(await secret());
 }
 
-export type OAuthPurpose = "anilist_oauth" | "discord_login" | "discord_link";
+export type OAuthPurpose = "anilist_oauth" | "discord_login" | "discord_link" | "mal_oauth";
+
+/** MAL uses PKCE, so the state also carries the code_verifier through the flow. */
+export async function signMalOAuthState(userId: string, codeVerifier: string): Promise<string> {
+  return new SignJWT({ purpose: "mal_oauth", userId, cv: codeVerifier })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(await secret());
+}
+
+export async function verifyMalOAuthState(
+  state: string,
+): Promise<{ userId: string; codeVerifier: string } | null> {
+  try {
+    const { payload } = await jwtVerify(state, await secret());
+    if (payload.purpose !== "mal_oauth") return null;
+    const userId = payload.userId as string | undefined;
+    const codeVerifier = payload.cv as string | undefined;
+    if (!userId || !codeVerifier) return null;
+    return { userId, codeVerifier };
+  } catch {
+    return null;
+  }
+}
 
 export async function signOAuthStateFor(
   purpose: OAuthPurpose,

@@ -35,6 +35,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import AnilistConnect from "@/components/profile/anilist-connect";
+import MalConnect from "@/components/profile/mal-connect";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile/profile-customization-form";
@@ -846,6 +847,10 @@ export default function SettingsPage() {
                   <div>
                     <SubSectionTitle>{t("settings.anilist")}</SubSectionTitle>
                     <AnilistConnect />
+                  </div>
+                  <div className="border-t border-border dark:border-white/6 pt-6">
+                    <SubSectionTitle>{t("settings.mal")}</SubSectionTitle>
+                    <MalConnect />
                   </div>
                   <div className="border-t border-border dark:border-white/6 pt-6">
                     <SubSectionTitle>{t("settings.anisurge")}</SubSectionTitle>
