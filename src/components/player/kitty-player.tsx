@@ -1062,8 +1062,10 @@ export default function KittyPlayer({
       if (endHandledRef.current) return;
       endHandledRef.current = true;
       onEndedRef.current?.();
+      // Don't set autoNextStartedRef here — that flag guards the actual
+      // navigation, which the countdown fires when it reaches 0. Setting it
+      // now would block the countdown from ever advancing the episode.
       if (nextEpisodeRef.current && autoNextRef.current && !autoNextStartedRef.current) {
-        autoNextStartedRef.current = true;
         setCountdown(5);
       }
     });
