@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import AnimeCard from "@/components/anime/anime-card";
+import AniListRichText from "@/components/anime/anilist-rich-text";
 import { ROUTES } from "@/constants/routes";
 import { getVoiceActor } from "@/lib/core/voice-actors";
 import { Mic, Search } from "lucide-react";
@@ -84,9 +85,10 @@ export default async function VoiceActorPage({ params }: { params: Promise<{ id:
       </div>
 
       {va.description && (
-        <p className="mt-6 max-w-3xl text-sm text-muted-foreground dark:text-white/55 leading-7 line-clamp-6">
-          {va.description}
-        </p>
+        <AniListRichText
+          text={va.description}
+          className="mt-6 max-w-3xl text-sm text-muted-foreground dark:text-white/55 leading-7"
+        />
       )}
 
       {/* Roles */}

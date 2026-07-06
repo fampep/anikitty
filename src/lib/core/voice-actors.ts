@@ -123,13 +123,14 @@ async function fetchVoiceActor(id: number): Promise<VoiceActorDetail | null> {
     native: s.name?.native ?? null,
     image: s.image?.large ?? null,
     language: s.languageV2 ?? null,
-    description: (s.description ?? "").replace(/<[^>]*>/g, "").trim() || null,
+    // Keep the raw markdown/HTML — AniListRichText renders it on the client.
+    description: (s.description ?? "").trim() || null,
     home: s.homeTown ?? null,
     roles,
   };
 }
 
-export const getVoiceActor = unstable_cache(fetchVoiceActor, ["voice-actor-v1"], {
+export const getVoiceActor = unstable_cache(fetchVoiceActor, ["voice-actor-v2"], {
   revalidate: 86400,
 });
 
