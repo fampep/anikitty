@@ -37,9 +37,12 @@ type Payload = {
 export default function AchievementsSection({
   username,
   isOwn,
+  compact = false,
 }: {
   username: string;
   isOwn: boolean;
+  /** Single-column layout for the narrow profile sidebar. */
+  compact?: boolean;
 }) {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,7 +103,7 @@ export default function AchievementsSection({
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+      <div className={cn("grid gap-2.5", compact ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4")}>
         {data.achievements.map((a) => {
           const Icon = ICONS[a.icon] ?? Star;
           const showProgress = !a.unlocked && typeof a.current === "number" && typeof a.threshold === "number";

@@ -41,12 +41,17 @@ import {
   UserCheck,
   Ban,
   Trophy,
+  Star,
+  Users,
+  Coins,
+  BarChart3,
+  UserRound,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { toast } from "sonner";
 import { RoleBadge } from "@/components/profile/role-badge";
-import { LevelRoleBadge } from "@/components/profile/user-badges";
 import ProfileBadgesRow from "@/components/profile/profile-badges-row";
 import type { AccountBadges } from "@/lib/user/account-badges";
 import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
@@ -571,205 +576,180 @@ function ProfilePage() {
         <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-black to-transparent" />
       </div>
 
-      <Container className="-mt-20 relative z-10">
-        {/* ── Top identity row ────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 mb-8">
-          {/* Avatar */}
-          <div className="shrink-0">
+      <Container className="-mt-16 sm:-mt-20 relative z-10">
+        {/* ── Hero: left avatar+action rail, main identity + stat tiles ── */}
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 md:items-start mb-10">
+          {/* Left rail: avatar + vertical actions */}
+          <div className="flex flex-col items-center md:items-stretch md:w-56 shrink-0">
             <FramedAvatar
-              className="w-28 h-28 md:w-32 md:h-32 shadow-2xl"
+              className="w-32 h-32 md:w-36 md:h-36 shadow-2xl mx-auto md:mx-0"
               username={profile.username}
               url={profile.avatarUrl ?? undefined}
               frameSlug={profile.equippedFrame}
             />
+
+            <div className="mt-4 flex w-full max-w-[240px] flex-col gap-2">
+              {isOwn ? (
+                <>
+                  <RailButton icon={Pencil} label={t("profile.editProfile")} onClick={() => setEditOpen(true)} variant="primary" />
+                  <RailButton icon={MessageSquare} label={t("profile.messages")} href={ROUTES.MESSAGES} />
+                  <RailButton icon={Users} label={t("profile.friends")} onClick={() => setFollowListType("followers")} />
+                  <RailButton
+                    icon={Coins}
+                    label={kittycoinLoaded ? `${t("nav.kittycoins")} · ${kittycoinBalance.toLocaleString()}` : t("nav.kittycoins")}
+                    href={ROUTES.SHOP}
+                    variant="amber"
+                  />
+                  <RailButton icon={Settings} label={t("profile.openSettings")} href={`${ROUTES.SETTINGS}?tab=profile`} />
+                  <RailButton icon={Link2} label={t("profile.copyLink")} onClick={copyProfileLink} />
+                </>
+              ) : (
+                <>
+                  {auth && !blocked && (
+                    <RailButton
+                      icon={follow?.isFollowing ? UserCheck : UserPlus}
+                      label={follow?.isFollowing ? t("profile.following") : t("profile.follow")}
+                      onClick={toggleFollow}
+                      disabled={followBusy}
+                      variant={follow?.isFollowing ? "default" : "primary"}
+                    />
+                  )}
+                  {auth && !blocked && (
+                    <RailButton
+                      icon={MessageSquare}
+                      label={t("profile.message")}
+                      href={`${ROUTES.MESSAGES}?user=${encodeURIComponent(profile.username)}`}
+                    />
+                  )}
+                  {auth && (
+                    <RailButton
+                      icon={Ban}
+                      label={blocked ? t("profile.unblock") : t("profile.block")}
+                      onClick={toggleBlock}
+                      disabled={blockBusy}
+                      variant={blocked ? "danger" : "default"}
+                    />
+                  )}
+                  <RailButton icon={Link2} label={t("profile.copyLink")} onClick={copyProfileLink} />
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Name + meta */}
-          <div className="flex-1 text-center sm:text-left pb-1">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white tracking-tight">
-                @<CosmeticUsername username={profile.username} iconSlug={profile.equippedIcon} />
-              </h1>
-              {isOwn && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border dark:border-white/15 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/40 text-[11px] font-mono self-center sm:self-auto">
-                  <ShieldCheck className="w-3 h-3" />
-                  {t("profile.passphraseAccount")}
-                </span>
-              )}
-              {isOwn && profile.profilePrivate && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-violet-400/25 bg-violet-500/10 text-violet-200/90 text-[11px] font-mono self-center sm:self-auto">
-                  🥷 {t("profile.ninjaMode")}
-                </span>
-              )}
-              {displayLevel && (
-                <LevelRoleBadge
-                  level={displayLevel.level}
-                  levelRole={displayLevel.levelRole ?? displayLevel.tier.name}
-                  levelRoleColor={displayLevel.levelRoleColor ?? displayLevel.tier.color}
-                  size="sm"
-                />
-              )}
-              {profile.role && profile.role !== "user" && (
-                <RoleBadge role={profile.role} size="sm" />
-              )}
-              {isOwn && (
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 mt-2 sm:mt-0 sm:ml-auto">
-                  <div className="flex flex-col sm:items-end">
-                    <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase">{t("nav.kittycoins")}</p>
-                    <p className="text-[12px] font-bold text-amber-300/90 tabular-nums">
-                      {kittycoinLoaded ? `${kittycoinBalance.toLocaleString()}` : "—"}
-                    </p>
+          {/* Main identity + stat tiles + level bar */}
+          <div className="flex-1 min-w-0 md:pt-8">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+              {/* Identity */}
+              <div className="min-w-0 text-center md:text-left">
+                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground dark:text-white break-words">
+                  <CosmeticUsername username={profile.username} iconSlug={profile.equippedIcon} />
+                </h1>
+
+                {/* Status line = current level tier */}
+                {displayLevel && (
+                  <div className="mt-2 flex items-center justify-center md:justify-start gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: displayLevel.tier.color, boxShadow: `0 0 8px ${displayLevel.tier.color}` }}
+                    />
+                    <span className="text-sm font-semibold" style={{ color: displayLevel.tier.color }}>
+                      {displayLevel.tier.name}
+                    </span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 justify-center sm:justify-end">
-                    <Link
-                      href={ROUTES.SHOP}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-400/25 bg-amber-500/10 text-amber-200/90 text-[12px] font-medium hover:bg-amber-500/20 transition-all self-center sm:self-auto"
-                    >
-                      {t("settings.openShop")}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setEditOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all self-center sm:self-auto"
-                    >
-                      <Pencil className="w-3 h-3" />
-                      {t("profile.editProfile")}
-                    </button>
-                    <Link
-                      href={`${ROUTES.SETTINGS}?tab=profile`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all self-center sm:self-auto"
-                    >
-                      <Settings className="w-3 h-3" />
-                      {t("profile.openSettings")}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={copyProfileLink}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all self-center sm:self-auto"
-                    >
-                      <Link2 className="w-3 h-3" />
-                      {t("profile.copyLink")}
-                    </button>
-                  </div>
-                </div>
-              )}
-              {!isOwn && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-2 sm:mt-0 sm:ml-auto self-center sm:self-auto">
-                  {follow?.followsYou && (
+                )}
+
+                {/* Badges */}
+                <div className="mt-2.5 flex flex-wrap items-center justify-center md:justify-start gap-1.5">
+                  {profile.role && profile.role !== "user" && <RoleBadge role={profile.role} size="sm" />}
+                  {!isOwn && follow?.followsYou && (
                     <span className="inline-flex items-center px-2 py-1 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/5 text-muted-foreground dark:text-white/40 text-[10px] font-mono">
                       {t("profile.followsYou")}
                     </span>
                   )}
-                  {auth && !blocked && (
-                    <button
-                      type="button"
-                      onClick={toggleFollow}
-                      disabled={followBusy}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all disabled:opacity-60",
-                        follow?.isFollowing
-                          ? "border border-border dark:border-white/15 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/60 hover:border-rose-500/30 hover:text-rose-300"
-                          : "border border-violet-500/30 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25",
-                      )}
-                    >
-                      {follow?.isFollowing ? (
-                        <><UserCheck className="w-3 h-3" />{t("profile.following")}</>
-                      ) : (
-                        <><UserPlus className="w-3 h-3" />{t("profile.follow")}</>
-                      )}
-                    </button>
+                  {isOwn && profile.profilePrivate && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-violet-400/25 bg-violet-500/10 text-violet-200/90 text-[10px] font-mono">
+                      🥷 {t("profile.ninjaMode")}
+                    </span>
                   )}
-                  {auth && !blocked && (
-                    <Link
-                      href={`${ROUTES.MESSAGES}?user=${encodeURIComponent(profile.username)}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-500/25 bg-violet-500/10 text-violet-200/90 text-[12px] font-medium hover:bg-violet-500/20 transition-all"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      {t("profile.message")}
-                    </Link>
+                  {isOwn && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-border dark:border-white/15 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/40 text-[10px] font-mono">
+                      <ShieldCheck className="w-3 h-3" />
+                      {t("profile.passphraseAccount")}
+                    </span>
                   )}
-                  {auth && (
-                    <button
-                      type="button"
-                      onClick={toggleBlock}
-                      disabled={blockBusy}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-all disabled:opacity-60",
-                        blocked
-                          ? "border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
-                          : "border-border dark:border-white/12 bg-muted/40 dark:bg-white/5 text-muted-foreground dark:text-white/45 hover:text-rose-300 hover:border-rose-500/30",
-                      )}
-                    >
-                      <Ban className="w-3 h-3" />
-                      {blocked ? t("profile.unblock") : t("profile.block")}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={copyProfileLink}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all"
-                  >
-                    <Link2 className="w-3 h-3" />
-                    {t("profile.copyLink")}
-                  </button>
                 </div>
-              )}
+
+                {(accountBadges || displayLevel) && (
+                  <ProfileBadgesRow
+                    accountBadges={accountBadges}
+                    level={displayLevel?.level}
+                    currentTierName={displayLevel?.tier.name ?? displayLevel?.levelRole}
+                  />
+                )}
+
+                {profile.createdAt && (
+                  <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
+                    {t("profile.joined")}{" "}
+                    {new Date(profile.createdAt).toLocaleDateString(locale, { month: "long", year: "numeric" })}
+                  </p>
+                )}
+              </div>
+
+              {/* Stat tiles */}
+              <div className="shrink-0 mx-auto md:mx-0">
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-1 rounded-2xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-2">
+                  <StatTile icon={Star} accent="text-amber-300" value={displayLevel?.level ?? "—"} label={t("profile.userLevel")} />
+                  <StatTile icon={BarChart3} accent="text-sky-300" value={(displayLevel?.startedEpisodes ?? 0).toLocaleString()} label={t("profile.episodesWatched")} />
+                  <StatTile icon={MessageSquare} accent="text-violet-300" value={displayLevel?.commentCount ?? 0} label={t("profile.comments")} />
+                  <StatTile
+                    icon={Users}
+                    accent="text-emerald-300"
+                    value={follow?.followers ?? 0}
+                    label={t("profile.followers")}
+                    onClick={follow ? () => setFollowListType("followers") : undefined}
+                  />
+                </div>
+                {follow && (
+                  <div className="mt-1.5 flex items-center justify-center gap-3 text-[11px] font-mono text-muted-foreground/70 dark:text-white/35">
+                    <button type="button" onClick={() => setFollowListType("following")} className="hover:text-foreground/80 dark:hover:text-white/70 transition-colors">
+                      <span className="font-bold text-foreground/80 dark:text-white/70 tabular-nums">{follow.following}</span> {t("profile.following")}
+                    </button>
+                    <span className="opacity-40">·</span>
+                    <span>
+                      <span className="font-bold text-foreground/80 dark:text-white/70 tabular-nums">{totalAnime}</span> {t("profile.stats.total")}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {(accountBadges || displayLevel) && (
-              <ProfileBadgesRow
-                accountBadges={accountBadges}
-                level={displayLevel?.level}
-                currentTierName={displayLevel?.tier.name ?? displayLevel?.levelRole}
-              />
-            )}
-
-            {profile.bio && (
-              <p className="text-sm text-muted-foreground dark:text-white/45 mt-2 max-w-md">{profile.bio}</p>
-            )}
-
-            {profile.createdAt && (
-              <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 mt-1.5">
-                {t("profile.joined")}{" "}
-                {new Date(profile.createdAt).toLocaleDateString(locale, { month: "long", year: "numeric" })}
-              </p>
-            )}
-
-            {/* Stats row */}
-            <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3">
-              {follow && (
-                <>
-                  <button type="button" onClick={() => setFollowListType("followers")} className="rounded-lg hover:bg-accent dark:hover:bg-white/[0.04] transition-colors -mx-1 px-1">
-                    <QuickStat label={t("profile.followers")} value={follow.followers} color="text-foreground/90 dark:text-white/80" />
-                  </button>
-                  <button type="button" onClick={() => setFollowListType("following")} className="rounded-lg hover:bg-accent dark:hover:bg-white/[0.04] transition-colors -mx-1 px-1">
-                    <QuickStat label={t("profile.following")} value={follow.following} color="text-foreground/90 dark:text-white/80" />
-                  </button>
-                  <div className="w-px h-4 bg-muted dark:bg-white/15 self-center" />
-                </>
-              )}
-              <QuickStat label={t("profile.stats.total")} value={totalAnime} />
-              <div className="w-px h-4 bg-muted dark:bg-white/15 self-center" />
-              <QuickStat label={t("profile.stats.watching")}  value={counts.watching}  color="text-foreground/90 dark:text-white/80" />
-              <QuickStat label={t("profile.stats.completed")} value={counts.completed} color="text-foreground/90 dark:text-white/80" />
-              <QuickStat label={t("profile.stats.planToWatch")}      value={counts.plan}      color="text-foreground/90 dark:text-white/80" />
-              <QuickStat label={t("profile.stats.dropped")}   value={counts.dropped}   color="text-red-400" />
-            </div>
-
-            {/* Level card */}
-            {displayLevel && (
-              <LevelProgressCard level={displayLevel} className="mt-4 max-w-sm w-full" />
-            )}
+            {/* Full-width level progress bar */}
+            {displayLevel && <LevelProgressCard level={displayLevel} className="mt-5 w-full" />}
           </div>
         </div>
 
-        {/* ── Main content ────────────────────────────────────────── */}
-        <div className="flex flex-col gap-10">
+        {/* ── Main content: two columns (main + sticky sidebar) ─────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start">
+          {/* ── Left: primary content ── */}
+          <div className="flex flex-col gap-10 min-w-0">
           {isOwn && (
-            <section className="-mx-4 md:-mx-6 lg:-mx-8">
+            <section>
               <ContinueWatching loading={false} />
             </section>
           )}
+
+          <section>
+            <SectionLabel icon={<UserRound className="w-4 h-4" />} title={t("profile.aboutMe")} />
+            <div className="site-panel p-5">
+              {profile.bio ? (
+                <p className="text-sm text-foreground/80 dark:text-white/70 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground/70 dark:text-white/30 italic">
+                  {isOwn ? t("profile.noBioOwn") : t("profile.noBio")}
+                </p>
+              )}
+            </div>
+          </section>
 
           <section id="watchlist">
             <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.watchlist")} />
@@ -814,13 +794,6 @@ function ProfilePage() {
           </section>
 
           <section>
-            <SectionLabel icon={<Trophy className="w-4 h-4" />} title={t("profile.achievements")} />
-            <div className="site-panel p-5">
-              <AchievementsSection username={profile.username} isOwn={isOwn} />
-            </div>
-          </section>
-
-          <section>
             <SectionLabel icon={<Activity className="w-4 h-4" />} title={t("profile.watchActivity")} />
             <div className="site-panel p-5">
               <AnimeHeatmap username={profile.username} />
@@ -833,6 +806,38 @@ function ProfilePage() {
               <UserComments username={profile.username} />
             </div>
           </section>
+          </div>
+
+          {/* ── Right: sticky sidebar (quick stats + achievements) ── */}
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-20">
+            <div className="site-panel p-5">
+              <SectionLabel icon={<BarChart3 className="w-4 h-4" />} title={t("profile.quickStats")} />
+              <div className="flex flex-col divide-y divide-border dark:divide-white/6">
+                <QuickStatRow icon={Star} accent="text-amber-300" label={t("profile.userLevel")} value={displayLevel?.level ?? "—"} />
+                <QuickStatRow icon={BarChart3} accent="text-sky-300" label={t("profile.episodesWatched")} value={(displayLevel?.startedEpisodes ?? 0).toLocaleString()} />
+                <QuickStatRow icon={MessageSquare} accent="text-violet-300" label={t("profile.comments")} value={displayLevel?.commentCount ?? 0} />
+                <QuickStatRow
+                  icon={Users}
+                  accent="text-emerald-300"
+                  label={t("profile.followers")}
+                  value={follow?.followers ?? 0}
+                  onClick={follow ? () => setFollowListType("followers") : undefined}
+                />
+                <QuickStatRow
+                  icon={UserPlus}
+                  accent="text-fuchsia-300"
+                  label={t("profile.following")}
+                  value={follow?.following ?? 0}
+                  onClick={follow ? () => setFollowListType("following") : undefined}
+                />
+              </div>
+            </div>
+
+            <div id="achievements" className="site-panel p-5 scroll-mt-24">
+              <SectionLabel icon={<Trophy className="w-4 h-4" />} title={t("profile.achievements")} />
+              <AchievementsSection username={profile.username} isOwn={isOwn} compact />
+            </div>
+          </aside>
         </div>
       </Container>
 
@@ -861,12 +866,110 @@ function ProfilePage() {
   );
 }
 
-function QuickStat({ label, value, color = "text-muted-foreground dark:text-white/70" }: { label: string; value: number; color?: string }) {
-  return (
-    <div className="flex flex-col items-center sm:items-start">
-      <span className={`text-lg font-bold leading-none ${color}`}>{value}</span>
-      <span className="text-[10px] text-muted-foreground dark:text-white/30 font-mono mt-0.5">{label}</span>
+/** Icon + number + label tile for the profile header stat row. */
+function StatTile({
+  icon: Icon,
+  value,
+  label,
+  accent = "text-foreground/70 dark:text-white/70",
+  onClick,
+}: {
+  icon: LucideIcon;
+  value: React.ReactNode;
+  label: string;
+  accent?: string;
+  onClick?: () => void;
+}) {
+  const inner = (
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border dark:border-white/8 bg-muted/50 dark:bg-white/[0.05]">
+        <Icon className={cn("w-[18px] h-[18px]", accent)} />
+      </div>
+      <div className="min-w-0 text-left">
+        <div className="text-lg font-bold leading-none tabular-nums text-foreground dark:text-white">{value}</div>
+        <div className="mt-0.5 text-[11px] leading-tight text-muted-foreground/70 dark:text-white/35">{label}</div>
+      </div>
     </div>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className="rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-accent dark:hover:bg-white/[0.04]">
+      {inner}
+    </button>
+  ) : (
+    <div className="px-2.5 py-2">{inner}</div>
+  );
+}
+
+/** One labelled stat row in the sidebar "Quick Stats" panel. */
+function QuickStatRow({
+  icon: Icon,
+  label,
+  value,
+  accent = "text-foreground/60 dark:text-white/50",
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: React.ReactNode;
+  accent?: string;
+  onClick?: () => void;
+}) {
+  const inner = (
+    <div className="flex items-center justify-between py-2.5">
+      <span className="flex items-center gap-2.5 text-sm text-muted-foreground dark:text-white/50">
+        <Icon className={cn("w-4 h-4", accent)} />
+        {label}
+      </span>
+      <span className="text-sm font-bold tabular-nums text-foreground dark:text-white">{value}</span>
+    </div>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className="text-left transition-colors hover:text-foreground/90">
+      {inner}
+    </button>
+  ) : (
+    inner
+  );
+}
+
+/** Full-width vertical action button for the profile left rail. */
+function RailButton({
+  icon: Icon,
+  label,
+  onClick,
+  href,
+  disabled,
+  variant = "default",
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick?: () => void;
+  href?: string;
+  disabled?: boolean;
+  variant?: "default" | "primary" | "amber" | "danger";
+}) {
+  const cls = cn(
+    "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50",
+    variant === "primary" && "bg-violet-600 text-white hover:bg-violet-500 shadow-lg shadow-violet-500/20",
+    variant === "amber" && "border border-amber-400/25 bg-amber-500/10 text-amber-200/90 hover:bg-amber-500/20",
+    variant === "danger" && "border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20",
+    variant === "default" &&
+      "border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.03] text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/[0.07] hover:text-foreground/90 dark:hover:text-white/90",
+  );
+  const content = (
+    <>
+      <Icon className="w-4 h-4 shrink-0" />
+      <span className="truncate">{label}</span>
+    </>
+  );
+  return href ? (
+    <Link href={href} className={cls}>
+      {content}
+    </Link>
+  ) : (
+    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
+      {content}
+    </button>
   );
 }
 
