@@ -339,6 +339,116 @@ const Layout = (props: Props) => {
             )}
           </div>
 
+          {/* Info + Comments fill the area under the player controls */}
+          <section id="watch-tab-info" className="scroll-mt-24 space-y-5 mt-1">
+            <div className="flex items-center gap-2.5">
+              <Info className="w-4 h-4 text-muted-foreground dark:text-white/40" />
+              <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.info")}</h2>
+            </div>
+
+            <div className="site-panel p-5 sm:p-6 space-y-5">
+              {/* Title · native · genres */}
+              <div>
+                <h3 className="text-lg sm:text-xl font-black tracking-tight text-foreground dark:text-white">{info.name}</h3>
+                {moreInfo?.japanese ? (
+                  <p className="mt-0.5 text-[13px] italic text-muted-foreground/70 dark:text-white/35">{moreInfo.japanese as string}</p>
+                ) : null}
+                {Array.isArray(moreInfo?.genres) && (moreInfo!.genres as string[]).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(moreInfo!.genres as string[]).map((g) => (
+                      <Link
+                        key={g}
+                        href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
+                        className="rounded-full border border-amber-500/25 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-amber-200/90 transition-colors hover:bg-amber-500/15"
+                      >
+                        {g}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Synopsis */}
+              {info.description && (
+                <div>
+                  <AniListRichText
+                    text={info.description as string}
+                    className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
+                  />
+                  <Link
+                    href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
+                    className="inline-flex items-center gap-1 mt-2 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
+                  >
+                    {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              )}
+
+              {/* Details — two columns, "Label: value" */}
+              <div className="grid grid-cols-1 gap-x-10 gap-y-2 border-t border-border dark:border-white/[0.06] pt-5 sm:grid-cols-2">
+                {[
+                  { label: t("anime.detailFields.type"), value: stats?.type },
+                  { label: t("anime.detailFields.status"), value: moreInfo?.status },
+                  { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
+                  { label: t("anime.detailFields.duration"), value: (moreInfo as any)?.duration },
+                  { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
+                  { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
+                  { label: t("anime.detailFields.aired"), value: moreInfo?.aired },
+                  { label: t("anime.detailFields.source"), value: (moreInfo as any)?.source },
+                  { label: t("anime.studios"), value: moreInfo?.studios },
+                ]
+                  .filter((r) => r.value && r.value !== "N/A" && r.value !== "?")
+                  .map((row) => (
+                    <div key={row.label} className="flex items-baseline gap-2 text-[13px]">
+                      <span className="shrink-0 text-muted-foreground/70 dark:text-white/35">{row.label}:</span>
+                      <span className="min-w-0 font-semibold text-foreground/90 dark:text-white/80">{row.value}</span>
+                    </div>
+                  ))}
+              </div>
+
+              {/* External database links */}
+              {externalLinks.length > 0 && (
+                <div className="flex flex-wrap gap-2 border-t border-border dark:border-white/[0.06] pt-5">
+                  {externalLinks.map((link) => (
+                    <a
+                      key={link.label}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all hover:opacity-80",
+                        link.color,
+                      )}
+                    >
+                      {link.label}
+                      <ExternalLink className="w-3 h-3 opacity-60" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Comments (desktop — mobile uses the bottom sheet) */}
+          <section id="watch-comments-panel" className="scroll-mt-24 hidden lg:block">
+            <div className="flex items-center gap-2.5 mb-4">
+              <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40" />
+              <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.comments")}</h2>
+            </div>
+            {currentAnimeId && (
+              <div className="site-panel p-5 sm:p-6">
+                <CommentSection
+                  animeId={currentAnimeId}
+                  episodeId={episodeId}
+                  episodeNumber={currentEpisode?.number}
+                  episodeLabel={
+                    currentEpisode ? t("watch.episode", { n: currentEpisode.number }) : undefined
+                  }
+                />
+              </div>
+            )}
+          </section>
+
         </div>
 
         {/* Right sidebar: now-watching card + episodes list (desktop) */}
@@ -428,115 +538,6 @@ const Layout = (props: Props) => {
           </section>
         )}
 
-        {/* Info: synopsis / details / links */}
-        <section id="watch-tab-info" className="scroll-mt-24 space-y-5">
-          <div className="flex items-center gap-2.5">
-            <Info className="w-4 h-4 text-muted-foreground dark:text-white/40" />
-            <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.info")}</h2>
-          </div>
-
-          <div className="site-panel p-5 sm:p-6 space-y-5">
-            {/* Title · native · genres */}
-            <div>
-              <h3 className="text-lg sm:text-xl font-black tracking-tight text-foreground dark:text-white">{info.name}</h3>
-              {moreInfo?.japanese ? (
-                <p className="mt-0.5 text-[13px] italic text-muted-foreground/70 dark:text-white/35">{moreInfo.japanese as string}</p>
-              ) : null}
-              {Array.isArray(moreInfo?.genres) && (moreInfo!.genres as string[]).length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {(moreInfo!.genres as string[]).map((g) => (
-                    <Link
-                      key={g}
-                      href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
-                      className="rounded-full border border-amber-500/25 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-amber-200/90 transition-colors hover:bg-amber-500/15"
-                    >
-                      {g}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Synopsis */}
-            {info.description && (
-              <div>
-                <AniListRichText
-                  text={info.description as string}
-                  className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
-                />
-                <Link
-                  href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-                  className="inline-flex items-center gap-1 mt-2 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
-                >
-                  {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
-            )}
-
-            {/* Details — two columns, "Label: value" */}
-            <div className="grid grid-cols-1 gap-x-10 gap-y-2 border-t border-border dark:border-white/[0.06] pt-5 sm:grid-cols-2">
-              {[
-                { label: t("anime.detailFields.type"), value: stats?.type },
-                { label: t("anime.detailFields.status"), value: moreInfo?.status },
-                { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
-                { label: t("anime.detailFields.duration"), value: (moreInfo as any)?.duration },
-                { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
-                { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
-                { label: t("anime.detailFields.aired"), value: moreInfo?.aired },
-                { label: t("anime.detailFields.source"), value: (moreInfo as any)?.source },
-                { label: t("anime.studios"), value: moreInfo?.studios },
-              ]
-                .filter((r) => r.value && r.value !== "N/A" && r.value !== "?")
-                .map((row) => (
-                  <div key={row.label} className="flex items-baseline gap-2 text-[13px]">
-                    <span className="shrink-0 text-muted-foreground/70 dark:text-white/35">{row.label}:</span>
-                    <span className="min-w-0 font-semibold text-foreground/90 dark:text-white/80">{row.value}</span>
-                  </div>
-                ))}
-            </div>
-
-            {/* External database links */}
-            {externalLinks.length > 0 && (
-              <div className="flex flex-wrap gap-2 border-t border-border dark:border-white/[0.06] pt-5">
-                {externalLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all hover:opacity-80",
-                      link.color,
-                    )}
-                  >
-                    {link.label}
-                    <ExternalLink className="w-3 h-3 opacity-60" />
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Comments (desktop — mobile uses the bottom sheet) */}
-        <section id="watch-comments-panel" className="scroll-mt-24 hidden lg:block">
-          <div className="flex items-center gap-2.5 mb-4">
-            <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40" />
-            <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.comments")}</h2>
-          </div>
-          {currentAnimeId && (
-            <div className="site-panel p-5 sm:p-6">
-              <CommentSection
-                animeId={currentAnimeId}
-                episodeId={episodeId}
-                episodeNumber={currentEpisode?.number}
-                episodeLabel={
-                  currentEpisode ? t("watch.episode", { n: currentEpisode.number }) : undefined
-                }
-              />
-            </div>
-          )}
-        </section>
       </div>
 
       {currentAnimeId && currentEpisode && (
