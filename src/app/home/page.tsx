@@ -171,11 +171,14 @@ export default function Home() {
         />
       </LazyMount>
 
-      <LazyMount minHeight={200}>
+      {/* No reserved minHeight on the last sections: LatestComments renders
+          null when empty, so a placeholder here would collapse and snap the
+          scroll up when you reach the bottom. Grow-only avoids that. */}
+      <LazyMount>
         <LatestComments />
       </LazyMount>
 
-      <LazyMount minHeight={120}>
+      <LazyMount>
         <HomeGenreBar />
       </LazyMount>
     </div>
