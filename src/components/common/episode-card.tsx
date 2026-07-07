@@ -98,7 +98,9 @@ const EpisodeCard = ({
             "group rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border",
             isActive
               ? "border-primary/50 ring-1 ring-primary/20 dark:border-white/35 dark:ring-white/15"
-              : "border-border dark:border-white/8 hover:border-border dark:border-white/20",
+              : props.episode.isFiller
+                ? "border-amber-500/30 ring-1 ring-amber-500/15 hover:border-amber-500/45"
+                : "border-border dark:border-white/8 hover:border-border dark:border-white/20",
           )}
         >
           {/* Thumbnail image area */}
@@ -220,10 +222,16 @@ const EpisodeCard = ({
           "group flex gap-0 mx-1 mb-0.5 rounded-xl cursor-pointer transition-all relative overflow-hidden",
           isActive
             ? "bg-accent dark:bg-white/10 ring-1 ring-border dark:ring-white/20"
-            : "hover:bg-accent dark:bg-white/[0.06]",
+            : props.episode.isFiller
+              ? "bg-amber-500/[0.07] ring-1 ring-amber-500/20 hover:bg-amber-500/[0.12]"
+              : "hover:bg-accent dark:bg-white/[0.06]",
           hasWatchedEpisode && !isActive && "opacity-60",
         )}
       >
+        {/* Filler accent bar on the left edge */}
+        {props.episode.isFiller && !isActive && (
+          <span className="absolute inset-y-0 left-0 w-[3px] bg-amber-400/70 z-10" />
+        )}
         {/* Thumbnail */}
         <div className="relative shrink-0 w-[108px] rounded-l-xl overflow-hidden">
           <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
@@ -249,13 +257,6 @@ const EpisodeCard = ({
             <span className="absolute bottom-1.5 left-1.5 text-[9px] font-mono font-bold text-foreground dark:text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
               EP {props.episode.number}
             </span>
-
-            {/* Filler badge */}
-            {props.episode.isFiller && (
-              <span className="absolute top-1 right-1 text-[8px] font-mono text-amber-400/80 bg-black/65 px-1 py-0.5 rounded">
-                FILLER
-              </span>
-            )}
 
             {/* Completed check */}
             {listCompleted && (
@@ -284,6 +285,11 @@ const EpisodeCard = ({
             {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}
           </p>
           <div className="flex items-center gap-1.5">
+            {props.episode.isFiller && (
+              <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/12 px-1.5 py-px text-[9px] font-mono font-bold uppercase tracking-wide text-amber-300">
+                Filler
+              </span>
+            )}
             {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
               <Captions className="w-3 h-3 text-sky-400/65" />
             )}
