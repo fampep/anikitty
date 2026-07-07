@@ -29,11 +29,11 @@ import {
   AtSign,
   CornerUpLeft,
   UserPlus,
+  type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { toast } from "sonner";
 import AnilistConnect from "@/components/profile/anilist-connect";
 import MalConnect from "@/components/profile/mal-connect";
 import ProfileCustomizationForm, {
@@ -54,17 +54,50 @@ import SiteDisplaySettings from "@/components/settings/site-display-settings";
 import DiscordConnect from "@/components/auth/discord-connect";
 import AnisurgeConnect from "@/components/auth/anisurge-connect";
 import { RoleBadge } from "@/components/profile/role-badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useT } from "@/providers/i18n-provider";
 import { ROUTES } from "@/constants/routes";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 
-const TAB_CLASS =
-  "text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground dark:data-[state=active]:border-white dark:data-[state=active]:text-white data-[state=active]:bg-transparent text-muted-foreground hover:text-foreground transition-all bg-transparent whitespace-nowrap";
-
 type SettingsTab = "general" | "profile" | "security" | "connections";
 
 const AUTH_TABS: SettingsTab[] = ["general", "profile", "security", "connections"];
+
+const NAV_ICONS: Record<SettingsTab, LucideIcon> = {
+  general: Settings,
+  profile: User,
+  security: Shield,
+  connections: LinkIcon,
+};
+
+/** Vertical category button for the settings sidebar nav. */
+function SettingsNavButton({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex shrink-0 items-center gap-3 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium transition-all md:w-full",
+        active
+          ? "bg-foreground/[0.06] text-foreground ring-1 ring-border dark:bg-white/[0.1] dark:text-white dark:ring-white/12"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground/80 dark:text-white/45 dark:hover:bg-white/[0.05] dark:hover:text-white/80",
+      )}
+    >
+      <Icon className="h-[18px] w-[18px] shrink-0" />
+      {label}
+    </button>
+  );
+}
 
 function useEpisodeLayouts(t: ReturnType<typeof useT>) {
   return useMemo(
@@ -744,126 +777,144 @@ export default function SettingsPage() {
 
       <Container>
         {auth ? (
-          <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-            <TabsList className="flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-border dark:border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className={TAB_CLASS}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="mt-2 grid grid-cols-1 items-start gap-6 md:grid-cols-[236px_minmax(0,1fr)] lg:gap-8">
+            {/* Sidebar category nav */}
+            <aside className="md:sticky md:top-20">
+              <nav className="site-panel flex gap-1 overflow-x-auto p-2 scrollbar-hide md:flex-col md:overflow-visible">
+                {tabs.map((tab) => (
+                  <SettingsNavButton
+                    key={tab.value}
+                    icon={NAV_ICONS[tab.value]}
+                    label={tab.label}
+                    active={activeTab === tab.value}
+                    onClick={() => onTabChange(tab.value)}
+                  />
+                ))}
+              </nav>
+            </aside>
 
-            <TabsContent value="general" className="mt-8 space-y-5">
-              {auth && <ShopSection />}
-              <SiteDisplaySection />
-              <PerformanceSection />
-              <PlaybackSection
-                preferDub={preferDub}
-                setPreferDub={setPreferDub}
-                autoPlay={autoPlay}
-                setAutoPlay={setAutoPlay}
-                playThemeSong={playThemeSong}
-                setPlayThemeSong={setPlayThemeSong}
-                autoSkipIntro={autoSkipIntro}
-                setAutoSkipIntro={setAutoSkipIntro}
-                theatreMode={theatreMode}
-                setTheatreMode={setTheatreMode}
-              />
-              <EpisodeLayoutSection
-                episodeLayouts={episodeLayouts}
-                episodeLayout={episodeLayout}
-                setEpisodeLayout={setEpisodeLayout}
-              />
-              <SubtitleSection />
-              <AudioHelpSection />
-            </TabsContent>
+            {/* Section content */}
+            <div className="min-w-0">
+              {activeTab === "general" && (
+                <div className="space-y-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+                  <ShopSection />
+                  <SiteDisplaySection />
+                  <PerformanceSection />
+                  <PlaybackSection
+                    preferDub={preferDub}
+                    setPreferDub={setPreferDub}
+                    autoPlay={autoPlay}
+                    setAutoPlay={setAutoPlay}
+                    playThemeSong={playThemeSong}
+                    setPlayThemeSong={setPlayThemeSong}
+                    autoSkipIntro={autoSkipIntro}
+                    setAutoSkipIntro={setAutoSkipIntro}
+                    theatreMode={theatreMode}
+                    setTheatreMode={setTheatreMode}
+                  />
+                  <EpisodeLayoutSection
+                    episodeLayouts={episodeLayouts}
+                    episodeLayout={episodeLayout}
+                    setEpisodeLayout={setEpisodeLayout}
+                  />
+                  <SubtitleSection />
+                  <AudioHelpSection />
+                </div>
+              )}
 
-            <TabsContent value="profile" className="mt-8 space-y-5">
-              <SectionCard>
-                <SectionHeader
-                  icon={<User className="w-4 h-4" />}
-                  title={t("settings.account")}
-                  description={t("settings.accountDesc")}
-                />
-                <SectionBody>
-                  <AccountCard />
-                </SectionBody>
-              </SectionCard>
-              <AppearanceSection />
-              {auth && <NotificationsSection />}
-            </TabsContent>
+              {activeTab === "profile" && (
+                <div className="space-y-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+                  <SectionCard>
+                    <SectionHeader
+                      icon={<User className="w-4 h-4" />}
+                      title={t("settings.account")}
+                      description={t("settings.accountDesc")}
+                    />
+                    <SectionBody>
+                      <AccountCard />
+                    </SectionBody>
+                  </SectionCard>
+                  <AppearanceSection />
+                  <NotificationsSection />
+                </div>
+              )}
 
-            <TabsContent value="security" className="mt-8 space-y-5">
-              <SectionCard>
-                <SectionHeader
-                  icon={<EyeOff className="w-4 h-4" />}
-                  title={t("settings.privacy")}
-                  description={t("settings.privacyDesc")}
-                />
-                <SectionBody className="flex flex-col gap-8">
-                  <ProfilePrivacySection />
-                  <div className="border-t border-border dark:border-white/6 pt-8">
-                    <SubSectionTitle>{t("settings.blockedUsers")}</SubSectionTitle>
-                    <BlockedUsersSection />
-                  </div>
-                  <div className="border-t border-border dark:border-white/6 pt-8">
-                    <SubSectionTitle>{t("settings.accountDeletion")}</SubSectionTitle>
-                    <AccountDeletionSection />
-                  </div>
-                </SectionBody>
-              </SectionCard>
+              {activeTab === "security" && (
+                <div className="space-y-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+                  <SectionCard>
+                    <SectionHeader
+                      icon={<EyeOff className="w-4 h-4" />}
+                      title={t("settings.privacy")}
+                      description={t("settings.privacyDesc")}
+                    />
+                    <SectionBody className="flex flex-col gap-8">
+                      <ProfilePrivacySection />
+                      <div className="border-t border-border dark:border-white/6 pt-8">
+                        <SubSectionTitle>{t("settings.blockedUsers")}</SubSectionTitle>
+                        <BlockedUsersSection />
+                      </div>
+                      <div className="border-t border-border dark:border-white/6 pt-8">
+                        <SubSectionTitle>{t("settings.accountDeletion")}</SubSectionTitle>
+                        <AccountDeletionSection />
+                      </div>
+                    </SectionBody>
+                  </SectionCard>
 
-              <SectionCard>
-                <SectionHeader
-                  icon={<Shield className="w-4 h-4" />}
-                  title={t("settings.security")}
-                  description={t("settings.securityDesc")}
-                />
-                <SectionBody className="flex flex-col gap-6">
-                  <div>
-                    <SubSectionTitle>{t("settings.passkeys")}</SubSectionTitle>
-                    <PasskeysSection />
-                  </div>
-                  <div className="border-t border-border dark:border-white/6 pt-6">
-                    <SubSectionTitle>{t("settings.twoFactor")}</SubSectionTitle>
-                    <TwoFactorSection />
-                  </div>
-                  <div className="border-t border-border dark:border-white/6 pt-6">
-                    <SubSectionTitle>{t("settings.activeSessions")}</SubSectionTitle>
-                    <ActiveSessionsSection />
-                  </div>
-                </SectionBody>
-              </SectionCard>
-            </TabsContent>
+                  <SectionCard>
+                    <SectionHeader
+                      icon={<Shield className="w-4 h-4" />}
+                      title={t("settings.security")}
+                      description={t("settings.securityDesc")}
+                    />
+                    <SectionBody className="flex flex-col gap-6">
+                      <div>
+                        <SubSectionTitle>{t("settings.passkeys")}</SubSectionTitle>
+                        <PasskeysSection />
+                      </div>
+                      <div className="border-t border-border dark:border-white/6 pt-6">
+                        <SubSectionTitle>{t("settings.twoFactor")}</SubSectionTitle>
+                        <TwoFactorSection />
+                      </div>
+                      <div className="border-t border-border dark:border-white/6 pt-6">
+                        <SubSectionTitle>{t("settings.activeSessions")}</SubSectionTitle>
+                        <ActiveSessionsSection />
+                      </div>
+                    </SectionBody>
+                  </SectionCard>
+                </div>
+              )}
 
-            <TabsContent value="connections" className="mt-8 space-y-5">
-              <SectionCard>
-                <SectionHeader
-                  icon={<LinkIcon className="w-4 h-4" />}
-                  title={t("settings.connectedAccounts")}
-                  description={t("settings.connectedDesc")}
-                />
-                <SectionBody className="flex flex-col gap-6">
-                  <div>
-                    <SubSectionTitle>{t("settings.anilist")}</SubSectionTitle>
-                    <AnilistConnect />
-                  </div>
-                  <div className="border-t border-border dark:border-white/6 pt-6">
-                    <SubSectionTitle>{t("settings.mal")}</SubSectionTitle>
-                    <MalConnect />
-                  </div>
-                  <div className="border-t border-border dark:border-white/6 pt-6">
-                    <SubSectionTitle>{t("settings.anisurge")}</SubSectionTitle>
-                    <AnisurgeConnect />
-                  </div>
-                  <div className="border-t border-border dark:border-white/6 pt-6">
-                    <SubSectionTitle>{t("settings.discord")}</SubSectionTitle>
-                    <DiscordConnect />
-                  </div>
-                </SectionBody>
-              </SectionCard>
-            </TabsContent>
-          </Tabs>
+              {activeTab === "connections" && (
+                <div className="space-y-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+                  <SectionCard>
+                    <SectionHeader
+                      icon={<LinkIcon className="w-4 h-4" />}
+                      title={t("settings.connectedAccounts")}
+                      description={t("settings.connectedDesc")}
+                    />
+                    <SectionBody className="flex flex-col gap-6">
+                      <div>
+                        <SubSectionTitle>{t("settings.anilist")}</SubSectionTitle>
+                        <AnilistConnect />
+                      </div>
+                      <div className="border-t border-border dark:border-white/6 pt-6">
+                        <SubSectionTitle>{t("settings.mal")}</SubSectionTitle>
+                        <MalConnect />
+                      </div>
+                      <div className="border-t border-border dark:border-white/6 pt-6">
+                        <SubSectionTitle>{t("settings.anisurge")}</SubSectionTitle>
+                        <AnisurgeConnect />
+                      </div>
+                      <div className="border-t border-border dark:border-white/6 pt-6">
+                        <SubSectionTitle>{t("settings.discord")}</SubSectionTitle>
+                        <DiscordConnect />
+                      </div>
+                    </SectionBody>
+                  </SectionCard>
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="mt-2 space-y-5">
             <SiteDisplaySection />
