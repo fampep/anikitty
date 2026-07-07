@@ -139,6 +139,11 @@ export default async function RootLayout({
         <PublicEnvScript />
         <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
+        {/* Poster/artwork CDNs — warm the connection so images load a round-trip sooner. */}
+        <link rel="preconnect" href="https://s4.anilist.co" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://artworks.thetvdb.com" />
+        <link rel="dns-prefetch" href="https://cdn.myanimelist.net" />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
