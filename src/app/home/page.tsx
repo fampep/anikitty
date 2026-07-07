@@ -21,6 +21,10 @@ import { useT } from "@/providers/i18n-provider";
 
 const HeroSection = dynamic(() => import("@/components/home/hero-section"));
 const AnimeSections = dynamic(() => import("@/components/home/anime-sections"));
+const HomeDonationSlim = dynamic(() => import("@/components/home/home-donation-slim"));
+const HomeTodayPanel = dynamic(() => import("@/components/home/home-today-panel"));
+const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
+const HomeGenreBar = dynamic(() => import("@/components/home/home-genre-bar"));
 
 export default function Home() {
   const t = useT();
@@ -86,6 +90,10 @@ export default function Home() {
         <HomeRecommendations />
       </LazyMount>
 
+      <LazyMount minHeight={120}>
+        <HomeDonationSlim />
+      </LazyMount>
+
       <LazyMount minHeight={200}>
         <RecentlyViewed />
       </LazyMount>
@@ -113,6 +121,10 @@ export default function Home() {
         />
       </LazyMount>
 
+      <LazyMount minHeight={200}>
+        <HomeTodayPanel />
+      </LazyMount>
+
       <LazyMount minHeight={280}>
         <AnimeSections
           sectionId="recently-added"
@@ -132,6 +144,7 @@ export default function Home() {
           trendingAnime={(discovery?.mostPopularAnimes as IAnime[]) ?? []}
           loading={discoveryLoadingState}
           layout="row"
+          showRanks
           seeAllHref={ROUTES.TRENDING}
         />
       </LazyMount>
@@ -156,6 +169,14 @@ export default function Home() {
           loading={discoveryLoadingState}
           layout="row"
         />
+      </LazyMount>
+
+      <LazyMount minHeight={200}>
+        <LatestComments />
+      </LazyMount>
+
+      <LazyMount minHeight={120}>
+        <HomeGenreBar />
       </LazyMount>
     </div>
   );
