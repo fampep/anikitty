@@ -588,7 +588,7 @@ function ProfilePage() {
               frameSlug={profile.equippedFrame}
             />
 
-            <div className="mt-4 flex w-full max-w-[240px] flex-col gap-2">
+            <div className="mt-4 flex w-full flex-wrap justify-center gap-2 md:max-w-[240px] md:flex-col md:flex-nowrap md:justify-start">
               {isOwn ? (
                 <>
                   <RailButton icon={Pencil} label={t("profile.editProfile")} onClick={() => setEditOpen(true)} variant="primary" />
@@ -949,7 +949,7 @@ function RailButton({
   variant?: "default" | "primary" | "amber" | "danger";
 }) {
   const cls = cn(
-    "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50",
+    "inline-flex w-auto md:w-full items-center justify-center gap-2 rounded-xl px-3.5 md:px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50",
     variant === "primary" && "bg-violet-600 text-white hover:bg-violet-500 shadow-lg shadow-violet-500/20",
     variant === "amber" && "border border-amber-400/25 bg-amber-500/10 text-amber-200/90 hover:bg-amber-500/20",
     variant === "danger" && "border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20",

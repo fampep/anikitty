@@ -1273,6 +1273,8 @@
     "mkissaMirror": "MKissa mirror",
     "animoServer": "Animo server",
     "multi": "MULTI",
+    "more": "more",
+    "showLess": "Show less",
     "providerSelect": "Stream source",
     "providerGroupFeatured": "Recommended",
     "providerGroupOther": "More providers",

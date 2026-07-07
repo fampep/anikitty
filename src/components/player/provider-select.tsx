@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Captions, ChevronDown, ChevronRight, Eye, EyeOff, Mic, Server, Sparkles } from "lucide-react";
 import {
   Select,
@@ -309,6 +309,8 @@ export function ProviderGrid({
   const t = useT();
   const { providerSectionHidden, toggleProviderSectionHidden } = useSettingsStore();
   const visibleRows = rows ?? PROVIDER_GRID_ROWS;
+  // Per-row "show all" state — keeps the pill wall short until the user opts in.
+  const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
 
   const rowLabels: Record<ProviderAudioMode, string> = {
     sub: t("card.sub"),
@@ -347,7 +349,20 @@ export function ProviderGrid({
         const isHidden = providerSectionHidden[mode] ?? false;
         const activeItem = items.find((p) => provider === p.id && audioMode === mode);
 
-        const providerPills = items.map((p) => {
+        // Curate: show a handful by default, tuck the long tail behind "+N more".
+        const rowExpanded = !!expandedRows[mode];
+        const defaultVisible = compact ? 6 : 9;
+        const collapsible = items.length > defaultVisible + 2;
+        let visibleItems = items;
+        if (collapsible && !rowExpanded) {
+          visibleItems = items.slice(0, defaultVisible);
+          if (activeItem && !visibleItems.some((p) => p.id === activeItem.id)) {
+            visibleItems = [...visibleItems, activeItem];
+          }
+        }
+        const hiddenCount = items.length - visibleItems.length;
+
+        const providerPills = visibleItems.map((p) => {
           const isMulti = MULTI_ROW_PROVIDERS.has(p.id);
           const isActive = provider === p.id && audioMode === mode;
           const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
@@ -377,6 +392,22 @@ export function ProviderGrid({
             </button>
           );
         });
+
+        const moreToggle = collapsible ? (
+          <button
+            key={`${mode}-more`}
+            type="button"
+            onClick={() => setExpandedRows((s) => ({ ...s, [mode]: !rowExpanded }))}
+            className={cn(
+              "inline-flex items-center gap-1 font-mono font-semibold border border-dashed transition-colors shrink-0 touch-manipulation",
+              compact ? "min-h-9 px-3 py-2 text-xs rounded-lg" : "px-2 py-1 text-[11px] rounded-md",
+              "border-border dark:border-white/12 text-muted-foreground dark:text-white/40 hover:text-foreground/80 dark:hover:text-white/75 hover:border-white/25",
+            )}
+          >
+            {rowExpanded ? t("watch.showLess") : `+${hiddenCount} ${t("watch.more")}`}
+            <ChevronDown className={cn("w-3 h-3 opacity-60 transition-transform", rowExpanded && "rotate-180")} />
+          </button>
+        ) : null;
 
         if (compact) {
           return (
@@ -422,7 +453,12 @@ export function ProviderGrid({
                   />
                 </div>
               </button>
-              {!isHidden && <ProviderScrollRow compact>{providerPills}</ProviderScrollRow>}
+              {!isHidden && (
+                <ProviderScrollRow compact>
+                  {providerPills}
+                  {moreToggle}
+                </ProviderScrollRow>
+              )}
             </div>
           );
         }
@@ -456,7 +492,10 @@ export function ProviderGrid({
               )}
             </button>
             {!isHidden ? (
-              <ProviderScrollRow compact={false}>{providerPills}</ProviderScrollRow>
+              <ProviderScrollRow compact={false}>
+                {providerPills}
+                {moreToggle}
+              </ProviderScrollRow>
             ) : activeItem ? (
               <div className="flex flex-wrap gap-1.5 min-w-0 flex-1 pt-0.5">
                 <span
