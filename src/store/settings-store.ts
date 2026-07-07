@@ -152,7 +152,7 @@ export const useSettingsStore = create<ISettingsStore>()(
       providerAutoFallback: false,
       setProviderAutoFallback: (providerAutoFallback) => set({ providerAutoFallback }),
 
-      simpleProviderPicker: false,
+      simpleProviderPicker: true,
       setSimpleProviderPicker: (simpleProviderPicker) => set({ simpleProviderPicker }),
 
       providerSectionHidden: {},
@@ -261,7 +261,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 22,
+      version: 23,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -367,6 +367,10 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.notifyMentions = next.notifyMentions ?? true;
           next.notifyReplies = next.notifyReplies ?? true;
           next.notifyFollows = next.notifyFollows ?? true;
+        }
+        if (version < 23) {
+          // The compact Audio + Server dropdown picker is the new default layout.
+          next.simpleProviderPicker = true;
         }
         return next as ISettingsStore;
       },

@@ -1151,6 +1151,8 @@ const VideoPlayerSection = () => {
   const providerControlsBlock = compactProviderPicker ? (
     <WatchSimpleProviderRow
       provider={provider}
+      streamAudio={streamAudio}
+      onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
       miruroPipe={miruroPipe}
       animexServer={animexServer}
       anisnatchServer={anisnatchServer}

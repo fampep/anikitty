@@ -82,12 +82,12 @@ export default function PlayerSettingsBar() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem("kitty-watch-mobile-defaults-v2")) return;
+    if (localStorage.getItem("kitty-watch-mobile-defaults-v3")) return;
     if (!window.matchMedia("(max-width: 1023px)").matches) return;
     setPlayerSettingsOpen(false);
     setShowPlayerControls(true);
-    setSimpleProviderPicker(false);
-    localStorage.setItem("kitty-watch-mobile-defaults-v2", "1");
+    setSimpleProviderPicker(true);
+    localStorage.setItem("kitty-watch-mobile-defaults-v3", "1");
   }, [setPlayerSettingsOpen, setShowPlayerControls, setSimpleProviderPicker]);
 
   return (

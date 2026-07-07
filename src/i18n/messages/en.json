@@ -1276,6 +1276,8 @@
     "more": "more",
     "showLess": "Show less",
     "providerSelect": "Stream source",
+    "audio": "Audio",
+    "server": "Server",
     "providerGroupFeatured": "Recommended",
     "providerGroupOther": "More providers",
     "providerSubsBadge": "Subs",
