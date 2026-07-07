@@ -37,7 +37,6 @@ export const KITTY_PROVIDERS = [
   "Animeya",
   "Anizen",
   "AniWaves",
-  "PimpAnime",
   "AnimaxAnime",
 ] as const;
 
@@ -436,17 +435,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "sub + ssub + dub servers · VTT/ASS on SUB · some ssub in-stream",
   },
   {
-    id: "PimpAnime",
-    label: "PimpAnime",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "pimpanime.nl · native CDN · SUB · DUB · VTT on SUB",
-  },
-  {
     id: "AnimaxAnime",
     label: "Animax",
     group: "other",
@@ -470,6 +458,7 @@ const DEPRECATED_PROVIDERS = new Set([
   "AnimeLibre",
   "AniVerse",
   "KimoiTV",
+  "PimpAnime",
 ]);
 
 /** MegaPlay family — Anikoto, AnimeSogo, Anix, HiAnime, Animepahe (KittyAPI shared provider). */
@@ -512,7 +501,6 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Animeya",
   "Anizen",
   "AniWaves",
-  "PimpAnime",
   "AniSnatch",
 ]);
 

@@ -32,7 +32,6 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Animeverse",
   "AniZone",
   "AnimeOnsen",
-  "PimpAnime",
 ] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];
