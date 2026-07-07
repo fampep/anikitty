@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { users, watchProgress } from "@/db/schema";
+import { users, watchProgress, watchlist } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { parseEpisodeNumber, updateAniListProgress } from "@/lib/oauth/anilist-sync";
 import { grantEpisodeKittycoins } from "@/lib/shop/kittycoins";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 
 function isWatchedEnough(current: number, duration: number): boolean {
   if (duration <= 0) return false;
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       animeTitle,
       animeThumbnail,
       episodeNumber,
+      totalEpisodes,
     } = body;
 
     if (!animeId || !episodeId)
@@ -69,17 +70,51 @@ export async function POST(req: Request) {
         },
       });
 
-    if (isWatchedEnough(roundedCurrent, roundedDuration)) {
+    const watchedEnough = isWatchedEnough(roundedCurrent, roundedDuration);
+
+    if (watchedEnough) {
       void grantEpisodeKittycoins(db, payload.userId, animeId, episodeId);
     }
 
-    // Sync to AniList once per episode — not on every progress tick past 90%.
-    if (anilistId && isWatchedEnough(roundedCurrent, roundedDuration)) {
-      const episodeNum =
-        (typeof episodeNumber === "number" && episodeNumber > 0
-          ? episodeNumber
-          : parseEpisodeNumber(episodeId)) ?? null;
+    const episodeNum =
+      (typeof episodeNumber === "number" && episodeNumber > 0
+        ? episodeNumber
+        : parseEpisodeNumber(episodeId)) ?? null;
+    const totalEps = typeof totalEpisodes === "number" ? totalEpisodes : 0;
+    // Finishing the final episode completes the title.
+    const isLastEpisode =
+      watchedEnough && episodeNum != null && totalEps > 0 && episodeNum >= totalEps;
 
+    // Move the title into the Completed list (create the entry if it wasn't
+    // tracked). Only touches rows not already Completed to avoid churn.
+    if (isLastEpisode) {
+      void db
+        .insert(watchlist)
+        .values({
+          userId: payload.userId,
+          animeId,
+          folder: "COMPLETED",
+          anilistId: anilistId ?? null,
+          animeTitle: animeTitle ?? null,
+          animeThumbnail: animeThumbnail ?? null,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [watchlist.userId, watchlist.animeId],
+          set: {
+            folder: "COMPLETED",
+            updatedAt: new Date(),
+            ...(anilistId ? { anilistId } : {}),
+            ...(animeTitle ? { animeTitle } : {}),
+            ...(animeThumbnail ? { animeThumbnail } : {}),
+          },
+          setWhere: ne(watchlist.folder, "COMPLETED"),
+        })
+        .catch((e) => console.error("[progress POST] complete watchlist failed:", e));
+    }
+
+    // Sync to AniList once per episode — not on every progress tick past 90%.
+    if (anilistId && watchedEnough) {
       if (episodeNum) {
         void (async () => {
           let claimedId: string | null = null;
@@ -118,7 +153,7 @@ export async function POST(req: Request) {
               user.anilistAccessToken,
               anilistId,
               episodeNum,
-              "CURRENT",
+              isLastEpisode ? "COMPLETED" : "CURRENT",
             );
 
             if (!ok && claimedId) {

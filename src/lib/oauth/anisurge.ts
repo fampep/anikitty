@@ -238,6 +238,7 @@ export const anisurgeProgress = {
       malId?: number;
       episodeId: string;
       episodeNumber?: number;
+      totalEpisodes?: number;
       currentTime: number;
       duration: number;
       language?: "sub" | "dub";

@@ -587,6 +587,7 @@ const VideoPlayerSection = () => {
       {
         episodeId,
         episodeNumber: parseInt(episodeNo) || 0,
+        totalEpisodes: allEpisodes?.totalEpisodes ?? undefined,
         current,
         duration,
         language: streamAudio,
@@ -594,7 +595,7 @@ const VideoPlayerSection = () => {
       },
       opts,
     );
-  }, [auth, episodeId, episodeNo, streamAudio, provider, animeSlug, syncWatchProgress]);
+  }, [auth, episodeId, episodeNo, streamAudio, provider, animeSlug, allEpisodes?.totalEpisodes, syncWatchProgress]);
 
   const getEpisodeResumeTime = useCallback(() => {
     const stored =
