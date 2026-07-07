@@ -42,8 +42,6 @@ function AnimeSchedule() {
         </h5>
       </div>
 
-      <p className="text-sm font-mono text-muted-foreground dark:text-white/35">{t("schedule.subtitle")}</p>
-
       <Tabs
         defaultValue={currentDay}
         onValueChange={setCurrentSelectedTab}

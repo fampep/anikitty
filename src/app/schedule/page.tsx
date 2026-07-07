@@ -20,9 +20,6 @@ export default function SchedulePage() {
             {t("schedule.title")}
           </h1>
         </div>
-        <p className="text-sm text-muted-foreground dark:text-white/35 font-mono ml-[1.375rem] pl-8">
-          {t("schedule.subtitle")}
-        </p>
       </Container>
       <HomeGenreBar />
       <AnimeSchedule />

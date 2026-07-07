@@ -23,7 +23,6 @@ const HeroSection = dynamic(() => import("@/components/home/hero-section"));
 const AnimeSections = dynamic(() => import("@/components/home/anime-sections"));
 const HomeDonationSlim = dynamic(() => import("@/components/home/home-donation-slim"));
 const HomeTodayPanel = dynamic(() => import("@/components/home/home-today-panel"));
-const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
 const HomeGenreBar = dynamic(() => import("@/components/home/home-genre-bar"));
 
 export default function Home() {
@@ -171,13 +170,8 @@ export default function Home() {
         />
       </LazyMount>
 
-      {/* No reserved minHeight on the last sections: LatestComments renders
-          null when empty, so a placeholder here would collapse and snap the
-          scroll up when you reach the bottom. Grow-only avoids that. */}
-      <LazyMount>
-        <LatestComments />
-      </LazyMount>
-
+      {/* No reserved minHeight on the last section so it only grows into
+          view — a collapsing placeholder here would snap the scroll up. */}
       <LazyMount>
         <HomeGenreBar />
       </LazyMount>
