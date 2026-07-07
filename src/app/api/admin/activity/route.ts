@@ -21,7 +21,7 @@ export async function GET(req: Request) {
           wp.id              AS "progressId",
           wp.anime_id        AS "animeId",
           wp.episode_id      AS "episodeId",
-          wp.current_time    AS "currentTime",
+          wp."current_time"  AS "currentTime",
           wp.duration,
           wp.language,
           wp.server,
