@@ -448,7 +448,16 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
 ];
 
-export const DEFAULT_KITTY_PROVIDER: KittyProvider = "Miruro";
+/** Preferred providers — the first is what loads by default, and auto-fallback
+ * tries these before anything else. */
+export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
+  "Anix",
+  "HiAnime",
+  "Animepahe",
+  "Animex",
+];
+
+export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
 
 const DEPRECATED_PROVIDERS = new Set([
   "AnimeParadise",
