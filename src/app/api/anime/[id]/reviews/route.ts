@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { requireUser, unauthorized } from "@/lib/auth/require-user";
 import { getUserModerationStatus, interactionBlockMessage } from "@/lib/security/moderation";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { grantKittycoins } from "@/lib/shop/kittycoins";
 import {
   clampScore,
@@ -63,6 +64,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const user = await requireUser(req);
   if (!user) return unauthorized();
+
+  const limited = rateLimit(`review:${user.id}`, 10, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: `Too many reviews. Try again in ${limited.retryAfterSec}s.` },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    );
+  }
 
   const db0 = getDb();
   const status = await getUserModerationStatus(db0, user.id);

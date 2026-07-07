@@ -6,6 +6,7 @@ import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import { useProgressStore } from "@/store/progress-store";
+import { useWatchlistStore } from "@/store/watchlist-store";
 import { usePlayerSeekStore } from "@/store/player-seek-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
@@ -131,7 +132,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { preferDub, setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode } = useSettingsStore();
+  const { setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -684,16 +685,26 @@ const VideoPlayerSection = () => {
     animoServer,
   ]);
 
+  // On finishing the final episode the server moves the title to Completed —
+  // refresh the watchlist so the move shows without a manual reload.
+  const refreshWatchlistIfLastEpisode = useCallback(() => {
+    const total = allEpisodes?.totalEpisodes ?? 0;
+    const num = currentEpisodeInfo?.number ?? 0;
+    if (total > 0 && num >= total) useWatchlistStore.getState().bump();
+  }, [allEpisodes?.totalEpisodes, currentEpisodeInfo?.number]);
+
   // Credits started → mark episode as fully watched
   const handleOutroStart = useCallback((duration: number) => {
     saveProgress(duration, duration);
-  }, [saveProgress]);
+    refreshWatchlistIfLastEpisode();
+  }, [saveProgress, refreshWatchlistIfLastEpisode]);
 
   // Video ended → also mark as fully watched (covers episodes with no AniSkip data)
   const handleEnded = useCallback(() => {
     const dur = liveDurationRef.current;
     if (dur > 0) saveProgress(dur, dur);
-  }, [saveProgress]);
+    refreshWatchlistIfLastEpisode();
+  }, [saveProgress, refreshWatchlistIfLastEpisode]);
 
   // Save progress on hide/teardown — bfcache-safe and reliable on mobile,
   // unlike beforeunload.

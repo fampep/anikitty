@@ -58,6 +58,12 @@ const EpisodePlaylist = ({
   const total = episodes?.totalEpisodes ?? 0;
   const [currentGroup, setCurrentGroup] = useState(`1-${Math.min(50, total)}`);
   const [search, setSearch] = useState("");
+  // Debounced value drives filtering so typing doesn't refilter on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 180);
+    return () => clearTimeout(id);
+  }, [search]);
   const [hideWatched, setHideWatched] = useState(false);
 
   const groupRanges = useMemo((): Array<{ label: string; value: string }> => {
@@ -129,9 +135,9 @@ const EpisodePlaylist = ({
 
   useEffect(() => {
     if (!episodes) return;
-    applyFilters(currentGroup, search, hideWatched, hideFillers);
+    applyFilters(currentGroup, debouncedSearch, hideWatched, hideFillers);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodes, currentGroup, search, hideWatched, hideFillers, watchedEpisodes]);
+  }, [episodes, currentGroup, debouncedSearch, hideWatched, hideFillers, watchedEpisodes]);
 
   useEffect(() => {
     const idx = episodes?.episodes.findIndex((ep) => ep.episodeId === episodeId);

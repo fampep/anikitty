@@ -301,6 +301,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           next = { ...next, subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } };
         }
         if (version < 5 && next.subtitleSettings) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { timeOffsetSec: _removed, ...subtitleSettings } = next.subtitleSettings as SubtitleSettings & {
             timeOffsetSec?: number;
           };
