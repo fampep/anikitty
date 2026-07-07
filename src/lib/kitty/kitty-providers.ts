@@ -455,6 +455,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "HiAnime",
   "Animepahe",
   "Animex",
+  "Animetsu",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
