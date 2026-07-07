@@ -28,6 +28,16 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.1",
+    date: "2026-07-07",
+    title: "Profile redesign & a new source",
+    changes: [
+      { type: "improved", text: "Redesigned profile pages — a cleaner header with your avatar, quick action buttons, icon stat tiles, and a full-width level bar, plus a two-column layout with a Quick Stats and Achievements sidebar." },
+      { type: "added", text: "New AnimaxAnime streaming source (SUB & DUB) added to the server list." },
+      { type: "fixed", text: "The Reviews tab no longer errors on titles that don't have any reviews yet." },
+    ],
+  },
+  {
     version: "0.6.0",
     date: "2026-07-06",
     title: "Reviews, achievements & richer anime pages",
