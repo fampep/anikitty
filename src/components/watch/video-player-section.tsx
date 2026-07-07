@@ -57,7 +57,6 @@ import {
   type MiruroPipeProviderId,
 } from "@/lib/providers/miruro-types";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
-import { captureVideoFrame } from "@/lib/kitty/capture-video-frame";
 
 import { useSkipTimes } from "@/hooks/use-aniskip";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
@@ -76,14 +75,12 @@ import {
 } from "lucide-react";
 import WatchDownloadPanel from "@/components/watch/watch-download-panel";
 import PlayerSettingsBar from "@/components/watch/player-settings-bar";
-import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
 import WatchPlayerToolbar from "@/components/watch/watch-player-toolbar";
 import WatchResumePrompt from "@/components/watch/watch-resume-prompt";
 import WatchKeyboardHelp from "@/components/watch/watch-keyboard-help";
 import WatchSimpleProviderRow from "@/components/watch/watch-simple-provider-row";
 import { useWatchKeyboard } from "@/hooks/use-watch-keyboard";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { getNextFallbackProvider } from "@/lib/kitty/provider-fallback";
 import type { Episode } from "@/types/episodes";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -317,7 +314,6 @@ const VideoPlayerSection = () => {
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
   const resumeReadyRef = useRef(false);
   const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
-  const getLivePreview = useCallback(() => captureVideoFrame(artPlayer?.video ?? null), [artPlayer]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const fallbackBusyRef = useRef(false);
@@ -408,7 +404,6 @@ const VideoPlayerSection = () => {
   const [autoFullscreen, setAutoFullscreen] = useState(false);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const navigatingRef = useRef(false);
-  const watchedEpisodes = useEpisodeProgress(animeSlug);
 
   const navigateToEpisode = useCallback(
     (ep: Episode) => {
@@ -1035,13 +1030,6 @@ const VideoPlayerSection = () => {
     );
   }, [searchParamsKey, t]);
 
-  const handleToggleMobilePlaylist = useCallback(() => {
-    document.getElementById("watch-mobile-playlist")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, []);
-
   useWatchKeyboard({
     enabled: streamReady && !needsResumePrompt,
     art: artPlayer,
@@ -1455,22 +1443,6 @@ const VideoPlayerSection = () => {
       </div>
     </div>
 
-    {currentEpisodeInfo && allEpisodes && (
-      <WatchEpisodeBar
-        currentEpisode={currentEpisodeInfo}
-        episodes={allEpisodes}
-        animePoster={anime?.anime?.info?.poster}
-        animeName={animeTitle}
-        prevEpisode={prevEpisode ?? null}
-        nextEpisode={nextEpisode ?? null}
-        playlistOpen={false}
-        onTogglePlaylist={handleToggleMobilePlaylist}
-        onPrev={handlePrevEpisode}
-        onNext={handleNextEpisode}
-        watchedEpisodes={watchedEpisodes}
-        getLivePreview={getLivePreview}
-      />
-    )}
 
     {w2gCode && w2g.isMember && (
       <W2gPanel

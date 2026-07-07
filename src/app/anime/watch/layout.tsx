@@ -435,45 +435,69 @@ const Layout = (props: Props) => {
             <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.info")}</h2>
           </div>
 
-          {info.description && (
-            <div className="site-panel p-5 sm:p-6">
-              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
-              <AniListRichText
-                text={info.description as string}
-                className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
-              />
-              <Link
-                href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-                className="inline-flex items-center gap-1 mt-3 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
-              >
-                {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
-              </Link>
+          <div className="site-panel p-5 sm:p-6 space-y-5">
+            {/* Title · native · genres */}
+            <div>
+              <h3 className="text-lg sm:text-xl font-black tracking-tight text-foreground dark:text-white">{info.name}</h3>
+              {moreInfo?.japanese ? (
+                <p className="mt-0.5 text-[13px] italic text-muted-foreground/70 dark:text-white/35">{moreInfo.japanese as string}</p>
+              ) : null}
+              {Array.isArray(moreInfo?.genres) && (moreInfo!.genres as string[]).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(moreInfo!.genres as string[]).map((g) => (
+                    <Link
+                      key={g}
+                      href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
+                      className="rounded-full border border-amber-500/25 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-amber-200/90 transition-colors hover:bg-amber-500/15"
+                    >
+                      {g}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="site-panel p-5 sm:p-6">
-            <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.details")}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {/* Synopsis */}
+            {info.description && (
+              <div>
+                <AniListRichText
+                  text={info.description as string}
+                  className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
+                />
+                <Link
+                  href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
+                  className="inline-flex items-center gap-1 mt-2 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
+                >
+                  {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+            )}
+
+            {/* Details — two columns, "Label: value" */}
+            <div className="grid grid-cols-1 gap-x-10 gap-y-2 border-t border-border dark:border-white/[0.06] pt-5 sm:grid-cols-2">
               {[
                 { label: t("anime.detailFields.type"), value: stats?.type },
-                { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
                 { label: t("anime.detailFields.status"), value: moreInfo?.status },
-                { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
+                { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
+                { label: t("anime.detailFields.duration"), value: (moreInfo as any)?.duration },
                 { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
-                { label: t("anime.detailFields.rating"), value: stats?.rating },
-              ].filter((r) => r.value).map((row) => (
-                <div key={row.label} className="rounded-lg bg-muted/30 dark:bg-white/3 border border-border dark:border-white/6 px-3 py-2">
-                  <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/20 uppercase tracking-wider block mb-0.5">{row.label}</span>
-                  <span className="text-[12px] text-muted-foreground dark:text-white/65 font-medium">{row.value}</span>
-                </div>
-              ))}
+                { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
+                { label: t("anime.detailFields.aired"), value: moreInfo?.aired },
+                { label: t("anime.detailFields.source"), value: (moreInfo as any)?.source },
+                { label: t("anime.studios"), value: moreInfo?.studios },
+              ]
+                .filter((r) => r.value && r.value !== "N/A" && r.value !== "?")
+                .map((row) => (
+                  <div key={row.label} className="flex items-baseline gap-2 text-[13px]">
+                    <span className="shrink-0 text-muted-foreground/70 dark:text-white/35">{row.label}:</span>
+                    <span className="min-w-0 font-semibold text-foreground/90 dark:text-white/80">{row.value}</span>
+                  </div>
+                ))}
             </div>
-          </div>
 
-          {externalLinks.length > 0 && (
-            <div className="site-panel p-5 sm:p-6">
-              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</p>
-              <div className="flex flex-wrap gap-2">
+            {/* External database links */}
+            {externalLinks.length > 0 && (
+              <div className="flex flex-wrap gap-2 border-t border-border dark:border-white/[0.06] pt-5">
                 {externalLinks.map((link) => (
                   <a
                     key={link.label}
@@ -490,8 +514,8 @@ const Layout = (props: Props) => {
                   </a>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </section>
 
         {/* Comments (desktop — mobile uses the bottom sheet) */}
