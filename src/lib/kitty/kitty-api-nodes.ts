@@ -14,14 +14,33 @@ export type KittyApiNodeMeta = {
   note?: string;
 };
 
+/** Normalize an env-provided node origin into a clean `https://host` URL. */
+function nodeUrl(envValue: string | undefined, fallback: string): string {
+  const raw = (envValue && envValue.trim()) || fallback;
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function nodeHost(url: string): string {
+  return url.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+}
+
+// Proxy/cluster node origins are configurable via env so domains aren't
+// hardcoded. Each falls back to the current default when its var is unset.
+// NEXT_PUBLIC_* is inlined at build time, so set them as build args in Coolify.
+const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://kittyapi.92-119-165-226.sslip.io");
+const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, "https://kittyapi.176-125-240-251.sslip.io");
+const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "https://kittyapi.45-150-111-153.sslip.io");
+const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "https://kittyapi.23-111-15-143.sslip.io");
+
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "primary",
     index: 1,
     label: "Switzerland",
     ip: "92.119.165.226",
-    url: "https://kittyapi.92-119-165-226.sslip.io",
-    host: "kittyapi.92-119-165-226.sslip.io",
+    url: PRIMARY_URL,
+    host: nodeHost(PRIMARY_URL),
     location: "Switzerland",
     timezone: "Europe/Zurich",
     operator: "LAIN / AS211507 (Julian Achter)",
@@ -33,8 +52,8 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     index: 2,
     label: "Sweden",
     ip: "176.125.240.251",
-    url: "https://kittyapi.176-125-240-251.sslip.io",
-    host: "kittyapi.176-125-240-251.sslip.io",
+    url: FALLBACK_URL,
+    host: nodeHost(FALLBACK_URL),
     location: "Sweden",
     timezone: "Europe/Stockholm",
     operator: "AlexHost SRL / AS200019",
@@ -46,8 +65,8 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     index: 3,
     label: "Bulgaria",
     ip: "45.150.111.153",
-    url: "https://kittyapi.45-150-111-153.sslip.io",
-    host: "kittyapi.45-150-111-153.sslip.io",
+    url: THIRD_URL,
+    host: nodeHost(THIRD_URL),
     location: "Bulgaria",
     timezone: "Europe/Sofia",
     operator: "Third cluster node",
@@ -57,13 +76,13 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     index: 4,
     label: "Singapore",
     ip: "23.111.15.143",
-    url: "https://kittyapi.23-111-15-143.sslip.io",
-    host: "kittyapi.23-111-15-143.sslip.io",
+    url: FOURTH_URL,
+    host: nodeHost(FOURTH_URL),
     location: "Singapore",
     timezone: "Asia/Singapore",
     operator: "Fourth cluster node",
   },
-] as const;
+];
 
 export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
 
