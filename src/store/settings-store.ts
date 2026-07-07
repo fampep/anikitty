@@ -25,6 +25,10 @@ interface ISettingsStore {
   autoPlay: boolean;
   setAutoPlay: (val: boolean) => void;
 
+  /** Hide filler episodes from the episode list. */
+  hideFillers: boolean;
+  setHideFillers: (val: boolean) => void;
+
   /** Provider grid + stream actions below the player. */
   showPlayerControls: boolean;
   setShowPlayerControls: (val: boolean) => void;
@@ -132,6 +136,9 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       autoPlay: false,
       setAutoPlay: (autoPlay) => set({ autoPlay }),
+
+      hideFillers: false,
+      setHideFillers: (hideFillers) => set({ hideFillers }),
 
       showPlayerControls: true,
       setShowPlayerControls: (showPlayerControls) => set({ showPlayerControls }),
@@ -259,6 +266,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
         autoPlay: state.autoPlay,
+        hideFillers: state.hideFillers,
         subtitleSettings: state.subtitleSettings,
         showPlayerControls: state.showPlayerControls,
         playerSettingsOpen: state.playerSettingsOpen,

@@ -8,7 +8,7 @@ import { useAnimeStore } from "@/store/anime-store";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
-import { Eye, EyeOff, Grid2x2, LayoutGrid, LayoutList, Search } from "lucide-react";
+import { Eye, EyeOff, Grid2x2, LayoutGrid, LayoutList, Search, SkipForward } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 
@@ -47,7 +47,7 @@ const EpisodePlaylist = ({
   const isLatestEpisode = searchParams.get("type");
 
   const { setSelectedEpisode, anime } = useAnimeStore();
-  const { episodeLayout, setEpisodeLayout } = useSettingsStore();
+  const { episodeLayout, setEpisodeLayout, hideFillers, setHideFillers } = useSettingsStore();
 
   const watchedEpisodes = useEpisodeProgress(animeId);
   const animePoster = anime?.anime?.info?.poster ?? "";
@@ -95,6 +95,7 @@ const EpisodePlaylist = ({
     group: string,
     query: string,
     watchedOnly: boolean,
+    skipFillers: boolean,
   ) => {
     let list = episodes.episodes;
 
@@ -113,14 +114,24 @@ const EpisodePlaylist = ({
       list = list.filter((ep) => !watchedIds.has(ep.episodeId));
     }
 
+    if (skipFillers) {
+      list = list.filter((ep) => !ep.isFiller);
+    }
+
     setFilteredEpisodes(list);
   };
 
+  /** Whether this title has any filler episodes at all (to show the toggle). */
+  const hasFillers = useMemo(
+    () => episodes.episodes.some((ep) => ep.isFiller),
+    [episodes],
+  );
+
   useEffect(() => {
     if (!episodes) return;
-    applyFilters(currentGroup, search, hideWatched);
+    applyFilters(currentGroup, search, hideWatched, hideFillers);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodes, currentGroup, search, hideWatched, watchedEpisodes]);
+  }, [episodes, currentGroup, search, hideWatched, hideFillers, watchedEpisodes]);
 
   useEffect(() => {
     const idx = episodes?.episodes.findIndex((ep) => ep.episodeId === episodeId);
@@ -204,6 +215,22 @@ const EpisodePlaylist = ({
             >
               {hideWatched ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
+
+            {hasFillers && (
+              <button
+                type="button"
+                onClick={() => setHideFillers(!hideFillers)}
+                title={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                  hideFillers
+                    ? "border-amber-500/35 bg-amber-500/15 text-amber-200"
+                    : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65",
+                )}
+              >
+                <SkipForward className="w-4 h-4" />
+              </button>
+            )}
 
             <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-lg p-0.5 border border-border dark:border-white/8 shrink-0">
               {LAYOUT_OPTIONS.filter((o) => o.value !== "list").map((opt) => (

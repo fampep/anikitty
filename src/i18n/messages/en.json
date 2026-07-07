@@ -1395,6 +1395,8 @@
       "filterPlaceholder": "Filter episodes…",
       "hideWatched": "Hide watched episodes",
       "showAll": "Show all episodes",
+      "skipFillers": "Hide filler episodes",
+      "showFillers": "Show filler episodes",
       "noEpisodes": "No episodes found"
     },
     "commentsPreview": "EP {ep} · {count} comments · Tap to join the discussion",
