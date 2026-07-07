@@ -16,11 +16,10 @@ import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime/anime-carousel";
 import dynamic from "next/dynamic";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ChevronRight,
+  ChevronLeft,
   MessageSquare,
-  Tv2,
   ExternalLink,
   Info,
 } from "lucide-react";
@@ -259,6 +258,26 @@ const Layout = (props: Props) => {
   if (!info) return null;
 
   const stats = info.stats;
+
+  // Prev/next + progress for the sidebar "now watching" card.
+  const episodeList = episodes?.episodes ?? [];
+  const currentIndex = currentEpisode
+    ? episodeList.findIndex((e) => e.episodeId === currentEpisode.episodeId)
+    : -1;
+  const prevEp = currentIndex > 0 ? episodeList[currentIndex - 1] : null;
+  const nextEp =
+    currentIndex >= 0 && currentIndex < episodeList.length - 1
+      ? episodeList[currentIndex + 1]
+      : null;
+  const totalEps = episodes?.totalEpisodes || episodeList.length;
+  const audioLabel = watchType === "dub" ? "DUB" : "SUB";
+  const buildEpUrl = (epId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("anime", animeId as string);
+    params.set("episode", epId);
+    return `${ROUTES.WATCH}?${params.toString()}`;
+  };
+
   const listSelector = (
     <Select
       placeholder={t("anime.addToList")}
@@ -320,146 +339,180 @@ const Layout = (props: Props) => {
             )}
           </div>
 
-          {/* Tabs: Comments | Info | Related */}
-          <Tabs value={watchTab} onValueChange={handleWatchTabChangeWithMobile} className="w-full">
-            <TabsList className="hidden lg:flex items-center justify-start w-fit h-fit bg-transparent border-b border-border dark:border-white/8 rounded-none gap-0 px-0 pb-0">
-              {[
-                { value: "comments", label: t("watch.tabs.comments"), icon: <MessageSquare className="w-3.5 h-3.5" /> },
-                { value: "info", label: t("watch.tabs.info"), icon: <Info className="w-3.5 h-3.5" /> },
-                { value: "related", label: t("watch.tabs.related"), icon: <Tv2 className="w-3.5 h-3.5" /> },
-              ].map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400 data-[state=active]:text-white data-[state=active]:bg-violet-500/[0.06] text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 transition-all bg-transparent"
-                >
-                  {tab.icon}
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <TabsContent value="comments" className="mt-4 hidden lg:block" id="watch-comments-panel">
-              {currentAnimeId && (
-                <div className="site-panel p-5 sm:p-6">
-                  <CommentSection
-                    animeId={currentAnimeId}
-                    episodeId={episodeId}
-                    episodeNumber={currentEpisode?.number}
-                    episodeLabel={
-                      currentEpisode ? t("watch.episode", { n: currentEpisode.number }) : undefined
-                    }
-                  />
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="info" className="mt-6 space-y-5 scroll-mt-24" id="watch-tab-info">
-              {/* Synopsis */}
-              {info.description && (
-                <div className="site-panel p-5 sm:p-6">
-                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
-                  <AniListRichText
-                    text={info.description as string}
-                    className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
-                  />
-                  <Link
-                    href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-                    className="inline-flex items-center gap-1 mt-3 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
-                  >
-                    {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              )}
-
-              {/* Details grid */}
-              <div className="site-panel p-5 sm:p-6">
-                <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.details")}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: t("anime.detailFields.type"), value: stats?.type },
-                    { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
-                    { label: t("anime.detailFields.status"), value: moreInfo?.status },
-                    { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
-                    { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
-                    { label: t("anime.detailFields.rating"), value: stats?.rating },
-                  ].filter((r) => r.value).map((row) => (
-                    <div key={row.label} className="rounded-lg bg-muted/30 dark:bg-white/3 border border-border dark:border-white/6 px-3 py-2">
-                      <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/20 uppercase tracking-wider block mb-0.5">{row.label}</span>
-                      <span className="text-[12px] text-muted-foreground dark:text-white/65 font-medium">{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* External links */}
-              {externalLinks.length > 0 && (
-                <div className="site-panel p-5 sm:p-6">
-                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {externalLinks.map((link) => (
-                      <a
-                        key={link.label}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all hover:opacity-80",
-                          link.color,
-                        )}
-                      >
-                        {link.label}
-                        <ExternalLink className="w-3 h-3 opacity-60" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* DB IDs (raw) */}
-              {mappings && (
-                <div className="site-panel p-5 sm:p-6">
-                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("watch.databaseIds")}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: "AniList",    value: anilistId              },
-                      { label: "MAL",        value: mappings.mal_id        },
-                      { label: "AniDB",      value: mappings.anidb_id      },
-                      { label: "TVDB",       value: mappings.thetvdb_id    },
-                      { label: "TMDB",       value: mappings.themoviedb_id },
-                      { label: "Kitsu",      value: mappings.kitsu_id      },
-                      { label: "LiveChart",  value: mappings.livechart_id  },
-                    ].filter((r) => r.value).map((row) => (
-                      <div key={row.label} className="rounded-lg bg-muted/30 dark:bg-white/[0.02] border border-border/60 dark:border-border/60 dark:border-white/5 px-3 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">{row.label}</span>
-                        <span className="text-[11px] font-mono text-muted-foreground dark:text-white/40">{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="related" className="mt-6 space-y-8 scroll-mt-24" id="watch-tab-related">
-              <AnimeCarousel title={t("common.alsoWatch")} anime={anime.relatedAnimes as IAnime[]} />
-              <AnimeCarousel title={t("common.recommended")} anime={anime.recommendedAnimes as IAnime[]} />
-            </TabsContent>
-          </Tabs>
         </div>
 
-        {/* Right: episode playlist (desktop only) */}
-        {episodes && !theatreMode && (
-          <div className="hidden lg:block">
-            <EpisodePlaylist
-              variant="sidebar"
-              animeId={animeId as string}
-              title={info.name ?? (moreInfo?.japanese as string)}
-              subOrDub={stats?.episodes}
-              episodes={episodes}
-              isLoading={episodeLoading}
-            />
+        {/* Right sidebar: now-watching card + episodes list (desktop) */}
+        {!theatreMode && (
+          <div className="hidden lg:flex flex-col gap-4">
+            {currentEpisode && (
+              <div className="site-panel p-4 space-y-3.5">
+                {/* Series header */}
+                <div className="flex gap-3">
+                  {info.poster && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={info.poster}
+                      alt=""
+                      className="w-12 h-16 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/25">
+                      {t("watch.nowWatching")}
+                    </p>
+                    <p className="mt-0.5 text-sm font-bold leading-tight text-foreground/90 dark:text-white/90 line-clamp-2">
+                      {info.name}
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-violet-500/15 border border-violet-500/25 text-violet-300">
+                        EP {currentEpisode.number}
+                      </span>
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-foreground/[0.06] border border-border dark:bg-white/[0.06] dark:border-white/10 text-muted-foreground dark:text-white/60">
+                        {audioLabel}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Series progress */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/25">
+                    <span>{t("watch.seriesProgress")}</span>
+                    <span className="tabular-nums">{currentEpisode.number}/{totalEps}</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-accent dark:bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                      style={{ width: `${Math.min(100, (currentEpisode.number / Math.max(totalEps, 1)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Current episode title */}
+                {currentEpisode.title && (
+                  <p className="text-[13px] leading-snug text-foreground/80 dark:text-white/65">
+                    <span className="mr-1 font-mono text-muted-foreground/60 dark:text-white/30">{currentEpisode.number}.</span>
+                    {currentEpisode.title}
+                  </p>
+                )}
+
+                {/* Prev / next episode */}
+                <div className="grid grid-cols-2 gap-2">
+                  <EpisodeNavThumb ep={prevEp} dir="prev" label={t("watch.prevEpisode")} fallbackPoster={info.poster} buildUrl={buildEpUrl} />
+                  <EpisodeNavThumb ep={nextEp} dir="next" label={t("watch.nextEpisode")} fallbackPoster={info.poster} buildUrl={buildEpUrl} />
+                </div>
+              </div>
+            )}
+
+            {episodes && (
+              <EpisodePlaylist
+                variant="sidebar"
+                animeId={animeId as string}
+                title={info.name ?? (moreInfo?.japanese as string)}
+                subOrDub={stats?.episodes}
+                episodes={episodes}
+                isLoading={episodeLoading}
+              />
+            )}
           </div>
         )}
+      </div>
+
+      {/* ── Full-width sections below the player ── */}
+      <div className="mt-8 space-y-10">
+        {/* Recommended / related */}
+        {((anime.relatedAnimes?.length ?? 0) > 0 || (anime.recommendedAnimes?.length ?? 0) > 0) && (
+          <section id="watch-tab-related" className="scroll-mt-24 space-y-8">
+            <AnimeCarousel title={t("common.alsoWatch")} anime={anime.relatedAnimes as IAnime[]} />
+            <AnimeCarousel title={t("common.recommended")} anime={anime.recommendedAnimes as IAnime[]} />
+          </section>
+        )}
+
+        {/* Info: synopsis / details / links */}
+        <section id="watch-tab-info" className="scroll-mt-24 space-y-5">
+          <div className="flex items-center gap-2.5">
+            <Info className="w-4 h-4 text-muted-foreground dark:text-white/40" />
+            <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.info")}</h2>
+          </div>
+
+          {info.description && (
+            <div className="site-panel p-5 sm:p-6">
+              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.synopsis")}</p>
+              <AniListRichText
+                text={info.description as string}
+                className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
+              />
+              <Link
+                href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
+                className="inline-flex items-center gap-1 mt-3 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
+              >
+                {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+          )}
+
+          <div className="site-panel p-5 sm:p-6">
+            <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.details")}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[
+                { label: t("anime.detailFields.type"), value: stats?.type },
+                { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
+                { label: t("anime.detailFields.status"), value: moreInfo?.status },
+                { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
+                { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
+                { label: t("anime.detailFields.rating"), value: stats?.rating },
+              ].filter((r) => r.value).map((row) => (
+                <div key={row.label} className="rounded-lg bg-muted/30 dark:bg-white/3 border border-border dark:border-white/6 px-3 py-2">
+                  <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/20 uppercase tracking-wider block mb-0.5">{row.label}</span>
+                  <span className="text-[12px] text-muted-foreground dark:text-white/65 font-medium">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {externalLinks.length > 0 && (
+            <div className="site-panel p-5 sm:p-6">
+              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-3">{t("anime.externalLinks")}</p>
+              <div className="flex flex-wrap gap-2">
+                {externalLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all hover:opacity-80",
+                      link.color,
+                    )}
+                  >
+                    {link.label}
+                    <ExternalLink className="w-3 h-3 opacity-60" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Comments (desktop — mobile uses the bottom sheet) */}
+        <section id="watch-comments-panel" className="scroll-mt-24 hidden lg:block">
+          <div className="flex items-center gap-2.5 mb-4">
+            <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40" />
+            <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.comments")}</h2>
+          </div>
+          {currentAnimeId && (
+            <div className="site-panel p-5 sm:p-6">
+              <CommentSection
+                animeId={currentAnimeId}
+                episodeId={episodeId}
+                episodeNumber={currentEpisode?.number}
+                episodeLabel={
+                  currentEpisode ? t("watch.episode", { n: currentEpisode.number }) : undefined
+                }
+              />
+            </div>
+          )}
+        </section>
       </div>
 
       {currentAnimeId && currentEpisode && (
@@ -476,5 +529,50 @@ const Layout = (props: Props) => {
     </Container>
   );
 };
+
+/** Prev/next episode thumbnail button for the sidebar now-watching card. */
+function EpisodeNavThumb({
+  ep,
+  dir,
+  label,
+  fallbackPoster,
+  buildUrl,
+}: {
+  ep: { episodeId: string; number: number; title: string; image?: string | null } | null;
+  dir: "prev" | "next";
+  label: string;
+  fallbackPoster?: string;
+  buildUrl: (id: string) => string;
+}) {
+  const img = ep?.image || fallbackPoster || undefined;
+  const content = (
+    <div className="relative h-16 w-full overflow-hidden rounded-lg ring-1 ring-white/10">
+      {img && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover opacity-50" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-black/30" />
+      <div
+        className={cn(
+          "relative flex h-full items-center gap-1.5 px-2.5",
+          dir === "next" ? "justify-end text-right" : "justify-start",
+        )}
+      >
+        {dir === "prev" && <ChevronLeft className="w-4 h-4 shrink-0 text-white/70" />}
+        <div className="min-w-0">
+          <p className="text-[9px] font-mono uppercase tracking-wider leading-none text-white/40">{label}</p>
+          {ep && <p className="mt-0.5 truncate text-[11px] font-semibold leading-tight text-white/85">EP {ep.number}</p>}
+        </div>
+        {dir === "next" && <ChevronRight className="w-4 h-4 shrink-0 text-white/70" />}
+      </div>
+    </div>
+  );
+  if (!ep) return <div className="cursor-not-allowed opacity-30">{content}</div>;
+  return (
+    <Link href={buildUrl(ep.episodeId)} scroll={false} className="transition-opacity hover:opacity-90">
+      {content}
+    </Link>
+  );
+}
 
 export default Layout;

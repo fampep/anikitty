@@ -1380,6 +1380,8 @@
     "skipIntro": "Skip Intro",
     "skipCredits": "Skip Credits",
     "nextEpisode": "Next episode",
+    "prevEpisode": "Previous episode",
+    "seriesProgress": "Series progress",
     "upNext": "Up next",
     "playNow": "Play now",
     "cancel": "Cancel",
