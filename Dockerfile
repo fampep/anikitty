@@ -11,7 +11,10 @@ WORKDIR /app
 COPY package*.json ./
 # npm install (not ci) so a stale package-lock.json on the branch still builds in Coolify/Docker.
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false
-RUN npm install --no-fund --no-audit --no-update-notifier
+# Retry/timeout hardening so a transient registry hiccup doesn't fail the whole deploy.
+RUN npm install --no-fund --no-audit --no-update-notifier \
+    --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 \
+    --fetch-timeout=300000
 
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
