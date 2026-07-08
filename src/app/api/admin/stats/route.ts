@@ -73,3 +73,5 @@ export async function GET(req: Request) {
     })),
   });
 }
+
+export const maxDuration = 30;

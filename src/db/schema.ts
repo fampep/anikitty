@@ -142,6 +142,8 @@ export const watchProgress = pgTable(
   },
   (t) => ({
     userAnimeEp: unique("progress_user_anime_ep").on(t.userId, t.animeId, t.episodeId),
+    updatedIdx: index("watch_progress_updated_at_idx").on(t.updatedAt),
+    userUpdatedIdx: index("watch_progress_user_updated_idx").on(t.userId, t.updatedAt),
   }),
 );
 

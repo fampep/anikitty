@@ -67,3 +67,5 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ activity: rows });
 }
+
+export const maxDuration = 30;

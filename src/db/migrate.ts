@@ -520,6 +520,10 @@ export async function migrateDb() {
         CONSTRAINT user_achievements_user_slug UNIQUE (user_id, slug)
       )`,
       `CREATE INDEX IF NOT EXISTS user_achievements_user_idx ON user_achievements (user_id)`,
+      // Admin dashboard scans watch_progress by recency and per-user latest — without
+      // these it full-scans a growing table and the stats/activity views time out.
+      `CREATE INDEX IF NOT EXISTS watch_progress_updated_at_idx ON watch_progress (updated_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS watch_progress_user_updated_idx ON watch_progress (user_id, updated_at DESC)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>
