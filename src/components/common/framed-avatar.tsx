@@ -27,7 +27,7 @@ export default function FramedAvatar({
   return (
     <div
       className={cn(
-        "relative inline-flex items-center justify-center shrink-0",
+        "relative inline-flex items-center justify-center shrink-0 rounded-full",
         frameClass,
         onClick && "cursor-pointer",
         className,
