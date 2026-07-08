@@ -13,7 +13,7 @@ import CommentBody from "@/components/comments/comment-body";
 import { useMentionSuggestions } from "@/hooks/use-mention-suggestions";
 import { toast } from "sonner";
 import { UserBadges } from "@/components/profile/user-badges";
-import { GifUrlPanel } from "@/components/shared/gif-url-panel";
+import { GifPickerPanel } from "@/components/shared/gif-picker-panel";
 import { GifImage } from "@/components/shared/gif-image";
 import { invalidateUserLevel } from "@/hooks/use-user-level";
 import { cn } from "@/lib/core/utils";
@@ -1063,7 +1063,7 @@ export default function CommentSection({
                       {t("comments.gif")}
                     </button>
                     {showGifPanel && (
-                      <GifUrlPanel
+                      <GifPickerPanel
                         onAttach={(url) => { setSelectedGif(url); setShowGifPanel(false); }}
                         onClose={() => setShowGifPanel(false)}
                       />

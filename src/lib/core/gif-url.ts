@@ -17,7 +17,13 @@ export function normalizeGifUrl(input: string): string | null {
   const path = url.pathname;
 
   if (host.includes("giphy.com")) {
-    if (host === "media.giphy.com" || host.endsWith(".media.giphy.com")) {
+    // Preserve direct media renditions (incl. numbered CDN hosts like
+    // media3.giphy.com) so lighter previews/downsized variants aren't collapsed.
+    if (
+      host === "media.giphy.com" ||
+      /^media\d+\.giphy\.com$/.test(host) ||
+      host.endsWith(".media.giphy.com")
+    ) {
       return url.toString();
     }
     const idMatch = path.match(/\/(?:gifs|media)\/(?:[^/]*-)?([a-zA-Z0-9]+)/);

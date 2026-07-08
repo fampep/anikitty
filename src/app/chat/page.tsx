@@ -19,7 +19,7 @@ import {
 import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
 import { UserBadges } from "@/components/profile/user-badges";
-import { GifUrlPanel } from "@/components/shared/gif-url-panel";
+import { GifPickerPanel } from "@/components/shared/gif-picker-panel";
 import { GifImage } from "@/components/shared/gif-image";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import CommunityHero from "@/components/community/community-hero";
@@ -379,7 +379,7 @@ export default function ChatPage() {
                       <ImagePlay className="h-4 w-4" />
                     </button>
                     {showGifPanel && (
-                      <GifUrlPanel
+                      <GifPickerPanel
                         onAttach={(url) => {
                           setSelectedGif(url);
                           setShowGifPanel(false);
