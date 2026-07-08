@@ -57,6 +57,25 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+/** User-uploaded images (avatars, banners) stored in-DB as base64. */
+export const uploads = pgTable(
+  "uploads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    contentType: varchar("content_type", { length: 64 }).notNull(),
+    data: text("data").notNull(),
+    size: integer("size").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userKindIdx: index("uploads_user_kind_idx").on(t.userId, t.kind),
+  }),
+);
+
 export const userSessions = pgTable(
   "user_sessions",
   {

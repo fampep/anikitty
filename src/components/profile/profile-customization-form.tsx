@@ -1,13 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Loader2, ImageIcon, Palette, Sparkles } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Loader2, ImageIcon, Palette, Sparkles, Upload, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { anisurgeAuth } from "@/lib/oauth/anisurge";
 import { THEME_COLOR_PRESETS, isValidThemeColor } from "@/lib/core/theme-color";
-import { AVATAR_EXAMPLE_HINT, BANNER_EXAMPLE_HINT, MEDIA_URL_HINT } from "@/lib/core/media-url";
+import { MEDIA_URL_HINT } from "@/lib/core/media-url";
+import { withAuth } from "@/lib/auth/auth-fetch";
 import ProfileMediaPreview from "@/components/profile/profile-media-preview";
+import ImageCropper from "@/components/common/image-cropper";
 import { cn } from "@/lib/core/utils";
+
+type MediaKind = "avatar" | "banner";
 
 export type ProfileCustomizationValues = {
   avatarUrl: string;
@@ -35,6 +39,56 @@ export default function ProfileCustomizationForm({
   const [themeColor, setThemeColor] = useState<string | null>(initial.themeColor);
   const [customColor, setCustomColor] = useState(initial.themeColor ?? "#a78bfa");
   const [saving, setSaving] = useState(false);
+
+  // Upload + crop state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pickKindRef = useRef<MediaKind>("avatar");
+  const [cropKind, setCropKind] = useState<MediaKind | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState<MediaKind | null>(null);
+  const [showUrl, setShowUrl] = useState<{ avatar: boolean; banner: boolean }>({
+    avatar: false,
+    banner: false,
+  });
+
+  const openPicker = (kind: MediaKind) => {
+    pickKindRef.current = kind;
+    fileInputRef.current?.click();
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please pick an image file");
+      return;
+    }
+    setCropKind(pickKindRef.current);
+    setCropFile(f);
+  };
+
+  const handleCropped = async (blob: Blob) => {
+    const kind = cropKind ?? "avatar";
+    setCropFile(null);
+    setCropKind(null);
+    setUploading(kind);
+    try {
+      const fd = new FormData();
+      fd.append("file", new File([blob], `${kind}.webp`, { type: "image/webp" }));
+      fd.append("kind", kind);
+      const res = await fetch("/api/account/upload", withAuth({ method: "POST", body: fd }));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? "Upload failed");
+      if (kind === "avatar") setAvatarUrl(data.url);
+      else setBannerUrl(data.url);
+      toast.success("Image uploaded — click Save appearance to keep it");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(null);
+    }
+  };
 
   useEffect(() => {
     setAvatarUrl(initial.avatarUrl);
@@ -130,43 +184,112 @@ export default function ProfileCustomizationForm({
         </div>
       </div>
 
+      {/* Hidden shared file input for uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        onChange={onFileChange}
+        className="hidden"
+      />
+
       {/* Banner */}
       <div className="flex flex-col gap-2">
         <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-widest flex items-center gap-1.5">
           <Sparkles className="w-3 h-3" /> Profile banner
         </label>
-        <p className="text-[10px] text-muted-foreground/80 dark:text-white/25 font-mono">{BANNER_EXAMPLE_HINT}</p>
         {bannerUrl.trim() && (
           <div className="relative h-24 md:h-28 rounded-xl overflow-hidden ring-1 ring-border dark:ring-white/10">
             <ProfileMediaPreview src={bannerUrl.trim()} alt="Banner preview" variant="banner" />
           </div>
         )}
-        <input
-          value={bannerUrl}
-          onChange={(e) => setBannerUrl(e.target.value)}
-          placeholder={MEDIA_URL_HINT}
-          className="w-full bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
-        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => openPicker("banner")}
+            disabled={uploading === "banner"}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent dark:bg-white/10 border border-border dark:border-white/15 text-foreground dark:text-white/90 text-xs font-semibold hover:bg-white/15 disabled:opacity-50 transition-all"
+          >
+            {uploading === "banner" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {bannerUrl.trim() ? "Change banner" : "Upload banner"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowUrl((s) => ({ ...s, banner: !s.banner }))}
+            className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:hover:text-white/60 transition-colors"
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            Paste link
+          </button>
+        </div>
+        {showUrl.banner && (
+          <input
+            value={bannerUrl}
+            onChange={(e) => setBannerUrl(e.target.value)}
+            placeholder={MEDIA_URL_HINT}
+            className="w-full bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+          />
+        )}
       </div>
 
       {/* Avatar */}
       <div className="flex flex-col gap-2">
         <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-widest flex items-center gap-1.5">
-          <ImageIcon className="w-3 h-3" /> Avatar / GIF
+          <ImageIcon className="w-3 h-3" /> Avatar
         </label>
-        <p className="text-[10px] text-muted-foreground/80 dark:text-white/25 font-mono">{AVATAR_EXAMPLE_HINT}</p>
-        {avatarUrl.trim() && (
-          <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-white/15 mb-1">
-            <ProfileMediaPreview src={avatarUrl.trim()} alt="Avatar preview" variant="avatar" />
+        <div className="flex items-center gap-3">
+          {avatarUrl.trim() && (
+            <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-white/15 shrink-0">
+              <ProfileMediaPreview src={avatarUrl.trim()} alt="Avatar preview" variant="avatar" />
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openPicker("avatar")}
+                disabled={uploading === "avatar"}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent dark:bg-white/10 border border-border dark:border-white/15 text-foreground dark:text-white/90 text-xs font-semibold hover:bg-white/15 disabled:opacity-50 transition-all"
+              >
+                {uploading === "avatar" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {avatarUrl.trim() ? "Change avatar" : "Upload avatar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUrl((s) => ({ ...s, avatar: !s.avatar }))}
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:hover:text-white/60 transition-colors"
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                Paste link
+              </button>
+            </div>
           </div>
+        </div>
+        {showUrl.avatar && (
+          <input
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            placeholder={MEDIA_URL_HINT}
+            className="w-full bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+          />
         )}
-        <input
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder={MEDIA_URL_HINT}
-          className="w-full bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
-        />
       </div>
+
+      {/* Crop modal */}
+      {cropFile && cropKind && (
+        <ImageCropper
+          file={cropFile}
+          aspect={cropKind === "avatar" ? 1 : 4}
+          outputWidth={cropKind === "avatar" ? 768 : 2048}
+          circular={cropKind === "avatar"}
+          title={cropKind === "avatar" ? "Adjust your avatar" : "Adjust your banner"}
+          onCancel={() => {
+            setCropFile(null);
+            setCropKind(null);
+          }}
+          onConfirm={handleCropped}
+        />
+      )}
 
       {showBio && (
         <div className="flex flex-col gap-2">

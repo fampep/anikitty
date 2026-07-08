@@ -30,6 +30,21 @@ export async function migrateDb() {
     `;
 
     await client`
+      CREATE TABLE IF NOT EXISTS uploads (
+        id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        kind         VARCHAR(16) NOT NULL,
+        content_type VARCHAR(64) NOT NULL,
+        data         TEXT NOT NULL,
+        size         INTEGER NOT NULL DEFAULT 0,
+        created_at   TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    await client`
+      CREATE INDEX IF NOT EXISTS uploads_user_kind_idx ON uploads (user_id, kind)
+    `;
+
+    await client`
       CREATE TABLE IF NOT EXISTS watchlist (
         id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
