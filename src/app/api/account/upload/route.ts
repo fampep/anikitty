@@ -44,7 +44,14 @@ export async function POST(req: Request) {
       })
       .returning({ id: uploads.id });
 
-    return NextResponse.json({ url: `/api/uploads/${row.id}` });
+    // Tag GIFs with a ".gif" hint so the client renders them as an animated
+    // <img> instead of running them through next/image (which flattens them).
+    // Static images stay extensionless so next/image can still optimize them.
+    const url =
+      file.type === "image/gif"
+        ? `/api/uploads/${row.id}.gif`
+        : `/api/uploads/${row.id}`;
+    return NextResponse.json({ url });
   } catch (e) {
     console.error("[account/upload]", e);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

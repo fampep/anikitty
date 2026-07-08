@@ -7,8 +7,10 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  // Guard against malformed ids hitting the DB.
+  const { id: raw } = await params;
+  // URLs may carry an extension hint (e.g. "{id}.gif") so the client can tell an
+  // animated GIF from a static image — strip it before the UUID lookup.
+  const id = raw.replace(/\.(gif|webp|png|jpe?g)$/i, "");
   if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
     return new Response("Not found", { status: 404 });
   }

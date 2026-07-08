@@ -56,26 +56,16 @@ export default function ProfileCustomizationForm({
     fileInputRef.current?.click();
   };
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    e.target.value = ""; // allow re-picking the same file
-    if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      toast.error("Please pick an image file");
-      return;
-    }
-    setCropKind(pickKindRef.current);
-    setCropFile(f);
-  };
+  const MAX_UPLOAD = 4 * 1024 * 1024;
 
-  const handleCropped = async (blob: Blob) => {
-    const kind = cropKind ?? "avatar";
-    setCropFile(null);
-    setCropKind(null);
+  const uploadMedia = async (blob: Blob, kind: MediaKind, filename: string) => {
     setUploading(kind);
     try {
       const fd = new FormData();
-      fd.append("file", new File([blob], `${kind}.webp`, { type: "image/webp" }));
+      fd.append(
+        "file",
+        blob instanceof File ? blob : new File([blob], filename, { type: blob.type }),
+      );
       fd.append("kind", kind);
       const res = await fetch("/api/account/upload", withAuth({ method: "POST", body: fd }));
       const data = await res.json().catch(() => ({}));
@@ -88,6 +78,35 @@ export default function ProfileCustomizationForm({
     } finally {
       setUploading(null);
     }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please pick an image file");
+      return;
+    }
+    // Animated GIFs can't be cropped without losing the animation — upload the
+    // original as-is so it stays animated (displayed center-cropped to fit).
+    if (f.type === "image/gif") {
+      if (f.size > MAX_UPLOAD) {
+        toast.error("GIF is too large (max 4 MB)");
+        return;
+      }
+      void uploadMedia(f, pickKindRef.current, f.name || "upload.gif");
+      return;
+    }
+    setCropKind(pickKindRef.current);
+    setCropFile(f);
+  };
+
+  const handleCropped = async (blob: Blob) => {
+    const kind = cropKind ?? "avatar";
+    setCropFile(null);
+    setCropKind(null);
+    await uploadMedia(blob, kind, `${kind}.webp`);
   };
 
   useEffect(() => {
@@ -222,6 +241,9 @@ export default function ProfileCustomizationForm({
             Paste link
           </button>
         </div>
+        <p className="text-[10px] text-muted-foreground/70 dark:text-white/25 font-mono">
+          PNG, JPG or WebP open a crop tool · GIFs upload animated
+        </p>
         {showUrl.banner && (
           <input
             value={bannerUrl}
@@ -263,6 +285,9 @@ export default function ProfileCustomizationForm({
                 Paste link
               </button>
             </div>
+            <p className="text-[10px] text-muted-foreground/70 dark:text-white/25 font-mono">
+              PNG, JPG or WebP open a crop tool · GIFs upload animated
+            </p>
           </div>
         </div>
         {showUrl.avatar && (
