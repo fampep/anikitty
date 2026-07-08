@@ -30,7 +30,7 @@ function nodeHost(url: string): string {
 // NEXT_PUBLIC_* is inlined at build time, so set them as build args in Coolify.
 const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://kittyapi.92-119-165-226.sslip.io");
 const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, "https://kittyapi.176-125-240-251.sslip.io");
-const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "https://kittyapi.45-150-111-153.sslip.io");
+const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "https://kittyapi.131-123-42-153.sslip.io");
 const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "https://kittyapi.23-111-15-143.sslip.io");
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
@@ -64,7 +64,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     id: "third-choice",
     index: 3,
     label: "Bulgaria",
-    ip: "45.150.111.153",
+    ip: "131.123.42.153",
     url: THIRD_URL,
     host: nodeHost(THIRD_URL),
     location: "Bulgaria",
