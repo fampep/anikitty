@@ -472,6 +472,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch(`/api/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`, { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setUsers(data.users ?? []);
     } catch { toast.error("Failed to load users"); }
@@ -483,6 +484,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/roles", { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setRoles(data.roles ?? []);
       setPermissionDefs(data.permissionDefs ?? []);
@@ -507,6 +509,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/reports?status=open", { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setReports(data.reports ?? []);
     } catch { toast.error("Failed to load reports"); }
@@ -530,6 +533,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/audit?limit=150", { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setAudit(data.entries ?? []);
     } catch { toast.error("Failed to load audit log"); }
@@ -553,6 +557,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/announcements", { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setAnns(data.announcements ?? []);
     } catch { toast.error("Failed to load announcements"); }
@@ -564,6 +569,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/chat?limit=100", { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setChatData(data);
     } catch { toast.error("Failed to load chat"); }
@@ -575,6 +581,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/deletion-requests", { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setDeletionRequests(data.requests ?? []);
     } catch { toast.error("Failed to load deletion requests"); }
