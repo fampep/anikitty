@@ -13,6 +13,7 @@ export async function GET(req: Request) {
 
   const db = getDb();
 
+  try {
   if (view === "live") {
     // One row per user — their most recent session
     const result = await db.execute(sql`
@@ -66,6 +67,10 @@ export async function GET(req: Request) {
     .limit(limit);
 
   return NextResponse.json({ activity: rows });
+  } catch (e) {
+    console.error("[admin/activity] query failed:", e);
+    return NextResponse.json({ activity: [] });
+  }
 }
 
 export const maxDuration = 30;

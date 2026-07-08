@@ -11,8 +11,19 @@ export async function GET(req: Request) {
   const db = getDb();
   const chatCutoff = getChatCutoffDate();
 
-  const [totalsResult, topAnimeResult, chatLiveResult] = await Promise.all([
-    db.execute(sql`
+  // Each query is isolated: a failure (e.g. a missing table) degrades that one
+  // metric to zero instead of 500-ing the whole overview.
+  const exec = async (q: Parameters<typeof db.execute>[0]): Promise<Record<string, unknown>[]> => {
+    try {
+      return (await db.execute(q)) as unknown as Record<string, unknown>[];
+    } catch (e) {
+      console.error("[admin/stats] query failed:", e);
+      return [];
+    }
+  };
+
+  const [totalsResult, threadsResult, topAnimeResult, chatLiveResult] = await Promise.all([
+    exec(sql`
       SELECT
         (SELECT COUNT(*) FROM users)::int                                                                          AS total_users,
         (SELECT COUNT(*) FROM watch_progress)::int                                                                AS total_sessions,
@@ -21,12 +32,13 @@ export async function GET(req: Request) {
         (SELECT COUNT(DISTINCT user_id) FROM watch_progress WHERE updated_at > NOW() - INTERVAL '7 days')::int   AS active_week,
         (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '7 days')::int                           AS new_users_week,
         (SELECT COUNT(*) FROM comments)::int                                                                      AS total_comments,
-        (SELECT COUNT(*) FROM forum_threads)::int                                                                 AS total_threads,
         (SELECT COUNT(*) FROM users WHERE anilist_access_token IS NOT NULL)::int                                  AS anilist_linked,
         (SELECT COUNT(*) FROM chat_messages)::int                                                                   AS total_chat_messages,
         (SELECT COUNT(*) FROM chat_messages WHERE created_at > NOW() - INTERVAL '24 hours')::int                  AS chat_messages_today
     `),
-    db.execute(sql`
+    // Kept separate so a missing forum_threads table only zeros this one number.
+    exec(sql`SELECT COUNT(*)::int AS total_threads FROM forum_threads`),
+    exec(sql`
       SELECT
         anime_id,
         anime_title,
@@ -39,15 +51,16 @@ export async function GET(req: Request) {
       ORDER BY COUNT(*) DESC
       LIMIT 15
     `),
-    db.execute(sql`
+    exec(sql`
       SELECT COUNT(*)::int AS chat_messages_live
       FROM chat_messages
       WHERE created_at >= ${chatCutoff}
     `),
   ]);
 
-  const t = (totalsResult as Record<string, unknown>[])[0] ?? {};
-  const chatLive = (chatLiveResult as Record<string, unknown>[])[0] ?? {};
+  const t = totalsResult[0] ?? {};
+  const threads = threadsResult[0] ?? {};
+  const chatLive = chatLiveResult[0] ?? {};
   const security = getSecurityConfigStatus();
 
   return NextResponse.json({
@@ -58,13 +71,13 @@ export async function GET(req: Request) {
     activeWeek:    Number(t.active_week    ?? 0),
     newUsersWeek:  Number(t.new_users_week ?? 0),
     totalComments: Number(t.total_comments ?? 0),
-    totalThreads:  Number(t.total_threads  ?? 0),
+    totalThreads:  Number(threads.total_threads ?? 0),
     anilistLinked: Number(t.anilist_linked ?? 0),
     totalChatMessages: Number(t.total_chat_messages ?? 0),
     chatMessagesToday: Number(t.chat_messages_today ?? 0),
     chatMessagesLive: Number(chatLive.chat_messages_live ?? 0),
     security,
-    topAnime: (topAnimeResult as Record<string, unknown>[]).map((r) => ({
+    topAnime: topAnimeResult.map((r) => ({
       animeId:        r.anime_id,
       animeTitle:     r.anime_title ?? null,
       animeThumbnail: r.anime_thumbnail ?? null,
