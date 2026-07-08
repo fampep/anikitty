@@ -92,7 +92,7 @@ export function useWatchKeyboard({
         return;
       }
 
-      if (key === " " || key === "k") {
+      if (e.code === "Space" || key === " " || key === "spacebar" || key === "k") {
         e.preventDefault();
         art.toggle();
         return;
@@ -123,8 +123,8 @@ export function useWatchKeyboard({
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [
     enabled,
     art,
