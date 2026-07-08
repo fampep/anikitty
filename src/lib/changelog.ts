@@ -28,6 +28,22 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.4",
+    date: "2026-07-08",
+    title: "GIF search, image uploads & watch history",
+    changes: [
+      { type: "added", text: "Search GIFs right in comments and chat — a pop-out Giphy picker with trending and search, instead of pasting a link." },
+      { type: "added", text: "Upload your avatar and banner: pick an image, drag to reposition and zoom to frame it, and it's saved in high quality — no more pasting URLs." },
+      { type: "added", text: "Watch History page — a full, paginated list of everything you've watched, with one-tap resume or rewatch. Find it in the account menu." },
+      { type: "added", text: "\"Mark whole series as watched\" button on anime pages — moves it to Completed and syncs to AniList in one tap." },
+      { type: "added", text: "Subtitle timing control in Settings — nudge subtitles earlier or later to sync them to the audio." },
+      { type: "added", text: "DMCA & copyright page for submitting takedown requests." },
+      { type: "improved", text: "Auto-failover: if a stream fails to play, the player now automatically switches to another server instead of getting stuck." },
+      { type: "improved", text: "Reduced the dark fade behind the player controls so the video and subtitles stay easy to read." },
+      { type: "fixed", text: "Profile picture frames are now round instead of showing a square box." },
+    ],
+  },
+  {
     version: "0.6.1",
     date: "2026-07-07",
     title: "Profile redesign & a new source",

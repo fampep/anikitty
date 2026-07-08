@@ -1,0 +1,36 @@
+🎉 AniKitty v0.6.4 is live!
+
+GIFs, image uploads, watch history and smoother streaming.
+
+🔍 GIF SEARCH IN COMMENTS & CHAT
+• Search Giphy right from the composer — no more pasting links
+• Pop-out picker with trending GIFs and instant search
+• Tap a GIF to drop it in
+
+🖼️ UPLOAD YOUR AVATAR & BANNER
+• Pick an image straight from your device
+• Drag to reposition and zoom to frame it exactly how you want
+• Saved in high quality (paste-a-link still available as a fallback)
+
+🕘 WATCH HISTORY
+• A full, paginated history of everything you've watched
+• One-tap resume where you left off, or rewatch finished episodes
+• Open it from the account menu
+
+✅ MARK A WHOLE SERIES AS WATCHED
+• One button on the anime page moves it to Completed
+• Syncs the completed status to AniList too
+
+💬 SUBTITLE TIMING
+• New delay control in Settings to nudge subs earlier or later
+• Sync subtitles to the audio when they're off
+
+✨ IMPROVEMENTS
+• Auto-failover — if a stream fails to play, the player switches to another server automatically instead of getting stuck
+• Reduced the dark fade behind the player controls so the video and subtitles stay easy to read
+• Added a DMCA / copyright page for takedown requests
+
+🐛 FIXES
+• Profile picture frames are now round instead of a square box
+
+Thanks for using AniKitty 🐱 — feedback always welcome!
