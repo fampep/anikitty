@@ -524,6 +524,64 @@ export async function migrateDb() {
       // these it full-scans a growing table and the stats/activity views time out.
       `CREATE INDEX IF NOT EXISTS watch_progress_updated_at_idx ON watch_progress (updated_at DESC)`,
       `CREATE INDEX IF NOT EXISTS watch_progress_user_updated_idx ON watch_progress (user_id, updated_at DESC)`,
+      // Forum + announcements — were defined in the schema but missing here, so on
+      // DBs built from migrate() they never existed and the admin stats query
+      // (which counts forum_threads) failed, breaking the whole overview.
+      `CREATE TABLE IF NOT EXISTS forum_threads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(200) NOT NULL,
+        body TEXT NOT NULL DEFAULT '',
+        category VARCHAR(30) NOT NULL DEFAULT 'general',
+        is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+        is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP,
+        last_activity_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS forum_threads_category_idx ON forum_threads (category)`,
+      `CREATE INDEX IF NOT EXISTS forum_threads_activity_idx ON forum_threads (last_activity_at)`,
+      `CREATE TABLE IF NOT EXISTS forum_posts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        thread_id UUID NOT NULL REFERENCES forum_threads(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS forum_posts_thread_id_idx ON forum_posts (thread_id)`,
+      `CREATE TABLE IF NOT EXISTS forum_thread_votes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        thread_id UUID NOT NULL REFERENCES forum_threads(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        vote INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT forum_thread_votes_thread_user UNIQUE (thread_id, user_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS forum_post_votes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        post_id UUID NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        vote INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT forum_post_votes_post_user UNIQUE (post_id, user_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS announcements (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        title VARCHAR(200) NOT NULL,
+        body TEXT NOT NULL DEFAULT '',
+        severity VARCHAR(20) NOT NULL DEFAULT 'info',
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        dismissible BOOLEAN NOT NULL DEFAULT TRUE,
+        link_url TEXT,
+        link_label VARCHAR(60),
+        forum_thread_id UUID REFERENCES forum_threads(id) ON DELETE SET NULL,
+        starts_at TIMESTAMP,
+        ends_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS announcements_active_idx ON announcements (is_active)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>
