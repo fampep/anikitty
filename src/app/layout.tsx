@@ -21,6 +21,7 @@ import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
 import LiteModeSync from "@/components/layout/lite-mode-sync";
 import SettingsSync from "@/components/layout/settings-sync";
+import OnlinePresence from "@/components/common/online-presence";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -172,6 +173,7 @@ export default async function RootLayout({
               <DiscordWelcomePrompt />
               <LiteModeSync />
               <SettingsSync />
+              <OnlinePresence />
             </QueryProvider>
           </ThemeProvider>
         </I18nRoot>
