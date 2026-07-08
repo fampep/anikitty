@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { parseEpisodeNumber } from "@/lib/oauth/anilist-sync";
 import { eq, sql, desc, and } from "drizzle-orm";
 
 export async function GET(req: Request) {
@@ -51,12 +52,16 @@ export async function GET(req: Request) {
     data: items.map((r) => ({
       animeId: r.anime_id ?? r.animeId,
       episodeId: r.episode_id ?? r.episodeId,
+      episodeNumber: parseEpisodeNumber(String(r.episode_id ?? r.episodeId ?? "")) ?? null,
       currentTime: r.current_time ?? r.currentTime ?? 0,
       duration: r.duration ?? 0,
       language: r.language ?? "sub",
-      lastUpdated: typeof r.updated_at === "string"
-        ? r.updated_at
-        : (r.updated_at as Date)?.toISOString?.() ?? null,
+      lastUpdated: (() => {
+        // Raw SQL rows use snake_case; query-builder rows use camelCase.
+        const upd = r.updated_at ?? r.updatedAt;
+        if (typeof upd === "string") return upd;
+        return (upd as Date)?.toISOString?.() ?? null;
+      })(),
       anime: (r.anime_title ?? r.animeTitle)
         ? {
             title: { english: r.anime_title ?? r.animeTitle, romaji: r.anime_title ?? r.animeTitle },

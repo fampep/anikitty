@@ -76,6 +76,7 @@ interface ISettingsStore {
   setSubtitleBackgroundColor: (backgroundColor: string) => void;
   setSubtitleBorderRadius: (borderRadius: number) => void;
   setSubtitleFontFamily: (fontFamily: SubtitleFontFamily) => void;
+  setSubtitleDelayOffset: (delayOffset: number) => void;
   applySubtitlePreset: (settings: SubtitleSettings) => void;
   resetSubtitleSettings: () => void;
 
@@ -220,6 +221,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         set((s) => ({
           subtitleSettings: { ...s.subtitleSettings, fontFamily },
         })),
+      setSubtitleDelayOffset: (delayOffset) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, delayOffset },
+        })),
       applySubtitlePreset: (settings) =>
         set({ subtitleSettings: { ...settings } }),
       resetSubtitleSettings: () =>
@@ -261,7 +266,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 23,
+      version: 24,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -371,6 +376,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 23) {
           // The compact Audio + Server dropdown picker is the new default layout.
           next.simpleProviderPicker = true;
+        }
+        if (version < 24) {
+          // Backfill the new subtitle delayOffset (and re-clamp) for old settings.
+          next.subtitleSettings = sanitizeSubtitleSettings(next.subtitleSettings);
         }
         return next as ISettingsStore;
       },

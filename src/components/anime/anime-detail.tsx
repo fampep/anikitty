@@ -43,6 +43,7 @@ import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
+import MarkWatchedButton from "@/components/anime/mark-watched-button";
 
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
@@ -447,6 +448,15 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   options={bookmarkOptions}
                   onChange={handleSelect}
                   placeholderIcon={Heart}
+                />
+              )}
+              {auth && (bookmarks?.[0]?.status || selected) !== "completed" && (
+                <MarkWatchedButton
+                  animeId={slug}
+                  anilistId={typeof anilistId === "number" ? anilistId : undefined}
+                  title={info.name}
+                  poster={info.poster}
+                  totalEpisodes={stats?.episodes?.sub ?? undefined}
                 />
               )}
               {auth && (bookmarks?.[0]?.status || selected) === "completed" && (

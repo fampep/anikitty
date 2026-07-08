@@ -298,6 +298,7 @@ export default function KittyPlayer({
   onNextEpisode,
   onOutroStart,
   onEnded,
+  onFatalError,
   onPlayerReady,
   w2g,
   preferSubtitles = true,
@@ -344,6 +345,8 @@ export default function KittyPlayer({
   const onNextEpisodeRef = useRef(onNextEpisode);
   const onOutroStartRef = useRef(onOutroStart);
   const onEndedRef = useRef(onEnded);
+  const onFatalErrorRef = useRef(onFatalError);
+  const fatalErrorFiredRef = useRef(false);
   const skipTimesRef = useRef(skipTimes);
   const w2gRef = useRef(w2g);
   const nextEpisodeRef = useRef(nextEpisode);
@@ -402,6 +405,7 @@ export default function KittyPlayer({
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
   useEffect(() => { onOutroStartRef.current = onOutroStart; }, [onOutroStart]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
+  useEffect(() => { onFatalErrorRef.current = onFatalError; }, [onFatalError]);
   useEffect(() => { skipTimesRef.current = skipTimes; }, [skipTimes]);
   useEffect(() => { w2gRef.current = w2g; }, [w2g]);
   useEffect(() => { nextEpisodeRef.current = nextEpisode; }, [nextEpisode]);
@@ -520,6 +524,7 @@ export default function KittyPlayer({
       bufferingShowTimerRef.current = null;
     }
     activeSubtitleUrlRef.current = null;
+    fatalErrorFiredRef.current = false;
     setActiveSkip(null);
     setCurrentTime(0);
     setCountdown(null);
@@ -543,6 +548,19 @@ export default function KittyPlayer({
     if (!art || !ready) return;
     applySubtitleStyles(art, subtitleStyleSettings);
   }, [ready, subtitleStyleSettings]);
+
+  // Persisted subtitle timing offset (seconds). ArtPlayer shifts all cues by it.
+  // `subtitle.offset` is added at runtime by the `subtitleOffset` option and
+  // isn't in ArtPlayer's TS types, hence the cast.
+  useEffect(() => {
+    const art = artRef.current;
+    if (!art?.subtitle || !ready) return;
+    try {
+      (art.subtitle as unknown as { offset: number }).offset = subtitleSettings.delayOffset;
+    } catch {
+      /* offset control not ready yet */
+    }
+  }, [ready, subtitleSettings.delayOffset]);
 
   useEffect(() => {
     const art = artRef.current;
@@ -710,6 +728,12 @@ export default function KittyPlayer({
               tryPickAudio();
               refreshHlsControls(player);
             });
+            const fireFatalError = (type: string, details?: string) => {
+              if (fatalErrorFiredRef.current) return;
+              fatalErrorFiredRef.current = true;
+              onFatalErrorRef.current?.({ type, details });
+            };
+
             hls.on(Hls.Events.ERROR, (_event, data) => {
               if (!data.fatal) return;
               const video = artRef.current?.video;
@@ -717,10 +741,26 @@ export default function KittyPlayer({
                 hls.recoverMediaError();
                 return;
               }
-              if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 3) {
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                // A dead/404 manifest never recovers by reloading — bubble up
+                // immediately so the parent can fail over to another provider.
+                const status = (data.response as { code?: number } | undefined)?.code;
+                const isManifestOr404 =
+                  status === 404 ||
+                  data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                  data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+                  data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
+                  data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR;
+                if (isManifestOr404 || hlsNetworkRecoveries >= 3) {
+                  fireFatalError("network", data.details);
+                  return;
+                }
                 hlsNetworkRecoveries += 1;
                 hlsLoadFromVideoTime(hls, video);
+                return;
               }
+              // Any other fatal error we can't recover from.
+              fireFatalError(String(data.type), data.details);
             });
 
             player.on("destroy", () => {

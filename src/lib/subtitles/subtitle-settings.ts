@@ -17,7 +17,14 @@ export type SubtitleSettings = {
   lineHeight: number;
   borderRadius: number;
   fontFamily: SubtitleFontFamily;
+  /** Timing sync in seconds: negative shows subs earlier, positive later. */
+  delayOffset: number;
 };
+
+/** Bounds for the subtitle timing offset (seconds). */
+export const SUBTITLE_DELAY_MIN = -15;
+export const SUBTITLE_DELAY_MAX = 15;
+export const SUBTITLE_DELAY_STEP = 0.25;
 
 export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 18,
@@ -32,6 +39,7 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   lineHeight: 1.45,
   borderRadius: 6,
   fontFamily: "system",
+  delayOffset: 0,
 };
 
 export const SUBTITLE_COLOR_PRESETS = [
@@ -301,6 +309,14 @@ export function sanitizeSubtitleSettings(raw: unknown): SubtitleSettings {
   }
   if (input.fontFamily === "system" || input.fontFamily === "sans" || input.fontFamily === "mono") {
     base.fontFamily = input.fontFamily;
+  }
+  if (
+    typeof input.delayOffset === "number" &&
+    Number.isFinite(input.delayOffset) &&
+    input.delayOffset >= SUBTITLE_DELAY_MIN &&
+    input.delayOffset <= SUBTITLE_DELAY_MAX
+  ) {
+    base.delayOffset = input.delayOffset;
   }
 
   return base;

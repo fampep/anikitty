@@ -83,6 +83,11 @@ export const PAGE_SEO = {
     description: "How AniKitty works — streaming, accounts, and privacy.",
     path: "/faq",
   },
+  history: {
+    title: "Watch History | AniKitty",
+    description: "Your full anime watch history on AniKitty.",
+    path: "/history",
+  },
   dmca: {
     title: "DMCA & Copyright | AniKitty",
     description: "How to file a DMCA / copyright takedown request for content on AniKitty.",

@@ -5,6 +5,9 @@ import { cn } from "@/lib/core/utils";
 import {
   SUBTITLE_COLOR_PRESETS,
   SUBTITLE_STYLE_PRESETS,
+  SUBTITLE_DELAY_MIN,
+  SUBTITLE_DELAY_MAX,
+  SUBTITLE_DELAY_STEP,
   sanitizeSubtitleSettings,
   subtitleSettingsMatchPreset,
   subtitleSettingsToInlineStyles,
@@ -120,9 +123,13 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
     setSubtitleLineHeight,
     setSubtitleBorderRadius,
     setSubtitleFontFamily,
+    setSubtitleDelayOffset,
     applySubtitlePreset,
     resetSubtitleSettings,
   } = useSettingsStore();
+
+  const formatDelay = (v: number) =>
+    v === 0 ? "0s" : `${v > 0 ? "+" : ""}${v.toFixed(2)}s`;
 
   const exportSubtitleSettings = async () => {
     try {
@@ -353,6 +360,33 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         value={subtitleSettings.borderRadius}
         onChange={setSubtitleBorderRadius}
       />
+
+      <SectionLabel>{t("settings.subtitleSectionTiming")}</SectionLabel>
+
+      <SliderRow
+        label={t("settings.subtitleDelay")}
+        valueLabel={formatDelay(subtitleSettings.delayOffset)}
+        min={SUBTITLE_DELAY_MIN}
+        max={SUBTITLE_DELAY_MAX}
+        step={SUBTITLE_DELAY_STEP}
+        value={subtitleSettings.delayOffset}
+        onChange={setSubtitleDelayOffset}
+      />
+      <div className="flex items-center justify-between -mt-2">
+        <p className="text-[11px] text-muted-foreground/70 dark:text-white/25 leading-snug pr-3">
+          {t("settings.subtitleDelayHint")}
+        </p>
+        {subtitleSettings.delayOffset !== 0 && (
+          <button
+            type="button"
+            onClick={() => setSubtitleDelayOffset(0)}
+            className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65 transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" />
+            {t("settings.subtitleDelayReset")}
+          </button>
+        )}
+      </div>
 
       <div className="rounded-xl border border-border dark:border-white/10 bg-black/80 p-4 relative min-h-[112px] overflow-hidden">
         <div

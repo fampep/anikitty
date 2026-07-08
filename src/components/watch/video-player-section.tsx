@@ -1042,18 +1042,16 @@ const VideoPlayerSection = () => {
     hasNext: Boolean(nextEpisode),
   });
 
-  useEffect(() => {
-    if (!providerAutoFallback || !streamQueryEnabled) return;
-    if (streamPending || streamReady) return;
-    if (!streamFailed) return;
-    if (streamError && isKittyStreamAbortError(streamError)) return;
-    if (fallbackBusyRef.current) return;
+  // Switch to the next fallback provider (shared by fetch-failure and playback
+  // failure). Returns true if it kicked off a switch, false if none is left.
+  const attemptProviderFallback = useCallback((): boolean => {
+    if (!providerAutoFallback || fallbackBusyRef.current) return false;
 
     const tried = triedProvidersRef.current;
     if (!tried.has(provider)) tried.add(provider);
 
     const next = getNextFallbackProvider(provider, tried);
-    if (!next) return;
+    if (!next) return false;
 
     tried.add(next);
     fallbackBusyRef.current = true;
@@ -1066,11 +1064,20 @@ const VideoPlayerSection = () => {
         : audioMode;
     handleProviderGridSelect(next, mode, true);
 
-    const timer = window.setTimeout(() => {
+    window.setTimeout(() => {
       fallbackBusyRef.current = false;
     }, 1200);
-    return () => window.clearTimeout(timer);
+    return true;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleProviderGridSelect is stable enough for fallback
+  }, [providerAutoFallback, provider, audioMode, t]);
+
+  // Stream fetch failed (provider API returned an error / 404) → fail over.
+  useEffect(() => {
+    if (!providerAutoFallback || !streamQueryEnabled) return;
+    if (streamPending || streamReady) return;
+    if (!streamFailed) return;
+    if (streamError && isKittyStreamAbortError(streamError)) return;
+    attemptProviderFallback();
   }, [
     providerAutoFallback,
     streamQueryEnabled,
@@ -1078,10 +1085,17 @@ const VideoPlayerSection = () => {
     streamReady,
     streamFailed,
     streamError,
-    provider,
-    audioMode,
-    t,
+    attemptProviderFallback,
   ]);
+
+  // The stream loaded but HLS playback died mid-load (e.g. a 404 manifest).
+  // Fail over to the next provider, resuming from the current position.
+  const handleFatalPlayerError = useCallback(() => {
+    if (!providerAutoFallback) return;
+    // attemptProviderFallback already toasts "Switching from X to Y…".
+    const switched = attemptProviderFallback();
+    if (!switched) toast.error(t("watch.playbackFailed"));
+  }, [providerAutoFallback, attemptProviderFallback, t]);
 
   if (!episodeId && !selectedEpisode) {
     if (!episodesLoading && (allEpisodes?.totalEpisodes ?? 0) === 0) {
@@ -1320,6 +1334,7 @@ const VideoPlayerSection = () => {
         onNextEpisode={handleNextEpisode}
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
+        onFatalError={handleFatalPlayerError}
         onPlayerReady={setArtPlayer}
         w2g={playerW2g}
       />

@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity, ScrollText, Mic, Scale } from "lucide-react";
+import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity, ScrollText, Mic, Scale, History } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useSettingsStore } from "@/store/settings-store";
@@ -112,6 +112,7 @@ const Footer = () => {
           <div className="flex flex-col gap-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.account")}</p>
             <NavLink href="/settings" label={t("footer.settings")} />
+            <NavLink href={ROUTES.HISTORY} label={t("footer.history")} icon={<History className="w-3 h-3" />} />
             <a
               href="https://www.anisurge.lol/"
               target="_blank"
