@@ -103,7 +103,12 @@ export async function PUT(req: Request) {
   try {
     const { avatarUrl, bannerUrl, bio, themeColor } = await req.json();
 
-    if (!isSafeHttpsUrl(avatarUrl) || !isSafeHttpsUrl(bannerUrl)) {
+    // Allow our own in-DB uploads (relative /api/uploads/... paths) as well as
+    // safe external HTTPS URLs.
+    const isAllowedMedia = (u: unknown): boolean =>
+      typeof u === "string" && u.startsWith("/api/uploads/") ? true : isSafeHttpsUrl(u as string | null | undefined);
+
+    if (!isAllowedMedia(avatarUrl) || !isAllowedMedia(bannerUrl)) {
       return NextResponse.json({ error: "Avatar and banner URLs must use HTTPS" }, { status: 400 });
     }
 
