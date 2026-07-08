@@ -15,6 +15,7 @@ const STATIC_PATHS: { path: string; priority: number; changeFrequency: MetadataR
   { path: ROUTES.FORUM, priority: 0.6, changeFrequency: "daily" },
   { path: ROUTES.SUBTITLES, priority: 0.5, changeFrequency: "weekly" },
   { path: ROUTES.FAQ, priority: 0.4, changeFrequency: "monthly" },
+  { path: ROUTES.DMCA, priority: 0.2, changeFrequency: "yearly" },
   { path: ROUTES.DONATE, priority: 0.3, changeFrequency: "monthly" },
 ];
 

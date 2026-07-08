@@ -83,6 +83,11 @@ export const PAGE_SEO = {
     description: "How AniKitty works — streaming, accounts, and privacy.",
     path: "/faq",
   },
+  dmca: {
+    title: "DMCA & Copyright | AniKitty",
+    description: "How to file a DMCA / copyright takedown request for content on AniKitty.",
+    path: "/dmca",
+  },
   status: {
     title: "Status | AniKitty",
     description: "Live health of AniKitty streaming proxies — latency, bandwidth, and uptime.",
