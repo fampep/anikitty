@@ -495,8 +495,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch(`/api/admin/activity?limit=100&view=${view}`, { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load activity"); return; }
       const data = await res.json();
-      setActivity(data.activity ?? []);
+      setActivity(Array.isArray(data.activity) ? data.activity : []);
     } catch { toast.error("Failed to load activity"); }
     finally { setActivityLoading(false); }
   }, [onLogout]);
@@ -540,6 +541,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/stats", { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load stats"); return; }
       const data = await res.json();
       setStats(data);
     } catch { toast.error("Failed to load stats"); }
