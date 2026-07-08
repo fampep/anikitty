@@ -5,6 +5,7 @@ import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
+import KittyProxyChooser from "@/components/watch/kitty-proxy-chooser";
 import {
   ChevronDown,
   Mic,
@@ -178,6 +179,8 @@ export default function PlayerSettingsBar() {
             value={simpleProviderPicker}
             onChange={setSimpleProviderPicker}
           />
+
+          <KittyProxyChooser />
 
           <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3">
             <div className="flex items-center gap-2 mb-3">
