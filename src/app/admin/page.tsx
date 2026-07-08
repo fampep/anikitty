@@ -620,16 +620,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     }
   };
 
+  // Load only what the default (overview) tab needs on mount — the heavier
+  // per-tab queries (users, roles, announcements, chat…) load when their tab is
+  // opened, so they don't compete with the overview's stats/activity queries.
   useEffect(() => {
-    fetchUsers();
-    fetchRoles();
-    fetchActivity();
     fetchStats();
-    fetchAnnouncements();
-    fetchChat();
-    fetchDeletionRequests();
+    fetchActivity();
     fetchGlobalClickAds();
-  }, [fetchUsers, fetchRoles, fetchActivity, fetchStats, fetchAnnouncements, fetchChat, fetchDeletionRequests, fetchGlobalClickAds]);
+    fetchDeletionRequests();
+  }, [fetchStats, fetchActivity, fetchGlobalClickAds, fetchDeletionRequests]);
 
   const refreshAll = async () => {
     setRefreshing(true);
@@ -713,10 +712,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   };
 
   useEffect(() => {
+    if (tab === "users") { void fetchUsers(); void fetchRoles(); }
+    if (tab === "roles") void fetchRoles();
+    if (tab === "announcements") void fetchAnnouncements();
     if (tab === "chat") void fetchChat();
     if (tab === "reports") void fetchReports();
     if (tab === "audit") void fetchAudit();
-  }, [tab, fetchChat, fetchReports, fetchAudit]);
+  }, [tab, fetchUsers, fetchRoles, fetchAnnouncements, fetchChat, fetchReports, fetchAudit]);
 
   useIntervalWhenVisible(fetchChat, adminChatPollMs, tab === "chat");
 
