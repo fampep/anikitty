@@ -441,13 +441,15 @@ html.density-compact .site-page {
   filter: none !important;
 }
 
-/* Bottom control bar — gradient dock only (no backdrop blur) */
+/* Bottom control bar — a short, subtle dock behind the controls only.
+   Pixel stops (not %) so the fade never spans the frame or washes out the
+   subtitle regardless of player height / fullscreen. */
 .art-kitty-player .art-bottom {
   background: linear-gradient(
     to top,
-    rgba(6, 6, 10, 0.96) 0%,
-    rgba(10, 10, 18, 0.82) 55%,
-    transparent 100%
+    rgba(6, 6, 10, 0.6) 0px,
+    rgba(6, 6, 10, 0.26) 34px,
+    transparent 64px
   ) !important;
 }
 
