@@ -1,4 +1,4 @@
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { sql } from "drizzle-orm";
 
 export async function GET() {
@@ -19,8 +19,8 @@ export async function GET() {
     `),
   ]);
 
-  const totals = (totalsResult as Record<string, unknown>[])[0] ?? {};
-  const categoryRows = categoryResult as Record<string, unknown>[];
+  const totals = rowsOf(totalsResult)[0] ?? {};
+  const categoryRows = rowsOf(categoryResult);
 
   const categoryCounts: Record<string, number> = {};
   for (const row of categoryRows) {

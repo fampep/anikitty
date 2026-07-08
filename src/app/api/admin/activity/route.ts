@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { watchProgress, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/admin-auth";
 import { desc, eq, sql } from "drizzle-orm";
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
       ORDER BY t."updatedAt" DESC
       LIMIT ${limit}
     `);
-    return NextResponse.json({ activity: result });
+    return NextResponse.json({ activity: rowsOf(result) });
   }
 
   // Default feed view: all recent sessions

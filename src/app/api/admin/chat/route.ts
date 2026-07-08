@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { chatMessages, users, roles } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/admin-auth";
 import {
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
       COUNT(*) FILTER (WHERE created_at < ${cutoff})::int AS expired
     FROM chat_messages
   `);
-  const counts = (countsResult as Record<string, unknown>[])[0] ?? {};
+  const counts = rowsOf(countsResult)[0] ?? {};
   const totalCount = Number(counts.total ?? 0);
   const activeCount = Number(counts.active ?? 0);
   const expiredCount = Number(counts.expired ?? 0);

@@ -1,43 +1,59 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { requireAdmin } from "@/lib/auth/admin-auth";
 import { getSecurityConfigStatus } from "@/lib/security/security";
 import { getChatCutoffDate } from "@/lib/social/chat-config";
 import { sql } from "drizzle-orm";
 
+const EMPTY_STATS = {
+  totalUsers: 0, totalSessions: 0, uniqueAnime: 0, activeToday: 0, activeWeek: 0,
+  newUsersWeek: 0, totalComments: 0, totalThreads: 0, anilistLinked: 0,
+  totalChatMessages: 0, chatMessagesToday: 0, chatMessagesLive: 0,
+  topAnime: [] as unknown[],
+};
+
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  try {
   const db = getDb();
   const chatCutoff = getChatCutoffDate();
 
-  // Each query is isolated: a failure (e.g. a missing table) degrades that one
-  // metric to zero instead of 500-ing the whole overview.
+  // Each metric is its OWN query: a failure (missing table/column) degrades
+  // only that one number to zero instead of zeroing the whole overview.
   const exec = async (q: Parameters<typeof db.execute>[0]): Promise<Record<string, unknown>[]> => {
     try {
-      return (await db.execute(q)) as unknown as Record<string, unknown>[];
+      return rowsOf(await db.execute(q));
     } catch (e) {
       console.error("[admin/stats] query failed:", e);
       return [];
     }
   };
+  // Scalar count helper — returns the single numeric value or 0 on any failure.
+  const count = async (q: Parameters<typeof db.execute>[0]): Promise<number> => {
+    const rows = await exec(q);
+    const first = rows[0] ?? {};
+    const val = (first as Record<string, unknown>).n;
+    return Number(val ?? 0);
+  };
 
-  const [totalsResult, threadsResult, topAnimeResult, chatLiveResult] = await Promise.all([
-    exec(sql`
-      SELECT
-        (SELECT COUNT(*) FROM users)::int                                                                          AS total_users,
-        (SELECT COUNT(*) FROM watch_progress)::int                                                                AS total_sessions,
-        (SELECT COUNT(DISTINCT anime_id) FROM watch_progress)::int                                                AS unique_anime,
-        (SELECT COUNT(DISTINCT user_id) FROM watch_progress WHERE updated_at > NOW() - INTERVAL '24 hours')::int  AS active_today,
-        (SELECT COUNT(DISTINCT user_id) FROM watch_progress WHERE updated_at > NOW() - INTERVAL '7 days')::int   AS active_week,
-        (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '7 days')::int                           AS new_users_week,
-        (SELECT COUNT(*) FROM comments)::int                                                                      AS total_comments,
-        (SELECT COUNT(*) FROM users WHERE anilist_access_token IS NOT NULL)::int                                  AS anilist_linked,
-        (SELECT COUNT(*) FROM chat_messages)::int                                                                   AS total_chat_messages,
-        (SELECT COUNT(*) FROM chat_messages WHERE created_at > NOW() - INTERVAL '24 hours')::int                  AS chat_messages_today
-    `),
-    // Kept separate so a missing forum_threads table only zeros this one number.
-    exec(sql`SELECT COUNT(*)::int AS total_threads FROM forum_threads`),
+  const [
+    totalUsers, totalSessions, uniqueAnime, activeToday, activeWeek,
+    newUsersWeek, totalComments, totalThreads, anilistLinked,
+    totalChatMessages, chatMessagesToday, chatMessagesLive, topAnimeResult,
+  ] = await Promise.all([
+    count(sql`SELECT COUNT(*)::int AS n FROM users`),
+    count(sql`SELECT COUNT(*)::int AS n FROM watch_progress`),
+    count(sql`SELECT COUNT(DISTINCT anime_id)::int AS n FROM watch_progress`),
+    count(sql`SELECT COUNT(DISTINCT user_id)::int AS n FROM watch_progress WHERE updated_at > NOW() - INTERVAL '24 hours'`),
+    count(sql`SELECT COUNT(DISTINCT user_id)::int AS n FROM watch_progress WHERE updated_at > NOW() - INTERVAL '7 days'`),
+    count(sql`SELECT COUNT(*)::int AS n FROM users WHERE created_at > NOW() - INTERVAL '7 days'`),
+    count(sql`SELECT COUNT(*)::int AS n FROM comments`),
+    count(sql`SELECT COUNT(*)::int AS n FROM forum_threads`),
+    count(sql`SELECT COUNT(*)::int AS n FROM users WHERE anilist_access_token IS NOT NULL`),
+    count(sql`SELECT COUNT(*)::int AS n FROM chat_messages`),
+    count(sql`SELECT COUNT(*)::int AS n FROM chat_messages WHERE created_at > NOW() - INTERVAL '24 hours'`),
+    count(sql`SELECT COUNT(*)::int AS n FROM chat_messages WHERE created_at >= ${chatCutoff}`),
     exec(sql`
       SELECT
         anime_id,
@@ -51,31 +67,23 @@ export async function GET(req: Request) {
       ORDER BY COUNT(*) DESC
       LIMIT 15
     `),
-    exec(sql`
-      SELECT COUNT(*)::int AS chat_messages_live
-      FROM chat_messages
-      WHERE created_at >= ${chatCutoff}
-    `),
   ]);
 
-  const t = totalsResult[0] ?? {};
-  const threads = threadsResult[0] ?? {};
-  const chatLive = chatLiveResult[0] ?? {};
   const security = getSecurityConfigStatus();
 
   return NextResponse.json({
-    totalUsers:    Number(t.total_users    ?? 0),
-    totalSessions: Number(t.total_sessions ?? 0),
-    uniqueAnime:   Number(t.unique_anime   ?? 0),
-    activeToday:   Number(t.active_today   ?? 0),
-    activeWeek:    Number(t.active_week    ?? 0),
-    newUsersWeek:  Number(t.new_users_week ?? 0),
-    totalComments: Number(t.total_comments ?? 0),
-    totalThreads:  Number(threads.total_threads ?? 0),
-    anilistLinked: Number(t.anilist_linked ?? 0),
-    totalChatMessages: Number(t.total_chat_messages ?? 0),
-    chatMessagesToday: Number(t.chat_messages_today ?? 0),
-    chatMessagesLive: Number(chatLive.chat_messages_live ?? 0),
+    totalUsers,
+    totalSessions,
+    uniqueAnime,
+    activeToday,
+    activeWeek,
+    newUsersWeek,
+    totalComments,
+    totalThreads,
+    anilistLinked,
+    totalChatMessages,
+    chatMessagesToday,
+    chatMessagesLive,
     security,
     topAnime: topAnimeResult.map((r) => ({
       animeId:        r.anime_id,
@@ -85,6 +93,14 @@ export async function GET(req: Request) {
       uniqueUsers:    Number(r.unique_users),
     })),
   });
+  } catch (e) {
+    // Never hard-fail the overview — return a valid (zeroed) payload with the
+    // security status so the page still renders and we can see the cause.
+    console.error("[admin/stats] failed:", e);
+    let security: ReturnType<typeof getSecurityConfigStatus> | null = null;
+    try { security = getSecurityConfigStatus(); } catch { /* ignore */ }
+    return NextResponse.json({ ...EMPTY_STATS, security });
+  }
 }
 
 export const maxDuration = 30;

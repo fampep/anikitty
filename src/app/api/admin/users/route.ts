@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { users, watchProgress } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/admin-auth";
 import { eq, desc, ilike, or, sql, inArray, max } from "drizzle-orm";
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
     });
   }
 
-  const rows = await db.execute(sql`
+  const rows = rowsOf(await db.execute(sql`
     SELECT
       u.id,
       u.username,
@@ -93,7 +93,7 @@ export async function GET(req: Request) {
     GROUP BY u.id
     ORDER BY u.created_at DESC
     LIMIT 200
-  `) as Record<string, unknown>[];
+  `));
 
   return NextResponse.json({
     users: rows.map((u) => ({
