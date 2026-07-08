@@ -1,4 +1,9 @@
-export type KittyApiNodeId = "primary" | "fallback" | "third-choice" | "fourth-choice";
+export type KittyApiNodeId =
+  | "primary"
+  | "fallback"
+  | "third-choice"
+  | "fourth-choice"
+  | "fifth-choice";
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
@@ -32,6 +37,7 @@ const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https:/
 const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, "https://kittyapi.176-125-240-251.sslip.io");
 const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "https://kittyapi.131-123-42-153.sslip.io");
 const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "https://kittyapi.23-111-15-143.sslip.io");
+const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "https://kittyapi.94-75-223-124.sslip.io");
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
@@ -82,6 +88,17 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     timezone: "Asia/Singapore",
     operator: "Fourth cluster node",
   },
+  {
+    id: "fifth-choice",
+    index: 5,
+    label: "Netherlands",
+    ip: "94.75.223.124",
+    url: FIFTH_URL,
+    host: nodeHost(FIFTH_URL),
+    location: "Netherlands",
+    timezone: "Europe/Amsterdam",
+    operator: "Fifth cluster node",
+  },
 ];
 
 export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
@@ -104,6 +121,9 @@ export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined):
 
 export function parseKittyNodeParam(value: string | null | undefined): KittyApiNodeId {
   const normalized = value?.trim().toLowerCase();
+  if (normalized === "fifth-choice" || normalized === "fifthchoice" || normalized === "5") {
+    return "fifth-choice";
+  }
   if (normalized === "fourth-choice" || normalized === "fourthchoice" || normalized === "4") {
     return "fourth-choice";
   }
