@@ -200,8 +200,9 @@ export function buildKittyWatchPath(opts: {
   seriesRefPrefix?: "anilist" | "catalog";
 }): string {
   const prefix = opts.seriesRefPrefix ?? "anilist";
+  // KittyAPI expects a literal colon in the series ref (e.g. anilist:1535).
   const seriesRef = `${prefix}:${opts.anilistId}`;
-  return `/provider/${encodeURIComponent(opts.provider)}/watch/${encodeURIComponent(seriesRef)}/${encodeURIComponent(String(opts.episode))}/${opts.audio}`;
+  return `/provider/${encodeURIComponent(opts.provider)}/watch/${seriesRef}/${String(opts.episode)}/${opts.audio}`;
 }
 
 /** Provider-specific KittyAPI stream path (stream-direct vs watch). */
@@ -222,6 +223,66 @@ export function buildKittyProviderStreamPath(opts: {
   }
 
   return buildKittyStreamDirectPath(opts);
+}
+
+/** Ordered KittyAPI paths to try for a provider (primary route first). */
+export function kittyProviderStreamPaths(opts: {
+  provider: string;
+  anilistId: number | string;
+  episode: number | string;
+  audio: "sub" | "dub";
+  title?: string | null;
+}): string[] {
+  const base = {
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    audio: opts.audio,
+    title: opts.title,
+  };
+
+  if (opts.provider === "VideoVib") {
+    return [
+      buildKittyWatchPath({ provider: "VideoVib", ...base }),
+      buildKittyStreamDirectPath({ provider: "VideoVib", ...base }),
+    ];
+  }
+
+  if (opts.provider === "MegaPlay") {
+    return [
+      buildKittyStreamDirectPath({ provider: "MegaPlay", ...base }),
+      // Nodes not yet on unified MegaPlay still expose the legacy family IDs.
+      buildKittyStreamDirectPath({ provider: "Anikoto", ...base }),
+      buildKittyStreamDirectPath({ provider: "Anix", ...base }),
+    ];
+  }
+
+  return [buildKittyProviderStreamPath(opts)];
+}
+
+function extractKittyStreamFile(row: Record<string, unknown>): string {
+  for (const key of ["file", "url", "stream", "streamUrl", "hls", "m3u8"] as const) {
+    const value = row[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+
+  const sources = row.sources;
+  if (Array.isArray(sources)) {
+    for (const source of sources) {
+      if (!source || typeof source !== "object") continue;
+      const entry = source as Record<string, unknown>;
+      for (const key of ["file", "url", "stream"] as const) {
+        const value = entry[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+  }
+
+  const nested = row.data;
+  if (nested && typeof nested === "object") {
+    return extractKittyStreamFile(nested as Record<string, unknown>);
+  }
+
+  return "";
 }
 
 /** GET /auto/stream?q=&ep=&dub= — provider auto-fallback when stream-direct fails. */
@@ -254,8 +315,9 @@ export function parseKittyStreamJson(
 ): KittyStreamPayload | null {
   if (!data || typeof data !== "object") return null;
   const row = data as Record<string, unknown>;
-  const file = typeof row.file === "string" ? row.file.trim() : "";
-  if (!ok || !file) return null;
+  const file = extractKittyStreamFile(row);
+  if (!file) return null;
+  if (!ok && typeof row.error === "string" && row.error.trim()) return null;
 
   return {
     file,

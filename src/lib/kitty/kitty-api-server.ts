@@ -17,6 +17,8 @@ export {
   buildKittyProviderStreamPath,
   buildKittyStreamDirectPath,
   buildKittyWatchPath,
+  kittyProviderStreamPaths,
+  parseKittyStreamJson,
   kittyApiHeaders,
   kittyApiPath,
   kittyStreamHeaders,

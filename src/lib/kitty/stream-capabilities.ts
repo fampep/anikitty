@@ -1,4 +1,4 @@
-import { buildKittyProviderStreamPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
+import { kittyProviderStreamPaths, kittyApiFetch, kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
 import {
   DEFAULT_LUNAR_SERVER,
   isLunarServerId,
@@ -177,7 +177,7 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
-  const path = buildKittyProviderStreamPath({
+  const paths = kittyProviderStreamPaths({
     provider,
     anilistId,
     episode,
@@ -185,27 +185,34 @@ async function probeStreamDirect(
     title,
   });
 
-  try {
-    const res = await kittyApiFetch(path, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-      headers: kittyStreamHeaders(),
-    });
+  for (const path of paths) {
+    try {
+      const res = await kittyApiFetch(path, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+        headers: kittyStreamHeaders(),
+      });
 
-    const data = await res.json();
-    if (!res.ok || !data?.file) {
-      return { hasFile: false, subtitleTracks: 0 };
+      const data = await res.json();
+      const parsed = parseKittyStreamJson(data, res.ok);
+      if (!parsed?.file) continue;
+
+      return {
+        hasFile: true,
+        file: parsed.file,
+        subtitleTracks: countSubtitleTracks(parsed.tracks),
+        multiAudio: Boolean(
+          (data as Record<string, unknown>).multiAudio ??
+            (data as Record<string, unknown>).dualAudio ??
+            (data as Record<string, unknown>).hasMultiAudio,
+        ),
+      };
+    } catch {
+      continue;
     }
-
-    return {
-      hasFile: true,
-      file: String(data.file),
-      subtitleTracks: countSubtitleTracks(data.tracks),
-      multiAudio: Boolean(data.multiAudio ?? data.dualAudio ?? data.hasMultiAudio),
-    };
-  } catch {
-    return null;
   }
+
+  return { hasFile: false, subtitleTracks: 0 };
 }
 
 async function probeDirectProviderCapabilities(

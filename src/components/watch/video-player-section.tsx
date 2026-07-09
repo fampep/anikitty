@@ -18,7 +18,7 @@ import {
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, MULTI_ROW_PROVIDERS, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, MULTI_ROW_PROVIDERS, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import {
   DEFAULT_ANIMEX_SERVER,
   defaultAnimexServerForMode,
@@ -99,7 +99,7 @@ const KittyPlayer = dynamic(() => import("@/components/player/kitty-player"), {
   loading: () => <PlayerSkeleton />,
 });
 
-const DEFAULT_PROVIDER: KittyProvider = "Miruro";
+const DEFAULT_PROVIDER: KittyProvider = DEFAULT_KITTY_PROVIDER;
 const EMPTY_PLAYER_TRACKS: KittyTrack[] = [];
 const EMPTY_PLAYER_HEADERS: Record<string, string> = {};
 
