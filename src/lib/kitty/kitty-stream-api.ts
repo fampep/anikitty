@@ -1,7 +1,7 @@
 import {
   buildKittyAutoStreamPath,
+  buildKittyStreamDirectPath,
   kittyApiFetch,
-  kittyProviderStreamPaths,
   parseKittyStreamJson,
   type KittyStreamPayload,
 } from "@/lib/kitty/kitty-api-core";
@@ -42,7 +42,7 @@ export async function fetchKittyStreamDirect(
   const provider = opts.provider?.trim();
   if (!provider) return null;
 
-  const paths = kittyProviderStreamPaths({
+  const path = buildKittyStreamDirectPath({
     provider,
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -50,13 +50,7 @@ export async function fetchKittyStreamDirect(
     title: opts.title,
   });
 
-  const timeoutMs = opts.timeoutMs ?? 20_000;
-  for (const path of paths) {
-    const result = await fetchKittyStreamPath(path, timeoutMs);
-    if (result?.file) return result;
-  }
-
-  return null;
+  return fetchKittyStreamPath(path, opts.timeoutMs ?? 20_000);
 }
 
 /** GET /auto/stream — tries providers automatically when stream-direct fails. */

@@ -1,4 +1,4 @@
-import { kittyProviderStreamPaths, kittyApiFetch, kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
+import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
 import {
   DEFAULT_LUNAR_SERVER,
   isLunarServerId,
@@ -177,7 +177,7 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
-  const paths = kittyProviderStreamPaths({
+  const path = buildKittyStreamDirectPath({
     provider,
     anilistId,
     episode,
@@ -185,34 +185,32 @@ async function probeStreamDirect(
     title,
   });
 
-  for (const path of paths) {
-    try {
-      const res = await kittyApiFetch(path, {
-        cache: "no-store",
-        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-        headers: kittyStreamHeaders(),
-      });
+  try {
+    const res = await kittyApiFetch(path, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      headers: kittyStreamHeaders(),
+    });
 
-      const data = await res.json();
-      const parsed = parseKittyStreamJson(data, res.ok);
-      if (!parsed?.file) continue;
-
-      return {
-        hasFile: true,
-        file: parsed.file,
-        subtitleTracks: countSubtitleTracks(parsed.tracks),
-        multiAudio: Boolean(
-          (data as Record<string, unknown>).multiAudio ??
-            (data as Record<string, unknown>).dualAudio ??
-            (data as Record<string, unknown>).hasMultiAudio,
-        ),
-      };
-    } catch {
-      continue;
+    const data = await res.json();
+    const parsed = parseKittyStreamJson(data, res.ok);
+    if (!parsed?.file) {
+      return { hasFile: false, subtitleTracks: 0 };
     }
-  }
 
-  return { hasFile: false, subtitleTracks: 0 };
+    return {
+      hasFile: true,
+      file: parsed.file,
+      subtitleTracks: countSubtitleTracks(parsed.tracks),
+      multiAudio: Boolean(
+        (data as Record<string, unknown>).multiAudio ??
+          (data as Record<string, unknown>).dualAudio ??
+          (data as Record<string, unknown>).hasMultiAudio,
+      ),
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function probeDirectProviderCapabilities(

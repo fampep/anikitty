@@ -14,10 +14,7 @@ import {
 
 export {
   buildKittyAutoStreamPath,
-  buildKittyProviderStreamPath,
   buildKittyStreamDirectPath,
-  buildKittyWatchPath,
-  kittyProviderStreamPaths,
   parseKittyStreamJson,
   kittyApiHeaders,
   kittyApiPath,

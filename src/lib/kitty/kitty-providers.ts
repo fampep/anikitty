@@ -7,7 +7,6 @@ import {
 export const KITTY_PROVIDERS = [
   "Miruro",
   "MegaPlay",
-  "VideoVib",
   "Animex",
   "Animo",
   "AniWatch",
@@ -111,16 +110,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: MEGAPLAY_PROVIDER_CONFIG.hint,
-  },
-  {
-    id: "VideoVib",
-    label: "VideoVib",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    hint: "VideoVib API · AniList watch · SUB · DUB · VTT on SUB",
   },
   {
     id: "AniWatch",
@@ -407,14 +396,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
 ];
 
-/** Primary watch sources — shown first and badged in the provider picker. */
-export const RECOMMENDED_PROVIDERS: KittyProvider[] = ["MegaPlay", "VideoVib"];
-
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "MegaPlay",
-  "VideoVib",
   "Animex",
   "Animetsu",
   "AniWatch",
@@ -437,7 +422,10 @@ const DEPRECATED_PROVIDERS = new Set([
 /** KittyAPI unified MegaPlay provider (Anikoto API catalog + megaplay.buzz streams). */
 export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([MEGAPLAY_PROVIDER_ID]);
 
-const LEGACY_MEGAPLAY_PROVIDERS = new Set<string>(LEGACY_MEGAPLAY_PROVIDER_IDS);
+const LEGACY_MEGAPLAY_PROVIDERS = new Set<string>([
+  ...LEGACY_MEGAPLAY_PROVIDER_IDS,
+  "VideoVib",
+]);
 
 export {
   LEGACY_MEGAPLAY_PROVIDER_IDS,
@@ -450,7 +438,6 @@ export {
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   MEGAPLAY_PROVIDER_ID,
-  "VideoVib",
   "Animo",
   "Miruro",
   "Animex",
@@ -495,27 +482,8 @@ export function getKittyProviderMeta(id: KittyProvider): KittyProviderMeta {
   return KITTY_PROVIDER_META.find((p) => p.id === id) ?? { id, label: id, group: "other" };
 }
 
-export function isDefaultProvider(id: KittyProvider): boolean {
-  return id === DEFAULT_KITTY_PROVIDER;
-}
-
-export function isRecommendedProvider(id: KittyProvider): boolean {
-  return RECOMMENDED_PROVIDERS.includes(id);
-}
-
-function providerSortRank(id: KittyProvider): number {
-  const recommendedIdx = RECOMMENDED_PROVIDERS.indexOf(id);
-  if (recommendedIdx !== -1) return recommendedIdx;
-  const listIdx = (KITTY_PROVIDERS as readonly KittyProvider[]).indexOf(id);
-  return RECOMMENDED_PROVIDERS.length + (listIdx === -1 ? 999 : listIdx);
-}
-
-function sortProviderMeta(items: KittyProviderMeta[]): KittyProviderMeta[] {
-  return [...items].sort((a, b) => providerSortRank(a.id) - providerSortRank(b.id));
-}
-
 export function kittyProvidersByGroup(group: KittyProviderGroup): KittyProviderMeta[] {
-  return sortProviderMeta(KITTY_PROVIDER_META.filter((p) => p.group === group));
+  return KITTY_PROVIDER_META.filter((p) => p.group === group);
 }
 
 export function providerHasNativeSubs(provider: KittyProvider): boolean {
@@ -557,14 +525,12 @@ export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([
 ]);
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
-  return sortProviderMeta(
-    KITTY_PROVIDER_META.filter((p) => {
-      if (mode === "multi") return p.supportsMulti === true;
-      if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
-      if (mode === "dub") return p.supportsDub === true;
-      if (mode === "hardsub") return p.hardSub === true;
-      if (mode === "sub") return p.supportsSub === true;
-      return false;
-    }),
-  );
+  return KITTY_PROVIDER_META.filter((p) => {
+    if (mode === "multi") return p.supportsMulti === true;
+    if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
+    if (mode === "dub") return p.supportsDub === true;
+    if (mode === "hardsub") return p.hardSub === true;
+    if (mode === "sub") return p.supportsSub === true;
+    return false;
+  });
 }
