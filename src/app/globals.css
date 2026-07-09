@@ -5,6 +5,7 @@
 html {
   scroll-behavior: smooth;
   --nav-height: 4rem;
+  --nav-total-height: calc(var(--nav-height) + env(safe-area-inset-top, 0px));
   --banner-offset: 0px;
   --home-hero-max-h: 520px;
   --home-section-gap: 2.5rem;
@@ -70,7 +71,25 @@ body {
     padding-top: max(0px, env(safe-area-inset-top));
   }
   .pt-page {
-    padding-top: calc(var(--nav-height) + var(--banner-offset));
+    padding-top: calc(var(--nav-total-height) + var(--banner-offset));
+  }
+  .bottom-safe {
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .touch-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .site-chip {
+      min-height: 2.75rem;
+      padding-top: 0.625rem;
+      padding-bottom: 0.625rem;
+    }
+    .site-ghost-btn,
+    .site-brand-btn {
+      min-height: 2.75rem;
+    }
   }
   .site-page {
     @apply relative z-[1] min-h-screen;

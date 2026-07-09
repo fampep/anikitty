@@ -43,7 +43,7 @@ const Footer = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/[0.03] to-violet-500/[0.02] pointer-events-none" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/25 to-transparent" />
 
-      <div className="mx-auto w-full max-w-[1400px] 2xl:max-w-[1600px] px-4 md:px-6 lg:px-8 py-16 relative">
+      <div className="mx-auto w-full max-w-[1400px] 2xl:max-w-[1600px] px-4 md:px-6 lg:px-8 py-10 sm:py-16 relative">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-border dark:border-white/[0.06]">
 
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">
@@ -166,7 +166,7 @@ const Footer = () => {
 
 function NavLink({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors dark:text-white/40 dark:hover:text-violet-200/90">
+    <Link href={href} className="flex items-center gap-1.5 min-h-11 py-2 text-sm text-muted-foreground hover:text-primary transition-colors dark:text-white/40 dark:hover:text-violet-200/90">
       {icon && <span className="text-muted-foreground/70 dark:text-white/25">{icon}</span>}
       {label}
     </Link>

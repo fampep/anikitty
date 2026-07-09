@@ -30,7 +30,7 @@ export default function HomeWelcomeBar() {
             <div className="mt-1.5 h-9 w-full max-w-xs rounded-lg bg-muted/50 dark:bg-white/[0.04] animate-pulse" aria-hidden />
           )}
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
           <Link
             href={`/profile/${auth.username}`}
             className="site-ghost-btn"

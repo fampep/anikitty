@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchAnimeThemesByAnilistId } from "@/lib/anime/animethemes-api";
+import { proxiedThemeVideoUrl } from "@/lib/anime/animethemes-proxy";
 
 export async function GET(
   _req: Request,
@@ -16,7 +17,19 @@ export async function GET(
     if (!result) {
       return NextResponse.json({ themes: null });
     }
-    return NextResponse.json({ themes: result });
+
+    const themes =
+      result.playback?.videoUrl != null
+        ? {
+            ...result,
+            playback: {
+              ...result.playback,
+              videoUrl: proxiedThemeVideoUrl(result.playback.videoUrl),
+            },
+          }
+        : result;
+
+    return NextResponse.json({ themes });
   } catch {
     return NextResponse.json({ error: "Failed to load themes" }, { status: 502 });
   }

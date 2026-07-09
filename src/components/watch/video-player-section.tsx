@@ -1426,12 +1426,12 @@ const VideoPlayerSection = () => {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 -mx-4 sm:mx-0">
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
     {episodeBar}
 
-    <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-border dark:ring-white/10 shadow-2xl shadow-black/60 bg-black">
+    <div className="flex flex-col rounded-none sm:rounded-xl overflow-hidden ring-0 sm:ring-1 ring-border dark:ring-white/10 shadow-none sm:shadow-2xl sm:shadow-black/60 bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold
           native fullscreen across episode transitions without dropping out. */}
       <div ref={playerWrapperRef} className="relative w-full bg-black">

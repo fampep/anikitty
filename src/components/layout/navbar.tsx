@@ -338,7 +338,7 @@ const NavBar = () => {
   return (
     <header
       className={cn(
-        "fixed left-0 right-0 top-0 z-[100] transition-all duration-300",
+        "fixed left-0 right-0 top-0 z-[100] pt-safe transition-all duration-300",
         isScrolled
           ? "border-b border-border/50 bg-background/96 shadow-lg dark:border-transparent dark:bg-[#08080f]/97 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
           : "bg-gradient-to-b from-background/95 via-background/50 to-transparent dark:from-black/80 dark:via-black/40",
@@ -374,7 +374,7 @@ const NavBar = () => {
               alt="AniKitty"
               width={132}
               height={48}
-              className="h-9 w-auto object-contain transition-opacity group-hover:opacity-95"
+              className="h-8 w-auto max-w-[7.5rem] sm:max-w-none sm:h-9 object-contain transition-opacity group-hover:opacity-95"
               priority
               unoptimized
             />
@@ -391,7 +391,7 @@ const NavBar = () => {
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden dark:text-white/60 dark:bg-white/8 dark:text-white"
+              className="touch-target rounded-lg p-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden dark:text-white/60 dark:bg-white/8 dark:text-white"
               aria-label={t("nav.aria.openSearch")}
             >
               <SearchIcon className="h-5 w-5" />
@@ -436,7 +436,7 @@ const MobileMenuSheet = ({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button type="button" className="rounded-lg p-2 transition-colors hover:bg-accent dark:bg-white/8" aria-label={t("nav.aria.openMenu")}>
+        <button type="button" className="touch-target rounded-lg p-2.5 transition-colors hover:bg-accent dark:bg-white/8" aria-label={t("nav.aria.openMenu")}>
           {trigger}
         </button>
       </SheetTrigger>

@@ -127,12 +127,22 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
   return (
     <div className="flex flex-col gap-5">
       {/* Controls */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest shrink-0">
           {allEpisodes.length > 0 ? t("anime.episodes.count", { count: allEpisodes.length }) : t("anime.episodes.title")}
         </h3>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative w-full sm:w-auto sm:max-w-xs">
+          <Search className="absolute inset-y-0 left-3 m-auto h-4 w-4 text-muted-foreground dark:text-white/30 pointer-events-none" />
+          <input
+            value={query}
+            placeholder={t("anime.episodes.searchPlaceholder")}
+            onChange={handleSearch}
+            className="h-11 w-full pl-10 pr-3 text-sm rounded-xl bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none focus:border-primary/40 dark:focus:border-white/25 focus:bg-white/7 transition-all"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-momentum pb-0.5 sm:pb-0 sm:flex-wrap sm:overflow-visible">
           {watchedEpisodes.length > 0 && (
             <button
               type="button"
@@ -140,7 +150,7 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
               aria-label={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
               title={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
               className={cn(
-                "h-8 w-8 flex items-center justify-center rounded-lg border transition-colors",
+                "touch-target h-11 w-11 flex items-center justify-center rounded-xl border transition-colors",
                 hideWatched
                   ? "border-violet-500/40 bg-violet-500/15 text-violet-200"
                   : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/50 hover:bg-muted/60 dark:hover:bg-white/8",
@@ -157,7 +167,7 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
               aria-label={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
               title={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
               className={cn(
-                "h-8 px-2.5 flex items-center justify-center rounded-lg border text-[10px] font-mono font-bold uppercase tracking-wide transition-colors",
+                "touch-target h-11 px-3 flex items-center justify-center rounded-xl border text-[10px] font-mono font-bold uppercase tracking-wide transition-colors shrink-0",
                 hideFillers
                   ? "border-amber-500/40 bg-amber-500/12 text-amber-200/90"
                   : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/50 hover:bg-muted/60 dark:hover:bg-white/8",
@@ -169,7 +179,7 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
 
           {ranges.length > 0 && !query.trim() && (
             <Select onValueChange={handleRangeChange} value={selectedRange}>
-              <SelectTrigger className="h-8 text-xs w-[130px] bg-muted/40 dark:bg-white/4 border-border dark:border-white/10 text-muted-foreground dark:text-white/65 hover:bg-white/7 transition-colors">
+              <SelectTrigger className="h-11 text-xs w-[130px] shrink-0 bg-muted/40 dark:bg-white/4 border-border dark:border-white/10 text-muted-foreground dark:text-white/65 hover:bg-white/7 transition-colors">
                 <SelectValue placeholder={t("anime.episodes.range")} />
               </SelectTrigger>
               <SelectContent className="bg-[#0e0e0e] border-border dark:border-white/10">
@@ -184,15 +194,6 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
             </Select>
           )}
 
-          <div className="relative">
-            <Search className="absolute inset-y-0 left-2.5 m-auto h-3.5 w-3.5 text-muted-foreground dark:text-white/30 pointer-events-none" />
-            <input
-              value={query}
-              placeholder={t("anime.episodes.searchPlaceholder")}
-              onChange={handleSearch}
-              className="h-8 pl-8 pr-3 text-xs rounded-lg bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none focus:border-primary/40 dark:focus:border-white/25 focus:bg-white/7 transition-all w-44"
-            />
-          </div>
         </div>
       </div>
 

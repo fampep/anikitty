@@ -110,7 +110,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   if (isDataLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="home-hero-carousel h-[42vh] sm:h-[48vh] md:h-[52vh] max-h-[var(--home-hero-max-h,520px)] w-full relative overflow-hidden">
+    <div className="home-hero-carousel min-h-[17.5rem] h-[max(42svh,17.5rem)] sm:h-[48vh] md:h-[52vh] max-h-[var(--home-hero-max-h,520px)] w-full relative overflow-hidden">
       <Carousel className="w-full h-full" setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="h-full">
           {spotlightAnime?.map((anime, index) => (
@@ -143,20 +143,24 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
                 type="button"
                 onClick={() => api?.scrollTo(i)}
                 aria-label={t("home.heroGoToSlide", { n: i + 1 })}
-                className={`h-[3px] rounded-full overflow-hidden bg-white/20 hover:bg-muted/30 dark:bg-white/35 transition-all duration-300 ${
-                  i === current ? "w-8" : "w-3"
-                }`}
+                className="touch-target flex items-center justify-center px-1.5 py-3 -my-2"
               >
-                {i === current && !reducedMotion && (
-                  <div
-                    key={current}
-                    className="h-full bg-white rounded-full"
-                    style={{ animation: "progressBar 7s linear forwards", width: "0%" }}
-                  />
-                )}
-                {i === current && reducedMotion && (
-                  <div className="h-full w-full bg-white rounded-full" />
-                )}
+                <span
+                  className={`block h-[3px] rounded-full overflow-hidden bg-white/20 hover:bg-muted/30 dark:bg-white/35 transition-all duration-300 ${
+                    i === current ? "w-8" : "w-3"
+                  }`}
+                >
+                  {i === current && !reducedMotion && (
+                    <div
+                      key={current}
+                      className="h-full bg-white rounded-full"
+                      style={{ animation: "progressBar 7s linear forwards", width: "0%" }}
+                    />
+                  )}
+                  {i === current && reducedMotion && (
+                    <div className="h-full w-full bg-white rounded-full" />
+                  )}
+                </span>
               </button>
             ))}
           </div>

@@ -525,12 +525,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
         {/* ── Tabs ── */}
         <div id="anime-tabs-panel" className="scroll-mt-24 mt-6 sm:mt-10">
-          <AnimeQuickNav
-            tabs={tabItems}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            className="mb-4"
-          />
+          <div className="sticky top-[var(--nav-total-height)] z-30 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur-md border-b border-border/80 dark:border-white/8 sm:static sm:mx-0 sm:px-0 sm:py-0 sm:mb-4 sm:bg-transparent sm:backdrop-blur-none sm:border-b-0">
+            <AnimeQuickNav
+              tabs={tabItems}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+            />
+          </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="hidden sm:flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-border dark:border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">

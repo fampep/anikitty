@@ -194,13 +194,24 @@ const EpisodePlaylist = ({
         )}
       >
         {isWatch ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2.5">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/80 dark:text-white/25 pointer-events-none" />
+              <input
+                placeholder={t("watch.playlist.filterPlaceholder")}
+                value={search}
+                onChange={handleSearch}
+                className="w-full h-11 pl-10 pr-3 rounded-xl bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 text-[13px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-momentum pb-0.5">
             {hasMultipleGroups && (
               <select
                 value={currentGroup}
                 onChange={(e) => handleGroupChange(e.target.value)}
                 disabled={Boolean(search.trim())}
-                className="h-9 min-w-[6.5rem] max-w-[38%] shrink-0 rounded-lg bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 px-2 text-[11px] font-mono text-muted-foreground dark:text-white/70 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 disabled:opacity-40"
+                className="h-11 min-w-[6.5rem] shrink-0 rounded-xl bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 px-2.5 text-[11px] font-mono text-muted-foreground dark:text-white/70 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 disabled:opacity-40"
               >
                 {ranges.map((r) => (
                   <option key={r.value} value={r.value} className="bg-[#111]">
@@ -210,23 +221,13 @@ const EpisodePlaylist = ({
               </select>
             )}
 
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/80 dark:text-white/25 pointer-events-none" />
-              <input
-                placeholder={t("watch.playlist.filterPlaceholder")}
-                value={search}
-                onChange={handleSearch}
-                className="w-full h-9 pl-8 pr-3 rounded-lg bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 text-[12px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
-              />
-            </div>
-
             <button
               type="button"
               onClick={() => setHideWatched((v) => !v)}
               aria-label={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
               title={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
               className={cn(
-                "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                "touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors",
                 hideWatched
                   ? "border-violet-500/35 bg-violet-500/15 text-violet-200"
                   : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65",
@@ -242,7 +243,7 @@ const EpisodePlaylist = ({
                 aria-label={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
                 title={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                  "touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors",
                   hideFillers
                     ? "border-amber-500/35 bg-amber-500/15 text-amber-200"
                     : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65",
@@ -252,7 +253,7 @@ const EpisodePlaylist = ({
               </button>
             )}
 
-            <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-lg p-0.5 border border-border dark:border-white/8 shrink-0">
+            <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-xl p-1 border border-border dark:border-white/8 shrink-0">
               {LAYOUT_OPTIONS.filter((o) => o.value !== "list").map((opt) => (
                 <button
                   key={opt.value}
@@ -260,7 +261,7 @@ const EpisodePlaylist = ({
                   onClick={() => setEpisodeLayout(opt.value)}
                   title={t(opt.labelKey)}
                   className={cn(
-                    "p-1.5 rounded-md transition-all duration-150",
+                    "touch-target p-2 rounded-lg transition-all duration-150",
                     layout === opt.value
                       ? "bg-muted dark:bg-white/15 text-foreground dark:text-white"
                       : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55",
@@ -269,6 +270,7 @@ const EpisodePlaylist = ({
                   {opt.icon}
                 </button>
               ))}
+            </div>
             </div>
           </div>
         ) : (

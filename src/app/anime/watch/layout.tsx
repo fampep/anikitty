@@ -350,7 +350,7 @@ const Layout = (props: Props) => {
       >
         {/* Left: player + episode info + tabs */}
         <div className="flex flex-col gap-3 min-w-0">
-          <div id="watch-player-root">{props.children}</div>
+          <div id="watch-player-root" className="-mx-4 sm:mx-0">{props.children}</div>
 
           {/* Mobile: episode grid + comments */}
           <div id="watch-mobile-playlist" className="flex flex-col gap-3 lg:hidden scroll-mt-24">

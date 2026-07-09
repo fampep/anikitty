@@ -164,9 +164,9 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         {customTrigger ? (
           <span>{customTrigger}</span>
         ) : (
-          <button className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-border text-muted-foreground text-sm font-semibold hover:bg-accent hover:border-primary/40 hover:text-foreground transition-all dark:border-white/20 dark:text-white/70 dark:hover:bg-white/10 dark:hover:border-white/40 dark:hover:text-white">
-            <LogIn className="w-4 h-4" />
-            {t("auth.login")}
+          <button className="flex items-center gap-2 min-h-11 px-3 sm:px-4 py-2 rounded-xl border border-border text-muted-foreground text-sm font-semibold hover:bg-accent hover:border-primary/40 hover:text-foreground transition-all dark:border-white/20 dark:text-white/70 dark:hover:bg-white/10 dark:hover:border-white/40 dark:hover:text-white">
+            <LogIn className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">{t("auth.login")}</span>
           </button>
         )}
       </PopoverTrigger>
@@ -174,8 +174,8 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
       <PopoverContent
         side="bottom"
         align="end"
-        className="p-0 bg-[#0a0a0a] border border-border dark:border-white/12 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
-        style={{ width: "22rem" }}
+        collisionPadding={16}
+        className="p-0 w-[min(22rem,calc(100vw-2rem))] bg-[#0a0a0a] border border-border dark:border-white/12 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
       >
         {/* Header */}
         <div className="px-5 pt-5 pb-0 flex flex-col gap-3">
