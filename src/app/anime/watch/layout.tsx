@@ -36,6 +36,7 @@ import {
   findPlayableEpisode,
   firstPlayableEpisode,
   lastPlayableEpisode,
+  adjacentPlayableEpisode,
 } from "@/lib/anime/episode-availability";
 import Link from "next/link";
 import { cn } from "@/lib/core/utils";
@@ -193,9 +194,12 @@ const Layout = (props: Props) => {
 
   const watchTab = useMemo(() => {
     const tab = searchParams.get("tab");
-    const valid = new Set(["comments", "info", "related"]);
+    const valid = new Set(["comments", "info", "related", "episodes"]);
     return tab && valid.has(tab) ? tab : "comments";
   }, [searchParams]);
+
+  const hasRelated =
+    (anime?.relatedAnimes?.length ?? 0) > 0 || (anime?.recommendedAnimes?.length ?? 0) > 0;
 
   const handleWatchTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -210,7 +214,9 @@ const Layout = (props: Props) => {
           ? "watch-tab-info"
           : value === "related"
             ? "watch-tab-related"
-            : null;
+            : value === "episodes"
+              ? "watch-mobile-playlist"
+              : null;
 
     if (scrollTarget) {
       requestAnimationFrame(() => {
@@ -234,6 +240,16 @@ const Layout = (props: Props) => {
     }
     handleWatchTabChange("comments");
   };
+
+  useEffect(() => {
+    if (!theatreMode) return;
+    requestAnimationFrame(() => {
+      document.getElementById("watch-player-root")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [theatreMode]);
 
   const handleWatchTabChangeWithMobile = (value: string) => {
     if (value === "comments" && typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
@@ -279,16 +295,10 @@ const Layout = (props: Props) => {
 
   const stats = info.stats;
 
-  // Prev/next + progress for the sidebar "now watching" card.
+  // Prev/next playable episodes for the sidebar card.
   const episodeList = episodes?.episodes ?? [];
-  const currentIndex = currentEpisode
-    ? episodeList.findIndex((e) => e.episodeId === currentEpisode.episodeId)
-    : -1;
-  const prevEp = currentIndex > 0 ? episodeList[currentIndex - 1] : null;
-  const nextEp =
-    currentIndex >= 0 && currentIndex < episodeList.length - 1
-      ? episodeList[currentIndex + 1]
-      : null;
+  const prevEp = adjacentPlayableEpisode(episodeList, currentEpisode?.episodeId, "prev") ?? null;
+  const nextEp = adjacentPlayableEpisode(episodeList, currentEpisode?.episodeId, "next") ?? null;
   const totalEps = episodes?.totalEpisodes || episodeList.length;
   const audioLabel = watchType === "dub" ? "DUB" : "SUB";
   const buildEpUrl = (epId: string) => {
@@ -308,23 +318,28 @@ const Layout = (props: Props) => {
   );
 
   return (
-    <Container className="mt-16 sm:mt-20 pb-16 pb-safe">
-      <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
-        <AnimeClearLogo
-          name={info.name}
-          logoUrl={pickAnimeClearLogo(mappingData?.images)}
-          href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-          size="md"
-          className="min-w-0 flex-1"
-        />
-        <div className="shrink-0">{listSelector}</div>
-      </div>
+    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,72rem)] mx-auto")}>
+      {!theatreMode && (
+        <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
+          <AnimeClearLogo
+            name={info.name}
+            logoUrl={pickAnimeClearLogo(mappingData?.images)}
+            href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
+            size="md"
+            className="min-w-0 flex-1"
+          />
+          <div className="shrink-0">{listSelector}</div>
+        </div>
+      )}
 
-      <WatchQuickNav
-        activeTab={watchTab}
-        onTabChange={handleWatchTabChangeWithMobile}
-        animeId={info.id}
-      />
+      {!theatreMode && (
+        <WatchQuickNav
+          activeTab={watchTab}
+          onTabChange={handleWatchTabChangeWithMobile}
+          animeId={info.id}
+          hasRelated={hasRelated}
+        />
+      )}
 
       {/* Main grid: player + sidebar */}
       <div
@@ -335,11 +350,11 @@ const Layout = (props: Props) => {
       >
         {/* Left: player + episode info + tabs */}
         <div className="flex flex-col gap-3 min-w-0">
-          <div>{props.children}</div>
+          <div id="watch-player-root">{props.children}</div>
 
-          {/* Mobile: Miruro-style comments card + episode grid */}
+          {/* Mobile: episode grid + comments */}
           <div id="watch-mobile-playlist" className="flex flex-col gap-3 lg:hidden scroll-mt-24">
-            {currentEpisode && currentAnimeId && (
+            {currentEpisode && currentAnimeId && !theatreMode && (
               <WatchCommentsPreview
                 animeId={currentAnimeId}
                 episodeId={episodeId}
@@ -359,6 +374,8 @@ const Layout = (props: Props) => {
             )}
           </div>
 
+          {!theatreMode && (
+          <>
           {/* Info + Comments fill the area under the player controls */}
           <section id="watch-tab-info" className="scroll-mt-24 space-y-5 mt-1">
             <div className="flex items-center gap-2.5">
@@ -469,6 +486,9 @@ const Layout = (props: Props) => {
             )}
           </section>
 
+          </>
+          )}
+
         </div>
 
         {/* Right sidebar: now-watching card + episodes list (desktop) */}
@@ -549,16 +569,16 @@ const Layout = (props: Props) => {
       </div>
 
       {/* ── Full-width sections below the player ── */}
+      {!theatreMode && (
       <div className="mt-8 space-y-10">
-        {/* Recommended / related */}
-        {((anime.relatedAnimes?.length ?? 0) > 0 || (anime.recommendedAnimes?.length ?? 0) > 0) && (
+        {hasRelated && (
           <section id="watch-tab-related" className="scroll-mt-24 space-y-8">
             <AnimeCarousel title={t("common.alsoWatch")} anime={anime.relatedAnimes as IAnime[]} />
             <AnimeCarousel title={t("common.recommended")} anime={anime.recommendedAnimes as IAnime[]} />
           </section>
         )}
-
       </div>
+      )}
 
       {currentAnimeId && currentEpisode && (
         <WatchCommentsSheet

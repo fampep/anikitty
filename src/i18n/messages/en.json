@@ -1299,6 +1299,7 @@
       "comments": "Comments",
       "info": "Info",
       "related": "Related",
+      "episodes": "Episodes",
       "animePage": "Anime page"
     },
     "toolbar": {
@@ -1316,6 +1317,7 @@
     "watchLatestAired": "Watch latest aired episode ({n})",
     "animeNotAiredYet": "This anime hasn't aired yet — no episodes are available to watch.",
     "loadingStream": "Loading stream",
+    "loadingEpisode": "Loading episode {n}…",
     "loadingStreamProvider": "Loading from {provider}…",
     "switchProviderWhileLoading": "Slow or stuck? Switch to another source below — you don't have to wait for the current one.",
     "streamUnavailable": "Stream unavailable on {provider}",

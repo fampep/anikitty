@@ -92,6 +92,7 @@ export default function WatchPlayerToolbar({
         <button
           type="button"
           onClick={onShowShortcuts}
+          aria-label={t("watch.toolbar.shortcuts")}
           className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
         >
           <Command className="w-3 h-3 shrink-0" />

@@ -168,6 +168,18 @@ const EpisodePlaylist = ({
   const layout = isWatch && episodeLayout === "list" ? "compact" : episodeLayout;
   const gridCols = isWatch ? "grid-cols-6 sm:grid-cols-8" : "grid-cols-5";
 
+  const assignEpisodeRef = (episode: Episode) => (el: HTMLDivElement | null) => {
+    const idx = episodes.episodes.findIndex((e) => e.episodeId === episode.episodeId);
+    if (idx >= 0) episodeRefs.current[idx] = el;
+  };
+
+  const cardProps = (episode: Episode) => ({
+    subOrDub,
+    episode,
+    animeId,
+    watchedEpisodes,
+  });
+
   return (
     <div
       className={cn(
@@ -211,6 +223,7 @@ const EpisodePlaylist = ({
             <button
               type="button"
               onClick={() => setHideWatched((v) => !v)}
+              aria-label={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
               title={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
               className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
@@ -226,6 +239,7 @@ const EpisodePlaylist = ({
               <button
                 type="button"
                 onClick={() => setHideFillers(!hideFillers)}
+                aria-label={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
                 title={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
@@ -338,42 +352,33 @@ const EpisodePlaylist = ({
         ) : layout === "compact" ? (
           <div className={cn("grid gap-1.5 px-2 pb-2", gridCols)}>
             {filteredEpisodes.map((episode) => (
-              <EpisodeCard
-                key={episode.episodeId}
-                subOrDub={subOrDub}
-                variant="card"
-                showCard={false}
-                episode={episode}
-                animeId={animeId}
-                watchedEpisodes={watchedEpisodes}
-                activeStyle={isWatch ? "play" : "default"}
-              />
+              <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
+                <EpisodeCard
+                  {...cardProps(episode)}
+                  variant="card"
+                  showCard={false}
+                  activeStyle={isWatch ? "play" : "default"}
+                />
+              </div>
             ))}
           </div>
         ) : layout === "thumbnail" ? (
           <div className="grid grid-cols-2 gap-2 px-2 pb-2 pt-1">
             {filteredEpisodes.map((episode) => (
-              <EpisodeCard
-                key={episode.episodeId}
-                subOrDub={subOrDub}
-                variant="thumbnail"
-                episode={episode}
-                animeId={animeId}
-                watchedEpisodes={watchedEpisodes}
-                animePoster={animePoster}
-              />
+              <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
+                <EpisodeCard
+                  {...cardProps(episode)}
+                  variant="thumbnail"
+                  animePoster={animePoster}
+                />
+              </div>
             ))}
           </div>
         ) : (
           filteredEpisodes.map((episode) => (
-            <EpisodeCard
-              key={episode.episodeId}
-              subOrDub={subOrDub}
-              variant="list"
-              episode={episode}
-              animeId={animeId}
-              watchedEpisodes={watchedEpisodes}
-            />
+            <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
+              <EpisodeCard {...cardProps(episode)} variant="list" />
+            </div>
           ))
         )}
       </div>

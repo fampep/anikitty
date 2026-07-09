@@ -66,6 +66,7 @@ import {
   findPlayableEpisode,
   isEpisodePlayable,
   lastPlayableEpisode,
+  adjacentPlayableEpisode,
 } from "@/lib/anime/episode-availability";
 import {
   Captions,
@@ -94,6 +95,8 @@ import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
 import LoadingGirl from "@/components/common/loading-girl";
 import WatchErrorPanel from "@/components/watch/watch-error-panel";
+import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
+import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 
 const KittyPlayer = dynamic(() => import("@/components/player/kitty-player"), {
   ssr: false,
@@ -130,7 +133,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -189,6 +192,16 @@ const VideoPlayerSection = () => {
   useEffect(() => {
     setPreferDub(streamAudio === "dub");
   }, [streamAudio, setPreferDub]);
+
+  useEffect(() => {
+    const target: "sub" | "dub" = preferDub ? "dub" : "sub";
+    if (streamAudio === target) return;
+    setStreamAudio(target);
+    localStorage.setItem("kittyStreamAudio", target);
+    syncDubSearchParam(target === "dub");
+    setAudioMode((mode) => (mode === "multi" ? mode : target));
+    localStorage.setItem("kittyAudioMode", target);
+  }, [preferDub, syncDubSearchParam]);
 
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
@@ -281,9 +294,13 @@ const VideoPlayerSection = () => {
   const anilistId = anime?.anime?.info?.anilistId;
   const malId = anime?.anime?.info?.malId;
   const animeTitle = anime?.anime?.info?.name || undefined;
+  const animeName = anime?.anime?.info?.name;
+  const animePoster = anime?.anime?.info?.poster;
 
   // Episode list for next-episode navigation (also resolves episode number for stream API)
   const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(animeSlug ?? "");
+  const watchedEpisodes = useEpisodeProgress(animeSlug ?? "");
+  const [mobilePlaylistOpen, setMobilePlaylistOpen] = useState(false);
   const currentEpisodeInfo = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
     return findPlayableEpisode(allEpisodes.episodes, episodeId);
@@ -388,19 +405,12 @@ const VideoPlayerSection = () => {
   // Episode list moved above for episodeNo resolution
   const prevEpisode = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
-    const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
-    return idx > 0 ? allEpisodes.episodes[idx - 1] : undefined;
+    return adjacentPlayableEpisode(allEpisodes.episodes, episodeId, "prev");
   }, [allEpisodes, episodeId]);
 
   const nextEpisode = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
-    const idx = allEpisodes.episodes.findIndex((e) => e.episodeId === episodeId);
-    if (idx < 0) return undefined;
-    for (let i = idx + 1; i < allEpisodes.episodes.length; i++) {
-      const ep = allEpisodes.episodes[i];
-      if (isEpisodePlayable(ep)) return ep;
-    }
-    return undefined;
+    return adjacentPlayableEpisode(allEpisodes.episodes, episodeId, "next");
   }, [allEpisodes, episodeId]);
 
   const [autoFullscreen, setAutoFullscreen] = useState(false);
@@ -447,6 +457,38 @@ const VideoPlayerSection = () => {
     if (nextEpisode) navigateToEpisode(nextEpisode);
   }, [nextEpisode, navigateToEpisode]);
 
+  const toggleMobilePlaylist = useCallback(() => {
+    setMobilePlaylistOpen((open) => {
+      const next = !open;
+      if (next) {
+        requestAnimationFrame(() => {
+          document.getElementById("watch-mobile-playlist")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const episodeBar =
+    currentEpisodeInfo && allEpisodes ? (
+      <WatchEpisodeBar
+        currentEpisode={currentEpisodeInfo}
+        episodes={allEpisodes}
+        animePoster={animePoster}
+        animeName={animeName ?? undefined}
+        prevEpisode={prevEpisode ?? null}
+        nextEpisode={nextEpisode ?? null}
+        playlistOpen={mobilePlaylistOpen}
+        onTogglePlaylist={toggleMobilePlaylist}
+        onPrev={handlePrevEpisode}
+        onNext={handleNextEpisode}
+        watchedEpisodes={watchedEpisodes}
+      />
+    ) : null;
+
   // Reset refs when episode changes so we don't cross-contaminate
   useEffect(() => {
     navigatingRef.current = false;
@@ -461,6 +503,7 @@ const VideoPlayerSection = () => {
     setArtPlayer(null);
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
+    setMobilePlaylistOpen(false);
   }, [episodeId]);
 
   // Fetch saved resume position when the episode changes
@@ -736,8 +779,6 @@ const VideoPlayerSection = () => {
   }, [artPlayer]);
 
   // Media Session: lock-screen / notification playback controls on mobile.
-  const animeName = anime?.anime?.info?.name;
-  const animePoster = anime?.anime?.info?.poster;
   useEffect(() => {
     if (!artPlayer || typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     if (!animeName) return;
@@ -1286,6 +1327,7 @@ const VideoPlayerSection = () => {
 
     return (
       <div className="flex flex-col gap-3">
+        {episodeBar}
         <WatchErrorPanel
           error={new Error(streamFailMessage)}
           onRetry={() => void retryStream()}
@@ -1299,7 +1341,14 @@ const VideoPlayerSection = () => {
   if (showStreamLoading) {
     return (
       <div className="flex flex-col gap-3">
-        <PlayerSkeleton label={t("watch.loadingStreamProvider", { provider })} />
+        {episodeBar}
+        <PlayerSkeleton
+          label={
+            currentEpisodeInfo
+              ? t("watch.loadingEpisode", { n: currentEpisodeInfo.number })
+              : t("watch.loadingStreamProvider", { provider })
+          }
+        />
         <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] px-2.5 sm:px-3 py-3 space-y-2.5">
           <p className="text-[11px] font-mono text-muted-foreground dark:text-white/40 leading-relaxed">
             {t("watch.switchProviderWhileLoading")}
@@ -1336,6 +1385,8 @@ const VideoPlayerSection = () => {
   return (
     <div className="flex flex-col gap-3">
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+    {episodeBar}
 
     <div className="flex flex-col rounded-xl overflow-hidden ring-1 ring-border dark:ring-white/10 shadow-2xl shadow-black/60 bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold

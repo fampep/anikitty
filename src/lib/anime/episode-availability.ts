@@ -84,3 +84,26 @@ export function lastPlayableEpisode(
   }
   return undefined;
 }
+
+/** Walk the list for the nearest playable episode in `direction`. */
+export function adjacentPlayableEpisode(
+  episodes: Episode[],
+  currentEpisodeId: string | null | undefined,
+  direction: "prev" | "next",
+): Episode | undefined {
+  if (!currentEpisodeId || episodes.length === 0) return undefined;
+  const idx = episodes.findIndex((e) => e.episodeId === currentEpisodeId);
+  if (idx < 0) return undefined;
+
+  if (direction === "next") {
+    for (let i = idx + 1; i < episodes.length; i++) {
+      if (isEpisodePlayable(episodes[i])) return episodes[i];
+    }
+    return undefined;
+  }
+
+  for (let i = idx - 1; i >= 0; i--) {
+    if (isEpisodePlayable(episodes[i])) return episodes[i];
+  }
+  return undefined;
+}
