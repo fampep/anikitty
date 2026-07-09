@@ -3,6 +3,7 @@
 import React, { Fragment, useState } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
+import { useT } from "@/providers/i18n-provider";
 
 // AniList spoiler ~!...!~, then bold (**x** / __x__) or a markdown link.
 const SPOILER_RE = /~!([\s\S]+?)!~/g;
@@ -56,6 +57,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
 }
 
 function InlineSpoiler({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const [revealed, setRevealed] = useState(false);
   if (revealed) return <span className="rounded bg-white/[0.06] px-0.5">{children}</span>;
   return (
@@ -63,7 +65,8 @@ function InlineSpoiler({ children }: { children: React.ReactNode }) {
       type="button"
       onClick={() => setRevealed(true)}
       className="rounded bg-white/10 px-1 text-transparent [text-shadow:0_0_8px_rgba(255,255,255,0.55)] select-none hover:bg-white/[0.14]"
-      title="Reveal spoiler"
+      title={t("comments.revealSpoiler")}
+      aria-label={t("comments.spoilerReveal")}
     >
       {children}
     </button>

@@ -41,7 +41,7 @@ export interface KittyStreamResponse {
   error?: string;
 }
 
-const getKittyStream = async (
+export const getKittyStream = async (
   anilistId: number,
   episode: string,
   audio: "sub" | "dub",

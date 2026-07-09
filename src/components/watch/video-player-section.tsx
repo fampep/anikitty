@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
   buildKittyStreamQueryKey,
+  getKittyStream,
   isKittyStreamAbortError,
   type KittyProvider,
   type KittyTrack,
@@ -813,6 +814,64 @@ const VideoPlayerSection = () => {
     }
     progressEpisodeIdRef.current = episodeId;
   }, [episodeId, streamReady]);
+
+  // Prefetch the next episode stream so auto-next / Next feels instant.
+  useEffect(() => {
+    if (!streamReady || !nextEpisode || !anilistId) return;
+    const nextEpNo = String(nextEpisode.number);
+    if (parseInt(nextEpNo, 10) <= 0) return;
+
+    void queryClient.prefetchQuery({
+      queryKey: buildKittyStreamQueryKey(
+        anilistId,
+        nextEpNo,
+        streamQueryAudio,
+        provider,
+        provider === "Miruro" ? miruroPipe : null,
+        animeTitle,
+        provider === "Animex" ? animexServer : null,
+        provider === "AniSnatch" ? anisnatchServer : null,
+        provider === "Lunar" ? lunarServer : null,
+        provider === "AllAnime" ? allanimeMirror : null,
+        provider === "MKissa" ? mkissaMirror : null,
+        provider === "Animo" ? animoServer : null,
+        kittyProxyNode,
+      ),
+      queryFn: () =>
+        getKittyStream(
+          anilistId,
+          nextEpNo,
+          streamQueryAudio,
+          provider,
+          provider === "Miruro" ? miruroPipe : null,
+          animeTitle,
+          provider === "Animex" ? animexServer : null,
+          provider === "AniSnatch" ? anisnatchServer : null,
+          provider === "Lunar" ? lunarServer : null,
+          provider === "AllAnime" ? allanimeMirror : null,
+          provider === "MKissa" ? mkissaMirror : null,
+          provider === "Animo" ? animoServer : null,
+          kittyProxyNode,
+        ),
+      staleTime: 30_000,
+    });
+  }, [
+    streamReady,
+    nextEpisode,
+    anilistId,
+    streamQueryAudio,
+    provider,
+    miruroPipe,
+    animeTitle,
+    animexServer,
+    anisnatchServer,
+    lunarServer,
+    allanimeMirror,
+    mkissaMirror,
+    animoServer,
+    kittyProxyNode,
+    queryClient,
+  ]);
   const streamFailed =
     streamQueryEnabled &&
     !streamPending &&
@@ -1391,6 +1450,7 @@ const VideoPlayerSection = () => {
             <button
               type="button"
               onClick={copyShareLink}
+              aria-label={t("watch.copyLink")}
               className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/70 transition-colors"
               title={t("watch.copyLink")}
             >

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/core/utils";
-import { LayoutGrid, List, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import EpisodeCard from "@/components/common/episode-card";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import { Episode } from "@/types/episodes";
@@ -15,8 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useT } from "@/providers/i18n-provider";
-
-type ViewMode = "thumbnail" | "list";
+import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   animeId: string;
@@ -24,12 +23,12 @@ type Props = {
 
 const AnimeEpisodes = ({ animeId }: Props) => {
   const t = useT();
+  const episodeLayout = useSettingsStore((s) => s.episodeLayout);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
   const [ranges, setRanges] = useState<string[]>([]);
   const [selectedRange, setSelectedRange] = useState<string>("");
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<ViewMode>("thumbnail");
 
   const { data, isLoading } = useGetAllEpisodes(animeId);
 
@@ -72,8 +71,7 @@ const AnimeEpisodes = ({ animeId }: Props) => {
       allEpisodes.filter(
         (ep, idx) =>
           (idx + 1).toString().includes(lower) ||
-          ep.title.toLowerCase().includes(lower) ||
-          "episode".includes(lower.trim()),
+          ep.title.toLowerCase().includes(lower),
       ),
     );
   };
@@ -87,34 +85,6 @@ const AnimeEpisodes = ({ animeId }: Props) => {
         </h3>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* View toggle */}
-          <div className="flex items-center gap-0.5 rounded-lg border border-border dark:border-white/8 p-0.5">
-            <button
-              onClick={() => setView("thumbnail")}
-              className={cn(
-                "p-1.5 rounded-md transition-all",
-                view === "thumbnail"
-                  ? "bg-accent dark:bg-white/10 text-foreground/90 dark:text-white/80"
-                  : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
-              )}
-              title={t("anime.episodes.thumbnailView")}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setView("list")}
-              className={cn(
-                "p-1.5 rounded-md transition-all",
-                view === "list"
-                  ? "bg-accent dark:bg-white/10 text-foreground/90 dark:text-white/80"
-                  : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
-              )}
-              title={t("anime.episodes.listView")}
-            >
-              <List className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
           {ranges.length > 0 && (
             <Select onValueChange={handleRangeChange} value={selectedRange}>
               <SelectTrigger className="h-8 text-xs w-[130px] bg-muted/40 dark:bg-white/4 border-border dark:border-white/10 text-muted-foreground dark:text-white/65 hover:bg-white/7 transition-colors">
@@ -144,12 +114,26 @@ const AnimeEpisodes = ({ animeId }: Props) => {
         </div>
       </div>
 
-      {/* Episode grid / list */}
-      {view === "thumbnail" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-          {episodes.map((episode, idx) => (
+      {/* Episode grid / list — layout follows Settings → Episode layout */}
+      {episodeLayout === "compact" ? (
+        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
+          {episodes.map((episode) => (
             <EpisodeCard
-              key={idx}
+              key={episode.episodeId}
+              episode={episode}
+              animeId={animeId}
+              variant="card"
+              showCard={false}
+            />
+          ))}
+          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-full" message={t("anime.episodes.noEpisodes")} />}
+          {isLoading && <CompactSkeletons />}
+        </div>
+      ) : episodeLayout === "thumbnail" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+          {episodes.map((episode) => (
+            <EpisodeCard
+              key={episode.episodeId}
               episode={episode}
               animeId={animeId}
               variant="thumbnail"
@@ -160,9 +144,9 @@ const AnimeEpisodes = ({ animeId }: Props) => {
         </div>
       ) : (
         <div className="flex flex-col gap-0.5">
-          {episodes.map((episode, idx) => (
+          {episodes.map((episode) => (
             <EpisodeCard
-              key={idx}
+              key={episode.episodeId}
               episode={episode}
               animeId={animeId}
               variant="list"
@@ -210,6 +194,16 @@ function ListSkeletons() {
           <div className="w-[108px] shrink-0 bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
           <div className="flex-1 bg-muted/40 dark:bg-white/4 ml-0.5" />
         </div>
+      ))}
+    </>
+  );
+}
+
+function CompactSkeletons() {
+  return (
+    <>
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div key={i} className="aspect-square rounded-lg animate-pulse bg-muted/50 dark:bg-white/5" />
       ))}
     </>
   );

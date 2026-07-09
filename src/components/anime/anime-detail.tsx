@@ -28,7 +28,7 @@ import {
   Star,
 } from "lucide-react";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
-import Loading from "@/app/loading";
+import QueryRetryPanel from "@/components/shared/query-retry-panel";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import useBookMarks from "@/hooks/use-get-bookmark";
@@ -100,7 +100,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const bookmarkOptions = useBookmarkLabels();
-  const { data: anime, isLoading } = useGetAnimeDetails(slug);
+  const { data: anime, isLoading, isError, isFetching, refetch } = useGetAnimeDetails(slug);
   const { auth } = useAuthStore();
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
     animeID: slug,
@@ -230,7 +230,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     }
   };
 
-  if (isLoading || !anime) return <Loading />;
+  if (isError && !anime) {
+    return (
+      <QueryRetryPanel
+        message={t("anime.loadError")}
+        onRetry={() => void refetch()}
+        isRetrying={isFetching}
+        backHref={ROUTES.HOME}
+      />
+    );
+  }
+
+  if (isLoading || !anime) return <AnimeDetailSkeleton />;
 
   const info     = anime.anime.info;
   const moreInfo = anime.anime.moreInfo;
@@ -423,9 +434,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             )}
 
             {info.description && (
-              <p className="text-[12px] sm:text-[13px] text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 md:line-clamp-4 max-w-2xl">
-                {cleanAniListText(info.description as string)}
-              </p>
+              <div className="max-w-2xl">
+                <p className="text-[12px] sm:text-[13px] text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 md:line-clamp-4">
+                  {cleanAniListText(info.description as string)}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange("overview")}
+                  className="mt-1.5 text-[11px] font-semibold text-violet-300/80 hover:text-violet-200 transition-colors"
+                >
+                  {t("anime.readMore")}
+                </button>
+              </div>
             )}
 
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap mt-1">
@@ -807,6 +827,39 @@ const ArtSection = ({
   </div>
   );
 };
+
+function AnimeDetailSkeleton() {
+  return (
+    <div className="w-full min-h-screen animate-pulse">
+      <div className="h-[35vh] sm:h-[42vh] md:h-[58vh] w-full bg-muted/50 dark:bg-white/[0.04]" />
+      <Container className="pb-28">
+        <div className="flex md:mt-[-14rem] mt-[-3rem] sm:mt-[-4rem] md:flex-row flex-col md:items-end gap-4 sm:gap-6 md:gap-8">
+          <div className="shrink-0 self-center md:self-auto w-[130px] sm:w-[160px] md:w-[220px] aspect-[2/3] rounded-2xl bg-muted/60 dark:bg-white/[0.06]" />
+          <div className="flex flex-col gap-3 flex-1 min-w-0 pb-4 md:pb-10">
+            <div className="h-10 sm:h-12 w-3/4 max-w-md rounded-lg bg-muted/60 dark:bg-white/[0.06]" />
+            <div className="h-4 w-1/2 max-w-xs rounded bg-muted/40 dark:bg-white/[0.04]" />
+            <div className="flex gap-2 flex-wrap">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-7 w-20 rounded-full bg-muted/40 dark:bg-white/[0.04]" />
+              ))}
+            </div>
+            <div className="h-16 w-full max-w-2xl rounded-lg bg-muted/30 dark:bg-white/[0.03]" />
+            <div className="flex gap-2 mt-1">
+              <div className="h-10 w-28 rounded-xl bg-muted/50 dark:bg-white/[0.05]" />
+              <div className="h-10 w-32 rounded-xl bg-muted/40 dark:bg-white/[0.04]" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-8 flex gap-2 overflow-hidden">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-9 w-24 shrink-0 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
+          ))}
+        </div>
+        <div className="mt-6 h-64 rounded-xl bg-muted/30 dark:bg-white/[0.03]" />
+      </Container>
+    </div>
+  );
+}
 
 const StatPill = ({
   icon, label, gold, teal, purple,

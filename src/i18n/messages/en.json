@@ -1047,6 +1047,8 @@
     "addToPlanToWatch": "Add to Plan to Watch",
     "addedToPlanToWatch": "Added to Plan to Watch",
     "listError": "Error adding to list",
+    "loadError": "Couldn't load this anime. Check your connection and try again.",
+    "readMore": "Read more",
     "markWatched": "Mark watched",
     "markWholeSeriesWatched": "Mark the whole series as watched",
     "markedWatched": "Marked as completed",

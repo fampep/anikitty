@@ -477,6 +477,7 @@ function EpisodeLayoutSection({
               key={opt.value}
               type="button"
               onClick={() => setEpisodeLayout(opt.value)}
+              aria-pressed={episodeLayout === opt.value}
               className={cn(
                 "flex flex-col rounded-xl border transition-all duration-200 overflow-hidden text-left",
                 episodeLayout === opt.value

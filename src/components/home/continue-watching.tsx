@@ -8,8 +8,8 @@ import { useAuthStore } from "@/store/auth-store";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { useProgressStore } from "@/store/progress-store";
-import Image from "next/image";
 import Link from "next/link";
+import LazyPosterImage from "@/components/anime/lazy-poster-image";
 import { cn, formatSecondsToMMSS } from "@/lib/core/utils";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
@@ -140,12 +140,10 @@ function ContinueCard({
       <Link href={href} className="block">
         {/* Thumbnail area */}
         <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover:ring-violet-400/20 transition-all" style={{ aspectRatio: "16/9" }}>
-          <Image
+          <LazyPosterImage
             src={item.poster}
             alt={item.name}
-            fill
-            unoptimized
-            className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
+            imageClassName="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
             sizes="200px"
           />
           {/* Gradient */}
@@ -428,6 +426,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
+            aria-label={t("common.scrollLeft")}
             className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -435,6 +434,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
           <button
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
+            aria-label={t("common.scrollRight")}
             className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronRight className="h-4 w-4" />

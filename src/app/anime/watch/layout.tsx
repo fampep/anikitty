@@ -1,6 +1,6 @@
 "use client";
 
-import Loading from "@/app/loading";
+import QueryRetryPanel from "@/components/shared/query-retry-panel";
 import AniListRichText from "@/components/anime/anilist-rich-text";
 import { ROUTES } from "@/constants/routes";
 
@@ -84,7 +84,7 @@ const Layout = (props: Props) => {
     if (episodeId && episodeId !== selectedEpisode) setSelectedEpisode(episodeId);
   }, [currentAnimeId, episodeId, animeId, selectedEpisode, setSelectedEpisode]);
 
-  const { data: anime, isLoading } = useGetAnimeDetails(animeId as string);
+  const { data: anime, isLoading, isError, isFetching, refetch } = useGetAnimeDetails(animeId as string);
 
   useEffect(() => {
     if (anime) setAnime(anime);
@@ -251,11 +251,31 @@ const Layout = (props: Props) => {
     document.title = `${name}${epLabel} | AniKitty`;
   }, [anime?.anime.info?.name, currentEpisode?.number, t]);
 
-  if (isLoading) return <Loading />;
+  if (isError && !anime) {
+    return (
+      <QueryRetryPanel
+        message={t("anime.loadError")}
+        onRetry={() => void refetch()}
+        isRetrying={isFetching}
+        backHref={ROUTES.HOME}
+      />
+    );
+  }
+
+  if (isLoading) return <WatchLayoutSkeleton />;
 
   const info = anime?.anime.info;
   const moreInfo = anime?.anime.moreInfo;
-  if (!info) return null;
+  if (!info) {
+    return (
+      <QueryRetryPanel
+        message={t("anime.loadError")}
+        onRetry={() => void refetch()}
+        isRetrying={isFetching}
+        backHref={ROUTES.HOME}
+      />
+    );
+  }
 
   const stats = info.stats;
 
@@ -602,6 +622,26 @@ function EpisodeNavThumb({
     <Link href={buildUrl(ep.episodeId)} scroll={false} className="transition-opacity hover:opacity-90">
       {content}
     </Link>
+  );
+}
+
+function WatchLayoutSkeleton() {
+  return (
+    <Container className="mt-16 sm:mt-20 pb-16 pb-safe animate-pulse">
+      <div className="flex items-end justify-between gap-3 mb-3">
+        <div className="h-8 w-48 max-w-[60%] rounded-lg bg-muted/50 dark:bg-white/[0.05]" />
+        <div className="h-9 w-28 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
+      </div>
+      <div className="flex gap-2 mb-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-8 w-20 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+        <div className="aspect-video rounded-xl bg-muted/50 dark:bg-white/[0.05]" />
+        <div className="hidden lg:block h-80 rounded-xl bg-muted/30 dark:bg-white/[0.03]" />
+      </div>
+    </Container>
   );
 }
 
