@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { checkAntiScrape, isProtectedContentApi } from "@/lib/security/anti-scrape";
+import { isProtectedContentApi } from "@/lib/security/anti-scrape";
 
 const BLOCKED_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 const isProd = process.env.NODE_ENV === "production";
@@ -18,13 +18,6 @@ export function middleware(req: NextRequest) {
       const url = req.nextUrl.clone();
       url.protocol = "https:";
       return NextResponse.redirect(url, 308);
-    }
-  }
-
-  if (isProd && isProtectedContentApi(req.nextUrl.pathname) && req.method === "GET") {
-    const scrape = checkAntiScrape(req);
-    if (!scrape.ok) {
-      return NextResponse.json({ error: scrape.message }, { status: scrape.status });
     }
   }
 

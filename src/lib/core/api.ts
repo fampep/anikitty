@@ -17,7 +17,7 @@ function isCrossOrigin(url: string | undefined): boolean {
 }
 
 /**
- * The anti-scrape marker is only for our own API. Sending it to third parties
+ * The client marker is only for our own API. Sending it to third parties
  * (e.g. graphql.anilist.co) triggers a CORS preflight they reject, so strip it
  * from any cross-origin request.
  */
