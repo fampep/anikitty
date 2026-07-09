@@ -24,6 +24,7 @@ const AnimeSections = dynamic(() => import("@/components/home/anime-sections"));
 const HomeDonationSlim = dynamic(() => import("@/components/home/home-donation-slim"));
 const HomeTodayPanel = dynamic(() => import("@/components/home/home-today-panel"));
 const HomeGenreBar = dynamic(() => import("@/components/home/home-genre-bar"));
+const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
 
 export default function Home() {
   const t = useT();
@@ -122,6 +123,10 @@ export default function Home() {
 
       <LazyMount minHeight={200}>
         <HomeTodayPanel />
+      </LazyMount>
+
+      <LazyMount>
+        <LatestComments />
       </LazyMount>
 
       <LazyMount minHeight={280}>

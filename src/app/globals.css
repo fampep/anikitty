@@ -74,6 +74,7 @@ body {
   }
   .site-page {
     @apply relative z-[1] min-h-screen;
+    overflow-anchor: auto;
   }
 
   /* Compact theme utilities — prefer these over long light/dark class pairs */

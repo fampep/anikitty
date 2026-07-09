@@ -1510,6 +1510,7 @@
     "save": "Save",
     "spoiler": "Spoiler",
     "spoilerReveal": "Spoiler — click to reveal",
+    "revealSpoiler": "Reveal spoiler",
     "spoilerBadge": "spoiler",
     "pin": "Pin comment",
     "unpin": "Unpin comment",
@@ -1599,5 +1600,14 @@
       "community": "Built for fans",
       "communityDesc": "Run by enthusiasts who want a better free anime site."
     }
+  },
+  "gifPicker": {
+    "title": "Search GIFs",
+    "searchPlaceholder": "Search GIFs on KLIPY…",
+    "unavailable": "GIF search is unavailable right now.",
+    "tryAgain": "Please try again in a moment.",
+    "noResults": "No GIFs found for \"{query}\".",
+    "tryDifferent": "Try a different search.",
+    "poweredBy": "Powered by KLIPY"
   }
 }

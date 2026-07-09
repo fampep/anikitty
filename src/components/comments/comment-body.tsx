@@ -3,6 +3,7 @@
 import { Fragment, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePlayerSeekStore } from "@/store/player-seek-store";
+import { useT } from "@/providers/i18n-provider";
 
 // mm:ss / h:mm:ss timestamp, or @username mention.
 const INLINE_RE = /(\d{1,2}:[0-5]\d(?::[0-5]\d)?)|@([A-Za-z0-9_]{2,32})/g;
@@ -36,6 +37,7 @@ function TimestampChip({ label, seconds }: { label: string; seconds: number }) {
 }
 
 function InlineSpoiler({ children }: { children: ReactNode }) {
+  const t = useT();
   const [revealed, setRevealed] = useState(false);
   if (revealed) return <span className="rounded bg-white/[0.06] px-0.5">{children}</span>;
   return (
@@ -46,7 +48,7 @@ function InlineSpoiler({ children }: { children: ReactNode }) {
         setRevealed(true);
       }}
       className="rounded bg-white/10 px-1 text-transparent [text-shadow:0_0_8px_rgba(255,255,255,0.6)] select-none hover:bg-white/[0.14]"
-      title="Reveal spoiler"
+      title={t("comments.revealSpoiler")}
     >
       {children}
     </button>

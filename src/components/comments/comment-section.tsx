@@ -10,6 +10,7 @@ import {
   ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin, Flag,
 } from "lucide-react";
 import CommentBody from "@/components/comments/comment-body";
+import { CommentFeedBody } from "@/components/comments/comment-feed-body";
 import { useMentionSuggestions } from "@/hooks/use-mention-suggestions";
 import { toast } from "sonner";
 import { UserBadges } from "@/components/profile/user-badges";
@@ -791,63 +792,18 @@ export default function CommentSection({
       </div>
     ) : null;
 
-  const renderCommentBody = (c: Comment) => {
-    const spoilerRevealed = revealed.has(c.id);
-    return (
-      <>
-        {c.body && (
-          c.isSpoiler && !spoilerRevealed ? (
-            <div
-              className="relative cursor-pointer select-none mt-0.5"
-              onClick={() => setRevealed((prev) => new Set([...prev, c.id]))}
-            >
-              <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words blur-sm pointer-events-none">
-                {c.body}
-              </p>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border dark:border-white/15">
-                  <EyeOff className="w-3 h-3" />
-                  {t("comments.spoilerReveal")}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
-              <CommentBody body={c.body} />
-            </p>
-          )
-        )}
-        {c.gifUrl && (
-          <div className={cn(c.body ? "mt-2.5" : "mt-0.5")}>
-            {c.isSpoiler && !spoilerRevealed ? (
-              <div
-                className="relative inline-block cursor-pointer"
-                onClick={() => setRevealed((prev) => new Set([...prev, c.id]))}
-              >
-                <GifImage
-                  src={c.gifUrl}
-                  alt="GIF"
-                  className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8 blur-md pointer-events-none"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/60 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border dark:border-white/15">
-                    <EyeOff className="w-3 h-3" />
-                  {t("comments.spoilerReveal")}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <GifImage
-                src={c.gifUrl}
-                alt="GIF"
-                className="rounded-xl max-h-56 w-auto max-w-full block ring-1 ring-white/8"
-              />
-            )}
-          </div>
-        )}
-      </>
-    );
-  };
+  const renderCommentBody = (c: Comment) => (
+    <CommentFeedBody
+      id={c.id}
+      body={c.body}
+      gifUrl={c.gifUrl}
+      isSpoiler={c.isSpoiler}
+      revealedIds={revealed}
+      onReveal={(id) => setRevealed((prev) => new Set([...prev, id]))}
+      textClassName="text-sm text-muted-foreground dark:text-white/55 mt-0.5"
+      gifClassName="max-h-56"
+    />
+  );
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -1178,11 +1134,11 @@ export default function CommentSection({
               <div
                 key={c.id}
                 className={cn(
-                  "flex gap-3 py-4 px-2 -mx-2 rounded-2xl transition-colors group",
-                  index > 0 && "border-t border-border dark:border-white/[0.04]",
+                  "flex gap-3 py-4 px-3 -mx-1 rounded-2xl border border-transparent transition-colors group",
+                  index > 0 && "mt-1",
                   isHighlighted
-                    ? "bg-muted/30 dark:bg-white/[0.025] hover:bg-muted/40 dark:bg-white/[0.035]"
-                    : "hover:bg-muted/30 dark:bg-white/[0.02]",
+                    ? "bg-muted/30 dark:bg-white/[0.025] hover:bg-muted/40 dark:hover:bg-white/[0.04] border-border/50 dark:border-white/[0.05]"
+                    : "hover:bg-muted/25 dark:hover:bg-white/[0.02] hover:border-border/40 dark:hover:border-white/[0.06]",
                   isOwn && "ring-1 ring-violet-500/10",
                 )}
               >

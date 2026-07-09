@@ -47,6 +47,15 @@ export function normalizeGifUrl(input: string): string | null {
     return url.toString();
   }
 
+  if (
+    host === "static.klipy.com" ||
+    host === "static1.klipy.com" ||
+    host === "static2.klipy.com" ||
+    host.endsWith(".klipy.com")
+  ) {
+    return url.toString();
+  }
+
   return url.toString();
 }
 
@@ -58,7 +67,7 @@ export function isPlausibleGifUrl(url: string): boolean {
     const hostPath = `${u.hostname.toLowerCase()}${path}`;
     return (
       /\.(gif|gifv|png|jpe?g|webp|apng|mp4)$/.test(path) ||
-      /(giphy|tenor|imgur|media\d*\.|\.media\.|cdn\.discord|media\.discord)/.test(hostPath)
+      /(giphy|tenor|klipy|imgur|media\d*\.|\.media\.|cdn\.discord|media\.discord)/.test(hostPath)
     );
   } catch {
     return false;
@@ -73,6 +82,7 @@ export function looksLikeDirectMediaUrl(url: string): boolean {
     if (/\.(gif|webp|png|jpe?g|apng|mp4)$/.test(path)) return true;
     if (host === "media.giphy.com" || host.endsWith(".media.giphy.com")) return true;
     if (host === "media.tenor.com" || host.endsWith(".media.tenor.com")) return true;
+    if (host.endsWith(".klipy.com") || host === "static.klipy.com") return true;
     if (host === "i.imgur.com") return /\.(gif|mp4)$/i.test(path);
     if (host.includes("cdn.discordapp.com") || host.includes("media.discordapp.net")) {
       return true;
