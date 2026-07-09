@@ -5,8 +5,8 @@ import {
 
 /**
  * Same-origin HLS URL for the browser.
- * KittyAPI stream-direct often returns relative `/proxy?token=…` links — those
- * must be resolved to an absolute node URL before our server-side HLS proxy can fetch them.
+ * KittyAPI stream-direct returns signed `/proxy?token=…` links (auth is in the token,
+ * not Bearer headers). Relative paths are resolved to the active cluster node first.
  */
 export function buildKittyHlsUrl(
   src: string,

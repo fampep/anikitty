@@ -15,6 +15,7 @@ export {
   isKittyApiHost,
   isKittyApiNodeId,
   isKittyPublicPath,
+  isKittySignedProxyPath,
   KITTY_API_NODES,
   kittyApiFetch,
   kittyApiHeaders,

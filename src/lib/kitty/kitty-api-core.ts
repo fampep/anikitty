@@ -22,6 +22,33 @@ export const DEFAULT_KITTY_API_BASE = getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_
 /** Paths that do not require an API key (see KittyAPI guide). */
 const KITTY_PUBLIC_PATH_PREFIXES = ["/proxy/benchmark", "/proxy/speedtest"] as const;
 
+export function isKittyPublicPath(path: string): boolean {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const pathOnly = normalized.split("?")[0] ?? normalized;
+  return KITTY_PUBLIC_PATH_PREFIXES.some((prefix) => pathOnly === prefix);
+}
+
+/**
+ * Signed KittyAPI media proxy (`/proxy?token=…` or `/proxy?url=…`).
+ * Auth is embedded in the query string — never send Bearer / X-API-Key on these.
+ */
+export function isKittySignedProxyPath(pathOrUrl: string): boolean {
+  try {
+    const parsed = pathOrUrl.includes("://")
+      ? new URL(pathOrUrl)
+      : new URL(pathOrUrl, "https://kittyapi.local");
+    const pathOnly = parsed.pathname.replace(/\/+$/, "") || "/";
+    return pathOnly === "/proxy";
+  } catch {
+    const pathOnly = pathOrUrl.split("?")[0] ?? pathOrUrl;
+    return pathOnly === "/proxy";
+  }
+}
+
+function isKittyNoApiKeyPath(path: string): boolean {
+  return isKittyPublicPath(path) || isKittySignedProxyPath(path);
+}
+
 export type KittyStreamPayload = {
   file: string;
   headers: Record<string, string>;
@@ -33,12 +60,6 @@ export type KittyStreamPayload = {
 
 function normalizeBase(base: string): string {
   return base.replace(/\/$/, "");
-}
-
-export function isKittyPublicPath(path: string): boolean {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  const pathOnly = normalized.split("?")[0] ?? normalized;
-  return KITTY_PUBLIC_PATH_PREFIXES.some((prefix) => pathOnly === prefix);
 }
 
 export function getKittyApiBases(): string[] {
@@ -116,7 +137,7 @@ function kittyAuthHeaders(apiKey: string | undefined): HeadersInit {
 }
 
 function mergeKittyFetchInit(path: string, init?: RequestInit, skipAuth?: boolean): RequestInit {
-  if (skipAuth || isKittyPublicPath(path)) return init ?? {};
+  if (skipAuth || isKittyNoApiKeyPath(path)) return init ?? {};
 
   const headers = new Headers(init?.headers);
   const auth = kittyAuthHeaders(resolveKittyApiKey());
@@ -138,6 +159,7 @@ export async function kittyApiFetch(
   return fetch(kittyApiPath(path, base), mergeKittyFetchInit(path, init, opts?.skipAuth));
 }
 
+/** API key headers for KittyAPI JSON routes (search, stream-direct, etc.) — not for signed `/proxy?token=…` playback URLs. */
 export function kittyStreamHeaders(): HeadersInit {
   return kittyAuthHeaders(resolveKittyApiKey());
 }
