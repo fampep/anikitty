@@ -75,7 +75,7 @@ export default function WatchPlayerToolbar({
   const setTheatreMode = useSettingsStore((s) => s.setTheatreMode);
 
   return (
-    <div className="flex items-center gap-2 px-2 py-2 sm:px-3 border-b border-border dark:border-white/8 bg-[#0a0a0a] overflow-x-auto scrollbar-hide">
+    <div className="flex items-center gap-2 px-3 py-2 sm:px-3 border-b border-border dark:border-white/8 bg-[#0a0a0a] overflow-x-auto scrollbar-hide">
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <ToolbarToggle
           active={autoPlay}
@@ -109,7 +109,7 @@ export default function WatchPlayerToolbar({
         </span>
       </div>
 
-      <div className="flex items-center gap-1 shrink-0 ml-auto">
+      <div className="hidden sm:flex items-center gap-1 shrink-0 ml-auto">
         <button
           type="button"
           onClick={onPrev}

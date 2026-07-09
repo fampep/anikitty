@@ -67,7 +67,7 @@ export default function WatchEpisodeBar({
 
   return (
     <div className="rounded-xl border border-border dark:border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-visible">
-      <div className="flex items-stretch min-h-[4.5rem]">
+      <div className="flex items-stretch min-h-[3.75rem] sm:min-h-[4.5rem]">
         <button
           type="button"
           onClick={onPrev}

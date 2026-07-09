@@ -1426,7 +1426,7 @@ const VideoPlayerSection = () => {
   }
 
   return (
-    <div className="flex flex-col gap-3 -mx-4 sm:mx-0">
+    <div className="flex flex-col gap-2 sm:gap-3">
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
     {episodeBar}
@@ -1503,7 +1503,7 @@ const VideoPlayerSection = () => {
       />
 
       {/* Controls bar */}
-      <div className="px-2 py-2.5 sm:px-3 sm:py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-border dark:border-white/8 space-y-2.5">
+      <div className="px-3 py-2.5 sm:px-3 sm:py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-border dark:border-white/8 space-y-2 sm:space-y-2.5">
         <PlayerSettingsBar />
 
         {showPlayerControls && (

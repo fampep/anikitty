@@ -721,8 +721,35 @@ html.density-compact .site-page {
 
 @media (max-width: 640px) {
   .art-kitty-player {
-    --kitty-overlay-bottom: 64px;
-    --kitty-overlay-stacked: 120px;
+    --kitty-overlay-bottom: 52px;
+    --kitty-overlay-stacked: 100px;
+    --art-bottom-height: 44px;
+    --art-bottom-offset: 6px;
+    --art-bottom-gap: 6px;
+    --art-control-height: 32px;
+    --art-control-icon-size: 18px;
+    --art-padding: 8px;
+    --art-subtitle-font-size: clamp(15px, 4vw, 18px);
+    --art-subtitle-bottom: 52px;
+    --art-progress-top-gap: 4px;
+  }
+
+  .art-kitty-player .art-control-pip,
+  .art-kitty-player .art-control-screenshot,
+  .art-kitty-player .art-control-aspectRatio,
+  .art-kitty-player .art-control-playbackRate {
+    display: none !important;
+  }
+
+  .art-kitty-player .art-controls-left,
+  .art-kitty-player .art-controls-right {
+    gap: 2px !important;
+  }
+
+  .art-kitty-player .art-control-time {
+    font-size: 10px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
   }
 
   .kitty-overlay--base,

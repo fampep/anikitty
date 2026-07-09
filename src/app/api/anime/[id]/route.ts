@@ -1,6 +1,5 @@
 import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/providers/anikoto-availability";
-import { getStoredAnimeDetail, storeAnimeDetail } from "@/lib/anime/detail-cache-store";
 
 export const revalidate = 3600;
 
@@ -112,11 +111,6 @@ export async function GET(
   };
 
   try {
-    const cached = await getStoredAnimeDetail(numId);
-    if (cached && !cached.stale) {
-      return Response.json({ data: cached.data }, { headers: cacheHeaders });
-    }
-
     let raw: { Media?: any };
     try {
       raw = await queryAniList(DETAIL_QUERY, { id: numId });
@@ -263,24 +257,16 @@ export async function GET(
       console.error("Audio enrich failed:", enrichErr);
     }
 
-    const responseData = {
-      ...data,
-      mostPopularAnimes,
-      relatedAnimes,
-      recommendedAnimes,
-    };
-
-    void storeAnimeDetail(numId, responseData as Record<string, unknown>, m.status);
-
     return Response.json({
-      data: responseData,
+      data: {
+        ...data,
+        mostPopularAnimes,
+        relatedAnimes,
+        recommendedAnimes,
+      },
     }, { headers: cacheHeaders });
   } catch (err) {
     console.error("AniList details error:", err);
-    const cached = await getStoredAnimeDetail(numId);
-    if (cached?.data) {
-      return Response.json({ data: cached.data }, { headers: cacheHeaders });
-    }
     const message = err instanceof Error ? err.message : "Failed to fetch anime details";
     return Response.json({ error: message }, { status: 500 });
   }

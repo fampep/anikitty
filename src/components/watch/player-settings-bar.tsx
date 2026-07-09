@@ -84,17 +84,17 @@ export default function PlayerSettingsBar() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem("kitty-watch-mobile-defaults-v3")) return;
+    if (localStorage.getItem("kitty-watch-mobile-defaults-v4")) return;
     if (!window.matchMedia("(max-width: 1023px)").matches) return;
     setPlayerSettingsOpen(false);
-    setShowPlayerControls(true);
+    setShowPlayerControls(false);
     setSimpleProviderPicker(true);
-    localStorage.setItem("kitty-watch-mobile-defaults-v3", "1");
+    localStorage.setItem("kitty-watch-mobile-defaults-v4", "1");
   }, [setPlayerSettingsOpen, setShowPlayerControls, setSimpleProviderPicker]);
 
   return (
     <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border dark:border-white/[0.06]">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 border-b border-border dark:border-white/[0.06]">
         <button
           type="button"
           onClick={() => setPlayerSettingsOpen(!playerSettingsOpen)}
@@ -146,7 +146,7 @@ export default function PlayerSettingsBar() {
           }
         >
           <Server className="w-3 h-3" />
-          <span>
+          <span className="hidden sm:inline">
             {showPlayerControls
               ? t("watch.playerSettings.hideProvidersShort")
               : t("watch.playerSettings.showProvidersShort")}

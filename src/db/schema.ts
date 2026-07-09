@@ -447,39 +447,6 @@ export const accountDeletionRequests = pgTable(
   }),
 );
 
-export type StoredEpisodeItem = {
-  title: string;
-  episodeId: string;
-  number: number;
-  isFiller: boolean;
-  image: string | null;
-  overview: string | null;
-  airDate: string | null;
-};
-
-/** Resolved episode list + upstream image/source blobs (ani.zip, TMDB, TVDB, MAL filler). */
-export const animeEpisodeCache = pgTable("anime_episode_cache", {
-  anilistId: integer("anilist_id").primaryKey(),
-  malId: integer("mal_id"),
-  status: varchar("status", { length: 30 }),
-  airedCount: integer("aired_count").notNull().default(0),
-  totalEpisodes: integer("total_episodes").notNull().default(0),
-  episodesJson: jsonb("episodes_json").$type<StoredEpisodeItem[]>().notNull().default([]),
-  sourcesJson: jsonb("sources_json").$type<Record<string, unknown> | null>(),
-  fillerJson: jsonb("filler_json").$type<Record<string, { filler: boolean; recap: boolean }> | null>(),
-  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-/** Cached /api/anime/[id] payload — avoids repeat AniList + enrichment calls. */
-export const animeDetailCache = pgTable("anime_detail_cache", {
-  anilistId: integer("anilist_id").primaryKey(),
-  status: varchar("status", { length: 30 }),
-  detailJson: jsonb("detail_json").$type<Record<string, unknown>>().notNull(),
-  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 // Cached sub/dub episode counts from Anikoto API (keyed by AniList ID).
 export const animeAudioAvailability = pgTable("anime_audio_availability", {
   anilistId: integer("anilist_id").primaryKey(),

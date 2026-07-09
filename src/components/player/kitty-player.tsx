@@ -1229,8 +1229,8 @@ export default function KittyPlayer({
     <div
       ref={wrapperRef}
       className={cn(
-        "art-kitty-player relative w-full overflow-hidden rounded-xl bg-[#030303]",
-        "shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.08]",
+        "art-kitty-player relative w-full min-w-0 overflow-hidden rounded-none sm:rounded-xl bg-[#030303]",
+        "shadow-none sm:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-0 sm:ring-1 ring-white/[0.08]",
         orientClass,
       )}
       style={orientClass ? undefined : { aspectRatio: "16/9" }}

@@ -134,7 +134,7 @@ export default function WatchSimpleProviderRow({
         className,
       )}
     >
-      <div className="flex items-stretch gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-stretch gap-2.5 sm:gap-2">
         {/* Audio */}
         <div className="min-w-0 flex-1">
           <FieldLabel icon={<Headphones className="w-3 h-3" />}>{t("watch.audio")}</FieldLabel>
