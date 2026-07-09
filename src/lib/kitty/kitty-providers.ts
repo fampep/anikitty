@@ -1,20 +1,17 @@
 import {
-  MEGAPLAY_FAMILY_PROVIDERS,
+  LEGACY_MEGAPLAY_PROVIDER_IDS,
   MEGAPLAY_PROVIDER_CONFIG,
+  MEGAPLAY_PROVIDER_ID,
 } from "@/lib/kitty/megaplay-providers";
 
 export const KITTY_PROVIDERS = [
   "Miruro",
+  "MegaPlay",
   "Animex",
   "Animo",
-  "AnimeSogo",
-  "Anix",
-  "HiAnime",
   "AniWatch",
   "AniSnatch",
   "Lunar",
-  "Animepahe",
-  "Anikoto",
   "Anitaku",
   "Anikage",
   "AnimeHeaven",
@@ -104,40 +101,15 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "4animo.xyz · HD-1 / HD-2 / HD-3 · SUB · DUB · /subs",
   },
   {
-    id: "AnimeSogo",
-    label: "AnimeSogo",
+    id: "MegaPlay",
+    label: "MegaPlay",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
-    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: MEGAPLAY_PROVIDER_CONFIG.AnimeSogo.hint,
-  },
-  {
-    id: "Anix",
-    label: "Anix",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: MEGAPLAY_PROVIDER_CONFIG.Anix.hint,
-  },
-  {
-    id: "HiAnime",
-    label: "HiAnime",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: MEGAPLAY_PROVIDER_CONFIG.HiAnime.hint,
+    hint: MEGAPLAY_PROVIDER_CONFIG.hint,
   },
   {
     id: "AniWatch",
@@ -194,30 +166,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     supportsMulti: true,
     hint: "mkissa.to · AllAnime API · audio selects mode · subs vary by mirror",
-  },
-  {
-    id: "Animepahe",
-    label: "Animepahe",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: MEGAPLAY_PROVIDER_CONFIG.Animepahe.hint,
-  },
-  {
-    id: "Anikoto",
-    label: "Anikoto",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: MEGAPLAY_PROVIDER_CONFIG.Anikoto.hint,
   },
   {
     id: "AnimeHub",
@@ -451,11 +399,11 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
-  "Anix",
-  "HiAnime",
-  "Animepahe",
+  "MegaPlay",
   "Animex",
   "Animetsu",
+  "AniWatch",
+  "Animo",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -471,20 +419,22 @@ const DEPRECATED_PROVIDERS = new Set([
   "PimpAnime",
 ]);
 
-/** MegaPlay family — Anikoto, AnimeSogo, Anix, HiAnime, Animepahe (KittyAPI shared provider). */
-export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>(
-  MEGAPLAY_FAMILY_PROVIDERS as unknown as KittyProvider[],
-);
+/** KittyAPI unified MegaPlay provider (Anikoto API catalog + megaplay.buzz streams). */
+export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([MEGAPLAY_PROVIDER_ID]);
+
+const LEGACY_MEGAPLAY_PROVIDERS = new Set<string>(LEGACY_MEGAPLAY_PROVIDER_IDS);
 
 export {
-  MEGAPLAY_FAMILY_PROVIDERS,
+  LEGACY_MEGAPLAY_PROVIDER_IDS,
   MEGAPLAY_PROVIDER_CONFIG,
-  isMegaplayFamilyProvider,
+  MEGAPLAY_PROVIDER_ID,
+  isLegacyMegaplayProvider,
+  isMegaplayProvider,
 } from "@/lib/kitty/megaplay-providers";
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
-  ...MEGAPLAY_FAMILY_PROVIDERS,
+  MEGAPLAY_PROVIDER_ID,
   "Animo",
   "Miruro",
   "Animex",
@@ -520,6 +470,7 @@ export function isKittyProvider(value: string): value is KittyProvider {
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   if (value && isKittyProvider(value)) return value;
+  if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
   if (value && DEPRECATED_PROVIDERS.has(value)) return DEFAULT_KITTY_PROVIDER;
   return DEFAULT_KITTY_PROVIDER;
 }

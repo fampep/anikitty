@@ -60,7 +60,7 @@ export default function ProviderSelect({
             ? "h-8 min-w-[9.5rem] text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/[0.07]"
             : "h-9 min-w-[11rem] text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:bg-white/[0.07]",
           value === "Miruro" && "border-violet-500/25 bg-violet-500/[0.06] text-violet-100/85",
-          value === "AnimeSogo" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
+          value === "MegaPlay" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
           value === "Animo" && "border-cyan-500/25 bg-cyan-500/[0.06] text-cyan-100/85",
           className,
         )}
