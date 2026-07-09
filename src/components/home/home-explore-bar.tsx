@@ -20,10 +20,10 @@ export default function HomeExploreBar() {
       <div className="site-panel flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-3.5">
         <Link
           href={ROUTES.SEARCH}
-          className="group flex flex-1 items-center gap-3 min-w-0 px-3 py-2.5 rounded-xl border border-border dark:border-white/10 bg-black/20 hover:border-border dark:border-white/18 hover:bg-muted/40 dark:bg-white/[0.03] transition-all"
+          className="group flex flex-1 items-center gap-3 min-w-0 px-3 py-2.5 rounded-xl border border-border dark:border-white/10 bg-black/20 hover:border-border dark:hover:border-white/18 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-all"
         >
           <Search className="w-4 h-4 shrink-0 text-muted-foreground dark:text-white/30 group-hover:text-violet-300/80 transition-colors" />
-          <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-muted-foreground dark:text-white/55 truncate transition-colors">
+          <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-foreground dark:group-hover:text-white/55 truncate transition-colors">
             {t("home.exploreSearch", { count: catalogLabel })}
           </span>
         </Link>

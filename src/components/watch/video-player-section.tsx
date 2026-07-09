@@ -137,8 +137,9 @@ const VideoPlayerSection = () => {
 
   useEffect(() => {
     if (!proxyPingReady || kittyProxyManual || !fastestProxyId) return;
+    if (kittyProxyNode === fastestProxyId) return;
     applyAutoKittyProxyNode(fastestProxyId);
-  }, [proxyPingReady, kittyProxyManual, fastestProxyId, applyAutoKittyProxyNode]);
+  }, [proxyPingReady, kittyProxyManual, fastestProxyId, kittyProxyNode, applyAutoKittyProxyNode]);
   const compactProviderPicker = simpleProviderPicker;
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
@@ -800,7 +801,7 @@ const VideoPlayerSection = () => {
     episodePlayable;
 
   const hasStreamFile = Boolean(streamData?.file);
-  const streamStale = Boolean(isPlaceholderData);
+  const streamStale = Boolean(isPlaceholderData && isFetching);
   const streamReady = hasStreamFile && !streamStale;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
 

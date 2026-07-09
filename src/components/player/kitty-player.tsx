@@ -320,6 +320,7 @@ export default function KittyPlayer({
   const autoPlay = useSettingsStore((s) => s.autoPlay);
   const autoSkipRef = useRef(useSettingsStore.getState().autoSkipIntro);
   const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
+  const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
 
   useEffect(() => {
@@ -471,7 +472,7 @@ export default function KittyPlayer({
     onNextEpisodeRef.current?.();
   }, []);
 
-  const proxiedSrc = buildKittyHlsUrl(src, headers);
+  const proxiedSrc = buildKittyHlsUrl(src, headers, kittyProxyNode);
 
   const reportW2g = useCallback((isPlaying: boolean, time: number) => {
     const cfg = w2gRef.current;

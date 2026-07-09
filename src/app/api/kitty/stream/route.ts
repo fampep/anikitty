@@ -33,7 +33,8 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { handleKittyApiRequest } from "@/lib/kitty/kitty-api-server";
+import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
+import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -175,6 +176,11 @@ export async function GET(req: Request) {
         : null;
 
   async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
+    const nodeId = getKittyRequestNodeId();
+    if (data.file) {
+      data.file = resolveKittyStreamUrl(data.file, nodeId);
+    }
+
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
         if (!t.file && t.url) t.file = t.url;

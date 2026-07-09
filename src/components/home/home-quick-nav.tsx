@@ -8,10 +8,10 @@ import { useT } from "@/providers/i18n-provider";
 
 const LINKS = [
   { href: `${ROUTES.HOME}#continue`, icon: History, key: "continue" },
-  { href: ROUTES.NEW, icon: Tv2, key: "latest" },
-  { href: ROUTES.TRENDING, icon: Flame, key: "trending" },
-  { href: ROUTES.SCHEDULE, icon: CalendarDays, key: "today" },
-  { href: ROUTES.COMMUNITY, icon: MessageSquare, key: "comments" },
+  { href: `${ROUTES.HOME}#new-episodes`, icon: Tv2, key: "latest" },
+  { href: `${ROUTES.HOME}#trending`, icon: Flame, key: "trending" },
+  { href: `${ROUTES.HOME}#schedule`, icon: CalendarDays, key: "today" },
+  { href: `${ROUTES.HOME}#community`, icon: MessageSquare, key: "comments" },
 ] as const;
 
 export default function HomeQuickNav() {

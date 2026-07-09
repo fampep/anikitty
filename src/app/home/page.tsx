@@ -26,6 +26,12 @@ const HomeTodayPanel = dynamic(() => import("@/components/home/home-today-panel"
 const HomeGenreBar = dynamic(() => import("@/components/home/home-genre-bar"));
 const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
 
+const SCROLL_MT = "scroll-mt-[calc(var(--nav-height)+1rem)]";
+
+function FeedSpacer() {
+  return <div className="h-1 sm:h-2" aria-hidden />;
+}
+
 export default function Home() {
   const t = useT();
   const queryClient = useQueryClient();
@@ -38,8 +44,6 @@ export default function Home() {
     isFetching,
   } = useGetHomeCriticalData();
 
-  // Load the discovery batch (popular / upcoming / favorites) once the
-  // critical data is in, so the home page has more to browse.
   const [discoveryEnabled, setDiscoveryEnabled] = useState(false);
   const { data: discovery, isLoading: discoveryLoading } = useGetHomeDiscoveryData(discoveryEnabled);
   useEffect(() => {
@@ -59,7 +63,7 @@ export default function Home() {
         <button
           onClick={handleRetry}
           disabled={isFetching}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
           {t("home.tryAgain")}
@@ -72,44 +76,33 @@ export default function Home() {
 
   return (
     <div className="flex flex-col pb-16 home-feed overflow-x-hidden">
+      {/* Spotlight */}
       <HeroSection
         spotlightAnime={critical?.spotlightAnimes as SpotlightAnime[]}
         isDataLoading={isLoading}
       />
 
-      <HomeQuickNav />
       <HomeExploreBar />
+      <HomeQuickNav />
 
-      <div id="continue" className="scroll-mt-[calc(var(--nav-height)+1rem)]">
+      {/* Personal — resume & picks */}
+      <div id="continue" className={SCROLL_MT}>
         <LazyMount minHeight={200}>
           <ContinueWatching />
         </LazyMount>
       </div>
 
       <LazyMount minHeight={200}>
-        <HomeRecommendations />
-      </LazyMount>
-
-      <LazyMount minHeight={120}>
-        <HomeDonationSlim />
-      </LazyMount>
-
-      <LazyMount minHeight={200}>
         <RecentlyViewed />
       </LazyMount>
 
-      <LazyMount minHeight={280}>
-        <AnimeSections
-          sectionId="trending-teaser"
-          title={t("home.trendingNow")}
-          icon={<Flame className="w-4 h-4" />}
-          trendingAnime={trendingTeaser ?? []}
-          loading={isLoading}
-          layout="row"
-          seeAllHref={ROUTES.TRENDING}
-        />
+      <LazyMount minHeight={200}>
+        <HomeRecommendations />
       </LazyMount>
 
+      <FeedSpacer />
+
+      {/* Fresh — new eps & what's hot */}
       <LazyMount minHeight={280}>
         <AnimeSections
           sectionId="new-episodes"
@@ -121,12 +114,16 @@ export default function Home() {
         />
       </LazyMount>
 
-      <LazyMount minHeight={200}>
-        <HomeTodayPanel />
-      </LazyMount>
-
-      <LazyMount>
-        <LatestComments />
+      <LazyMount minHeight={280}>
+        <AnimeSections
+          sectionId="trending"
+          title={t("home.trendingNow")}
+          icon={<Flame className="w-4 h-4" />}
+          trendingAnime={trendingTeaser ?? []}
+          loading={isLoading}
+          layout="row"
+          seeAllHref={ROUTES.TRENDING}
+        />
       </LazyMount>
 
       <LazyMount minHeight={280}>
@@ -140,6 +137,24 @@ export default function Home() {
         />
       </LazyMount>
 
+      <FeedSpacer />
+
+      {/* Schedule & community */}
+      <div id="schedule" className={SCROLL_MT}>
+        <LazyMount minHeight={200}>
+          <HomeTodayPanel />
+        </LazyMount>
+      </div>
+
+      <div id="community" className={SCROLL_MT}>
+        <LazyMount>
+          <LatestComments />
+        </LazyMount>
+      </div>
+
+      <FeedSpacer />
+
+      {/* Discovery — deeper catalog browse */}
       <LazyMount minHeight={280}>
         <AnimeSections
           sectionId="most-popular"
@@ -175,10 +190,12 @@ export default function Home() {
         />
       </LazyMount>
 
-      {/* No reserved minHeight on the last section so it only grows into
-          view — a collapsing placeholder here would snap the scroll up. */}
       <LazyMount>
         <HomeGenreBar />
+      </LazyMount>
+
+      <LazyMount minHeight={80}>
+        <HomeDonationSlim />
       </LazyMount>
     </div>
   );

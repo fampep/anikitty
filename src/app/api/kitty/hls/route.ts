@@ -1,4 +1,5 @@
 import { isAllowedMediaProxyUrl } from "@/lib/security/security";
+import { isKittyApiHost, kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
 
 function isM3u8ByUrl(url: string): boolean {
   return url.endsWith(".m3u8") || url.includes(".m3u8?") || url.includes(".m3u8&");
@@ -61,7 +62,12 @@ function rewriteManifest(body: string, manifestUrl: string, referer: string, ori
     .join("\n");
 }
 
-function upstreamHeaders(referer: string, origin: string, range?: string | null): HeadersInit {
+function upstreamHeaders(
+  referer: string,
+  origin: string,
+  range: string | null | undefined,
+  targetUrl: string,
+): HeadersInit {
   const headers: Record<string, string> = {
     Accept: "*/*",
     "User-Agent":
@@ -72,6 +78,18 @@ function upstreamHeaders(referer: string, origin: string, range?: string | null)
   if (safeReferer) headers.Referer = safeReferer;
   if (safeOrigin) headers.Origin = safeOrigin;
   if (range) headers.Range = range.replace(/[\r\n\0]/g, "").trim().slice(0, 128);
+
+  try {
+    if (isKittyApiHost(new URL(targetUrl).hostname)) {
+      const auth = kittyStreamHeaders() as Record<string, string>;
+      for (const [name, value] of Object.entries(auth)) {
+        if (value && !headers[name]) headers[name] = value;
+      }
+    }
+  } catch {
+    /* ignore malformed target */
+  }
+
   return headers;
 }
 
@@ -117,7 +135,7 @@ export async function GET(req: Request) {
   try {
     upstream = await fetch(decoded, {
       cache: "no-store",
-      headers: upstreamHeaders(referer, origin, range),
+      headers: upstreamHeaders(referer, origin, range, decoded),
       signal: AbortSignal.timeout(30_000),
     });
   } catch {

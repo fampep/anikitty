@@ -54,6 +54,42 @@ export function getKittyApiBase(nodeId?: KittyApiNodeId): string {
   return getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_ID);
 }
 
+/** True when the host belongs to a configured KittyAPI cluster node. */
+export function isKittyApiHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  if (/^kittyapi\.[\d-]+\.sslip\.io$/i.test(lower)) return true;
+  return KITTY_API_NODES.some((node) => node.host.toLowerCase() === lower);
+}
+
+/** Align stream URLs with the node base scheme (API may return http while base is https). */
+export function normalizeKittyApiUrl(url: string, nodeId?: KittyApiNodeId): string {
+  const kittyBase = getKittyApiBase(nodeId);
+  if (!url.startsWith("http://") || !kittyBase.startsWith("https://")) return url;
+
+  try {
+    const parsed = new URL(url);
+    if (isKittyApiHost(parsed.hostname)) {
+      parsed.protocol = "https:";
+      return parsed.toString();
+    }
+  } catch {
+    /* keep original */
+  }
+  return url;
+}
+
+/** Resolve KittyAPI relative paths (e.g. `/proxy?token=…`) to absolute URLs on the active node. */
+export function resolveKittyStreamUrl(file: string, nodeId?: KittyApiNodeId): string {
+  const trimmed = file.trim();
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("/")) {
+    return normalizeKittyApiUrl(`${getKittyApiBase(nodeId)}${trimmed}`, nodeId);
+  }
+
+  return normalizeKittyApiUrl(trimmed, nodeId);
+}
+
 export function kittyApiPath(path: string, base?: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${base ?? getKittyApiBase()}${normalized}`;
