@@ -723,6 +723,31 @@ export const userFollows = pgTable(
   }),
 );
 
+/**
+ * Symmetric friendships. One row per pair: the requester sends, the addressee
+ * accepts. `status` is "pending" until accepted; unfriend/decline deletes it.
+ */
+export const userFriends = pgTable(
+  "user_friends",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    requesterId: uuid("requester_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    addresseeId: uuid("addressee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    createdAt: timestamp("created_at").defaultNow(),
+    respondedAt: timestamp("responded_at"),
+  },
+  (t) => ({
+    pair: unique("user_friends_pair").on(t.requesterId, t.addresseeId),
+    addresseeIdx: index("user_friends_addressee_idx").on(t.addresseeId, t.status),
+    requesterIdx: index("user_friends_requester_idx").on(t.requesterId, t.status),
+  }),
+);
+
 // blockerId has blocked blockedId — hides their comments and blocks contact.
 export const userBlocks = pgTable(
   "user_blocks",

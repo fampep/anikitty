@@ -39,6 +39,9 @@ import {
   Settings,
   UserPlus,
   UserCheck,
+  UserMinus,
+  Check,
+  X,
   Ban,
   Trophy,
   Star,
@@ -59,6 +62,7 @@ import LevelProgressCard from "@/components/profile/level-progress-card";
 import AnimeLists from "@/components/profile/anime-lists";
 import AchievementsSection from "@/components/profile/achievements-section";
 import FollowListModal, { type FollowListType } from "@/components/profile/follow-list-modal";
+import type { FriendStatus } from "@/app/api/users/[username]/friend/route";
 import { useT } from "@/providers/i18n-provider";
 import { useI18n } from "@/providers/i18n-provider";
 import { useKittycoins } from "@/hooks/use-kittycoins";
@@ -348,6 +352,8 @@ function ProfilePage() {
   const [follow, setFollow] = useState<FollowSummary | null>(null);
   const [followBusy, setFollowBusy] = useState(false);
   const [followListType, setFollowListType] = useState<FollowListType | null>(null);
+  const [friendStatus, setFriendStatus] = useState<FriendStatus>("none");
+  const [friendBusy, setFriendBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -409,6 +415,49 @@ function ProfilePage() {
       setBlockBusy(false);
     }
   }, [auth, profile, blocked, blockBusy, t]);
+
+  // Load the friendship state between the viewer and this profile.
+  const isOwnProfile = !!auth && auth.username === profileUsername;
+  useEffect(() => {
+    if (!auth || isOwnProfile) {
+      setFriendStatus("none");
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/users/${encodeURIComponent(profileUsername)}/friend`, withAuth())
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.status) setFriendStatus(data.status as FriendStatus);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [auth, isOwnProfile, profileUsername]);
+
+  /** POST adds/accepts, DELETE unfriends/cancels/declines. */
+  const changeFriend = useCallback(
+    async (method: "POST" | "DELETE") => {
+      if (!auth || friendBusy) return;
+      setFriendBusy(true);
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(profileUsername)}/friend`,
+          withAuth({ method }),
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error ?? "Failed");
+        setFriendStatus((data.status as FriendStatus) ?? "none");
+        if (data.status === "friends") toast.success(t("profile.friendNowFriends"));
+        else if (data.status === "outgoing") toast.success(t("profile.friendRequestSent"));
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("profile.friendFailed"));
+      } finally {
+        setFriendBusy(false);
+      }
+    },
+    [auth, friendBusy, profileUsername, t],
+  );
 
   const toggleFollow = useCallback(async () => {
     if (!auth || !profile || followBusy) return;
@@ -612,6 +661,47 @@ function ProfilePage() {
                       onClick={toggleFollow}
                       disabled={followBusy}
                       variant={follow?.isFollowing ? "default" : "primary"}
+                    />
+                  )}
+                  {auth && !blocked && friendStatus === "none" && (
+                    <RailButton
+                      icon={UserPlus}
+                      label={t("profile.addFriend")}
+                      onClick={() => changeFriend("POST")}
+                      disabled={friendBusy}
+                    />
+                  )}
+                  {auth && !blocked && friendStatus === "outgoing" && (
+                    <RailButton
+                      icon={Clock}
+                      label={t("profile.friendRequested")}
+                      onClick={() => changeFriend("DELETE")}
+                      disabled={friendBusy}
+                    />
+                  )}
+                  {auth && !blocked && friendStatus === "incoming" && (
+                    <>
+                      <RailButton
+                        icon={Check}
+                        label={t("profile.acceptFriend")}
+                        onClick={() => changeFriend("POST")}
+                        disabled={friendBusy}
+                        variant="primary"
+                      />
+                      <RailButton
+                        icon={X}
+                        label={t("profile.declineFriend")}
+                        onClick={() => changeFriend("DELETE")}
+                        disabled={friendBusy}
+                      />
+                    </>
+                  )}
+                  {auth && !blocked && friendStatus === "friends" && (
+                    <RailButton
+                      icon={UserMinus}
+                      label={t("profile.unfriend")}
+                      onClick={() => changeFriend("DELETE")}
+                      disabled={friendBusy}
                     />
                   )}
                   {auth && !blocked && (

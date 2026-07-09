@@ -487,6 +487,17 @@ export async function migrateDb() {
       )`,
       `CREATE INDEX IF NOT EXISTS user_follows_following_idx ON user_follows (following_id)`,
       `CREATE INDEX IF NOT EXISTS user_follows_follower_idx ON user_follows (follower_id)`,
+      `CREATE TABLE IF NOT EXISTS user_friends (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        addressee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status VARCHAR(16) NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT NOW(),
+        responded_at TIMESTAMP,
+        CONSTRAINT user_friends_pair UNIQUE (requester_id, addressee_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS user_friends_addressee_idx ON user_friends (addressee_id, status)`,
+      `CREATE INDEX IF NOT EXISTS user_friends_requester_idx ON user_friends (requester_id, status)`,
       `CREATE TABLE IF NOT EXISTS user_blocks (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         blocker_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
