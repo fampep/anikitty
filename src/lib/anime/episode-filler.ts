@@ -57,10 +57,15 @@ async function fetchMalEpisodeFlagsFromApi(
     if (res.status === 403 || res.status === 404) return null;
     if (!res.ok) break;
 
-    const json = (await res.json()) as {
+    let json: {
       data?: Array<Record<string, unknown>>;
       paging?: { next?: string | null };
     };
+    try {
+      json = (await res.json()) as typeof json;
+    } catch {
+      break;
+    }
 
     const batch = json.data ?? [];
     if (!batch.length) break;

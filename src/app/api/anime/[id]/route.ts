@@ -1,5 +1,8 @@
 import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/providers/anikoto-availability";
+import { getStoredAnimeDetail, storeAnimeDetail } from "@/lib/anime/detail-cache-store";
+
+export const revalidate = 3600;
 
 const DETAIL_QUERY = `
   query ($id: Int) {
@@ -51,10 +54,39 @@ const DETAIL_QUERY = `
   }
 `;
 
+const MINIMAL_DETAIL_QUERY = `
+  query ($id: Int) {
+    Media(id: $id, type: ANIME) {
+      id
+      idMal
+      title { english romaji native }
+      description(asHtml: false)
+      coverImage { extraLarge large }
+      bannerImage
+      episodes
+      format
+      status
+      duration
+      averageScore
+      genres
+      synonyms
+      season
+      seasonYear
+      source
+      startDate { year month day }
+      endDate { year month day }
+      nextAiringEpisode { episode }
+      studios { nodes { name isAnimationStudio } }
+      trailer { id site }
+    }
+  }
+`;
+
 function mapAnime(node: any) {
+  if (!node?.id) return null;
   return {
     id: String(node.id),
-    name: toTitle(node.title),
+    name: toTitle(node.title ?? {}),
     jname: node.title?.romaji ?? "",
     poster: node.coverImage?.extraLarge ?? "",
     episodes: { sub: node.episodes ?? 0, dub: 0 },
@@ -75,8 +107,23 @@ export async function GET(
     return Response.json({ error: "Invalid anime id" }, { status: 400 });
   }
 
+  const cacheHeaders = {
+    "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+  };
+
   try {
-    const raw = await queryAniList(DETAIL_QUERY, { id: numId });
+    const cached = await getStoredAnimeDetail(numId);
+    if (cached && !cached.stale) {
+      return Response.json({ data: cached.data }, { headers: cacheHeaders });
+    }
+
+    let raw: { Media?: any };
+    try {
+      raw = await queryAniList(DETAIL_QUERY, { id: numId });
+    } catch (primaryErr) {
+      console.error("Anime detail primary query failed:", primaryErr);
+      raw = await queryAniList(MINIMAL_DETAIL_QUERY, { id: numId });
+    }
     const m = raw.Media;
     if (!m) return Response.json({ error: "Not found" }, { status: 404 });
 
@@ -149,9 +196,9 @@ export async function GET(
             : [],
           charactersVoiceActors: (m.characters?.edges ?? []).map((edge: any) => ({
             character: {
-              id: String(edge.node.id),
-              poster: edge.node.image?.large ?? "",
-              name: edge.node.name.full,
+              id: String(edge.node?.id ?? ""),
+              poster: edge.node?.image?.large ?? "",
+              name: edge.node?.name?.full ?? "Unknown",
               cast: edge.role === "MAIN" ? "Main" : "Supporting",
             },
             voiceActor: {
@@ -178,15 +225,18 @@ export async function GET(
       },
       seasons: [],
       mostPopularAnimes: (m.relations?.edges ?? [])
-        .filter((e: any) => e.node.type === "ANIME")
+        .filter((e: any) => e?.node?.type === "ANIME")
         .slice(0, 5)
-        .map((e: any) => mapAnime(e.node)),
+        .map((e: any) => mapAnime(e.node))
+        .filter(Boolean),
       relatedAnimes: (m.relations?.edges ?? [])
-        .filter((e: any) => e.node.type === "ANIME")
-        .map((e: any) => mapAnime(e.node)),
+        .filter((e: any) => e?.node?.type === "ANIME")
+        .map((e: any) => mapAnime(e.node))
+        .filter(Boolean),
       recommendedAnimes: (m.recommendations?.nodes ?? [])
-        .filter((n: any) => n.mediaRecommendation)
-        .map((n: any) => mapAnime(n.mediaRecommendation)),
+        .filter((n: any) => n?.mediaRecommendation)
+        .map((n: any) => mapAnime(n.mediaRecommendation))
+        .filter(Boolean),
     };
 
     let mostPopularAnimes = data.mostPopularAnimes;
@@ -213,16 +263,24 @@ export async function GET(
       console.error("Audio enrich failed:", enrichErr);
     }
 
+    const responseData = {
+      ...data,
+      mostPopularAnimes,
+      relatedAnimes,
+      recommendedAnimes,
+    };
+
+    void storeAnimeDetail(numId, responseData as Record<string, unknown>, m.status);
+
     return Response.json({
-      data: {
-        ...data,
-        mostPopularAnimes,
-        relatedAnimes,
-        recommendedAnimes,
-      },
-    });
+      data: responseData,
+    }, { headers: cacheHeaders });
   } catch (err) {
     console.error("AniList details error:", err);
+    const cached = await getStoredAnimeDetail(numId);
+    if (cached?.data) {
+      return Response.json({ data: cached.data }, { headers: cacheHeaders });
+    }
     const message = err instanceof Error ? err.message : "Failed to fetch anime details";
     return Response.json({ error: message }, { status: 500 });
   }

@@ -121,7 +121,7 @@ const Layout = (props: Props) => {
     }
   };
 
-  const { data: episodes, isLoading: episodeLoading } = useGetAllEpisodes(animeId as string);
+  const { data: episodes, isLoading: episodeLoading, isError: episodesError, isFetching: episodesFetching, refetch: refetchEpisodes } = useGetAllEpisodes(animeId as string);
 
   // Auto-pick episode when URL has anime but no episode (continue watching → first aired)
   useEffect(() => {
@@ -267,27 +267,81 @@ const Layout = (props: Props) => {
     document.title = `${name}${epLabel} | AniKitty`;
   }, [anime?.anime.info?.name, currentEpisode?.number, t]);
 
-  if (isError && !anime) {
+  if (isError && !anime && episodesError && !episodes) {
     return (
       <QueryRetryPanel
         message={t("anime.loadError")}
-        onRetry={() => void refetch()}
-        isRetrying={isFetching}
+        onRetry={() => {
+          void refetch();
+          void refetchEpisodes();
+        }}
+        isRetrying={isFetching || episodesFetching}
         backHref={ROUTES.HOME}
       />
     );
   }
 
-  if (isLoading) return <WatchLayoutSkeleton />;
+  if (isError && !anime && !episodeLoading && !episodes?.episodes?.length) {
+    return (
+      <QueryRetryPanel
+        message={t("anime.loadError")}
+        onRetry={() => {
+          void refetch();
+          void refetchEpisodes();
+        }}
+        isRetrying={isFetching || episodesFetching}
+        backHref={ROUTES.HOME}
+      />
+    );
+  }
 
-  const info = anime?.anime.info;
-  const moreInfo = anime?.anime.moreInfo;
+  if (isLoading && !episodes) return <WatchLayoutSkeleton />;
+
+  const fallbackInfo =
+    animeId && episodes?.episodes?.length
+      ? {
+          id: animeId,
+          anilistId: parseInt(animeId, 10) || 0,
+          malId: 0,
+          name: `Anime #${animeId}`,
+          poster: "",
+          banner: "",
+          description: "",
+          stats: {
+            rating: "N/A",
+            quality: "HD",
+            episodes: { sub: episodes.totalEpisodes, dub: 0 },
+            type: "TV",
+            duration: "N/A",
+          },
+          promotionalVideos: [],
+          charactersVoiceActors: [],
+        }
+      : null;
+
+  const info = anime?.anime.info ?? fallbackInfo;
+  const moreInfo = anime?.anime.moreInfo ?? {
+    japanese: "",
+    synonyms: "",
+    aired: "N/A",
+    premiered: "N/A",
+    duration: "N/A",
+    status: "Unknown",
+    malscore: "N/A",
+    source: null,
+    genres: [],
+    studios: "",
+    producers: [],
+  };
   if (!info) {
     return (
       <QueryRetryPanel
         message={t("anime.loadError")}
-        onRetry={() => void refetch()}
-        isRetrying={isFetching}
+        onRetry={() => {
+          void refetch();
+          void refetchEpisodes();
+        }}
+        isRetrying={isFetching || episodesFetching}
         backHref={ROUTES.HOME}
       />
     );
@@ -573,8 +627,8 @@ const Layout = (props: Props) => {
       <div className="mt-8 space-y-10">
         {hasRelated && (
           <section id="watch-tab-related" className="scroll-mt-24 space-y-8">
-            <AnimeCarousel title={t("common.alsoWatch")} anime={anime.relatedAnimes as IAnime[]} />
-            <AnimeCarousel title={t("common.recommended")} anime={anime.recommendedAnimes as IAnime[]} />
+            <AnimeCarousel title={t("common.alsoWatch")} anime={(anime?.relatedAnimes ?? []) as IAnime[]} />
+            <AnimeCarousel title={t("common.recommended")} anime={(anime?.recommendedAnimes ?? []) as IAnime[]} />
           </section>
         )}
       </div>
