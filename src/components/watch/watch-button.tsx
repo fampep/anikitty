@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { CirclePlay } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 
@@ -11,19 +11,27 @@ import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
 import { useGetLastEpisodeWatched } from "@/hooks/use-get-last-episode-watched";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import { useT } from "@/providers/i18n-provider";
+import { useProgressStore } from "@/store/progress-store";
 
 const WatchButton = () => {
   const t = useT();
   const pathName = usePathname();
   const animeId = pathName.split("/")[2];
+  const lastSaved = useProgressStore((s) => s.lastSaved);
+  const getProgress = useProgressStore((s) => s.getProgress);
 
   const { hasWatchedAnime } = useHasAnimeWatched(animeId);
   const latestEpisodeWatched = useGetLastEpisodeWatched(animeId);
   const { data: episodes, isLoading } = useGetAllEpisodes(animeId);
 
-  if (!isLoading && (episodes?.totalEpisodes ?? 0) === 0) {
-    return null;
-  }
+  const resumeTime = useMemo(() => {
+    if (!hasWatchedAnime || !latestEpisodeWatched) return undefined;
+    const progress = getProgress(animeId, latestEpisodeWatched);
+    if (!progress || progress.current <= 10) return undefined;
+    const pct = progress.duration > 0 ? progress.current / progress.duration : 0;
+    if (pct >= 0.95) return undefined;
+    return Math.floor(progress.current);
+  }, [animeId, getProgress, hasWatchedAnime, latestEpisodeWatched, lastSaved]);
 
   const resumeNumber = hasWatchedAnime
     ? episodes?.episodes?.find((e) => e.episodeId === latestEpisodeWatched)?.number
@@ -35,13 +43,22 @@ const WatchButton = () => {
       ? t("anime.continueEpisode", { n: resumeNumber })
       : t("home.continueWatching");
 
+  const watchHref = useMemo(() => {
+    const params = new URLSearchParams({ anime: animeId });
+    if (hasWatchedAnime && latestEpisodeWatched) {
+      params.set("episode", latestEpisodeWatched);
+      if (resumeTime != null) params.set("t", String(resumeTime));
+    }
+    return `${ROUTES.WATCH}?${params.toString()}`;
+  }, [animeId, hasWatchedAnime, latestEpisodeWatched, resumeTime]);
+
+  if (!isLoading && (episodes?.totalEpisodes ?? 0) === 0) {
+    return null;
+  }
+
   return (
     <ButtonLink
-      href={
-        !hasWatchedAnime
-          ? `${ROUTES.WATCH}?anime=${animeId}`
-          : `${ROUTES.WATCH}?anime=${animeId}&episode=${latestEpisodeWatched}`
-      }
+      href={watchHref}
       className="max-w-fit text-base px-5 py-2.5 font-semibold border-0 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all"
       LeftIcon={CirclePlay}
       classNames={{ leftIcon: "fill-white/20" }}

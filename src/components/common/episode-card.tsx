@@ -10,6 +10,8 @@ import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
 import { Captions, Check, Mic, Play } from "lucide-react";
 import Link from "next/link";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
+import { isEpisodePlayable } from "@/lib/anime/episode-availability";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   className?: string;
@@ -23,11 +25,39 @@ type Props = {
   activeStyle?: "default" | "play";
 };
 
+function EpisodeCardShell({
+  playable,
+  href,
+  children,
+  className,
+  title,
+}: {
+  playable: boolean;
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+}) {
+  if (!playable) {
+    return (
+      <div className={cn("cursor-not-allowed", className)} title={title} aria-disabled="true">
+        {children}
+      </div>
+    );
+  }
+  return (
+    <Link href={href} className={className} title={title}>
+      {children}
+    </Link>
+  );
+}
+
 const EpisodeCard = ({
   showCard = false,
   variant = "card",
   ...props
 }: Props) => {
+  const t = useT();
   const { selectedEpisode } = useAnimeStore();
   const { hasWatchedEpisode } = useHasAnimeWatched(
     props.animeId,
@@ -41,22 +71,26 @@ const EpisodeCard = ({
     props.episode.title.toLowerCase() !== `episode ${props.episode.number}`;
 
   const href = `${ROUTES.WATCH}?anime=${props.animeId}&episode=${props.episode.episodeId}`;
+  const playable = isEpisodePlayable(props.episode);
+  const unreleasedTitle = playable ? undefined : t("watch.notAiredYet");
 
   // ── Compact number grid cell ──────────────────────────────────────
   if (!showCard && variant === "card") {
     const playActive = isActive && props.activeStyle === "play";
 
     return (
-      <Link href={href}>
+      <EpisodeCardShell playable={playable} href={href} title={unreleasedTitle}>
         <div
           title={props.episode.isFiller ? `Episode ${props.episode.number} · Filler` : undefined}
           className={cn(
-            "relative aspect-square rounded-lg cursor-pointer w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-all",
+            "relative aspect-square rounded-lg w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-all",
+            playable ? "cursor-pointer" : "cursor-not-allowed opacity-45",
             playActive
               ? "bg-violet-600 ring-1 ring-violet-400/50 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)]"
               : isActive
                 ? "bg-muted dark:bg-white/15 ring-1 ring-white/30 text-white"
                 : "bg-accent dark:bg-white/[0.06] hover:bg-accent dark:bg-white/10 text-muted-foreground dark:text-white/60",
+            playable && !playActive && !isActive && "hover:bg-accent dark:hover:bg-white/10",
             !playActive && !isActive && props.episode.isFiller && "ring-1 ring-amber-500/25",
             hasWatchedEpisode && !isActive && "opacity-50",
           )}
@@ -73,7 +107,7 @@ const EpisodeCard = ({
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400/85 shadow-[0_0_4px_rgba(251,191,36,0.6)]" />
           )}
         </div>
-      </Link>
+      </EpisodeCardShell>
     );
   }
 
@@ -92,10 +126,11 @@ const EpisodeCard = ({
     const episodeImage = props.episode.image;
 
     return (
-      <Link href={href}>
+      <EpisodeCardShell playable={playable} href={href} title={unreleasedTitle}>
         <div
           className={cn(
-            "group rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border",
+            "group rounded-xl overflow-hidden transition-all duration-200 border",
+            playable ? "cursor-pointer" : "cursor-not-allowed opacity-50",
             isActive
               ? "border-primary/50 ring-1 ring-primary/20 dark:border-white/35 dark:ring-white/15"
               : props.episode.isFiller
@@ -127,11 +162,19 @@ const EpisodeCard = ({
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
 
             {/* Play button on hover */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-              <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-xl">
-                <Play className="w-3.5 h-3.5 text-black fill-black" />
+            {playable && (
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-xl">
+                  <Play className="w-3.5 h-3.5 text-black fill-black" />
+                </div>
               </div>
-            </div>
+            )}
+
+            {!playable && (
+              <span className="absolute top-1.5 left-1.5 text-[9px] font-bold font-mono text-sky-200/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
+                SOON
+              </span>
+            )}
 
             {/* Bottom-left: ep number + filler badge */}
             <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
@@ -191,10 +234,9 @@ const EpisodeCard = ({
             )}
           </div>
         </div>
-      </Link>
+      </EpisodeCardShell>
     );
   }
-
   if (showCard && variant === "card") {
     return (
       <div className={cn("rounded-xl overflow-hidden relative cursor-pointer h-[8.625rem] min-w-[8.625rem] max-w-[10.625rem] md:h-[10.75rem] md:max-w-[12.5rem]", props.className)}>
@@ -216,15 +258,16 @@ const EpisodeCard = ({
   const listCompleted = listProgressPct >= 95 || (hasWatchedEpisode && !listInProgress);
 
   return (
-    <Link href={href}>
+    <EpisodeCardShell playable={playable} href={href} title={unreleasedTitle}>
       <div
         className={cn(
-          "group flex gap-0 mx-1 mb-0.5 rounded-xl cursor-pointer transition-all relative overflow-hidden",
+          "group flex gap-0 mx-1 mb-0.5 rounded-xl transition-all relative overflow-hidden",
+          playable ? "cursor-pointer" : "cursor-not-allowed opacity-50",
           isActive
             ? "bg-accent dark:bg-white/10 ring-1 ring-border dark:ring-white/20"
             : props.episode.isFiller
               ? "bg-amber-500/[0.07] ring-1 ring-amber-500/20 hover:bg-amber-500/[0.12]"
-              : "hover:bg-accent dark:bg-white/[0.06]",
+              : playable && "hover:bg-accent dark:hover:bg-white/[0.06]",
           hasWatchedEpisode && !isActive && "opacity-60",
         )}
       >
@@ -304,7 +347,7 @@ const EpisodeCard = ({
           </div>
         </div>
       </div>
-    </Link>
+    </EpisodeCardShell>
   );
 };
 

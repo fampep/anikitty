@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/core/utils";
-import { Search } from "lucide-react";
+import { Eye, EyeOff, Search } from "lucide-react";
 import EpisodeCard from "@/components/common/episode-card";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import { Episode } from "@/types/episodes";
@@ -16,64 +16,112 @@ import {
 } from "@/components/ui/select";
 import { useT } from "@/providers/i18n-provider";
 import { useSettingsStore } from "@/store/settings-store";
+import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 
 type Props = {
   animeId: string;
+  subOrDub?: { sub: number; dub: number };
 };
 
-const AnimeEpisodes = ({ animeId }: Props) => {
+function filterEpisodes(
+  source: Episode[],
+  opts: {
+    query: string;
+    range: string;
+    hideWatched: boolean;
+    hideFillers: boolean;
+    watchedIds: Set<string>;
+  },
+): Episode[] {
+  let list = source;
+
+  if (opts.query.trim()) {
+    const lower = opts.query.toLowerCase();
+    list = list.filter(
+      (ep) =>
+        ep.number.toString().includes(lower) ||
+        ep.title.toLowerCase().includes(lower),
+    );
+  } else if (opts.range) {
+    const [start, end] = opts.range.split("-").map(Number);
+    list = list.slice(start - 1, end);
+  }
+
+  if (opts.hideWatched) {
+    list = list.filter((ep) => !opts.watchedIds.has(ep.episodeId));
+  }
+
+  if (opts.hideFillers) {
+    list = list.filter((ep) => !ep.isFiller);
+  }
+
+  return list;
+}
+
+const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
   const t = useT();
   const episodeLayout = useSettingsStore((s) => s.episodeLayout);
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const watchedEpisodes = useEpisodeProgress(animeId);
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
   const [ranges, setRanges] = useState<string[]>([]);
   const [selectedRange, setSelectedRange] = useState<string>("");
   const [query, setQuery] = useState("");
+  const [hideWatched, setHideWatched] = useState(false);
+  const [hideFillers, setHideFillers] = useState(false);
 
   const { data, isLoading } = useGetAllEpisodes(animeId);
 
   useEffect(() => {
-    if (data) {
-      const eps = data.episodes;
-      setAllEpisodes(eps);
+    if (!data) return;
+    const eps = data.episodes;
+    setAllEpisodes(eps);
 
-      if (eps.length > 50) {
-        const rangesArray: string[] = [];
-        for (let i = 0; i < eps.length; i += 50) {
-          rangesArray.push(`${i + 1}-${Math.min(i + 50, eps.length)}`);
-        }
-        setRanges(rangesArray);
-        setSelectedRange(rangesArray[0]);
-        setEpisodes(eps.slice(0, 50));
-      } else {
-        setEpisodes(eps);
+    if (eps.length > 50) {
+      const rangesArray: string[] = [];
+      for (let i = 0; i < eps.length; i += 50) {
+        rangesArray.push(`${i + 1}-${Math.min(i + 50, eps.length)}`);
       }
+      setRanges(rangesArray);
+      setSelectedRange(rangesArray[0]);
+    } else {
+      setRanges([]);
+      setSelectedRange("");
     }
   }, [data]);
+
+  const watchedIds = useMemo(
+    () => new Set(watchedEpisodes.map((w) => w.episodeId)),
+    [watchedEpisodes],
+  );
+
+  const hasFillers = useMemo(
+    () => allEpisodes.some((ep) => ep.isFiller),
+    [allEpisodes],
+  );
+
+  const episodes = useMemo(
+    () =>
+      filterEpisodes(allEpisodes, {
+        query,
+        range: query.trim() ? "" : selectedRange,
+        hideWatched,
+        hideFillers,
+        watchedIds,
+      }),
+    [allEpisodes, query, selectedRange, hideWatched, hideFillers, watchedIds],
+  );
+
+  const emptyMessage = query.trim()
+    ? t("anime.episodes.noSearchResults")
+    : t("anime.episodes.noEpisodes");
 
   const handleRangeChange = (range: string) => {
     setSelectedRange(range);
     setQuery("");
-    const [start, end] = range.split("-").map(Number);
-    setEpisodes(allEpisodes.slice(start - 1, end));
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const q = e.target.value;
-    setQuery(q);
-    if (!q.trim()) {
-      const [start, end] = (selectedRange || "1-50").split("-").map(Number);
-      setEpisodes(allEpisodes.slice(start - 1, end));
-      return;
-    }
-    const lower = q.toLowerCase();
-    setEpisodes(
-      allEpisodes.filter(
-        (ep, idx) =>
-          (idx + 1).toString().includes(lower) ||
-          ep.title.toLowerCase().includes(lower),
-      ),
-    );
+    setQuery(e.target.value);
   };
 
   return (
@@ -85,7 +133,41 @@ const AnimeEpisodes = ({ animeId }: Props) => {
         </h3>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {ranges.length > 0 && (
+          {watchedEpisodes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setHideWatched((v) => !v)}
+              aria-label={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
+              title={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
+              className={cn(
+                "h-8 w-8 flex items-center justify-center rounded-lg border transition-colors",
+                hideWatched
+                  ? "border-violet-500/40 bg-violet-500/15 text-violet-200"
+                  : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/50 hover:bg-muted/60 dark:hover:bg-white/8",
+              )}
+            >
+              {hideWatched ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          )}
+
+          {hasFillers && (
+            <button
+              type="button"
+              onClick={() => setHideFillers((v) => !v)}
+              aria-label={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
+              title={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
+              className={cn(
+                "h-8 px-2.5 flex items-center justify-center rounded-lg border text-[10px] font-mono font-bold uppercase tracking-wide transition-colors",
+                hideFillers
+                  ? "border-amber-500/40 bg-amber-500/12 text-amber-200/90"
+                  : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/50 hover:bg-muted/60 dark:hover:bg-white/8",
+              )}
+            >
+              FILLER
+            </button>
+          )}
+
+          {ranges.length > 0 && !query.trim() && (
             <Select onValueChange={handleRangeChange} value={selectedRange}>
               <SelectTrigger className="h-8 text-xs w-[130px] bg-muted/40 dark:bg-white/4 border-border dark:border-white/10 text-muted-foreground dark:text-white/65 hover:bg-white/7 transition-colors">
                 <SelectValue placeholder={t("anime.episodes.range")} />
@@ -124,9 +206,11 @@ const AnimeEpisodes = ({ animeId }: Props) => {
               animeId={animeId}
               variant="card"
               showCard={false}
+              watchedEpisodes={watchedEpisodes}
+              subOrDub={subOrDub}
             />
           ))}
-          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-full" message={t("anime.episodes.noEpisodes")} />}
+          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-full" message={emptyMessage} />}
           {isLoading && <CompactSkeletons />}
         </div>
       ) : episodeLayout === "thumbnail" ? (
@@ -137,9 +221,11 @@ const AnimeEpisodes = ({ animeId }: Props) => {
               episode={episode}
               animeId={animeId}
               variant="thumbnail"
+              watchedEpisodes={watchedEpisodes}
+              subOrDub={subOrDub}
             />
           ))}
-          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-2 sm:col-span-3 md:col-span-4 xl:col-span-5" message={t("anime.episodes.noEpisodes")} />}
+          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-2 sm:col-span-3 md:col-span-4 xl:col-span-5" message={emptyMessage} />}
           {isLoading && <ThumbnailSkeletons />}
         </div>
       ) : (
@@ -150,9 +236,11 @@ const AnimeEpisodes = ({ animeId }: Props) => {
               episode={episode}
               animeId={animeId}
               variant="list"
+              watchedEpisodes={watchedEpisodes}
+              subOrDub={subOrDub}
             />
           ))}
-          {!episodes.length && !isLoading && <EmptyState colSpan="" message={t("anime.episodes.noEpisodes")} />}
+          {!episodes.length && !isLoading && <EmptyState colSpan="" message={emptyMessage} />}
           {isLoading && <ListSkeletons />}
         </div>
       )}

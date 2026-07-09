@@ -1049,6 +1049,11 @@
     "listError": "Error adding to list",
     "loadError": "Couldn't load this anime. Check your connection and try again.",
     "readMore": "Read more",
+    "browseEpisodes": "Browse episodes",
+    "share": "Share",
+    "linkCopied": "Anime page link copied!",
+    "linkCopyFailed": "Could not copy link",
+    "watchProgress": "{watched} / {total} watched",
     "markWatched": "Mark watched",
     "markWholeSeriesWatched": "Mark the whole series as watched",
     "markedWatched": "Marked as completed",
@@ -1137,7 +1142,8 @@
       "listView": "List view",
       "range": "Range",
       "searchPlaceholder": "Search episode…",
-      "noEpisodes": "No episodes found"
+      "noEpisodes": "No episodes found",
+      "noSearchResults": "No episodes match your search"
     },
     "subtitles": {
       "heading": "Download Subtitles",

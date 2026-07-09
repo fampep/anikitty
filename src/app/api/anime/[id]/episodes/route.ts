@@ -5,6 +5,10 @@ import {
   resolveEpisodeTitle,
 } from "@/lib/anime/episode-thumbnails";
 import {
+  fetchMalEpisodeFlags,
+  isSkippableEpisode,
+} from "@/lib/anime/episode-filler";
+import {
   isEpisodeAiredByDate,
   resolveAiredEpisodeCount,
 } from "@/lib/anime/episode-availability";
@@ -16,6 +20,7 @@ const QUERY = `
     Media(id: $id, type: ANIME) {
       episodes
       status
+      idMal
       nextAiringEpisode { episode }
       streamingEpisodes {
         title
@@ -54,17 +59,22 @@ export async function GET(
     }
 
     const sources = await fetchAllEpisodeImageSources(numId, streamingEpisodes);
+    const malId = sources.mappings?.mal_id ?? m.idMal ?? null;
+    const fillerFlags = malId
+      ? await fetchMalEpisodeFlags(malId, airedUpTo)
+      : {};
 
     const episodes = Array.from({ length: airedUpTo }, (_, i) => {
       const num = i + 1;
       const title = resolveEpisodeTitle(num, sources) ?? `Episode ${num}`;
       const zip = sources.anizip[num];
+      const flags = fillerFlags[num];
 
       return {
         title,
         episodeId: `ep-${num}`,
         number: num,
-        isFiller: false,
+        isFiller: isSkippableEpisode(flags),
         image: resolveEpisodeImage(num, sources),
         overview: zip?.overview ?? null,
         airDate: zip?.airDate ?? null,

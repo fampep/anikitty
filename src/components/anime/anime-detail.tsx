@@ -42,8 +42,10 @@ import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
+import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
+import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
@@ -119,6 +121,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: banner } = useGetAnimeBanner(anilistId!);
   const { data: mappingData } = useGetAnimeMappings(anilistId);
   const { data: episodesData } = useGetAllEpisodes(slug);
+  const watchedEpisodes = useEpisodeProgress(slug);
+
+  const totalEpisodeCount =
+    episodesData?.episodes?.length ?? episodesData?.totalEpisodes ?? 0;
+
+  const watchedEpisodeCount = useMemo(() => {
+    return watchedEpisodes.filter((w) => {
+      const duration = w.duration ?? 0;
+      if (duration > 0) return w.current / duration >= 0.95;
+      return w.current > 10;
+    }).length;
+  }, [watchedEpisodes]);
 
   const defaultTab = useMemo(() => {
     const tab = searchParams.get("tab");
@@ -290,7 +304,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const tabItems = [
     { value: "overview", label: t("anime.tabs.overview") },
-    { value: "episodes", label: t("anime.tabs.episodes") },
+    {
+      value: "episodes",
+      label: t("anime.tabs.episodes"),
+      ...(totalEpisodeCount > 0 ? { badge: totalEpisodeCount } : {}),
+    },
     { value: "subtitles", label: t("anime.tabs.subtitles") },
     { value: "media", label: t("anime.tabs.media") },
     ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
@@ -378,6 +396,15 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               {(moreInfo as any)?.duration && (
                 <StatPill label={(moreInfo as any).duration} />
               )}
+              {watchedEpisodeCount > 0 && totalEpisodeCount > 0 && (
+                <StatPill
+                  label={t("anime.watchProgress", {
+                    watched: watchedEpisodeCount,
+                    total: totalEpisodeCount,
+                  })}
+                  teal
+                />
+              )}
               {moreInfo?.status && !isAiring && <StatPill label={moreInfo.status} />}
               {moreInfo?.premiered && <StatPill label={moreInfo.premiered} />}
             </div>
@@ -445,11 +472,21 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 >
                   {t("anime.readMore")}
                 </button>
+                {totalEpisodeCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange("episodes")}
+                    className="mt-1.5 ml-3 text-[11px] font-semibold text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors"
+                  >
+                    {t("anime.browseEpisodes")}
+                  </button>
+                )}
               </div>
             )}
 
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap mt-1">
               <WatchButton />
+              <AnimeShareButton />
               <AnimeEpisodeAlertButton
                 anilistId={slug}
                 animeTitle={info.name}
@@ -644,7 +681,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Episodes ── */}
           <TabsContent value="episodes" className="mt-6">
             <div className="site-panel p-4 sm:p-5">
-              <AnimeEpisodes animeId={info.id} />
+              <AnimeEpisodes
+                animeId={info.id}
+                subOrDub={
+                  stats?.episodes?.sub != null
+                    ? { sub: stats.episodes.sub, dub: stats.episodes.dub ?? 0 }
+                    : undefined
+                }
+              />
             </div>
           </TabsContent>
 
