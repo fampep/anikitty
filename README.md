@@ -164,6 +164,17 @@ EOF
 
 Then redeploy in Coolify. Confirm the service **Build Pack** is **Railpack**, not Dockerfile.
 
+#### Docker build killed during compile (exit 255)
+
+If deploy dies during `npm run build` / PWA compile with **no Next.js error** and exit code **255**, the build container was likely **OOM-killed**. The Dockerfile defaults to a 2 GB Node heap (`NODE_MAX_OLD_SPACE_SIZE=2048`) for smaller VPS hosts.
+
+On the Coolify VPS:
+
+1. **Environment** → mark `DATABASE_URL`, `JWT_*`, `ADMIN_PASSWORD`, API keys, etc. as **Runtime only** (not available at build time). Only `NEXT_PUBLIC_*` vars should be build-time. Values with `#` (e.g. passwords) break Docker `ARG` parsing and can corrupt other build args.
+2. Ensure the host has enough free RAM/swap for a Next.js build (~3–4 GB peak).
+3. Optionally raise heap in Coolify build env: `NODE_MAX_OLD_SPACE_SIZE=3072` (only if the VPS has headroom).
+4. Or switch **Build Pack** to **Railpack** (`coolify.json` / `railpack.json`) if Dockerfile builds keep failing.
+
 #### Docker export failed (exit 255)
 
 If the Next.js build completes but deploy fails at `#18 exporting to image` with exit code **255**, the app code is fine — the Coolify host ran out of disk or BuildKit choked while saving the image.

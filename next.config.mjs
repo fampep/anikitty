@@ -39,12 +39,20 @@ const nextConfig = {
   experimental: {
     webpackMemoryOptimizations: true,
     staticGenerationMaxConcurrency: 1,
+    ...(process.env.CI === "true" ? { cpus: 1 } : {}),
     optimizePackageImports: [
       "lucide-react",
       "@radix-ui/react-icons",
       "framer-motion",
       "artplayer",
     ],
+  },
+  webpack: (config) => {
+    // Coolify/Docker hosts often have limited RAM; serial webpack work avoids OOM kills.
+    if (process.env.CI === "true") {
+      config.parallelism = 1;
+    }
+    return config;
   },
   images: {
     remotePatterns: [
