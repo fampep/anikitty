@@ -81,7 +81,7 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={t("footer.github")}
-                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-muted-foreground dark:text-white/70 dark:border-white/25"
+                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-white/70 dark:hover:border-white/25"
               >
                 <GitHubLogoIcon width="14" height="14" />
               </a>
@@ -90,7 +90,7 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={t("footer.discord")}
-                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-muted-foreground dark:text-white/70 dark:border-white/25"
+                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-white/70 dark:hover:border-white/25"
               >
                 <DiscordLogoIcon width="14" height="14" />
               </a>
@@ -117,7 +117,7 @@ const Footer = () => {
               href="https://www.anisurge.lol/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-muted-foreground dark:text-white/65"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-white/65"
             >
               {t("footer.anisurgeExternal")}
             </a>
@@ -134,7 +134,7 @@ const Footer = () => {
               href="https://github.com/fampep/anikitty"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-muted-foreground dark:text-white/65"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-white/65"
             >
               <GitHubLogoIcon width="13" height="13" />
               {t("footer.github")}
@@ -143,7 +143,7 @@ const Footer = () => {
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-muted-foreground dark:text-white/65"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-white/65"
             >
               <DiscordLogoIcon width="13" height="13" />
               {t("footer.discord")}

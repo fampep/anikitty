@@ -1232,15 +1232,6 @@ const VideoPlayerSection = () => {
         />
 
         {streamProviderControls}
-
-        <Button
-          size="sm"
-          variant="outline"
-          className="border-border dark:border-white/15 text-muted-foreground dark:text-white/60 hover:bg-accent dark:bg-white/10 w-fit text-xs"
-          onClick={() => retryStream()}
-        >
-          {t("watch.retryWith", { provider })}
-        </Button>
       </div>
     );
   }
@@ -1262,20 +1253,6 @@ const VideoPlayerSection = () => {
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
   if (!streamReady || !streamData?.file) {
-    if (showStreamLoading) {
-      return (
-        <div className="flex flex-col gap-3">
-          <PlayerSkeleton label={t("watch.loadingStreamProvider", { provider })} />
-          <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] px-3 py-3 space-y-2.5">
-            <p className="text-[11px] font-mono text-muted-foreground dark:text-white/40 leading-relaxed">
-              {t("watch.switchProviderWhileLoading")}
-            </p>
-            {streamProviderControls}
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="flex flex-col gap-3">
         <WatchErrorPanel
@@ -1413,7 +1390,7 @@ const VideoPlayerSection = () => {
             <button
               type="button"
               onClick={copyShareLink}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-muted-foreground dark:text-white/70 transition-colors"
+              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/70 transition-colors"
               title={t("watch.copyLink")}
             >
               <Link2 className="w-3 h-3" />
@@ -1443,7 +1420,7 @@ const VideoPlayerSection = () => {
                 customTrigger={
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 text-muted-foreground dark:text-white/45 hover:text-muted-foreground dark:text-white/70 transition-colors"
+                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/70 transition-colors"
                   >
                     <Users className="w-3 h-3" />
                     <span className="hidden sm:inline">{t("watch.watchTogether")}</span>

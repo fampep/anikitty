@@ -462,7 +462,7 @@ const Layout = (props: Props) => {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={info.poster}
-                      alt=""
+                      alt={info.name}
                       className="w-12 h-16 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
                     />
                   )}
@@ -569,12 +569,17 @@ function EpisodeNavThumb({
   fallbackPoster?: string;
   buildUrl: (id: string) => string;
 }) {
+  const t = useT();
   const img = ep?.image || fallbackPoster || undefined;
   const content = (
     <div className="relative h-16 w-full overflow-hidden rounded-lg ring-1 ring-white/10">
       {img && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover opacity-50" />
+        <img
+          src={img}
+          alt={ep ? t("watch.episodeThumbnail", { n: ep.number }) : ""}
+          className="absolute inset-0 h-full w-full object-cover opacity-50"
+        />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-black/30" />
       <div

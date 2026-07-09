@@ -28,6 +28,19 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.8",
+    date: "2026-07-09",
+    title: "Hotfix",
+    changes: [
+      { type: "improved", text: "Site-wide polish — search placeholder readable in light mode, pagination no longer jumps to the top of the page, hero carousel arrow keys no longer hijack typing in forms, and scroll-to-top respects reduced-motion settings." },
+      { type: "improved", text: "Player polish — resume prompt and keyboard-shortcuts modal are more accessible, toolbar toggles announce their on/off state, and ArtPlayer subtitle controls use the site language." },
+      { type: "improved", text: "PWA install theme color now matches the site's dark background." },
+      { type: "fixed", text: "Share and Watch Together buttons on the player page had broken hover styles in dark mode." },
+      { type: "fixed", text: "Duplicate retry button removed from stream error screen; one clear retry action instead of two." },
+      { type: "fixed", text: "Conflicting Tailwind classes cleaned up across the footer, navbar, inputs, and player controls so hover and focus states render correctly." },
+    ],
+  },
+  {
     version: "0.6.6",
     date: "2026-07-09",
     title: "Friends, animated avatars & more servers",

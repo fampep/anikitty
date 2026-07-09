@@ -14,6 +14,7 @@ export default function LoadingGirl({ size = 180, className, label }: LoadingGir
       <Image
         src={loadingGirl}
         alt=""
+        aria-hidden
         width={size}
         height={size}
         className="drop-shadow-[0_0_24px_rgba(236,72,153,0.35)]"
@@ -21,7 +22,11 @@ export default function LoadingGirl({ size = 180, className, label }: LoadingGir
         priority
       />
       {label ? (
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground dark:text-white/30 animate-pulse">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground dark:text-white/30 animate-pulse"
+        >
           {label}
         </p>
       ) : null}

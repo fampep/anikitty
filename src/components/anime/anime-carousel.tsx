@@ -6,6 +6,9 @@ import { IAnime } from "@/types/anime";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
+import { useT } from "@/providers/i18n-provider";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   anime: IAnime[];
@@ -17,6 +20,9 @@ const CARD_W = 130;
 const SCROLL_BY = CARD_W * 4;
 
 const AnimeCarousel = ({ anime, title, className }: Props) => {
+  const t = useT();
+  const reducedMotion = usePrefersReducedMotion();
+  const liteMode = useSettingsStore((s) => s.liteMode);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(true);
@@ -29,7 +35,10 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
   }, []);
 
   const scroll = (dir: 1 | -1) => {
-    scrollRef.current?.scrollBy({ left: dir * SCROLL_BY, behavior: "smooth" });
+    scrollRef.current?.scrollBy({
+      left: dir * SCROLL_BY,
+      behavior: reducedMotion || liteMode ? "instant" : "smooth",
+    });
   };
 
   if (!anime?.length) return null;
@@ -44,18 +53,20 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
         </span>
         <div className="ml-auto flex items-center gap-1.5">
           <button
+            type="button"
             onClick={() => scroll(-1)}
             disabled={!canLeft}
-            aria-label="Scroll left"
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:bg-accent dark:bg-white/10 hover:border-border dark:border-white/25 hover:text-foreground/90 dark:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            aria-label={t("common.scrollLeft")}
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/25 hover:text-foreground/90 dark:hover:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
           </button>
           <button
+            type="button"
             onClick={() => scroll(1)}
             disabled={!canRight}
-            aria-label="Scroll right"
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:bg-accent dark:bg-white/10 hover:border-border dark:border-white/25 hover:text-foreground/90 dark:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            aria-label={t("common.scrollRight")}
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/25 hover:text-foreground/90 dark:hover:text-white/80 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
@@ -72,10 +83,13 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex gap-4 overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className={cn(
+            "flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+            !reducedMotion && !liteMode && "scroll-smooth",
+          )}
         >
-          {anime.map((ani, idx) => (
-            <div key={idx} className="shrink-0 w-[144px]">
+          {anime.map((ani) => (
+            <div key={ani.id ?? ani.name} className="shrink-0 w-[144px]">
               <AnimeCard
                 title={ani.name}
                 subTitle={ani.type}

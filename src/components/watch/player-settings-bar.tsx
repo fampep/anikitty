@@ -33,7 +33,9 @@ function ToggleRow({
   return (
     <button
       type="button"
-      className="flex w-full items-center justify-between gap-4 px-3 py-2.5 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/[0.08] hover:border-border dark:border-white/14 transition-colors text-left"
+      role="switch"
+      aria-checked={value}
+      className="flex w-full items-center justify-between gap-4 px-3 py-2.5 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/[0.08] hover:border-border dark:hover:border-white/14 transition-colors text-left"
       onClick={() => onChange(!value)}
     >
       <div className="flex items-center gap-2.5 min-w-0">
@@ -96,6 +98,7 @@ export default function PlayerSettingsBar() {
         <button
           type="button"
           onClick={() => setPlayerSettingsOpen(!playerSettingsOpen)}
+          aria-expanded={playerSettingsOpen}
           className="flex flex-1 items-center gap-2 min-w-0 text-left group"
         >
           <Settings2 className="w-3.5 h-3.5 text-violet-400/70 shrink-0" />
@@ -113,11 +116,12 @@ export default function PlayerSettingsBar() {
         <button
           type="button"
           onClick={() => setTheatreMode(!theatreMode)}
+          aria-pressed={theatreMode}
           className={cn(
             "inline-flex items-center gap-1.5 shrink-0 h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors",
             theatreMode
               ? "border-violet-400/30 bg-violet-500/15 text-violet-200/90"
-              : "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:text-white/75",
+              : "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:hover:text-white/75",
           )}
           title={t("watch.playerSettings.theatre")}
         >
@@ -128,10 +132,11 @@ export default function PlayerSettingsBar() {
         <button
           type="button"
           onClick={() => setShowPlayerControls(!showPlayerControls)}
+          aria-pressed={showPlayerControls}
           className={cn(
             "inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors touch-manipulation",
             showPlayerControls
-              ? "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:text-white/75"
+              ? "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:hover:text-white/75"
               : "border-violet-400/30 bg-violet-500/15 text-violet-200/90",
           )}
           title={

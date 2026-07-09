@@ -22,6 +22,7 @@ export function NextEpisodeButton({
     <button
       type="button"
       onClick={onClick}
+      aria-label={t("watch.nextEpisodeTitle", { title })}
       className={`kitty-overlay ${stackClass} kitty-next-card pointer-events-auto group absolute right-4 z-[130] flex max-w-[min(100%,300px)] items-center gap-3 px-3 py-2.5 text-left animate-in slide-in-from-right-4 fade-in duration-300`}
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 ring-1 ring-violet-400/20">
@@ -92,7 +93,7 @@ export function CountdownOverlay({
             {t("watch.upNext")}
           </p>
           <p className="mt-1 truncate text-base font-semibold text-white">{title}</p>
-          <p className="mt-1 text-xs text-white/40">Auto-playing when the timer ends</p>
+          <p className="mt-1 text-xs text-white/40">{t("watch.autoPlayCountdown")}</p>
         </div>
 
         <div className="flex shrink-0 flex-col gap-2 sm:items-stretch">

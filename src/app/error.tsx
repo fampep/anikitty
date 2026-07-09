@@ -55,6 +55,7 @@ export default function Error({
         <Image
           src={ErrorImage.src}
           alt=""
+          aria-hidden
           width={220}
           height={220}
           className="opacity-90"

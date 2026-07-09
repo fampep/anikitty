@@ -39,7 +39,7 @@ export function PlayerSkipButton({
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">
-              {type === "intro" ? "Opening" : "Credits"}
+              {type === "intro" ? t("watch.segmentIntro") : t("watch.segmentOutro")}
             </p>
             <p className="truncate text-sm font-semibold text-white">{label}</p>
           </div>

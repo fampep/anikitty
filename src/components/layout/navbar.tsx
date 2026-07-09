@@ -207,7 +207,7 @@ function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
       aria-label={t("nav.aria.openSearch")}
     >
       <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-violet-600 dark:text-white/40 dark:group-hover:text-violet-300/80" />
-      <span className="hidden min-w-0 flex-1 truncate text-left text-[13px] text-muted-foreground transition-colors group-hover:text-foreground xl:block dark:text-white/35 dark:group-hover:text-muted-foreground dark:text-white/55">
+      <span className="hidden min-w-0 flex-1 truncate text-left text-[13px] text-muted-foreground transition-colors group-hover:text-foreground xl:block dark:text-white/35 dark:group-hover:text-white/55">
         {t("search.placeholder")}
       </span>
       <kbd className="pointer-events-none hidden shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono leading-none text-muted-foreground xl:inline-block dark:border-white/[0.08] dark:bg-black/25 dark:text-white/25">

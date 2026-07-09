@@ -37,6 +37,7 @@ type IHeroSectionProps = {
 };
 
 const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
+  const t = useT();
   const reducedMotion = usePrefersReducedMotion();
   const liteMode = useSettingsStore((s) => s.liteMode);
   const pauseCarousel = reducedMotion || liteMode;
@@ -84,8 +85,23 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
   useEffect(() => {
     if (!api) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") api.scrollPrev();
-      if (e.key === "ArrowRight") api.scrollNext();
+      const target = e.target as HTMLElement;
+      if (
+        target.isContentEditable ||
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT"
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        api.scrollPrev();
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        api.scrollNext();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -124,8 +140,9 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
             {Array.from({ length: count }).map((_, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => api?.scrollTo(i)}
-                aria-label={`Go to slide ${i + 1}`}
+                aria-label={t("home.heroGoToSlide", { n: i + 1 })}
                 className={`h-[3px] rounded-full overflow-hidden bg-white/20 hover:bg-muted/30 dark:bg-white/35 transition-all duration-300 ${
                   i === current ? "w-8" : "w-3"
                 }`}
@@ -149,17 +166,17 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
         <div className="hidden md:flex items-center gap-2">
           <Button
             onClick={() => api?.scrollPrev()}
-            aria-label="Previous slide"
+            aria-label={t("home.heroPreviousSlide")}
             size="icon"
-            className="rounded-full bg-black/40 border border-border dark:border-white/15 hover:bg-accent dark:bg-white/10 hover:border-border dark:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
+            className="rounded-full bg-black/40 border border-border dark:border-white/15 hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
           >
             <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground dark:text-white/70" />
           </Button>
           <Button
             onClick={() => api?.scrollNext()}
-            aria-label="Next slide"
+            aria-label={t("home.heroNextSlide")}
             size="icon"
-            className="rounded-full bg-black/40 border border-border dark:border-white/15 hover:bg-accent dark:bg-white/10 hover:border-border dark:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
+            className="rounded-full bg-black/40 border border-border dark:border-white/15 hover:bg-accent dark:hover:bg-white/10 hover:border-border dark:hover:border-white/30 backdrop-blur-sm h-9 w-9 transition-all"
           >
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground dark:text-white/70" />
           </Button>

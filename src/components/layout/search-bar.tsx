@@ -89,6 +89,10 @@ const SearchBar = ({
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-expanded={showDropdown}
+          aria-controls="search-results-listbox"
+          aria-autocomplete="list"
           value={searchValue}
           onChange={(e) => {
             setSearchValue(e.target.value);
@@ -97,12 +101,14 @@ const SearchBar = ({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={t("search.placeholder")}
-          className="w-full h-9 pl-9 pr-8 bg-accent dark:bg-white/[0.06] border border-border dark:border-white/[0.1] rounded-xl text-sm text-foreground dark:text-white/90 placeholder-white/35 focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20 transition-all"
+          className="w-full h-9 pl-9 pr-8 bg-accent dark:bg-white/[0.06] border border-border dark:border-white/[0.1] rounded-xl text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground dark:placeholder:text-white/35 focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20 transition-all"
         />
         {searchValue && (
           <button
+            type="button"
             onClick={handleClear}
-            className="absolute right-2.5 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/70 transition-colors"
+            aria-label={t("search.clear")}
+            className="absolute right-2.5 text-muted-foreground dark:text-white/35 hover:text-foreground dark:hover:text-white/70 transition-colors"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -110,7 +116,11 @@ const SearchBar = ({
       </div>
 
       {showDropdown && (
-        <div className="absolute top-[calc(100%+8px)] left-0 z-50 w-full overflow-hidden rounded-2xl border border-border dark:border-white/[0.08] bg-[#0a0a10] shadow-[0_16px_48px_rgba(0,0,0,0.7)]">
+        <div
+          id="search-results-listbox"
+          role="listbox"
+          className="absolute top-[calc(100%+8px)] left-0 z-50 w-full overflow-hidden rounded-2xl border border-border dark:border-white/[0.08] bg-[#0a0a10] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
+        >
           {isLoading && (
             <div className="flex flex-col gap-0 p-2">
               {[1, 2, 3, 4].map((i) => (
@@ -131,8 +141,9 @@ const SearchBar = ({
                 <Link
                   key={anime.id}
                   href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                  role="option"
                   onClick={handleSelect}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-accent dark:bg-white/8 transition-colors group"
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-accent dark:hover:bg-white/8 transition-colors group"
                 >
                   <div className="h-14 w-10 overflow-hidden rounded shrink-0 bg-accent dark:bg-white/8">
                     {anime.poster && (
@@ -165,7 +176,7 @@ const SearchBar = ({
               <Link
                 href={`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`}
                 onClick={handleSelect}
-                className="flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:text-white/80 hover:bg-muted/50 dark:bg-white/5 transition-colors text-sm font-medium"
+                className="flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 hover:bg-muted/50 dark:hover:bg-white/5 transition-colors text-sm font-medium"
               >
                 <span>{t("search.viewAllResults", { query: searchValue.trim() })}</span>
                 <ArrowRight className="h-4 w-4" />
@@ -179,7 +190,7 @@ const SearchBar = ({
               <Link
                 href={`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`}
                 onClick={handleSelect}
-                className="text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:text-white/80 text-xs mt-1 inline-block"
+                className="text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 text-xs mt-1 inline-block"
               >
                 {t("search.browseAllLink")}
               </Link>

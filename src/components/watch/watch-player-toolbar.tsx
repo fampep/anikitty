@@ -30,6 +30,7 @@ function ToolbarToggle({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-colors shrink-0",
         active
@@ -112,6 +113,11 @@ export default function WatchPlayerToolbar({
           type="button"
           onClick={onPrev}
           disabled={!hasPrev}
+          aria-label={
+            prevEpisodeNumber != null
+              ? t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })
+              : t("watch.prevEpisode")
+          }
           className={cn(
             "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors",
             hasPrev
@@ -128,6 +134,11 @@ export default function WatchPlayerToolbar({
           type="button"
           onClick={onNext}
           disabled={!hasNext}
+          aria-label={
+            nextEpisodeNumber != null
+              ? t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })
+              : t("watch.nextEpisode")
+          }
           className={cn(
             "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors",
             hasNext

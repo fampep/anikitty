@@ -37,7 +37,7 @@ import {
   type SubtitleSettings,
 } from "@/lib/subtitles/subtitle-settings";
 import { useSettingsStore } from "@/store/settings-store";
-import { useT } from "@/providers/i18n-provider";
+import { useT, useI18n } from "@/providers/i18n-provider";
 import type { VideoPlayerProps } from "@/lib/kitty/video-player-types";
 import type { SkipInterval } from "@/hooks/use-aniskip";
 import { cn } from "@/lib/core/utils";
@@ -73,11 +73,13 @@ function generateHighlights(
   label: string,
 ): { time: number; text: string }[] {
   if (start == null || end == null || start >= end) return [];
-  const highlights: { time: number; text: string }[] = [];
-  for (let time = Math.floor(start); time <= Math.floor(end); time++) {
-    highlights.push({ time, text: label });
-  }
-  return highlights;
+  const s = Math.floor(start);
+  const e = Math.floor(end);
+  if (s === e) return [{ time: s, text: label }];
+  return [
+    { time: s, text: label },
+    { time: e, text: label },
+  ];
 }
 
 type SubtitleMode = "external" | "native" | "off";
@@ -305,6 +307,7 @@ export default function KittyPlayer({
   preferDubAudio = false,
 }: VideoPlayerProps) {
   const t = useT();
+  const { locale } = useI18n();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const artRef = useRef<Artplayer | null>(null);
@@ -700,7 +703,7 @@ export default function KittyPlayer({
       // bind Space on document, which double-toggles playback and ignores our
       // typing/interactive-element guards.
       hotkey: false,
-      lang: "en",
+      lang: locale,
       moreVideoAttr: { crossOrigin: "anonymous" },
       subtitle: subtitleOption,
       customType: {
@@ -806,8 +809,8 @@ export default function KittyPlayer({
         }),
       ],
       highlight: [
-        ...generateHighlights(skipTimes?.intro?.start, skipTimes?.intro?.end, "Intro"),
-        ...generateHighlights(skipTimes?.outro?.start, skipTimes?.outro?.end, "Outro"),
+        ...generateHighlights(skipTimes?.intro?.start, skipTimes?.intro?.end, t("watch.segmentIntro")),
+        ...generateHighlights(skipTimes?.outro?.start, skipTimes?.outro?.end, t("watch.segmentOutro")),
       ],
       settings: [
         {
@@ -828,17 +831,17 @@ export default function KittyPlayer({
         },
         {
           width: 220,
-          html: "Subtitle",
-          tooltip: "Subtitle",
+          html: t("watch.subtitleSettings"),
+          tooltip: t("watch.subtitleSettings"),
           selector: [
             {
-              html: "Display",
-              tooltip: preferSubtitlesRef.current ? "Hide" : "Show",
+              html: t("watch.artSubtitleDisplay"),
+              tooltip: preferSubtitlesRef.current ? t("watch.artHide") : t("watch.artShow"),
               switch: preferSubtitlesRef.current,
               onSwitch(item) {
                 const show = !item.switch;
                 art.subtitle.show = show;
-                item.tooltip = show ? "Hide" : "Show";
+                item.tooltip = show ? t("watch.artHide") : t("watch.artShow");
                 if (show && subTracks.length > 0) {
                   subtitleModeRef.current = "external";
                   const active = subTracks.find((tr) => tr.default) ?? subTracks[0];
@@ -872,7 +875,7 @@ export default function KittyPlayer({
                 activeSubtitleUrlRef,
               );
             }
-            return item.html ?? "Subtitle";
+            return item.html ?? t("watch.subtitleSettings");
           },
         },
       ],
@@ -1132,7 +1135,7 @@ export default function KittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, t, applyResume, reportW2g]);
+  }, [proxiedSrc, t, locale, applyResume, reportW2g]);
 
   if (!proxiedSrc) return null;
 
