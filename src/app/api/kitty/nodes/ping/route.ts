@@ -8,6 +8,8 @@ import {
 } from "@/lib/kitty/kitty-api-nodes";
 import {
   buildKittyBenchmarkPath,
+  buildKittyHealthPath,
+  kittyAuthHeaders,
   type KittyBenchmarkResponse,
 } from "@/lib/kitty/kitty-api-core";
 
@@ -52,8 +54,9 @@ async function fetchClusterBenchmark(): Promise<KittyBenchmarkResponse | null> {
 async function probeNode(node: KittyApiNodeMeta): Promise<{ ok: boolean; pingMs: number | null }> {
   const started = Date.now();
   try {
-    const res = await fetch(`${node.url}/health`, {
+    const res = await fetch(`${node.url}${buildKittyHealthPath()}`, {
       cache: "no-store",
+      headers: kittyAuthHeaders(),
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
     if (!res.ok) return { ok: false, pingMs: null };

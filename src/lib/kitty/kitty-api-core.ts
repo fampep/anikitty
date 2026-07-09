@@ -122,17 +122,21 @@ export type KittyApiFetchOptions = {
   skipAuth?: boolean;
 };
 
-function resolveKittyApiKey(): string | undefined {
-  return process.env.KITTY_API_KEY?.trim() || undefined;
+/** KittyAPI key from `KITTY_API_KEY` env (e.g. `akitty_cd32a8c2…`). Never use query params. */
+export function resolveKittyApiKey(): string | undefined {
+  const raw = process.env.KITTY_API_KEY?.trim();
+  if (!raw) return undefined;
+  const key = raw.replace(/^["']|["']$/g, "").trim();
+  return key || undefined;
 }
 
-/** Auth via header only — never query params (KittyAPI guide). */
-function kittyAuthHeaders(apiKey: string | undefined): HeadersInit {
-  const key = apiKey?.trim();
+/** Auth headers for protected KittyAPI routes — `X-API-Key` plus Bearer (either works). */
+export function kittyAuthHeaders(apiKey?: string): HeadersInit {
+  const key = (apiKey ?? resolveKittyApiKey())?.trim();
   if (!key) return {};
   return {
-    Authorization: `Bearer ${key}`,
     "X-API-Key": key,
+    Authorization: `Bearer ${key}`,
   };
 }
 
@@ -140,7 +144,7 @@ function mergeKittyFetchInit(path: string, init?: RequestInit, skipAuth?: boolea
   if (skipAuth || isKittyNoApiKeyPath(path)) return init ?? {};
 
   const headers = new Headers(init?.headers);
-  const auth = kittyAuthHeaders(resolveKittyApiKey());
+  const auth = kittyAuthHeaders();
   for (const [name, value] of Object.entries(auth)) {
     if (value && !headers.has(name)) headers.set(name, value);
   }
@@ -161,11 +165,11 @@ export async function kittyApiFetch(
 
 /** API key headers for KittyAPI JSON routes (search, stream-direct, etc.) — not for signed `/proxy?token=…` playback URLs. */
 export function kittyStreamHeaders(): HeadersInit {
-  return kittyAuthHeaders(resolveKittyApiKey());
+  return kittyAuthHeaders();
 }
 
 export function kittyApiHeaders(): HeadersInit {
-  return kittyAuthHeaders(resolveKittyApiKey());
+  return kittyAuthHeaders();
 }
 
 export function buildKittyStreamDirectPath(opts: {

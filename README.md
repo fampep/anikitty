@@ -78,7 +78,7 @@ See `.env.example` for the full list with comments. Minimum for local dev:
 DATABASE_URL=postgresql://user:password@localhost:5432/anikitty
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 JWT_SECRET=                          # openssl rand -base64 48
-KITTY_API_KEY=                       # from KittyAPI
+KITTY_API_KEY=akitty_…                 # KittyAPI key — sent as X-API-Key header (server-only)
 ```
 
 Production also needs `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `MESSAGE_ENCRYPTION_KEY` (see `.env.example`).
