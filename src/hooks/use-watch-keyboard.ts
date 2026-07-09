@@ -26,6 +26,29 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
+/**
+ * Elements where Space has its own meaning (activating a button, following a
+ * link, toggling a details summary). Stealing Space from these breaks them.
+ */
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (isTypingTarget(target)) return true;
+  const el = target.closest(
+    'button, a[href], summary, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [contenteditable="true"]',
+  );
+  return el !== null;
+}
+
+/** Is any part of the player on screen? */
+function isPlayerVisible(art: Artplayer | null): boolean {
+  const el = art?.template?.$player as HTMLElement | undefined;
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  const vw = window.innerWidth || document.documentElement.clientWidth;
+  return r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
+}
+
 export function useWatchKeyboard({
   enabled = true,
   art,
@@ -92,7 +115,13 @@ export function useWatchKeyboard({
         return;
       }
 
-      if (e.code === "Space" || key === " " || key === "spacebar" || key === "k") {
+      const isSpace = e.code === "Space" || key === " " || key === "spacebar";
+      if (isSpace || key === "k") {
+        // `k` is the explicit play/pause key and always applies. Space, though,
+        // is shared with the page: let it activate a focused button/link, and
+        // let it scroll when the player is scrolled out of view (e.g. while
+        // reading comments) instead of silently pausing playback.
+        if (isSpace && (isInteractiveTarget(e.target) || !isPlayerVisible(art))) return;
         e.preventDefault();
         art.toggle();
         return;

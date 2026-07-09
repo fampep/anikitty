@@ -696,6 +696,10 @@ export default function KittyPlayer({
       autoMini: false,
       mutex: true,
       playsInline: true,
+      // useWatchKeyboard owns every shortcut. ArtPlayer's built-in hotkeys also
+      // bind Space on document, which double-toggles playback and ignores our
+      // typing/interactive-element guards.
+      hotkey: false,
       lang: "en",
       moreVideoAttr: { crossOrigin: "anonymous" },
       subtitle: subtitleOption,
