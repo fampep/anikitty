@@ -301,6 +301,16 @@ const VideoPlayerSection = () => {
   const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(animeSlug ?? "");
   const watchedEpisodes = useEpisodeProgress(animeSlug ?? "");
   const [mobilePlaylistOpen, setMobilePlaylistOpen] = useState(false);
+  type HeldStreamSnapshot = {
+    key: string;
+    file: string;
+    tracks: KittyTrack[];
+    headers: Record<string, string>;
+    episodeId: string;
+    skipTimes?: { intro?: { start: number; end: number }; outro?: { start: number; end: number } };
+  };
+  const [heldStreamSnapshot, setHeldStreamSnapshot] = useState<HeldStreamSnapshot | null>(null);
+  const artPlayerRef = useRef<Artplayer | null>(null);
   const currentEpisodeInfo = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
     return findPlayableEpisode(allEpisodes.episodes, episodeId);
@@ -333,6 +343,10 @@ const VideoPlayerSection = () => {
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
   const resumeReadyRef = useRef(false);
   const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
+  const handlePlayerReady = useCallback((art: Artplayer) => {
+    artPlayerRef.current = art;
+    setArtPlayer(art);
+  }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const fallbackBusyRef = useRef(false);
@@ -422,7 +436,7 @@ const VideoPlayerSection = () => {
       if (!animeSlug || navigatingRef.current) return;
       if (ep.episodeId === episodeId) return;
       navigatingRef.current = true;
-      setArtPlayer(null);
+      artPlayerRef.current?.pause?.();
       const isFs = !!document.fullscreenElement;
       if (isFs && playerWrapperRef.current) {
         playerWrapperRef.current.requestFullscreen().catch(() => {});
@@ -500,7 +514,7 @@ const VideoPlayerSection = () => {
     setSavedResumeTime(0);
     setResumeChoice(null);
     setResumeReady(false);
-    setArtPlayer(null);
+    artPlayerRef.current?.pause?.();
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
     setMobilePlaylistOpen(false);
@@ -846,6 +860,7 @@ const VideoPlayerSection = () => {
   const streamStale = Boolean(isPlaceholderData && isFetching);
   const streamReady = hasStreamFile && !streamStale;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
+  const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
 
   // Only persist progress once the stream for this episode is loaded (avoids cross-episode leaks).
   useEffect(() => {
@@ -978,6 +993,36 @@ const VideoPlayerSection = () => {
     }
     return aniSkipTimes;
   }, [streamData?.skipTimes, aniSkipTimes]);
+
+  useEffect(() => {
+    if (!streamReady || !streamData?.file || !episodeId) return;
+    setHeldStreamSnapshot({
+      key: playerKey,
+      file: streamData.file,
+      tracks: playerTracks,
+      headers: playerHeaders,
+      episodeId,
+      skipTimes,
+    });
+  }, [streamReady, streamData?.file, episodeId, playerKey, playerTracks, playerHeaders, skipTimes]);
+
+  const pendingNewEpisode = Boolean(
+    episodeId && heldStreamSnapshot && episodeId !== heldStreamSnapshot.episodeId,
+  );
+  const useLiveStream = Boolean(streamReady && streamData?.file);
+  const useHeldPlayerShell = Boolean(
+    heldStreamSnapshot?.file &&
+      (showStreamLoading || (pendingNewEpisode && (!useLiveStream || !resumeReady))),
+  );
+  const showTransitionOverlay = Boolean(
+    heldStreamSnapshot?.file && (showStreamLoading || (pendingNewEpisode && !useLiveStream)),
+  );
+  const canRenderPlayerShell = useHeldPlayerShell || useLiveStream;
+  const displayPlayerKey = useLiveStream ? playerKey : (heldStreamSnapshot?.key ?? playerKey);
+  const displayFile = useLiveStream ? streamData!.file : (heldStreamSnapshot?.file ?? "");
+  const displayTracks = useLiveStream ? playerTracks : (heldStreamSnapshot?.tracks ?? EMPTY_PLAYER_TRACKS);
+  const displayHeaders = useLiveStream ? playerHeaders : (heldStreamSnapshot?.headers ?? EMPTY_PLAYER_HEADERS);
+  const displaySkipTimes = useLiveStream ? skipTimes : heldStreamSnapshot?.skipTimes;
 
   // Change provider but resume from current position, not original start
   const handleProviderGridSelect = (
@@ -1314,8 +1359,6 @@ const VideoPlayerSection = () => {
 
   const showStreamError = streamFailed;
 
-  const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
-
   if (showStreamError) {
     const rawMessage =
       upstreamError ??
@@ -1338,7 +1381,7 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if (showStreamLoading) {
+  if (showStreamLoading && !useHeldPlayerShell) {
     return (
       <div className="flex flex-col gap-3">
         {episodeBar}
@@ -1361,7 +1404,7 @@ const VideoPlayerSection = () => {
 
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
 
-  if (!streamReady || !streamData?.file) {
+  if ((!streamReady || !streamData?.file) && !canRenderPlayerShell) {
     return (
       <div className="flex flex-col gap-3">
         <WatchErrorPanel
@@ -1373,7 +1416,7 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if (!resumeReady) {
+  if (!resumeReady && !canRenderPlayerShell) {
     return (
       <div className="flex flex-col gap-3">
         <PlayerSkeleton label={t("watch.loadingStream")} />
@@ -1401,14 +1444,19 @@ const VideoPlayerSection = () => {
           />
         </div>
       ) : (
+      <>
       <KittyPlayer
-        key={playerKey}
-        src={streamData.file}
-        tracks={playerTracks}
-        headers={playerHeaders}
-        preferSubtitles={subtitleTracks.length > 0 ? true : streamAudio === "sub"}
+        key={displayPlayerKey}
+        src={displayFile}
+        tracks={displayTracks}
+        headers={displayHeaders}
+        preferSubtitles={
+          (useLiveStream ? subtitleTracks : displayTracks.filter(isSubtitleTrack)).length > 0
+            ? true
+            : streamAudio === "sub"
+        }
         preferDubAudio={streamAudio === "dub"}
-        skipTimes={skipTimes}
+        skipTimes={displaySkipTimes}
         startTime={
           w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
             ? w2g.syncState.currentTime
@@ -1423,9 +1471,23 @@ const VideoPlayerSection = () => {
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
         onFatalError={handleFatalPlayerError}
-        onPlayerReady={setArtPlayer}
+        onPlayerReady={handlePlayerReady}
         w2g={playerW2g}
       />
+      {showTransitionOverlay && (
+        <div
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[2px] pointer-events-none"
+          aria-live="polite"
+        >
+          <Loader2 className="w-9 h-9 animate-spin text-white/75" />
+          <p className="mt-3 text-[11px] font-mono text-white/60">
+            {currentEpisodeInfo
+              ? t("watch.loadingEpisode", { n: currentEpisodeInfo.number })
+              : t("watch.loadingStreamProvider", { provider })}
+          </p>
+        </div>
+      )}
+      </>
       )}
       </div>
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 import { Play, RotateCcw } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
+import { useDialogFocusTrap } from "@/hooks/use-dialog-focus-trap";
 
 function formatResumeTime(seconds: number): string {
   const s = Math.floor(seconds);
@@ -24,25 +25,27 @@ type Props = {
 export default function WatchResumePrompt({ resumeAt, onResume, onStartOver }: Props) {
   const t = useT();
   const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
   const resumeRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    resumeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onStartOver();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onStartOver]);
+  useDialogFocusTrap(true, panelRef, {
+    onEscape: onStartOver,
+    initialFocusRef: resumeRef,
+    lockScroll: false,
+  });
 
   return (
     <div
       className="absolute inset-0 z-20 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
-      role="dialog"
-      aria-modal
-      aria-labelledby={titleId}
+      role="presentation"
     >
-      <div className="w-full max-w-sm rounded-2xl border border-border dark:border-white/10 bg-[#0a0a0a]/95 p-5 shadow-2xl">
+      <div
+        ref={panelRef}
+        className="w-full max-w-sm rounded-2xl border border-border dark:border-white/10 bg-[#0a0a0a]/95 p-5 shadow-2xl"
+        role="dialog"
+        aria-modal
+        aria-labelledby={titleId}
+      >
         <p
           id={titleId}
           className="text-[10px] font-mono uppercase tracking-widest text-teal-400/70 mb-2"

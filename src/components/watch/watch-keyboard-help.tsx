@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 import { X } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
+import { useDialogFocusTrap } from "@/hooks/use-dialog-focus-trap";
 
 type Props = {
   open: boolean;
@@ -26,17 +27,13 @@ const ROWS: Array<{ keys: string; labelKey: string }> = [
 export default function WatchKeyboardHelp({ open, onClose }: Props) {
   const t = useT();
   const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  useDialogFocusTrap(open, panelRef, {
+    onEscape: onClose,
+    initialFocusRef: closeRef,
+  });
 
   if (!open) return null;
 
@@ -44,16 +41,20 @@ export default function WatchKeyboardHelp({ open, onClose }: Props) {
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={onClose}
-      role="dialog"
-      aria-modal
-      aria-labelledby={titleId}
+      role="presentation"
     >
       <div
+        ref={panelRef}
         className="w-full max-w-md rounded-2xl border border-border dark:border-white/10 bg-[#0c0c0c] p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal
+        aria-labelledby={titleId}
       >
         <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 id={titleId} className="text-sm font-bold text-foreground dark:text-white/90">{t("watch.shortcuts.title")}</h2>
+          <h2 id={titleId} className="text-sm font-bold text-foreground dark:text-white/90">
+            {t("watch.shortcuts.title")}
+          </h2>
           <button
             ref={closeRef}
             type="button"
@@ -66,10 +67,7 @@ export default function WatchKeyboardHelp({ open, onClose }: Props) {
         </div>
         <ul className="space-y-2">
           {ROWS.map((row) => (
-            <li
-              key={row.keys}
-              className="flex items-center justify-between gap-4 text-[12px]"
-            >
+            <li key={row.keys} className="flex items-center justify-between gap-4 text-[12px]">
               <span className="text-muted-foreground dark:text-white/55">{t(row.labelKey)}</span>
               <kbd className="shrink-0 px-2 py-0.5 rounded-md bg-accent dark:bg-white/[0.06] border border-border dark:border-white/10 font-mono text-[10px] text-muted-foreground dark:text-white/70">
                 {row.keys}
