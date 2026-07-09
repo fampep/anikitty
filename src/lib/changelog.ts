@@ -28,6 +28,20 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.6",
+    date: "2026-07-09",
+    title: "Friends, animated avatars & more servers",
+    changes: [
+      { type: "added", text: "Friends — send a friend request from someone's profile, accept or decline requests, and unfriend anytime. Both of you get notified." },
+      { type: "added", text: "Animated GIF avatars and banners — upload a GIF and it stays animated everywhere it shows." },
+      { type: "added", text: "Two new streaming servers: Netherlands and Montreal, Canada." },
+      { type: "improved", text: "The online counter now counts everyone browsing or watching, instead of only people who scrolled to the footer." },
+      { type: "fixed", text: "Uploaded profile pictures and banners failed to save — they now save correctly." },
+      { type: "fixed", text: "Servers no longer show as unreachable on the status page while they're actually online." },
+      { type: "fixed", text: "The Bulgaria server moved to a new address and works again." },
+    ],
+  },
+  {
     version: "0.6.4",
     date: "2026-07-08",
     title: "GIF search, image uploads & watch history",

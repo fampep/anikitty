@@ -1,6 +1,6 @@
 {
   "name": "anikitty",
-  "version": "0.6.4",
+  "version": "0.6.6",
   "private": true,
   "engines": {
     "node": ">=24"
