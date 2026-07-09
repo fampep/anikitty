@@ -66,6 +66,7 @@ const NODE_FLAGS: Record<string, string> = {
   "third-choice": "🇧🇬",
   "fourth-choice": "🇸🇬",
   "fifth-choice": "🇳🇱",
+  "sixth-choice": "🇨🇦",
 };
 
 /** Color-code latency: green good, amber okay, red slow. */
