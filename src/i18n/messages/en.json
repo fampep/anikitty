@@ -953,8 +953,13 @@
   },
   "community": {
     "title": "Community",
-    "subtitle": "Recent comments from watchers across the site",
-    "forumCta": "Open forum"
+    "subtitle": "Latest episode comments and forum discussions",
+    "forumCta": "Open forum",
+    "latestComments": "Latest comments",
+    "latestForum": "Latest forum posts",
+    "noComments": "No comments yet",
+    "noForumThreads": "No forum threads yet",
+    "replies": "{count} replies"
   },
   "schedule": {
     "title": "Anime Schedule",
@@ -1603,11 +1608,11 @@
   },
   "gifPicker": {
     "title": "Search GIFs",
-    "searchPlaceholder": "Search GIFs on KLIPY…",
+    "searchPlaceholder": "Search GIFs on GIPHY…",
     "unavailable": "GIF search is unavailable right now.",
     "tryAgain": "Please try again in a moment.",
     "noResults": "No GIFs found for \"{query}\".",
     "tryDifferent": "Try a different search.",
-    "poweredBy": "Powered by KLIPY"
+    "poweredBy": "Powered by GIPHY"
   }
 }

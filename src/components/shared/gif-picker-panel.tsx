@@ -8,8 +8,8 @@ import type { GifSearchResult } from "@/lib/gif/gif-search-types";
 import { useT } from "@/providers/i18n-provider";
 
 /**
- * KLIPY-powered GIF picker modal. Trending on open, debounced search,
- * tap-to-attach grid. Proxied through /api/klipy/search so the API key
+ * Giphy-powered GIF picker modal. Trending on open, debounced search,
+ * tap-to-attach grid. Proxied through /api/giphy/search so the API key
  * stays server-side.
  */
 export function GifPickerPanel({
@@ -41,7 +41,7 @@ export function GifPickerPanel({
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/klipy/search?q=${encodeURIComponent(query.trim())}&limit=30`,
+          `/api/giphy/search?q=${encodeURIComponent(query.trim())}&limit=30`,
           { signal: controller.signal },
         );
         const data = (await res.json()) as { results?: GifSearchResult[]; error?: string };

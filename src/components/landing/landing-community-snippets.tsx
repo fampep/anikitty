@@ -13,9 +13,17 @@ type Snippet = {
   gifUrl?: string | null;
   username: string;
   animeId: string;
+  episodeId?: string | null;
   episodeNumber?: number | null;
   isSpoiler?: boolean;
 };
+
+function snippetHref(c: Snippet) {
+  if (c.episodeId) {
+    return `${ROUTES.WATCH}?anime=${encodeURIComponent(c.animeId)}&episode=${encodeURIComponent(c.episodeId)}`;
+  }
+  return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
+}
 
 export default function LandingCommunitySnippets() {
   const t = useT();
@@ -51,8 +59,9 @@ export default function LandingCommunitySnippets() {
             <h2 className="text-lg sm:text-xl font-bold text-foreground dark:text-white/85">{t("landing.communityTitle")}</h2>
           </div>
           <Link
-            href={ROUTES.FORUM}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground dark:text-white/40 hover:text-foreground/85 dark:hover:text-white/75 transition-colors shrink-0"
+            href={ROUTES.COMMUNITY}
+            prefetch
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30 rounded-md px-1"
           >
             {t("landing.seeAll")}
             <ArrowRight className="w-3.5 h-3.5" />
@@ -62,13 +71,17 @@ export default function LandingCommunitySnippets() {
         <div className="grid gap-2.5 sm:grid-cols-3">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="site-panel h-[88px] animate-pulse" />
+                <div key={i} className="site-panel p-4 animate-pulse">
+                  <div className="h-3 w-24 rounded bg-accent dark:bg-white/8 mb-2" />
+                  <div className="h-3 w-full rounded bg-muted/50 dark:bg-white/5 mb-1.5" />
+                  <div className="h-3 w-4/5 rounded bg-muted/50 dark:bg-white/5" />
+                </div>
               ))
             : comments.map((c) => (
                 <Link
                   key={c.id}
-                  href={`${ROUTES.ANIME_DETAILS}/${c.animeId}`}
-                  className="site-panel-hover p-4 block min-h-[88px]"
+                  href={snippetHref(c)}
+                  className="site-panel-hover p-4 block min-h-[88px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
                 >
                   <p className="text-[11px] font-semibold text-muted-foreground dark:text-white/50 mb-1.5 truncate">
                     {c.username}

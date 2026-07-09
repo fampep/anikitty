@@ -37,12 +37,12 @@ export default function LandingProductPreview() {
               </li>
             ))}
           </ul>
-          <Link
-            href={ROUTES.HOME}
-            prefetch
-            onClick={() => trackEvent("landing_start", { source: "preview" })}
-            className="inline-flex items-center gap-2 site-brand-btn px-5 py-2.5 text-sm"
-          >
+            <Link
+              href={ROUTES.HOME}
+              prefetch
+              onClick={() => trackEvent("landing_start", { source: "preview" })}
+              className="inline-flex items-center gap-2 site-brand-btn px-5 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40"
+            >
             {t("landing.startWatching")}
             <ArrowRight className="w-4 h-4" />
           </Link>

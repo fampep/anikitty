@@ -22,15 +22,25 @@ export default function LandingFinalCta() {
             <p className="text-sm sm:text-base text-muted-foreground dark:text-white/50 max-w-lg mx-auto mb-7 leading-relaxed">
               {t("landing.finalCtaDesc")}
             </p>
-            <Link
-              href={ROUTES.HOME}
-              prefetch
-              onClick={() => trackEvent("landing_final_cta")}
-              className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-[0.98] transition-all text-sm shadow-xl shadow-violet-950/40"
-            >
-              {t("landing.finalCtaButton")}
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href={ROUTES.HOME}
+                prefetch
+                onClick={() => trackEvent("landing_final_cta")}
+                className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-[0.98] transition-all text-sm shadow-xl shadow-violet-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
+                {t("landing.finalCtaButton")}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href={ROUTES.SEARCH}
+                prefetch
+                onClick={() => trackEvent("landing_search", { source: "final_cta" })}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl border border-border dark:border-white/15 bg-muted/40 dark:bg-white/[0.04] text-sm font-semibold text-muted-foreground dark:text-white/65 hover:text-foreground dark:hover:text-white hover:border-border dark:hover:border-white/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
+              >
+                {t("landing.searchAnime")}
+              </Link>
+            </div>
           </div>
         </div>
       </div>

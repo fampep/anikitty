@@ -28,15 +28,16 @@ export default function LandingTrendingRow({ anime, loading, id }: Props) {
             <h2 className="text-xl sm:text-2xl font-bold text-foreground dark:text-white/90">{t("landing.trendingTitle")}</h2>
           </div>
           <Link
-            href={ROUTES.HOME}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground dark:text-white/40 hover:text-foreground/85 dark:text-white/75 transition-colors shrink-0"
+            href={ROUTES.TRENDING}
+            prefetch
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30 rounded-md px-1"
           >
             {t("landing.seeAll")}
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-momentum snap-x snap-mandatory">
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-momentum snap-x snap-mandatory -mx-1 px-1">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="shrink-0 snap-start w-[110px] sm:w-[128px] aspect-[2/3] rounded-xl bg-muted/50 dark:bg-white/[0.04] animate-pulse" />
@@ -45,7 +46,8 @@ export default function LandingTrendingRow({ anime, loading, id }: Props) {
                 <Link
                   key={item.id}
                   href={`${ROUTES.ANIME_DETAILS}/${item.id}`}
-                  className="group shrink-0 snap-start w-[110px] sm:w-[128px]"
+                  className="group shrink-0 snap-start w-[110px] sm:w-[128px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 rounded-xl"
+                  aria-label={`#${index + 1} ${item.name}`}
                 >
                   <div className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/[0.08] group-hover:ring-violet-400/35 group-hover:shadow-lg group-hover:shadow-violet-950/30 transition-all duration-300">
                     <span className="absolute top-2 left-2 z-[2] flex h-6 min-w-6 items-center justify-center rounded-md bg-black/70 backdrop-blur-sm px-1.5 text-[10px] font-bold text-foreground dark:text-white/90 ring-1 ring-border dark:ring-white/10">

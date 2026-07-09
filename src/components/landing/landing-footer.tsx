@@ -6,6 +6,9 @@ import { ROUTES } from "@/constants/routes";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { useT } from "@/providers/i18n-provider";
 
+const FOOTER_LINK =
+  "text-muted-foreground dark:text-white/35 hover:text-foreground dark:hover:text-white/70 transition-colors";
+
 export default function LandingFooter() {
   const t = useT();
 
@@ -16,15 +19,17 @@ export default function LandingFooter() {
           <p className="text-muted-foreground/50 dark:text-white/15 text-[11px] font-mono mb-3">
             © {new Date().getFullYear()} anikitty.moe
           </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-medium text-muted-foreground dark:text-white/35">
-            <Link href={ROUTES.FAQ} className="hover:text-muted-foreground dark:text-white/70 transition-colors">{t("nav.faq")}</Link>
-            <Link href={ROUTES.DONATE} className="hover:text-muted-foreground dark:text-white/70 transition-colors">{t("nav.donate")}</Link>
-            <Link href={ROUTES.FORUM} className="hover:text-muted-foreground dark:text-white/70 transition-colors">{t("nav.forum")}</Link>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-medium">
+            <Link href={ROUTES.FAQ} className={FOOTER_LINK}>{t("nav.faq")}</Link>
+            <Link href={ROUTES.COMMUNITY} className={FOOTER_LINK}>{t("nav.community")}</Link>
+            <Link href={ROUTES.DONATE} className={FOOTER_LINK}>{t("nav.donate")}</Link>
+            <Link href={ROUTES.FORUM} className={FOOTER_LINK}>{t("nav.forum")}</Link>
+            <Link href={ROUTES.STATUS} className={FOOTER_LINK}>{t("nav.status")}</Link>
             <a
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-muted-foreground dark:text-white/70 transition-colors"
+              className={FOOTER_LINK}
             >
               {t("footer.discord")}
             </a>
@@ -35,7 +40,7 @@ export default function LandingFooter() {
             href={DISCORD_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/55 transition-colors"
+            className="text-muted-foreground/70 dark:text-white/20 hover:text-foreground dark:hover:text-white/55 transition-colors"
             aria-label={t("footer.discord")}
           >
             <DiscordLogoIcon width="16" height="16" />
@@ -44,7 +49,7 @@ export default function LandingFooter() {
             href="https://github.com/fampep/anikitty"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/55 transition-colors"
+            className="text-muted-foreground/70 dark:text-white/20 hover:text-foreground dark:hover:text-white/55 transition-colors"
             aria-label={t("footer.github")}
           >
             <GitHubLogoIcon width="16" height="16" />

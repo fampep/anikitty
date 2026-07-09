@@ -33,6 +33,8 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
   if (!anime) return null;
 
   const description = stripHtml(anime.description ?? "").slice(0, 140);
+  const epCount = anime.episodes?.sub ?? anime.episodes?.dub;
+  const watchHref = `${ROUTES.WATCH}?anime=${encodeURIComponent(anime.id)}`;
 
   return (
     <section className="relative z-10 px-4 sm:px-6 md:px-12 pb-2 sm:pb-4">
@@ -68,6 +70,12 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
                 {t("landing.spotlightLabel")}
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-foreground dark:text-white/95 mb-1.5 line-clamp-1">{anime.name}</h2>
+              {epCount ? (
+                <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 mb-1.5">
+                  {epCount} eps
+                  {anime.episodes?.sub && anime.episodes?.dub ? " · Sub & Dub" : anime.episodes?.dub ? " · Dub" : " · Sub"}
+                </p>
+              ) : null}
               {description ? (
                 <p className="text-[12px] sm:text-[13px] text-muted-foreground dark:text-white/45 leading-relaxed line-clamp-2 mb-4 max-w-xl mx-auto sm:mx-0">
                   {description}
@@ -78,14 +86,14 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
                 <Link
                   href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
                   onClick={() => trackEvent("landing_spotlight_details")}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-xs font-semibold text-muted-foreground dark:text-white/70 hover:text-foreground dark:text-white hover:border-border dark:border-white/25 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-xs font-semibold text-muted-foreground dark:text-white/70 hover:text-foreground dark:hover:text-white hover:border-border dark:hover:border-white/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
                 >
                   {t("landing.spotlightDetails")}
                 </Link>
                 <Link
-                  href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                  href={watchHref}
                   onClick={() => trackEvent("landing_spotlight_watch")}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   {t("landing.spotlightWatch")}

@@ -7,7 +7,7 @@ import { MessageSquare, MessagesSquare } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 
-const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
+const CommunityActivityFeed = dynamic(() => import("@/components/community/community-activity-feed"));
 
 export default function CommunityPage() {
   const t = useT();
@@ -38,7 +38,7 @@ export default function CommunityPage() {
         </div>
       </Container>
 
-      <LatestComments />
+      <CommunityActivityFeed />
     </div>
   );
 }

@@ -73,7 +73,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
   };
 
   return (
-    <div className="w-full grid gap-2 sm:grid-cols-2">
+    <div className="w-full flex flex-col gap-2">
       {comments.map((c) => (
         <Link
           key={c.id}
@@ -205,7 +205,7 @@ const BareLoadingSkeleton = () => (
       <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
       <div className="h-5 w-40 animate-pulse bg-accent dark:bg-white/8 rounded" />
     </div>
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="flex flex-col gap-2">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="p-3.5 rounded-xl border border-border/50 dark:border-white/5">
           <div className="flex gap-3">
@@ -227,7 +227,7 @@ const LoadingSkeleton = () => (
       <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
       <div className="h-5 w-40 animate-pulse bg-accent dark:bg-white/8 rounded" />
     </div>
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="flex flex-col gap-2">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="p-3.5 rounded-xl">
           <div className="flex gap-3">
