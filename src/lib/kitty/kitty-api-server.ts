@@ -14,7 +14,9 @@ import {
 
 export {
   buildKittyAutoStreamPath,
+  buildKittyProviderStreamPath,
   buildKittyStreamDirectPath,
+  buildKittyWatchPath,
   kittyApiHeaders,
   kittyApiPath,
   kittyStreamHeaders,

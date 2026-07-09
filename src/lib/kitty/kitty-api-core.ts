@@ -191,6 +191,39 @@ export function buildKittyStreamDirectPath(opts: {
   return `/provider/${encodeURIComponent(opts.provider)}/stream-direct?${params.toString()}`;
 }
 
+/** VideoVib-style watch route: `/provider/VideoVib/watch/anilist:{id}/{ep}/{audio}`. */
+export function buildKittyWatchPath(opts: {
+  provider: string;
+  anilistId: number | string;
+  episode: number | string;
+  audio: "sub" | "dub";
+  seriesRefPrefix?: "anilist" | "catalog";
+}): string {
+  const prefix = opts.seriesRefPrefix ?? "anilist";
+  const seriesRef = `${prefix}:${opts.anilistId}`;
+  return `/provider/${encodeURIComponent(opts.provider)}/watch/${encodeURIComponent(seriesRef)}/${encodeURIComponent(String(opts.episode))}/${opts.audio}`;
+}
+
+/** Provider-specific KittyAPI stream path (stream-direct vs watch). */
+export function buildKittyProviderStreamPath(opts: {
+  provider: string;
+  anilistId: number | string;
+  episode: number | string;
+  audio: "sub" | "dub";
+  title?: string | null;
+}): string {
+  if (opts.provider === "VideoVib") {
+    return buildKittyWatchPath({
+      provider: opts.provider,
+      anilistId: opts.anilistId,
+      episode: opts.episode,
+      audio: opts.audio,
+    });
+  }
+
+  return buildKittyStreamDirectPath(opts);
+}
+
 /** GET /auto/stream?q=&ep=&dub= — provider auto-fallback when stream-direct fails. */
 export function buildKittyAutoStreamPath(opts: {
   anilistId: number | string;

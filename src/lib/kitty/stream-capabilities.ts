@@ -1,4 +1,4 @@
-import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
+import { buildKittyProviderStreamPath, kittyApiFetch, kittyStreamHeaders } from "@/lib/kitty/kitty-api-server";
 import {
   DEFAULT_LUNAR_SERVER,
   isLunarServerId,
@@ -177,7 +177,7 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
-  const path = buildKittyStreamDirectPath({
+  const path = buildKittyProviderStreamPath({
     provider,
     anilistId,
     episode,

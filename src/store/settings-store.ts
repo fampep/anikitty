@@ -6,6 +6,7 @@ import { DEFAULT_KITTY_API_NODE_ID, isKittyApiNodeId } from "@/lib/kitty/kitty-a
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   sanitizeSubtitleSettings,
+  type SubtitleDisplayMode,
   type SubtitleFontFamily,
   type SubtitleFontWeight,
   type SubtitleSettings,
@@ -76,6 +77,7 @@ interface ISettingsStore {
   setSubtitleBackgroundColor: (backgroundColor: string) => void;
   setSubtitleBorderRadius: (borderRadius: number) => void;
   setSubtitleFontFamily: (fontFamily: SubtitleFontFamily) => void;
+  setSubtitleDisplayMode: (displayMode: SubtitleDisplayMode) => void;
   setSubtitleDelayOffset: (delayOffset: number) => void;
   applySubtitlePreset: (settings: SubtitleSettings) => void;
   resetSubtitleSettings: () => void;
@@ -221,6 +223,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         set((s) => ({
           subtitleSettings: { ...s.subtitleSettings, fontFamily },
         })),
+      setSubtitleDisplayMode: (displayMode) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, displayMode },
+        })),
       setSubtitleDelayOffset: (delayOffset) =>
         set((s) => ({
           subtitleSettings: { ...s.subtitleSettings, delayOffset },
@@ -266,7 +272,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 24,
+      version: 25,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -379,6 +385,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 24) {
           // Backfill the new subtitle delayOffset (and re-clamp) for old settings.
+          next.subtitleSettings = sanitizeSubtitleSettings(next.subtitleSettings);
+        }
+        if (version < 25) {
           next.subtitleSettings = sanitizeSubtitleSettings(next.subtitleSettings);
         }
         return next as ISettingsStore;

@@ -10,7 +10,9 @@ import {
   SUBTITLE_DELAY_STEP,
   sanitizeSubtitleSettings,
   subtitleSettingsMatchPreset,
+  subtitleLineBoxStyles,
   subtitleSettingsToInlineStyles,
+  type SubtitleDisplayMode,
   type SubtitleFontFamily,
   type SubtitleFontWeight,
   type SubtitleTextShadow,
@@ -123,6 +125,7 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
     setSubtitleLineHeight,
     setSubtitleBorderRadius,
     setSubtitleFontFamily,
+    setSubtitleDisplayMode,
     setSubtitleDelayOffset,
     applySubtitlePreset,
     resetSubtitleSettings,
@@ -173,6 +176,16 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
   ];
 
   const previewStyles = subtitleSettingsToInlineStyles(subtitleSettings);
+  const previewLineStyles = subtitleLineBoxStyles(subtitleSettings);
+  const previewLines = [
+    t("settings.subtitlePreviewLineOne"),
+    t("settings.subtitlePreviewLineTwo"),
+  ];
+
+  const displayModeOptions: { value: SubtitleDisplayMode; label: string }[] = [
+    { value: "standard", label: t("settings.subtitleDisplayStandard") },
+    { value: "boxedLines", label: t("settings.subtitleDisplayBoxedLines") },
+  ];
 
   return (
     <div className={cn("flex flex-col gap-5", compact ? "gap-4" : "gap-5")}>
@@ -201,6 +214,15 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
           })}
         </div>
       </div>
+
+      <SectionLabel>{t("settings.subtitleSectionDisplay")}</SectionLabel>
+
+      <OptionButtons
+        label={t("settings.subtitleDisplayMode")}
+        options={displayModeOptions}
+        value={subtitleSettings.displayMode}
+        onChange={setSubtitleDisplayMode}
+      />
 
       <SectionLabel>{t("settings.subtitleSectionTypography")}</SectionLabel>
 
@@ -393,12 +415,19 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
           className="absolute inset-x-0 flex justify-center px-3"
           style={{ bottom: `${Math.min(subtitleSettings.bottomOffset, 3)}rem` }}
         >
-          <span
-            className="inline-block text-center max-w-[90%]"
-            style={previewStyles}
-          >
-            {t("settings.subtitlePreviewText")}
-          </span>
+          {subtitleSettings.displayMode === "boxedLines" ? (
+            <div className="flex flex-col items-center gap-1 max-w-[90%]">
+              {previewLines.map((line) => (
+                <span key={line} className="inline-block text-center" style={previewLineStyles}>
+                  {line}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="inline-block text-center max-w-[90%]" style={previewStyles}>
+              {t("settings.subtitlePreviewText")}
+            </span>
+          )}
         </div>
         <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20 absolute top-2 left-3 uppercase tracking-widest">
           {t("settings.subtitlePreview")}

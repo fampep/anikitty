@@ -1,6 +1,6 @@
 import {
   buildKittyAutoStreamPath,
-  buildKittyStreamDirectPath,
+  buildKittyProviderStreamPath,
   kittyApiFetch,
   parseKittyStreamJson,
   type KittyStreamPayload,
@@ -42,7 +42,7 @@ export async function fetchKittyStreamDirect(
   const provider = opts.provider?.trim();
   if (!provider) return null;
 
-  const path = buildKittyStreamDirectPath({
+  const path = buildKittyProviderStreamPath({
     provider,
     anilistId: opts.anilistId,
     episode: opts.episode,

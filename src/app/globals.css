@@ -604,6 +604,46 @@ html.density-compact .site-page {
   text-shadow: var(--kitty-sub-text-shadow, 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.65));
 }
 
+/* Per-line boxed subtitles (anime style) */
+.art-kitty-player.kitty-sub-boxed-lines .art-subtitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  text-shadow: none;
+}
+
+.art-kitty-player.kitty-sub-boxed-lines .art-subtitle .kitty-sub-line {
+  display: inline-block;
+  max-width: min(92vw, 42rem);
+  color: var(--kitty-sub-color, #fff);
+  background-color: var(--kitty-sub-line-bg, rgba(0, 0, 0, 0.72));
+  border-radius: var(--kitty-sub-border-radius, 4px);
+  padding: 2px 10px;
+  font-weight: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  letter-spacing: inherit;
+  line-height: var(--kitty-sub-line-height, 1.35);
+  -webkit-text-stroke: var(--kitty-sub-text-stroke, unset);
+  text-shadow: var(--kitty-sub-text-shadow, 0 1px 2px rgba(0, 0, 0, 0.85));
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.art-kitty-player.kitty-sub-boxed-lines video::cue {
+  background-color: var(--kitty-sub-line-bg, rgba(0, 0, 0, 0.72));
+  color: var(--kitty-sub-color, #fff);
+  border-radius: var(--kitty-sub-border-radius, 4px);
+  padding: 2px 10px;
+  line-height: var(--kitty-sub-line-height, 1.35);
+  text-shadow: var(--kitty-sub-text-shadow, 0 1px 2px rgba(0, 0, 0, 0.85));
+}
+
 .art-kitty-player video::cue {
   font-size: var(--media-cue-font-size, 1.05em);
   color: var(--media-cue-color, #fff);

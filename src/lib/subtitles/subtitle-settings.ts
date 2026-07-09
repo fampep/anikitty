@@ -4,6 +4,9 @@ export type SubtitleTextShadow = "none" | "soft" | "medium" | "strong";
 
 export type SubtitleFontFamily = "system" | "sans" | "mono";
 
+/** `boxedLines` renders each subtitle line in its own semi-transparent box. */
+export type SubtitleDisplayMode = "standard" | "boxedLines";
+
 export type SubtitleSettings = {
   fontSize: number;
   color: string;
@@ -17,6 +20,7 @@ export type SubtitleSettings = {
   lineHeight: number;
   borderRadius: number;
   fontFamily: SubtitleFontFamily;
+  displayMode: SubtitleDisplayMode;
   /** Timing sync in seconds: negative shows subs earlier, positive later. */
   delayOffset: number;
 };
@@ -39,6 +43,7 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   lineHeight: 1.45,
   borderRadius: 6,
   fontFamily: "system",
+  displayMode: "standard",
   delayOffset: 0,
 };
 
@@ -94,13 +99,34 @@ export const SUBTITLE_STYLE_PRESETS: {
     settings: {
       ...DEFAULT_SUBTITLE_SETTINGS,
       fontSize: 16,
-      backgroundOpacity: 92,
+      backgroundOpacity: 88,
       fontWeight: 600,
       textShadow: "none",
       outlineWidth: 0,
       letterSpacing: 0.4,
       lineHeight: 1.5,
       borderRadius: 8,
+      displayMode: "standard",
+    },
+  },
+  {
+    id: "anime",
+    labelKey: "settings.subtitlePresetAnime",
+    settings: {
+      ...DEFAULT_SUBTITLE_SETTINGS,
+      fontSize: 17,
+      color: "#ffffff",
+      backgroundColor: "#000000",
+      backgroundOpacity: 72,
+      fontWeight: 400,
+      bottomOffset: 5,
+      textShadow: "soft",
+      outlineWidth: 0,
+      letterSpacing: 0.2,
+      lineHeight: 1.35,
+      borderRadius: 4,
+      fontFamily: "sans",
+      displayMode: "boxedLines",
     },
   },
   {
@@ -194,6 +220,32 @@ export function subtitleSettingsToInlineStyles(
   fontSizePx = settings.fontSize,
 ): SubtitleInlineStyles {
   const stroke = getSubtitleWebkitStroke(settings);
+  const boxedLines = settings.displayMode === "boxedLines";
+  const styles: SubtitleInlineStyles = {
+    color: settings.color,
+    fontSize: `${fontSizePx}px`,
+    fontWeight: settings.fontWeight,
+    textShadow: getSubtitleTextShadow(settings),
+    letterSpacing: getSubtitleLetterSpacingEm(settings.letterSpacing),
+    lineHeight: settings.lineHeight,
+    fontFamily: getSubtitleFontFamilyStack(settings.fontFamily),
+    backgroundColor: boxedLines ? "transparent" : getSubtitleBackgroundRgba(settings),
+    borderRadius: boxedLines ? "0" : `${settings.borderRadius}px`,
+    padding:
+      !boxedLines && (settings.backgroundOpacity > 0 || settings.borderRadius > 0)
+        ? "2px 8px"
+        : "0",
+  };
+  if (stroke) styles.WebkitTextStroke = stroke;
+  return styles;
+}
+
+/** Styles for a single boxed subtitle line (preview + player CSS vars). */
+export function subtitleLineBoxStyles(
+  settings: SubtitleSettings,
+  fontSizePx = settings.fontSize,
+): SubtitleInlineStyles {
+  const stroke = getSubtitleWebkitStroke(settings);
   const styles: SubtitleInlineStyles = {
     color: settings.color,
     fontSize: `${fontSizePx}px`,
@@ -204,10 +256,7 @@ export function subtitleSettingsToInlineStyles(
     fontFamily: getSubtitleFontFamilyStack(settings.fontFamily),
     backgroundColor: getSubtitleBackgroundRgba(settings),
     borderRadius: `${settings.borderRadius}px`,
-    padding:
-      settings.backgroundOpacity > 0 || settings.borderRadius > 0
-        ? "2px 8px"
-        : "0",
+    padding: "2px 10px",
   };
   if (stroke) styles.WebkitTextStroke = stroke;
   return styles;
@@ -309,6 +358,9 @@ export function sanitizeSubtitleSettings(raw: unknown): SubtitleSettings {
   }
   if (input.fontFamily === "system" || input.fontFamily === "sans" || input.fontFamily === "mono") {
     base.fontFamily = input.fontFamily;
+  }
+  if (input.displayMode === "standard" || input.displayMode === "boxedLines") {
+    base.displayMode = input.displayMode;
   }
   if (
     typeof input.delayOffset === "number" &&
