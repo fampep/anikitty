@@ -272,7 +272,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 25,
+      version: 26,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -389,6 +389,13 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 25) {
           next.subtitleSettings = sanitizeSubtitleSettings(next.subtitleSettings);
+        }
+        if (version < 26) {
+          const subs = sanitizeSubtitleSettings(next.subtitleSettings);
+          if (subs.displayMode === "standard" && subs.backgroundOpacity > 0) {
+            subs.displayMode = "boxedLines";
+          }
+          next.subtitleSettings = subs;
         }
         return next as ISettingsStore;
       },

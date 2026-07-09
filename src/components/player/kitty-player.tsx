@@ -35,6 +35,7 @@ import {
   getSubtitleBackgroundRgba,
   subtitleSettingsToCssVars,
   subtitleSettingsToInlineStyles,
+  usesBoxedSubtitleLines,
   type SubtitleSettings,
 } from "@/lib/subtitles/subtitle-settings";
 import { installBoxedSubtitleLineFormatter } from "@/lib/subtitles/subtitle-boxed-lines";
@@ -228,7 +229,7 @@ function applySubtitleMode(
 function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
   const scaled = Math.max(14, Math.min(32, art.height * 0.04, settings.fontSize + 4));
   const inline = subtitleSettingsToInlineStyles(settings, scaled);
-  const boxedLines = settings.displayMode === "boxedLines";
+  const boxedLines = usesBoxedSubtitleLines(settings);
 
   art.subtitle.style({
     color: inline.color,
@@ -275,10 +276,25 @@ function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
     if (boxedLines) {
       subEl.style.removeProperty("--art-subtitle-bg");
       subEl.style.backgroundColor = "transparent";
+      subEl.style.width = "auto";
+      subEl.style.maxWidth = "calc(100% - 2rem)";
+      subEl.style.left = "50%";
+      subEl.style.right = "auto";
+      subEl.style.transform = "translateX(-50%)";
+      subEl.style.padding = "0";
+      subEl.style.borderRadius = "0";
     } else if (settings.backgroundOpacity > 0) {
+      subEl.style.removeProperty("left");
+      subEl.style.removeProperty("right");
+      subEl.style.removeProperty("transform");
+      subEl.style.removeProperty("max-width");
       subEl.style.setProperty("--art-subtitle-bg", inline.backgroundColor);
       subEl.style.backgroundColor = inline.backgroundColor;
     } else {
+      subEl.style.removeProperty("left");
+      subEl.style.removeProperty("right");
+      subEl.style.removeProperty("transform");
+      subEl.style.removeProperty("max-width");
       subEl.style.removeProperty("--art-subtitle-bg");
       subEl.style.backgroundColor = "transparent";
     }

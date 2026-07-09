@@ -604,21 +604,28 @@ html.density-compact .site-page {
   text-shadow: var(--kitty-sub-text-shadow, 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.65));
 }
 
-/* Per-line boxed subtitles (anime style) */
+/* Per-line boxed subtitles (anime style) — background only behind text, not full width */
 .art-kitty-player.kitty-sub-boxed-lines .art-subtitle {
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   text-align: center;
+  width: auto !important;
+  max-width: calc(100% - 2rem);
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%);
   background: transparent !important;
   padding: 0 !important;
   border-radius: 0 !important;
   text-shadow: none;
+  box-shadow: none;
 }
 
 .art-kitty-player.kitty-sub-boxed-lines .art-subtitle .kitty-sub-line {
   display: inline-block;
+  width: fit-content;
   max-width: min(92vw, 42rem);
   color: var(--kitty-sub-color, #fff);
   background-color: var(--kitty-sub-line-bg, rgba(0, 0, 0, 0.72));

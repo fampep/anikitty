@@ -43,7 +43,7 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   lineHeight: 1.45,
   borderRadius: 6,
   fontFamily: "system",
-  displayMode: "standard",
+  displayMode: "boxedLines",
   delayOffset: 0,
 };
 
@@ -106,7 +106,7 @@ export const SUBTITLE_STYLE_PRESETS: {
       letterSpacing: 0.4,
       lineHeight: 1.5,
       borderRadius: 8,
-      displayMode: "standard",
+      displayMode: "boxedLines",
     },
   },
   {
@@ -215,12 +215,16 @@ export type SubtitleInlineStyles = {
   WebkitTextStroke?: string;
 };
 
+export function usesBoxedSubtitleLines(settings: SubtitleSettings): boolean {
+  return settings.displayMode === "boxedLines";
+}
+
 export function subtitleSettingsToInlineStyles(
   settings: SubtitleSettings,
   fontSizePx = settings.fontSize,
 ): SubtitleInlineStyles {
   const stroke = getSubtitleWebkitStroke(settings);
-  const boxedLines = settings.displayMode === "boxedLines";
+  const boxedLines = usesBoxedSubtitleLines(settings);
   const styles: SubtitleInlineStyles = {
     color: settings.color,
     fontSize: `${fontSizePx}px`,
