@@ -62,6 +62,7 @@ import LevelProgressCard from "@/components/profile/level-progress-card";
 import AnimeLists from "@/components/profile/anime-lists";
 import AchievementsSection from "@/components/profile/achievements-section";
 import FollowListModal, { type FollowListType } from "@/components/profile/follow-list-modal";
+import FriendsModal from "@/components/profile/friends-modal";
 import type { FriendStatus } from "@/app/api/users/[username]/friend/route";
 import { useT } from "@/providers/i18n-provider";
 import { useI18n } from "@/providers/i18n-provider";
@@ -354,6 +355,7 @@ function ProfilePage() {
   const [followListType, setFollowListType] = useState<FollowListType | null>(null);
   const [friendStatus, setFriendStatus] = useState<FriendStatus>("none");
   const [friendBusy, setFriendBusy] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -642,7 +644,7 @@ function ProfilePage() {
                 <>
                   <RailButton icon={Pencil} label={t("profile.editProfile")} onClick={() => setEditOpen(true)} variant="primary" />
                   <RailButton icon={MessageSquare} label={t("profile.messages")} href={ROUTES.MESSAGES} />
-                  <RailButton icon={Users} label={t("profile.friends")} onClick={() => setFollowListType("followers")} />
+                  <RailButton icon={Users} label={t("profile.friends")} onClick={() => setFriendsOpen(true)} />
                   <RailButton
                     icon={Coins}
                     label={kittycoinLoaded ? `${t("nav.kittycoins")} · ${kittycoinBalance.toLocaleString()}` : t("nav.kittycoins")}
@@ -937,6 +939,10 @@ function ProfilePage() {
         open={followListType !== null}
         onOpenChange={(open) => { if (!open) setFollowListType(null); }}
       />
+
+      {isOwn && auth && (
+        <FriendsModal open={friendsOpen} onOpenChange={setFriendsOpen} />
+      )}
 
       {isOwn && auth && (
         <EditProfileDialog
