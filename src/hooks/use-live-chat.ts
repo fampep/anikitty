@@ -11,6 +11,8 @@ import { CHAT_MESSAGE_TTL_MS } from "@/lib/social/chat-config";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
 import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
 
+const FULL_SYNC_EVERY = 15;
+
 function mergeMessages(prev: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
   if (incoming.length === 0) return prev;
   const map = new Map(prev.map((m) => [m.id, m]));
@@ -40,9 +42,10 @@ export function useLiveChat() {
   const [error, setError] = useState<string | null>(null);
   const latestRef = useRef<string | null>(null);
   const ttlRef = useRef(CHAT_MESSAGE_TTL_MS);
+  const pollCountRef = useRef(0);
 
   const syncLatest = useCallback((list: ChatMessage[]) => {
-    latestRef.current = latestActivityAt(list);
+    latestRef.current = latestActivityAt(list) ?? new Date().toISOString();
   }, []);
 
   const applyTtl = useCallback(
@@ -55,13 +58,19 @@ export function useLiveChat() {
   );
 
   const loadInitial = useCallback(async () => {
+    pollCountRef.current = 0;
     try {
       const { messages: initial, messageTtlMs: ttl } = await chatApi.getMessages();
       ttlRef.current = ttl;
       setMessageTtlMs(ttl);
-      setMessages(applyTtl(initial));
+      const active = applyTtl(initial);
+      setMessages(active);
+      if (active.length === 0) {
+        latestRef.current = new Date().toISOString();
+      }
       setError(null);
     } catch (e: unknown) {
+      latestRef.current = new Date().toISOString();
       setError(e instanceof Error ? e.message : "Failed to load chat");
     } finally {
       setLoading(false);
@@ -69,9 +78,26 @@ export function useLiveChat() {
   }, [applyTtl]);
 
   const pollNew = useCallback(async () => {
-    const after = latestRef.current;
-    if (!after) return;
+    if (!latestRef.current) {
+      latestRef.current = new Date().toISOString();
+    }
+
+    pollCountRef.current += 1;
+    const fullSync = pollCountRef.current % FULL_SYNC_EVERY === 0;
+
     try {
+      if (fullSync) {
+        const { messages: fresh, messageTtlMs: ttl } = await chatApi.getMessages();
+        if (ttl) {
+          ttlRef.current = ttl;
+          setMessageTtlMs(ttl);
+        }
+        setMessages(applyTtl(fresh));
+        setError(null);
+        return;
+      }
+
+      const after = latestRef.current;
       const { messages: fresh, messageTtlMs: ttl } = await chatApi.getMessages({ after });
       if (ttl) {
         ttlRef.current = ttl;
@@ -79,6 +105,7 @@ export function useLiveChat() {
       }
       if (fresh.length === 0) return;
       setMessages((prev) => applyTtl(mergeMessages(prev, fresh)));
+      setError(null);
     } catch {
       // silent on poll failures
     }

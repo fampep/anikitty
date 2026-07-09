@@ -1,18 +1,65 @@
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
+const ANILIST_TIMEOUT_MS = 15_000;
+const ANILIST_MAX_ATTEMPTS = 3;
+
+function isRetryableAniListError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("rate") ||
+    lower.includes("limit") ||
+    lower.includes("timeout") ||
+    lower.includes("internal")
+  );
+}
 
 export async function queryAniList<T = any>(
   query: string,
   variables?: Record<string, any>,
 ): Promise<T> {
-  const res = await fetch(ANILIST_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query, variables }),
-    cache: "no-store",
-  });
-  const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0].message);
-  return json.data;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < ANILIST_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(ANILIST_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query, variables }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(ANILIST_TIMEOUT_MS),
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!json) throw new Error("Invalid AniList response");
+
+      if (json.errors?.length) {
+        const message = String(json.errors[0]?.message ?? "AniList GraphQL error");
+        if (isRetryableAniListError(message) && attempt < ANILIST_MAX_ATTEMPTS - 1) {
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(message);
+      }
+
+      if (!res.ok) {
+        const message = `AniList HTTP ${res.status}`;
+        if (attempt < ANILIST_MAX_ATTEMPTS - 1) {
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(message);
+      }
+
+      return json.data as T;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < ANILIST_MAX_ATTEMPTS - 1) {
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        continue;
+      }
+    }
+  }
+
+  throw lastError ?? new Error("AniList request failed");
 }
 
 export function toTitle(t: { english?: string | null; romaji?: string | null }): string {

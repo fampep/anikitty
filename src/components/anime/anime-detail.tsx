@@ -30,6 +30,7 @@ import {
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import QueryRetryPanel from "@/components/shared/query-retry-panel";
 import { useAuthStore } from "@/store/auth-store";
+import { withAuth } from "@/lib/auth/auth-fetch";
 import { toast } from "sonner";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { useGetAnimeBanner } from "@/query/home/get-banner-anime";
@@ -188,7 +189,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const [anikittyAgg, setAnikittyAgg] = useState<{ average: number; count: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/anime/${slug}/reviews?limit=1`)
+    fetch(`/api/anime/${slug}/reviews?limit=1`, withAuth())
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;

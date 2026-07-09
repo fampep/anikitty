@@ -1,3 +1,5 @@
+import { clientApiHeaders } from "@/lib/security/anti-scrape";
+
 /** Same-origin fetch with session cookie; legacy Bearer header if localStorage token exists. */
 export function hasLikelyAuthSession(): boolean {
   if (typeof window === "undefined") return false;
@@ -7,6 +9,7 @@ export function hasLikelyAuthSession(): boolean {
 
 export function withAuth(init: RequestInit = {}): RequestInit {
   const headers: Record<string, string> = {
+    ...clientApiHeaders(),
     ...(init.headers as Record<string, string> | undefined),
   };
 
@@ -25,7 +28,7 @@ export function withAuth(init: RequestInit = {}): RequestInit {
 }
 
 export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  const headers = { ...extra };
+  const headers = { ...clientApiHeaders(), ...extra };
   if (typeof window !== "undefined") {
     const legacy = localStorage.getItem("anisurgeToken");
     if (legacy && !headers.Authorization) {

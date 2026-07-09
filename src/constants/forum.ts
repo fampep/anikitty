@@ -19,3 +19,16 @@ export function isValidCategory(id: unknown): id is ForumCategoryId {
 export function getCategory(id: string) {
   return FORUM_CATEGORIES.find((c) => c.id === id) ?? FORUM_CATEGORIES[0];
 }
+
+/** Categories only staff can create threads in (admin announcements, etc.). */
+export const STAFF_ONLY_CATEGORIES = ["announcements"] as const;
+
+export function isStaffOnlyCategory(id: string): boolean {
+  return (STAFF_ONLY_CATEGORIES as readonly string[]).includes(id);
+}
+
+export function userSelectableCategories(canPostAnnouncements = false) {
+  return FORUM_CATEGORIES.filter(
+    (c) => canPostAnnouncements || !isStaffOnlyCategory(c.id),
+  );
+}

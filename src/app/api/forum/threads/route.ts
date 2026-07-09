@@ -3,9 +3,10 @@ import { forumThreads, forumPosts, forumThreadVotes, users, roles } from "@/db/s
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { and, eq, desc, sql, inArray, ilike, or } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/social/comment-helpers";
-import { isValidCategory } from "@/constants/forum";
+import { isValidCategory, isStaffOnlyCategory } from "@/constants/forum";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
+import { roleHasPermission } from "@/lib/security/permissions";
 
 const PAGE_SIZE = 20;
 const MAX_TITLE = 200;
@@ -177,6 +178,16 @@ export async function POST(req: Request) {
     return Response.json({ error: "Body cannot be empty" }, { status: 400 });
 
   const db = getDb();
+  if (isStaffOnlyCategory(category)) {
+    const isMod = await roleHasPermission(db, payload.role, "forum.moderate");
+    if (!isMod) {
+      return Response.json(
+        { error: "Only staff can post in Announcements" },
+        { status: 403 },
+      );
+    }
+  }
+
   const blocked = await blockIfCannotInteract(db, payload.userId);
   if (blocked) return Response.json({ error: blocked.error }, { status: blocked.status });
 

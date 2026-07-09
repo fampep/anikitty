@@ -95,8 +95,14 @@ export const forumApi = {
   createThread: (body: { title: string; body: string; category: string }) =>
     api<ForumThread>("/threads", { method: "POST", body: JSON.stringify(body) }),
 
-  getThread: (threadId: string) =>
-    api<{ thread: ForumThread; posts: ForumPost[] }>(`/threads/${threadId}`),
+  getThread: (threadId: string, opts?: { after?: string }) => {
+    const p = new URLSearchParams();
+    if (opts?.after) p.set("after", opts.after);
+    const qs = p.toString();
+    return api<{ thread: ForumThread; posts: ForumPost[]; activePostIds: string[] }>(
+      `/threads/${threadId}${qs ? `?${qs}` : ""}`,
+    );
+  },
 
   updateThread: (
     threadId: string,
@@ -131,6 +137,19 @@ export function forumBodyPreview(text: string, maxLen = 160): string {
   return `${stripped.slice(0, maxLen).trim()}…`;
 }
 
+export function forumPostActivityAt(post: ForumPost): string {
+  if (post.updatedAt && post.updatedAt > post.createdAt) return post.updatedAt;
+  return post.createdAt;
+}
+
+export function latestForumPostActivity(posts: ForumPost[]): string | null {
+  if (posts.length === 0) return null;
+  return posts.reduce((latest, p) => {
+    const ts = forumPostActivityAt(p);
+    return ts > latest ? ts : latest;
+  }, forumPostActivityAt(posts[0]));
+}
+
 export function mergeForumPosts(prev: ForumPost[], incoming: ForumPost[]): ForumPost[] {
   if (incoming.length === 0) return prev;
   const map = new Map(prev.map((p) => [p.id, p]));
@@ -140,6 +159,17 @@ export function mergeForumPosts(prev: ForumPost[], incoming: ForumPost[]): Forum
   return Array.from(map.values()).sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
+}
+
+/** Reconcile local posts with server state — drops deleted posts, merges updates. */
+export function syncForumPosts(
+  prev: ForumPost[],
+  incoming: ForumPost[],
+  activePostIds: string[],
+): ForumPost[] {
+  const allowed = new Set(activePostIds);
+  const kept = prev.filter((p) => allowed.has(p.id));
+  return mergeForumPosts(kept, incoming);
 }
 
 export function forumTimeAgo(dateStr: string | null) {

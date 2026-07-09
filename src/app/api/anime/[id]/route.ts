@@ -189,7 +189,11 @@ export async function GET(
         .map((n: any) => mapAnime(n.mediaRecommendation)),
     };
 
-    const [mostPopularAnimes, relatedAnimes, recommendedAnimes] = await (async () => {
+    let mostPopularAnimes = data.mostPopularAnimes;
+    let relatedAnimes = data.relatedAnimes;
+    let recommendedAnimes = data.recommendedAnimes;
+
+    try {
       const combined = [
         ...data.mostPopularAnimes,
         ...data.relatedAnimes,
@@ -200,12 +204,14 @@ export async function GET(
       const byId = new Map(enriched.map((a) => [a.id, a]));
       const pick = (list: typeof data.mostPopularAnimes) =>
         list.map((a: (typeof list)[number]) => byId.get(a.id) ?? a);
-      return [
+      [mostPopularAnimes, relatedAnimes, recommendedAnimes] = [
         pick(data.mostPopularAnimes),
         pick(data.relatedAnimes),
         pick(data.recommendedAnimes),
       ];
-    })();
+    } catch (enrichErr) {
+      console.error("Audio enrich failed:", enrichErr);
+    }
 
     return Response.json({
       data: {
@@ -217,6 +223,7 @@ export async function GET(
     });
   } catch (err) {
     console.error("AniList details error:", err);
-    return Response.json({ error: "Failed to fetch anime details" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to fetch anime details";
+    return Response.json({ error: message }, { status: 500 });
   }
 }

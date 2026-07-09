@@ -1,9 +1,9 @@
 import { getDb } from "@/db";
 import { forumThreads, forumPosts, forumThreadVotes, forumPostVotes, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
-import { and, eq, asc, sql, inArray } from "drizzle-orm";
+import { and, eq, asc, sql, inArray, gt, or, isNotNull } from "drizzle-orm";
 import { sanitizeBody } from "@/lib/social/comment-helpers";
-import { isValidCategory } from "@/constants/forum";
+import { isValidCategory, isStaffOnlyCategory } from "@/constants/forum";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { roleHasPermission } from "@/lib/security/permissions";
 
@@ -41,6 +41,8 @@ export async function GET(
   { params }: { params: Promise<{ threadId: string }> },
 ) {
   const { threadId } = await params;
+  const url = new URL(req.url);
+  const afterParam = url.searchParams.get("after");
   const db = getDb();
   const token = extractToken(req);
   const payload = token ? await verifyToken(token) : null;
@@ -55,15 +57,39 @@ export async function GET(
 
   if (!thread) return Response.json({ error: "Thread not found" }, { status: 404 });
 
+  const activeIdRows = await db
+    .select({ id: forumPosts.id })
+    .from(forumPosts)
+    .where(eq(forumPosts.threadId, threadId));
+  const activePostIds = activeIdRows.map((r) => r.id);
+
+  const postWhere = afterParam
+    ? (() => {
+        const afterDate = new Date(afterParam);
+        if (Number.isNaN(afterDate.getTime())) return null;
+        return and(
+          eq(forumPosts.threadId, threadId),
+          or(
+            gt(forumPosts.createdAt, afterDate),
+            and(isNotNull(forumPosts.updatedAt), gt(forumPosts.updatedAt, afterDate)),
+          ),
+        );
+      })()
+    : eq(forumPosts.threadId, threadId);
+
+  if (afterParam && !postWhere) {
+    return Response.json({ error: "Invalid after timestamp" }, { status: 400 });
+  }
+
   const posts = await db
     .select(POST_SELECT)
     .from(forumPosts)
     .innerJoin(users, eq(users.id, forumPosts.userId))
     .leftJoin(roles, eq(roles.name, users.role))
-    .where(eq(forumPosts.threadId, threadId))
+    .where(postWhere!)
     .orderBy(asc(forumPosts.createdAt));
 
-  const postIds = posts.map((p) => p.id);
+  const postIds = afterParam ? activePostIds : posts.map((p) => p.id);
 
   // Thread vote score + my vote
   const [threadScoreRow] = await db
@@ -124,6 +150,7 @@ export async function GET(
   const xpStatsMap = await getUsersXpStats(db, allUserIds);
 
   return Response.json({
+    activePostIds,
     thread: attachLevelRole(
       {
         ...thread,
@@ -174,7 +201,18 @@ export async function PATCH(
       if (!body) return Response.json({ error: "Body cannot be empty" }, { status: 400 });
       updates.body = body;
     }
-    if (isValidCategory(raw.category)) updates.category = raw.category;
+    if (isValidCategory(raw.category)) {
+      if (isStaffOnlyCategory(raw.category)) {
+        const canAnnounce = await roleHasPermission(db, payload.role, "forum.moderate");
+        if (!canAnnounce) {
+          return Response.json(
+            { error: "Only staff can move threads to Announcements" },
+            { status: 403 },
+          );
+        }
+      }
+      updates.category = raw.category;
+    }
     if (Object.keys(updates).length) updates.updatedAt = new Date();
   }
 

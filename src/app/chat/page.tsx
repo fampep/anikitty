@@ -15,6 +15,9 @@ import {
   X,
   ChevronDown,
   MessagesSquare,
+  MoreHorizontal,
+  Pencil,
+  RotateCw,
 } from "lucide-react";
 import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
@@ -31,7 +34,44 @@ import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import { chatTimeAgo, formatChatTime, formatChatTtlLabel, isChatMessageEdited, type ChatMessage } from "@/lib/social/chat";
+import { ChatMessageText } from "@/components/chat/chat-message-text";
 import { cn } from "@/lib/core/utils";
+
+function formatChatDateLabel(iso: string, t: (key: string) => string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  if (sameDay(d, now)) return t("chat.today");
+  if (sameDay(d, yesterday)) return t("chat.yesterday");
+  return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+
+type ChatListItem =
+  | { type: "date"; key: string; label: string }
+  | { type: "message"; key: string; message: ChatMessage };
+
+function buildChatListItems(messages: ChatMessage[], t: (key: string) => string): ChatListItem[] {
+  const items: ChatListItem[] = [];
+  let lastDay: string | null = null;
+  for (const message of messages) {
+    const dayKey = new Date(message.createdAt).toDateString();
+    if (dayKey !== lastDay) {
+      items.push({
+        type: "date",
+        key: `date-${dayKey}`,
+        label: formatChatDateLabel(message.createdAt, t),
+      });
+      lastDay = dayKey;
+    }
+    items.push({ type: "message", key: message.id, message });
+  }
+  return items;
+}
 
 function ChatBubble({
   message,
@@ -50,6 +90,9 @@ function ChatBubble({
   onEdit: () => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const showActions = canDelete || canEdit;
+
   return (
     <div
       className={cn(
@@ -103,13 +146,17 @@ function ChatBubble({
           )}
         >
           {message.body ? (
-            <p
-              className={cn("whitespace-pre-wrap", canEdit && "cursor-text")}
+            <ChatMessageText
+              text={message.body}
+              className={cn(canEdit && "cursor-text")}
+              linkClassName={
+                isOwn
+                  ? "text-violet-100 hover:text-white underline underline-offset-2 break-all"
+                  : undefined
+              }
               onDoubleClick={canEdit ? onEdit : undefined}
               title={canEdit ? t("chat.doubleClickEdit") : undefined}
-            >
-              {message.body}
-            </p>
+            />
           ) : null}
           {message.gifUrl ? (
             <div className={cn(message.body ? "mt-2" : "")}>
@@ -120,19 +167,58 @@ function ChatBubble({
               />
             </div>
           ) : null}
-          {canDelete && (
-            <button
-              type="button"
-              onClick={onDelete}
-              className={cn(
-                "absolute -top-2 opacity-0 group-hover:opacity-100 transition-opacity",
-                "p-1 rounded-md bg-black/80 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-red-400",
-                isOwn ? "-left-2" : "-right-2",
+          {showActions && (
+            <div className={cn("absolute -top-2", isOwn ? "-left-2" : "-right-2")}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                onBlur={() => setTimeout(() => setMenuOpen(false), 150)}
+                className={cn(
+                  "p-1.5 rounded-md bg-black/80 border border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white transition-opacity",
+                  "opacity-100 sm:opacity-0 sm:group-hover:opacity-100",
+                )}
+                aria-label={t("chat.messageActions")}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </button>
+              {menuOpen && (
+                <div
+                  className={cn(
+                    "absolute top-8 z-20 min-w-[128px] rounded-xl bg-[#0d0d0d] border border-border dark:border-white/10 shadow-xl p-1 flex flex-col",
+                    isOwn ? "left-0" : "right-0",
+                  )}
+                >
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onEdit();
+                        setMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {t("chat.edit")}
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onDelete();
+                        setMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-rose-300 hover:bg-rose-500/10 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t("chat.deleteMessage")}
+                    </button>
+                  )}
+                </div>
               )}
-              title={t("chat.deleteMessage")}
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
+            </div>
           )}
         </div>
 
@@ -154,7 +240,7 @@ export default function ChatPage() {
   const { canModerateChat } = usePermissions();
   const showOnlineCount = useSettingsStore((s) => s.showOnlineCount);
   const onlineCount = useOnlineCount(showOnlineCount);
-  const { messages, messageTtlMs, loading, sending, error, sendMessage, editMessage, deleteMessage } =
+  const { messages, messageTtlMs, loading, sending, error, sendMessage, editMessage, deleteMessage, refresh } =
     useLiveChat();
   const [draft, setDraft] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -165,6 +251,8 @@ export default function ChatPage() {
   const wasAtBottom = useRef(true);
   const prevMessageCount = useRef(0);
   const [unseenCount, setUnseenCount] = useState(0);
+
+  const chatItems = React.useMemo(() => buildChatListItems(messages, t), [messages, t]);
 
   const isLoggedIn = !!auth;
   const isStaff = canModerateChat;
@@ -262,11 +350,11 @@ export default function ChatPage() {
           subtitle={t("chat.subtitle", { ttl: formatChatTtlLabel(messageTtlMs) })}
           className="mb-5"
         >
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/8 text-xs text-muted-foreground dark:text-white/50">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/8 text-xs text-muted-foreground dark:text-white/50" title={t("chat.onlineHint")}>
             <Wifi className="h-3 w-3 text-emerald-400" />
             <Users className="h-3 w-3" />
             <span>
-              {onlineCount != null ? t("chat.online", { count: onlineCount }) : "…"}
+              {onlineCount != null ? t("chat.usersOnline", { count: onlineCount }) : "…"}
             </span>
           </div>
           <Link
@@ -283,7 +371,7 @@ export default function ChatPage() {
           {/* Messages */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[50vh] max-h-[calc(100vh-16rem)]"
+            className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[50svh] max-h-[calc(100dvh-var(--nav-total-height,4rem)-11rem)]"
           >
             {loading ? (
               <div className="flex items-center justify-center h-40 text-muted-foreground dark:text-white/40">
@@ -295,11 +383,23 @@ export default function ChatPage() {
                 <p className="text-sm text-muted-foreground dark:text-white/40">{t("chat.empty")}</p>
               </div>
             ) : (
-              messages.map((msg) => {
+              chatItems.map((item) => {
+                if (item.type === "date") {
+                  return (
+                    <div key={item.key} className="flex items-center gap-3 py-1">
+                      <div className="flex-1 h-px bg-border dark:bg-white/10" />
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-white/35 shrink-0">
+                        {item.label}
+                      </span>
+                      <div className="flex-1 h-px bg-border dark:bg-white/10" />
+                    </div>
+                  );
+                }
+                const msg = item.message;
                 const isOwn = auth?.id === msg.userId;
                 return (
                   <ChatBubble
-                    key={msg.id}
+                    key={item.key}
                     message={msg}
                     isOwn={isOwn}
                     canDelete={!!auth && (isOwn || isStaff)}
@@ -329,8 +429,16 @@ export default function ChatPage() {
 
           {/* Error banner */}
           {error && (
-            <div className="px-4 py-2 text-xs text-red-400 bg-red-500/10 border-t border-red-500/20">
-              {error}
+            <div className="px-4 py-2.5 text-xs text-red-400 bg-red-500/10 border-t border-red-500/20 flex items-center justify-between gap-3">
+              <span className="min-w-0">{error}</span>
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 font-semibold transition-colors"
+              >
+                <RotateCw className="h-3 w-3" />
+                {t("chat.retry")}
+              </button>
             </div>
           )}
 
@@ -369,7 +477,7 @@ export default function ChatPage() {
                       disabled={isEditing}
                       onClick={() => setShowGifPanel((v) => !v)}
                       className={cn(
-                        "flex items-center justify-center h-10 w-10 rounded-xl transition-all border",
+                        "flex items-center justify-center h-11 w-11 rounded-xl transition-all border",
                         showGifPanel || selectedGif
                           ? "bg-accent dark:bg-white/12 text-foreground dark:text-white border-border dark:border-white/20"
                           : "text-muted-foreground dark:text-white/40 border-border dark:border-white/10 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/50 dark:bg-white/5",
@@ -414,7 +522,7 @@ export default function ChatPage() {
                     rows={1}
                     maxLength={1000}
                     className={cn(
-                      "flex-1 resize-none rounded-xl px-4 py-2.5 text-sm",
+                      "flex-1 resize-none rounded-xl px-4 py-2.5 text-sm min-h-11",
                       "bg-muted/60 dark:bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30",
                       "focus:outline-none focus:ring-1 focus:ring-border dark:ring-white/20",
                       "max-h-32",
@@ -424,7 +532,7 @@ export default function ChatPage() {
                     type="submit"
                     disabled={!canSend}
                     className={cn(
-                      "shrink-0 flex items-center justify-center h-10 w-10 rounded-xl transition-all",
+                      "shrink-0 flex items-center justify-center h-11 w-11 rounded-xl transition-all",
                       "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed",
                     )}
                   >

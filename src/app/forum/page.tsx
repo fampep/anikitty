@@ -27,6 +27,7 @@ import { ROUTES } from "@/constants/routes";
 import { FORUM_CATEGORIES } from "@/constants/forum";
 import { forumApi, forumTimeAgo, forumBodyPreview, ForumThread, ForumStats } from "@/lib/social/forum";
 import { useAuthStore } from "@/store/auth-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import CommunityHero from "@/components/community/community-hero";
 import { cn } from "@/lib/core/utils";
@@ -38,6 +39,7 @@ export default function ForumPage() {
   const router = useRouter();
   const params = useSearchParams();
   const { auth } = useAuthStore();
+  const { canModerateForum } = usePermissions();
   const isLoggedIn = !!auth;
 
   const sort = params.get("sort") ?? "active";
@@ -287,9 +289,10 @@ export default function ForumPage() {
         {composing && isLoggedIn && (
           <NewThreadComposer
             defaultCategory={category}
-            onCreated={(t) => {
-              setThreads((prev) => [t, ...prev]);
+            canPostAnnouncements={canModerateForum}
+            onCreated={(thread) => {
               setComposing(false);
+              router.push(`${ROUTES.FORUM}/${thread.id}`);
             }}
             onCancel={() => setComposing(false)}
           />

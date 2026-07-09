@@ -9,7 +9,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ threadId: string; postId: string }> },
 ) {
-  const { postId } = await params;
+  const { threadId, postId } = await params;
   const token = extractToken(req);
   const payload = token ? await verifyToken(token) : null;
   if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,7 +22,13 @@ export async function PATCH(
   const result = await db
     .update(forumPosts)
     .set({ body, updatedAt: new Date() })
-    .where(and(eq(forumPosts.id, postId), eq(forumPosts.userId, payload.userId)))
+    .where(
+      and(
+        eq(forumPosts.id, postId),
+        eq(forumPosts.threadId, threadId),
+        eq(forumPosts.userId, payload.userId),
+      ),
+    )
     .returning({ id: forumPosts.id });
 
   if (!result.length) return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -33,7 +39,7 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ threadId: string; postId: string }> },
 ) {
-  const { postId } = await params;
+  const { threadId, postId } = await params;
   const token = extractToken(req);
   const payload = token ? await verifyToken(token) : null;
   if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -42,7 +48,7 @@ export async function DELETE(
   const [post] = await db
     .select({ userId: forumPosts.userId })
     .from(forumPosts)
-    .where(eq(forumPosts.id, postId))
+    .where(and(eq(forumPosts.id, postId), eq(forumPosts.threadId, threadId)))
     .limit(1);
   if (!post) return Response.json({ error: "Not found" }, { status: 404 });
 
@@ -50,6 +56,8 @@ export async function DELETE(
   if (post.userId !== payload.userId && !isMod)
     return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  await db.delete(forumPosts).where(eq(forumPosts.id, postId));
+  await db
+    .delete(forumPosts)
+    .where(and(eq(forumPosts.id, postId), eq(forumPosts.threadId, threadId)));
   return Response.json({ ok: true });
 }

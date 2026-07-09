@@ -28,7 +28,7 @@ import { CategoryBadge, VoteButtons } from "@/components/forum/forum-ui";
 import { FormattedBody } from "@/components/forum/formatted-body";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { ROUTES } from "@/constants/routes";
-import { forumApi, forumTimeAgo, buildQuote, copyThreadLink, mergeForumPosts, ForumThread, ForumPost } from "@/lib/social/forum";
+import { forumApi, forumTimeAgo, buildQuote, copyThreadLink, syncForumPosts, latestForumPostActivity, ForumThread, ForumPost } from "@/lib/social/forum";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
@@ -59,6 +59,11 @@ export default function ThreadPage() {
   const wasNearBottom = React.useRef(true);
   const prevPostCount = React.useRef(0);
   const [unseenReplies, setUnseenReplies] = React.useState(0);
+  const lastActivityRef = React.useRef<string | null>(null);
+
+  const syncPostCursor = React.useCallback((list: ForumPost[]) => {
+    lastActivityRef.current = latestForumPostActivity(list) ?? new Date().toISOString();
+  }, []);
 
   React.useEffect(() => {
     const onScroll = () => {
@@ -87,11 +92,17 @@ export default function ThreadPage() {
     if (!threadId) return;
     if (!silent) setLoading(true);
     try {
-      const res = await forumApi.getThread(threadId);
+      const after = silent ? lastActivityRef.current ?? undefined : undefined;
+      const res = await forumApi.getThread(threadId, after ? { after } : undefined);
       setThread(res.thread);
       setPosts((prev) => {
-        if (prev.length === 0) return res.posts;
-        return mergeForumPosts(prev, res.posts);
+        if (!silent || prev.length === 0) {
+          syncPostCursor(res.posts);
+          return res.posts;
+        }
+        const next = syncForumPosts(prev, res.posts, res.activePostIds);
+        syncPostCursor(next);
+        return next;
       });
     } catch (e: any) {
       if (!silent) {
@@ -105,11 +116,15 @@ export default function ThreadPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [threadId, router]);
+  }, [threadId, router, syncPostCursor, t]);
 
   useEffect(() => {
     loadThread();
   }, [loadThread]);
+
+  useEffect(() => {
+    lastActivityRef.current = null;
+  }, [threadId]);
 
   const pollMs = usePollingIntervalMs("forum");
 
@@ -170,7 +185,11 @@ export default function ThreadPage() {
     setSubmitting(true);
     try {
       const post = await forumApi.createPost(thread.id, body);
-      setPosts((arr) => [...arr, post]);
+      setPosts((arr) => {
+        const next = [...arr, post];
+        syncPostCursor(next);
+        return next;
+      });
       setReply("");
       toast.success(t("forum.thread.replyPosted"));
     } catch (e: any) {
@@ -264,7 +283,11 @@ export default function ThreadPage() {
     if (!confirm("Delete this reply?")) return;
     try {
       await forumApi.deletePost(thread.id, post.id);
-      setPosts((arr) => arr.filter((p) => p.id !== post.id));
+      setPosts((arr) => {
+        const next = arr.filter((p) => p.id !== post.id);
+        syncPostCursor(next);
+        return next;
+      });
       toast.success("Reply deleted");
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to delete");
@@ -500,7 +523,7 @@ export default function ThreadPage() {
             <p className="text-[13px] text-muted-foreground dark:text-white/45 font-mono">{t("forum.thread.locked")}</p>
           </div>
         ) : isLoggedIn ? (
-          <div className="rounded-2xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-4 flex flex-col gap-3 sticky bottom-4 backdrop-blur-md" ref={bottomRef}>
+          <div className="rounded-2xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-4 flex flex-col gap-3 sticky bottom-4 pb-safe backdrop-blur-md" ref={bottomRef}>
             <textarea
               ref={replyRef}
               value={reply}

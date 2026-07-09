@@ -5,6 +5,15 @@ export const MAL_WEB_BASE = "https://myanimelist.net";
 
 const MAL_USER_AGENT = "Anikitty/1.0";
 
+function requestSignal(ms: number, init?: RequestInit): AbortSignal | undefined {
+  if (init?.signal) return init.signal;
+  try {
+    return AbortSignal.timeout(ms);
+  } catch {
+    return undefined;
+  }
+}
+
 export function malApiHeaders(): Record<string, string> {
   const clientId = getMalClientId();
   return clientId ? { "X-MAL-CLIENT-ID": clientId } : {};
@@ -22,7 +31,7 @@ export async function malApiGet(
       ...malApiHeaders(),
       ...(rest.headers as Record<string, string> | undefined),
     },
-    signal: rest.signal ?? AbortSignal.timeout(8000),
+    signal: requestSignal(8000, rest),
     next: { revalidate },
   });
 }
@@ -39,7 +48,7 @@ export async function malWebGet(
       Accept: "text/html",
       ...(rest.headers as Record<string, string> | undefined),
     },
-    signal: rest.signal ?? AbortSignal.timeout(12000),
+    signal: requestSignal(12000, rest),
     next: { revalidate },
   });
 }

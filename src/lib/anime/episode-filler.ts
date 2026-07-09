@@ -132,29 +132,34 @@ export async function fetchMalEpisodeFlags(
 ): Promise<Record<number, EpisodeContentFlags>> {
   if (!malId || malId <= 0) return {};
 
-  const fromApi = await fetchMalEpisodeFlagsFromApi(malId, maxEpisode);
-  if (fromApi) {
+  try {
+    const fromApi = await fetchMalEpisodeFlagsFromApi(malId, maxEpisode);
+    if (fromApi) {
+      if (maxEpisode > 0) {
+        const trimmed: Record<number, EpisodeContentFlags> = {};
+        for (const [key, value] of Object.entries(fromApi)) {
+          const num = parseInt(key, 10);
+          if (num > 0 && num <= maxEpisode) trimmed[num] = value;
+        }
+        return trimmed;
+      }
+      return fromApi;
+    }
+
+    const fromWeb = await fetchMalEpisodeFlagsFromWebsite(malId, maxEpisode);
     if (maxEpisode > 0) {
       const trimmed: Record<number, EpisodeContentFlags> = {};
-      for (const [key, value] of Object.entries(fromApi)) {
+      for (const [key, value] of Object.entries(fromWeb)) {
         const num = parseInt(key, 10);
         if (num > 0 && num <= maxEpisode) trimmed[num] = value;
       }
       return trimmed;
     }
-    return fromApi;
+    return fromWeb;
+  } catch (err) {
+    console.error("[mal] episode flags failed:", err);
+    return {};
   }
-
-  const fromWeb = await fetchMalEpisodeFlagsFromWebsite(malId, maxEpisode);
-  if (maxEpisode > 0) {
-    const trimmed: Record<number, EpisodeContentFlags> = {};
-    for (const [key, value] of Object.entries(fromWeb)) {
-      const num = parseInt(key, 10);
-      if (num > 0 && num <= maxEpisode) trimmed[num] = value;
-    }
-    return trimmed;
-  }
-  return fromWeb;
 }
 
 /** Treat recap episodes as skippable filler for list filtering. */
