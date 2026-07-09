@@ -125,10 +125,21 @@ export function getKittyApiNodeUrl(id: KittyApiNodeId): string {
 }
 
 /** Map a KittyAPI cluster origin URL to our node id. */
+/** Strip protocol, case and trailing slashes so origins compare reliably. */
+function normalizeNodeOrigin(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
+}
+
 export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined): KittyApiNodeId | null {
   if (!origin?.trim()) return null;
-  const normalized = origin.trim().replace(/\/$/, "");
-  const match = KITTY_API_NODES.find((node) => node.url === normalized || node.host === normalized);
+  const normalized = normalizeNodeOrigin(origin);
+  const match = KITTY_API_NODES.find(
+    (node) => normalizeNodeOrigin(node.url) === normalized || node.host.toLowerCase() === normalized,
+  );
   return match?.id ?? null;
 }
 

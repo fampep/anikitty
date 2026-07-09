@@ -419,9 +419,8 @@ function ProfilePage() {
   }, [auth, profile, blocked, blockBusy, t]);
 
   // Load the friendship state between the viewer and this profile.
-  const isOwnProfile = !!auth && auth.username === profileUsername;
   useEffect(() => {
-    if (!auth || isOwnProfile) {
+    if (!auth || isOwn) {
       setFriendStatus("none");
       return;
     }
@@ -435,7 +434,7 @@ function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [auth, isOwnProfile, profileUsername]);
+  }, [auth, isOwn, profileUsername]);
 
   /** POST adds/accepts, DELETE unfriends/cancels/declines. */
   const changeFriend = useCallback(

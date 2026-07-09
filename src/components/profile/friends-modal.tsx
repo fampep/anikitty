@@ -13,6 +13,71 @@ import { toast } from "sonner";
 type FriendUser = { username: string; avatarUrl?: string | null; equippedFrame?: string | null };
 type Tab = "friends" | "requests";
 
+// Declared at module scope: nested component definitions get a fresh type on
+// every render, which remounts each row (avatars reflash, focus is lost).
+function Row({
+  u,
+  onNavigate,
+  children,
+}: {
+  u: FriendUser;
+  onNavigate: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-5 py-2.5 hover:bg-accent dark:hover:bg-white/[0.04] transition-colors">
+      <Link
+        href={`/profile/${encodeURIComponent(u.username)}`}
+        onClick={onNavigate}
+        className="flex items-center gap-3 flex-1 min-w-0"
+      >
+        <FramedAvatar
+          username={u.username}
+          url={u.avatarUrl ?? undefined}
+          frameSlug={u.equippedFrame}
+          className="w-9 h-9"
+        />
+        <span className="text-sm font-medium text-foreground dark:text-white/85 truncate">
+          @{u.username}
+        </span>
+      </Link>
+      <div className="flex items-center gap-1.5 shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function IconBtn({
+  onClick,
+  label,
+  icon,
+  danger,
+  disabled,
+}: {
+  onClick: () => void;
+  label: string;
+  icon: React.ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className={cn(
+        "inline-flex items-center justify-center h-7 w-7 rounded-lg border transition-colors disabled:opacity-40",
+        danger
+          ? "border-rose-500/25 text-rose-300/80 hover:bg-rose-500/10"
+          : "border-border dark:border-white/12 text-muted-foreground dark:text-white/50 hover:bg-accent dark:hover:bg-white/8",
+      )}
+    >
+      {icon}
+    </button>
+  );
+}
+
 export default function FriendsModal({
   open,
   onOpenChange,
@@ -65,57 +130,7 @@ export default function FriendsModal({
     }
   };
 
-  const Row = ({ u, children }: { u: FriendUser; children?: React.ReactNode }) => (
-    <div className="flex items-center gap-3 px-5 py-2.5 hover:bg-accent dark:hover:bg-white/[0.04] transition-colors">
-      <Link
-        href={`/profile/${encodeURIComponent(u.username)}`}
-        onClick={() => onOpenChange(false)}
-        className="flex items-center gap-3 flex-1 min-w-0"
-      >
-        <FramedAvatar
-          username={u.username}
-          url={u.avatarUrl ?? undefined}
-          frameSlug={u.equippedFrame}
-          className="w-9 h-9"
-        />
-        <span className="text-sm font-medium text-foreground dark:text-white/85 truncate">
-          @{u.username}
-        </span>
-      </Link>
-      <div className="flex items-center gap-1.5 shrink-0">{children}</div>
-    </div>
-  );
-
-  const IconBtn = ({
-    onClick,
-    label,
-    icon,
-    danger,
-    disabled,
-  }: {
-    onClick: () => void;
-    label: string;
-    icon: React.ReactNode;
-    danger?: boolean;
-    disabled?: boolean;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      aria-label={label}
-      className={cn(
-        "inline-flex items-center justify-center h-7 w-7 rounded-lg border transition-colors disabled:opacity-40",
-        danger
-          ? "border-rose-500/25 text-rose-300/80 hover:bg-rose-500/10"
-          : "border-border dark:border-white/12 text-muted-foreground dark:text-white/50 hover:bg-accent dark:hover:bg-white/8",
-      )}
-    >
-      {icon}
-    </button>
-  );
-
+  const closeModal = useCallback(() => onOpenChange(false), [onOpenChange]);
   const requestCount = incoming.length;
 
   return (
@@ -161,7 +176,7 @@ export default function FriendsModal({
               </p>
             ) : (
               friends.map((u) => (
-                <Row key={u.username} u={u}>
+                <Row key={u.username} u={u} onNavigate={closeModal}>
                   <IconBtn
                     onClick={() => act(u.username, "DELETE")}
                     label={t("profile.unfriend")}
@@ -179,7 +194,7 @@ export default function FriendsModal({
           ) : (
             <>
               {incoming.map((u) => (
-                <Row key={`in-${u.username}`} u={u}>
+                <Row key={`in-${u.username}`} u={u} onNavigate={closeModal}>
                   <IconBtn
                     onClick={() => act(u.username, "POST")}
                     label={t("profile.acceptFriend")}
@@ -196,7 +211,7 @@ export default function FriendsModal({
                 </Row>
               ))}
               {outgoing.map((u) => (
-                <Row key={`out-${u.username}`} u={u}>
+                <Row key={`out-${u.username}`} u={u} onNavigate={closeModal}>
                   <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/70 dark:text-white/25 mr-1">
                     {t("profile.friendRequested")}
                   </span>

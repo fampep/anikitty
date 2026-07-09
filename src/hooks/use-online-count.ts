@@ -79,6 +79,8 @@ function startPolling() {
   };
   document.addEventListener("visibilitychange", onVisibility);
 
+  // `pagehide` fires reliably on mobile and for bfcache navigations, where
+  // `beforeunload` is frequently skipped entirely.
   const onUnload = () => {
     if (!sid) return;
     navigator.sendBeacon(
@@ -88,11 +90,11 @@ function startPolling() {
       }),
     );
   };
-  window.addEventListener("beforeunload", onUnload);
+  window.addEventListener("pagehide", onUnload);
 
   teardown = () => {
     document.removeEventListener("visibilitychange", onVisibility);
-    window.removeEventListener("beforeunload", onUnload);
+    window.removeEventListener("pagehide", onUnload);
     clearScheduledBeat();
   };
 }

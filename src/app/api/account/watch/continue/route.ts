@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { watchProgress } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { parseEpisodeNumber } from "@/lib/oauth/anilist-sync";
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       LIMIT ${limit}
       OFFSET ${offset}
     `);
-    items = result as Array<Record<string, unknown>>;
+    items = rowsOf(result);
   } else {
     const conditions = [eq(watchProgress.userId, payload.userId)];
     if (animeIdFilter) {
