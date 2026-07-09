@@ -23,6 +23,7 @@ import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config"
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import {
   DEFAULT_KITTY_PROVIDER,
+  isDefaultProvider,
   kittyProvidersByGroup,
   kittyProvidersForAudioMode,
   MULTI_ROW_PROVIDERS,
@@ -43,6 +44,28 @@ type Props = {
   className?: string;
 };
 
+export function ProviderDefaultBadge({
+  id,
+  compact,
+}: {
+  id: KittyProvider;
+  compact?: boolean;
+}) {
+  const t = useT();
+  if (!isDefaultProvider(id)) return null;
+
+  return (
+    <span
+      className={cn(
+        "font-mono font-bold uppercase rounded border shrink-0 border-teal-400/45 bg-teal-500/15 text-teal-200/90",
+        compact ? "text-[8px] px-1 py-px leading-tight" : "text-[9px] px-1.5 py-0.5",
+      )}
+    >
+      {t("watch.providerDefaultBadge")}
+    </span>
+  );
+}
+
 export default function ProviderSelect({
   value,
   onChange,
@@ -61,6 +84,7 @@ export default function ProviderSelect({
             : "h-9 min-w-[11rem] text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:bg-white/[0.07]",
           value === "Miruro" && "border-violet-500/25 bg-violet-500/[0.06] text-violet-100/85",
           value === "MegaPlay" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
+          value === "VideoVib" && "border-amber-500/25 bg-amber-500/[0.06] text-amber-100/85",
           value === "Animo" && "border-cyan-500/25 bg-cyan-500/[0.06] text-cyan-100/85",
           className,
         )}
@@ -92,6 +116,7 @@ export default function ProviderSelect({
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{p.label}</span>
+                      <ProviderDefaultBadge id={p.id} />
                     </div>
                     {p.hint && (
                       <span className="text-[10px] font-mono text-muted-foreground dark:text-white/35 truncate">{p.hint}</span>
@@ -270,6 +295,7 @@ function providerPillClass(
     providerId === "AniSnatch" && isActive && "border-fuchsia-400/40 bg-fuchsia-500/20 text-fuchsia-100",
     providerId === "Lunar" && isActive && "border-sky-400/40 bg-sky-500/20 text-sky-100",
     providerId === "MegaPlay" && isActive && "border-teal-400/40 bg-teal-500/20 text-teal-100",
+    providerId === "VideoVib" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
     providerId === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
   );
 }
@@ -382,6 +408,7 @@ export function ProviderGrid({
               className={providerPillClass(compact, isActive, isExpanded, styles, p.id)}
             >
               <span className="truncate max-w-[8.5rem] sm:max-w-none">{p.label}</span>
+              <ProviderDefaultBadge id={p.id} compact />
               {isMulti && mode === "multi" && (
                 <ChevronDown
                   className={cn(

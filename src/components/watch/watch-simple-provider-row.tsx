@@ -14,6 +14,7 @@ import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-conf
 import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-config";
 import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-config";
 import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config";
+import { ProviderDefaultBadge } from "@/components/player/provider-select";
 import {
   KITTY_PROVIDER_META,
   kittyProvidersByGroup,
@@ -182,8 +183,9 @@ export default function WatchSimpleProviderRow({
                         textValue={p.label}
                         className="text-xs text-foreground/90 dark:text-white/80"
                       >
-                        <span className="flex w-full items-center">
+                        <span className="flex w-full items-center gap-2 min-w-0">
                           <span className="font-semibold truncate">{p.label}</span>
+                          <ProviderDefaultBadge id={p.id} />
                           <LangBadges id={p.id} />
                         </span>
                       </SelectItem>

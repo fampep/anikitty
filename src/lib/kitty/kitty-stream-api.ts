@@ -5,6 +5,7 @@ import {
   parseKittyStreamJson,
   type KittyStreamPayload,
 } from "@/lib/kitty/kitty-api-core";
+import { isVideoVibProvider, videoVibStreamPaths } from "@/lib/kitty/videovib-provider";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 
 export type KittyRawStream = KittyStreamPayload;
@@ -42,6 +43,21 @@ export async function fetchKittyStreamDirect(
   const provider = opts.provider?.trim();
   if (!provider) return null;
 
+  const timeoutMs = opts.timeoutMs ?? 20_000;
+
+  if (isVideoVibProvider(provider)) {
+    for (const path of videoVibStreamPaths({
+      anilistId: opts.anilistId,
+      episode: opts.episode,
+      audio: opts.audio,
+      title: opts.title,
+    })) {
+      const result = await fetchKittyStreamPath(path, timeoutMs);
+      if (result?.file) return result;
+    }
+    return null;
+  }
+
   const path = buildKittyStreamDirectPath({
     provider,
     anilistId: opts.anilistId,
@@ -50,7 +66,7 @@ export async function fetchKittyStreamDirect(
     title: opts.title,
   });
 
-  return fetchKittyStreamPath(path, opts.timeoutMs ?? 20_000);
+  return fetchKittyStreamPath(path, timeoutMs);
 }
 
 /** GET /auto/stream — tries providers automatically when stream-direct fails. */

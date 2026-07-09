@@ -1,4 +1,5 @@
 import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
+import { isVideoVibProvider, videoVibStreamPaths } from "@/lib/kitty/videovib-provider";
 import {
   DEFAULT_LUNAR_SERVER,
   isLunarServerId,
@@ -177,40 +178,46 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
-  const path = buildKittyStreamDirectPath({
-    provider,
-    anilistId,
-    episode,
-    audio,
-    title,
-  });
+  const paths = isVideoVibProvider(provider)
+    ? videoVibStreamPaths({ anilistId, episode, audio, title })
+    : [
+        buildKittyStreamDirectPath({
+          provider,
+          anilistId,
+          episode,
+          audio,
+          title,
+        }),
+      ];
 
-  try {
-    const res = await kittyApiFetch(path, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-      headers: kittyStreamHeaders(),
-    });
+  for (const path of paths) {
+    try {
+      const res = await kittyApiFetch(path, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+        headers: kittyStreamHeaders(),
+      });
 
-    const data = await res.json();
-    const parsed = parseKittyStreamJson(data, res.ok);
-    if (!parsed?.file) {
-      return { hasFile: false, subtitleTracks: 0 };
+      const data = await res.json();
+      const parsed = parseKittyStreamJson(data, res.ok);
+      if (!parsed?.file) continue;
+
+      return {
+        hasFile: true,
+        file: parsed.file,
+        subtitleTracks: countSubtitleTracks(parsed.tracks),
+        multiAudio: Boolean(
+          (data as Record<string, unknown>).multiAudio ??
+            (data as Record<string, unknown>).dualAudio ??
+            (data as Record<string, unknown>).hasMultiAudio,
+        ),
+      };
+    } catch {
+      continue;
     }
-
-    return {
-      hasFile: true,
-      file: parsed.file,
-      subtitleTracks: countSubtitleTracks(parsed.tracks),
-      multiAudio: Boolean(
-        (data as Record<string, unknown>).multiAudio ??
-          (data as Record<string, unknown>).dualAudio ??
-          (data as Record<string, unknown>).hasMultiAudio,
-      ),
-    };
-  } catch {
-    return null;
   }
+
+  return { hasFile: false, subtitleTracks: 0 };
 }
 
 async function probeDirectProviderCapabilities(
