@@ -28,6 +28,19 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.7.2",
+    date: "2026-07-10",
+    title: "Dock navigation, presence & community skip times",
+    changes: [
+      { type: "improved", text: "Site navigation redesigned — slim header plus a floating bottom dock for quick access on all screen sizes." },
+      { type: "added", text: "Profile presence — last online, activity status (online, away, do not disturb, invisible), and full join date & time." },
+      { type: "added", text: "Community skip timestamps — submit intro/outro times, public browse page, Timestamp Helper role, and admin approval queue." },
+      { type: "improved", text: "Compact interface density is now the default for a tighter layout site-wide." },
+      { type: "improved", text: "Skip timestamps page shows anime posters and episode titles; approved community times take priority in the player." },
+      { type: "fixed", text: "Production build failure from invalid Tailwind opacity classes in global navigation styles." },
+    ],
+  },
+  {
     version: "0.6.9",
     date: "2026-07-10",
     title: "Forum polish, player fixes & richer MAL data",
