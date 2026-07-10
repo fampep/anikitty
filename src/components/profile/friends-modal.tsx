@@ -141,11 +141,13 @@ export default function FriendsModal({
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-4 pt-3">
+        <div className="flex gap-1 px-4 pt-3" role="tablist" aria-label={t("profile.friends")}>
           {(["friends", "requests"] as const).map((k) => (
             <button
               key={k}
               type="button"
+              role="tab"
+              aria-selected={tab === k}
               onClick={() => setTab(k)}
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors",

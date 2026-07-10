@@ -46,7 +46,7 @@ export function ThemeModeSelect() {
                 "inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all",
                 selected
                   ? "border-violet-400/40 bg-violet-500/10 text-violet-700 dark:text-violet-200"
-                  : "border-border bg-muted/40 text-muted-foreground hover:bg-accent hover:text-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60 dark:bg-white/[0.08]",
+                  : "border-border bg-muted/40 text-muted-foreground hover:bg-accent hover:text-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60 dark:hover:bg-white/[0.08]",
               )}
             >
               <Icon className="h-3.5 w-3.5" />

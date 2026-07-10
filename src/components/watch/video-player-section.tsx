@@ -1286,7 +1286,7 @@ const VideoPlayerSection = () => {
           <Button
             size="sm"
             variant="outline"
-            className="border-border dark:border-white/15 text-muted-foreground dark:text-white/60 hover:bg-accent dark:bg-white/10 w-fit text-xs"
+            className="border-border dark:border-white/15 text-muted-foreground dark:text-white/60 hover:bg-accent dark:hover:bg-white/10 w-fit text-xs"
             onClick={() => navigateToEpisode(fallback)}
           >
             {t("watch.watchLatestAired", { n: fallback.number })}

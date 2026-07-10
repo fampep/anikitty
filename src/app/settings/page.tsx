@@ -35,7 +35,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import AnilistConnect from "@/components/profile/anilist-connect";
-import MalConnect from "@/components/profile/mal-connect";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile/profile-customization-form";
@@ -178,7 +177,7 @@ function AccountCard() {
       </div>
       <Link
         href={`/profile/${encodeURIComponent(auth.username)}`}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:bg-white/10 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/25 transition-all shrink-0"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border dark:border-white/12 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/45 text-[12px] font-medium hover:bg-accent dark:hover:bg-white/10 hover:text-foreground/90 dark:hover:text-white/80 hover:border-border dark:hover:border-white/25 transition-all shrink-0"
       >
         {t("settings.viewProfile")}
         <ExternalLink className="w-3 h-3 opacity-60" />
@@ -293,7 +292,7 @@ function ToggleRow({
         aria-hidden
         className={cn(
           "relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0",
-          value ? "bg-muted/60 dark:bg-muted/60 dark:bg-white/60" : "bg-accent dark:bg-white/12",
+          value ? "bg-muted/60 dark:bg-white/60" : "bg-accent dark:bg-white/12",
         )}
       >
         <div
@@ -482,7 +481,7 @@ function EpisodeLayoutSection({
                 "flex flex-col rounded-xl border transition-all duration-200 overflow-hidden text-left",
                 episodeLayout === opt.value
                   ? "border-primary/50 bg-accent dark:border-white/40 dark:bg-white/8 ring-1 ring-primary/20 dark:ring-white/20"
-                  : "border-border dark:border-white/10 bg-muted/30 dark:bg-white/3 hover:border-border dark:border-white/20 hover:bg-muted/50 dark:bg-white/5",
+                  : "border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] hover:border-border dark:hover:border-white/20 hover:bg-muted/50 dark:hover:bg-white/[0.05]",
               )}
             >
               <div className="h-24 bg-muted dark:bg-black/30 flex items-center justify-center border-b border-border dark:border-white/6">
@@ -781,7 +780,7 @@ export default function SettingsPage() {
           <div className="mt-2 grid grid-cols-1 items-start gap-6 md:grid-cols-[236px_minmax(0,1fr)] lg:gap-8">
             {/* Sidebar category nav */}
             <aside className="md:sticky md:top-20">
-              <nav className="site-panel flex gap-1 overflow-x-auto p-2 scrollbar-hide md:flex-col md:overflow-visible">
+              <nav className="site-panel flex gap-1 overflow-x-auto p-2 scrollbar-hide md:flex-col md:overflow-visible" aria-label={t("settings.title")}>
                 {tabs.map((tab) => (
                   <SettingsNavButton
                     key={tab.value}
@@ -897,10 +896,6 @@ export default function SettingsPage() {
                       <div>
                         <SubSectionTitle>{t("settings.anilist")}</SubSectionTitle>
                         <AnilistConnect />
-                      </div>
-                      <div className="border-t border-border dark:border-white/6 pt-6">
-                        <SubSectionTitle>{t("settings.mal")}</SubSectionTitle>
-                        <MalConnect />
                       </div>
                       <div className="border-t border-border dark:border-white/6 pt-6">
                         <SubSectionTitle>{t("settings.anisurge")}</SubSectionTitle>

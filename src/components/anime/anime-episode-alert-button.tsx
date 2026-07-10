@@ -133,7 +133,7 @@ export default function AnimeEpisodeAlertButton({
     "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
     alert.subscribed
       ? "border-violet-500/40 bg-violet-500/15 text-violet-200 hover:bg-violet-500/25"
-      : "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/[0.08] hover:text-foreground dark:hover:text-white",
+      : "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/[0.08] hover:text-foreground dark:hover:text-white",
   );
 
   const triggerContent = (

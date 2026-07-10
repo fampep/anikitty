@@ -370,7 +370,7 @@ export default function ThreadPage() {
                   </button>
                   <button
                     onClick={() => setEditingThread(false)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:bg-white/10 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:hover:bg-white/10 transition-colors"
                   >
                     <X className="w-3.5 h-3.5" /> Cancel
                   </button>
@@ -594,7 +594,7 @@ function ActionButton({
           ? "text-muted-foreground dark:text-white/40 hover:text-rose-300 hover:bg-rose-500/10"
           : active
             ? "text-amber-300 bg-amber-500/10"
-            : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8",
+            : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8",
       )}
       title={label}
     >
@@ -688,7 +688,7 @@ function PostRow({
             {isLoggedIn && !editing && (
               <button
                 onClick={onQuote}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/60 dark:bg-muted/60 dark:bg-white/6 transition-colors"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/60 dark:hover:bg-white/6 transition-colors"
                 title={t("forum.thread.quote")}
               >
                 <Quote className="w-3.5 h-3.5" />
@@ -700,7 +700,7 @@ function PostRow({
               <button
                 onClick={() => setMenuOpen((v) => !v)}
                 onBlur={() => setTimeout(() => setMenuOpen(false), 150)}
-                className="p-1 rounded-lg text-muted-foreground dark:text-white/30 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8 transition-colors"
+                className="p-1 rounded-lg text-muted-foreground dark:text-white/30 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8 transition-colors"
                 aria-label="More"
               >
                 <MoreHorizontal className="w-3.5 h-3.5" />
@@ -714,7 +714,7 @@ function PostRow({
                         setEditing(true);
                         setMenuOpen(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" /> Edit
                     </button>
@@ -757,7 +757,7 @@ function PostRow({
                   setDraft(post.body);
                   setEditing(false);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:bg-white/10 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:hover:bg-white/10 transition-colors"
               >
                 <X className="w-3.5 h-3.5" /> Cancel
               </button>

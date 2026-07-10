@@ -52,7 +52,7 @@ export default function HomeTodayPanel() {
                 <Link
                   key={genre}
                   href={`${ROUTES.SEARCH}?genres=${genre}`}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/85 hover:border-white/22 hover:bg-accent dark:bg-white/[0.06] transition-all"
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/85 hover:border-white/22 hover:bg-accent dark:hover:bg-white/[0.06] transition-all"
                 >
                   {t(`search.filterGenres.${genreKey(genre)}`)}
                 </Link>

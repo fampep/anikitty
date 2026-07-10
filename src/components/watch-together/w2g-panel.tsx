@@ -121,14 +121,14 @@ export default function W2gPanel({
             <button
               type="button"
               onClick={copyCode}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground dark:text-white/55 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/10 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground dark:text-white/55 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10 transition-colors"
             >
               <Copy className="h-3 w-3" /> {t("watch.w2g.code")}
             </button>
             <button
               type="button"
               onClick={copyInvite}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground dark:text-white/55 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/10 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-muted-foreground dark:text-white/55 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10 transition-colors"
             >
               <Copy className="h-3 w-3" /> {t("watch.w2g.inviteLink")}
             </button>

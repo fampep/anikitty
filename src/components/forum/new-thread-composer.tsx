@@ -56,7 +56,7 @@ export default function NewThreadComposer({
         <h3 className="text-sm font-bold text-foreground dark:text-white/85">{t("forum.newThreadTitle")}</h3>
         <button
           onClick={onCancel}
-          className="p-1.5 rounded-lg text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8 transition-colors"
+          className="p-1.5 rounded-lg text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8 transition-colors"
           aria-label="Cancel"
         >
           <X className="w-4 h-4" />

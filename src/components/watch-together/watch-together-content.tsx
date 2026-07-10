@@ -105,7 +105,7 @@ export default function WatchTogetherContent() {
                   customTrigger={
                     <button
                       type="button"
-                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 hover:bg-accent dark:bg-white/12 transition-colors"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 hover:bg-accent dark:hover:bg-white/12 transition-colors"
                     >
                       <LogIn className="h-4 w-4" />
                       Sign in to join

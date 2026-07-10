@@ -1,9 +1,11 @@
-import { getMalClientId } from "@/lib/oauth/mal-oauth";
-
 export const MAL_API_BASE = "https://api.myanimelist.net/v2";
 export const MAL_WEB_BASE = "https://myanimelist.net";
 
 const MAL_USER_AGENT = "Anikitty/1.0";
+
+export function getMalClientId(): string | null {
+  return process.env.MAL_CLIENT_ID?.trim() || null;
+}
 
 function requestSignal(ms: number, init?: RequestInit): AbortSignal | undefined {
   if (init?.signal) return init.signal;

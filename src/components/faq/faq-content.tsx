@@ -182,7 +182,7 @@ export default function FaqContent() {
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
             >
               {t("footer.discord")}
               <ExternalLink className="w-3.5 h-3.5 opacity-50" />
@@ -191,7 +191,7 @@ export default function FaqContent() {
               href="https://github.com/fampep/anikitty"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
             >
               {t("footer.github")}
               <ExternalLink className="w-3.5 h-3.5 opacity-50" />

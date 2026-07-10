@@ -31,8 +31,6 @@ export async function GET(req: Request) {
       anisurgeUsername: users.anisurgeUsername,
       anilistUsername: users.anilistUsername,
       anilistAccessToken: users.anilistAccessToken,
-      malUsername: users.malUsername,
-      malAccessToken: users.malAccessToken,
       discordId: users.discordId,
       discordUsername: users.discordUsername,
       totpEnabled: users.totpEnabled,
@@ -58,7 +56,7 @@ export async function GET(req: Request) {
   const permissions = await getRolePermissions(db, effectiveRole);
   const cosmetics = await getUserCosmetics(db, user.id);
 
-  const { anilistAccessToken: _token, malAccessToken: _malToken, ...safeUser } = user;
+  const { anilistAccessToken: _token, ...safeUser } = user;
 
   return NextResponse.json({
     anisurgeUserId: safeUser.id,
@@ -69,8 +67,6 @@ export async function GET(req: Request) {
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,
       anilistUsername: safeUser.anilistUsername ?? null,
-      malLinked: !!_malToken,
-      malUsername: safeUser.malUsername ?? null,
       discordLinked: !!safeUser.discordId,
       discordUsername: safeUser.discordUsername ?? null,
       totpEnabled: safeUser.totpEnabled ?? false,

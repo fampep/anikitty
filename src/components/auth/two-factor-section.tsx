@@ -159,7 +159,7 @@ export default function TwoFactorSection() {
                 <button
                   type="button"
                   onClick={copySecret}
-                  className="p-2 rounded-lg border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] hover:bg-accent dark:bg-white/[0.08] text-muted-foreground dark:text-white/60"
+                  className="p-2 rounded-lg border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] hover:bg-accent dark:hover:bg-white/[0.08] text-muted-foreground dark:text-white/60"
                   aria-label="Copy secret"
                 >
                   {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}

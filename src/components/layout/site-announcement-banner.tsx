@@ -162,7 +162,7 @@ export default function SiteAnnouncementBanner() {
                     href={href}
                     className={cn(
                       "shrink-0 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border transition-colors",
-                      "border-border dark:border-white/15 bg-accent dark:bg-white/[0.06] text-foreground dark:text-white hover:bg-accent dark:bg-white/12",
+                      "border-border dark:border-white/15 bg-accent dark:bg-white/[0.06] text-foreground dark:text-white hover:bg-accent dark:hover:bg-white/12",
                     )}
                   >
                     {a.forumThreadId && !a.linkUrl ? (
@@ -176,7 +176,7 @@ export default function SiteAnnouncementBanner() {
               {a.dismissible && (
                 <button
                   onClick={() => handleDismiss(a.id)}
-                  className="shrink-0 p-1 rounded-md text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8 transition-colors"
+                  className="shrink-0 p-1 rounded-md text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8 transition-colors"
                   aria-label={t("common.dismiss")}
                 >
                   <X className="w-3.5 h-3.5" />

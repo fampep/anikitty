@@ -13,6 +13,7 @@ import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
 import WatchQuickNav from "@/components/watch/watch-quick-nav";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
+import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime/anime-carousel";
 import dynamic from "next/dynamic";
@@ -176,6 +177,8 @@ const Layout = (props: Props) => {
   const anilistId = anime?.anime?.info?.anilistId;
   const { data: mappingData } = useGetAnimeMappings(anilistId);
   const mappings = mappingData?.mappings;
+  const extMeta = mappingData?.metadata;
+  const malMeta = extMeta?.mal;
 
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (anilistId)              externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(anilistId) });
@@ -348,6 +351,9 @@ const Layout = (props: Props) => {
   }
 
   const stats = info.stats;
+  const malScoreLabel =
+    extMeta?.ratings?.find((r) => r.provider === "mal")?.label ??
+    (moreInfo.malscore !== "N/A" ? moreInfo.malscore : null);
 
   // Prev/next playable episodes for the sidebar card.
   const episodeList = episodes?.episodes ?? [];
@@ -482,7 +488,12 @@ const Layout = (props: Props) => {
                   { label: t("anime.detailFields.status"), value: moreInfo?.status },
                   { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
                   { label: t("anime.detailFields.duration"), value: (moreInfo as any)?.duration },
-                  { label: t("anime.detailFields.score"), value: (moreInfo as any)?.malscore },
+                  { label: t("anime.detailFields.score"), value: malScoreLabel },
+                  { label: t("anime.detailFields.malRank"), value: malMeta?.rank ? `#${malMeta.rank.toLocaleString()}` : null },
+                  { label: t("anime.detailFields.malPopularity"), value: malMeta?.popularity ? `#${malMeta.popularity.toLocaleString()}` : null },
+                  { label: t("anime.detailFields.malMembers"), value: malMeta?.members ? formatMalMemberCount(malMeta.members) : null },
+                  { label: t("anime.detailFields.malContentRating"), value: malMeta?.contentRating },
+                  { label: t("anime.detailFields.malBroadcast"), value: malMeta?.broadcast },
                   { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
                   { label: t("anime.detailFields.aired"), value: moreInfo?.aired },
                   { label: t("anime.detailFields.source"), value: (moreInfo as any)?.source },

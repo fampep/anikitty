@@ -80,7 +80,7 @@ export default function WatchCommentsSheet({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="ml-auto flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:bg-accent dark:bg-white/8 transition-colors"
+            className="ml-auto flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:bg-accent dark:hover:bg-white/8 transition-colors"
             aria-label={t("common.close")}
           >
             <X className="h-5 w-5" />

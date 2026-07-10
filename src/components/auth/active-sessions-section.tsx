@@ -150,13 +150,16 @@ export default function ActiveSessionsSection() {
             <button
               key={session.id}
               type="button"
+              role="checkbox"
+              aria-checked={checked}
+              aria-label={`${session.deviceLabel}${session.current ? " (this device)" : ""}`}
               disabled={busy}
               onClick={() => toggle(session.id)}
               className={cn(
                 "flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl border transition-all",
                 checked
                   ? "border-violet-400/35 bg-violet-500/8"
-                  : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/3 hover:border-border dark:border-white/15",
+                  : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.03] hover:border-border dark:hover:border-white/15",
                 busy && "opacity-60 cursor-not-allowed",
               )}
             >
@@ -201,7 +204,7 @@ export default function ActiveSessionsSection() {
             type="button"
             disabled={busy}
             onClick={revokeAllOthers}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-muted/60 dark:bg-muted/60 dark:bg-white/6 border border-border dark:border-white/12 text-muted-foreground dark:text-white/65 text-xs font-medium hover:bg-accent dark:bg-white/10 disabled:opacity-40 transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-muted/60 dark:bg-white/[0.06] border border-border dark:border-white/12 text-muted-foreground dark:text-white/65 text-xs font-medium hover:bg-accent dark:hover:bg-white/10 disabled:opacity-40 transition-all"
           >
             Sign out all other devices
           </button>
@@ -212,7 +215,7 @@ export default function ActiveSessionsSection() {
             type="button"
             disabled={busy}
             onClick={selected.size === sessions.length ? clearSelection : selectAll}
-            className="px-3 py-2 rounded-lg text-muted-foreground dark:text-white/40 text-xs font-mono hover:text-muted-foreground dark:text-white/60 transition-colors"
+            className="px-3 py-2 rounded-lg text-muted-foreground dark:text-white/40 text-xs font-mono hover:text-muted-foreground dark:hover:text-white/60 transition-colors"
           >
             {selected.size === sessions.length ? "Clear selection" : "Select all"}
           </button>

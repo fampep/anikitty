@@ -436,7 +436,7 @@ const MobileMenuSheet = ({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button type="button" className="touch-target rounded-lg p-2.5 transition-colors hover:bg-accent dark:bg-white/8" aria-label={t("nav.aria.openMenu")}>
+        <button type="button" className="touch-target rounded-lg p-2.5 transition-colors hover:bg-accent dark:hover:bg-white/8" aria-label={t("nav.aria.openMenu")}>
           {trigger}
         </button>
       </SheetTrigger>

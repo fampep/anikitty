@@ -220,7 +220,7 @@ function MenuItem({ href, icon, label, onClick }: {
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-4 py-2 text-sm text-muted-foreground dark:text-white/55 hover:bg-muted/60 dark:bg-muted/60 dark:bg-white/6 hover:text-foreground dark:hover:text-white/90 transition-colors"
+      className="flex items-center gap-2.5 px-4 py-2 text-sm text-muted-foreground dark:text-white/55 hover:bg-muted/60 dark:hover:bg-white/6 hover:text-foreground dark:hover:text-white/90 transition-colors"
     >
       <span className="text-muted-foreground dark:text-white/30">{icon}</span>
       {label}

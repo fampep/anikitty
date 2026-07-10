@@ -20,7 +20,7 @@ export default function ProfileBadgePill({ label, title, color, icon, active }: 
     <span
       className={cn(
         "inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors",
-        active && "ring-1 ring-offset-1 ring-offset-black/80",
+        active && "ring-1 ring-offset-1 ring-offset-background",
       )}
       style={{
         color,

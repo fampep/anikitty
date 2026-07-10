@@ -853,7 +853,7 @@ function ProfilePage() {
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-muted-foreground dark:text-white/35 data-[state=active]:bg-accent dark:bg-white/12 data-[state=active]:text-foreground dark:text-white/90 data-[state=active]:border-border dark:border-white/20 hover:text-muted-foreground dark:text-white/60 transition-all bg-transparent"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-muted-foreground dark:text-white/35 data-[state=active]:bg-accent dark:data-[state=active]:bg-white/12 data-[state=active]:text-foreground dark:data-[state=active]:text-white/90 data-[state=active]:border-border dark:data-[state=active]:border-white/20 hover:text-foreground/80 dark:hover:text-white/60 transition-all bg-transparent"
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {tab.label}

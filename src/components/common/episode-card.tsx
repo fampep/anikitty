@@ -89,7 +89,7 @@ const EpisodeCard = ({
               ? "bg-violet-600 ring-1 ring-violet-400/50 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)]"
               : isActive
                 ? "bg-muted dark:bg-white/15 ring-1 ring-white/30 text-white"
-                : "bg-accent dark:bg-white/[0.06] hover:bg-accent dark:bg-white/10 text-muted-foreground dark:text-white/60",
+                : "bg-accent dark:bg-white/[0.06] hover:bg-accent dark:hover:bg-white/10 text-muted-foreground dark:text-white/60",
             playable && !playActive && !isActive && "hover:bg-accent dark:hover:bg-white/10",
             !playActive && !isActive && props.episode.isFiller && "ring-1 ring-amber-500/25",
             hasWatchedEpisode && !isActive && "opacity-50",

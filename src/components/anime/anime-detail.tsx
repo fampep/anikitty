@@ -42,6 +42,7 @@ import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
+import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
 import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
@@ -632,6 +633,46 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                     );
                   })}
                 </div>
+                {extMeta?.mal && (extMeta.mal.rank || extMeta.mal.popularity || extMeta.mal.members) && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {extMeta.mal.rank ? (
+                      <MalStatChip
+                        href={extMeta.mal.url ?? undefined}
+                        label={t("anime.detailFields.malRank")}
+                        value={`#${extMeta.mal.rank.toLocaleString()}`}
+                      />
+                    ) : null}
+                    {extMeta.mal.popularity ? (
+                      <MalStatChip
+                        href={extMeta.mal.url ?? undefined}
+                        label={t("anime.detailFields.malPopularity")}
+                        value={`#${extMeta.mal.popularity.toLocaleString()}`}
+                      />
+                    ) : null}
+                    {extMeta.mal.members ? (
+                      <MalStatChip
+                        href={extMeta.mal.url ?? undefined}
+                        label={t("anime.detailFields.malMembers")}
+                        value={formatMalMemberCount(extMeta.mal.members)}
+                      />
+                    ) : null}
+                  </div>
+                )}
+              </OverviewPanel>
+            )}
+
+            {extMeta?.mal?.themes && extMeta.mal.themes.length > 0 && (
+              <OverviewPanel title={t("anime.detailFields.malThemes")}>
+                <div className="flex flex-wrap gap-2">
+                  {extMeta.mal.themes.map((theme) => (
+                    <span
+                      key={theme}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-blue-500/20 text-blue-300/90 bg-blue-500/8 font-medium"
+                    >
+                      {theme}
+                    </span>
+                  ))}
+                </div>
               </OverviewPanel>
             )}
 
@@ -646,7 +687,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   { label: t("anime.detailFields.aired"), value: moreInfo.aired },
                   { label: t("anime.detailFields.premiered"), value: moreInfo.premiered },
                   { label: t("anime.detailFields.score"), value: malScoreLabel },
-                  { label: t("anime.detailFields.malRank"), value: extMeta?.mal?.rank ? `#${extMeta.mal.rank}` : null },
+                  { label: t("anime.detailFields.malRank"), value: extMeta?.mal?.rank ? `#${extMeta.mal.rank.toLocaleString()}` : null },
+                  { label: t("anime.detailFields.malPopularity"), value: extMeta?.mal?.popularity ? `#${extMeta.mal.popularity.toLocaleString()}` : null },
+                  { label: t("anime.detailFields.malMembers"), value: extMeta?.mal?.members ? formatMalMemberCount(extMeta.mal.members) : null },
+                  { label: t("anime.detailFields.malContentRating"), value: extMeta?.mal?.contentRating },
+                  { label: t("anime.detailFields.malBroadcast"), value: extMeta?.mal?.broadcast },
+                  { label: t("anime.detailFields.malSeason"), value: extMeta?.mal?.season },
+                  { label: t("anime.detailFields.malLicensors"), value: extMeta?.mal?.licensors?.length ? extMeta.mal.licensors.join(", ") : null },
+                  { label: t("anime.detailFields.malSource"), value: extMeta?.mal?.source && extMeta.mal.source !== moreInfo.source ? extMeta.mal.source : null },
                   { label: t("anime.detailFields.tvdbStatus"), value: extMeta?.tvdb?.status },
                   { label: t("anime.detailFields.network"), value: extMeta?.tvdb?.network ?? extMeta?.tmdb?.networks?.[0] },
                   { label: t("anime.detailFields.country"), value: extMeta?.tvdb?.country },
@@ -824,6 +872,33 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     </div>
   );
 }
+
+const MalStatChip = ({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) => {
+  const inner = (
+  <>
+    <span className="text-[10px] font-mono uppercase tracking-wider text-blue-300/70 block">{label}</span>
+    <span className="text-sm font-bold tabular-nums text-blue-100">{value}</span>
+  </>
+  );
+  const className =
+    "rounded-xl border border-blue-500/20 bg-blue-500/8 px-3 py-2 transition-colors hover:bg-blue-500/12";
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {inner}
+      </a>
+    );
+  }
+  return <div className={className}>{inner}</div>;
+};
 
 const OverviewPanel = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="site-panel p-5 sm:p-6">

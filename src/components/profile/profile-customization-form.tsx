@@ -167,12 +167,13 @@ export default function ProfileCustomizationForm({
               <button
                 key={preset.name}
                 type="button"
+                aria-pressed={selected}
                 onClick={() => setThemeColor(preset.hex || null)}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all",
                   selected
                     ? "border-primary/50 bg-accent dark:border-white/35 dark:bg-white/10 text-foreground dark:text-white"
-                    : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:border-border dark:border-white/20 hover:text-muted-foreground dark:text-white/70",
+                    : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:border-border dark:hover:border-white/20 hover:text-foreground/80 dark:hover:text-white/70",
                 )}
               >
                 <span

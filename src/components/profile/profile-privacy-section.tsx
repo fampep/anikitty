@@ -87,13 +87,16 @@ export default function ProfilePrivacySection() {
 
       <button
         type="button"
+        role="switch"
+        aria-pressed={profilePrivate}
+        aria-label={profilePrivate ? "Profile is hidden (ninja mode)" : "Profile is public"}
         onClick={toggle}
         disabled={busy}
         className={cn(
           "shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border disabled:opacity-50",
           profilePrivate
             ? "bg-violet-600/20 border-violet-400/30 text-violet-200 hover:bg-violet-600/30"
-            : "bg-muted/50 dark:bg-white/5 border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white",
+            : "bg-muted/50 dark:bg-white/5 border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/10 hover:text-foreground dark:hover:text-white",
         )}
       >
         {busy ? (

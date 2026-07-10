@@ -276,7 +276,7 @@ export default function ForumPage() {
           ) : (
             <LoginPopoverButton
               customTrigger={
-                <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-muted/60 dark:bg-white/[0.05] text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 text-sm font-semibold rounded-xl hover:bg-accent dark:bg-white/8 hover:text-foreground dark:hover:text-white transition-all shrink-0">
+                <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-muted/60 dark:bg-white/[0.05] text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 text-sm font-semibold rounded-xl hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-all shrink-0">
                   <LogIn className="w-4 h-4" />
                   {t("forum.signInToPost")}
                 </button>
@@ -355,7 +355,7 @@ export default function ForumPage() {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="mt-2 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/8 text-sm font-semibold text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/[0.06] hover:border-border dark:border-white/15 transition-colors disabled:opacity-40"
+                    className="mt-2 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/8 text-sm font-semibold text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/[0.06] hover:border-border dark:border-white/15 transition-colors disabled:opacity-40"
                   >
                     {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {t("forum.loadMore")}

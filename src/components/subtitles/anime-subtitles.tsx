@@ -263,7 +263,7 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
                   "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-50",
                   showMissingOnly
                     ? "bg-amber-500/20 border-amber-500/30 text-amber-200 hover:bg-amber-500/30"
-                    : "bg-accent dark:bg-white/8 border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:bg-white/12",
+                    : "bg-accent dark:bg-white/8 border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/12",
                 )}
               >
                 {showMissingOnly

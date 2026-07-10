@@ -180,7 +180,7 @@ export default function MessagesPage() {
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border dark:border-white/8 shrink-0">
                   <Link
                     href={ROUTES.MESSAGES}
-                    className="md:hidden p-1.5 rounded-lg text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white hover:bg-accent dark:bg-white/8"
+                    className="md:hidden p-1.5 rounded-lg text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8"
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Link>

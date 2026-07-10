@@ -198,7 +198,7 @@ export default function PasskeysSection() {
           onClick={() => setShowAdd(true)}
           disabled={busy}
           className={cn(
-            "inline-flex items-center gap-2 self-start rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-3 py-2 text-sm font-semibold text-foreground/85 dark:text-white/75 hover:bg-accent dark:bg-white/[0.08] disabled:opacity-50 transition-colors",
+            "inline-flex items-center gap-2 self-start rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-3 py-2 text-sm font-semibold text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/[0.08] disabled:opacity-50 transition-colors",
           )}
         >
           <Plus className="w-4 h-4" />

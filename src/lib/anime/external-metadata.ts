@@ -29,12 +29,20 @@ export type ExternalMetadata = {
     popularity?: number | null;
     members?: number | null;
     scoredBy?: number | null;
+    status?: string | null;
+    contentRating?: string | null;
+    broadcast?: string | null;
+    source?: string | null;
+    themes?: string[];
+    licensors?: string[];
+    season?: string | null;
+    url?: string | null;
   };
 };
 
 const TVDB_API = "https://api4.thetvdb.com/v4";
 const TMDB_API = "https://api.themoviedb.org/3";
-const JIKAN_API = "https://api.jikan.moe/v4";
+import { fetchMalAnimeDetails } from "@/lib/anime/mal-metadata";
 
 let _tvdbToken: string | null = null;
 let _tvdbTokenExpiry = 0;
@@ -63,37 +71,34 @@ async function getTvdbToken(): Promise<string | null> {
 async function fetchMalExtras(
   malId: number,
 ): Promise<{ mal: ExternalMetadata["mal"]; rating: ProviderRating | null }> {
-  try {
-    const res = await fetch(`${JIKAN_API}/anime/${malId}`, {
-      signal: AbortSignal.timeout(6000),
-      next: { revalidate: 86400 },
-    });
-    if (!res.ok) return { mal: undefined, rating: null };
-    const data = res.json ? await res.json() : null;
-    const row = data?.data;
-    if (!row) return { mal: undefined, rating: null };
+  const details = await fetchMalAnimeDetails(malId);
+  if (!details) return { mal: undefined, rating: null };
 
-    const score = typeof row.score === "number" && row.score > 0 ? row.score : null;
-    return {
-      mal: {
-        rank: row.rank ?? null,
-        popularity: row.popularity ?? null,
-        members: row.members ?? null,
-        scoredBy: row.scored_by ?? null,
-      },
-      rating: score
-        ? {
-            provider: "mal",
-            score,
-            label: `${score.toFixed(2)}/10`,
-            votes: row.scored_by ?? null,
-            url: `https://myanimelist.net/anime/${malId}`,
-          }
-        : null,
-    };
-  } catch {
-    return { mal: undefined, rating: null };
-  }
+  return {
+    mal: {
+      rank: details.rank,
+      popularity: details.popularity,
+      members: details.members,
+      scoredBy: details.scoredBy,
+      status: details.status,
+      contentRating: details.contentRating,
+      broadcast: details.broadcast,
+      source: details.source,
+      themes: details.themes,
+      licensors: details.licensors,
+      season: details.season,
+      url: details.url,
+    },
+    rating: details.score
+      ? {
+          provider: "mal",
+          score: details.score,
+          label: `${details.score.toFixed(2)}/10`,
+          votes: details.scoredBy ?? null,
+          url: details.url,
+        }
+      : null,
+  };
 }
 
 async function fetchImdbRating(imdbId: string): Promise<ProviderRating | null> {

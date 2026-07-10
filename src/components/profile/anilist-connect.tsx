@@ -193,7 +193,7 @@ function AnilistConnect() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/55 text-xs font-semibold transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10 text-muted-foreground dark:text-white/55 text-xs font-semibold transition-colors disabled:opacity-50"
             >
               {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               {syncing ? "Syncing…" : overrideWatchlist ? "Replace from AniList" : "Import watchlist"}
@@ -203,6 +203,7 @@ function AnilistConnect() {
               disabled={disconnecting}
               className="px-3 py-1.5 rounded-lg border border-red-900/40 text-red-700 hover:text-red-400 text-xs transition-colors disabled:opacity-50"
               title="Disconnect"
+              aria-label="Disconnect AniList account"
             >
               {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}
             </button>

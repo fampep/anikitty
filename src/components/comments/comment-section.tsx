@@ -86,7 +86,7 @@ function EmojiPickerPanel({
             key={emoji}
             onClick={() => onSelect(emoji)}
             aria-label={`Insert emoji ${emoji}`}
-            className="flex items-center justify-center text-xl p-1.5 rounded-lg hover:bg-accent dark:bg-white/10 transition-colors leading-none"
+            className="flex items-center justify-center text-xl p-1.5 rounded-lg hover:bg-accent dark:hover:bg-white/10 transition-colors leading-none"
           >
             {emoji}
           </button>
@@ -1102,7 +1102,7 @@ export default function CommentSection({
           <p className="text-sm text-red-400/80 font-mono">{loadError}</p>
           <button
             onClick={() => fetchComments(1, sort, false)}
-            className="px-4 py-1.5 rounded-lg border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/60 text-xs font-semibold transition-colors"
+            className="px-4 py-1.5 rounded-lg border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/60 text-xs font-semibold transition-colors"
           >
             {t("comments.retry")}
           </button>
@@ -1192,7 +1192,7 @@ export default function CommentSection({
                               "p-1.5 rounded-lg transition-all",
                               c.pinnedAt
                                 ? "text-violet-300 hover:bg-violet-500/10"
-                                : "hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60",
+                                : "hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60",
                             )}
                           >
                             <Pin className="w-3 h-3" />
@@ -1202,7 +1202,7 @@ export default function CommentSection({
                           <button
                             onClick={() => { setEditingId(c.id); setEditDraft(c.body); }}
                             aria-label={t("comments.editComment")}
-                            className="p-1.5 rounded-lg hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-all"
+                            className="p-1.5 rounded-lg hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-all"
                           >
                             <Pencil className="w-3 h-3" />
                           </button>
@@ -1388,7 +1388,7 @@ export default function CommentSection({
                                               setEditDraft(reply.body);
                                             }}
                                             aria-label={t("comments.editReply")}
-                                            className="p-1 rounded-lg hover:bg-accent dark:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-all"
+                                            className="p-1 rounded-lg hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-all"
                                           >
                                             <Pencil className="w-3 h-3" />
                                           </button>

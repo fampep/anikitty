@@ -282,7 +282,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
                     type="button"
                     onClick={handlePasskeyLogin}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent dark:bg-white/[0.06] border border-border dark:border-white/12 text-foreground dark:text-white/85 font-semibold text-sm hover:bg-accent dark:bg-white/10 disabled:opacity-60 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent dark:bg-white/[0.06] border border-border dark:border-white/12 text-foreground dark:text-white/85 font-semibold text-sm hover:bg-accent dark:hover:bg-white/10 disabled:opacity-60 transition-colors"
                   >
                     <Fingerprint className="w-4 h-4" />
                     {t("auth.signInWithPasskey")}
