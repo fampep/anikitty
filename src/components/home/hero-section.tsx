@@ -10,11 +10,11 @@ import {
 import Container from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 
 import React, { useEffect } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, Info, Play } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
-import { ButtonLink } from "@/components/common/button-link";
 import { SpotlightAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -161,12 +161,12 @@ const HeroCarouselItem = ({
       <div className="absolute inset-0 z-20 flex items-end">
         <Container className="w-full pb-16 sm:pb-20 pointer-events-none">
           <div className="flex w-full flex-col gap-3 md:gap-4 max-w-full">
-            <ButtonLink
+            <Link
               href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
               className="pointer-events-auto text-2xl lg:text-3xl font-extrabold line-clamp-2 hover:opacity-80 w-fit max-w-full xl:max-w-[40%] text-foreground dark:text-white"
             >
               {anime.name}
-            </ButtonLink>
+            </Link>
 
             <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm pointer-events-none">
               <span className="text-[10px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-[0.2em]">
@@ -184,24 +184,24 @@ const HeroCarouselItem = ({
             </p>
 
             <div className="flex items-center gap-x-2 text-sm pointer-events-auto">
-              <ButtonLink
+              <Link
                 href={`${ROUTES.WATCH}?anime=${anime.id}`}
                 onClick={() => trackEvent("home_hero_watch", { anime_id: anime.id })}
-                className="flex items-center h-9 px-6 font-semibold gap-2 text-sm justify-center bg-white text-black hover:bg-white/90 rounded-full"
+                className="inline-flex items-center h-9 px-6 font-semibold gap-2 text-sm justify-center bg-white text-black hover:bg-white/90 rounded-full"
               >
                 <Play className="h-4 w-4 fill-current" />
                 {t("home.watchNow")}
-              </ButtonLink>
-              <ButtonLink
+              </Link>
+              <Link
                 href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-                className="size-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 pointer-events-auto"
+                className="size-9 inline-flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10"
                 aria-label={t("home.details")}
               >
                 <Info className="h-4 w-4" />
-              </ButtonLink>
+              </Link>
               <button
                 type="button"
-                className="size-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 pointer-events-auto"
+                className="size-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 pointer-events-auto"
                 aria-label={t("anime.addToList")}
               >
                 <Bookmark className="h-4 w-4" />
