@@ -140,6 +140,8 @@ export async function maybeGrantTimestampHelperRole(
 
 export type SkipDatabaseEpisode = {
   episode: number;
+  episodeTitle?: string | null;
+  episodeThumbnail?: string | null;
   introLabel: string | null;
   outroLabel: string | null;
   hasIntro: boolean;
@@ -154,6 +156,7 @@ export type SkipDatabaseEpisode = {
 export type SkipDatabaseAnimeGroup = {
   anilistId: number;
   animeTitle: string;
+  posterUrl?: string | null;
   episodes: SkipDatabaseEpisode[];
 };
 

@@ -254,7 +254,7 @@ export const useSettingsStore = create<ISettingsStore>()(
       uiFontScale: "default",
       setUiFontScale: (uiFontScale) => set({ uiFontScale }),
 
-      interfaceDensity: "comfortable",
+      interfaceDensity: "compact",
       setInterfaceDensity: (interfaceDensity) => set({ interfaceDensity }),
 
       showBetaBadge: true,
@@ -278,7 +278,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 27,
+      version: 28,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -378,7 +378,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 22) {
           next.siteAccentColor = next.siteAccentColor ?? null;
           next.uiFontScale = next.uiFontScale ?? "default";
-          next.interfaceDensity = next.interfaceDensity ?? "comfortable";
+          next.interfaceDensity = next.interfaceDensity ?? "compact";
           next.showBetaBadge = next.showBetaBadge ?? true;
           next.showOnlineCount = next.showOnlineCount ?? true;
           next.showAnnouncementBanner = next.showAnnouncementBanner ?? true;
@@ -406,6 +406,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 27) {
           next.showPillNavOnDesktop = next.showPillNavOnDesktop ?? false;
+        }
+        if (version < 28) {
+          next.interfaceDensity = "compact";
         }
         return next as ISettingsStore;
       },

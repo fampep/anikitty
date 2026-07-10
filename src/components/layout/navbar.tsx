@@ -26,6 +26,7 @@ import {
   MoreHorizontal,
   Scale,
   ScrollText,
+  Timer,
   Search,
   SearchIcon,
   Tv2,
@@ -62,6 +63,7 @@ const MENU_DEFS = [
   { href: ROUTES.COMMUNITY, icon: MessageSquare, titleKey: "nav.community", shortKey: "nav.short.community", group: "browse" as MenuGroup },
   { href: ROUTES.VOICE_ACTORS, icon: Mic, titleKey: "nav.voiceActors", shortKey: "nav.short.voiceActors", group: "browse" as MenuGroup },
   { href: ROUTES.SUBTITLES, icon: Captions, titleKey: "nav.subtitles", shortKey: "nav.short.subtitles", group: "watch" as MenuGroup },
+  { href: ROUTES.TIMESTAMPS, icon: Timer, titleKey: "nav.timestamps", shortKey: "nav.short.timestamps", group: "watch" as MenuGroup },
   { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together", group: "watch" as MenuGroup },
   { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat", group: "community" as MenuGroup },
   { href: ROUTES.MESSAGES, icon: Mail, titleKey: "nav.messages", shortKey: "nav.short.messages", group: "community" as MenuGroup, authOnly: true },
@@ -90,6 +92,7 @@ function isNavActive(pathname: string, href: string): boolean {
   if (href === ROUTES.FORUM) return pathname.startsWith("/forum");
   if (href === ROUTES.MESSAGES) return pathname.startsWith("/messages");
   if (href === ROUTES.VOICE_ACTORS) return pathname.startsWith("/voice-actor");
+  if (href === ROUTES.TIMESTAMPS) return pathname.startsWith("/timestamps");
   return pathname.startsWith(`${href}/`);
 }
 

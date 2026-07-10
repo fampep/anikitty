@@ -267,8 +267,11 @@ html.lite-mode .site-panel {
 
 html.density-compact {
   --nav-height: 3.5rem;
-  --home-section-gap: 1.75rem;
-  --home-hero-max-h: 460px;
+  --home-section-gap: 1.5rem;
+  --home-hero-max-h: 420px;
+  --site-section-gap: 0.75rem;
+  --site-card-pad: 0.75rem;
+  font-size: 93.75%;
 }
 
 html.density-compact .site-panel {
@@ -276,12 +279,20 @@ html.density-compact .site-panel {
 }
 
 html.density-compact .site-chip {
-  padding: 0.375rem 0.625rem;
+  padding: 0.3rem 0.55rem;
   font-size: 10px;
+  border-radius: 0.65rem;
 }
 
 html.density-compact .site-page {
   letter-spacing: -0.01em;
+}
+
+html.density-compact .site-ghost-btn,
+html.density-compact .site-brand-btn {
+  min-height: 2.5rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
 }
 
 @layer components {
