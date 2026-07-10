@@ -767,7 +767,7 @@ export default function KittyPlayer({
       container,
       url: proxiedSrc,
       type: "m3u8",
-      quality: playerQuality,
+      ...(playerQuality ? { quality: playerQuality } : {}),
       theme: ANIKITTY_PLAYER_THEME,
       cssVar: ANIKITTY_PLAYER_CSS_VAR,
       volume: savedVolume,
