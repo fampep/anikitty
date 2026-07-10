@@ -1,8 +1,8 @@
 /** KittyAPI unified MegaPlay provider (replaces scrape-based Anikoto, AnimeSogo, Anix, HiAnime, Animepahe). */
 export const MEGAPLAY_PROVIDER_ID = "MegaPlay" as const;
 
-/** Internal KittyAPI backends merged behind the single MegaPlay provider. */
-export const MEGAPLAY_BACKENDS = [
+/** Saved `kittyProvider` values from before the unified provider — map to {@link MEGAPLAY_PROVIDER_ID}. */
+export const LEGACY_MEGAPLAY_PROVIDER_IDS = [
   "Anikoto",
   "AnimeSogo",
   "Anix",
@@ -10,27 +10,23 @@ export const MEGAPLAY_BACKENDS = [
   "Animepahe",
 ] as const;
 
-/** Saved `kittyProvider` values from before the unified provider — map to {@link MEGAPLAY_PROVIDER_ID}. */
-export const LEGACY_MEGAPLAY_PROVIDER_IDS = MEGAPLAY_BACKENDS;
-
 export type LegacyMegaplayProviderId = (typeof LEGACY_MEGAPLAY_PROVIDER_IDS)[number];
 
 export type MegaplayProviderConfig = {
   id: typeof MEGAPLAY_PROVIDER_ID;
   slug: string;
-  /** Merged search across {@link MEGAPLAY_BACKENDS}; `anilist:` routes to Anikoto API catalog. */
   catalogApi: string;
   streamApi: string;
   hint: string;
 };
 
-/** Mirrors KittyAPI `MegaPlayProvider` — merged backends, URL-routed episodes/servers/stream. */
+/** Mirrors KittyAPI `MegaPlayProvider` — Anikoto API catalog + MegaPlay stream API. */
 export const MEGAPLAY_PROVIDER_CONFIG: MegaplayProviderConfig = {
   id: "MegaPlay",
   slug: "megaplay",
   catalogApi: "anikotoapi.site",
   streamApi: "megaplay.buzz",
-  hint: "Anikoto · AnimeSogo · Anix · HiAnime · Animepahe · 1080p/720p/360p · SUB · DUB · VTT",
+  hint: "Anikoto API catalog · MegaPlay streams · SUB · DUB · VTT on SUB",
 };
 
 const LEGACY_MEGAPLAY_SET = new Set<string>(LEGACY_MEGAPLAY_PROVIDER_IDS);
