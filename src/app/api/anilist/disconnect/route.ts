@@ -16,6 +16,7 @@ export async function DELETE(req: Request) {
     .update(users)
     .set({
       anilistAccessToken: null,
+      anilistRefreshToken: null,
       anilistUserId: null,
       anilistUsername: null,
     })

@@ -3,7 +3,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { ChevronLeft, ChevronRight, History, Play, RefreshCw, X } from "lucide-react";
+import { BulkSelectToolbar } from "@/components/common/bulk-select-toolbar";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
+import { Check, ChevronLeft, ChevronRight, History, Pencil, Play, RefreshCw, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
@@ -119,10 +121,16 @@ function ContinueCard({
   item,
   onRequestRemove,
   removing,
+  editMode,
+  selected,
+  onToggleSelect,
 }: {
   item: ContinueItem;
   onRequestRemove: (item: ContinueItem) => void;
   removing: boolean;
+  editMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const t = useT();
   const { current, timestamp: duration, episodeNumber } = item.watchDetail;
@@ -137,8 +145,41 @@ function ContinueCard({
   };
 
   return (
-    <div className="relative shrink-0 w-[160px] sm:w-[200px] group">
-      <Link href={href} className="block">
+    <div
+      className={cn(
+        "relative shrink-0 w-[160px] sm:w-[200px] group",
+        editMode && "cursor-pointer",
+        selected && "ring-2 ring-violet-400/60 rounded-xl",
+      )}
+      onClick={editMode ? onToggleSelect : undefined}
+      onKeyDown={
+        editMode
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggleSelect?.();
+              }
+            }
+          : undefined
+      }
+      role={editMode ? "checkbox" : undefined}
+      aria-checked={editMode ? selected : undefined}
+      tabIndex={editMode ? 0 : undefined}
+    >
+      {editMode && (
+        <span
+          className={cn(
+            "absolute top-2 left-2 z-30 flex h-5 w-5 items-center justify-center rounded-md border",
+            selected
+              ? "bg-violet-500 border-violet-400/50 text-white"
+              : "bg-black/70 border-white/20 text-white/50",
+          )}
+        >
+          {selected && <Check className="h-3 w-3" strokeWidth={3} />}
+        </span>
+      )}
+
+      <Link href={href} className={cn("block", editMode && "pointer-events-none")}>
         {/* Thumbnail area */}
         <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover:ring-violet-400/20 transition-all" style={{ aspectRatio: "16/9" }}>
           <LazyPosterImage
@@ -191,34 +232,38 @@ function ContinueCard({
         </p>
       </Link>
 
-      <button
-        type="button"
-        onClick={handleRemove}
-        disabled={removing}
-        aria-label={t("home.removeContinue")}
-        className={cn(
-          "absolute top-2 right-2 z-20 flex h-6 w-6 items-center justify-center rounded-lg",
-          "bg-black/60 text-muted-foreground dark:text-white/45 ring-1 ring-border dark:ring-white/10",
-          "opacity-80 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
-          "hover:bg-rose-500/15 hover:text-rose-300 hover:ring-rose-400/25",
-          "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-violet-400/40",
-          "transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none",
-        )}
-      >
-        <X className="h-3.5 w-3.5" strokeWidth={2.25} />
-      </button>
+      {!editMode && (
+        <button
+          type="button"
+          onClick={handleRemove}
+          disabled={removing}
+          aria-label={t("home.removeContinue")}
+          className={cn(
+            "absolute top-2 right-2 z-20 flex h-6 w-6 items-center justify-center rounded-lg",
+            "bg-black/60 text-muted-foreground dark:text-white/45 ring-1 ring-border dark:ring-white/10",
+            "opacity-80 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+            "hover:bg-rose-500/15 hover:text-rose-300 hover:ring-rose-400/25",
+            "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-violet-400/40",
+            "transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none",
+          )}
+        >
+          <X className="h-3.5 w-3.5" strokeWidth={2.25} />
+        </button>
+      )}
     </div>
   );
 }
 
 function RemoveContinueDialog({
   item,
+  bulkCount,
   open,
   removing,
   onClose,
   onConfirm,
 }: {
   item: ContinueItem | null;
+  bulkCount?: number;
   open: boolean;
   removing: boolean;
   onClose: () => void;
@@ -234,9 +279,11 @@ function RemoveContinueDialog({
             {t("home.removeContinueTitle")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground dark:text-white/45 text-sm leading-relaxed">
-            {item
-              ? t("home.removeContinueConfirm", { title: item.name })
-              : t("home.removeContinue")}
+            {bulkCount && bulkCount > 1
+              ? t("home.removeContinueConfirmMany", { count: bulkCount })
+              : item
+                ? t("home.removeContinueConfirm", { title: item.name })
+                : t("home.removeContinue")}
           </DialogDescription>
         </DialogHeader>
 
@@ -280,6 +327,8 @@ const ContinueWatching = ({ loading = false }: Props) => {
   const [retryTick, setRetryTick] = useState(0);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState<ContinueItem | null>(null);
+  const [bulkRemoveOpen, setBulkRemoveOpen] = useState(false);
+  const bulk = useBulkSelect();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -334,21 +383,26 @@ const ContinueWatching = ({ loading = false }: Props) => {
   const scroll = (dir: "left" | "right") =>
     scrollRef.current?.scrollBy({ left: dir === "left" ? -440 : 440, behavior: "smooth" });
 
-  const handleRemove = async (item: ContinueItem) => {
-    const key = `${item.id}:${item.episodeId}`;
-    setRemovingKey(key);
+  const itemKey = (item: ContinueItem) => `${item.id}:${item.episodeId}`;
+
+  const handleRemove = async (toRemove: ContinueItem[]) => {
+    if (!toRemove.length) return;
+    const keys = new Set(toRemove.map(itemKey));
+    setRemovingKey("bulk");
     const prev = items;
-    setItems((list) => list.filter((i) => `${i.id}:${i.episodeId}` !== key));
+    setItems((list) => list.filter((i) => !keys.has(itemKey(i))));
     try {
-      await anisurgeContinue.remove(item.id, item.episodeId);
-      removeProgress(item.id, item.episodeId);
+      await Promise.all(toRemove.map((item) => anisurgeContinue.remove(item.id, item.episodeId)));
+      toRemove.forEach((item) => removeProgress(item.id, item.episodeId));
       if (auth?.id) {
         writeContinueCache(
           auth.id,
-          prev.filter((i) => `${i.id}:${i.episodeId}` !== key),
+          prev.filter((i) => !keys.has(itemKey(i))),
         );
       }
       setPendingRemove(null);
+      setBulkRemoveOpen(false);
+      bulk.exitEdit();
     } catch {
       setItems(prev);
       toast.error(t("home.removeContinueFailed"));
@@ -359,7 +413,13 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
   const confirmRemove = () => {
     if (!pendingRemove || removingKey) return;
-    void handleRemove(pendingRemove);
+    void handleRemove([pendingRemove]);
+  };
+
+  const confirmBulkRemove = () => {
+    if (bulk.selectedCount === 0 || removingKey) return;
+    const selectedItems = items.filter((item) => bulk.selected.has(itemKey(item)));
+    void handleRemove(selectedItems);
   };
 
   if (loading && !fetched) return <LoadingSkeleton />;
@@ -414,6 +474,8 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
   if (!items.length) return null;
 
+  const visibleKeys = items.map(itemKey);
+
   return (
     <>
       <Container className="flex flex-col gap-4 py-8 items-start">
@@ -426,6 +488,16 @@ const ContinueWatching = ({ loading = false }: Props) => {
           />
         </div>
         <div className="flex items-center gap-1 shrink-0 -mt-1">
+          {!bulk.editMode && (
+            <button
+              type="button"
+              onClick={bulk.enterEdit}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border dark:border-white/12 text-muted-foreground dark:text-white/45 text-xs font-semibold hover:text-foreground/90 dark:hover:text-white/75 hover:border-border dark:hover:border-white/25 transition-all mr-1"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              {t("bulkSelect.edit")}
+            </button>
+          )}
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
@@ -445,6 +517,20 @@ const ContinueWatching = ({ loading = false }: Props) => {
         </div>
       </div>
 
+      {bulk.editMode && (
+        <BulkSelectToolbar
+          className="w-full"
+          selectedCount={bulk.selectedCount}
+          totalCount={visibleKeys.length}
+          busy={!!removingKey}
+          onDone={bulk.exitEdit}
+          onSelectAll={() => bulk.selectAll(visibleKeys)}
+          onClearSelection={bulk.clearSelection}
+          onRemove={() => setBulkRemoveOpen(true)}
+          removeLabel={t("home.removeContinueSelected", { count: bulk.selectedCount })}
+        />
+      )}
+
       <div className="relative w-full">
         {canScrollLeft && (
           <div className="absolute left-0 top-0 bottom-6 w-12 bg-gradient-to-r from-background to-transparent dark:from-black z-10 pointer-events-none" />
@@ -454,13 +540,16 @@ const ContinueWatching = ({ loading = false }: Props) => {
         )}
         <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide scroll-momentum">
           {items.map((item) => {
-            const key = `${item.id}:${item.episodeId}`;
+            const key = itemKey(item);
             return (
               <ContinueCard
                 key={key}
                 item={item}
                 onRequestRemove={setPendingRemove}
-                removing={removingKey === key}
+                removing={removingKey === key || removingKey === "bulk"}
+                editMode={bulk.editMode}
+                selected={bulk.isSelected(key)}
+                onToggleSelect={() => bulk.toggle(key)}
               />
             );
           })}
@@ -474,6 +563,15 @@ const ContinueWatching = ({ loading = false }: Props) => {
         removing={!!removingKey}
         onClose={() => setPendingRemove(null)}
         onConfirm={confirmRemove}
+      />
+
+      <RemoveContinueDialog
+        item={null}
+        bulkCount={bulk.selectedCount}
+        open={bulkRemoveOpen}
+        removing={!!removingKey}
+        onClose={() => setBulkRemoveOpen(false)}
+        onConfirm={confirmBulkRemove}
       />
     </>
   );

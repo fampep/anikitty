@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   anisurgeToken: text("anisurge_token"),
   anisurgeUsername: varchar("anisurge_username", { length: 100 }),
   anilistAccessToken: text("anilist_access_token"),
+  anilistRefreshToken: text("anilist_refresh_token"),
   anilistUserId: integer("anilist_user_id"),
   anilistUsername: varchar("anilist_username", { length: 100 }),
   malAccessToken: text("mal_access_token"),

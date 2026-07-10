@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { users, watchlist } from "@/db/schema";
+import { watchlist } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { updateAniListProgress } from "@/lib/oauth/anilist-sync";
+import { resolveAniListAccessToken } from "@/lib/oauth/anilist-oauth";
 import { eq, ne } from "drizzle-orm";
 
 /**
@@ -56,15 +57,11 @@ export async function POST(req: Request) {
 
     let anilistSynced = false;
     if (numericAnilistId) {
-      const [user] = await db
-        .select({ anilistAccessToken: users.anilistAccessToken })
-        .from(users)
-        .where(eq(users.id, payload.userId))
-        .limit(1);
+      const anilistToken = await resolveAniListAccessToken(payload.userId);
 
-      if (user?.anilistAccessToken) {
+      if (anilistToken) {
         anilistSynced = await updateAniListProgress(
-          user.anilistAccessToken,
+          anilistToken,
           numericAnilistId,
           totalEps,
           "COMPLETED",

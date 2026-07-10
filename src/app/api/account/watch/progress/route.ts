@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { users, watchProgress, watchlist } from "@/db/schema";
+import { watchProgress, watchlist } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { parseEpisodeNumber, updateAniListProgress } from "@/lib/oauth/anilist-sync";
+import { resolveAniListAccessToken } from "@/lib/oauth/anilist-oauth";
 import { grantEpisodeKittycoins } from "@/lib/shop/kittycoins";
 import { and, eq, isNull, ne } from "drizzle-orm";
 
@@ -135,13 +136,9 @@ export async function POST(req: Request) {
             if (!claimed) return;
             claimedId = claimed.id;
 
-            const [user] = await db
-              .select({ anilistAccessToken: users.anilistAccessToken })
-              .from(users)
-              .where(eq(users.id, payload.userId))
-              .limit(1);
+            const anilistToken = await resolveAniListAccessToken(payload.userId);
 
-            if (!user?.anilistAccessToken) {
+            if (!anilistToken) {
               await db
                 .update(watchProgress)
                 .set({ anilistSyncedAt: null })
@@ -150,7 +147,7 @@ export async function POST(req: Request) {
             }
 
             const ok = await updateAniListProgress(
-              user.anilistAccessToken,
+              anilistToken,
               anilistId,
               episodeNum,
               isLastEpisode ? "COMPLETED" : "CURRENT",

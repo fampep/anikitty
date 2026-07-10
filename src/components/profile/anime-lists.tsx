@@ -2,15 +2,27 @@
 
 import AnimeCard from "@/components/anime/anime-card";
 import Pagination from "@/components/common/pagination";
+import { BulkSelectToolbar } from "@/components/common/bulk-select-toolbar";
 import { ROUTES } from "@/constants/routes";
 import useBookMarks, { type Bookmark, type WatchHistory } from "@/hooks/use-get-bookmark";
-import { anisurgeContinue, folderToStatus, statusToFolder } from "@/lib/oauth/anisurge";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
+import { anisurgeContinue, anisurgeWatchlist, folderToStatus, statusToFolder } from "@/lib/oauth/anisurge";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { useAuthStore } from "@/store/auth-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
-import { ChevronLeft, ChevronRight, Tv2, Star, Repeat } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Pencil, Tv2, Star, Repeat, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useT } from "@/providers/i18n-provider";
+import { cn } from "@/lib/core/utils";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const CARD_W = 130;
 
@@ -56,12 +68,19 @@ function mapPublicItem(item: {
 }
 
 function AnimeLists({ status, username, isOwn }: Props) {
+  const t = useT();
   const { auth } = useAuthStore();
   const watchlistVersion = useWatchlistStore((s) => s.version);
+  const bumpWatchlist = useWatchlistStore((s) => s.bump);
   const [currentPage, setPage] = React.useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+
+  const bulk = useBulkSelect();
 
   const ownBookmarks = useBookMarks({
     status,
@@ -98,9 +117,15 @@ function AnimeLists({ status, username, isOwn }: Props) {
       });
   }, [isOwn, username, status, currentPage]);
 
-  const bookmarks = isOwn ? ownBookmarks.bookmarks : publicBookmarks;
+  const rawBookmarks = isOwn ? ownBookmarks.bookmarks : publicBookmarks;
+  const bookmarks = rawBookmarks?.filter((b) => !hiddenIds.has(b.animeId)) ?? rawBookmarks;
   const totalPages = isOwn ? ownBookmarks.totalPages : publicTotalPages;
   const isLoading = isOwn ? ownBookmarks.isLoading : publicLoading;
+
+  useEffect(() => {
+    setHiddenIds(new Set());
+    bulk.exitEdit();
+  }, [status, currentPage, watchlistVersion, bulk.exitEdit]);
 
   const [progressMap, setProgressMap] = useState<Record<string, WatchHistory>>({});
   useEffect(() => {
@@ -142,6 +167,47 @@ function AnimeLists({ status, username, isOwn }: Props) {
     scrollRef.current?.scrollBy({ left: dir === "left" ? -400 : 400, behavior: "smooth" });
   };
 
+  const removeFromWatchlist = async (animeIds: string[]) => {
+    if (!animeIds.length) return;
+    setRemoving(true);
+    setHiddenIds((prev) => new Set([...prev, ...animeIds]));
+    try {
+      await Promise.all(animeIds.map((id) => anisurgeWatchlist.remove(id)));
+      bumpWatchlist();
+      bulk.exitEdit();
+      setConfirmOpen(false);
+      toast.success(
+        animeIds.length === 1
+          ? t("profile.removeWatchlistSuccess")
+          : t("profile.removeWatchlistSuccessMany", { count: animeIds.length }),
+      );
+    } catch {
+      setHiddenIds((prev) => {
+        const next = new Set(prev);
+        animeIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      toast.error(t("profile.removeWatchlistFailed"));
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const handleQuickRemove = (e: React.MouseEvent, animeId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    void removeFromWatchlist([animeId]);
+  };
+
+  const handleBulkRemove = () => {
+    if (bulk.selectedCount === 0) return;
+    setConfirmOpen(true);
+  };
+
+  const confirmBulkRemove = () => {
+    void removeFromWatchlist([...bulk.selected]);
+  };
+
   if (isLoading) {
     return (
       <div className="flex gap-2.5 overflow-hidden w-full mt-2">
@@ -164,12 +230,32 @@ function AnimeLists({ status, username, isOwn }: Props) {
     );
   }
 
+  const visibleIds = bookmarks.map((b) => b.animeId);
+
   return (
     <>
-      {/* Scroll controls */}
-      <ScrollControls canScrollLeft={canScrollLeft} canScrollRight={canScrollRight} onScroll={scroll} />
+      {bulk.editMode && isOwn ? (
+        <BulkSelectToolbar
+          className="mb-3"
+          selectedCount={bulk.selectedCount}
+          totalCount={visibleIds.length}
+          busy={removing}
+          onDone={bulk.exitEdit}
+          onSelectAll={() => bulk.selectAll(visibleIds)}
+          onClearSelection={bulk.clearSelection}
+          onRemove={handleBulkRemove}
+          removeLabel={t("profile.removeFromWatchlist", { count: bulk.selectedCount })}
+        />
+      ) : (
+        <ScrollControls
+          canScrollLeft={canScrollLeft}
+          canScrollRight={canScrollRight}
+          onScroll={scroll}
+          showEdit={isOwn}
+          onEdit={bulk.enterEdit}
+        />
+      )}
 
-      {/* Horizontal scroll row */}
       <div className="relative w-full">
         {canScrollLeft && (
           <div className="absolute left-0 top-0 bottom-2 w-10 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
@@ -186,9 +272,33 @@ function AnimeLists({ status, username, isOwn }: Props) {
             const url = progress?.episodeId
               ? `${ROUTES.WATCH}?anime=${bookmark.animeId}&episode=${progress.episodeId}`
               : `${ROUTES.ANIME_DETAILS}/${bookmark.animeId}`;
+            const selected = bulk.isSelected(bookmark.animeId);
+            const inEdit = bulk.editMode && isOwn;
 
             return (
-              <div key={bookmark.id} style={{ width: CARD_W }} className="shrink-0 relative">
+              <div
+                key={bookmark.id}
+                style={{ width: CARD_W }}
+                className={cn(
+                  "shrink-0 relative group",
+                  inEdit && "cursor-pointer",
+                  selected && "ring-2 ring-violet-400/60 rounded-xl",
+                )}
+                onClick={inEdit ? () => bulk.toggle(bookmark.animeId) : undefined}
+                onKeyDown={
+                  inEdit
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          bulk.toggle(bookmark.animeId);
+                        }
+                      }
+                    : undefined
+                }
+                role={inEdit ? "checkbox" : undefined}
+                aria-checked={inEdit ? selected : undefined}
+                tabIndex={inEdit ? 0 : undefined}
+              >
                 {typeof bookmark.score === "number" && (
                   <span className="absolute top-1.5 left-1.5 z-20 inline-flex items-center gap-0.5 rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-400/30 pointer-events-none">
                     <Star className="w-2.5 h-2.5" fill="currentColor" />
@@ -201,14 +311,58 @@ function AnimeLists({ status, username, isOwn }: Props) {
                     {bookmark.rewatchCount}
                   </span>
                 )}
-                <AnimeCard
-                  compact
-                  poster={bookmark.thumbnail}
-                  title={bookmark.animeTitle}
-                  href={url}
-                  className="w-full max-w-none"
-                  watchDetail={progress}
-                />
+
+                {inEdit && (
+                  <span
+                    className={cn(
+                      "absolute top-1.5 left-1.5 z-30 flex h-5 w-5 items-center justify-center rounded-md border",
+                      selected
+                        ? "bg-violet-500 border-violet-400/50 text-white"
+                        : "bg-black/70 border-white/20 text-white/50",
+                    )}
+                  >
+                    {selected && <Check className="h-3 w-3" strokeWidth={3} />}
+                  </span>
+                )}
+
+                {isOwn && !inEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleQuickRemove(e, bookmark.animeId)}
+                    disabled={removing}
+                    aria-label={t("profile.removeFromWatchlistOne")}
+                    className={cn(
+                      "absolute bottom-2 right-1.5 z-30 flex h-6 w-6 items-center justify-center rounded-lg",
+                      "bg-black/60 text-muted-foreground dark:text-white/45 ring-1 ring-border dark:ring-white/10",
+                      "opacity-80 sm:opacity-0 sm:group-hover:opacity-100",
+                      "hover:bg-rose-500/15 hover:text-rose-300 hover:ring-rose-400/25",
+                      "transition-all disabled:opacity-30",
+                    )}
+                  >
+                    <X className="h-3.5 w-3.5" strokeWidth={2.25} />
+                  </button>
+                )}
+
+                {inEdit ? (
+                  <div className="pointer-events-none">
+                    <AnimeCard
+                      compact
+                      poster={bookmark.thumbnail}
+                      title={bookmark.animeTitle}
+                      className="w-full max-w-none"
+                      watchDetail={progress}
+                    />
+                  </div>
+                ) : (
+                  <AnimeCard
+                    compact
+                    poster={bookmark.thumbnail}
+                    title={bookmark.animeTitle}
+                    href={url}
+                    className="w-full max-w-none"
+                    watchDetail={progress}
+                  />
+                )}
               </div>
             );
           })}
@@ -226,14 +380,69 @@ function AnimeLists({ status, username, isOwn }: Props) {
           />
         </div>
       )}
+
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open && !removing) setConfirmOpen(false); }}>
+        <DialogContent className="border border-border dark:border-white/10 bg-[#0a0a0f] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-violet-950/30 [&>button:last-child]:hidden">
+          <DialogHeader className="px-5 pt-5 pb-4 border-b border-border dark:border-white/8 text-left space-y-2">
+            <DialogTitle className="text-foreground dark:text-white font-semibold text-base tracking-tight">
+              {t("profile.removeWatchlistTitle")}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground dark:text-white/45 text-sm leading-relaxed">
+              {bulk.selectedCount === 1
+                ? t("profile.removeWatchlistConfirmOne")
+                : t("profile.removeWatchlistConfirmMany", { count: bulk.selectedCount })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="px-5 py-4 gap-2 sm:gap-2 sm:justify-end border-t border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(false)}
+              disabled={removing}
+              className="px-4 py-2 rounded-xl border border-border dark:border-white/10 text-muted-foreground dark:text-white/65 text-xs font-semibold hover:bg-muted/50 dark:bg-white/5 hover:text-foreground dark:hover:text-white/85 transition-colors disabled:opacity-40"
+            >
+              {t("settings.cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={confirmBulkRemove}
+              disabled={removing}
+              className="px-4 py-2 rounded-xl bg-rose-500/15 text-rose-300 text-xs font-bold ring-1 ring-rose-400/25 hover:bg-rose-500/25 hover:text-rose-200 transition-colors disabled:opacity-40"
+            >
+              {removing ? t("common.loading") : t("profile.removeWatchlistAction")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-function ScrollControls({ canScrollLeft, canScrollRight, onScroll }: { canScrollLeft: boolean; canScrollRight: boolean; onScroll: (dir: "left" | "right") => void }) {
+function ScrollControls({
+  canScrollLeft,
+  canScrollRight,
+  onScroll,
+  showEdit,
+  onEdit,
+}: {
+  canScrollLeft: boolean;
+  canScrollRight: boolean;
+  onScroll: (dir: "left" | "right") => void;
+  showEdit?: boolean;
+  onEdit?: () => void;
+}) {
   const t = useT();
   return (
     <div className="flex justify-end gap-1 mb-2">
+      {showEdit && onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="mr-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border dark:border-white/12 text-muted-foreground dark:text-white/45 text-xs font-semibold hover:text-foreground/90 dark:hover:text-white/75 hover:border-border dark:hover:border-white/25 transition-all"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          {t("bulkSelect.edit")}
+        </button>
+      )}
       <button
         onClick={() => onScroll("left")}
         disabled={!canScrollLeft}
