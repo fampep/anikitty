@@ -36,6 +36,7 @@ import {
 import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
 import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
+import { fetchWithSubAudioFallback } from "@/lib/kitty/stream-audio-fallback";
 import {
   DEFAULT_KITTY_PROVIDER,
   providerHasNativeSubs,
@@ -77,6 +78,8 @@ type StreamPayload = {
   server?: string | null;
   download?: string | null;
   subtitleSource?: string;
+  servedAudio?: "sub" | "dub";
+  audioFallback?: boolean;
   error?: string;
 };
 
@@ -175,7 +178,12 @@ export async function GET(req: Request) {
         ? DEFAULT_ANIMO_SERVER
         : null;
 
-  async function finalizeStreamResponse(data: StreamPayload, providerName: KittyProvider) {
+  async function finalizeStreamResponse(
+    data: StreamPayload,
+    providerName: KittyProvider,
+    servedAudio: "sub" | "dub" = subtitleCtx.audio,
+    audioFallback = servedAudio !== subtitleCtx.audio,
+  ) {
     const nodeId = getKittyRequestNodeId();
     if (data.file) {
       data.file = resolveKittyStreamUrl(data.file, nodeId);
@@ -187,6 +195,8 @@ export async function GET(req: Request) {
       }
     }
 
+    const playbackCtx = { ...subtitleCtx, audio: servedAudio };
+
     const inlineSubtitleTracks = (data.tracks ?? []).filter(isSubtitleTrack);
     const preserveInlineSubs = providerHasNativeSubs(providerName);
     const providerSubtitleTracks: StreamTrack[] = preserveInlineSubs
@@ -196,7 +206,7 @@ export async function GET(req: Request) {
     data.tracks = stripSubtitleTracks(data.tracks);
     const fetchedSubs = await ensurePlaybackSubtitleCache(
       {
-        ...subtitleCtx,
+        ...playbackCtx,
         animeTitle: titleParam,
         streamProvider: providerName,
       },
@@ -205,7 +215,7 @@ export async function GET(req: Request) {
 
     data.tracks = await mergeCachedSubtitleTracks(
       data.tracks,
-      subtitleCtx,
+      playbackCtx,
       data.headers ?? {},
     );
 
@@ -223,53 +233,73 @@ export async function GET(req: Request) {
       data.subtitleSource = KITTY_SUB_SOURCE_PROVIDER;
     }
 
+    data.servedAudio = servedAudio;
+    data.audioFallback = audioFallback;
+
     return Response.json(data);
+  }
+
+  async function respondWithStream(
+    payload: StreamPayload | null,
+    providerName: KittyProvider,
+    servedAudio: "sub" | "dub",
+    audioFallback: boolean,
+  ) {
+    if (!payload?.file) return null;
+    return finalizeStreamResponse(payload, providerName, servedAudio, audioFallback);
   }
 
   if (provider === "Miruro") {
     try {
-      const direct = await fetchKittyProviderStream({
-        provider: "Miruro",
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        title: titleParam,
-        directOnly: true,
-      });
+      const miruroAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const direct = await fetchKittyProviderStream({
+            provider: "Miruro",
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+            directOnly: true,
+          });
 
-      if (direct?.file) {
-        return finalizeStreamResponse(
-          {
-            file: direct.file,
-            headers: direct.headers,
-            tracks: direct.tracks,
-            download: direct.download,
-            server: direct.server,
-          },
-          "Miruro",
-        );
-      }
+          if (direct?.file) {
+            return {
+              file: direct.file,
+              headers: direct.headers,
+              tracks: direct.tracks,
+              download: direct.download,
+              server: direct.server,
+            };
+          }
 
-      const miruro = await fetchMiruroVideoStream({
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        pipeProvider: miruroPipe,
-      });
+          const miruro = await fetchMiruroVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            pipeProvider: miruroPipe,
+          });
 
-      if (miruro?.file) {
-        return finalizeStreamResponse(
-          {
+          if (!miruro?.file) return null;
+
+          return {
             file: miruro.file,
             headers: miruro.headers,
             tracks: miruro.tracks,
             skipTimes: miruro.skipTimes,
             miruroPipe: miruro.provider,
             download: miruro.download,
-          },
-          "Miruro",
-        );
-      }
+          };
+        },
+      );
+
+      const miruroResponse = await respondWithStream(
+        miruroAttempt.result,
+        "Miruro",
+        miruroAttempt.servedAudio,
+        miruroAttempt.audioFallback,
+      );
+      if (miruroResponse) return miruroResponse;
     } catch (e) {
       console.error("[kitty/stream] Miruro pipe failed:", e);
     }
@@ -277,27 +307,37 @@ export async function GET(req: Request) {
 
   if (provider === "Animex") {
     try {
-      const animex = await fetchAnimexVideoStream({
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        serverId: animexServer as AnimexServerId,
-        title: titleParam,
-      });
+      const animexAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const animex = await fetchAnimexVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: animexServer as AnimexServerId,
+            title: titleParam,
+          });
 
-      if (animex?.file) {
-        return finalizeStreamResponse(
-          {
+          if (!animex?.file) return null;
+
+          return {
             file: animex.file,
             headers: animex.headers,
             tracks: animex.tracks,
             skipTimes: animex.skipTimes,
             server: animex.server,
             download: animex.download,
-          },
-          "Animex",
-        );
-      }
+          };
+        },
+      );
+
+      const animexResponse = await respondWithStream(
+        animexAttempt.result,
+        "Animex",
+        animexAttempt.servedAudio,
+        animexAttempt.audioFallback,
+      );
+      if (animexResponse) return animexResponse;
     } catch (e) {
       console.error("[kitty/stream] Animex server failed:", e);
     }
@@ -305,27 +345,37 @@ export async function GET(req: Request) {
 
   if (provider === "AniSnatch") {
     try {
-      const anisnatch = await fetchAnisnatchVideoStream({
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        serverId: anisnatchServer as AnisnatchServerId,
-        title: titleParam,
-      });
+      const anisnatchAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const anisnatch = await fetchAnisnatchVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: anisnatchServer as AnisnatchServerId,
+            title: titleParam,
+          });
 
-      if (anisnatch?.file) {
-        return finalizeStreamResponse(
-          {
+          if (!anisnatch?.file) return null;
+
+          return {
             file: anisnatch.file,
             headers: anisnatch.headers,
             tracks: anisnatch.tracks,
             skipTimes: anisnatch.skipTimes,
             server: anisnatch.server,
             download: anisnatch.download,
-          },
-          "AniSnatch",
-        );
-      }
+          };
+        },
+      );
+
+      const anisnatchResponse = await respondWithStream(
+        anisnatchAttempt.result,
+        "AniSnatch",
+        anisnatchAttempt.servedAudio,
+        anisnatchAttempt.audioFallback,
+      );
+      if (anisnatchResponse) return anisnatchResponse;
     } catch (e) {
       console.error("[kitty/stream] AniSnatch server failed:", e);
     }
@@ -333,27 +383,37 @@ export async function GET(req: Request) {
 
   if (provider === "Lunar") {
     try {
-      const lunar = await fetchLunarVideoStream({
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        serverId: lunarServer as LunarServerId,
-        title: titleParam,
-      });
+      const lunarAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const lunar = await fetchLunarVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: lunarServer as LunarServerId,
+            title: titleParam,
+          });
 
-      if (lunar?.file) {
-        return finalizeStreamResponse(
-          {
+          if (!lunar?.file) return null;
+
+          return {
             file: lunar.file,
             headers: lunar.headers,
             tracks: lunar.tracks,
             skipTimes: lunar.skipTimes,
             server: lunar.server,
             download: lunar.download,
-          },
-          "Lunar",
-        );
-      }
+          };
+        },
+      );
+
+      const lunarResponse = await respondWithStream(
+        lunarAttempt.result,
+        "Lunar",
+        lunarAttempt.servedAudio,
+        lunarAttempt.audioFallback,
+      );
+      if (lunarResponse) return lunarResponse;
     } catch (e) {
       console.error("[kitty/stream] Lunar server failed:", e);
     }
@@ -361,28 +421,38 @@ export async function GET(req: Request) {
 
   if (provider === "AllAnime") {
     try {
-      const allanime = await fetchAllanimeVideoStream({
-        provider: "AllAnime",
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        mirror: allanimeMirror as AllanimeMirrorId,
-        title: titleParam,
-      });
+      const allanimeAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const allanime = await fetchAllanimeVideoStream({
+            provider: "AllAnime",
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            mirror: allanimeMirror as AllanimeMirrorId,
+            title: titleParam,
+          });
 
-      if (allanime?.file) {
-        return finalizeStreamResponse(
-          {
+          if (!allanime?.file) return null;
+
+          return {
             file: allanime.file,
             headers: allanime.headers,
             tracks: allanime.tracks,
             skipTimes: allanime.skipTimes,
             server: allanime.server,
             download: allanime.download,
-          },
-          "AllAnime",
-        );
-      }
+          };
+        },
+      );
+
+      const allanimeResponse = await respondWithStream(
+        allanimeAttempt.result,
+        "AllAnime",
+        allanimeAttempt.servedAudio,
+        allanimeAttempt.audioFallback,
+      );
+      if (allanimeResponse) return allanimeResponse;
     } catch (e) {
       console.error("[kitty/stream] AllAnime mirror failed:", e);
     }
@@ -390,28 +460,38 @@ export async function GET(req: Request) {
 
   if (provider === "MKissa") {
     try {
-      const mkissa = await fetchAllanimeVideoStream({
-        provider: "MKissa",
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        mirror: mkissaMirror as AllanimeMirrorId,
-        title: titleParam,
-      });
+      const mkissaAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const mkissa = await fetchAllanimeVideoStream({
+            provider: "MKissa",
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            mirror: mkissaMirror as AllanimeMirrorId,
+            title: titleParam,
+          });
 
-      if (mkissa?.file) {
-        return finalizeStreamResponse(
-          {
+          if (!mkissa?.file) return null;
+
+          return {
             file: mkissa.file,
             headers: mkissa.headers,
             tracks: mkissa.tracks,
             skipTimes: mkissa.skipTimes,
             server: mkissa.server,
             download: mkissa.download,
-          },
-          "MKissa",
-        );
-      }
+          };
+        },
+      );
+
+      const mkissaResponse = await respondWithStream(
+        mkissaAttempt.result,
+        "MKissa",
+        mkissaAttempt.servedAudio,
+        mkissaAttempt.audioFallback,
+      );
+      if (mkissaResponse) return mkissaResponse;
     } catch (e) {
       console.error("[kitty/stream] MKissa mirror failed:", e);
     }
@@ -419,49 +499,72 @@ export async function GET(req: Request) {
 
   if (provider === "Animo") {
     try {
-      const animo = await fetchAnimoVideoStream({
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: subtitleCtx.audio,
-        serverId: animoServer as AnimoServerId,
-        title: titleParam,
-      });
+      const animoAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const animo = await fetchAnimoVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: animoServer as AnimoServerId,
+            title: titleParam,
+          });
 
-      if (animo?.file) {
-        return finalizeStreamResponse(
-          {
+          if (!animo?.file) return null;
+
+          return {
             file: animo.file,
             headers: animo.headers,
             tracks: animo.tracks,
             skipTimes: animo.skipTimes,
             server: animo.server,
             download: animo.download,
-          },
-          "Animo",
-        );
-      }
+          };
+        },
+      );
+
+      const animoResponse = await respondWithStream(
+        animoAttempt.result,
+        "Animo",
+        animoAttempt.servedAudio,
+        animoAttempt.audioFallback,
+      );
+      if (animoResponse) return animoResponse;
     } catch (e) {
       console.error("[kitty/stream] Animo server failed:", e);
     }
   }
 
-  const streamResult = await fetchKittyProviderStream({
-    provider,
-    anilistId: subtitleCtx.anilistId,
-    episode: subtitleCtx.episode,
-    audio: subtitleCtx.audio as "sub" | "dub",
-    title: titleParam,
-  });
+  const genericAttempt = await fetchWithSubAudioFallback(
+    subtitleCtx.audio,
+    async (streamAudio) => {
+      const streamResult = await fetchKittyProviderStream({
+        provider,
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: streamAudio,
+        title: titleParam,
+      });
 
-  if (streamResult?.file) {
-    const payload = streamResult as StreamPayload;
-    const serverLabel = payload.server;
-    if (typeof serverLabel === "string") {
-      const trimmed = serverLabel.trim();
-      payload.server = trimmed || undefined;
-    }
-    return finalizeStreamResponse(payload, provider);
-  }
+      if (!streamResult?.file) return null;
+
+      const payload = streamResult as StreamPayload;
+      const serverLabel = payload.server;
+      if (typeof serverLabel === "string") {
+        const trimmed = serverLabel.trim();
+        payload.server = trimmed || undefined;
+      }
+      return payload;
+    },
+  );
+
+  const genericResponse = await respondWithStream(
+    genericAttempt.result,
+    provider,
+    genericAttempt.servedAudio,
+    genericAttempt.audioFallback,
+  );
+  if (genericResponse) return genericResponse;
 
   return Response.json(
     {

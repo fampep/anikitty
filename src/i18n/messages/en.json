@@ -1432,6 +1432,7 @@
       "startOver": "Start over"
     },
     "providerFallback": "Switching from {from} to {to}…",
+    "dubUnavailableSub": "No dub for this episode — playing SUB on the same server.",
     "playbackFailed": "Playback failed and no other server worked. Try a different provider below.",
     "copyLink": "Copy link",
     "linkCopied": "Watch link copied!",

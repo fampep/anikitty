@@ -521,6 +521,10 @@ async function upsertSubtitle(
     void import("@/lib/subtitles/subtitle-library-db").then((m) =>
       m.syncSubtitleLibraryAnime(ctx.anilistId),
     );
+    void import("@/lib/subtitles/subtitle-library-sync").then((m) => {
+      m.queueAnimeForSubtitleSync(ctx.anilistId);
+      m.triggerBackgroundSubtitleLibrarySync();
+    });
   }
 }
 

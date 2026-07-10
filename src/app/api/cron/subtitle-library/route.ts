@@ -17,12 +17,12 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const incomplete = Math.min(
-    8,
-    Math.max(0, parseInt(url.searchParams.get("incomplete") ?? "4", 10) || 4),
+    12,
+    Math.max(0, parseInt(url.searchParams.get("incomplete") ?? "6", 10) || 6),
   );
   const discover = Math.min(
-    8,
-    Math.max(0, parseInt(url.searchParams.get("discover") ?? "2", 10) || 2),
+    12,
+    Math.max(0, parseInt(url.searchParams.get("discover") ?? "6", 10) || 6),
   );
 
   const result = await runSubtitleLibrarySyncTick({

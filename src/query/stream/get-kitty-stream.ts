@@ -38,6 +38,8 @@ export interface KittyStreamResponse {
   server?: string | null;
   download?: string | null;
   subtitleSource?: string;
+  servedAudio?: "sub" | "dub";
+  audioFallback?: boolean;
   error?: string;
 }
 

@@ -171,11 +171,6 @@ const VideoPlayerSection = () => {
     return "sub";
   });
 
-  useEffect(() => {
-    if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
-    setAudioMode((mode) => (mode === "multi" ? mode : "dub"));
-  }, [dubSearchParam]);
-
   const syncDubSearchParam = useCallback(
     (dub: boolean) => {
       const params = new URLSearchParams(searchParamsKey);
@@ -199,16 +194,30 @@ const VideoPlayerSection = () => {
     [setPreferDub, syncDubSearchParam],
   );
 
+  const animeHasDub = (anime?.anime?.info?.stats?.episodes?.dub ?? 0) > 0;
+
   useEffect(() => {
     if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
+    if (!animeHasDub) {
+      applyStreamAudio("sub");
+      return;
+    }
+    setAudioMode((mode) => (mode === "multi" ? mode : "dub"));
     applyStreamAudio("dub");
-  }, [dubSearchParam, applyStreamAudio]);
+  }, [dubSearchParam, animeHasDub, applyStreamAudio]);
+
+  useEffect(() => {
+    if (animeHasDub) return;
+    if (streamAudio !== "dub" && audioMode !== "dub") return;
+    applyStreamAudio("sub");
+    setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
+  }, [animeHasDub, streamAudio, audioMode, applyStreamAudio]);
 
   // Settings → prefer dub toggle (do not bounce back through streamAudio effects).
   useEffect(() => {
     return useSettingsStore.subscribe((state, prevState) => {
       if (state.preferDub === prevState.preferDub) return;
-      const target = state.preferDub ? "dub" : "sub";
+      const target = state.preferDub && animeHasDub ? "dub" : "sub";
       setStreamAudio((current) => {
         if (current === target) return current;
         localStorage.setItem("kittyStreamAudio", target);
@@ -216,7 +225,7 @@ const VideoPlayerSection = () => {
         return target;
       });
     });
-  }, [syncDubSearchParam]);
+  }, [syncDubSearchParam, animeHasDub]);
 
   const resolveProviderAudioMode = useCallback(
     (p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => {
@@ -879,6 +888,14 @@ const VideoPlayerSection = () => {
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
 
+  useEffect(() => {
+    if (!streamData?.audioFallback) return;
+    if (streamAudio === "sub") return;
+    applyStreamAudio("sub");
+    setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
+    toast.info(t("watch.dubUnavailableSub"));
+  }, [streamData?.audioFallback, streamAudio, applyStreamAudio, t]);
+
   // Only persist progress once the stream for this episode is loaded (avoids cross-episode leaks).
   useEffect(() => {
     if (!episodeId || !streamReady) {
@@ -1058,7 +1075,7 @@ const VideoPlayerSection = () => {
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", resolvedMode);
     if (mode === "dub") {
-      applyStreamAudio("dub");
+      applyStreamAudio(animeHasDub ? "dub" : "sub");
     } else if (mode === "sub" || mode === "hardsub") {
       applyStreamAudio("sub");
     }

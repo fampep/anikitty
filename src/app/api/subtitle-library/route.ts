@@ -3,6 +3,7 @@ import { getSubtitleLibraryStats } from "@/lib/subtitles/subtitle-cache-store";
 import { searchEnrichedSubtitleLibrary } from "@/lib/subtitles/subtitle-library-enrich";
 import type { SubtitleLibrarySort } from "@/lib/subtitles/subtitle-library-db";
 import { getCachedSubsProviderCount } from "@/lib/kitty/kitty-subs-api";
+import { triggerBackgroundSubtitleLibrarySync } from "@/lib/subtitles/subtitle-library-sync";
 
 const VALID_SORTS = new Set<SubtitleLibrarySort>(["latest", "tracks", "progress", "az"]);
 
@@ -18,6 +19,8 @@ export async function GET(req: Request) {
     : "latest";
 
   try {
+    triggerBackgroundSubtitleLibrarySync();
+
     const [stats, result] = await Promise.all([
       getSubtitleLibraryStats(),
       searchEnrichedSubtitleLibrary({ q, page, limit, filter, sort }),

@@ -76,7 +76,8 @@ export async function fetchKittyAutoStream(
   const path = buildKittyAutoStreamPath({
     anilistId: opts.anilistId,
     episode: opts.episode,
-    dub: opts.audio === "dub",
+    // Never use dub auto/stream — it can match a different show. SUB keeps the same anime.
+    dub: false,
   });
 
   return fetchKittyStreamPath(path, opts.timeoutMs ?? 25_000);
@@ -84,7 +85,7 @@ export async function fetchKittyAutoStream(
 
 /**
  * stream-direct for a named provider, then `/auto/stream` as fallback.
- * Matches the public KittyAPI getting-started flow.
+ * Dub→sub retry is handled by the stream API route (same provider, same anime).
  */
 export async function fetchKittyProviderStream(
   opts: FetchKittyStreamOpts,
