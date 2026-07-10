@@ -16,6 +16,7 @@ import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import SiteDisplaySync from "@/components/layout/site-display-sync";
+import HilltopAdsLoader from "@/components/ads/hilltopads-loader";
 import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
 import LiteModeSync from "@/components/layout/lite-mode-sync";
@@ -147,11 +148,13 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://artworks.thetvdb.com" />
         <link rel="dns-prefetch" href="https://cdn.myanimelist.net" />
+        <meta name="referrer" content="no-referrer-when-downgrade" />
       </head>
       <body
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
         <PwaRegister />
+        <HilltopAdsLoader />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider
             attribute="class"

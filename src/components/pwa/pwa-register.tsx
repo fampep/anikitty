@@ -9,7 +9,7 @@ export default function PwaRegister() {
     if (!("serviceWorker" in navigator)) return;
 
     const register = () => {
-      void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+      void navigator.serviceWorker.register("/pwa-sw.js", { scope: "/" }).catch(() => {
         // Missing on dev builds or when next-pwa is disabled — ignore.
       });
     };

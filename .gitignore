@@ -13,7 +13,7 @@
 /.next/
 /out/
 .open-next/
-/public/sw.js
+/public/pwa-sw.js
 /public/workbox-*.js
 /public/worker-*.js
 
