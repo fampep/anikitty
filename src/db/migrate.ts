@@ -205,7 +205,6 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_access_token TEXT`,
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_refresh_token TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_user_id INTEGER`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_username VARCHAR(100)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS mal_access_token TEXT`,

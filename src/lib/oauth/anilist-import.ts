@@ -122,39 +122,15 @@ export async function mapAniListEntry(
 export async function mapAniListLists(
   lists: AnilistMediaList[] | Array<{ name: string; status: string; entries: AniListMediaEntry[] }>,
   apiKey?: string,
-  opts?: { skipKittyLookup?: boolean },
 ): Promise<MappedAniListAnime[]> {
   const byAnilistId = new Map<number, MappedAniListAnime>();
 
   for (const list of lists) {
     for (const entry of list.entries) {
-      const mapped = opts?.skipKittyLookup
-        ? mapAniListEntryFast(entry, list.status)
-        : await mapAniListEntry(entry, list.status, apiKey);
+      const mapped = await mapAniListEntry(entry, list.status, apiKey);
       byAnilistId.set(mapped.anilistId, mapped);
     }
   }
 
   return [...byAnilistId.values()];
-}
-
-function mapAniListEntryFast(
-  entry: AniListMediaEntry,
-  listStatus: string,
-): MappedAniListAnime {
-  const { media } = entry;
-  const anilistId = media.id;
-  const title =
-    media.title?.english ?? media.title?.romaji ?? `Anime #${anilistId}`;
-  const thumbnail = media.bannerImage ?? media.coverImage?.large ?? "";
-
-  return {
-    id: String(anilistId),
-    anilistId,
-    ...(media.idMal ? { malId: media.idMal } : {}),
-    title,
-    thumbnail,
-    folder: ANILIST_STATUS_TO_FOLDER[listStatus] ?? "WATCHING",
-    status: ANILIST_STATUS_TO_LABEL[listStatus] ?? "watching",
-  };
 }

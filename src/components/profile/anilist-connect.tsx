@@ -101,12 +101,7 @@ function AnilistConnect() {
         toast.success(`Synced ${result.imported} anime from AniList.`);
       }
     } catch (e: any) {
-      const message = e?.message ?? "Sync failed. Try again.";
-      if (message.includes("session expired") || e?.status === 401) {
-        toast.error("AniList session expired — reconnect in Settings.");
-      } else {
-        toast.error(message);
-      }
+      toast.error(e?.message ?? "Sync failed. Try again.");
     } finally {
       setSyncing(false);
     }
