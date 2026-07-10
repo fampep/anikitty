@@ -4,6 +4,7 @@ import {
   buildMalAuthorizeUrl,
   generateCodeVerifier,
   getMalClientId,
+  getMalClientSecret,
   getMalRedirectUri,
 } from "@/lib/oauth/mal-oauth";
 
@@ -18,12 +19,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "MyAnimeList OAuth is not configured" }, { status: 503 });
   }
 
+  if (!getMalClientSecret()) {
+    return NextResponse.json(
+      { error: "MyAnimeList OAuth secret is not configured" },
+      { status: 503 },
+    );
+  }
+
   try {
     // PKCE "plain": the verifier is carried through the signed state and is
     // also sent as the challenge.
     const codeVerifier = generateCodeVerifier();
-    const state = await signMalOAuthState(payload.userId, codeVerifier);
     const redirectUri = getMalRedirectUri(req);
+    const state = await signMalOAuthState(payload.userId, codeVerifier, redirectUri);
     const url = buildMalAuthorizeUrl(state, redirectUri, codeVerifier);
     return NextResponse.json({ url });
   } catch {

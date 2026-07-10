@@ -187,6 +187,7 @@ export default function PlayerSettingsBar() {
 
           <KittyProxyChooser />
 
+          {!preferDub && (
           <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3">
             <div className="flex items-center gap-2 mb-3">
               <SlidersHorizontal className="w-3.5 h-3.5 text-teal-400/70" />
@@ -196,6 +197,7 @@ export default function PlayerSettingsBar() {
             </div>
             <SubtitleSettingsPanel compact />
           </div>
+          )}
         </div>
       )}
 

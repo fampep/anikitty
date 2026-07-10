@@ -44,13 +44,23 @@ function MalConnect() {
   useEffect(() => {
     const status = searchParams.get("mal");
     if (!status) return;
+    const reason = searchParams.get("reason");
     if (status === "connected") {
       toast.success("MyAnimeList account connected!");
       loadAccount();
     } else if (status === "error") {
-      toast.error("Failed to connect MyAnimeList. Please try again.");
+      const messages: Record<string, string> = {
+        denied: "MyAnimeList sign-in was cancelled.",
+        invalid_state: "MyAnimeList sign-in expired. Please try again.",
+        not_configured: "MyAnimeList login is not configured on this server.",
+        token_exchange:
+          "MyAnimeList rejected the login. Check that the redirect URL in your MAL app matches this site.",
+        profile: "Connected to MyAnimeList but could not load your profile.",
+        missing_params: "MyAnimeList did not return a valid authorization response.",
+      };
+      toast.error(messages[reason ?? ""] ?? "Failed to connect MyAnimeList. Please try again.");
     }
-    router.replace("/settings", { scroll: false });
+    router.replace("/settings?tab=connections", { scroll: false });
   }, [searchParams, router, loadAccount]);
 
   const handleConnect = async () => {

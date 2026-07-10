@@ -215,13 +215,13 @@ function applySubtitleMode(
   }
 
   activeUrlRef.current = null;
+  art.subtitle.show = false;
 
-  if (subTracks.length > 0) {
-    art.subtitle.show = false;
+  if (!preferSubtitles) {
+    disableEmbeddedTextTracks(art.video);
     return "off";
   }
 
-  art.subtitle.show = false;
   const nativeEnabled = enableNativeHlsSubtitles(art.video);
   return nativeEnabled ? "native" : "off";
 }
@@ -689,8 +689,11 @@ export default function KittyPlayer({
 
     let hlsForCleanup: Hls | null = null;
     let hlsNetworkRecoveries = 0;
-    subtitleModeRef.current =
-      showSubs && hasExternalSubs ? "external" : hasExternalSubs ? "off" : "native";
+    subtitleModeRef.current = showSubs
+      ? hasExternalSubs
+        ? "external"
+        : "native"
+      : "off";
 
     // Persisted volume / mute / speed so they survive episode changes + reloads.
     const readNum = (key: string, fallback: number) => {
@@ -705,6 +708,13 @@ export default function KittyPlayer({
       preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0;
 
     const syncNativeSubsIfNeeded = (video: HTMLVideoElement) => {
+      if (!preferSubtitlesRef.current) {
+        disableEmbeddedTextTracks(video);
+        const currentArt = artRef.current;
+        if (currentArt) currentArt.subtitle.show = false;
+        subtitleModeRef.current = "off";
+        return;
+      }
       if (subtitleModeRef.current === "external") {
         disableEmbeddedTextTracks(video);
         const currentArt = artRef.current;
@@ -734,7 +744,7 @@ export default function KittyPlayer({
       aspectRatio: true,
       fullscreen: true,
       fullscreenWeb: true,
-      subtitleOffset: true,
+      subtitleOffset: showSubs,
       screenshot: true,
       backdrop: false,
       autoPlayback: false,
@@ -753,7 +763,7 @@ export default function KittyPlayer({
         m3u8(video, url, player) {
           if (Hls.isSupported()) {
             hlsRef.current?.destroy();
-            const hls = new Hls(createHlsConfig({ enableWebVTT: !hasExternalSubs }));
+            const hls = new Hls(createHlsConfig({ enableWebVTT: showSubs && !hasExternalSubs }));
             hls.loadSource(url);
             hls.attachMedia(video as HTMLMediaElement);
             player.hls = hls;
@@ -872,55 +882,58 @@ export default function KittyPlayer({
             return enabled;
           },
         },
-        {
-          width: 220,
-          html: t("watch.subtitleSettings"),
-          tooltip: t("watch.subtitleSettings"),
-          selector: [
-            {
-              html: t("watch.artSubtitleDisplay"),
-              tooltip: preferSubtitlesRef.current ? t("watch.artHide") : t("watch.artShow"),
-              switch: preferSubtitlesRef.current,
-              onSwitch(item) {
-                const show = !item.switch;
-                art.subtitle.show = show;
-                item.tooltip = show ? t("watch.artHide") : t("watch.artShow");
-                if (show && subTracks.length > 0) {
-                  subtitleModeRef.current = "external";
-                  const active = subTracks.find((tr) => tr.default) ?? subTracks[0];
-                  const url = resolveTrackSrc(active.file);
-                  switchExternalSubtitle(
-                    art,
-                    url,
-                    { ...active, file: url },
-                    subtitleStyleSettings,
-                    activeSubtitleUrlRef,
-                  );
-                } else if (!show) {
-                  subtitleModeRef.current = enableNativeHlsSubtitles(art.video)
-                    ? "native"
-                    : "off";
-                }
-                return show;
+        ...(showSubs
+          ? [
+              {
+                width: 220,
+                html: t("watch.subtitleSettings"),
+                tooltip: t("watch.subtitleSettings"),
+                selector: [
+                  {
+                    html: t("watch.artSubtitleDisplay"),
+                    tooltip: preferSubtitlesRef.current ? t("watch.artHide") : t("watch.artShow"),
+                    switch: preferSubtitlesRef.current,
+                    onSwitch(item: any) {
+                      const show = !item.switch;
+                      art.subtitle.show = show;
+                      item.tooltip = show ? t("watch.artHide") : t("watch.artShow");
+                      if (show && subTracks.length > 0) {
+                        subtitleModeRef.current = "external";
+                        const active = subTracks.find((tr) => tr.default) ?? subTracks[0];
+                        const url = resolveTrackSrc(active.file);
+                        switchExternalSubtitle(
+                          art,
+                          url,
+                          { ...active, file: url },
+                          subtitleStyleSettings,
+                          activeSubtitleUrlRef,
+                        );
+                      } else if (!show) {
+                        disableEmbeddedTextTracks(art.video);
+                        subtitleModeRef.current = "off";
+                      }
+                      return show;
+                    },
+                  },
+                  ...subtitleSelector,
+                ],
+                onSelect(item: { html?: string; url?: string; type?: string }) {
+                  if (item.url) {
+                    subtitleModeRef.current = "external";
+                    const url = resolveTrackSrc(item.url);
+                    switchExternalSubtitle(
+                      art,
+                      url,
+                      { file: url, label: item.html },
+                      subtitleStyleSettings,
+                      activeSubtitleUrlRef,
+                    );
+                  }
+                  return item.html ?? t("watch.subtitleSettings");
+                },
               },
-            },
-            ...subtitleSelector,
-          ],
-          onSelect(item: { html?: string; url?: string; type?: string }) {
-            if (item.url) {
-              subtitleModeRef.current = "external";
-              const url = resolveTrackSrc(item.url);
-              switchExternalSubtitle(
-                art,
-                url,
-                { file: url, label: item.html },
-                subtitleStyleSettings,
-                activeSubtitleUrlRef,
-              );
-            }
-            return item.html ?? t("watch.subtitleSettings");
-          },
-        },
+            ]
+          : []),
       ],
     });
 

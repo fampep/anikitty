@@ -1403,6 +1403,10 @@ const VideoPlayerSection = () => {
   }
 
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
+  const subtitlesEnabled = streamAudio === "sub";
+  const tracksForPlayer = subtitlesEnabled
+    ? displayTracks
+    : displayTracks.filter((track) => !isSubtitleTrack(track));
 
   if ((!streamReady || !streamData?.file) && !canRenderPlayerShell) {
     return (
@@ -1448,13 +1452,9 @@ const VideoPlayerSection = () => {
       <KittyPlayer
         key={displayPlayerKey}
         src={displayFile}
-        tracks={displayTracks}
+        tracks={tracksForPlayer}
         headers={displayHeaders}
-        preferSubtitles={
-          (useLiveStream ? subtitleTracks : displayTracks.filter(isSubtitleTrack)).length > 0
-            ? true
-            : streamAudio === "sub"
-        }
+        preferSubtitles={subtitlesEnabled}
         preferDubAudio={streamAudio === "dub"}
         skipTimes={displaySkipTimes}
         startTime={
@@ -1528,7 +1528,7 @@ const VideoPlayerSection = () => {
                 {streamData.server}
               </span>
             )}
-            {subtitleTracks.length > 0 && (
+            {subtitlesEnabled && subtitleTracks.length > 0 && (
               <div className="flex flex-wrap items-center gap-1 max-w-full">
                 {subtitleTracks.slice(0, 3).map((track, i) => (
                   <span
