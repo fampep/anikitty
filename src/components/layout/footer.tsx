@@ -12,6 +12,7 @@ import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { ROUTES } from "@/constants/routes";
+import SiteVersionLabel from "@/components/layout/site-version-label";
 
 const Footer = () => {
   const t = useT();
@@ -155,9 +156,12 @@ const Footer = () => {
           <p className="text-[11px] text-muted-foreground/80 text-center sm:text-left leading-relaxed max-w-lg dark:text-white/18">
             {t("footer.disclaimer")}
           </p>
-          <p className="text-[11px] text-muted-foreground/70 shrink-0 font-mono dark:text-white/15">
-            © {new Date().getFullYear()} anikitty.moe
-          </p>
+          <div className="flex flex-col items-center gap-2 sm:items-end shrink-0">
+            <SiteVersionLabel />
+            <p className="text-[11px] text-muted-foreground/70 font-mono dark:text-white/15">
+              © {new Date().getFullYear()} anikitty.moe
+            </p>
+          </div>
         </div>
       </div>
     </footer>

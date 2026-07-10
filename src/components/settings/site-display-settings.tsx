@@ -110,6 +110,8 @@ export default function SiteDisplaySettings() {
     setSiteAccentColor,
     showBetaBadge,
     setShowBetaBadge,
+    showPillNavOnDesktop,
+    setShowPillNavOnDesktop,
     showOnlineCount,
     setShowOnlineCount,
     showAnnouncementBanner,
@@ -242,6 +244,12 @@ export default function SiteDisplaySettings() {
           description={t("settings.showBetaBadgeDesc")}
           value={showBetaBadge}
           onChange={setShowBetaBadge}
+        />
+        <ToggleChip
+          label={t("settings.showPillNavOnDesktop")}
+          description={t("settings.showPillNavOnDesktopDesc")}
+          value={showPillNavOnDesktop}
+          onChange={setShowPillNavOnDesktop}
         />
         <ToggleChip
           label={t("settings.showOnlineCount")}

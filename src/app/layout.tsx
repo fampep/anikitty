@@ -7,7 +7,6 @@ import NavBar from "@/components/layout/navbar";
 import MobileBottomNav from "@/components/layout/mobile-bottom-nav";
 import SkipToContent from "@/components/layout/skip-to-content";
 import Footer from "@/components/layout/footer";
-import SiteBetaBadge from "@/components/layout/site-beta-badge";
 import ScrollToTop from "@/components/layout/scroll-to-top";
 import SiteAnnouncementBanner from "@/components/layout/site-announcement-banner";
 import I18nRoot from "@/components/layout/i18n-root";
@@ -174,7 +173,6 @@ export default async function RootLayout({
               <Footer />
               <MobileBottomNav />
               <ScrollToTop />
-              <SiteBetaBadge />
               <DiscordWelcomePrompt />
               <LiteModeSync />
               <SettingsSync />

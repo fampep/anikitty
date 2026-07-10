@@ -65,7 +65,6 @@ import FollowListModal, { type FollowListType } from "@/components/profile/follo
 import FriendsModal from "@/components/profile/friends-modal";
 import ProfileSectionNav from "@/components/profile/profile-section-nav";
 import ProfileSubNav from "@/components/profile/profile-sub-nav";
-import ProfileCommentsFeed from "@/components/profile/profile-comments-feed";
 import ProfileLibraryBreakdownBar, {
   type LibrarySegment,
 } from "@/components/profile/profile-library-breakdown-bar";
@@ -911,17 +910,6 @@ function ProfilePage() {
             <SectionLabel icon={<Activity className="w-4 h-4" />} title={t("profile.watchActivity")} />
             <div className="site-panel p-5">
               <AnimeHeatmap username={profile.username} />
-            </div>
-          </section>
-
-          <section id="comments-preview" className="scroll-mt-24">
-            <SectionLabel
-              icon={<MessageSquare className="w-4 h-4" />}
-              title={t("profile.comments")}
-              count={displayLevel?.commentCount ?? 0}
-            />
-            <div className="site-panel p-4">
-              <ProfileCommentsFeed username={profile.username} variant="compact" limit={5} />
             </div>
           </section>
           </div>

@@ -107,6 +107,9 @@ interface ISettingsStore {
   showBetaBadge: boolean;
   setShowBetaBadge: (val: boolean) => void;
 
+  showPillNavOnDesktop: boolean;
+  setShowPillNavOnDesktop: (val: boolean) => void;
+
   showOnlineCount: boolean;
   setShowOnlineCount: (val: boolean) => void;
 
@@ -257,6 +260,9 @@ export const useSettingsStore = create<ISettingsStore>()(
       showBetaBadge: true,
       setShowBetaBadge: (showBetaBadge) => set({ showBetaBadge }),
 
+      showPillNavOnDesktop: false,
+      setShowPillNavOnDesktop: (showPillNavOnDesktop) => set({ showPillNavOnDesktop }),
+
       showOnlineCount: true,
       setShowOnlineCount: (showOnlineCount) => set({ showOnlineCount }),
 
@@ -272,7 +278,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 26,
+      version: 27,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -294,6 +300,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         uiFontScale: state.uiFontScale,
         interfaceDensity: state.interfaceDensity,
         showBetaBadge: state.showBetaBadge,
+        showPillNavOnDesktop: state.showPillNavOnDesktop,
         showOnlineCount: state.showOnlineCount,
         showAnnouncementBanner: state.showAnnouncementBanner,
         notifyMentions: state.notifyMentions,
@@ -396,6 +403,9 @@ export const useSettingsStore = create<ISettingsStore>()(
             subs.displayMode = "boxedLines";
           }
           next.subtitleSettings = subs;
+        }
+        if (version < 27) {
+          next.showPillNavOnDesktop = next.showPillNavOnDesktop ?? false;
         }
         return next as ISettingsStore;
       },

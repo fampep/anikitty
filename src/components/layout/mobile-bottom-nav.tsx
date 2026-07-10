@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
+import { useSettingsStore } from "@/store/settings-store";
 
 const TABS = [
   { href: ROUTES.HOME, icon: Home, labelKey: "nav.short.home", match: (p: string) => p === ROUTES.HOME },
@@ -33,15 +34,18 @@ function shouldHideBottomNav(pathname: string): boolean {
 export default function MobileBottomNav() {
   const t = useT();
   const pathname = usePathname();
+  const showPillNavOnDesktop = useSettingsStore((s) => s.showPillNavOnDesktop);
 
   if (shouldHideBottomNav(pathname)) return null;
 
+  const visibilityClass = showPillNavOnDesktop ? "" : "lg:hidden";
+
   return (
     <>
-      <div className="h-[var(--mobile-nav-total)] shrink-0 lg:hidden" aria-hidden />
+      <div className={cn("h-[var(--mobile-nav-total)] shrink-0", visibilityClass)} aria-hidden />
       <nav
         aria-label={t("nav.aria.mobileBottomNav")}
-        className="fixed inset-x-0 bottom-0 z-[95] lg:hidden pointer-events-none"
+        className={cn("fixed inset-x-0 bottom-0 z-[95] pointer-events-none", visibilityClass)}
       >
         <div className="mx-auto max-w-lg px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="pointer-events-auto flex items-center justify-between gap-0.5 rounded-full border border-border/80 bg-background/92 px-2 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a10]/92">
