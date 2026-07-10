@@ -28,6 +28,22 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.9",
+    date: "2026-07-10",
+    title: "Forum polish, player fixes & richer MAL data",
+    changes: [
+      { type: "improved", text: "Forum and live chat — staff announcements, smoother polling, better composer filters, and linkified messages." },
+      { type: "improved", text: "Richer MyAnimeList data on anime pages — rank, popularity, member count, age rating, broadcast time, themes, and licensors." },
+      { type: "improved", text: "Mobile watch player layout — cleaner controls, sources tucked away on small screens, and less cramped chrome." },
+      { type: "improved", text: "Site-wide dark-mode hover fixes and accessibility polish across settings, profile, nav, forum, and comments." },
+      { type: "fixed", text: "Anime and watch pages no longer spam console errors from failed upstream requests." },
+      { type: "fixed", text: "Subtitles are off in DUB mode and on again in SUB — including the Artplayer subtitle option crash." },
+      { type: "fixed", text: "Profile and settings controls no longer look \"stuck hovered\" in dark mode." },
+      { type: "removed", text: "MyAnimeList account sign-in removed — connect AniList in Settings → Connections to sync your list." },
+      { type: "removed", text: "Production anti-scrape gate on anime and stream APIs — pages fetch live data again without the extra client header." },
+    ],
+  },
+  {
     version: "0.6.8",
     date: "2026-07-09",
     title: "Hotfix",
@@ -88,7 +104,6 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "added", text: "Rate anime 1–10 and write reviews — every title now has its own community \"AniKitty Score\" and a Reviews tab, with helpful votes and spoiler tags." },
       { type: "added", text: "Achievements: unlock badges for watching, reviewing, commenting, leveling up, and login streaks — shown on your profile." },
       { type: "added", text: "Daily login streaks with bonus Kittycoins every 7 days in a row." },
-      { type: "added", text: "Link your MyAnimeList account (official MAL login) in Settings → Connections." },
       { type: "added", text: "Rewatch counter on completed titles, and your personal score now shows on your list cards." },
       { type: "added", text: "Ratings from MyAnimeList, TMDB, Kitsu and IMDb on every anime page." },
       { type: "added", text: "Voice actor pages — search actors, browse their full filmography, and tap any actor on an anime to see their roles." },
