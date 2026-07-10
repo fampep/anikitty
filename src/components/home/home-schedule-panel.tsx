@@ -80,7 +80,7 @@ export default function HomeSchedulePanel() {
               className={cn(
                 "w-20 py-2 flex flex-col items-center justify-center shrink-0 rounded-xl ring-inset transition-all",
                 active
-                  ? "bg-primary text-primary-foreground font-bold ring-2 ring-primary/40"
+                  ? "bg-foreground text-background font-bold dark:bg-white dark:text-black"
                   : "home-glass-pill font-bold text-foreground/90",
               )}
             >
@@ -88,7 +88,7 @@ export default function HomeSchedulePanel() {
               <span
                 className={cn(
                   "font-semibold text-xs mt-0.5",
-                  active ? "text-primary-foreground/90" : "text-muted-foreground",
+                  active ? "text-background/80 dark:text-black/70" : "text-muted-foreground",
                 )}
               >
                 {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}

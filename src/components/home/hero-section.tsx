@@ -169,9 +169,14 @@ const HeroCarouselItem = ({
             </ButtonLink>
 
             <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm font-medium pointer-events-none">
-              <span className="py-1 px-3 text-muted-foreground text-xs home-glass-pill">{formatAnimeType(anime.type)}</span>
+              <span className="py-1 px-3 text-muted-foreground text-xs rounded-full border border-border/60 dark:border-white/10">
+                {formatAnimeType(anime.type)}
+              </span>
               {anime.otherInfo?.slice(0, 3).map((info, i) => (
-                <span key={i} className="py-1 px-3 text-muted-foreground text-xs home-glass-pill">
+                <span
+                  key={i}
+                  className="py-1 px-3 text-muted-foreground text-xs rounded-full border border-border/60 dark:border-white/10"
+                >
                   {info}
                 </span>
               ))}
@@ -185,21 +190,21 @@ const HeroCarouselItem = ({
               <ButtonLink
                 href={`${ROUTES.WATCH}?anime=${anime.id}`}
                 onClick={() => trackEvent("home_hero_watch", { anime_id: anime.id })}
-                className="flex items-center h-9 px-6 font-semibold gap-2 text-sm justify-center bg-primary text-primary-foreground hover:brightness-110 rounded-full shadow-lg shadow-primary/20"
+                className="flex items-center h-9 px-6 font-semibold gap-2 text-sm justify-center bg-white text-black hover:bg-white/90 rounded-full"
               >
                 <Play className="h-4 w-4 fill-current" />
                 {t("home.watchNow")}
               </ButtonLink>
               <ButtonLink
                 href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-                className="size-9 flex items-center justify-center rounded-full home-glass-pill hover:bg-white/15"
+                className="size-9 flex items-center justify-center rounded-full border border-border/60 bg-black/20 hover:bg-white/10 dark:border-white/10"
                 aria-label={t("home.details")}
               >
                 <Info className="h-4 w-4" />
               </ButtonLink>
               <button
                 type="button"
-                className="size-9 flex items-center justify-center rounded-full home-glass-pill hover:bg-white/15 pointer-events-auto"
+                className="size-9 flex items-center justify-center rounded-full border border-border/60 bg-black/20 hover:bg-white/10 dark:border-white/10 pointer-events-auto"
                 aria-label={t("anime.addToList")}
               >
                 <Bookmark className="h-4 w-4" />
@@ -220,7 +225,7 @@ const LoadingSkeleton = () => (
         <div className="h-7 w-20 animate-pulse bg-white/10 rounded-full" />
         <div className="h-7 w-24 animate-pulse bg-white/10 rounded-full" />
       </div>
-      <div className="h-11 w-36 animate-pulse bg-primary/30 rounded-full" />
+      <div className="h-11 w-36 animate-pulse bg-white/15 rounded-full" />
     </Container>
   </div>
 );

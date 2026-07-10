@@ -122,12 +122,14 @@ body {
 
   .home-cinema {
     --home-hero-max-h: 70lvh;
+    @apply relative isolate;
   }
 
   .home-cinema-body {
     max-width: 1600px;
     margin-inline: auto;
     width: 100%;
+    @apply relative z-[1] bg-background;
   }
 
   .home-glass-pill {

@@ -78,7 +78,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
         <Link
           key={c.id}
           href={commentLink(c)}
-          className="flex flex-col gap-2.5 p-3.5 rounded-xl border border-border/80 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.02] hover:border-violet-400/25 hover:bg-violet-500/[0.04] transition-colors group"
+          className="flex flex-col gap-2.5 p-3.5 rounded-xl border border-border/80 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.02] hover:border-border hover:bg-muted/30 dark:hover:border-white/15 dark:hover:bg-white/[0.04] transition-colors group"
         >
           <div className="flex items-start gap-3 min-w-0">
             <FramedAvatar

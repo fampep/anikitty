@@ -63,7 +63,7 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
               className={cn(
                 "text-center flex items-center justify-center gap-1 shrink-0 text-nowrap text-sm lg:text-base h-9 rounded-xl transition-all",
                 active
-                  ? "bg-primary text-primary-foreground font-semibold shadow-sm shadow-primary/25"
+                  ? "bg-foreground text-background font-semibold dark:bg-white dark:text-black"
                   : "home-glass-pill text-foreground/90 font-medium hover:brightness-110",
               )}
             >

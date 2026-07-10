@@ -11,14 +11,17 @@ type Props = {
   anime: IAnime;
   className?: string;
   priority?: boolean;
+  href?: string;
+  episodeBadge?: number;
 };
 
-export default function HomeCompactPoster({ anime, className, priority }: Props) {
+export default function HomeCompactPoster({ anime, className, priority, href, episodeBadge }: Props) {
   const rating = scoreLabel(anime.score);
+  const linkHref = href ?? `${ROUTES.ANIME_DETAILS}/${anime.id}`;
 
   return (
     <Link
-      href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+      href={linkHref}
       className={`home-glass-card flex flex-col gap-y-2 shrink-0 w-[7.5rem] xs:w-[8.5rem] md:w-[9.5rem] lg:w-40 overflow-hidden ${className ?? ""}`}
       draggable={false}
     >
@@ -30,7 +33,11 @@ export default function HomeCompactPoster({ anime, className, priority }: Props)
           imageClassName="object-cover"
           priority={priority}
         />
-        {rating ? (
+        {episodeBadge != null ? (
+          <span className="bg-black/75 px-1.5 py-1 rounded-md flex items-center font-medium absolute right-1 top-1 text-xs">
+            Ep {episodeBadge}
+          </span>
+        ) : rating ? (
           <span className="bg-black/75 px-1.5 py-1 gap-1 rounded-md flex items-center font-medium absolute right-1 top-1 text-xs">
             <Star className="w-3 h-3 fill-amber-400 stroke-amber-400" aria-hidden />
             {rating}
