@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useParams } from "next/navigation";
-import { applyUserThemeColor } from "@/lib/core/theme-color";
+import { applyUserThemeColor, hexToRgb } from "@/lib/core/theme-color";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
@@ -63,6 +63,11 @@ import AnimeLists from "@/components/profile/anime-lists";
 import AchievementsSection from "@/components/profile/achievements-section";
 import FollowListModal, { type FollowListType } from "@/components/profile/follow-list-modal";
 import FriendsModal from "@/components/profile/friends-modal";
+import ProfileSectionNav from "@/components/profile/profile-section-nav";
+import ProfileCommentsSection from "@/components/profile/profile-comments-section";
+import ProfileLibraryBreakdownBar, {
+  type LibrarySegment,
+} from "@/components/profile/profile-library-breakdown-bar";
 import type { FriendStatus } from "@/app/api/users/[username]/friend/route";
 import { useT } from "@/providers/i18n-provider";
 import { useI18n } from "@/providers/i18n-provider";
@@ -107,6 +112,38 @@ const getStatusTabs = (t: ReturnType<typeof useT>) => [
   { value: "dropped",       label: t("profile.stats.dropped"),       key: "dropped",   icon: XCircle      },
 ] as const;
 
+const LIST_STATUS_STYLES: Record<string, { bar: string; icon: string; tab: string }> = {
+  watching: {
+    bar: "bg-sky-500",
+    icon: "text-sky-400",
+    tab: "data-[state=active]:text-sky-300 data-[state=active]:border-sky-500/30 data-[state=active]:bg-sky-500/10",
+  },
+  plan: {
+    bar: "bg-violet-500",
+    icon: "text-violet-400",
+    tab: "data-[state=active]:text-violet-300 data-[state=active]:border-violet-500/30 data-[state=active]:bg-violet-500/10",
+  },
+  onHold: {
+    bar: "bg-amber-500",
+    icon: "text-amber-400",
+    tab: "data-[state=active]:text-amber-300 data-[state=active]:border-amber-500/30 data-[state=active]:bg-amber-500/10",
+  },
+  completed: {
+    bar: "bg-emerald-500",
+    icon: "text-emerald-400",
+    tab: "data-[state=active]:text-emerald-300 data-[state=active]:border-emerald-500/30 data-[state=active]:bg-emerald-500/10",
+  },
+  dropped: {
+    bar: "bg-rose-500/90",
+    icon: "text-rose-400",
+    tab: "data-[state=active]:text-rose-300 data-[state=active]:border-rose-500/30 data-[state=active]:bg-rose-500/10",
+  },
+};
+
+function scrollToProfileSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function EditProfileDialog({
   open,
   onClose,
@@ -141,45 +178,6 @@ function EditProfileDialog({
   );
 }
 
-function relativeTime(iso: string, t: ReturnType<typeof useT>): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return t("home.justNow");
-  const m = Math.floor(s / 60);
-  if (m < 60) return t("common.timeAgoMinutes", { m });
-  const h = Math.floor(m / 60);
-  if (h < 24) return t("common.timeAgoHours", { h });
-  const d = Math.floor(h / 24);
-  if (d < 30) return t("common.timeAgoDays", { d });
-  return new Date(iso).toLocaleDateString();
-}
-
-interface UserComment {
-  id: string;
-  animeId: string;
-  episodeId?: string | null;
-  episodeNumber?: number | null;
-  body: string;
-  gifUrl?: string | null;
-  createdAt: string;
-}
-
-function formatAnimeLabel(id: string) {
-  if (/^\d+$/.test(id)) return `Anime #${id}`;
-  return id
-    .replace(/-\d+$/, "")
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-function userCommentHref(c: UserComment) {
-  if (c.episodeId) {
-    return `${ROUTES.WATCH}?anime=${encodeURIComponent(c.animeId)}&episode=${encodeURIComponent(c.episodeId)}`;
-  }
-  return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
-}
-
 function profileFetchInit(): RequestInit {
   return withAuth();
 }
@@ -191,6 +189,14 @@ const EMPTY_COUNTS: ProfileCounts = {
   onHold: 0,
   dropped: 0,
 };
+
+function profileAccentRingStyle(hex: string | null | undefined): React.CSSProperties | undefined {
+  if (!hex) return undefined;
+  const { r, g, b } = hexToRgb(hex);
+  return {
+    background: `linear-gradient(135deg, rgba(${r},${g},${b},0.55), rgba(${r},${g},${b},0.18))`,
+  };
+}
 
 function profileCacheKey(username: string) {
   return `profile:${username}`;
@@ -224,99 +230,6 @@ async function fetchProfilePayload(username: string) {
   }
   if (!r.ok) return null;
   return r.json();
-}
-
-function UserComments({ username }: { username: string }) {
-  const t = useT();
-  const [items, setItems] = useState<UserComment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    fetch(`/api/users/${encodeURIComponent(username)}/comments`, profileFetchInit())
-      .then((r) => r.json())
-      .then((d) => {
-        setItems(d.comments ?? []);
-        setFailed(false);
-      })
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
-  }, [username]);
-
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/6 px-4 py-3 h-16" />
-        ))}
-      </div>
-    );
-  }
-
-  if (failed) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-10 text-center">
-        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-white/8" />
-        <div>
-          <p className="text-sm text-muted-foreground dark:text-white/50 font-medium">{t("profile.failedToLoadComments")}</p>
-          <button
-            onClick={() => {
-              setFailed(false);
-              setLoading(true);
-              fetch(`/api/users/${encodeURIComponent(username)}/comments`, profileFetchInit())
-                .then((r) => r.json())
-                .then((d) => {
-                  setItems(d.comments ?? []);
-                  setFailed(false);
-                })
-                .catch(() => setFailed(true))
-                .finally(() => setLoading(false));
-            }}
-            className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-1"
-          >
-            {t("profile.retry")}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!items.length) {
-    return (
-      <div className="flex flex-col items-center gap-2 py-10 text-center">
-        <MessageSquare className="w-8 h-8 text-muted-foreground/20 dark:text-white/8" />
-        <p className="text-sm text-muted-foreground/70 dark:text-white/20 font-mono">{t("profile.noCommentsYet")}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col divide-y divide-white/[0.04]">
-      {items.map((c) => (
-        <div key={c.id} className="py-4">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <Link
-              href={userCommentHref(c)}
-              className="text-[11px] font-mono text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 transition-colors truncate max-w-[200px]"
-            >
-              {formatAnimeLabel(c.animeId)}
-              {c.episodeNumber ? ` · Ep ${c.episodeNumber}` : ""}
-            </Link>
-            <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20 shrink-0">{relativeTime(c.createdAt, t)}</span>
-          </div>
-          {c.body && (
-            <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words">{c.body}</p>
-          )}
-          {c.gifUrl && (
-            <div className={c.body ? "mt-2" : ""}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.gifUrl} alt="GIF" loading="lazy" className="rounded-xl max-h-40 w-auto max-w-full block ring-1 ring-white/8" />
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function ProfilePage() {
@@ -543,6 +456,11 @@ function ProfilePage() {
       .catch(() => {});
   }, [watchlistVersion, profileUsername, profile]);
 
+  useEffect(() => {
+    if (!isOwn || !profile?.themeColor) return;
+    applyUserThemeColor(profile.themeColor);
+  }, [isOwn, profile?.themeColor]);
+
   if (!hasHydrated || (profileLoading && !profile)) return <Loading />;
 
   if (profileHidden) {
@@ -577,6 +495,28 @@ function ProfilePage() {
   const displayLevel = isOwn && ownLevelData ? ownLevelData : levelData;
   const totalAnime = counts.watching + counts.completed + counts.plan + counts.onHold + counts.dropped;
   const bannerUrl = profile.bannerUrl ?? null;
+  const themeRgb = profile.themeColor ? hexToRgb(profile.themeColor) : null;
+
+  const profileSections = [
+    ...(isOwn ? [{ id: "continue", label: t("profile.sectionNav.continue") }] : []),
+    { id: "about", label: t("profile.sectionNav.about") },
+    { id: "watchlist", label: t("profile.sectionNav.watchlist") },
+    { id: "activity", label: t("profile.sectionNav.activity") },
+    { id: "comments", label: t("profile.sectionNav.comments") },
+    { id: "achievements", label: t("profile.sectionNav.achievements") },
+  ];
+
+  const librarySegments: LibrarySegment[] = getStatusTabs(t).map((tab) => ({
+    key: tab.key,
+    count: counts[tab.key as keyof ProfileCounts],
+    color: LIST_STATUS_STYLES[tab.key]?.bar ?? "bg-muted",
+    label: tab.label,
+  }));
+
+  const jumpToList = (tabValue: string) => {
+    handleTabChange(tabValue);
+    scrollToProfileSection("watchlist");
+  };
 
   const handleProfileSaved = (data: ProfileCustomizationValues) => {
     if (!auth || !isOwn) return;
@@ -623,6 +563,14 @@ function ProfilePage() {
           />
         )}
         {bannerUrl && <div className="absolute inset-0 bg-muted dark:bg-black/30" />}
+        {themeRgb && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `linear-gradient(135deg, rgba(${themeRgb.r},${themeRgb.g},${themeRgb.b},0.28) 0%, transparent 50%), linear-gradient(to top, rgba(${themeRgb.r},${themeRgb.g},${themeRgb.b},0.12), transparent 40%)`,
+            }}
+          />
+        )}
         <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-black to-transparent" />
       </div>
 
@@ -631,12 +579,26 @@ function ProfilePage() {
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 md:items-start mb-10">
           {/* Left rail: avatar + vertical actions */}
           <div className="flex flex-col items-center md:items-stretch md:w-56 shrink-0">
-            <FramedAvatar
-              className="w-32 h-32 md:w-36 md:h-36 shadow-2xl mx-auto md:mx-0"
-              username={profile.username}
-              url={profile.avatarUrl ?? undefined}
-              frameSlug={profile.equippedFrame}
-            />
+            <div
+              className={cn(
+                "rounded-full p-[3px] shadow-2xl mx-auto md:mx-0 w-fit",
+                isOwn && profile.themeColor
+                  ? "user-accent-ring"
+                  : profile.themeColor
+                    ? undefined
+                    : "bg-gradient-to-br from-white/30 via-white/20 to-white/10",
+              )}
+              style={!isOwn && profile.themeColor ? profileAccentRingStyle(profile.themeColor) : undefined}
+            >
+              <div className="rounded-full p-[2px] bg-black">
+                <FramedAvatar
+                  className="w-32 h-32 md:w-36 md:h-36"
+                  username={profile.username}
+                  url={profile.avatarUrl ?? undefined}
+                  frameSlug={profile.equippedFrame}
+                />
+              </div>
+            </div>
 
             <div className="mt-4 flex w-full flex-wrap justify-center gap-2 md:max-w-[240px] md:flex-col md:flex-nowrap md:justify-start">
               {isOwn ? (
@@ -784,14 +746,32 @@ function ProfilePage() {
                     {new Date(profile.createdAt).toLocaleDateString(locale, { month: "long", year: "numeric" })}
                   </p>
                 )}
+
+                {profile.bio && (
+                  <p className="mt-3 max-w-xl text-sm text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 text-center md:text-left">
+                    {profile.bio}
+                  </p>
+                )}
               </div>
 
               {/* Stat tiles */}
               <div className="shrink-0 mx-auto md:mx-0">
                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-1 rounded-2xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-2">
                   <StatTile icon={Star} accent="text-amber-300" value={displayLevel?.level ?? "—"} label={t("profile.userLevel")} />
-                  <StatTile icon={BarChart3} accent="text-sky-300" value={(displayLevel?.startedEpisodes ?? 0).toLocaleString()} label={t("profile.episodesWatched")} />
-                  <StatTile icon={MessageSquare} accent="text-violet-300" value={displayLevel?.commentCount ?? 0} label={t("profile.comments")} />
+                  <StatTile
+                    icon={BarChart3}
+                    accent="text-sky-300"
+                    value={(displayLevel?.startedEpisodes ?? 0).toLocaleString()}
+                    label={t("profile.episodesWatched")}
+                    onClick={() => scrollToProfileSection("activity")}
+                  />
+                  <StatTile
+                    icon={MessageSquare}
+                    accent="text-violet-300"
+                    value={displayLevel?.commentCount ?? 0}
+                    label={t("profile.comments")}
+                    onClick={() => scrollToProfileSection("comments")}
+                  />
                   <StatTile
                     icon={Users}
                     accent="text-emerald-300"
@@ -819,43 +799,72 @@ function ProfilePage() {
           </div>
         </div>
 
+        <ProfileSectionNav sections={profileSections} />
+
         {/* ── Main content: two columns (main + sticky sidebar) ─────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start">
           {/* ── Left: primary content ── */}
           <div className="flex flex-col gap-10 min-w-0">
           {isOwn && (
-            <section>
+            <section id="continue" className="scroll-mt-24">
               <ContinueWatching loading={false} />
             </section>
           )}
 
-          <section>
+          <section id="about" className="scroll-mt-24">
             <SectionLabel icon={<UserRound className="w-4 h-4" />} title={t("profile.aboutMe")} />
             <div className="site-panel p-5">
               {profile.bio ? (
                 <p className="text-sm text-foreground/80 dark:text-white/70 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
+              ) : isOwn ? (
+                <div className="flex flex-col items-center gap-4 py-4 text-center sm:flex-row sm:items-center sm:py-2 sm:text-left">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03]">
+                    <UserRound className="w-6 h-6 text-muted-foreground/40 dark:text-white/20" />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-muted-foreground/70 dark:text-white/30">{t("profile.noBioOwn")}</p>
+                    <button
+                      type="button"
+                      onClick={() => setEditOpen(true)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-200 hover:bg-violet-500/20 transition-colors shrink-0"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      {t("profile.addBioCta")}
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground/70 dark:text-white/30 italic">
-                  {isOwn ? t("profile.noBioOwn") : t("profile.noBio")}
-                </p>
+                <div className="flex flex-col items-center gap-2 py-6 text-center">
+                  <UserRound className="w-8 h-8 text-muted-foreground/20 dark:text-white/10" />
+                  <p className="text-sm text-muted-foreground/70 dark:text-white/30 italic">{t("profile.noBio")}</p>
+                </div>
               )}
             </div>
           </section>
 
-          <section id="watchlist">
-            <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.watchlist")} />
+          <section id="watchlist" className="scroll-mt-24">
+            <SectionLabel
+              icon={<List className="w-4 h-4" />}
+              title={t("profile.watchlist")}
+              count={totalAnime}
+            />
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="flex flex-wrap gap-1.5 h-auto bg-transparent p-0 mb-6 border-b border-border dark:border-white/10 pb-3">
                 {getStatusTabs(t).map((tab) => {
                   const count = counts[tab.key as keyof typeof counts];
                   const Icon = tab.icon;
+                  const styles = LIST_STATUS_STYLES[tab.key];
                   return (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-muted-foreground dark:text-white/35 data-[state=active]:bg-accent dark:data-[state=active]:bg-white/12 data-[state=active]:text-foreground dark:data-[state=active]:text-white/90 data-[state=active]:border-border dark:data-[state=active]:border-white/20 hover:text-foreground/80 dark:hover:text-white/60 transition-all bg-transparent"
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-muted-foreground dark:text-white/35 hover:text-foreground/80 dark:hover:text-white/60 transition-all bg-transparent",
+                        styles?.tab,
+                        "data-[state=active]:text-foreground dark:data-[state=active]:text-white/90 data-[state=active]:border-border dark:data-[state=active]:border-white/20",
+                      )}
                     >
-                      <Icon className="w-3.5 h-3.5" />
+                      <Icon className={cn("w-3.5 h-3.5", styles?.icon)} />
                       {tab.label}
                       <span
                         className={cn(
@@ -884,17 +893,21 @@ function ProfilePage() {
             </Tabs>
           </section>
 
-          <section>
+          <section id="activity" className="scroll-mt-24">
             <SectionLabel icon={<Activity className="w-4 h-4" />} title={t("profile.watchActivity")} />
             <div className="site-panel p-5">
               <AnimeHeatmap username={profile.username} />
             </div>
           </section>
 
-          <section>
-            <SectionLabel icon={<MessageSquare className="w-4 h-4" />} title={t("profile.comments")} />
+          <section id="comments" className="scroll-mt-24">
+            <SectionLabel
+              icon={<MessageSquare className="w-4 h-4" />}
+              title={t("profile.comments")}
+              count={displayLevel?.commentCount ?? 0}
+            />
             <div className="site-panel px-4 py-2">
-              <UserComments username={profile.username} />
+              <ProfileCommentsSection username={profile.username} />
             </div>
           </section>
           </div>
@@ -902,26 +915,33 @@ function ProfilePage() {
           {/* ── Right: sticky sidebar (quick stats + achievements) ── */}
           <aside className="flex flex-col gap-6 lg:sticky lg:top-20">
             <div className="site-panel p-5">
-              <SectionLabel icon={<BarChart3 className="w-4 h-4" />} title={t("profile.quickStats")} />
+              <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.libraryStats")} inline />
+              <ProfileLibraryBreakdownBar segments={librarySegments} total={totalAnime} />
               <div className="flex flex-col divide-y divide-border dark:divide-white/6">
-                <QuickStatRow icon={Star} accent="text-amber-300" label={t("profile.userLevel")} value={displayLevel?.level ?? "—"} />
-                <QuickStatRow icon={BarChart3} accent="text-sky-300" label={t("profile.episodesWatched")} value={(displayLevel?.startedEpisodes ?? 0).toLocaleString()} />
-                <QuickStatRow icon={MessageSquare} accent="text-violet-300" label={t("profile.comments")} value={displayLevel?.commentCount ?? 0} />
-                <QuickStatRow
-                  icon={Users}
-                  accent="text-emerald-300"
-                  label={t("profile.followers")}
-                  value={follow?.followers ?? 0}
-                  onClick={follow ? () => setFollowListType("followers") : undefined}
-                />
-                <QuickStatRow
-                  icon={UserPlus}
-                  accent="text-fuchsia-300"
-                  label={t("profile.following")}
-                  value={follow?.following ?? 0}
-                  onClick={follow ? () => setFollowListType("following") : undefined}
-                />
+                {getStatusTabs(t).map((tab) => {
+                  const count = counts[tab.key as keyof typeof counts];
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.value;
+                  const styles = LIST_STATUS_STYLES[tab.key];
+                  return (
+                    <LibraryStatRow
+                      key={tab.key}
+                      icon={Icon}
+                      label={tab.label}
+                      value={count}
+                      total={totalAnime}
+                      accent={styles?.icon}
+                      barColor={styles?.bar}
+                      active={isActive}
+                      onClick={() => jumpToList(tab.value)}
+                    />
+                  );
+                })}
               </div>
+              <p className="mt-3 pt-3 border-t border-border dark:border-white/6 text-[11px] font-mono text-muted-foreground/70 dark:text-white/35 text-center">
+                <span className="font-bold text-foreground/80 dark:text-white/70 tabular-nums">{totalAnime}</span>{" "}
+                {t("profile.stats.total")}
+              </p>
             </div>
 
             <div id="achievements" className="site-panel p-5 scroll-mt-24">
@@ -987,7 +1007,7 @@ function StatTile({
     </div>
   );
   return onClick ? (
-    <button type="button" onClick={onClick} className="rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-accent dark:hover:bg-white/[0.04]">
+    <button type="button" onClick={onClick} className="rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-accent dark:hover:bg-white/[0.04] cursor-pointer">
       {inner}
     </button>
   ) : (
@@ -995,31 +1015,65 @@ function StatTile({
   );
 }
 
-/** One labelled stat row in the sidebar "Quick Stats" panel. */
-function QuickStatRow({
+/** One labelled stat row in the sidebar library breakdown. */
+function LibraryStatRow({
   icon: Icon,
   label,
   value,
-  accent = "text-foreground/60 dark:text-white/50",
+  total = 0,
+  accent,
+  barColor,
+  active = false,
   onClick,
 }: {
   icon: LucideIcon;
   label: string;
-  value: React.ReactNode;
+  value: number;
+  total?: number;
   accent?: string;
+  barColor?: string;
+  active?: boolean;
   onClick?: () => void;
 }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   const inner = (
-    <div className="flex items-center justify-between py-2.5">
-      <span className="flex items-center gap-2.5 text-sm text-muted-foreground dark:text-white/50">
-        <Icon className={cn("w-4 h-4", accent)} />
+    <div
+      className={cn(
+        "relative flex items-center justify-between py-2.5 px-1 rounded-lg transition-colors overflow-hidden",
+        active && "bg-accent/60 dark:bg-white/[0.06]",
+      )}
+    >
+      {active && barColor && (
+        <div className={cn("absolute inset-y-1 left-0 w-0.5 rounded-full", barColor)} />
+      )}
+      <span
+        className={cn(
+          "flex items-center gap-2.5 text-sm pl-1",
+          active ? "text-foreground dark:text-white/85 font-medium" : "text-muted-foreground dark:text-white/50",
+        )}
+      >
+        <Icon className={cn("w-4 h-4", active ? accent : "text-muted-foreground/70 dark:text-white/40")} />
         {label}
       </span>
-      <span className="text-sm font-bold tabular-nums text-foreground dark:text-white">{value}</span>
+      <span className="flex items-center gap-2">
+        {total > 0 && value > 0 && (
+          <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/25 tabular-nums">
+            {pct}%
+          </span>
+        )}
+        <span
+          className={cn(
+            "text-sm font-bold tabular-nums",
+            active ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/60",
+          )}
+        >
+          {value}
+        </span>
+      </span>
     </div>
   );
   return onClick ? (
-    <button type="button" onClick={onClick} className="text-left transition-colors hover:text-foreground/90">
+    <button type="button" onClick={onClick} className="text-left w-full hover:bg-accent/40 dark:hover:bg-white/[0.03] rounded-lg transition-colors">
       {inner}
     </button>
   ) : (
@@ -1068,12 +1122,31 @@ function RailButton({
   );
 }
 
-function SectionLabel({ icon, title }: { icon: React.ReactNode; title: string }) {
+function SectionLabel({
+  icon,
+  title,
+  count,
+  inline = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  count?: number;
+  inline?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-2.5 mb-4">
-      <span className="text-muted-foreground dark:text-white/40">{icon}</span>
-      <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{title}</h2>
-      <div className="flex-1 h-px bg-gradient-to-r from-white/15 to-transparent ml-2" />
+    <div className={cn("flex items-center gap-2.5", inline ? "mb-3" : "mb-4")}>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.04] text-muted-foreground dark:text-white/45">
+        {icon}
+      </span>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{title}</h2>
+        {count !== undefined && (
+          <span className="rounded-full bg-muted dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground dark:text-white/50">
+            {count}
+          </span>
+        )}
+      </div>
+      {!inline && <div className="hidden sm:block flex-1 max-w-[160px] h-px bg-gradient-to-r from-border dark:from-white/10 to-transparent" />}
     </div>
   );
 }

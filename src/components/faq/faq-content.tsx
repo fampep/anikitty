@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { DISCORD_INVITE_URL } from "@/constants/site-meta";
+import { DISCORD_INVITE_URL, FAQ_LAST_UPDATED } from "@/constants/site-meta";
 import { useT } from "@/providers/i18n-provider";
 import {
   HelpCircle,
@@ -61,6 +61,7 @@ export default function FaqContent() {
         { q: t("faq.watching.recentlyViewedQ"), a: t("faq.watching.recentlyViewedA") },
         { q: t("faq.watching.voiceActorsQ"), a: t("faq.watching.voiceActorsA") },
         { q: t("faq.watching.anilistQ"), a: t("faq.watching.anilistA") },
+        { q: t("faq.watching.subtitlesQ"), a: t("faq.watching.subtitlesA") },
         { q: t("faq.watching.scheduleQ"), a: t("faq.watching.scheduleA") },
       ],
     },
@@ -73,6 +74,8 @@ export default function FaqContent() {
         { q: t("faq.accountSection.profileQ"), a: t("faq.accountSection.profileA") },
         { q: t("faq.accountSection.ninjaQ"), a: t("faq.accountSection.ninjaA") },
         { q: t("faq.accountSection.levelsQ"), a: t("faq.accountSection.levelsA") },
+        { q: t("faq.accountSection.achievementsQ"), a: t("faq.accountSection.achievementsA") },
+        { q: t("faq.accountSection.passkeysQ"), a: t("faq.accountSection.passkeysA") },
         { q: t("faq.accountSection.twoFactorQ"), a: t("faq.accountSection.twoFactorA") },
         { q: t("faq.accountSection.sessionsQ"), a: t("faq.accountSection.sessionsA") },
       ],
@@ -86,6 +89,7 @@ export default function FaqContent() {
         { q: t("faq.community.forumQ"), a: t("faq.community.forumA") },
         { q: t("faq.community.commentsQ"), a: t("faq.community.commentsA") },
         { q: t("faq.community.followQ"), a: t("faq.community.followA") },
+        { q: t("faq.community.friendsQ"), a: t("faq.community.friendsA") },
         { q: t("faq.community.notificationsQ"), a: t("faq.community.notificationsA") },
         { q: t("faq.community.blockQ"), a: t("faq.community.blockA") },
         { q: t("faq.community.reportQ"), a: t("faq.community.reportA") },
@@ -130,7 +134,11 @@ export default function FaqContent() {
   ];
 
   const lastUpdated = t("faq.lastUpdated", {
-    date: new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+    date: new Date(FAQ_LAST_UPDATED).toLocaleDateString(undefined, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }),
   });
 
   return (

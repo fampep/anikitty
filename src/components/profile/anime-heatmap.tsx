@@ -99,7 +99,7 @@ function AnimeHeatmap({ username }: Props) {
 
   return (
     <>
-      <p className="text-lg font-bold mb-4">Watched {totalCount} episodes in the last year</p>
+      <p className="text-lg font-bold mb-4">{t("profile.activitySummary", { count: totalCount })}</p>
       <CalendarHeatmap
         weekdayLabels={["", "M", "", "W", "", "F", ""]}
         showWeekdayLabels

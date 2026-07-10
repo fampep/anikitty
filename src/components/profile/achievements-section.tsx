@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { cn } from "@/lib/core/utils";
+import { useT } from "@/providers/i18n-provider";
 
 const ICONS: Record<string, LucideIcon> = {
   Play, Tv, Flame, Zap, BookMarked, Library, MessageCircle, MessagesSquare,
@@ -44,6 +45,7 @@ export default function AchievementsSection({
   /** Single-column layout for the narrow profile sidebar. */
   compact?: boolean;
 }) {
+  const t = useT();
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -93,10 +95,10 @@ export default function AchievementsSection({
           <div className="flex items-center gap-3 text-xs">
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-orange-500/25 bg-orange-500/10 px-2.5 py-1 font-semibold text-orange-300">
               <Flame className="w-3.5 h-3.5" fill="currentColor" />
-              {data.streak}-day streak
+              {t("profile.achievementsMeta.streakDays", { count: data.streak })}
             </span>
             <span className="text-muted-foreground/70 dark:text-white/35 font-mono">
-              best {data.longestStreak}d
+              {t("profile.achievementsMeta.bestStreak", { count: data.longestStreak })}
             </span>
           </div>
         )}
