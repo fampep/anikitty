@@ -173,7 +173,6 @@ const VideoPlayerSection = () => {
 
   useEffect(() => {
     if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
-    setStreamAudio((prev) => (prev === "dub" ? prev : "dub"));
     setAudioMode((mode) => (mode === "multi" ? mode : "dub"));
   }, [dubSearchParam]);
 
@@ -189,19 +188,43 @@ const VideoPlayerSection = () => {
     [router, searchParamsKey],
   );
 
-  useEffect(() => {
-    setPreferDub(streamAudio === "dub");
-  }, [streamAudio, setPreferDub]);
+  /** SUB/DUB stream language — also keeps preferDub and the ?dub= URL in sync. */
+  const applyStreamAudio = useCallback(
+    (audio: "sub" | "dub") => {
+      setStreamAudio((prev) => (prev === audio ? prev : audio));
+      localStorage.setItem("kittyStreamAudio", audio);
+      setPreferDub(audio === "dub");
+      syncDubSearchParam(audio === "dub");
+    },
+    [setPreferDub, syncDubSearchParam],
+  );
 
   useEffect(() => {
-    const target: "sub" | "dub" = preferDub ? "dub" : "sub";
-    if (streamAudio === target) return;
-    setStreamAudio(target);
-    localStorage.setItem("kittyStreamAudio", target);
-    syncDubSearchParam(target === "dub");
-    setAudioMode((mode) => (mode === "multi" ? mode : target));
-    localStorage.setItem("kittyAudioMode", target);
-  }, [preferDub, syncDubSearchParam]);
+    if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
+    applyStreamAudio("dub");
+  }, [dubSearchParam, applyStreamAudio]);
+
+  // Settings → prefer dub toggle (do not bounce back through streamAudio effects).
+  useEffect(() => {
+    return useSettingsStore.subscribe((state, prevState) => {
+      if (state.preferDub === prevState.preferDub) return;
+      const target = state.preferDub ? "dub" : "sub";
+      setStreamAudio((current) => {
+        if (current === target) return current;
+        localStorage.setItem("kittyStreamAudio", target);
+        syncDubSearchParam(target === "dub");
+        return target;
+      });
+    });
+  }, [syncDubSearchParam]);
+
+  const resolveProviderAudioMode = useCallback(
+    (p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => {
+      if (MULTI_ROW_PROVIDERS.has(p) && (mode === "dub" || mode === "sub")) return "multi";
+      return mode;
+    },
+    [],
+  );
 
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
@@ -283,12 +306,6 @@ const VideoPlayerSection = () => {
     }
     return null;
   });
-
-  useEffect(() => {
-    if (!MULTI_ROW_PROVIDERS.has(provider) || audioMode === "multi") return;
-    setAudioMode("multi");
-    localStorage.setItem("kittyAudioMode", "multi");
-  }, [provider, audioMode]);
 
   const animeSlug = anime?.anime?.info?.id ?? null;
   const anilistId = anime?.anime?.info?.anilistId;
@@ -1036,19 +1053,16 @@ const VideoPlayerSection = () => {
       fallbackBusyRef.current = false;
     }
     setProvider(p);
-    setAudioMode(mode);
+    const resolvedMode = resolveProviderAudioMode(p, mode);
+    setAudioMode(resolvedMode);
     localStorage.setItem("kittyProvider", p);
-    localStorage.setItem("kittyAudioMode", mode);
+    localStorage.setItem("kittyAudioMode", resolvedMode);
     if (mode === "dub") {
-      setStreamAudio("dub");
-      localStorage.setItem("kittyStreamAudio", "dub");
-      syncDubSearchParam(true);
-    } else if (mode !== "multi") {
-      setStreamAudio("sub");
-      localStorage.setItem("kittyStreamAudio", "sub");
-      syncDubSearchParam(false);
+      applyStreamAudio("dub");
+    } else if (mode === "sub" || mode === "hardsub") {
+      applyStreamAudio("sub");
     }
-    if (mode !== "multi" || !MULTI_ROW_PROVIDERS.has(p)) {
+    if (resolvedMode !== "multi" || !MULTI_ROW_PROVIDERS.has(p)) {
       setMultiPanel(null);
     }
     if (p === "Animex") {
@@ -1159,7 +1173,7 @@ const VideoPlayerSection = () => {
     const mode: ProviderAudioMode = MULTI_ROW_PROVIDERS.has(p)
       ? "multi"
       : audioMode === "multi"
-        ? "sub"
+        ? streamAudio
         : audioMode;
     handleProviderGridSelect(p, mode);
   };
