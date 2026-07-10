@@ -9,6 +9,7 @@ import {
   sanitizeSyncedPreferences,
   type SyncedUserPreferences,
 } from "@/lib/account/user-preferences";
+import { sanitizeSeekStepSeconds } from "@/lib/player/seek-step";
 
 const SYNC_DEBOUNCE_MS = 900;
 
@@ -41,6 +42,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     notifyReplies: s.notifyReplies,
     notifyFollows: s.notifyFollows,
     showBannerAds: s.showBannerAds,
+    seekStepSeconds: s.seekStepSeconds,
   });
 }
 
@@ -72,6 +74,9 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;
   if (prefs.notifyFollows !== undefined) patch.notifyFollows = prefs.notifyFollows;
   if (prefs.showBannerAds !== undefined) patch.showBannerAds = prefs.showBannerAds;
+  if (prefs.seekStepSeconds !== undefined) {
+    patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
+  }
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);

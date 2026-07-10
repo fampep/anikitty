@@ -92,14 +92,18 @@ export function GroupedNavLinks({
   onNavigate,
   compact,
   sheet,
+  grid,
 }: {
   items: readonly MenuItem[];
   pathname: string;
   onNavigate?: () => void;
   compact?: boolean;
+  /** @deprecated use `grid` */
   sheet?: boolean;
+  grid?: boolean;
 }) {
   const t = useT();
+  const isGrid = grid ?? sheet;
   const groups = MENU_GROUP_ORDER.map((group) => ({
     group,
     label: t(`nav.groups.${group}`),
@@ -107,19 +111,19 @@ export function GroupedNavLinks({
   })).filter((section) => section.items.length > 0);
 
   return (
-    <div className={cn("flex flex-col", compact ? "gap-1" : sheet ? "gap-4" : "gap-2")}>
+    <div className={cn("flex flex-col", compact ? "gap-1" : isGrid ? "gap-3" : "gap-2")}>
       {groups.map((section, index) => (
         <div key={section.group}>
-          {index > 0 && !sheet && <div className="my-1.5 h-px bg-border/70 dark:bg-white/[0.06]" />}
+          {index > 0 && !isGrid && <div className="my-1.5 h-px bg-border/70 dark:bg-white/[0.06]" />}
           <p
             className={cn(
               "font-semibold uppercase tracking-[0.12em] text-muted-foreground/75 dark:text-white/30",
-              sheet ? "px-1 pb-2 text-[11px]" : "px-3 pb-1 pt-0.5 text-[10px]",
+              isGrid ? "px-1 pb-1.5 text-[10px]" : "px-3 pb-1 pt-0.5 text-[10px]",
             )}
           >
             {section.label}
           </p>
-          <div className={cn(sheet ? "grid grid-cols-2 gap-1 sm:grid-cols-3" : "flex flex-col gap-0.5")}>
+          <div className={cn(isGrid ? "grid grid-cols-2 gap-0.5" : "flex flex-col gap-0.5")}>
             {section.items.map((item) => {
               const Icon = item.icon;
               const active = isNavActive(pathname, item.href);
@@ -129,14 +133,14 @@ export function GroupedNavLinks({
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-xl transition-colors",
-                    sheet ? "px-3 py-2.5 text-[13px]" : "rounded-lg px-3 py-2 text-sm",
+                    "flex items-center gap-2 rounded-xl transition-[background-color,color,transform] duration-150",
+                    isGrid ? "px-2.5 py-2 text-[12px]" : "rounded-lg px-3 py-2 text-sm",
                     active
                       ? "nav-link-active user-accent-nav-active font-semibold"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground dark:text-white/55 dark:hover:bg-white/[0.06] dark:hover:text-white",
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground active:scale-[0.98] dark:text-white/55 dark:hover:bg-white/[0.06] dark:hover:text-white",
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0 opacity-80" />
+                  <Icon className={cn("shrink-0 opacity-80", isGrid ? "h-3.5 w-3.5" : "h-4 w-4")} />
                   <span className="truncate">{item.title}</span>
                 </Link>
               );

@@ -6,6 +6,7 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import KittyProxyChooser from "@/components/watch/kitty-proxy-chooser";
+import SeekStepSetting from "@/components/settings/seek-step-setting";
 import {
   ChevronDown,
   Mic,
@@ -80,6 +81,8 @@ export default function PlayerSettingsBar() {
     setProviderAutoFallback,
     simpleProviderPicker,
     setSimpleProviderPicker,
+    seekStepSeconds,
+    setSeekStepSeconds,
   } = useSettingsStore();
 
   useEffect(() => {
@@ -184,6 +187,8 @@ export default function PlayerSettingsBar() {
             value={simpleProviderPicker}
             onChange={setSimpleProviderPicker}
           />
+
+          <SeekStepSetting value={seekStepSeconds} onChange={setSeekStepSeconds} compact />
 
           <KittyProxyChooser />
 

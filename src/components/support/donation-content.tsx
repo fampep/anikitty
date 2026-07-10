@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Heart,
   Loader2,
+  Megaphone,
   MessageCircle,
   Settings,
   Sparkles,
@@ -160,6 +161,16 @@ export default function DonationContent() {
         <p className="text-sm text-muted-foreground dark:text-white/50 leading-relaxed -mt-2">
           {t("donate.body")}
         </p>
+
+        <section className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex items-start gap-3">
+            <Megaphone className="w-4 h-4 shrink-0 mt-0.5 text-amber-300/80" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground/90 dark:text-white/85">{t("donate.sorryTitle")}</p>
+              <p className="mt-2 text-sm text-muted-foreground dark:text-white/50 leading-relaxed">{t("donate.sorryBody")}</p>
+            </div>
+          </div>
+        </section>
 
         <section className="site-panel overflow-hidden border-pink-500/15">
           <div className="relative px-5 py-6 sm:px-6 sm:py-7">

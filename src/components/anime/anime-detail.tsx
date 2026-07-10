@@ -48,8 +48,6 @@ import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
-import SiteBannerAd from "@/components/ads/site-banner-ad";
-
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
 });
@@ -348,8 +346,6 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {info.anilistId ? <AnimeThemePlayer anilistId={info.anilistId} /> : null}
         </div>
       </div>
-
-      <SiteBannerAd className="py-3 sm:py-4" />
 
       <Container className="pb-28">
         {/* ── Hero ── */}

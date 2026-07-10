@@ -7,6 +7,7 @@ import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
+import { sanitizeSeekStepSeconds, type PlayerSeekStep } from "@/lib/player/seek-step";
 import { isValidThemeColor } from "@/lib/core/theme-color";
 
 export type SyncedUserPreferences = {
@@ -36,6 +37,7 @@ export type SyncedUserPreferences = {
   notifyReplies?: boolean;
   notifyFollows?: boolean;
   showBannerAds?: boolean;
+  seekStepSeconds?: PlayerSeekStep;
 };
 
 export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
@@ -73,6 +75,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.notifyReplies === "boolean") out.notifyReplies = input.notifyReplies;
   if (typeof input.notifyFollows === "boolean") out.notifyFollows = input.notifyFollows;
   if (typeof input.showBannerAds === "boolean") out.showBannerAds = input.showBannerAds;
+  if (input.seekStepSeconds !== undefined) out.seekStepSeconds = sanitizeSeekStepSeconds(input.seekStepSeconds);
   if (input.siteAccentColor === null) {
     out.siteAccentColor = null;
   } else if (typeof input.siteAccentColor === "string" && isValidThemeColor(input.siteAccentColor)) {

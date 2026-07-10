@@ -7,7 +7,7 @@ import HomeSchedulePanel from "@/components/home/home-schedule-panel";
 import HomeSeasonBrowser from "@/components/home/home-season-browser";
 import HomeTrendingRail from "@/components/home/home-trending-rail";
 import HomeUpcomingRail from "@/components/home/home-upcoming-rail";
-import SiteBannerAd from "@/components/ads/site-banner-ad";
+import HomeAdsNotice from "@/components/home/home-ads-notice";
 import Container from "@/components/layout/container";
 import LazyMount from "@/components/shared/lazy-mount";
 import { GET_HOME_CRITICAL } from "@/constants/query-keys";
@@ -92,7 +92,7 @@ export default function Home() {
         onActivePosterChange={setBackdropPoster}
       />
 
-      <SiteBannerAd className="relative z-[5] py-3 sm:py-4" />
+      <HomeAdsNotice className="py-2 sm:py-3" />
 
       <div className="home-cinema-body relative z-[5] flex flex-col gap-6 sm:gap-10 p-2 -mt-8">
         <LazyMount minHeight={120}>

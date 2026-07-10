@@ -178,7 +178,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
               </div>
             ) : (
               <span style={{ fontSize: 16, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>
-                No ads · Sub &amp; dub
+                Sub &amp; dub · Ad-free player
               </span>
             )}
             <span

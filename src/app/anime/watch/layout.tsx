@@ -42,7 +42,6 @@ import {
   adjacentPlayableEpisode,
 } from "@/lib/anime/episode-availability";
 import Link from "next/link";
-import SiteBannerAd from "@/components/ads/site-banner-ad";
 import { cn } from "@/lib/core/utils";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
 import { useT } from "@/providers/i18n-provider";
@@ -420,8 +419,6 @@ const Layout = (props: Props) => {
         {/* Left: player + episode info + tabs */}
         <div className="flex flex-col gap-3 min-w-0">
           <div id="watch-player-root" className="-mx-4 sm:mx-0">{props.children}</div>
-
-          {!theatreMode ? <SiteBannerAd className="py-1" /> : null}
 
           {currentEpisode && currentAnimeId && !theatreMode && (
             <div className="hidden lg:block">

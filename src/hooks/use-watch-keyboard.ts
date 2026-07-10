@@ -6,6 +6,7 @@ import type Artplayer from "artplayer";
 type Options = {
   enabled?: boolean;
   art: Artplayer | null;
+  seekStepSeconds?: number;
   onPrevEpisode?: () => void;
   onNextEpisode?: () => void;
   onToggleTheatre?: () => void;
@@ -52,6 +53,7 @@ function isPlayerVisible(art: Artplayer | null): boolean {
 export function useWatchKeyboard({
   enabled = true,
   art,
+  seekStepSeconds = 10,
   onPrevEpisode,
   onNextEpisode,
   onToggleTheatre,
@@ -129,13 +131,13 @@ export function useWatchKeyboard({
 
       if (key === "arrowleft" || key === "j") {
         e.preventDefault();
-        art.backward = 10;
+        art.backward = seekStepSeconds;
         return;
       }
 
       if (key === "arrowright" || key === "l") {
         e.preventDefault();
-        art.forward = 10;
+        art.forward = seekStepSeconds;
         return;
       }
 
@@ -157,6 +159,7 @@ export function useWatchKeyboard({
   }, [
     enabled,
     art,
+    seekStepSeconds,
     onPrevEpisode,
     onNextEpisode,
     onToggleTheatre,

@@ -136,7 +136,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -846,8 +846,14 @@ const VideoPlayerSection = () => {
     };
     set("play", () => void artPlayer.play?.());
     set("pause", () => artPlayer.pause?.());
-    set("seekbackward", (d) => { artPlayer.seek = Math.max(0, (artPlayer.currentTime ?? 0) - (d.seekOffset || 10)); });
-    set("seekforward", (d) => { artPlayer.seek = (artPlayer.currentTime ?? 0) + (d.seekOffset || 10); });
+    set("seekbackward", (d) => {
+      const step = d.seekOffset || seekStepSeconds;
+      artPlayer.seek = Math.max(0, (artPlayer.currentTime ?? 0) - step);
+    });
+    set("seekforward", (d) => {
+      const step = d.seekOffset || seekStepSeconds;
+      artPlayer.seek = (artPlayer.currentTime ?? 0) + step;
+    });
     set("previoustrack", prevEpisode ? () => handlePrevEpisode() : null);
     set("nexttrack", nextEpisode ? () => handleNextEpisode() : null);
 
@@ -856,7 +862,7 @@ const VideoPlayerSection = () => {
         set(a, null);
       }
     };
-  }, [artPlayer, animeName, animePoster, currentEpisodeInfo, prevEpisode, nextEpisode, handlePrevEpisode, handleNextEpisode, t]);
+  }, [artPlayer, animeName, animePoster, currentEpisodeInfo, prevEpisode, nextEpisode, handlePrevEpisode, handleNextEpisode, seekStepSeconds, t]);
 
   const {
     data: streamData,
@@ -1216,6 +1222,7 @@ const VideoPlayerSection = () => {
   useWatchKeyboard({
     enabled: streamReady && !needsResumePrompt,
     art: artPlayer,
+    seekStepSeconds,
     onPrevEpisode: handlePrevEpisode,
     onNextEpisode: handleNextEpisode,
     onToggleTheatre: () => setTheatreMode(!theatreMode),
@@ -1468,7 +1475,7 @@ const VideoPlayerSection = () => {
 
   return (
     <div className="flex flex-col gap-2 sm:gap-3">
-    <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+    <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} seekStepSeconds={seekStepSeconds} />
     {anilistId && episodeNumberParsed != null && (
       <SkipTimesSubmitDialog
         open={skipSubmitOpen}

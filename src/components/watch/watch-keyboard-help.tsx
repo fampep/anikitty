@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef } from "react";
+import { useId, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { useDialogFocusTrap } from "@/hooks/use-dialog-focus-trap";
@@ -8,27 +8,32 @@ import { useDialogFocusTrap } from "@/hooks/use-dialog-focus-trap";
 type Props = {
   open: boolean;
   onClose: () => void;
+  seekStepSeconds: number;
 };
 
-const ROWS: Array<{ keys: string; labelKey: string }> = [
-  { keys: "Space / K", labelKey: "watch.shortcuts.playPause" },
-  { keys: "← / J", labelKey: "watch.shortcuts.seekBack" },
-  { keys: "→ / L", labelKey: "watch.shortcuts.seekForward" },
-  { keys: "↑ / ↓", labelKey: "watch.shortcuts.volume" },
-  { keys: "F", labelKey: "watch.shortcuts.fullscreen" },
-  { keys: "M", labelKey: "watch.shortcuts.mute" },
-  { keys: "N / ]", labelKey: "watch.shortcuts.nextEpisode" },
-  { keys: "P / [", labelKey: "watch.shortcuts.prevEpisode" },
-  { keys: "T", labelKey: "watch.shortcuts.theatre" },
-  { keys: "C", labelKey: "watch.shortcuts.copyLink" },
-  { keys: "?", labelKey: "watch.shortcuts.help" },
-];
-
-export default function WatchKeyboardHelp({ open, onClose }: Props) {
+export default function WatchKeyboardHelp({ open, onClose, seekStepSeconds }: Props) {
   const t = useT();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+
+  const rows = useMemo(
+    () =>
+      [
+        { keys: "Space / K", labelKey: "watch.shortcuts.playPause" as const },
+        { keys: "← / J", labelKey: "watch.shortcuts.seekBack" as const, seconds: seekStepSeconds },
+        { keys: "→ / L", labelKey: "watch.shortcuts.seekForward" as const, seconds: seekStepSeconds },
+        { keys: "↑ / ↓", labelKey: "watch.shortcuts.volume" as const },
+        { keys: "F", labelKey: "watch.shortcuts.fullscreen" as const },
+        { keys: "M", labelKey: "watch.shortcuts.mute" as const },
+        { keys: "N / ]", labelKey: "watch.shortcuts.nextEpisode" as const },
+        { keys: "P / [", labelKey: "watch.shortcuts.prevEpisode" as const },
+        { keys: "T", labelKey: "watch.shortcuts.theatre" as const },
+        { keys: "C", labelKey: "watch.shortcuts.copyLink" as const },
+        { keys: "?", labelKey: "watch.shortcuts.help" as const },
+      ] as const,
+    [seekStepSeconds],
+  );
 
   useDialogFocusTrap(open, panelRef, {
     onEscape: onClose,
@@ -66,9 +71,13 @@ export default function WatchKeyboardHelp({ open, onClose }: Props) {
           </button>
         </div>
         <ul className="space-y-2">
-          {ROWS.map((row) => (
+          {rows.map((row) => (
             <li key={row.keys} className="flex items-center justify-between gap-4 text-[12px]">
-              <span className="text-muted-foreground dark:text-white/55">{t(row.labelKey)}</span>
+              <span className="text-muted-foreground dark:text-white/55">
+                {"seconds" in row
+                  ? t(row.labelKey, { seconds: row.seconds })
+                  : t(row.labelKey)}
+              </span>
               <kbd className="shrink-0 px-2 py-0.5 rounded-md bg-accent dark:bg-white/[0.06] border border-border dark:border-white/10 font-mono text-[10px] text-muted-foreground dark:text-white/70">
                 {row.keys}
               </kbd>

@@ -51,6 +51,8 @@ import AccountDeletionSection from "@/components/auth/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import SiteDisplaySettings from "@/components/settings/site-display-settings";
 import AdsSettingsSection from "@/components/settings/ads-settings-section";
+import SeekStepSetting from "@/components/settings/seek-step-setting";
+import type { PlayerSeekStep } from "@/lib/player/seek-step";
 import DiscordConnect from "@/components/auth/discord-connect";
 import AnisurgeConnect from "@/components/auth/anisurge-connect";
 import { RoleBadge } from "@/components/profile/role-badge";
@@ -547,6 +549,8 @@ function PlaybackSection({
   setAutoSkipIntro,
   theatreMode,
   setTheatreMode,
+  seekStepSeconds,
+  setSeekStepSeconds,
 }: {
   preferDub: boolean;
   setPreferDub: (v: boolean) => void;
@@ -558,6 +562,8 @@ function PlaybackSection({
   setAutoSkipIntro: (v: boolean) => void;
   theatreMode: boolean;
   setTheatreMode: (v: boolean) => void;
+  seekStepSeconds: PlayerSeekStep;
+  setSeekStepSeconds: (v: PlayerSeekStep) => void;
 }) {
   const t = useT();
 
@@ -604,6 +610,7 @@ function PlaybackSection({
           value={playThemeSong}
           onChange={setPlayThemeSong}
         />
+        <SeekStepSetting value={seekStepSeconds} onChange={setSeekStepSeconds} />
       </SectionBody>
     </SectionCard>
   );
@@ -730,7 +737,7 @@ export default function SettingsPage() {
   const pathname = usePathname();
   const episodeLayouts = useEpisodeLayouts(t);
   const { auth } = useAuthStore();
-  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong, autoSkipIntro, setAutoSkipIntro, theatreMode, setTheatreMode } =
+  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong, autoSkipIntro, setAutoSkipIntro, theatreMode, setTheatreMode, seekStepSeconds, setSeekStepSeconds } =
     useSettingsStore();
 
   const defaultTab = useMemo((): SettingsTab => {
@@ -815,6 +822,8 @@ export default function SettingsPage() {
                     setAutoSkipIntro={setAutoSkipIntro}
                     theatreMode={theatreMode}
                     setTheatreMode={setTheatreMode}
+                    seekStepSeconds={seekStepSeconds}
+                    setSeekStepSeconds={setSeekStepSeconds}
                   />
                   <EpisodeLayoutSection
                     episodeLayouts={episodeLayouts}
@@ -941,6 +950,8 @@ export default function SettingsPage() {
               setAutoSkipIntro={setAutoSkipIntro}
               theatreMode={theatreMode}
               setTheatreMode={setTheatreMode}
+              seekStepSeconds={seekStepSeconds}
+              setSeekStepSeconds={setSeekStepSeconds}
             />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}

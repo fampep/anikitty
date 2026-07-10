@@ -9,8 +9,8 @@ export default function Image() {
   return createOgImageResponse({
     badge: "Free Streaming",
     title: "AniKitty",
-    subtitle: "Free anime streaming. No ads. Sub & dub.",
+    subtitle: "Free anime streaming. Sub & dub. Player stays ad-free.",
     accent: "violet",
-    features: ["Sub & Dub", "Subtitles", "Forum", "Live Chat", "Watch Together", "No Ads"],
+    features: ["Sub & Dub", "Subtitles", "Forum", "Live Chat", "Watch Together", "Ad-free player"],
   });
 }

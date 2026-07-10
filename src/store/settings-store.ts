@@ -13,6 +13,11 @@ import {
   type SubtitleTextShadow,
 } from "@/lib/subtitles/subtitle-settings";
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
+import {
+  DEFAULT_PLAYER_SEEK_STEP,
+  type PlayerSeekStep,
+  sanitizeSeekStepSeconds,
+} from "@/lib/player/seek-step";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
@@ -123,9 +128,13 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** Show non-intrusive banner ads on supported pages. */
+  /** User preference for site click ads (signed-in users can disable). */
   showBannerAds: boolean;
   setShowBannerAds: (val: boolean) => void;
+
+  /** Seconds to skip with keyboard shortcuts (← → / J L). */
+  seekStepSeconds: PlayerSeekStep;
+  setSeekStepSeconds: (seconds: PlayerSeekStep) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -282,10 +291,13 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       showBannerAds: true,
       setShowBannerAds: (showBannerAds) => set({ showBannerAds }),
+
+      seekStepSeconds: DEFAULT_PLAYER_SEEK_STEP,
+      setSeekStepSeconds: (seekStepSeconds) => set({ seekStepSeconds: sanitizeSeekStepSeconds(seekStepSeconds) }),
     }),
     {
       name: "kitty-settings",
-      version: 29,
+      version: 30,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -313,6 +325,8 @@ export const useSettingsStore = create<ISettingsStore>()(
         notifyMentions: state.notifyMentions,
         notifyReplies: state.notifyReplies,
         notifyFollows: state.notifyFollows,
+        showBannerAds: state.showBannerAds,
+        seekStepSeconds: state.seekStepSeconds,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -419,6 +433,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 29) {
           next.showBannerAds = next.showBannerAds ?? true;
+        }
+        if (version < 30) {
+          next.seekStepSeconds = sanitizeSeekStepSeconds(next.seekStepSeconds);
         }
         return next as ISettingsStore;
       },

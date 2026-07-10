@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import {
   CalendarDays,
   Home,
@@ -10,14 +9,13 @@ import {
   MessagesSquare,
   Search,
   Timer,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { GroupedNavLinks, isNavActive, useMenuItems } from "@/components/layout/site-nav-menu";
+import MoreNavMenu from "@/components/layout/more-nav-menu";
+import { isNavActive, useMenuItems } from "@/components/layout/site-nav-menu";
 
 const PRIMARY_TABS = [
   { href: ROUTES.HOME, icon: Home, labelKey: "nav.short.home", match: (p: string) => p === ROUTES.HOME },
@@ -78,45 +76,6 @@ function BottomNavTab({
   );
 }
 
-function MoreNavSheet({ pathname, active }: { pathname: string; active: boolean }) {
-  const t = useT();
-  const [open, setOpen] = useState(false);
-  const menuItems = useMenuItems();
-  const primaryHrefs = new Set<string>(PRIMARY_TABS.map((tab) => tab.href));
-  const moreItems = menuItems.filter((item) => !primaryHrefs.has(item.href));
-
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <div>
-          <BottomNavTab active={active} label={t("nav.more")} icon={Menu} />
-        </div>
-      </SheetTrigger>
-      <SheetContent
-        side="bottom"
-        className="z-[150] max-h-[min(82vh,34rem)] rounded-t-2xl border-border/60 bg-background/98 p-0 backdrop-blur-2xl dark:border-white/[0.06] dark:bg-[#050508]/98"
-        hideCloseButton
-      >
-        <div className="flex items-center justify-between px-4 py-3.5">
-          <p className="text-sm font-semibold tracking-tight text-foreground dark:text-white">{t("nav.more")}</p>
-          <SheetClose
-            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:text-white/45 dark:hover:bg-white/8 dark:hover:text-white"
-            aria-label={t("nav.aria.closeMenu")}
-          >
-            <X className="h-4 w-4" />
-          </SheetClose>
-        </div>
-        <nav
-          className="overflow-y-auto border-t border-border/60 px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-white/[0.05]"
-          aria-label={t("nav.aria.mobileNav")}
-        >
-          <GroupedNavLinks items={moreItems} pathname={pathname} onNavigate={() => setOpen(false)} sheet />
-        </nav>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
 export default function MobileBottomNav() {
   const t = useT();
   const pathname = usePathname();
@@ -125,9 +84,8 @@ export default function MobileBottomNav() {
   if (shouldHideBottomNav(pathname)) return null;
 
   const primaryHrefs = new Set<string>(PRIMARY_TABS.map((tab) => tab.href));
-  const moreActive = menuItems.some(
-    (item) => !primaryHrefs.has(item.href) && isNavActive(pathname, item.href),
-  );
+  const moreItems = menuItems.filter((item) => !primaryHrefs.has(item.href));
+  const moreActive = moreItems.some((item) => isNavActive(pathname, item.href));
 
   return (
     <>
@@ -144,7 +102,33 @@ export default function MobileBottomNav() {
                 active={match(pathname)}
               />
             ))}
-            <MoreNavSheet pathname={pathname} active={moreActive} />
+            <MoreNavMenu
+              pathname={pathname}
+              items={moreItems}
+              trigger={
+                <button
+                  type="button"
+                  title={t("nav.more")}
+                  aria-label={t("nav.more")}
+                  aria-haspopup="dialog"
+                  className={cn(
+                    "relative flex h-11 w-11 flex-none items-center justify-center rounded-full transition-colors",
+                    moreActive
+                      ? "text-foreground dark:text-white"
+                      : "text-muted-foreground/65 hover:text-foreground/90 dark:text-white/40 dark:hover:text-white/75",
+                    "data-[state=open]:bg-violet-500/10 data-[state=open]:text-violet-500 dark:data-[state=open]:text-violet-300",
+                  )}
+                >
+                  <Menu
+                    className={cn("h-[18px] w-[18px]", moreActive && "text-violet-500 dark:text-violet-300")}
+                    strokeWidth={moreActive ? 2.25 : 1.85}
+                  />
+                  {moreActive && (
+                    <span className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-violet-500 dark:bg-violet-300" aria-hidden />
+                  )}
+                </button>
+              }
+            />
           </div>
         </div>
       </nav>

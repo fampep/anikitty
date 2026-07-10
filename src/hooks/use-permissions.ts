@@ -18,7 +18,7 @@ export function usePermissions() {
     canModerateForum: hasPermission(permissions, "forum.moderate"),
     canMuteUsers: hasPermission(permissions, "users.mute"),
     canBanUsers: hasPermission(permissions, "users.ban"),
-    adFree: auth?.role === "admin" || !showBannerAds,
+    adFree: auth?.role === "admin" || (Boolean(auth) && !showBannerAds),
     isStaff: hasAnyPermission(permissions, [
       "comments.moderate",
       "chat.moderate",
