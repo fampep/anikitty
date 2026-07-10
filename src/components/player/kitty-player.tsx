@@ -673,7 +673,7 @@ export default function KittyPlayer({
               textShadow: "2px 2px 4px rgba(0,0,0,0.85)",
             },
           }
-        : undefined;
+        : {};
 
     const subtitleSelector = subTracks.map((track) => {
       const type = detectSubtitleFormat({ url: track.file, label: track.label });
