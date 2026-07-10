@@ -120,6 +120,40 @@ body {
     margin-block: var(--home-section-gap);
   }
 
+  .home-cinema {
+    --home-hero-max-h: 70lvh;
+  }
+
+  .home-cinema-body {
+    max-width: 1600px;
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  .home-glass-pill {
+    @apply rounded-full border border-border/80 bg-muted/50 text-foreground/90 ring-1 ring-inset ring-border/50 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5;
+  }
+
+  .home-glass-card {
+    @apply rounded-xl transition-all hover:brightness-[0.97] dark:hover:brightness-110;
+  }
+
+  .home-glass-panel {
+    @apply border border-border/60 bg-muted/30 backdrop-blur-sm dark:border-white/10 dark:bg-white/5;
+  }
+
+  .home-rail-fade {
+    @apply absolute top-0 bottom-0 w-7 z-10 transition-opacity duration-300;
+  }
+
+  .home-rail-fade-left {
+    @apply left-0 bg-gradient-to-r from-background to-transparent dark:from-[#0a0a0f];
+  }
+
+  .home-rail-fade-right {
+    @apply right-0 bg-gradient-to-l from-background to-transparent dark:from-[#0a0a0f];
+  }
+
   /* Momentum scrolling on iOS */
   .scroll-momentum {
     -webkit-overflow-scrolling: touch;
