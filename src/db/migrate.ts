@@ -670,6 +670,12 @@ export async function migrateDb() {
         END
     `.catch((e: unknown) => console.error("[migrate] donator role seed failed:", e));
 
+    await client`
+      INSERT INTO roles (name, color, permissions)
+      VALUES ('timestamp_helper', '#38bdf8', '[]'::jsonb)
+      ON CONFLICT (name) DO NOTHING
+    `.catch((e: unknown) => console.error("[migrate] timestamp_helper role seed failed:", e));
+
     // Ensure the site owner always has admin role
     await client`UPDATE users SET role = 'admin' WHERE username = 'fampep' AND role != 'admin'`;
 

@@ -4,6 +4,11 @@ import { episodeSkipSubmissions } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateSkipInterval } from "@/lib/skip/community-skip";
+import {
+  getApprovedCommunitySkipTimes,
+  getUserRecentSkipSubmissions,
+  getUserSkipContributionStats,
+} from "@/lib/skip/community-skip-server";
 import { and, desc, eq } from "drizzle-orm";
 
 function parseOptionalNumber(value: unknown): number | null {
@@ -18,13 +23,30 @@ export async function GET(req: Request) {
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);
+  const db = getDb();
+
+  if (url.searchParams.get("stats") === "1") {
+    const [stats, recent, liveForEpisode] = await Promise.all([
+      getUserSkipContributionStats(db, payload.userId),
+      getUserRecentSkipSubmissions(db, payload.userId),
+      (async () => {
+        const anilistId = parseInt(url.searchParams.get("anilistId") ?? "", 10);
+        const episode = parseInt(url.searchParams.get("episode") ?? "", 10);
+        if (!anilistId || !episode) return null;
+        const times = await getApprovedCommunitySkipTimes(anilistId, episode);
+        return Object.keys(times).length > 0 ? times : null;
+      })(),
+    ]);
+
+    return NextResponse.json({ stats, recent, liveTimes: liveForEpisode });
+  }
+
   const anilistId = parseInt(url.searchParams.get("anilistId") ?? "", 10);
   const episode = parseInt(url.searchParams.get("episode") ?? "", 10);
   if (!anilistId || !episode) {
     return NextResponse.json({ error: "anilistId and episode required" }, { status: 400 });
   }
 
-  const db = getDb();
   const [submission] = await db
     .select({
       id: episodeSkipSubmissions.id,

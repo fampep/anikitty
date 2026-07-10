@@ -207,6 +207,8 @@ interface SkipSubmissionRow {
   createdAt: string | null;
   username: string | null;
   userId: string;
+  submitterApproved?: number;
+  nearTimestampHelper?: boolean;
 }
 
 interface AuditRow {
@@ -2263,7 +2265,20 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       </p>
                       <p className="text-xs text-white/45 font-mono mt-0.5">
                         Episode {s.episode}
-                        {s.username && <> · submitted by <span className="text-white/70">{s.username}</span></>}
+                        {s.username && (
+                          <>
+                            {" "}
+                            · submitted by{" "}
+                            <span className="text-white/70">{s.username}</span>
+                            {typeof s.submitterApproved === "number" && s.submitterApproved > 0 && (
+                              <span className="text-sky-300/80">
+                                {" "}
+                                · {s.submitterApproved} approved
+                                {s.nearTimestampHelper && " · near Timestamp Helper"}
+                              </span>
+                            )}
+                          </>
+                        )}
                       </p>
                     </div>
                     <span className="text-[10px] font-mono text-white/30 shrink-0">

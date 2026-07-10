@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { episodeSkipSubmissions, episodeSkipTimes, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/admin-auth";
-import { notifySkipSubmissionDecision } from "@/lib/skip/community-skip-server";
+import { notifySkipSubmissionDecision, maybeGrantTimestampHelperRole } from "@/lib/skip/community-skip-server";
 import { intervalLabel } from "@/lib/skip/community-skip";
+import { TIMESTAMP_HELPER_APPROVAL_THRESHOLD } from "@/lib/skip/timestamp-helper-config";
 import { recordAudit } from "@/lib/security/audit-log";
 import { alias } from "drizzle-orm/pg-core";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql, inArray } from "drizzle-orm";
 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -39,11 +40,28 @@ export async function GET(req: Request) {
     .orderBy(desc(episodeSkipSubmissions.createdAt))
     .limit(200);
 
+  const userIds = [...new Set(rows.map((r) => r.userId))];
+  const approvedByUser = new Map<string, number>();
+  if (userIds.length > 0) {
+    const tallies = await db
+      .select({
+        userId: episodeSkipSubmissions.userId,
+        approved: sql<number>`count(*) filter (where ${episodeSkipSubmissions.status} = 'approved')::int`,
+      })
+      .from(episodeSkipSubmissions)
+      .where(inArray(episodeSkipSubmissions.userId, userIds))
+      .groupBy(episodeSkipSubmissions.userId);
+    for (const t of tallies) approvedByUser.set(t.userId, t.approved);
+  }
+
   return NextResponse.json({
     submissions: rows.map((r) => ({
       ...r,
       introLabel: intervalLabel(r.introStart, r.introEnd),
       outroLabel: intervalLabel(r.outroStart, r.outroEnd),
+      submitterApproved: approvedByUser.get(r.userId) ?? 0,
+      nearTimestampHelper:
+        (approvedByUser.get(r.userId) ?? 0) >= TIMESTAMP_HELPER_APPROVAL_THRESHOLD - 2,
     })),
   });
 }
@@ -109,6 +127,8 @@ export async function PATCH(req: Request) {
       animeTitle: row.animeTitle,
       approved: true,
     });
+
+    await maybeGrantTimestampHelperRole(db, row.userId);
 
     void recordAudit(db, {
       actorUserId: null,

@@ -64,3 +64,7 @@ export function watchEpisodeUrl(anilistId: number, episode: number): string {
   });
   return `/anime/watch?${params.toString()}`;
 }
+
+export function animeDetailUrl(anilistId: number): string {
+  return `/anime/${anilistId}`;
+}

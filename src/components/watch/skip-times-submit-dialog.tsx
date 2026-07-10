@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, Loader2, SkipForward } from "lucide-react";
+import Link from "next/link";
+import { Clock, Loader2, SkipForward, Timer, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -16,11 +17,15 @@ import { useAuthStore } from "@/store/auth-store";
 import { usePlayerSeekStore } from "@/store/player-seek-store";
 import {
   formatSkipSeconds,
+  intervalLabel,
   parseSkipTimeInput,
   validateSkipInterval,
 } from "@/lib/skip/community-skip";
+import { TIMESTAMP_HELPER_DISPLAY } from "@/lib/skip/timestamp-helper-config";
+import type { SkipTimes } from "@/hooks/use-aniskip";
 import { useT } from "@/providers/i18n-provider";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
+import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 
 type Props = {
@@ -32,7 +37,25 @@ type Props = {
   episode: number;
 };
 
-type FieldKey = "introStart" | "introEnd" | "outroStart" | "outroEnd";
+type SkipStats = {
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+  helperProgress: number;
+  helperThreshold: number;
+  isTimestampHelper: boolean;
+};
+
+type RecentSubmission = {
+  id: string;
+  anilistId: number;
+  animeTitle: string | null;
+  episode: number;
+  status: string;
+  introLabel: string | null;
+  outroLabel: string | null;
+};
 
 function TimeField({
   label,
@@ -73,6 +96,63 @@ function TimeField({
   );
 }
 
+function LiveTimesPanel({
+  liveTimes,
+  onUseIntro,
+  onUseOutro,
+}: {
+  liveTimes: SkipTimes;
+  onUseIntro: () => void;
+  onUseOutro: () => void;
+}) {
+  const t = useT();
+  if (!liveTimes.intro && !liveTimes.outro) return null;
+
+  return (
+    <div className="rounded-xl border border-sky-500/20 bg-sky-500/8 p-3 space-y-2">
+      <p className="text-[11px] font-mono uppercase tracking-wide text-sky-300/90">
+        {t("skipSubmit.liveTimes")}
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        <div className="rounded-lg border border-white/8 bg-black/20 px-3 py-2">
+          <p className="text-white/40 mb-1">{t("skipSubmit.intro")}</p>
+          <p className="font-mono text-white/80">
+            {liveTimes.intro
+              ? intervalLabel(liveTimes.intro.start, liveTimes.intro.end)
+              : "—"}
+          </p>
+          {liveTimes.intro && (
+            <button
+              type="button"
+              onClick={onUseIntro}
+              className="mt-2 text-[10px] font-semibold text-sky-300 hover:text-sky-200"
+            >
+              {t("skipSubmit.useLiveIntro")}
+            </button>
+          )}
+        </div>
+        <div className="rounded-lg border border-white/8 bg-black/20 px-3 py-2">
+          <p className="text-white/40 mb-1">{t("skipSubmit.outro")}</p>
+          <p className="font-mono text-white/80">
+            {liveTimes.outro
+              ? intervalLabel(liveTimes.outro.start, liveTimes.outro.end)
+              : "—"}
+          </p>
+          {liveTimes.outro && (
+            <button
+              type="button"
+              onClick={onUseOutro}
+              className="mt-2 text-[10px] font-semibold text-sky-300 hover:text-sky-200"
+            >
+              {t("skipSubmit.useLiveOutro")}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SkipTimesSubmitDialog({
   open,
   onOpenChange,
@@ -90,19 +170,50 @@ export default function SkipTimesSubmitDialog({
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [stats, setStats] = useState<SkipStats | null>(null);
+  const [recent, setRecent] = useState<RecentSubmission[]>([]);
+  const [liveTimes, setLiveTimes] = useState<SkipTimes | null>(null);
+  const [leaderboard, setLeaderboard] = useState<
+    { username: string; approved: number; role: string }[]
+  >([]);
 
   useEffect(() => {
-    if (!open || !auth) return;
+    if (!open) return;
     let cancelled = false;
+
     (async () => {
       try {
-        const res = await fetch(
+        const lbRes = await fetch("/api/kitty/skip-leaderboard?limit=5");
+        const lbData = await lbRes.json();
+        if (!cancelled) setLeaderboard(lbData.contributors ?? []);
+      } catch {
+        if (!cancelled) setLeaderboard([]);
+      }
+    })();
+
+    if (!auth) return;
+
+    (async () => {
+      try {
+        const params = new URLSearchParams({
+          stats: "1",
+          anilistId: String(anilistId),
+          episode: String(episode),
+        });
+        const res = await fetch(`/api/account/skip-submissions?${params}`, withAuth());
+        const data = await res.json();
+        if (cancelled) return;
+
+        setStats(data.stats ?? null);
+        setRecent(data.recent ?? []);
+        setLiveTimes(data.liveTimes ?? null);
+
+        const subRes = await fetch(
           `/api/account/skip-submissions?anilistId=${anilistId}&episode=${episode}`,
           withAuth(),
         );
-        const data = await res.json();
-        if (cancelled) return;
-        const sub = data.submission;
+        const subData = await subRes.json();
+        const sub = subData.submission;
         setPendingStatus(sub?.status ?? null);
         if (sub?.status === "pending") {
           setIntroStart(sub.introStart != null ? formatSkipSeconds(sub.introStart) : "");
@@ -111,9 +222,15 @@ export default function SkipTimesSubmitDialog({
           setOutroEnd(sub.outroEnd != null ? formatSkipSeconds(sub.outroEnd) : "");
         }
       } catch {
-        if (!cancelled) setPendingStatus(null);
+        if (!cancelled) {
+          setStats(null);
+          setRecent([]);
+          setLiveTimes(null);
+          setPendingStatus(null);
+        }
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -122,6 +239,18 @@ export default function SkipTimesSubmitDialog({
   const usePlayerTime = (setter: (v: string) => void) => {
     const current = usePlayerSeekStore.getState().getCurrentTime?.() ?? 0;
     setter(formatSkipSeconds(current));
+  };
+
+  const applyLiveIntro = () => {
+    if (!liveTimes?.intro) return;
+    setIntroStart(formatSkipSeconds(liveTimes.intro.start));
+    setIntroEnd(formatSkipSeconds(liveTimes.intro.end));
+  };
+
+  const applyLiveOutro = () => {
+    if (!liveTimes?.outro) return;
+    setOutroStart(formatSkipSeconds(liveTimes.outro.start));
+    setOutroEnd(formatSkipSeconds(liveTimes.outro.end));
   };
 
   const handleSubmit = async () => {
@@ -178,6 +307,10 @@ export default function SkipTimesSubmitDialog({
     }
   };
 
+  const helperPct = stats
+    ? Math.round((stats.helperProgress / stats.helperThreshold) * 100)
+    : 0;
+
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!submitting) onOpenChange(next); }}>
       <DialogContent className="border border-border dark:border-white/10 bg-[#0a0a0f] rounded-2xl max-w-lg w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-violet-950/30 [&>button:last-child]:hidden">
@@ -187,11 +320,14 @@ export default function SkipTimesSubmitDialog({
             {t("skipSubmit.title")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground dark:text-white/45 text-sm leading-relaxed">
-            {t("skipSubmit.description", { title: animeTitle, episode })}
+            {t("skipSubmit.description", { title: animeTitle, episode })}{" "}
+            <Link href={ROUTES.TIMESTAMPS} className="text-sky-300/90 hover:text-sky-200 underline-offset-2 hover:underline">
+              {t("skipSubmit.browseDatabase")}
+            </Link>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-5 py-4 space-y-4 max-h-[min(60vh,420px)] overflow-y-auto">
+        <div className="px-5 py-4 space-y-4 max-h-[min(60vh,480px)] overflow-y-auto">
           {!auth ? (
             <div className="rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.02] p-4 text-center space-y-3">
               <p className="text-sm text-muted-foreground dark:text-white/50">{t("skipSubmit.signIn")}</p>
@@ -199,6 +335,47 @@ export default function SkipTimesSubmitDialog({
             </div>
           ) : (
             <>
+              {stats && (
+                <div className="rounded-xl border border-violet-500/20 bg-violet-500/8 p-3 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-violet-200 flex items-center gap-1.5">
+                      <Timer className="h-3.5 w-3.5" />
+                      {stats.isTimestampHelper
+                        ? t("skipSubmit.helperUnlocked", { role: TIMESTAMP_HELPER_DISPLAY })
+                        : t("skipSubmit.helperProgress", {
+                            current: stats.helperProgress,
+                            total: stats.helperThreshold,
+                            role: TIMESTAMP_HELPER_DISPLAY,
+                          })}
+                    </p>
+                    <span className="text-[10px] font-mono text-violet-300/70 tabular-nums">
+                      {stats.approved} {t("skipSubmit.approvedShort")}
+                    </span>
+                  </div>
+                  {!stats.isTimestampHelper && (
+                    <div className="h-1.5 rounded-full bg-black/30 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-sky-400 transition-all"
+                        style={{ width: `${helperPct}%` }}
+                      />
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2 text-[10px] font-mono text-white/40">
+                    <span>{stats.pending} {t("skipSubmit.pendingShort")}</span>
+                    <span>·</span>
+                    <span>{stats.rejected} {t("skipSubmit.declinedShort")}</span>
+                  </div>
+                </div>
+              )}
+
+              {liveTimes && (
+                <LiveTimesPanel
+                  liveTimes={liveTimes}
+                  onUseIntro={applyLiveIntro}
+                  onUseOutro={applyLiveOutro}
+                />
+              )}
+
               {pendingStatus === "pending" && (
                 <p className="text-xs font-mono text-amber-300/90 bg-amber-500/10 border border-amber-400/20 rounded-lg px-3 py-2">
                   {t("skipSubmit.pending")}
@@ -268,6 +445,58 @@ export default function SkipTimesSubmitDialog({
                   className="w-full resize-none rounded-xl px-3 py-2 text-sm bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-violet-400/40"
                 />
               </div>
+
+              {recent.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground dark:text-white/35">
+                    {t("skipSubmit.recentSubmissions")}
+                  </p>
+                  <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                    {recent.slice(0, 5).map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between gap-2 text-[11px] rounded-lg border border-white/8 bg-black/20 px-2.5 py-1.5"
+                      >
+                        <span className="truncate text-white/65">
+                          {(r.animeTitle ?? `#${r.anilistId}`)} · ep {r.episode}
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 font-mono uppercase text-[10px]",
+                            r.status === "approved" && "text-emerald-300",
+                            r.status === "pending" && "text-amber-300",
+                            r.status === "rejected" && "text-rose-300",
+                          )}
+                        >
+                          {r.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {leaderboard.length > 0 && (
+                <div className="space-y-2 pt-1 border-t border-white/6">
+                  <p className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground dark:text-white/35 flex items-center gap-1.5">
+                    <Trophy className="h-3 w-3 text-amber-300/80" />
+                    {t("skipSubmit.leaderboard")}
+                  </p>
+                  <div className="space-y-1">
+                    {leaderboard.map((c, i) => (
+                      <div key={c.username} className="flex items-center justify-between text-[11px] text-white/55">
+                        <span className="truncate">
+                          <span className="text-white/30 font-mono mr-1.5">#{i + 1}</span>
+                          <Link href={`/profile/${c.username}`} className="hover:text-sky-300 transition-colors">
+                            {c.username}
+                          </Link>
+                        </span>
+                        <span className="font-mono tabular-nums text-sky-300/80">{c.approved}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

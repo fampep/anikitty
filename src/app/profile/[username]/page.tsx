@@ -43,6 +43,7 @@ import {
   Check,
   X,
   Ban,
+  Timer,
   Trophy,
   Star,
   Users,
@@ -275,6 +276,11 @@ function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profileHidden, setProfileHidden] = useState(false);
+  const [skipContributions, setSkipContributions] = useState<{
+    approved: number;
+    pending: number;
+    isTimestampHelper: boolean;
+  } | null>(null);
   const countsRefreshSkip = useRef(watchlistVersion);
   const ownLevelData = useUserLevel();
 
@@ -296,6 +302,7 @@ function ProfilePage() {
     accountBadges?: AccountBadges | null;
     follow?: FollowSummary | null;
     blocked?: boolean;
+    skipContributions?: { approved: number; pending: number; isTimestampHelper: boolean } | null;
   }) => {
     if (!data?.user) return;
     setProfile(data.user);
@@ -304,6 +311,7 @@ function ProfilePage() {
     setAccountBadges(data.accountBadges ?? null);
     if (data.follow) setFollow(data.follow);
     setBlocked(Boolean(data.blocked));
+    setSkipContributions(data.skipContributions ?? null);
   };
 
   const toggleBlock = useCallback(async () => {
@@ -713,7 +721,9 @@ function ProfilePage() {
 
                 {/* Badges */}
                 <div className="mt-2.5 flex flex-wrap items-center justify-center md:justify-start gap-1.5">
-                  {profile.role && profile.role !== "user" && <RoleBadge role={profile.role} size="sm" />}
+                  {profile.role && profile.role !== "user" && (
+                    <RoleBadge role={profile.role} color={profile.roleColor} size="sm" />
+                  )}
                   {!isOwn && follow?.followsYou && (
                     <span className="inline-flex items-center px-2 py-1 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/5 text-muted-foreground dark:text-white/40 text-[10px] font-mono">
                       {t("profile.followsYou")}
@@ -951,6 +961,27 @@ function ProfilePage() {
               <SectionLabel icon={<Trophy className="w-4 h-4" />} title={t("profile.achievements")} />
               <AchievementsSection username={profile.username} isOwn={isOwn} compact />
             </div>
+
+            {skipContributions && skipContributions.approved > 0 && (
+              <div className="site-panel p-5">
+                <SectionLabel icon={<Timer className="w-4 h-4" />} title={t("profile.skipContributions")} />
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold tabular-nums text-sky-300">{skipContributions.approved}</span>
+                  <span className="text-sm text-muted-foreground dark:text-white/45">{t("profile.skipApproved")}</span>
+                </div>
+                {skipContributions.pending > 0 && (
+                  <p className="mt-2 text-[11px] font-mono text-amber-300/80">
+                    {skipContributions.pending} {t("profile.skipPendingReview")}
+                  </p>
+                )}
+                {skipContributions.isTimestampHelper && (
+                  <p className="mt-2 text-[11px] text-sky-300/90 flex items-center gap-1.5">
+                    <Timer className="w-3.5 h-3.5" />
+                    {t("profile.timestampHelper")}
+                  </p>
+                )}
+              </div>
+            )}
           </aside>
         </div>
       </Container>

@@ -1566,6 +1566,11 @@ const VideoPlayerSection = () => {
         {/* Row 2 — badges + actions */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
           <div className="flex flex-wrap items-center gap-1.5 sm:mr-auto min-w-0">
+            {(communitySkipTimes?.intro || communitySkipTimes?.outro) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 text-sky-300/90">
+                {t("watch.communitySkip")}
+              </span>
+            )}
             {(skipTimes?.intro || skipTimes?.outro) && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-muted-foreground dark:text-white/70">
                 {t("watch.chapters")}

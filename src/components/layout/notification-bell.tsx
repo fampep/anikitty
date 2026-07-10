@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AtSign, Bell, CheckCircle2, CornerUpLeft, Loader2, Mail, MessageCircle, SkipForward, Tv, UserPlus, XCircle } from "lucide-react";
+import { AtSign, Bell, CheckCircle2, CornerUpLeft, Loader2, Mail, MessageCircle, SkipForward, Timer, Tv, UserPlus, XCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Avatar from "@/components/common/avatar";
 import { ROUTES } from "@/constants/routes";
@@ -21,6 +21,7 @@ function NotificationTypeBadge({ type }: { type: string }) {
     follow: { icon: <UserPlus className="h-2.5 w-2.5" />, className: "bg-fuchsia-500 text-white" },
     skip_approved: { icon: <CheckCircle2 className="h-2.5 w-2.5" />, className: "bg-emerald-500 text-white" },
     skip_rejected: { icon: <XCircle className="h-2.5 w-2.5" />, className: "bg-rose-500 text-white" },
+    skip_role_granted: { icon: <Timer className="h-2.5 w-2.5" />, className: "bg-sky-500 text-white" },
   };
   const entry = map[type];
   if (!entry) return null;
@@ -131,16 +132,22 @@ export default function NotificationBell() {
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
                       <Tv className="h-4 w-4" />
                     </div>
-                  ) : n.type === "skip_approved" || n.type === "skip_rejected" ? (
+                  ) : n.type === "skip_approved" || n.type === "skip_rejected" || n.type === "skip_role_granted" ? (
                     <div
                       className={cn(
                         "flex h-9 w-9 items-center justify-center rounded-full",
                         n.type === "skip_approved"
                           ? "bg-emerald-500/15 text-emerald-300"
-                          : "bg-rose-500/15 text-rose-300",
+                          : n.type === "skip_role_granted"
+                            ? "bg-sky-500/15 text-sky-300"
+                            : "bg-rose-500/15 text-rose-300",
                       )}
                     >
-                      <SkipForward className="h-4 w-4" />
+                      {n.type === "skip_role_granted" ? (
+                        <Timer className="h-4 w-4" />
+                      ) : (
+                        <SkipForward className="h-4 w-4" />
+                      )}
                     </div>
                   ) : (
                     <Avatar
@@ -159,7 +166,9 @@ export default function NotificationBell() {
                           ? t("notifications.skipApproved")
                           : n.type === "skip_rejected"
                             ? t("notifications.skipRejected")
-                            : n.actorUsername ?? t("notifications.generic"))}
+                            : n.type === "skip_role_granted"
+                              ? t("notifications.skipRoleGranted")
+                              : n.actorUsername ?? t("notifications.generic"))}
                     </p>
                     <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 shrink-0">
                       {dmTimeAgo(n.createdAt)}

@@ -6,6 +6,7 @@ import { getLevelProgress } from "@/lib/user/user-level";
 import { folderCountsFromRows } from "@/lib/watch/watchlist-response";
 import { getAccountBadgesForUser } from "@/lib/user/account-badges";
 import { getFollowSummary } from "@/lib/social/follows";
+import { getUserSkipContributionStats } from "@/lib/skip/community-skip-server";
 import { hasBlocked } from "@/lib/social/blocks";
 import {
   publicUserFields,
@@ -24,7 +25,7 @@ export async function GET(
   const { user, viewerId } = resolved;
   const db = getDb();
 
-  const [countRows, stats, accountBadges, follow] = await Promise.all([
+  const [countRows, stats, accountBadges, follow, skipContributions] = await Promise.all([
     db
       .select({
         folder: watchlist.folder,
@@ -36,6 +37,7 @@ export async function GET(
     getUserXpStats(db, user.id),
     getAccountBadgesForUser(db, user.id),
     getFollowSummary(db, user.id, viewerId),
+    getUserSkipContributionStats(db, user.id),
   ]);
 
   const levelInfo = getLevelProgress(stats.xp);
@@ -47,6 +49,7 @@ export async function GET(
     counts: folderCountsFromRows(countRows),
     follow,
     blocked,
+    skipContributions: skipContributions.approved > 0 ? skipContributions : null,
     level: {
       xp: stats.xp,
       watchXp: stats.watchXp,
