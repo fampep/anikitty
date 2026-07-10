@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   Pencil,
   RotateCw,
+  Reply,
 } from "lucide-react";
 import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
@@ -35,6 +36,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import { chatTimeAgo, formatChatTime, formatChatTtlLabel, isChatMessageEdited, type ChatMessage } from "@/lib/social/chat";
 import { ChatMessageText } from "@/components/chat/chat-message-text";
+import { useMentionSuggestions } from "@/hooks/use-mention-suggestions";
 import { cn } from "@/lib/core/utils";
 
 function formatChatDateLabel(iso: string, t: (key: string) => string): string {
@@ -73,25 +75,37 @@ function buildChatListItems(messages: ChatMessage[], t: (key: string) => string)
   return items;
 }
 
+function replyPreviewText(message: ChatMessage, t: (key: string) => string) {
+  if (message.body.trim()) return message.body.trim();
+  if (message.gifUrl) return t("chat.gif");
+  return t("chat.emptyReply");
+}
+
 function ChatBubble({
   message,
   isOwn,
   canDelete,
   canEdit,
+  canReply,
   onDelete,
   onEdit,
+  onReply,
+  onMention,
   t,
 }: {
   message: ChatMessage;
   isOwn: boolean;
   canDelete: boolean;
   canEdit: boolean;
+  canReply: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onReply: () => void;
+  onMention: () => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const showActions = canDelete || canEdit;
+  const showActions = canDelete || canEdit || canReply;
 
   return (
     <div
@@ -118,15 +132,16 @@ function ChatBubble({
             isOwn && "justify-end",
           )}
         >
-          <Link
-            href={`/profile/${message.username}`}
+          <button
+            type="button"
+            onClick={onMention}
             className={cn(
-              "text-xs font-semibold transition-colors",
+              "text-xs font-semibold transition-colors text-left",
               isOwn ? "text-violet-300 hover:text-violet-200" : "text-foreground/90 dark:text-white/80 hover:text-foreground dark:hover:text-white",
             )}
           >
             {message.username}
-          </Link>
+          </button>
           <UserBadges
             role={message.role}
             roleColor={message.roleColor}
@@ -145,6 +160,23 @@ function ChatBubble({
               : "bg-accent dark:bg-white/8 text-foreground dark:text-white/90 border border-border dark:border-white/8 rounded-bl-md",
           )}
         >
+          {message.replyTo ? (
+            <button
+              type="button"
+              onClick={onReply}
+              className={cn(
+                "mb-2 w-full rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors",
+                isOwn
+                  ? "border-white/20 bg-black/15 hover:bg-black/25"
+                  : "border-border dark:border-white/10 bg-black/10 dark:bg-black/20 hover:bg-black/20",
+              )}
+            >
+              <span className="block font-semibold opacity-90">@{message.replyTo.username}</span>
+              <span className="block truncate opacity-75">
+                {message.replyTo.body.trim() || (message.replyTo.gifUrl ? t("chat.gif") : t("chat.emptyReply"))}
+              </span>
+            </button>
+          ) : null}
           {message.body ? (
             <ChatMessageText
               text={message.body}
@@ -153,6 +185,9 @@ function ChatBubble({
                 isOwn
                   ? "text-violet-100 hover:text-white underline underline-offset-2 break-all"
                   : undefined
+              }
+              mentionClassName={
+                isOwn ? "text-violet-100 hover:text-white" : undefined
               }
               onDoubleClick={canEdit ? onEdit : undefined}
               title={canEdit ? t("chat.doubleClickEdit") : undefined}
@@ -188,6 +223,20 @@ function ChatBubble({
                     isOwn ? "left-0" : "right-0",
                   )}
                 >
+                  {canReply && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onReply();
+                        setMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
+                    >
+                      <Reply className="h-3.5 w-3.5" />
+                      {t("chat.reply")}
+                    </button>
+                  )}
                   {canEdit && (
                     <button
                       type="button"
@@ -244,10 +293,12 @@ export default function ChatPage() {
     useLiveChat();
   const [draft, setDraft] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showGifPanel, setShowGifPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasAtBottom = useRef(true);
   const prevMessageCount = useRef(0);
   const [unseenCount, setUnseenCount] = useState(0);
@@ -260,8 +311,17 @@ export default function ChatPage() {
   const canSend =
     (draft.trim().length > 0 || (!isEditing && !!selectedGif)) && !sending;
 
+  const {
+    suggestions: mentionSuggestions,
+    open: mentionOpen,
+    scan: mentionScan,
+    apply: applyMention,
+    close: closeMentions,
+  } = useMentionSuggestions(draft, setDraft, textareaRef);
+
   const startEditing = (message: ChatMessage) => {
     if (!message.body) return;
+    setReplyingTo(null);
     setEditingMessageId(message.id);
     setDraft(message.body);
     setSelectedGif(null);
@@ -272,6 +332,37 @@ export default function ChatPage() {
     setEditingMessageId(null);
     setDraft("");
   };
+
+  const startReply = (message: ChatMessage) => {
+    cancelEditing();
+    setReplyingTo(message);
+    setSelectedGif(null);
+    setShowGifPanel(false);
+    setDraft((prev) => {
+      if (prevHasMention(prev, message.username)) return prev;
+      const mention = `@${message.username} `;
+      return prev.trim() ? `${prev.trimEnd()} ${mention}` : mention;
+    });
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const insertMention = (username: string) => {
+    cancelEditing();
+    const mention = `@${username} `;
+    setDraft((prev) => {
+      if (prev.includes(`@${username}`)) return prev;
+      return prev.trim() ? `${prev.trimEnd()} ${mention}` : mention;
+    });
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  function prevHasMention(value: string, username: string) {
+    return new RegExp(`@${username}\\b`).test(value);
+  }
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -321,10 +412,16 @@ export default function ChatPage() {
     }
     if ((!body && !selectedGif) || sending) return;
     try {
-      await sendMessage({ body, gifUrl: selectedGif });
+      await sendMessage({
+        body,
+        gifUrl: selectedGif,
+        replyToId: replyingTo?.id ?? null,
+      });
       setDraft("");
       setSelectedGif(null);
+      setReplyingTo(null);
       setShowGifPanel(false);
+      closeMentions();
       wasAtBottom.current = true;
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("chat.sendFailed"));
@@ -335,6 +432,7 @@ export default function ChatPage() {
     try {
       await deleteMessage(message.id);
       if (editingMessageId === message.id) cancelEditing();
+      if (replyingTo?.id === message.id) cancelReply();
       toast.success(t("chat.messageDeleted"));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t("chat.deleteFailed"));
@@ -404,8 +502,11 @@ export default function ChatPage() {
                     isOwn={isOwn}
                     canDelete={!!auth && (isOwn || isStaff)}
                     canEdit={isOwn && !!msg.body}
+                    canReply={isLoggedIn && !isEditing}
                     onDelete={() => handleDelete(msg)}
                     onEdit={() => startEditing(msg)}
+                    onReply={() => startReply(msg)}
+                    onMention={() => insertMention(msg.username)}
                     t={t}
                   />
                 );
@@ -458,6 +559,24 @@ export default function ChatPage() {
                     </button>
                   </div>
                 )}
+                {replyingTo && !isEditing && (
+                  <div className="flex items-start justify-between gap-3 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-xs">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-violet-200/90">{t("chat.replyingTo", { user: replyingTo.username })}</p>
+                      <p className="truncate text-muted-foreground dark:text-white/55 mt-0.5">
+                        {replyPreviewText(replyingTo, t)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelReply}
+                      className="shrink-0 text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 transition-colors"
+                      aria-label={t("chat.cancelReply")}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
                 {selectedGif && !isEditing && (
                   <div className="relative inline-block self-start rounded-lg overflow-hidden ring-1 ring-border dark:ring-white/10">
                     <GifImage src={selectedGif} alt={t("chat.gif")} className="max-h-28 w-auto block" />
@@ -470,7 +589,7 @@ export default function ChatPage() {
                     </button>
                   </div>
                 )}
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2 relative">
                   <div className="relative shrink-0">
                     <button
                       type="button"
@@ -496,38 +615,86 @@ export default function ChatPage() {
                       />
                     )}
                   </div>
-                  <textarea
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape" && isEditing) {
-                        e.preventDefault();
-                        cancelEditing();
-                        return;
-                      }
-                      if (e.key === "ArrowUp" && !draft && !selectedGif && !isEditing) {
-                        const lastOwn = [...messages].reverse().find((m) => m.userId === auth?.id);
-                        if (lastOwn?.body) {
+                  <div className="relative flex-1 min-w-0">
+                    <textarea
+                      ref={textareaRef}
+                      value={draft}
+                      onChange={(e) => {
+                        setDraft(e.target.value);
+                        mentionScan();
+                      }}
+                      onKeyUp={mentionScan}
+                      onClick={mentionScan}
+                      onKeyDown={(e) => {
+                        if (mentionOpen && e.key === "Tab") {
                           e.preventDefault();
-                          startEditing(lastOwn);
+                          if (mentionSuggestions[0]) applyMention(mentionSuggestions[0].username);
+                          return;
                         }
-                        return;
+                        if (e.key === "Escape") {
+                          if (isEditing) {
+                            e.preventDefault();
+                            cancelEditing();
+                            return;
+                          }
+                          if (replyingTo) {
+                            e.preventDefault();
+                            cancelReply();
+                            return;
+                          }
+                        }
+                        if (e.key === "ArrowUp" && !draft && !selectedGif && !isEditing && !replyingTo) {
+                          const lastOwn = [...messages].reverse().find((m) => m.userId === auth?.id);
+                          if (lastOwn?.body) {
+                            e.preventDefault();
+                            startEditing(lastOwn);
+                          }
+                          return;
+                        }
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend(e);
+                        }
+                      }}
+                      placeholder={
+                        isEditing
+                          ? t("chat.editPlaceholder")
+                          : replyingTo
+                            ? t("chat.replyPlaceholder")
+                            : t("chat.placeholder")
                       }
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend(e);
-                      }
-                    }}
-                    placeholder={isEditing ? t("chat.editPlaceholder") : t("chat.placeholder")}
-                    rows={1}
-                    maxLength={1000}
-                    className={cn(
-                      "flex-1 resize-none rounded-xl px-4 py-2.5 text-sm min-h-11",
-                      "bg-muted/60 dark:bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30",
-                      "focus:outline-none focus:ring-1 focus:ring-border dark:ring-white/20",
-                      "max-h-32",
+                      rows={1}
+                      maxLength={1000}
+                      className={cn(
+                        "w-full resize-none rounded-xl px-4 py-2.5 text-sm min-h-11",
+                        "bg-muted/60 dark:bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30",
+                        "focus:outline-none focus:ring-1 focus:ring-border dark:ring-white/20",
+                        "max-h-32",
+                      )}
+                    />
+                    {mentionOpen && (
+                      <div className="absolute bottom-full left-0 right-0 z-30 mb-2 max-h-40 overflow-y-auto rounded-xl border border-border dark:border-white/10 bg-popover dark:bg-[#0d0d0d] p-1 shadow-xl">
+                        {mentionSuggestions.map((u) => (
+                          <button
+                            key={u.username}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              applyMention(u.username);
+                            }}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground dark:text-white/85 hover:bg-accent dark:hover:bg-white/8"
+                          >
+                            <Avatar
+                              url={u.avatarUrl ?? undefined}
+                              username={u.username}
+                              className="h-6 w-6"
+                            />
+                            @{u.username}
+                          </button>
+                        ))}
+                      </div>
                     )}
-                  />
+                  </div>
                   <button
                     type="submit"
                     disabled={!canSend}

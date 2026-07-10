@@ -333,11 +333,15 @@ export const chatMessages = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
     gifUrl: text("gif_url"),
+    replyToId: uuid("reply_to_id").references((): any => chatMessages.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at"),
   },
   (t) => ({
     createdIdx: index("chat_messages_created_at_idx").on(t.createdAt),
+    replyIdx: index("chat_messages_reply_to_id_idx").on(t.replyToId),
   }),
 );
 

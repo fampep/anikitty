@@ -126,7 +126,7 @@ export function useLiveChat() {
   useIntervalWhenVisible(pruneExpired, pruneMs);
 
   const sendMessage = useCallback(
-    async (opts: { body?: string; gifUrl?: string | null }) => {
+    async (opts: { body?: string; gifUrl?: string | null; replyToId?: string | null }) => {
       setSending(true);
       try {
         const { message } = await chatApi.sendMessage(opts);

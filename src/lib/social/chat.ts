@@ -1,6 +1,13 @@
 import { formatChatTtlLabel, isChatMessageActive } from "@/lib/social/chat-config";
 import { withAuth } from "@/lib/auth/auth-fetch";
 
+export type ChatReplyPreview = {
+  id: string;
+  username: string;
+  body: string;
+  gifUrl: string | null;
+};
+
 export type ChatMessage = {
   id: string;
   body: string;
@@ -16,6 +23,7 @@ export type ChatMessage = {
   levelRole: string;
   levelRoleColor: string;
   levelTierIcon: string;
+  replyTo?: ChatReplyPreview | null;
 };
 
 async function chatFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -49,7 +57,7 @@ export const chatApi = {
     );
   },
 
-  sendMessage: (opts: { body?: string; gifUrl?: string | null }) =>
+  sendMessage: (opts: { body?: string; gifUrl?: string | null; replyToId?: string | null }) =>
     chatFetch<{ message: ChatMessage }>("/messages", {
       method: "POST",
       body: JSON.stringify(opts),

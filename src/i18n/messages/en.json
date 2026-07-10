@@ -893,6 +893,12 @@
     "messageDeleted": "Message deleted",
     "editFailed": "Failed to edit",
     "sendFailed": "Failed to send",
+    "reply": "Reply",
+    "replyingTo": "Replying to @{user}",
+    "replyPlaceholder": "Write a reply…",
+    "cancelReply": "Cancel reply",
+    "emptyReply": "Message",
+    "mentionHint": "Type @ to mention someone",
     "deleteFailed": "Failed to delete"
   },
   "notifications": {

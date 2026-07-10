@@ -608,6 +608,8 @@ export async function migrateDb() {
         updated_at TIMESTAMP
       )`,
       `CREATE INDEX IF NOT EXISTS announcements_active_idx ON announcements (is_active)`,
+      `ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL`,
+      `CREATE INDEX IF NOT EXISTS chat_messages_reply_to_id_idx ON chat_messages (reply_to_id)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>
