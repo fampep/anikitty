@@ -12,7 +12,7 @@ import {
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
-  VolumeX, Ban, Clock, Banknote, Coins, Sparkles, Calendar, Flag, ScrollText,
+  VolumeX, Ban, Clock, Banknote, Coins, Sparkles, Calendar, Flag, ScrollText, SkipForward,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
@@ -187,6 +187,26 @@ interface ReportRow {
   targetUserId: string | null;
   commentBody: string | null;
   commentAnimeId: string | null;
+}
+
+interface SkipSubmissionRow {
+  id: string;
+  anilistId: number;
+  malId: number | null;
+  animeTitle: string | null;
+  episode: number;
+  introStart: number | null;
+  introEnd: number | null;
+  outroStart: number | null;
+  outroEnd: number | null;
+  introLabel: string | null;
+  outroLabel: string | null;
+  notes: string | null;
+  status: string;
+  rejectReason: string | null;
+  createdAt: string | null;
+  username: string | null;
+  userId: string;
 }
 
 interface AuditRow {
@@ -379,7 +399,7 @@ function RolePermissionEditor({
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const adminChatPollMs = usePollingIntervalMs("adminChat");
-  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat" | "reports" | "audit">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat" | "reports" | "skipTimes" | "audit">("overview");
 
   // Users
   const [users, setUsers]           = useState<AdminUser[]>([]);
@@ -416,6 +436,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   // Reports + audit
   const [reports, setReports]           = useState<ReportRow[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [skipSubmissions, setSkipSubmissions] = useState<SkipSubmissionRow[]>([]);
+  const [skipSubmissionsLoading, setSkipSubmissionsLoading] = useState(false);
+  const [reviewingSkipId, setReviewingSkipId] = useState<string | null>(null);
+  const [skipRejectDrafts, setSkipRejectDrafts] = useState<Record<string, string>>({});
   const [audit, setAudit]               = useState<AuditRow[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
@@ -527,6 +551,48 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       setReports((prev) => prev.filter((r) => r.id !== id));
     } catch { toast.error("Failed to update report"); }
   }, []);
+
+  const fetchSkipSubmissions = useCallback(async () => {
+    setSkipSubmissionsLoading(true);
+    try {
+      const res = await fetch("/api/admin/skip-submissions?status=pending", { headers: adminHeaders() });
+      if (res.status === 403) { onLogout(); return; }
+      if (!res.ok) { toast.error("Failed to load skip submissions"); return; }
+      const data = await res.json();
+      setSkipSubmissions(data.submissions ?? []);
+    } catch { toast.error("Failed to load skip submissions"); }
+    finally { setSkipSubmissionsLoading(false); }
+  }, [onLogout]);
+
+  const reviewSkipSubmission = useCallback(async (id: string, action: "approve" | "reject") => {
+    setReviewingSkipId(id);
+    try {
+      const res = await fetch("/api/admin/skip-submissions", {
+        method: "PATCH",
+        headers: { ...adminHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          action,
+          rejectReason: action === "reject" ? (skipRejectDrafts[id]?.trim() || null) : undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? "Review failed");
+      }
+      setSkipSubmissions((prev) => prev.filter((s) => s.id !== id));
+      setSkipRejectDrafts((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      toast.success(action === "approve" ? "Skip times approved" : "Skip times declined");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to review submission");
+    } finally {
+      setReviewingSkipId(null);
+    }
+  }, [skipRejectDrafts]);
 
   const fetchAudit = useCallback(async () => {
     setAuditLoading(true);
@@ -717,8 +783,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     if (tab === "announcements") void fetchAnnouncements();
     if (tab === "chat") void fetchChat();
     if (tab === "reports") void fetchReports();
+    if (tab === "skipTimes") void fetchSkipSubmissions();
     if (tab === "audit") void fetchAudit();
-  }, [tab, fetchUsers, fetchRoles, fetchAnnouncements, fetchChat, fetchReports, fetchAudit]);
+  }, [tab, fetchUsers, fetchRoles, fetchAnnouncements, fetchChat, fetchReports, fetchSkipSubmissions, fetchAudit]);
 
   useIntervalWhenVisible(fetchChat, adminChatPollMs, tab === "chat");
 
@@ -1247,6 +1314,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             { value: "roles"          as const, label: "Roles",         icon: <Tag        className="w-4 h-4" /> },
             { value: "activity"       as const, label: "Activity",      icon: <Activity   className="w-4 h-4" /> },
             { value: "reports"        as const, label: "Reports",       icon: <Flag       className="w-4 h-4" /> },
+            { value: "skipTimes"      as const, label: "Skip Times",    icon: <SkipForward className="w-4 h-4" /> },
             { value: "audit"          as const, label: "Audit Log",     icon: <ScrollText className="w-4 h-4" /> },
             { value: "chat"           as const, label: "Live Chat",     icon: <MessageCircle className="w-4 h-4" /> },
             { value: "announcements"  as const, label: "Announcements", icon: <Megaphone  className="w-4 h-4" /> },
@@ -2161,6 +2229,91 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       className="text-xs px-3 py-1.5 rounded-lg border border-white/12 text-white/50 hover:text-white/80 hover:bg-white/5"
                     >
                       Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ── SKIP TIMES ─────────────────────────────────────────── */}
+        {tab === "skipTimes" && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Pending skip times</h2>
+              <button
+                onClick={() => fetchSkipSubmissions()}
+                className="text-xs font-mono text-white/40 hover:text-white/70"
+              >
+                Refresh
+              </button>
+            </div>
+            {skipSubmissionsLoading ? (
+              <p className="text-sm text-white/40 py-10 text-center font-mono">Loading…</p>
+            ) : skipSubmissions.length === 0 ? (
+              <p className="text-sm text-white/40 py-10 text-center font-mono">No pending skip submissions 🎉</p>
+            ) : (
+              skipSubmissions.map((s) => (
+                <div key={s.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">
+                        {s.animeTitle ?? `AniList #${s.anilistId}`}
+                      </p>
+                      <p className="text-xs text-white/45 font-mono mt-0.5">
+                        Episode {s.episode}
+                        {s.username && <> · submitted by <span className="text-white/70">{s.username}</span></>}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-white/30 shrink-0">
+                      {s.createdAt ? timeAgo(s.createdAt) : ""}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg border border-white/8 bg-black/25 px-3 py-2">
+                      <p className="text-[10px] font-mono uppercase tracking-wide text-white/35 mb-1">Intro</p>
+                      <p className="text-white/75 font-mono">{s.introLabel ?? "—"}</p>
+                    </div>
+                    <div className="rounded-lg border border-white/8 bg-black/25 px-3 py-2">
+                      <p className="text-[10px] font-mono uppercase tracking-wide text-white/35 mb-1">Outro / credits</p>
+                      <p className="text-white/75 font-mono">{s.outroLabel ?? "—"}</p>
+                    </div>
+                  </div>
+                  {s.notes && (
+                    <p className="text-xs text-white/50 italic border-l-2 border-violet-500/30 pl-3">“{s.notes}”</p>
+                  )}
+                  <input
+                    type="text"
+                    value={skipRejectDrafts[s.id] ?? ""}
+                    onChange={(e) =>
+                      setSkipRejectDrafts((prev) => ({ ...prev, [s.id]: e.target.value }))
+                    }
+                    placeholder="Decline reason (optional)"
+                    className="w-full rounded-lg px-3 py-2 text-xs bg-black/40 border border-white/10 text-white/80 placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-rose-400/30"
+                  />
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <a
+                      href={`/anime/watch?anime=${s.anilistId}&episode=ep-${s.episode}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs px-3 py-1.5 rounded-lg border border-white/12 text-white/60 hover:text-white/90 hover:bg-white/5"
+                    >
+                      Watch episode
+                    </a>
+                    <button
+                      onClick={() => reviewSkipSubmission(s.id, "approve")}
+                      disabled={reviewingSkipId === s.id}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-40"
+                    >
+                      {reviewingSkipId === s.id ? "Saving…" : "Approve"}
+                    </button>
+                    <button
+                      onClick={() => reviewSkipSubmission(s.id, "reject")}
+                      disabled={reviewingSkipId === s.id}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-rose-500/25 bg-rose-500/10 text-rose-300 hover:bg-rose-500/15 disabled:opacity-40"
+                    >
+                      Decline
                     </button>
                   </div>
                 </div>

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AtSign, Bell, CornerUpLeft, Loader2, Mail, MessageCircle, Tv, UserPlus } from "lucide-react";
+import { AtSign, Bell, CheckCircle2, CornerUpLeft, Loader2, Mail, MessageCircle, SkipForward, Tv, UserPlus, XCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Avatar from "@/components/common/avatar";
 import { ROUTES } from "@/constants/routes";
@@ -19,6 +19,8 @@ function NotificationTypeBadge({ type }: { type: string }) {
     comment_reply: { icon: <CornerUpLeft className="h-2.5 w-2.5" />, className: "bg-sky-500 text-white" },
     dm: { icon: <Mail className="h-2.5 w-2.5" />, className: "bg-emerald-500 text-white" },
     follow: { icon: <UserPlus className="h-2.5 w-2.5" />, className: "bg-fuchsia-500 text-white" },
+    skip_approved: { icon: <CheckCircle2 className="h-2.5 w-2.5" />, className: "bg-emerald-500 text-white" },
+    skip_rejected: { icon: <XCircle className="h-2.5 w-2.5" />, className: "bg-rose-500 text-white" },
   };
   const entry = map[type];
   if (!entry) return null;
@@ -129,6 +131,17 @@ export default function NotificationBell() {
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
                       <Tv className="h-4 w-4" />
                     </div>
+                  ) : n.type === "skip_approved" || n.type === "skip_rejected" ? (
+                    <div
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-full",
+                        n.type === "skip_approved"
+                          ? "bg-emerald-500/15 text-emerald-300"
+                          : "bg-rose-500/15 text-rose-300",
+                      )}
+                    >
+                      <SkipForward className="h-4 w-4" />
+                    </div>
                   ) : (
                     <Avatar
                       username={n.actorUsername ?? "?"}
@@ -141,7 +154,12 @@ export default function NotificationBell() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-foreground dark:text-white/85 truncate">
-                      {n.title ?? n.actorUsername ?? t("notifications.generic")}
+                      {n.title ??
+                        (n.type === "skip_approved"
+                          ? t("notifications.skipApproved")
+                          : n.type === "skip_rejected"
+                            ? t("notifications.skipRejected")
+                            : n.actorUsername ?? t("notifications.generic"))}
                     </p>
                     <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 shrink-0">
                       {dmTimeAgo(n.createdAt)}

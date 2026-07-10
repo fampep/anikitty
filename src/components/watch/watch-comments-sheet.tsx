@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { MessageSquare, X } from "lucide-react";
+import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
+import { X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -26,7 +27,7 @@ const CommentSection = dynamic(() => import("@/components/comments/comment-secti
   ),
 });
 
-type Scope = "episode" | "anime";
+type Scope = CommentScope;
 
 type Props = {
   open: boolean;
@@ -67,15 +68,11 @@ export default function WatchCommentsSheet({
         </div>
 
         <div className="shrink-0 flex items-center gap-2 px-3 pb-3 border-b border-border dark:border-white/[0.08]">
-          <ScopeTab
-            active={scope === "anime"}
-            onClick={() => onScopeChange("anime")}
-            label={t("comments.scopeAnime")}
-          />
-          <ScopeTab
-            active={scope === "episode"}
-            onClick={() => onScopeChange("episode")}
-            label={t("watch.episode", { n: episodeNumber })}
+          <CommentScopeTabs
+            scope={scope}
+            onScopeChange={onScopeChange}
+            episodeNumber={episodeNumber}
+            className="flex-1 min-w-0"
           />
           <button
             type="button"
@@ -99,31 +96,5 @@ export default function WatchCommentsSheet({
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function ScopeTab({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold border transition-all",
-        active
-          ? "bg-violet-500/15 text-violet-200 border-violet-400/35"
-          : "bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 border-border dark:border-white/10 hover:border-border dark:border-white/20 hover:text-muted-foreground dark:text-white/70",
-      )}
-    >
-      <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-80" />
-      <span className="uppercase tracking-wide">{label}</span>
-    </button>
   );
 }

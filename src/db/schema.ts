@@ -9,6 +9,8 @@ import {
   unique,
   index,
   jsonb,
+  real,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -861,5 +863,58 @@ export const userReports = pgTable(
       t.targetType,
       t.targetId,
     ),
+  }),
+);
+
+/** User-submitted intro/outro skip timestamps awaiting moderation. */
+export const episodeSkipSubmissions = pgTable(
+  "episode_skip_submissions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    anilistId: integer("anilist_id").notNull(),
+    malId: integer("mal_id"),
+    animeTitle: text("anime_title"),
+    episode: integer("episode").notNull(),
+    introStart: real("intro_start"),
+    introEnd: real("intro_end"),
+    outroStart: real("outro_start"),
+    outroEnd: real("outro_end"),
+    notes: text("notes"),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    rejectReason: text("reject_reason"),
+    reviewedAt: timestamp("reviewed_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    statusIdx: index("episode_skip_submissions_status_idx").on(t.status, t.createdAt),
+    userEpisodeIdx: index("episode_skip_submissions_user_episode_idx").on(
+      t.userId,
+      t.anilistId,
+      t.episode,
+    ),
+  }),
+);
+
+/** Approved community skip timestamps (AniKitty database). */
+export const episodeSkipTimes = pgTable(
+  "episode_skip_times",
+  {
+    anilistId: integer("anilist_id").notNull(),
+    episode: integer("episode").notNull(),
+    introStart: real("intro_start"),
+    introEnd: real("intro_end"),
+    outroStart: real("outro_start"),
+    outroEnd: real("outro_end"),
+    submissionId: uuid("submission_id").references(() => episodeSkipSubmissions.id, {
+      onDelete: "set null",
+    }),
+    approvedAt: timestamp("approved_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.anilistId, t.episode] }),
   }),
 );

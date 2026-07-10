@@ -610,6 +610,37 @@ export async function migrateDb() {
       `CREATE INDEX IF NOT EXISTS announcements_active_idx ON announcements (is_active)`,
       `ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL`,
       `CREATE INDEX IF NOT EXISTS chat_messages_reply_to_id_idx ON chat_messages (reply_to_id)`,
+      `CREATE TABLE IF NOT EXISTS episode_skip_submissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        anilist_id INTEGER NOT NULL,
+        mal_id INTEGER,
+        anime_title TEXT,
+        episode INTEGER NOT NULL,
+        intro_start REAL,
+        intro_end REAL,
+        outro_start REAL,
+        outro_end REAL,
+        notes TEXT,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        reject_reason TEXT,
+        reviewed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS episode_skip_submissions_status_idx ON episode_skip_submissions (status, created_at)`,
+      `CREATE INDEX IF NOT EXISTS episode_skip_submissions_user_episode_idx ON episode_skip_submissions (user_id, anilist_id, episode)`,
+      `CREATE TABLE IF NOT EXISTS episode_skip_times (
+        anilist_id INTEGER NOT NULL,
+        episode INTEGER NOT NULL,
+        intro_start REAL,
+        intro_end REAL,
+        outro_start REAL,
+        outro_end REAL,
+        submission_id UUID REFERENCES episode_skip_submissions(id) ON DELETE SET NULL,
+        approved_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (anilist_id, episode)
+      )`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

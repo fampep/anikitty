@@ -23,6 +23,7 @@ import LoginPopoverButton from "@/components/auth/login-popover-button";
 import FramedAvatar from "@/components/common/framed-avatar";
 import { CosmeticUsername } from "@/components/common/user-cosmetics";
 import CommentRulesDialog from "@/components/comments/comment-rules-dialog";
+import { CommentReportDialog } from "@/components/comments/comment-report-dialog";
 import { useCommentRulesAccepted } from "@/hooks/use-comment-rules-accepted";
 
 // ── Emoji picker ──────────────────────────────────────────────────────────────
@@ -303,6 +304,8 @@ export default function CommentSection({
   const [replyDraft, setReplyDraft] = useState("");
   const [submittingReply, setSubmittingReply] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
+  const [reporting, setReporting] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -507,23 +510,35 @@ export default function CommentSection({
     }
   };
 
-  const handleReport = async (commentId: string) => {
+  const handleReport = (commentId: string) => {
     if (!auth) return;
-    const reason = window.prompt(t("comments.reportPrompt"));
-    if (!reason) return;
+    setReportTargetId(commentId);
+  };
+
+  const submitReport = async (details: string) => {
+    if (!auth || !reportTargetId || !details) return;
+    setReporting(true);
     try {
       const res = await fetch(
         "/api/reports",
         withAuth({
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ targetType: "comment", targetId: commentId, reason: "other", details: reason }),
+          body: JSON.stringify({
+            targetType: "comment",
+            targetId: reportTargetId,
+            reason: "other",
+            details,
+          }),
         }),
       );
       if (!res.ok && res.status !== 201) throw new Error();
       toast.success(t("comments.reportThanks"));
+      setReportTargetId(null);
     } catch {
       toast.error(t("comments.reportFailed"));
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -815,6 +830,13 @@ export default function CommentSection({
         onOpenChange={setRulesOpen}
         onAccept={rulesReadOnly ? undefined : handleRulesAccept}
         readOnly={rulesReadOnly}
+      />
+
+      <CommentReportDialog
+        open={!!reportTargetId}
+        busy={reporting}
+        onClose={() => setReportTargetId(null)}
+        onSubmit={submitReport}
       />
 
       {/* Episode picker (anime detail page) */}
@@ -1183,7 +1205,7 @@ export default function CommentSection({
                     </span>
 
                     {(isOwn || canModerateComments) && !isEditing && (
-                      <div className="ml-auto flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <div className="ml-auto flex items-center gap-1 opacity-80 sm:opacity-55 sm:group-hover:opacity-100 transition-opacity">
                         {canModerateComments && (
                           <button
                             onClick={() => handlePin(c.id)}
@@ -1380,7 +1402,7 @@ export default function CommentSection({
                                       )}
                                     </span>
                                     {(replyOwn || canModerateComments) && !replyEditing && (
-                                      <div className="ml-auto flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/reply:opacity-100 transition-opacity">
+                                      <div className="ml-auto flex items-center gap-1 opacity-80 sm:opacity-55 sm:group-hover/reply:opacity-100 transition-opacity">
                                         {replyOwn && (
                                           <button
                                             onClick={() => {

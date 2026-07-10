@@ -1,0 +1,148 @@
+import { NextResponse } from "next/server";
+import { getDb } from "@/db";
+import { episodeSkipSubmissions, episodeSkipTimes, users } from "@/db/schema";
+import { requireAdmin } from "@/lib/auth/admin-auth";
+import { notifySkipSubmissionDecision } from "@/lib/skip/community-skip-server";
+import { intervalLabel } from "@/lib/skip/community-skip";
+import { recordAudit } from "@/lib/security/audit-log";
+import { alias } from "drizzle-orm/pg-core";
+import { desc, eq } from "drizzle-orm";
+
+export async function GET(req: Request) {
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const status = new URL(req.url).searchParams.get("status") ?? "pending";
+  const db = getDb();
+  const submitter = alias(users, "skip_submitter");
+
+  const rows = await db
+    .select({
+      id: episodeSkipSubmissions.id,
+      anilistId: episodeSkipSubmissions.anilistId,
+      malId: episodeSkipSubmissions.malId,
+      animeTitle: episodeSkipSubmissions.animeTitle,
+      episode: episodeSkipSubmissions.episode,
+      introStart: episodeSkipSubmissions.introStart,
+      introEnd: episodeSkipSubmissions.introEnd,
+      outroStart: episodeSkipSubmissions.outroStart,
+      outroEnd: episodeSkipSubmissions.outroEnd,
+      notes: episodeSkipSubmissions.notes,
+      status: episodeSkipSubmissions.status,
+      rejectReason: episodeSkipSubmissions.rejectReason,
+      createdAt: episodeSkipSubmissions.createdAt,
+      username: submitter.username,
+      userId: episodeSkipSubmissions.userId,
+    })
+    .from(episodeSkipSubmissions)
+    .leftJoin(submitter, eq(episodeSkipSubmissions.userId, submitter.id))
+    .where(eq(episodeSkipSubmissions.status, status))
+    .orderBy(desc(episodeSkipSubmissions.createdAt))
+    .limit(200);
+
+  return NextResponse.json({
+    submissions: rows.map((r) => ({
+      ...r,
+      introLabel: intervalLabel(r.introStart, r.introEnd),
+      outroLabel: intervalLabel(r.outroStart, r.outroEnd),
+    })),
+  });
+}
+
+export async function PATCH(req: Request) {
+  if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const raw = await req.json().catch(() => ({}));
+  const id = typeof raw.id === "string" ? raw.id : "";
+  const action = raw.action === "reject" ? "reject" : "approve";
+  const rejectReason =
+    typeof raw.rejectReason === "string" ? raw.rejectReason.trim().slice(0, 500) : null;
+
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(episodeSkipSubmissions)
+    .where(eq(episodeSkipSubmissions.id, id))
+    .limit(1);
+
+  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (row.status !== "pending") {
+    return NextResponse.json({ error: "Submission already reviewed" }, { status: 400 });
+  }
+
+  if (action === "approve") {
+    await db
+      .insert(episodeSkipTimes)
+      .values({
+        anilistId: row.anilistId,
+        episode: row.episode,
+        introStart: row.introStart,
+        introEnd: row.introEnd,
+        outroStart: row.outroStart,
+        outroEnd: row.outroEnd,
+        submissionId: row.id,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [episodeSkipTimes.anilistId, episodeSkipTimes.episode],
+        set: {
+          introStart: row.introStart,
+          introEnd: row.introEnd,
+          outroStart: row.outroStart,
+          outroEnd: row.outroEnd,
+          submissionId: row.id,
+          updatedAt: new Date(),
+        },
+      });
+
+    await db
+      .update(episodeSkipSubmissions)
+      .set({ status: "approved", reviewedAt: new Date(), rejectReason: null })
+      .where(eq(episodeSkipSubmissions.id, id));
+
+    await notifySkipSubmissionDecision({
+      userId: row.userId,
+      submissionId: row.id,
+      anilistId: row.anilistId,
+      episode: row.episode,
+      animeTitle: row.animeTitle,
+      approved: true,
+    });
+
+    void recordAudit(db, {
+      actorUserId: null,
+      action: "approve_skip_submission",
+      targetType: "skip_submission",
+      targetId: id,
+    });
+  } else {
+    await db
+      .update(episodeSkipSubmissions)
+      .set({
+        status: "rejected",
+        reviewedAt: new Date(),
+        rejectReason: rejectReason || null,
+      })
+      .where(eq(episodeSkipSubmissions.id, id));
+
+    await notifySkipSubmissionDecision({
+      userId: row.userId,
+      submissionId: row.id,
+      anilistId: row.anilistId,
+      episode: row.episode,
+      animeTitle: row.animeTitle,
+      approved: false,
+      rejectReason,
+    });
+
+    void recordAudit(db, {
+      actorUserId: null,
+      action: "reject_skip_submission",
+      targetType: "skip_submission",
+      targetId: id,
+    });
+  }
+
+  return NextResponse.json({ ok: true });
+}

@@ -13,7 +13,9 @@ export type AuditAction =
   | "unpin_comment"
   | "resolve_report"
   | "dismiss_report"
-  | "role_change";
+  | "role_change"
+  | "approve_skip_submission"
+  | "reject_skip_submission";
 
 /**
  * Fire-and-forget record of a staff action. Never throws — auditing must not
@@ -24,7 +26,7 @@ export async function recordAudit(
   entry: {
     actorUserId: string | null;
     action: AuditAction;
-    targetType?: "user" | "comment" | "report" | "role";
+    targetType?: "user" | "comment" | "report" | "role" | "skip_submission";
     targetId?: string | null;
     targetUserId?: string | null;
     reason?: string | null;

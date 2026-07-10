@@ -146,7 +146,10 @@ export function useSkipTimes(
   malId?: number,
   anilistId?: number,
   episodeNumber?: number,
+  communitySkip?: SkipTimes,
 ) {
+  const communityComplete = !!(communitySkip?.intro && communitySkip?.outro);
+
   const chapterTrack = tracks?.find(
     (t) =>
       t.kind === "chapters" ||
@@ -160,7 +163,7 @@ export function useSkipTimes(
   const vttQuery = useQuery<SkipTimes>({
     queryKey: ["chapters", chapterTrack?.file],
     queryFn: () => parseChapterVtt(chapterTrack!.file),
-    enabled: !!chapterTrack?.file,
+    enabled: !!chapterTrack?.file && !communityComplete,
     staleTime: Infinity,
     retry: false,
   });
@@ -173,7 +176,7 @@ export function useSkipTimes(
   const aniSkipQuery = useQuery<SkipTimes>({
     queryKey: ["aniskip", malId, anilistId, episodeNumber],
     queryFn: () => fetchAniSkipTimes(malId ?? 0, episodeNumber!, anilistId),
-    enabled: canUseAniSkip && vttDone && !vttHasData,
+    enabled: canUseAniSkip && vttDone && !vttHasData && !communityComplete,
     staleTime: Infinity,
     retry: false,
   });
@@ -184,16 +187,24 @@ export function useSkipTimes(
   const m3u8Query = useQuery<SkipTimes>({
     queryKey: ["m3u8-chapters", m3u8Src],
     queryFn: () => parseM3u8SkipTimes(m3u8Src!, referer ?? ""),
-    enabled: !!m3u8Src && vttDone && aniSkipDone && !aniSkipHasData && !vttHasData,
+    enabled:
+      !!m3u8Src &&
+      vttDone &&
+      aniSkipDone &&
+      !aniSkipHasData &&
+      !vttHasData &&
+      !communityComplete,
     staleTime: Infinity,
     retry: false,
   });
 
-  const data = vttHasData
+  const externalData = vttHasData
     ? vttQuery.data
     : aniSkipHasData
       ? aniSkipQuery.data
       : (m3u8Query.data ?? vttQuery.data);
+
+  const data = externalData;
 
   const isLoading =
     vttQuery.isLoading ||
@@ -202,3 +213,44 @@ export function useSkipTimes(
 
   return { data, isLoading };
 }
+
+export function useCommunitySkipTimes(anilistId?: number, episodeNumber?: number) {
+  return useQuery<SkipTimes>({
+    queryKey: ["community-skip", anilistId, episodeNumber],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        anilistId: String(anilistId),
+        episode: String(episodeNumber),
+      });
+      const res = await fetch(`/api/kitty/community-skip?${params}`, {
+        headers: clientApiHeaders(),
+      });
+      if (!res.ok) return {};
+      return res.json() as Promise<SkipTimes>;
+    },
+    enabled: !!anilistId && !!episodeNumber,
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+function mergeSkipLayers(...sources: Array<SkipTimes | undefined>): SkipTimes {
+  const out: SkipTimes = {};
+  for (const source of sources) {
+    if (!source) continue;
+    if (!out.intro && source.intro) out.intro = source.intro;
+    if (!out.outro && source.outro) out.outro = source.outro;
+  }
+  return out;
+}
+
+/** Approved community DB first, then provider embed, then AniSkip/VTT fallbacks. */
+export function mergeSkipTimesPriority(
+  community?: SkipTimes,
+  provider?: SkipTimes,
+  external?: SkipTimes,
+): SkipTimes {
+  return mergeSkipLayers(community, provider, external);
+}
+
+export { mergeSkipLayers };

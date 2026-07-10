@@ -7,12 +7,16 @@ import { create } from "zustand";
  */
 interface PlayerSeekStore {
   seek: ((seconds: number) => void) | null;
+  getCurrentTime: (() => number) | null;
   setSeek: (fn: (seconds: number) => void) => void;
+  setGetCurrentTime: (fn: () => number) => void;
   clearSeek: () => void;
 }
 
 export const usePlayerSeekStore = create<PlayerSeekStore>((set) => ({
   seek: null,
+  getCurrentTime: null,
   setSeek: (fn) => set({ seek: fn }),
-  clearSeek: () => set({ seek: null }),
+  setGetCurrentTime: (fn) => set({ getCurrentTime: fn }),
+  clearSeek: () => set({ seek: null, getCurrentTime: null }),
 }));

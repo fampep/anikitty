@@ -11,6 +11,8 @@ import EpisodePlaylist from "@/components/watch/episode-playlist";
 import WatchCommentsPreview from "@/components/watch/watch-comments-preview";
 import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
 import WatchQuickNav from "@/components/watch/watch-quick-nav";
+import { WatchPageProvider } from "@/components/watch/watch-page-context";
+import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
@@ -104,7 +106,8 @@ const Layout = (props: Props) => {
   });
   const [selected, setSelected] = useState("");
   const [mobileCommentsOpen, setMobileCommentsOpen] = useState(false);
-  const [mobileCommentScope, setMobileCommentScope] = useState<"episode" | "anime">("episode");
+  const [mobileCommentScope, setMobileCommentScope] = useState<CommentScope>("episode");
+  const [desktopCommentScope, setDesktopCommentScope] = useState<CommentScope>("episode");
 
   const handleSelect = async (value: string) => {
     const prev = selected;
@@ -231,16 +234,20 @@ const Layout = (props: Props) => {
     }
   };
 
-  const openMobileComments = (scope: "episode" | "anime" = "episode") => {
+  const openMobileComments = (scope: CommentScope = "episode") => {
     setMobileCommentScope(scope);
     setMobileCommentsOpen(true);
   };
 
-  const openComments = () => {
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
-      openMobileComments("episode");
+  const openComments = (scope: CommentScope = "episode") => {
+    if (
+      theatreMode ||
+      (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches)
+    ) {
+      openMobileComments(scope);
       return;
     }
+    setDesktopCommentScope(scope);
     handleWatchTabChange("comments");
   };
 
@@ -378,6 +385,7 @@ const Layout = (props: Props) => {
   );
 
   return (
+    <WatchPageProvider openComments={openComments}>
     <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,72rem)] mx-auto")}>
       {!theatreMode && (
         <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
@@ -412,6 +420,28 @@ const Layout = (props: Props) => {
         <div className="flex flex-col gap-3 min-w-0">
           <div id="watch-player-root" className="-mx-4 sm:mx-0">{props.children}</div>
 
+          {currentEpisode && currentAnimeId && !theatreMode && (
+            <div className="hidden lg:block">
+              <WatchCommentsPreview
+                animeId={currentAnimeId}
+                episodeId={episodeId}
+                episodeNumber={currentEpisode.number}
+                onOpen={() => openComments("episode")}
+              />
+            </div>
+          )}
+
+          {theatreMode && currentEpisode && currentAnimeId && (
+            <button
+              type="button"
+              onClick={() => openComments("episode")}
+              className="fixed bottom-24 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-violet-400/30 bg-black/75 text-violet-200 shadow-lg shadow-black/40 backdrop-blur-sm hover:bg-violet-500/20 transition-all"
+              aria-label={t("watch.toolbar.comments")}
+            >
+              <MessageSquare className="h-5 w-5" />
+            </button>
+          )}
+
           {/* Mobile: episode grid + comments */}
           <div id="watch-mobile-playlist" className="flex flex-col gap-3 lg:hidden scroll-mt-24">
             {currentEpisode && currentAnimeId && !theatreMode && (
@@ -419,7 +449,7 @@ const Layout = (props: Props) => {
                 animeId={currentAnimeId}
                 episodeId={episodeId}
                 episodeNumber={currentEpisode.number}
-                onOpen={openComments}
+                onOpen={() => openComments("episode")}
               />
             )}
             {episodes && (
@@ -436,7 +466,40 @@ const Layout = (props: Props) => {
 
           {!theatreMode && (
           <>
-          {/* Info + Comments fill the area under the player controls */}
+          {/* Comments (desktop — mobile uses the bottom sheet) */}
+          <section id="watch-comments-panel" className="scroll-mt-24 hidden lg:block">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40" />
+                <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.comments")}</h2>
+              </div>
+              {currentEpisode && (
+                <CommentScopeTabs
+                  scope={desktopCommentScope}
+                  onScopeChange={setDesktopCommentScope}
+                  episodeNumber={currentEpisode.number}
+                />
+              )}
+            </div>
+            {currentAnimeId && currentEpisode && (
+              <div className="site-panel p-5 sm:p-6">
+                <CommentSection
+                  key={`${currentAnimeId}-${desktopCommentScope}-${episodeId ?? "none"}`}
+                  animeId={currentAnimeId}
+                  episodeId={desktopCommentScope === "episode" ? episodeId : undefined}
+                  episodeNumber={desktopCommentScope === "episode" ? currentEpisode.number : undefined}
+                  episodeLabel={
+                    desktopCommentScope === "episode"
+                      ? t("watch.episode", { n: currentEpisode.number })
+                      : undefined
+                  }
+                  commentScope={desktopCommentScope}
+                />
+              </div>
+            )}
+          </section>
+
+          {/* Info section */}
           <section id="watch-tab-info" className="scroll-mt-24 space-y-5 mt-1">
             <div className="flex items-center gap-2.5">
               <Info className="w-4 h-4 text-muted-foreground dark:text-white/40" />
@@ -529,26 +592,6 @@ const Layout = (props: Props) => {
                 </div>
               )}
             </div>
-          </section>
-
-          {/* Comments (desktop — mobile uses the bottom sheet) */}
-          <section id="watch-comments-panel" className="scroll-mt-24 hidden lg:block">
-            <div className="flex items-center gap-2.5 mb-4">
-              <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40" />
-              <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.comments")}</h2>
-            </div>
-            {currentAnimeId && (
-              <div className="site-panel p-5 sm:p-6">
-                <CommentSection
-                  animeId={currentAnimeId}
-                  episodeId={episodeId}
-                  episodeNumber={currentEpisode?.number}
-                  episodeLabel={
-                    currentEpisode ? t("watch.episode", { n: currentEpisode.number }) : undefined
-                  }
-                />
-              </div>
-            )}
           </section>
 
           </>
@@ -657,6 +700,7 @@ const Layout = (props: Props) => {
         />
       )}
     </Container>
+    </WatchPageProvider>
   );
 };
 

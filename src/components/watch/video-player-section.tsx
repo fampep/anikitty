@@ -59,7 +59,7 @@ import {
 } from "@/lib/providers/miruro-types";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
 
-import { useSkipTimes } from "@/hooks/use-aniskip";
+import { useSkipTimes, useCommunitySkipTimes, mergeSkipTimesPriority } from "@/hooks/use-aniskip";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import {
@@ -78,6 +78,7 @@ import {
 import WatchDownloadPanel from "@/components/watch/watch-download-panel";
 import PlayerSettingsBar from "@/components/watch/player-settings-bar";
 import WatchPlayerToolbar from "@/components/watch/watch-player-toolbar";
+import SkipTimesSubmitDialog from "@/components/watch/skip-times-submit-dialog";
 import WatchResumePrompt from "@/components/watch/watch-resume-prompt";
 import WatchKeyboardHelp from "@/components/watch/watch-keyboard-help";
 import WatchSimpleProviderRow from "@/components/watch/watch-simple-provider-row";
@@ -96,6 +97,7 @@ import { useT } from "@/providers/i18n-provider";
 import LoadingGirl from "@/components/common/loading-girl";
 import WatchErrorPanel from "@/components/watch/watch-error-panel";
 import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
+import { useWatchPage } from "@/components/watch/watch-page-context";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 
 const KittyPlayer = dynamic(() => import("@/components/player/kitty-player"), {
@@ -122,6 +124,7 @@ function isResumableProgress(current: number, duration: number): boolean {
 
 const VideoPlayerSection = () => {
   const t = useT();
+  const watchPage = useWatchPage();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const searchParams = useSearchParams();
@@ -374,6 +377,7 @@ const VideoPlayerSection = () => {
     setArtPlayer(art);
   }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [skipSubmitOpen, setSkipSubmitOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const fallbackBusyRef = useRef(false);
   const [playbackToken, setPlaybackToken] = useState(0);
@@ -815,6 +819,7 @@ const VideoPlayerSection = () => {
       artPlayer.seek = seconds;
       artPlayer.play?.();
     });
+    usePlayerSeekStore.getState().setGetCurrentTime(() => artPlayer.currentTime ?? 0);
     return () => usePlayerSeekStore.getState().clearSeek();
   }, [artPlayer]);
 
@@ -1008,25 +1013,26 @@ const VideoPlayerSection = () => {
 
   const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${playbackToken}-${kittyProxyNode}`;
 
-  const { data: aniSkipTimes } = useSkipTimes(
+  const episodeNumberParsed = parseInt(episodeNo) || undefined;
+  const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);
+
+  const { data: externalSkipTimes } = useSkipTimes(
     streamData?.tracks,
     streamData?.file,
     streamData?.headers?.Referer ?? streamData?.headers?.referer ?? "",
     malId,
     anilistId,
-    parseInt(episodeNo) || undefined,
+    episodeNumberParsed,
+    communitySkipTimes,
   );
 
   const skipTimes = useMemo(() => {
-    const fromMiruro = streamData?.skipTimes;
-    if (fromMiruro?.intro || fromMiruro?.outro) {
-      return {
-        intro: fromMiruro.intro ?? aniSkipTimes?.intro,
-        outro: fromMiruro.outro ?? aniSkipTimes?.outro,
-      };
-    }
-    return aniSkipTimes;
-  }, [streamData?.skipTimes, aniSkipTimes]);
+    return mergeSkipTimesPriority(
+      communitySkipTimes,
+      streamData?.skipTimes,
+      externalSkipTimes,
+    );
+  }, [streamData?.skipTimes, communitySkipTimes, externalSkipTimes]);
 
   useEffect(() => {
     if (!streamReady || !streamData?.file || !episodeId) return;
@@ -1463,6 +1469,16 @@ const VideoPlayerSection = () => {
   return (
     <div className="flex flex-col gap-2 sm:gap-3">
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+    {anilistId && episodeNumberParsed != null && (
+      <SkipTimesSubmitDialog
+        open={skipSubmitOpen}
+        onOpenChange={setSkipSubmitOpen}
+        anilistId={anilistId}
+        malId={malId}
+        animeTitle={animeTitle ?? `Anime #${anilistId}`}
+        episode={episodeNumberParsed}
+      />
+    )}
 
     {episodeBar}
 
@@ -1531,6 +1547,12 @@ const VideoPlayerSection = () => {
         onPrev={handlePrevEpisode}
         onNext={handleNextEpisode}
         onShowShortcuts={() => setShortcutsOpen(true)}
+        onOpenComments={watchPage ? () => watchPage.openComments("episode") : undefined}
+        onSubmitSkipTimes={
+          anilistId && episodeNumberParsed != null
+            ? () => setSkipSubmitOpen(true)
+            : undefined
+        }
       />
 
       {/* Controls bar */}

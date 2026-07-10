@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { applyUserThemeColor, hexToRgb } from "@/lib/core/theme-color";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import ProfileCustomizationForm, {
@@ -234,6 +234,7 @@ async function fetchProfilePayload(username: string) {
 
 function ProfilePage() {
   const t = useT();
+  const router = useRouter();
   const { locale } = useI18n();
   const params = useParams();
   const profileUsername = decodeURIComponent((params.username as string) ?? "");
@@ -769,7 +770,7 @@ function ProfilePage() {
                     accent="text-violet-300"
                     value={displayLevel?.commentCount ?? 0}
                     label={t("profile.comments")}
-                    onClick={() => scrollToProfileSection("comments")}
+                    onClick={() => router.push(ROUTES.profileComments(profile.username))}
                   />
                   <StatTile
                     icon={Users}

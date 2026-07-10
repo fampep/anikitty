@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Command,
   Lightbulb,
+  MessageSquare,
   Play,
   SkipForward,
 } from "lucide-react";
@@ -54,6 +55,8 @@ type Props = {
   onPrev: () => void;
   onNext: () => void;
   onShowShortcuts: () => void;
+  onOpenComments?: () => void;
+  onSubmitSkipTimes?: () => void;
 };
 
 export default function WatchPlayerToolbar({
@@ -65,6 +68,8 @@ export default function WatchPlayerToolbar({
   onPrev,
   onNext,
   onShowShortcuts,
+  onOpenComments,
+  onSubmitSkipTimes,
 }: Props) {
   const t = useT();
   const autoPlay = useSettingsStore((s) => s.autoPlay);
@@ -104,6 +109,26 @@ export default function WatchPlayerToolbar({
           label={t("watch.toolbar.lightsOff")}
           onClick={() => setTheatreMode(!theatreMode)}
         />
+        {onSubmitSkipTimes && (
+          <button
+            type="button"
+            onClick={onSubmitSkipTimes}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-violet-400/25 transition-colors shrink-0"
+          >
+            <SkipForward className="w-3 h-3 shrink-0" />
+            <span className="hidden sm:inline">{t("watch.toolbar.submitSkip")}</span>
+          </button>
+        )}
+        {onOpenComments && (
+          <button
+            type="button"
+            onClick={onOpenComments}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-400/25 bg-violet-500/10 text-violet-200/90 hover:bg-violet-500/18 transition-colors shrink-0"
+          >
+            <MessageSquare className="w-3 h-3 shrink-0" />
+            <span className="hidden sm:inline">{t("watch.toolbar.comments")}</span>
+          </button>
+        )}
         <span className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[10px] font-mono border border-border dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] text-muted-foreground dark:text-white/35 shrink-0">
           {provider}
         </span>
