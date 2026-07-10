@@ -2,6 +2,8 @@
 
 AniKitty streams through [KittyAPI](https://github.com/fampep/kittyapi). **MegaPlay** is a single provider — Anikoto, AnimeSogo, Anix, HiAnime, and Animepahe are internal backends behind merged search, not separate API providers.
 
+**AniKitty watch page** uses `stream-direct` only (`anilistId` + episode → HLS). The search → episodes → servers flow below is the full KittyAPI path when you need catalog IDs, sub/dub server lists, or multi-quality `allServers`.
+
 Every call requires:
 
 ```http
@@ -97,14 +99,14 @@ video.src = stream.file;
 | Default provider | `MegaPlay` (first in `DEFAULT_PROVIDER_PRIORITY`) |
 | Legacy names | Anikoto / AnimeSogo / Anix / HiAnime / Animepahe → `MegaPlay` |
 | Subtitles | `tracks[]` from stream-direct + Kitty `/subs` fallback |
-| Quality | HLS manifest levels + `allServers` |
+| Quality | `allServers` quality picker (1080p/720p/360p) when KittyAPI returns multiple URLs |
 | `file` URL | Signed/proxied — pass directly to the HLS player |
 
 Code paths:
 
 - `src/lib/kitty/kitty-stream-api.ts` — `fetchKittyStreamDirect()` → `/provider/MegaPlay/stream-direct`
 - `src/app/api/kitty/stream/route.ts` — generic provider handler for MegaPlay
-- `src/lib/kitty/megaplay-providers.ts` — provider ID + legacy migration
+- `src/lib/kitty/megaplay-providers.ts` — provider ID, stream paths, legacy migration
 
 ---
 

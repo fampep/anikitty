@@ -185,7 +185,7 @@ function switchExternalSubtitle(
   disableEmbeddedTextTracks(art.video);
   art.subtitle.show = true;
 
-  if (activeUrlRef.current === url) {
+  if (activeUrlRef.current === url && art.subtitle?.url === url) {
     ensureArtplayerSubtitleTrack(art);
     applySubtitleStyles(art, settings);
     return;
@@ -1071,6 +1071,15 @@ export default function KittyPlayer({
 
     art.on("video:loadedmetadata", () => {
       if (!resumeAppliedRef.current && !playbackStartedRef.current) applyResume(art);
+      if (preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0) {
+        subtitleModeRef.current = applySubtitleMode(
+          art,
+          tracksRef.current,
+          preferSubtitlesRef.current,
+          subtitleStyleSettings,
+          activeSubtitleUrlRef,
+        );
+      }
     });
 
     art.on("video:seeking", () => {
@@ -1095,11 +1104,7 @@ export default function KittyPlayer({
     art.on("video:canplay", () => {
       setBufferingDebounced(false);
       setReady(true);
-      if (
-        preferSubtitlesRef.current &&
-        resolveSubtitleTracks(tracksRef.current).length > 0 &&
-        !activeSubtitleUrlRef.current
-      ) {
+      if (preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0) {
         subtitleModeRef.current = applySubtitleMode(
           art,
           tracksRef.current,
@@ -1215,6 +1220,12 @@ export default function KittyPlayer({
         window.clearTimeout(bufferingShowTimerRef.current);
         bufferingShowTimerRef.current = null;
       }
+      activeSubtitleUrlRef.current = null;
+      subtitleModeRef.current = "off";
+      startFiredRef.current = false;
+      fatalErrorFiredRef.current = false;
+      setReady(false);
+      setBuffering(true);
       // Detach the overlay host before ArtPlayer tears down its DOM, and let
       // React unmount the portal into it.
       setOverlayHost(null);
