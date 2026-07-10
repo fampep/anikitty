@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 
 import NavBar from "@/components/layout/navbar";
+import MobileBottomNav from "@/components/layout/mobile-bottom-nav";
 import SkipToContent from "@/components/layout/skip-to-content";
 import Footer from "@/components/layout/footer";
 import SiteBetaBadge from "@/components/layout/site-beta-badge";
@@ -171,6 +172,7 @@ export default async function RootLayout({
                 {children}
               </main>
               <Footer />
+              <MobileBottomNav />
               <ScrollToTop />
               <SiteBetaBadge />
               <DiscordWelcomePrompt />

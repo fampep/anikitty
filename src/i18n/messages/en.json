@@ -9,15 +9,25 @@
     "subtitles": "Subtitles",
     "forum": "Forum",
     "chat": "Live Chat",
+    "messages": "Messages",
     "watchTogether": "Watch Together",
     "donate": "Support",
     "shop": "Shop",
     "faq": "FAQ",
+    "changelog": "Changelog",
+    "dmca": "DMCA",
     "status": "Status",
     "more": "More",
     "search": "Search",
     "login": "Log in",
     "menu": "Menu",
+    "groups": {
+      "browse": "Browse",
+      "watch": "Watch",
+      "community": "Community",
+      "site": "Site",
+      "account": "Account"
+    },
     "short": {
       "home": "Home",
       "schedule": "Schedule",
@@ -27,11 +37,17 @@
       "subtitles": "Subs",
       "forum": "Forum",
       "chat": "Chat",
+      "messages": "Messages",
       "together": "Together",
       "donate": "Support",
       "shop": "Shop",
       "faq": "FAQ",
-      "status": "Status"
+      "changelog": "Changelog",
+      "dmca": "DMCA",
+      "status": "Status",
+      "search": "Search",
+      "voiceActors": "VAs",
+      "watchHistory": "History"
     },
     "aria": {
       "mainNav": "Main navigation",
@@ -40,7 +56,8 @@
       "openSearch": "Search",
       "openMenu": "Open menu",
       "closeMenu": "Close menu",
-      "mobileNav": "Mobile navigation"
+      "mobileNav": "Mobile navigation",
+      "mobileBottomNav": "Quick navigation"
     },
     "admin": "Admin",
     "profile": "Profile",
@@ -753,7 +770,24 @@
     "failedToLoadActivity": "Couldn't load activity",
     "activitySummary": "Watched {count} episodes in the last year",
     "retry": "Try again",
-    "retrying": "Retrying…"
+    "retrying": "Retrying…",
+    "subNav": {
+      "label": "Profile pages",
+      "overview": "Overview",
+      "comments": "Comments"
+    },
+    "commentsPage": {
+      "subtitle": "Episode comments and activity",
+      "backToProfile": "Back to profile",
+      "searchPlaceholder": "Search comments…",
+      "sortNewest": "Newest first",
+      "sortOldest": "Oldest first",
+      "clearFilters": "Clear filters",
+      "count": "{count} comments",
+      "viewAll": "View all",
+      "noResults": "No comments match your search",
+      "monthsAgo": "{count}mo ago"
+    }
   },
   "forum": {
     "title": "Forum",

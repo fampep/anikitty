@@ -23,4 +23,5 @@ export const ROUTES = {
   VOICE_ACTOR: "/voice-actor",
   VOICE_ACTORS: "/voice-actors",
   profile: (username: string) => `/profile/${encodeURIComponent(username)}`,
+  profileComments: (username: string) => `/profile/${encodeURIComponent(username)}/comments`,
 };

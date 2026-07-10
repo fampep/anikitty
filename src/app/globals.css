@@ -6,6 +6,8 @@ html {
   scroll-behavior: smooth;
   --nav-height: 4rem;
   --nav-total-height: calc(var(--nav-height) + env(safe-area-inset-top, 0px));
+  --mobile-nav-height: 4.25rem;
+  --mobile-nav-total: calc(var(--mobile-nav-height) + max(0.5rem, env(safe-area-inset-bottom)));
   --banner-offset: 0px;
   --home-hero-max-h: 520px;
   --home-section-gap: 2.5rem;

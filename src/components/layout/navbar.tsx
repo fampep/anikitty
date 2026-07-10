@@ -7,6 +7,7 @@ import { ROUTES } from "@/constants/routes";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import SearchBar from "./search-bar";
 import {
+  Activity,
   CalendarDays,
   Captions,
   ChevronDown,
@@ -14,15 +15,22 @@ import {
   Coins,
   Flame,
   HelpCircle,
+  History,
   Home,
+  Mail,
   MenuIcon,
   MessageCircle,
+  MessageSquare,
   MessagesSquare,
+  Mic,
   MoreHorizontal,
+  Scale,
+  ScrollText,
+  Search,
   SearchIcon,
+  Tv2,
   Users,
   X,
-  Activity,
 } from "lucide-react";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -40,36 +48,61 @@ import Image from "next/image";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 
-const MENU_DEFS = [
-  { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home" },
-  { href: ROUTES.SCHEDULE, icon: CalendarDays, titleKey: "nav.schedule", shortKey: "nav.short.schedule" },
-  { href: ROUTES.TRENDING, icon: Flame, titleKey: "nav.trending", shortKey: "nav.short.trending" },
-  { href: ROUTES.SUBTITLES, icon: Captions, titleKey: "nav.subtitles", shortKey: "nav.short.subtitles" },
-  { href: ROUTES.FORUM, icon: MessagesSquare, titleKey: "nav.forum", shortKey: "nav.short.forum" },
-  { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat" },
-  { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together" },
-  { href: ROUTES.SHOP, icon: Coins, titleKey: "nav.shop", shortKey: "nav.short.shop" },
-  { href: ROUTES.DONATE, icon: Coffee, titleKey: "nav.donate", shortKey: "nav.short.donate" },
-  { href: ROUTES.STATUS, icon: Activity, titleKey: "nav.status", shortKey: "nav.short.status" },
-  { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq" },
-] as const;
+type MenuGroup = "browse" | "watch" | "community" | "site" | "account";
 
-const PRIMARY_NAV_COUNT = 5;
+const MENU_GROUP_ORDER: MenuGroup[] = ["browse", "watch", "community", "site", "account"];
+
+const MENU_DEFS = [
+  { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home", group: "browse" as MenuGroup, primary: true },
+  { href: ROUTES.TRENDING, icon: Flame, titleKey: "nav.trending", shortKey: "nav.short.trending", group: "browse" as MenuGroup, primary: true },
+  { href: ROUTES.SCHEDULE, icon: CalendarDays, titleKey: "nav.schedule", shortKey: "nav.short.schedule", group: "browse" as MenuGroup, primary: true },
+  { href: ROUTES.NEW, icon: Tv2, titleKey: "nav.newReleases", shortKey: "nav.short.newReleases", group: "browse" as MenuGroup, primary: true },
+  { href: ROUTES.FORUM, icon: MessagesSquare, titleKey: "nav.forum", shortKey: "nav.short.forum", group: "community" as MenuGroup, primary: true },
+  { href: ROUTES.SEARCH, icon: Search, titleKey: "nav.search", shortKey: "nav.short.search", group: "browse" as MenuGroup },
+  { href: ROUTES.COMMUNITY, icon: MessageSquare, titleKey: "nav.community", shortKey: "nav.short.community", group: "browse" as MenuGroup },
+  { href: ROUTES.VOICE_ACTORS, icon: Mic, titleKey: "nav.voiceActors", shortKey: "nav.short.voiceActors", group: "browse" as MenuGroup },
+  { href: ROUTES.SUBTITLES, icon: Captions, titleKey: "nav.subtitles", shortKey: "nav.short.subtitles", group: "watch" as MenuGroup },
+  { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together", group: "watch" as MenuGroup },
+  { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat", group: "community" as MenuGroup },
+  { href: ROUTES.MESSAGES, icon: Mail, titleKey: "nav.messages", shortKey: "nav.short.messages", group: "community" as MenuGroup, authOnly: true },
+  { href: ROUTES.SHOP, icon: Coins, titleKey: "nav.shop", shortKey: "nav.short.shop", group: "site" as MenuGroup },
+  { href: ROUTES.DONATE, icon: Coffee, titleKey: "nav.donate", shortKey: "nav.short.donate", group: "site" as MenuGroup },
+  { href: ROUTES.STATUS, icon: Activity, titleKey: "nav.status", shortKey: "nav.short.status", group: "site" as MenuGroup },
+  { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq", group: "site" as MenuGroup },
+  { href: ROUTES.CHANGELOG, icon: ScrollText, titleKey: "nav.changelog", shortKey: "nav.short.changelog", group: "site" as MenuGroup },
+  { href: ROUTES.DMCA, icon: Scale, titleKey: "nav.dmca", shortKey: "nav.short.dmca", group: "site" as MenuGroup },
+  { href: ROUTES.HISTORY, icon: History, titleKey: "nav.watchHistory", shortKey: "nav.short.watchHistory", group: "account" as MenuGroup, authOnly: true },
+] as const;
 
 type MenuItem = {
   href: string;
   icon: (typeof MENU_DEFS)[number]["icon"];
   title: string;
   short: string;
+  group: MenuGroup;
+  primary?: boolean;
 };
+
+function isNavActive(pathname: string, href: string): boolean {
+  if (pathname === href) return true;
+  if (href === ROUTES.HOME) return false;
+  if (href === ROUTES.SEARCH) return pathname.startsWith("/search");
+  if (href === ROUTES.FORUM) return pathname.startsWith("/forum");
+  if (href === ROUTES.MESSAGES) return pathname.startsWith("/messages");
+  if (href === ROUTES.VOICE_ACTORS) return pathname.startsWith("/voice-actor");
+  return pathname.startsWith(`${href}/`);
+}
 
 function useMenuItems(): MenuItem[] {
   const t = useT();
-  return MENU_DEFS.map((item) => ({
+  const auth = useAuthStore((s) => s.auth);
+  return MENU_DEFS.filter((item) => !("authOnly" in item && item.authOnly) || auth).map((item) => ({
     href: item.href,
     icon: item.icon,
     title: t(item.titleKey),
     short: t(item.shortKey),
+    group: item.group,
+    primary: "primary" in item ? item.primary : undefined,
   }));
 }
 
@@ -94,7 +127,7 @@ function NavLink({
   compact?: boolean;
   onClick?: () => void;
 }) {
-  const isActive = pathname === item.href;
+  const isActive = isNavActive(pathname, item.href);
   const Icon = item.icon;
 
   return (
@@ -111,12 +144,66 @@ function NavLink({
   );
 }
 
+function GroupedNavLinks({
+  items,
+  pathname,
+  onNavigate,
+  compact,
+}: {
+  items: readonly MenuItem[];
+  pathname: string;
+  onNavigate?: () => void;
+  compact?: boolean;
+}) {
+  const t = useT();
+  const groups = MENU_GROUP_ORDER.map((group) => ({
+    group,
+    label: t(`nav.groups.${group}`),
+    items: items.filter((item) => item.group === group),
+  })).filter((section) => section.items.length > 0);
+
+  return (
+    <div className={cn("flex flex-col", compact ? "gap-1" : "gap-2")}>
+      {groups.map((section, index) => (
+        <div key={section.group}>
+          {index > 0 && <div className="my-1.5 h-px bg-border/70 dark:bg-white/[0.06]" />}
+          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80 dark:text-white/30">
+            {section.label}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const active = isNavActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                    active
+                      ? "nav-link-active user-accent-nav-active font-semibold"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground dark:hover:text-white/60 dark:bg-white/[0.06] dark:text-white",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {item.title}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DesktopNav({ pathname }: { pathname: string }) {
   const t = useT();
   const menuItems = useMenuItems();
-  const primary = menuItems.slice(0, PRIMARY_NAV_COUNT);
-  const secondary = menuItems.slice(PRIMARY_NAV_COUNT);
-  const secondaryActive = secondary.some((item) => pathname === item.href);
+  const primary = menuItems.filter((item) => item.primary);
+  const secondary = menuItems.filter((item) => !item.primary);
+  const secondaryActive = secondary.some((item) => isNavActive(pathname, item.href));
 
   return (
     <nav
@@ -161,30 +248,9 @@ function MoreNavMenu({
       <PopoverContent
         align="center"
         sideOffset={10}
-        className="w-52 border-border bg-popover/95 p-1.5 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0a0a10]/95"
+        className="max-h-[min(70vh,28rem)] w-64 overflow-y-auto border-border bg-popover/95 p-2 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0a0a10]/95"
       >
-        <div className="flex flex-col gap-0.5">
-          {items.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "nav-link-active user-accent-nav-active font-semibold"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground dark:hover:text-white/60 dark:bg-white/[0.06] dark:text-white",
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {item.title}
-              </Link>
-            );
-          })}
-        </div>
+        <GroupedNavLinks items={items} pathname={pathname} onNavigate={() => setOpen(false)} compact />
       </PopoverContent>
     </Popover>
   );
@@ -202,7 +268,7 @@ function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
         "dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/55 dark:hover:border-violet-400/25 dark:hover:bg-violet-500/[0.06] dark:hover:text-white",
         "lg:inline-flex",
         "w-9 justify-center p-0",
-        "xl:w-[min(15rem,calc(100vw-42rem))] xl:justify-start xl:gap-2.5 xl:px-3",
+        "xl:w-[min(14rem,calc(100vw-44rem))] xl:justify-start xl:gap-2.5 xl:px-3",
       )}
       aria-label={t("nav.aria.openSearch")}
     >
@@ -366,27 +432,24 @@ const NavBar = () => {
           </div>
         )}
 
-        <div className="flex h-[var(--nav-height)] items-center gap-3 sm:gap-4 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-x-6">
-          {/* Brand */}
+        <div className="flex h-[var(--nav-height)] items-center gap-2 sm:gap-3 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-x-5">
           <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center">
             <Image
               src={SITE_LOGO}
               alt="AniKitty"
               width={132}
               height={48}
-              className="h-8 w-auto max-w-[7.5rem] sm:max-w-none sm:h-9 object-contain transition-opacity group-hover:opacity-95"
+              className="h-8 w-auto max-w-[7rem] sm:max-w-none sm:h-9 object-contain transition-opacity group-hover:opacity-95"
               priority
               unoptimized
             />
           </Link>
 
-          {/* Centered desktop navigation */}
-          <div className="relative z-10 hidden min-w-0 justify-center overflow-hidden px-1 lg:flex">
+          <div className="relative z-10 hidden min-w-0 justify-center overflow-hidden px-0.5 lg:flex">
             <DesktopNav pathname={pathname} />
           </div>
 
-          {/* Right actions */}
-          <div className="relative z-20 ml-auto flex min-w-0 shrink-0 items-center justify-end gap-2 sm:gap-2.5 lg:ml-0">
+          <div className="relative z-20 ml-auto flex min-w-0 shrink-0 items-center justify-end gap-1.5 sm:gap-2 lg:ml-0">
             <DesktopSearchTrigger onClick={() => setSearchOpen(true)} />
             <button
               type="button"
@@ -403,8 +466,7 @@ const NavBar = () => {
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
             </div>
 
-            <div className="flex items-center gap-1 lg:hidden">
-              {user && <KittycoinPill />}
+            <div className="flex items-center gap-0.5 sm:gap-1 lg:hidden">
               {user && <NotificationBell />}
               <MobileMenuSheet
                 pathname={pathname}
@@ -441,7 +503,7 @@ const MobileMenuSheet = ({
         </button>
       </SheetTrigger>
       <SheetContent
-        className="z-[150] flex w-[min(85vw,20rem)] flex-col border-border bg-background/98 backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#050508]/98"
+        className="z-[150] flex w-[min(88vw,21rem)] flex-col border-border bg-background/98 backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#050508]/98"
         hideCloseButton
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
@@ -477,27 +539,8 @@ const MobileMenuSheet = ({
             </button>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4" aria-label={t("nav.aria.mobileNav")}>
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-medium transition-all",
-                    isActive
-                      ? "nav-link-active user-accent-nav-active"
-                      : "text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground dark:hover:text-white/55 dark:border-white/[0.06] dark:bg-white/[0.06] dark:text-white",
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.title}
-                </Link>
-              );
-            })}
+          <nav className="flex flex-1 flex-col overflow-y-auto p-3" aria-label={t("nav.aria.mobileNav")}>
+            <GroupedNavLinks items={menuItems} pathname={pathname} onNavigate={() => setOpen(false)} />
           </nav>
         </div>
       </SheetContent>

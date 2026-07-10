@@ -64,7 +64,8 @@ import AchievementsSection from "@/components/profile/achievements-section";
 import FollowListModal, { type FollowListType } from "@/components/profile/follow-list-modal";
 import FriendsModal from "@/components/profile/friends-modal";
 import ProfileSectionNav from "@/components/profile/profile-section-nav";
-import ProfileCommentsSection from "@/components/profile/profile-comments-section";
+import ProfileSubNav from "@/components/profile/profile-sub-nav";
+import ProfileCommentsFeed from "@/components/profile/profile-comments-feed";
 import ProfileLibraryBreakdownBar, {
   type LibrarySegment,
 } from "@/components/profile/profile-library-breakdown-bar";
@@ -502,7 +503,6 @@ function ProfilePage() {
     { id: "about", label: t("profile.sectionNav.about") },
     { id: "watchlist", label: t("profile.sectionNav.watchlist") },
     { id: "activity", label: t("profile.sectionNav.activity") },
-    { id: "comments", label: t("profile.sectionNav.comments") },
     { id: "achievements", label: t("profile.sectionNav.achievements") },
   ];
 
@@ -801,10 +801,24 @@ function ProfilePage() {
 
         <ProfileSectionNav sections={profileSections} />
 
-        {/* ── Main content: two columns (main + sticky sidebar) ─────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start">
-          {/* ── Left: primary content ── */}
-          <div className="flex flex-col gap-10 min-w-0">
+        <ProfileSubNav
+          username={profile.username}
+          active="overview"
+          commentCount={displayLevel?.commentCount}
+          placement="mobile"
+        />
+
+        {/* ── Main content: sub-nav + two columns (main + sticky sidebar) ─────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start">
+          <ProfileSubNav
+            username={profile.username}
+            active="overview"
+            commentCount={displayLevel?.commentCount}
+            placement="sidebar"
+          />
+
+          {/* ── Center: primary content ── */}
+          <div className="flex flex-col gap-10 min-w-0 lg:col-span-1">
           {isOwn && (
             <section id="continue" className="scroll-mt-24">
               <ContinueWatching loading={false} />
@@ -900,20 +914,20 @@ function ProfilePage() {
             </div>
           </section>
 
-          <section id="comments" className="scroll-mt-24">
+          <section id="comments-preview" className="scroll-mt-24">
             <SectionLabel
               icon={<MessageSquare className="w-4 h-4" />}
               title={t("profile.comments")}
               count={displayLevel?.commentCount ?? 0}
             />
-            <div className="site-panel px-4 py-2">
-              <ProfileCommentsSection username={profile.username} />
+            <div className="site-panel p-4">
+              <ProfileCommentsFeed username={profile.username} variant="compact" limit={5} />
             </div>
           </section>
           </div>
 
           {/* ── Right: sticky sidebar (quick stats + achievements) ── */}
-          <aside className="flex flex-col gap-6 lg:sticky lg:top-20">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-20 lg:col-span-1">
             <div className="site-panel p-5">
               <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.libraryStats")} inline />
               <ProfileLibraryBreakdownBar segments={librarySegments} total={totalAnime} />
