@@ -431,7 +431,7 @@ const DEPRECATED_PROVIDERS = new Set([
   "PimpAnime",
 ]);
 
-/** KittyAPI unified MegaPlay provider (Anikoto API catalog + megaplay.buzz streams). */
+/** KittyAPI unified MegaPlay provider (merged backends; see megaplay-providers.ts). */
 export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([MEGAPLAY_PROVIDER_ID]);
 
 const LEGACY_MEGAPLAY_PROVIDERS = new Set<string>(LEGACY_MEGAPLAY_PROVIDER_IDS);

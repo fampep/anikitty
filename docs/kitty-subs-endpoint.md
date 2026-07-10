@@ -11,7 +11,7 @@ Authorization: Bearer YOUR_API_KEY
 
 Examples (when enabled in your deployment):
 
-- MegaPlay family: Anikoto, AnimeSogo, Anix, HiAnime, Animepahe
+- MegaPlay (unified — replaces Anikoto, AnimeSogo, Anix, HiAnime, Animepahe)
 - PimpAnime (native CDN, VTT on SUB)
 - Animetsu, Animex, AllAnime, MKissa
 - AnimeOnsen (ASS subtitles via OAuth API)
@@ -77,11 +77,11 @@ GET /provider/{ProviderName}/subs
 ## Examples
 
 ```http
-GET /subs?provider=Anix&anilistId=177634&episode=13
-GET /subs?provider=HiAnime&anilistId=123456
-GET /subs?provider=AnimeSogo&seriesUrl=https://animesogo.to/watch/example-slug&episode=1
-GET /subs?provider=Anix&anilistId=177634&episode=1&audio=dub
-GET /subs?provider=Anikoto&anilistId=1535&episode=1&title=Death+Note
+GET /subs?provider=MegaPlay&anilistId=177634&episode=13
+GET /subs?provider=MegaPlay&anilistId=123456
+GET /subs?provider=MegaPlay&seriesUrl=anilist:1535&episode=1
+GET /subs?provider=MegaPlay&anilistId=177634&episode=1&audio=dub
+GET /subs?provider=MegaPlay&anilistId=1535&episode=1&title=Death+Note
 GET /subs?provider=AnimeOnsen&anilistId=1535&episode=1&title=Death+Note
 GET /subs?provider=AnimeNexus&anilistId=108511&episode=1&title=That+Time+I+Got+Reincarnated+as+a+Slime+Season+4
 GET /subs?list=providers
@@ -93,7 +93,7 @@ GET /subs?list=providers
 
 ```json
 {
-  "provider": "HiAnime",
+  "provider": "MegaPlay",
   "anilistId": 123456,
   "title": "Anime Title",
   "seriesUrl": "https://hianimez.org/watch/...",
