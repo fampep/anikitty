@@ -5,10 +5,10 @@ import Link from "next/link";
 import Container from "@/components/layout/container";
 import FramedAvatar from "@/components/common/framed-avatar";
 import { CosmeticUsername } from "@/components/common/user-cosmetics";
-import { SectionHeading } from "./section-heading";
+import { HomeSectionLink } from "./home-shared";
 import { UserBadges } from "@/components/profile/user-badges";
 import { CommentFeedBody } from "@/components/comments/comment-feed-body";
-import { MessageSquare, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 
@@ -78,7 +78,7 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
         <Link
           key={c.id}
           href={commentLink(c)}
-          className="flex flex-col gap-2.5 p-3.5 rounded-xl border border-border/80 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.02] hover:border-border hover:bg-muted/30 dark:hover:border-white/15 dark:hover:bg-white/[0.04] transition-colors group"
+          className="flex flex-col gap-2.5 p-3.5 rounded-xl border border-border/80 dark:border-white/[0.07] bg-transparent hover:border-white/20 dark:hover:border-white/15 transition-colors group"
         >
           <div className="flex items-start gap-3 min-w-0">
             <FramedAvatar
@@ -160,7 +160,7 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
 
   const header = (
     <div className="flex items-center justify-between gap-3 w-full">
-      <SectionHeading icon={<MessageSquare className="w-4 h-4" />} title={t("home.latestComments")} />
+      <HomeSectionLink href={ROUTES.COMMUNITY} title={t("home.latestComments")} />
       <div className="flex items-center gap-2 shrink-0">
         <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono text-emerald-300/70 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -202,17 +202,17 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
 const BareLoadingSkeleton = () => (
   <div className="flex flex-col gap-4">
     <div className="flex items-center gap-3">
-      <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
-      <div className="h-5 w-40 animate-pulse bg-accent dark:bg-white/8 rounded" />
+      <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
+      <div className="h-5 w-40 animate-pulse bg-white/10 rounded" />
     </div>
     <div className="flex flex-col gap-2">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="p-3.5 rounded-xl border border-border/50 dark:border-white/5">
           <div className="flex gap-3">
-            <div className="w-9 h-9 rounded-full bg-accent dark:bg-white/8 animate-pulse shrink-0" />
+            <div className="w-9 h-9 rounded-full bg-white/10 animate-pulse shrink-0" />
             <div className="flex-1 flex flex-col gap-1.5">
-              <div className="h-3 w-32 rounded bg-accent dark:bg-white/8 animate-pulse" />
-              <div className="h-3 w-full rounded bg-muted/50 dark:bg-white/5 animate-pulse" />
+              <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
+              <div className="h-3 w-full rounded bg-white/8 animate-pulse" />
             </div>
           </div>
         </div>
@@ -224,17 +224,17 @@ const BareLoadingSkeleton = () => (
 const LoadingSkeleton = () => (
   <Container className="flex flex-col gap-4 py-8">
     <div className="flex items-center gap-3">
-      <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
-      <div className="h-5 w-40 animate-pulse bg-accent dark:bg-white/8 rounded" />
+      <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
+      <div className="h-5 w-40 animate-pulse bg-white/10 rounded" />
     </div>
     <div className="flex flex-col gap-2">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="p-3.5 rounded-xl">
           <div className="flex gap-3">
-            <div className="w-9 h-9 rounded-full bg-accent dark:bg-white/8 animate-pulse shrink-0" />
+            <div className="w-9 h-9 rounded-full bg-white/10 animate-pulse shrink-0" />
             <div className="flex-1 flex flex-col gap-1.5">
-              <div className="h-3 w-32 rounded bg-accent dark:bg-white/8 animate-pulse" />
-              <div className="h-3 w-full rounded bg-muted/50 dark:bg-white/5 animate-pulse" />
+              <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
+              <div className="h-3 w-full rounded bg-white/8 animate-pulse" />
             </div>
           </div>
         </div>

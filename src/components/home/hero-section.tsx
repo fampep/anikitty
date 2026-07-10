@@ -168,15 +168,12 @@ const HeroCarouselItem = ({
               {anime.name}
             </ButtonLink>
 
-            <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm font-medium pointer-events-none">
-              <span className="py-1 px-3 text-muted-foreground text-xs rounded-full border border-border/60 dark:border-white/10">
+            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm pointer-events-none">
+              <span className="text-[10px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-[0.2em]">
                 {formatAnimeType(anime.type)}
               </span>
               {anime.otherInfo?.slice(0, 3).map((info, i) => (
-                <span
-                  key={i}
-                  className="py-1 px-3 text-muted-foreground text-xs rounded-full border border-border/60 dark:border-white/10"
-                >
+                <span key={i} className="text-xs text-muted-foreground dark:text-white/40 font-mono">
                   {info}
                 </span>
               ))}
@@ -197,14 +194,14 @@ const HeroCarouselItem = ({
               </ButtonLink>
               <ButtonLink
                 href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-                className="size-9 flex items-center justify-center rounded-full border border-border/60 bg-black/20 hover:bg-white/10 dark:border-white/10"
+                className="size-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 pointer-events-auto"
                 aria-label={t("home.details")}
               >
                 <Info className="h-4 w-4" />
               </ButtonLink>
               <button
                 type="button"
-                className="size-9 flex items-center justify-center rounded-full border border-border/60 bg-black/20 hover:bg-white/10 dark:border-white/10 pointer-events-auto"
+                className="size-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 pointer-events-auto"
                 aria-label={t("anime.addToList")}
               >
                 <Bookmark className="h-4 w-4" />

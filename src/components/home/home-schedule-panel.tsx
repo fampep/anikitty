@@ -81,7 +81,7 @@ export default function HomeSchedulePanel() {
                 "w-20 py-2 flex flex-col items-center justify-center shrink-0 rounded-xl ring-inset transition-all",
                 active
                   ? "bg-foreground text-background font-bold dark:bg-white dark:text-black"
-                  : "home-glass-pill font-bold text-foreground/90",
+                  : "font-bold text-muted-foreground hover:text-foreground dark:hover:text-white/80 transition-colors",
               )}
             >
               <span>{d.toLocaleDateString(locale, { weekday: "short" })}</span>
@@ -109,7 +109,7 @@ export default function HomeSchedulePanel() {
             <button
               type="button"
               onClick={() => setRetry((n) => n + 1)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg home-glass-pill text-xs font-semibold"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               {t("home.retry")}

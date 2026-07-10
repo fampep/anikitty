@@ -133,7 +133,7 @@ body {
   }
 
   .home-glass-pill {
-    @apply rounded-full border border-border/80 bg-muted/50 text-foreground/90 ring-1 ring-inset ring-border/50 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5;
+    @apply rounded-full bg-transparent border-0 ring-0 shadow-none backdrop-blur-none text-muted-foreground dark:text-white/50;
   }
 
   .home-glass-card {
@@ -141,7 +141,7 @@ body {
   }
 
   .home-glass-panel {
-    @apply border border-border/60 bg-muted/30 backdrop-blur-sm dark:border-white/10 dark:bg-white/5;
+    @apply border-0 bg-transparent;
   }
 
   .home-rail-fade {

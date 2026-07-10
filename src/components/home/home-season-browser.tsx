@@ -64,7 +64,7 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
                 "text-center flex items-center justify-center gap-1 shrink-0 text-nowrap text-sm lg:text-base h-9 rounded-xl transition-all",
                 active
                   ? "bg-foreground text-background font-semibold dark:bg-white dark:text-black"
-                  : "home-glass-pill text-foreground/90 font-medium hover:brightness-110",
+                  : "text-muted-foreground font-medium hover:text-foreground dark:hover:text-white/80 transition-colors",
               )}
             >
               <Icon className="w-4 h-4 shrink-0" aria-hidden />
