@@ -28,7 +28,7 @@ const getAnimeSubtitles = async (
     episode?: number;
     fetch?: boolean;
     all?: boolean;
-    audio?: "sub" | "dub";
+    refresh?: boolean;
     title?: string | null;
   },
 ): Promise<AnimeSubtitleItem[]> => {
@@ -37,7 +37,7 @@ const getAnimeSubtitles = async (
       episode: opts?.episode,
       fetch: opts?.fetch ? 1 : undefined,
       all: opts?.all ? 1 : undefined,
-      audio: opts?.audio,
+      refresh: opts?.refresh ? 1 : undefined,
       title: opts?.title?.trim() || undefined,
     },
   });
@@ -74,24 +74,29 @@ export const listAnimeSubtitleTracks = async (
   return getAnimeSubtitles(anilistId);
 };
 
+/** Fetch SUB subtitles for one episode (optional hard refresh clears cache first). */
 export const fetchAnimeEpisodeSubtitles = async (
   anilistId: number,
   episode: number,
-  audio: "sub" | "dub" = "sub",
-  title?: string | null,
+  opts?: { title?: string | null; refresh?: boolean },
 ): Promise<AnimeSubtitleItem[]> => {
-  return getAnimeSubtitles(anilistId, { episode, fetch: true, audio, title });
+  return getAnimeSubtitles(anilistId, {
+    episode,
+    fetch: true,
+    refresh: opts?.refresh,
+    title: opts?.title,
+  });
 };
 
-/** Bulk fetch all episodes via Kitty GET /subs (no episode param). */
+/** Bulk fetch all SUB episodes via Kitty GET /subs (no episode param). */
 export const fetchAnimeAllSubtitles = async (
   anilistId: number,
-  opts?: { audio?: "sub" | "dub"; title?: string | null },
+  opts?: { title?: string | null; refresh?: boolean },
 ): Promise<AnimeSubtitleItem[]> => {
   return getAnimeSubtitles(anilistId, {
     fetch: true,
     all: true,
-    audio: opts?.audio,
+    refresh: opts?.refresh,
     title: opts?.title,
   });
 };

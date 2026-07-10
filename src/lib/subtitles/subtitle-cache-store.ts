@@ -380,7 +380,6 @@ export const ensureAnitakuSubtitleCache = ensurePlaybackSubtitleCache;
 /** Cache every episode from a bulk Kitty `/subs` response. Returns episodes cached. */
 export async function cacheKittySubsBulkForAnime(opts: {
   anilistId: number;
-  audio: "sub" | "dub";
   animeTitle?: string | null;
   preferProvider?: string | null;
 }): Promise<number> {
@@ -388,7 +387,7 @@ export async function cacheKittySubsBulkForAnime(opts: {
 
   const bulk = await fetchKittySubsBulk({
     anilistId: opts.anilistId,
-    audio: opts.audio,
+    audio: "sub",
     title: opts.animeTitle,
     preferProvider: opts.preferProvider,
   });
@@ -778,6 +777,40 @@ export type ListedSubtitle = {
   fetchedAt: Date;
 };
 
+/** Remove cached subtitle rows for one anime (SUB tracks only — library page never uses DUB). */
+export async function clearAnimeSubtitles(
+  anilistId: number,
+  opts?: { episode?: number },
+): Promise<number> {
+  if (!dbAvailable() || anilistId <= 0) return 0;
+
+  try {
+    const db = getDb();
+    const conditions = [
+      eq(episodeSubtitles.anilistId, anilistId),
+      eq(episodeSubtitles.audio, "sub"),
+      subtitleProviderFilter(),
+    ];
+    if (opts?.episode != null && opts.episode > 0) {
+      conditions.push(eq(episodeSubtitles.episode, opts.episode));
+    }
+
+    const deleted = await db
+      .delete(episodeSubtitles)
+      .where(and(...conditions))
+      .returning({ id: episodeSubtitles.id });
+
+    void import("@/lib/subtitles/subtitle-library-db").then((m) =>
+      m.syncSubtitleLibraryAnime(anilistId),
+    );
+
+    return deleted.length;
+  } catch (err) {
+    console.error("[subtitle-cache-store] clearAnimeSubtitles failed:", err);
+    return 0;
+  }
+}
+
 export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubtitle[]> {
   if (!dbAvailable()) return [];
 
@@ -799,6 +832,7 @@ export async function listAnimeSubtitles(anilistId: number): Promise<ListedSubti
       .where(
         and(
           eq(episodeSubtitles.anilistId, anilistId),
+          eq(episodeSubtitles.audio, "sub"),
           subtitleProviderFilter(),
         ),
       )

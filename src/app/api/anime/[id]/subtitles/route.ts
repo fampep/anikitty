@@ -1,5 +1,6 @@
 import {
   cacheKittySubsBulkForAnime,
+  clearAnimeSubtitles,
   ensurePlaybackSubtitleCache,
   getAnimeSubtitleEpisodeCoverage,
   listAnimeSubtitles,
@@ -27,21 +28,30 @@ export async function GET(
   const fetch = searchParams.get("fetch") === "1";
   const fetchAll = searchParams.get("all") === "1" || (fetch && !episodeParam);
   const includeCoverage = searchParams.get("coverage") === "1";
-  const audioParam = searchParams.get("audio");
-  const fetchAudio = audioParam === "dub" ? "dub" : "sub";
+  const refresh = searchParams.get("refresh") === "1";
   const titleParam = searchParams.get("title")?.trim() || null;
+
+  if (refresh) {
+    if (fetchAll) {
+      await clearAnimeSubtitles(anilistId);
+    } else if (episodeParam && SAFE_ID.test(episodeParam)) {
+      const episode = parseInt(episodeParam, 10);
+      if (episode > 0) {
+        await clearAnimeSubtitles(anilistId, { episode });
+      }
+    }
+  }
 
   if (fetchAll) {
     await cacheKittySubsBulkForAnime({
       anilistId,
-      audio: fetchAudio,
       animeTitle: titleParam,
     });
   } else if (fetch && episodeParam && SAFE_ID.test(episodeParam)) {
     const episode = parseInt(episodeParam, 10);
     if (episode > 0) {
       await ensurePlaybackSubtitleCache(
-        { anilistId, episode, audio: fetchAudio, animeTitle: titleParam },
+        { anilistId, episode, audio: "sub", animeTitle: titleParam },
         { force: true, allowBulk: true },
       );
     }
@@ -52,10 +62,6 @@ export async function GET(
   if (episodeParam && SAFE_ID.test(episodeParam)) {
     const episode = parseInt(episodeParam, 10);
     rows = rows.filter((row) => row.episode === episode);
-  }
-
-  if (audioParam === "sub" || audioParam === "dub") {
-    rows = rows.filter((row) => row.audio === audioParam);
   }
 
   const tracks = rows.map((row) => {

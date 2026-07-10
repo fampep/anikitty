@@ -47,7 +47,6 @@ async function bulkFetchLibraryAnime(anilistId: number): Promise<number> {
 
   const cached = await cacheKittySubsBulkForAnime({
     anilistId,
-    audio: "sub",
     animeTitle: meta?.title ?? null,
   });
 

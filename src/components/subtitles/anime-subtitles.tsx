@@ -50,6 +50,7 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
   );
   const [fetchingEps, setFetchingEps] = useState<Set<number>>(() => new Set());
   const [fetchingAll, setFetchingAll] = useState(false);
+  const [hardRefreshing, setHardRefreshing] = useState(false);
 
   const { data: episodesData, isLoading: episodesLoading } = useGetAllEpisodes(String(anilistId));
   const { data: subtitles = [], isLoading: subtitlesLoading, refetch } = useGetAnimeSubtitles(anilistId);
@@ -170,10 +171,13 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
   }, [subtitles]);
 
   const handleFetchEpisode = useCallback(
-    async (episode: number, opts?: { silent?: boolean }) => {
+    async (episode: number, opts?: { silent?: boolean; refresh?: boolean }) => {
       setFetchingEps((prev) => new Set(prev).add(episode));
       try {
-        const tracks = await fetchAnimeEpisodeSubtitles(anilistId, episode, "sub", title);
+        const tracks = await fetchAnimeEpisodeSubtitles(anilistId, episode, {
+          title,
+          refresh: opts?.refresh,
+        });
         await refetch();
         if (!opts?.silent) {
           if (tracks.length === 0) {
@@ -198,10 +202,10 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
   );
 
   const handleFetchAll = useCallback(async () => {
-    if (fetchingAll || fetchingEps.size > 0) return;
+    if (fetchingAll || fetchingEps.size > 0 || hardRefreshing) return;
     setFetchingAll(true);
     try {
-      const tracks = await fetchAnimeAllSubtitles(anilistId, { audio: "sub", title });
+      const tracks = await fetchAnimeAllSubtitles(anilistId, { title });
       await refetch();
       if (tracks.length === 0) {
         toast.error(t("anime.subtitles.fetchEmpty"));
@@ -213,9 +217,27 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
     } finally {
       setFetchingAll(false);
     }
-  }, [anilistId, fetchingAll, fetchingEps.size, refetch, t, title]);
+  }, [anilistId, fetchingAll, fetchingEps.size, hardRefreshing, refetch, t, title]);
 
-  const busy = fetchingEps.size > 0 || fetchingAll;
+  const handleHardRefreshAll = useCallback(async () => {
+    if (hardRefreshing || fetchingAll || fetchingEps.size > 0) return;
+    setHardRefreshing(true);
+    try {
+      const tracks = await fetchAnimeAllSubtitles(anilistId, { title, refresh: true });
+      await refetch();
+      if (tracks.length === 0) {
+        toast.error(t("anime.subtitles.fetchEmpty"));
+      } else {
+        toast.success(t("anime.subtitles.hardRefreshAllSuccess"));
+      }
+    } catch {
+      toast.error(t("anime.subtitles.hardRefreshAllError"));
+    } finally {
+      setHardRefreshing(false);
+    }
+  }, [anilistId, hardRefreshing, fetchingAll, fetchingEps.size, refetch, t, title]);
+
+  const busy = fetchingEps.size > 0 || fetchingAll || hardRefreshing;
 
   return (
     <div className="flex flex-col gap-5">
@@ -233,10 +255,30 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
               <p className="text-xs text-muted-foreground dark:text-white/45 mt-1 max-w-xl leading-relaxed">
                 {t("anime.subtitles.description")}
               </p>
+              <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-md text-[9px] font-mono uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 text-teal-300/70">
+                {t("anime.subtitles.subOnlyNote")}
+              </span>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {cachedEpisodes > 0 && (
+              <button
+                type="button"
+                onClick={handleHardRefreshAll}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+              >
+                {hardRefreshing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                {hardRefreshing
+                  ? t("anime.subtitles.hardRefreshAllProgress")
+                  : t("anime.subtitles.hardRefreshAll")}
+              </button>
+            )}
             {totalEpisodes > 0 && missingCount > 0 && (
               <button
                 type="button"
@@ -391,6 +433,7 @@ export default function AnimeSubtitles({ anilistId, title }: Props) {
                 busy={busy}
                 fetching={fetchingEps.has(group.number)}
                 onFetch={() => handleFetchEpisode(group.number)}
+                onHardRefresh={() => handleFetchEpisode(group.number, { refresh: true })}
               />
             ))}
           </div>
@@ -419,11 +462,13 @@ function EpisodeSubtitleCard({
   busy,
   fetching,
   onFetch,
+  onHardRefresh,
 }: {
   group: EpisodeRow;
   busy: boolean;
   fetching: boolean;
   onFetch: () => void;
+  onHardRefresh: () => void;
 }) {
   const t = useT();
 
@@ -483,12 +528,12 @@ function EpisodeSubtitleCard({
               )}
             </div>
             <div className="flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-end">
-              {group.tracks.length > 0 && (
+              {group.tracks.length > 0 ? (
                 <button
                   type="button"
-                  onClick={onFetch}
+                  onClick={onHardRefresh}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/50 dark:bg-white/5 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-amber-500/25 bg-amber-500/10 text-amber-200/90 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
                 >
                   {fetching ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -496,6 +541,20 @@ function EpisodeSubtitleCard({
                     <RefreshCw className="w-3 h-3" />
                   )}
                   {t("anime.subtitles.refresh")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onFetch}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-teal-500/30 bg-teal-500/15 text-teal-200 hover:bg-teal-500/25 transition-colors disabled:opacity-50"
+                >
+                  {fetching ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3" />
+                  )}
+                  {t("anime.subtitles.fetchEpisode", { n: group.number })}
                 </button>
               )}
             </div>
@@ -751,9 +810,9 @@ function EpisodeThumbnailSkeletons() {
           key={i}
           className="rounded-xl border border-border dark:border-white/6 bg-muted/30 dark:bg-white/[0.02] overflow-hidden animate-pulse flex"
         >
-          <div className="w-40 sm:w-44 shrink-0 aspect-[16/9] bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
+          <div className="w-40 sm:w-44 shrink-0 aspect-[16/9] bg-muted/60 dark:bg-white/6" />
           <div className="flex-1 p-4 flex flex-col gap-2">
-            <div className="h-4 w-40 rounded bg-muted/60 dark:bg-muted/60 dark:bg-white/6" />
+            <div className="h-4 w-40 rounded bg-muted/60 dark:bg-white/6" />
             <div className="h-3 w-24 rounded bg-muted/40 dark:bg-white/4" />
           </div>
         </div>
