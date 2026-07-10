@@ -17,6 +17,10 @@ import {
 export type { KittyProvider };
 export { KITTY_PROVIDERS, DEFAULT_KITTY_PROVIDER };
 
+import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
+
+export type { KittyStreamQuality };
+
 export interface KittyTrack {
   file: string;
   kind: string;
@@ -33,6 +37,7 @@ export interface KittyStreamResponse {
   file: string;
   headers: Record<string, string>;
   tracks: KittyTrack[];
+  allServers?: KittyStreamQuality[];
   skipTimes?: KittySkipTimes;
   miruroPipe?: string;
   server?: string | null;

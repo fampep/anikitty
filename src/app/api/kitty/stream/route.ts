@@ -57,6 +57,7 @@ import {
   subtitleProxyUrl,
   type StreamTrack,
 } from "@/lib/subtitles/subtitle-track-utils";
+import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
@@ -73,6 +74,7 @@ type StreamPayload = {
   file: string;
   headers?: Record<string, string>;
   tracks?: StreamTrack[];
+  allServers?: KittyStreamQuality[];
   skipTimes?: MiruroSkipTimes;
   miruroPipe?: string;
   server?: string | null;
@@ -189,6 +191,15 @@ export async function GET(req: Request) {
       data.file = resolveKittyStreamUrl(data.file, nodeId);
     }
 
+    if (Array.isArray(data.allServers)) {
+      data.allServers = data.allServers
+        .map((entry) => ({
+          quality: entry.quality,
+          file: resolveKittyStreamUrl(entry.file, nodeId),
+        }))
+        .filter((entry) => entry.file.trim());
+    }
+
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
         if (!t.file && t.url) t.file = t.url;
@@ -267,6 +278,7 @@ export async function GET(req: Request) {
               file: direct.file,
               headers: direct.headers,
               tracks: direct.tracks,
+              allServers: direct.allServers,
               download: direct.download,
               server: direct.server,
             };

@@ -49,11 +49,16 @@ function isKittyNoApiKeyPath(path: string): boolean {
   return isKittyPublicPath(path) || isKittySignedProxyPath(path);
 }
 
+import { parseKittyStreamQualities, type KittyStreamQuality } from "@/lib/kitty/stream-quality";
+
+export type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
+
 export type KittyStreamPayload = {
   file: string;
   headers: Record<string, string>;
   download?: string | null;
   tracks?: Array<{ file?: string; url?: string; kind?: string; label?: string; default?: boolean }>;
+  allServers?: KittyStreamQuality[];
   server?: string | null;
   error?: string;
 };
@@ -256,6 +261,7 @@ export function parseKittyStreamJson(
     headers: (row.headers ?? {}) as Record<string, string>,
     download: typeof row.download === "string" ? row.download : null,
     tracks: Array.isArray(row.tracks) ? row.tracks : undefined,
+    allServers: parseKittyStreamQualities(row.allServers),
     server:
       typeof row.server === "string"
         ? row.server

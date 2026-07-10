@@ -339,6 +339,8 @@ const VideoPlayerSection = () => {
     tracks: KittyTrack[];
     headers: Record<string, string>;
     episodeId: string;
+    audio: "sub" | "dub";
+    qualities?: import("@/lib/kitty/stream-quality").KittyStreamQuality[];
     skipTimes?: { intro?: { start: number; end: number }; outro?: { start: number; end: number } };
   };
   const [heldStreamSnapshot, setHeldStreamSnapshot] = useState<HeldStreamSnapshot | null>(null);
@@ -900,13 +902,23 @@ const VideoPlayerSection = () => {
   const pendingNewEpisode = Boolean(
     episodeId && heldStreamSnapshot && episodeId !== heldStreamSnapshot.episodeId,
   );
+  /** Placeholder sub/dub must not play while the matching stream loads (MegaPlay, etc.). */
+  const audioMatchesRequest =
+    !streamData?.servedAudio || streamData.servedAudio === streamQueryAudio;
+  const pendingAudioSwitch = Boolean(
+    isFetching && isPlaceholderData && hasStreamFile && !audioMatchesRequest,
+  );
   const streamBackgroundRefresh = Boolean(
-    isFetching && isPlaceholderData && hasStreamFile && !pendingNewEpisode,
+    isFetching && isPlaceholderData && hasStreamFile && !pendingNewEpisode && !pendingAudioSwitch,
   );
   const streamStale = Boolean(isPlaceholderData && isFetching && !streamBackgroundRefresh);
-  const streamReady = hasStreamFile && !streamStale;
+  const streamReady = hasStreamFile && !streamStale && audioMatchesRequest;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
+
+  useEffect(() => {
+    setHeldStreamSnapshot(null);
+  }, [streamQueryAudio]);
 
   useEffect(() => {
     if (!streamData?.audioFallback) return;
@@ -1055,13 +1067,18 @@ const VideoPlayerSection = () => {
       tracks: playerTracks,
       headers: playerHeaders,
       episodeId,
+      audio: streamQueryAudio,
+      qualities: streamData.allServers,
       skipTimes,
     });
-  }, [streamReady, streamData?.file, episodeId, playerKey, playerTracks, playerHeaders, skipTimes]);
+  }, [streamReady, streamData?.file, streamData?.allServers, episodeId, playerKey, playerTracks, playerHeaders, skipTimes, streamQueryAudio]);
 
+  const heldSnapshotMatchesAudio =
+    !heldStreamSnapshot || heldStreamSnapshot.audio === streamQueryAudio;
   const useLiveStream = Boolean(streamReady && streamData?.file);
   const useHeldPlayerShell = Boolean(
     heldStreamSnapshot?.file &&
+      heldSnapshotMatchesAudio &&
       (showStreamLoading || (pendingNewEpisode && (!useLiveStream || !resumeReady))),
   );
   const showTransitionOverlay = Boolean(
@@ -1072,6 +1089,9 @@ const VideoPlayerSection = () => {
   const displayFile = useLiveStream ? streamData!.file : (heldStreamSnapshot?.file ?? "");
   const displayTracks = useLiveStream ? playerTracks : (heldStreamSnapshot?.tracks ?? EMPTY_PLAYER_TRACKS);
   const displayHeaders = useLiveStream ? playerHeaders : (heldStreamSnapshot?.headers ?? EMPTY_PLAYER_HEADERS);
+  const displayQualities = useLiveStream
+    ? (streamData?.allServers ?? [])
+    : (heldStreamSnapshot?.qualities ?? []);
   const displaySkipTimes = useLiveStream ? skipTimes : heldStreamSnapshot?.skipTimes;
 
   // Change provider but resume from current position, not original start
@@ -1512,6 +1532,7 @@ const VideoPlayerSection = () => {
         src={displayFile}
         tracks={tracksForPlayer}
         headers={displayHeaders}
+        qualities={displayQualities}
         preferSubtitles={subtitlesEnabled}
         preferDubAudio={streamAudio === "dub"}
         skipTimes={displaySkipTimes}

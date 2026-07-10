@@ -1,4 +1,5 @@
 import type { KittyTrack } from "@/query/stream/get-kitty-stream";
+import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import type { SkipTimes } from "@/hooks/use-aniskip";
 
 export interface W2gSyncState {
@@ -11,6 +12,8 @@ export interface VideoPlayerProps {
   src: string;
   tracks?: KittyTrack[];
   headers?: Record<string, string>;
+  /** MegaPlay / KittyAPI `allServers` — explicit 1080p/720p/360p URLs when HLS has no level ladder. */
+  qualities?: KittyStreamQuality[];
   skipTimes?: SkipTimes;
   startTime?: number;
   autoFullscreen?: boolean;

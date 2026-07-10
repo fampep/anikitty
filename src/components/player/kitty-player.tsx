@@ -10,6 +10,12 @@ import LoadingGirl from "@/components/common/loading-girl";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import artplayerPluginChromecast from "artplayer-plugin-chromecast";
 import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import {
+  dedupeStreamQualities,
+  formatStreamQualityLabel,
+  type KittyStreamQuality,
+} from "@/lib/kitty/stream-quality";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import {
   isElementFullscreen,
@@ -311,10 +317,31 @@ function hlsLoadFromVideoTime(hls: Hls, video: HTMLVideoElement | null | undefin
   hls.startLoad(Math.max(0, time - 0.25));
 }
 
+function buildArtplayerQualityOption(
+  qualities: KittyStreamQuality[],
+  src: string,
+  headers: Record<string, string>,
+  nodeId?: KittyApiNodeId,
+): Option["quality"] {
+  const unique = dedupeStreamQualities(qualities);
+  if (unique.length < 2) return undefined;
+  const normalizedSrc = src.trim();
+  const defaultIndex = Math.max(
+    0,
+    unique.findIndex((entry) => entry.file.trim() === normalizedSrc),
+  );
+  return unique.map((entry, index) => ({
+    html: formatStreamQualityLabel(entry.quality),
+    url: buildKittyHlsUrl(entry.file, headers, nodeId),
+    default: index === defaultIndex,
+  }));
+}
+
 export default function KittyPlayer({
   src,
   tracks = [],
   headers = {},
+  qualities = [],
   skipTimes,
   startTime = 0,
   autoFullscreen = false,
@@ -499,6 +526,10 @@ export default function KittyPlayer({
   }, []);
 
   const proxiedSrc = buildKittyHlsUrl(src, headers, kittyProxyNode);
+  const qualitiesSig = useMemo(
+    () => qualities.map((q) => `${q.quality}:${q.file}`).join("|"),
+    [qualities],
+  );
 
   const reportW2g = useCallback((isPlaying: boolean, time: number) => {
     const cfg = w2gRef.current;
@@ -729,10 +760,14 @@ export default function KittyPlayer({
       if (enabled) subtitleModeRef.current = "native";
     };
 
+    const playerQuality = buildArtplayerQualityOption(qualities, src, headers, kittyProxyNode);
+    const useHlsLevelQuality = !playerQuality;
+
     const art = new Artplayer({
       container,
       url: proxiedSrc,
       type: "m3u8",
+      quality: playerQuality,
       theme: ANIKITTY_PLAYER_THEME,
       cssVar: ANIKITTY_PLAYER_CSS_VAR,
       volume: savedVolume,
@@ -837,17 +872,19 @@ export default function KittyPlayer({
       },
       plugins: [
         artplayerPluginHlsControl({
-          quality: {
-            control: true,
-            setting: true,
-            getName: (level: { height?: number; bitrate?: number }) => {
-              if (!level.height) return t("watch.streamAuto");
-              const tier = level.height <= 480 ? "SD" : level.height <= 720 ? "HD" : "FHD";
-              return `${tier} ${level.height}P`;
-            },
-            title: t("watch.streamQuality"),
-            auto: t("watch.streamAuto"),
-          },
+          quality: useHlsLevelQuality
+            ? {
+                control: true,
+                setting: true,
+                getName: (level: { height?: number; bitrate?: number }) => {
+                  if (!level.height) return t("watch.streamAuto");
+                  const tier = level.height <= 480 ? "SD" : level.height <= 720 ? "HD" : "FHD";
+                  return `${tier} ${level.height}P`;
+                },
+                title: t("watch.streamQuality"),
+                auto: t("watch.streamAuto"),
+              }
+            : undefined,
           audio: {
             control: true,
             setting: true,
@@ -1191,7 +1228,7 @@ export default function KittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, t, locale, applyResume, reportW2g]);
+  }, [proxiedSrc, qualitiesSig, t, locale, applyResume, reportW2g]);
 
   if (!proxiedSrc) return null;
 
