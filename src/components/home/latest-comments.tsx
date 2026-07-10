@@ -192,7 +192,7 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
   if (!comments.length) return null;
 
   return (
-    <Container className="flex flex-col gap-5 py-8 items-start">
+    <Container className="flex flex-col gap-5 py-8 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       {header}
       <CommentsFeed comments={comments} />
     </Container>

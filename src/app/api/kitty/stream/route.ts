@@ -210,7 +210,6 @@ export async function GET(req: Request) {
         animeTitle: titleParam,
         streamProvider: providerName,
       },
-      { allowBulk: false },
     );
 
     data.tracks = await mergeCachedSubtitleTracks(

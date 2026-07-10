@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { SectionHeading } from "@/components/home/section-heading";
 
 interface ContinueItem {
   id: string;
@@ -417,12 +418,14 @@ const ContinueWatching = ({ loading = false }: Props) => {
     <>
       <Container className="flex flex-col gap-4 py-8 items-start">
       <div className="flex items-center gap-2 w-full min-w-0">
-        <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-white/70 to-white/20 shrink-0" />
-        <History className="text-muted-foreground dark:text-white/45 w-4 h-4" />
-        <h5 className="text-xl md:text-2xl font-bold text-foreground dark:text-white tracking-tight min-w-0 truncate flex-1">
-          {t("home.continueWatching")}
-        </h5>
-        <div className="ml-auto flex items-center gap-1 shrink-0">
+        <div className="min-w-0 flex-1">
+          <SectionHeading
+            icon={<History className="w-4 h-4" />}
+            title={t("home.continueWatching")}
+            href={ROUTES.HISTORY}
+          />
+        </div>
+        <div className="flex items-center gap-1 shrink-0 -mt-1">
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
@@ -444,10 +447,10 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
       <div className="relative w-full">
         {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-6 w-12 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-6 w-12 bg-gradient-to-r from-background to-transparent dark:from-black z-10 pointer-events-none" />
         )}
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-6 w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-6 w-16 bg-gradient-to-l from-background to-transparent dark:from-black z-10 pointer-events-none" />
         )}
         <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide scroll-momentum">
           {items.map((item) => {

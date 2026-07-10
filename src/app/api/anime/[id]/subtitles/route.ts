@@ -52,7 +52,7 @@ export async function GET(
     if (episode > 0) {
       await ensurePlaybackSubtitleCache(
         { anilistId, episode, audio: "sub", animeTitle: titleParam },
-        { force: true, allowBulk: true },
+        { force: true },
       );
     }
   }

@@ -14,6 +14,7 @@ type Props = {
   trendingAnime: IAnime[];
   loading: boolean;
   title: string;
+  subtitle?: string;
   icon?: React.ReactNode;
   showRanks?: boolean;
   layout?: "grid" | "row";
@@ -21,7 +22,7 @@ type Props = {
   sectionId?: string;
 };
 
-const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout = "grid", seeAllHref, sectionId }: Props) => {
+const AnimeSections = ({ trendingAnime, loading, title, subtitle, icon, showRanks, layout = "grid", seeAllHref, sectionId }: Props) => {
   if (loading) return <LoadingSkeleton layout={layout} sectionId={sectionId} />;
   if (!trendingAnime?.length) return null;
 
@@ -30,6 +31,7 @@ const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout 
       <RowLayout
         trendingAnime={trendingAnime}
         title={title}
+        subtitle={subtitle}
         icon={icon}
         showRanks={showRanks}
         seeAllHref={seeAllHref}
@@ -40,7 +42,7 @@ const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout 
 
   return (
     <Container id={sectionId} className="flex flex-col gap-5 py-10 items-center lg:items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
-      <SectionHeading icon={icon} title={title} href={seeAllHref} />
+      <SectionHeading icon={icon} title={title} subtitle={subtitle} href={seeAllHref} />
       <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-3 md:gap-4">
         {trendingAnime.map((anime, idx) => (
           <AnimeCard
@@ -67,6 +69,7 @@ const AnimeSections = ({ trendingAnime, loading, title, icon, showRanks, layout 
 function RowLayout({
   trendingAnime,
   title,
+  subtitle,
   icon,
   showRanks,
   seeAllHref,
@@ -74,6 +77,7 @@ function RowLayout({
 }: {
   trendingAnime: IAnime[];
   title: string;
+  subtitle?: string;
   icon?: React.ReactNode;
   showRanks?: boolean;
   seeAllHref?: string;
@@ -103,10 +107,10 @@ function RowLayout({
   };
 
   return (
-    <Container id={sectionId} className="flex flex-col gap-4 py-8 items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
+    <Container id={sectionId} className="flex flex-col gap-4 py-8 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       <div className="flex items-center gap-2 w-full min-w-0">
         <div className="min-w-0 flex-1">
-          <SectionHeading icon={icon} title={title} href={seeAllHref} />
+          <SectionHeading icon={icon} title={title} subtitle={subtitle} href={seeAllHref} />
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -128,10 +132,10 @@ function RowLayout({
 
       <div className="relative w-full">
         {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-2 w-10 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-2 w-10 bg-gradient-to-r from-background to-transparent dark:from-black z-10 pointer-events-none" />
         )}
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-2 w-14 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-2 w-14 bg-gradient-to-l from-background to-transparent dark:from-black z-10 pointer-events-none" />
         )}
         <div
           ref={setScrollRoot}

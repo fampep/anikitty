@@ -42,8 +42,6 @@ export type EpisodeSubtitleCacheContext = Pick<
 export type EnsureSubtitleCacheOptions = {
   /** Re-fetch from Kitty API even when cached tracks exist (adds new languages). */
   force?: boolean;
-  /** Await bulk Kitty /subs when single-episode fetch misses (off for stream API). */
-  allowBulk?: boolean;
 };
 
 /** Subtitle VTT content is stable per episode — refresh weekly. */
@@ -264,33 +262,9 @@ async function cacheKittySubsTracksForPlayback(
   });
 }
 
-/** Cache remaining bulk episodes in the background (same as library sync). */
-function cacheBulkEpisodesInBackground(
-  bulk: NonNullable<Awaited<ReturnType<typeof fetchKittySubsBulk>>>,
-  ctx: EpisodeSubtitleCacheContext,
-  skipEpisode?: number,
-): void {
-  void (async () => {
-    for (const row of bulk.episodes) {
-      if (row.episode === skipEpisode) continue;
-      const tracks = dedupeSubtitleTracks(tracksFromSubsEpisode(row));
-      if (tracks.length === 0) continue;
-      await cacheStreamSubtitleTracks(tracks, {
-        anilistId: ctx.anilistId,
-        episode: row.episode,
-        audio: "sub",
-        provider: KITTY_SUB_SOURCE_PROVIDER,
-        animeTitle: bulk.animeTitle ?? ctx.animeTitle ?? null,
-        headers: {},
-      });
-    }
-  })().catch(() => {});
-}
-
-/** Fetch via Kitty /subs across all providers (single episode, then bulk like library sync). */
+/** Fetch via Kitty /subs for a single episode (playback). */
 async function fetchKittySubsForPlayback(
   ctx: EpisodeSubtitleCacheContext,
-  opts?: { allowBulk?: boolean },
 ): Promise<StreamTrack[]> {
   const single = await fetchKittySubsTracks({
     anilistId: ctx.anilistId,
@@ -309,47 +283,6 @@ async function fetchKittySubsForPlayback(
     if (stored.some(isSubtitleTrack)) return stored;
   }
 
-  if (opts?.allowBulk !== true) {
-    void fetchKittySubsBulk({
-      anilistId: ctx.anilistId,
-      audio: "sub",
-      title: ctx.animeTitle,
-      preferProvider: ctx.streamProvider,
-    })
-      .then((bulk) => {
-        if (!bulk?.episodes.length) return;
-        cacheBulkEpisodesInBackground(bulk, ctx);
-      })
-      .catch(() => {});
-    return loadStoredPlaybackSubtitleTracks(ctx);
-  }
-
-  const bulk = await fetchKittySubsBulk({
-    anilistId: ctx.anilistId,
-    audio: "sub",
-    title: ctx.animeTitle,
-    preferProvider: ctx.streamProvider,
-  });
-
-  if (!bulk?.episodes.length) return [];
-
-  const episodeRow = bulk.episodes.find((row) => row.episode === ctx.episode);
-  if (episodeRow) {
-    const tracks = dedupeSubtitleTracks(tracksFromSubsEpisode(episodeRow));
-    if (tracks.length) {
-      const stored = await cacheKittySubsTracksForPlayback(
-        tracks,
-        ctx,
-        bulk.animeTitle ?? ctx.animeTitle,
-      );
-      if (stored.some(isSubtitleTrack)) {
-        cacheBulkEpisodesInBackground(bulk, ctx, ctx.episode);
-        return stored;
-      }
-    }
-  }
-
-  cacheBulkEpisodesInBackground(bulk, ctx);
   return loadStoredPlaybackSubtitleTracks(ctx);
 }
 
@@ -363,9 +296,7 @@ export async function ensurePlaybackSubtitleCache(
     return cachedPlayback;
   }
 
-  const fetched = await fetchKittySubsForPlayback(ctx, {
-    allowBulk: opts?.allowBulk,
-  });
+  const fetched = await fetchKittySubsForPlayback(ctx);
   if (fetched.some(isSubtitleTrack)) return fetched;
 
   return cachedPlayback;
@@ -521,10 +452,6 @@ async function upsertSubtitle(
     void import("@/lib/subtitles/subtitle-library-db").then((m) =>
       m.syncSubtitleLibraryAnime(ctx.anilistId),
     );
-    void import("@/lib/subtitles/subtitle-library-sync").then((m) => {
-      m.queueAnimeForSubtitleSync(ctx.anilistId);
-      m.triggerBackgroundSubtitleLibrarySync();
-    });
   }
 }
 
@@ -651,7 +578,7 @@ export async function ensureIncrementalSubtitleCache(
           batch.map((ep) =>
             ensurePlaybackSubtitleCache(
               { anilistId, episode: ep, audio: "sub", animeTitle },
-              { force, allowBulk: true },
+              { force },
             ),
           ),
         );
@@ -671,7 +598,7 @@ export async function ensureIncrementalSubtitleCache(
       const before = cachedEps.size;
       await ensurePlaybackSubtitleCache(
         { anilistId, episode: nextEp, audio: "sub", animeTitle },
-        { force, allowBulk: true },
+        { force },
       );
       cachedEps = await getCachedEpisodeNumbers(anilistId);
       if (cachedEps.size > before) {

@@ -125,6 +125,8 @@ const HeroSection = ({ spotlightAnime, isDataLoading }: IHeroSectionProps) => {
         </CarouselContent>
       </Carousel>
 
+      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-background via-background/70 to-transparent dark:from-[#0a0a0f] dark:via-[#0a0a0f]/70 z-[15] pointer-events-none" />
+
       {/* Bottom controls row */}
       <div className="absolute bottom-6 sm:bottom-8 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 md:px-12">
         {/* Slide counter */}

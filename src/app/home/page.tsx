@@ -5,6 +5,8 @@ import HomeRecommendations from "@/components/home/home-recommendations";
 import RecentlyViewed from "@/components/home/recently-viewed";
 import HomeExploreBar from "@/components/home/home-explore-bar";
 import HomeQuickNav from "@/components/home/home-quick-nav";
+import HomeWelcomeBar from "@/components/home/home-welcome-bar";
+import HomeFeedSection from "@/components/home/home-feed-section";
 import {
   useGetHomeCriticalData,
   useGetHomeDiscoveryData,
@@ -12,7 +14,7 @@ import {
 import { IAnime, SpotlightAnime } from "@/types/anime";
 import dynamic from "next/dynamic";
 import React, { useEffect, useState } from "react";
-import { Flame, RefreshCw, Sparkles, Zap, TrendingUp, CalendarClock, Heart } from "lucide-react";
+import { Flame, RefreshCw, Sparkles, Zap, TrendingUp, CalendarClock, Heart, CheckCircle } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useQueryClient } from "@tanstack/react-query";
 import { GET_HOME_CRITICAL } from "@/constants/query-keys";
@@ -25,8 +27,9 @@ const HomeDonationSlim = dynamic(() => import("@/components/home/home-donation-s
 const HomeTodayPanel = dynamic(() => import("@/components/home/home-today-panel"));
 const HomeGenreBar = dynamic(() => import("@/components/home/home-genre-bar"));
 const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
+const HomeFeaturePromos = dynamic(() => import("@/components/home/home-feature-promos"));
 
-const SCROLL_MT = "scroll-mt-[calc(var(--nav-height)+1rem)]";
+const SCROLL_MT = "scroll-mt-[calc(var(--nav-height)+4.5rem)]";
 
 function FeedSpacer() {
   return <div className="h-1 sm:h-2" aria-hidden />;
@@ -76,127 +79,152 @@ export default function Home() {
 
   return (
     <div className="flex flex-col pb-16 home-feed overflow-x-hidden">
-      {/* Spotlight */}
       <HeroSection
         spotlightAnime={critical?.spotlightAnimes as SpotlightAnime[]}
         isDataLoading={isLoading}
       />
 
       <HomeExploreBar />
-      <HomeQuickNav />
-
-      {/* Personal — resume & picks */}
-      <div id="continue" className={SCROLL_MT}>
-        <LazyMount minHeight={200}>
-          <ContinueWatching />
-        </LazyMount>
+      <div className="-mt-1">
+        <HomeWelcomeBar />
+        <HomeQuickNav />
       </div>
 
-      <LazyMount minHeight={200}>
-        <RecentlyViewed />
-      </LazyMount>
+      <HomeFeedSection label={t("home.feedSections.forYou")}>
+        <div id="continue" className={SCROLL_MT}>
+          <LazyMount minHeight={200}>
+            <ContinueWatching />
+          </LazyMount>
+        </div>
 
-      <LazyMount minHeight={200}>
-        <HomeRecommendations />
-      </LazyMount>
+        <LazyMount minHeight={200}>
+          <RecentlyViewed />
+        </LazyMount>
+
+        <LazyMount minHeight={200}>
+          <HomeRecommendations />
+        </LazyMount>
+      </HomeFeedSection>
 
       <FeedSpacer />
 
-      {/* Fresh — new eps & what's hot */}
-      <LazyMount minHeight={280}>
-        <AnimeSections
-          sectionId="new-episodes"
-          title={t("home.newEpisodes")}
-          icon={<Zap className="w-4 h-4" />}
-          trendingAnime={(critical?.latestEpisodeAnimes as IAnime[]) ?? []}
-          loading={isLoading}
-          layout="row"
-        />
-      </LazyMount>
+      <HomeFeedSection label={t("home.feedSections.fresh")}>
+        <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="new-episodes"
+            title={t("home.newEpisodes")}
+            subtitle={t("home.scheduleDesc")}
+            icon={<Zap className="w-4 h-4" />}
+            trendingAnime={(critical?.latestEpisodeAnimes as IAnime[]) ?? []}
+            loading={isLoading}
+            layout="row"
+            seeAllHref={ROUTES.NEW}
+          />
+        </LazyMount>
 
-      <LazyMount minHeight={280}>
-        <AnimeSections
-          sectionId="trending"
-          title={t("home.trendingNow")}
-          icon={<Flame className="w-4 h-4" />}
-          trendingAnime={trendingTeaser ?? []}
-          loading={isLoading}
-          layout="row"
-          seeAllHref={ROUTES.TRENDING}
-        />
-      </LazyMount>
+        <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="trending"
+            title={t("home.trendingNow")}
+            subtitle={t("home.trendingDesc")}
+            icon={<Flame className="w-4 h-4" />}
+            trendingAnime={trendingTeaser ?? []}
+            loading={isLoading}
+            layout="row"
+            seeAllHref={ROUTES.TRENDING}
+          />
+        </LazyMount>
 
-      <LazyMount minHeight={280}>
-        <AnimeSections
-          sectionId="recently-added"
-          title={t("home.recentlyAdded")}
-          icon={<Sparkles className="w-4 h-4" />}
-          trendingAnime={(critical?.recentlyAddedAnimes as IAnime[]) ?? []}
-          loading={isLoading}
-          layout="row"
-        />
-      </LazyMount>
+        <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="recently-added"
+            title={t("home.recentlyAdded")}
+            icon={<Sparkles className="w-4 h-4" />}
+            trendingAnime={(critical?.recentlyAddedAnimes as IAnime[]) ?? []}
+            loading={isLoading}
+            layout="row"
+            seeAllHref={ROUTES.NEW}
+          />
+        </LazyMount>
+      </HomeFeedSection>
 
       <FeedSpacer />
 
-      {/* Schedule & community */}
-      <div id="schedule" className={SCROLL_MT}>
-        <LazyMount minHeight={200}>
-          <HomeTodayPanel />
-        </LazyMount>
-      </div>
+      <HomeFeedSection label={t("home.feedSections.today")}>
+        <div id="schedule" className={SCROLL_MT}>
+          <LazyMount minHeight={200}>
+            <HomeTodayPanel />
+          </LazyMount>
+        </div>
 
-      <div id="community" className={SCROLL_MT}>
+        <div id="community" className={SCROLL_MT}>
+          <LazyMount>
+            <LatestComments />
+          </LazyMount>
+        </div>
+      </HomeFeedSection>
+
+      <FeedSpacer />
+
+      <HomeFeedSection label={t("home.feedSections.explore")}>
+        <LazyMount minHeight={120}>
+          <HomeFeaturePromos />
+        </LazyMount>
+
+        <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="most-popular"
+            title={t("home.mostPopular")}
+            icon={<TrendingUp className="w-4 h-4" />}
+            trendingAnime={(discovery?.mostPopularAnimes as IAnime[]) ?? []}
+            loading={discoveryLoadingState}
+            layout="row"
+            showRanks
+            seeAllHref={ROUTES.TRENDING}
+          />
+        </LazyMount>
+
+        <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="top-upcoming"
+            title={t("home.topUpcoming")}
+            icon={<CalendarClock className="w-4 h-4" />}
+            trendingAnime={(discovery?.topUpcomingAnimes as IAnime[]) ?? []}
+            loading={discoveryLoadingState}
+            layout="row"
+          />
+        </LazyMount>
+
+        <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="most-favorite"
+            title={t("home.mostFavorite")}
+            icon={<Heart className="w-4 h-4" />}
+            trendingAnime={(discovery?.mostFavoriteAnimes as IAnime[]) ?? []}
+            loading={discoveryLoadingState}
+            layout="row"
+          />
+        </LazyMount>
+
+        <LazyMount minHeight={280}>
+          <AnimeSections
+            sectionId="latest-completed"
+            title={t("home.latestCompleted")}
+            icon={<CheckCircle className="w-4 h-4" />}
+            trendingAnime={(discovery?.latestCompletedAnimes as IAnime[]) ?? []}
+            loading={discoveryLoadingState}
+            layout="row"
+          />
+        </LazyMount>
+
         <LazyMount>
-          <LatestComments />
+          <HomeGenreBar />
         </LazyMount>
-      </div>
 
-      <FeedSpacer />
-
-      {/* Discovery — deeper catalog browse */}
-      <LazyMount minHeight={280}>
-        <AnimeSections
-          sectionId="most-popular"
-          title={t("home.mostPopular")}
-          icon={<TrendingUp className="w-4 h-4" />}
-          trendingAnime={(discovery?.mostPopularAnimes as IAnime[]) ?? []}
-          loading={discoveryLoadingState}
-          layout="row"
-          showRanks
-          seeAllHref={ROUTES.TRENDING}
-        />
-      </LazyMount>
-
-      <LazyMount minHeight={280}>
-        <AnimeSections
-          sectionId="top-upcoming"
-          title={t("home.topUpcoming")}
-          icon={<CalendarClock className="w-4 h-4" />}
-          trendingAnime={(discovery?.topUpcomingAnimes as IAnime[]) ?? []}
-          loading={discoveryLoadingState}
-          layout="row"
-        />
-      </LazyMount>
-
-      <LazyMount minHeight={280}>
-        <AnimeSections
-          sectionId="most-favorite"
-          title={t("home.mostFavorite")}
-          icon={<Heart className="w-4 h-4" />}
-          trendingAnime={(discovery?.mostFavoriteAnimes as IAnime[]) ?? []}
-          loading={discoveryLoadingState}
-          layout="row"
-        />
-      </LazyMount>
-
-      <LazyMount>
-        <HomeGenreBar />
-      </LazyMount>
-
-      <LazyMount minHeight={80}>
-        <HomeDonationSlim />
-      </LazyMount>
+        <LazyMount minHeight={80}>
+          <HomeDonationSlim />
+        </LazyMount>
+      </HomeFeedSection>
     </div>
   );
 }

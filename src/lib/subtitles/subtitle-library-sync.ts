@@ -188,44 +188,14 @@ let lastBackgroundSyncAt = 0;
 let backgroundSyncInFlight = false;
 let autoSyncLoopStarted = false;
 
-/** Fire-and-forget sync (throttled per server instance). */
+/** Fire-and-forget sync — disabled; subtitles cache on playback only. */
 export function triggerBackgroundSubtitleLibrarySync(
-  opts: SubtitleLibrarySyncOptions = {},
+  _opts: SubtitleLibrarySyncOptions = {},
 ): void {
-  const now = Date.now();
-  if (backgroundSyncInFlight || now - lastBackgroundSyncAt < BACKGROUND_COOLDOWN_MS) {
-    return;
-  }
-
-  lastBackgroundSyncAt = now;
-  backgroundSyncInFlight = true;
-
-  void runSubtitleLibrarySyncTick(opts)
-    .catch((err) => {
-      console.error("[subtitle-library-sync] background tick failed:", err);
-    })
-    .finally(() => {
-      backgroundSyncInFlight = false;
-    });
+  // no-op
 }
 
-/** Continuous background sync — runs on server boot and keeps the library growing. */
+/** Continuous background sync — disabled; subtitles cache when users watch episodes. */
 export function startSubtitleLibraryAutoSync(): void {
-  if (autoSyncLoopStarted || !process.env.DATABASE_URL) return;
-  if (process.env.SUBTITLE_AUTO_SYNC === "0") return;
-
-  autoSyncLoopStarted = true;
-  console.log("[SubtitleSync] Starting automatic subtitle library sync loop");
-
-  void import("@/lib/kitty/kitty-subs-api")
-    .then((m) => m.listKittySubsProviders())
-    .catch(() => {});
-
-  const tick = () => {
-    if (backgroundSyncInFlight) return;
-    triggerBackgroundSubtitleLibrarySync();
-  };
-
-  tick();
-  setInterval(tick, SUBTITLE_AUTO_SYNC_INTERVAL_MS);
+  // no-op
 }

@@ -279,18 +279,28 @@
     "todayPanelDesc": "Airing schedule and quick genre picks",
     "discover": "Discover",
     "exploreSearch": "Search {count}+ anime titles…",
+    "exploreSearchHint": "Press / to search",
     "catalogTitles": "{count}+ titles",
     "quickNav": {
+      "label": "Jump to section",
       "continue": "Continue",
       "latest": "New releases",
       "trending": "Trending",
       "today": "Schedule",
+      "discover": "Discover",
       "comments": "Community"
+    },
+    "feedSections": {
+      "forYou": "For you",
+      "fresh": "Fresh picks",
+      "today": "Schedule & community",
+      "explore": "Explore more"
     },
     "promos": {
       "shop": { "title": "Kittycoins shop", "desc": "Stickers, frames & profile flair" },
       "w2g": { "title": "Watch together", "desc": "Sync episodes with friends" },
-      "subs": { "title": "Subtitle library", "desc": "Browse cached subtitle tracks" }
+      "subs": { "title": "Subtitle library", "desc": "Download cached subtitle tracks" },
+      "forum": { "title": "Community forum", "desc": "Threads, polls & discussions" }
     }
   },
   "search": {
@@ -909,7 +919,7 @@
       "anilistQ": "Can I sync my list from AniList?",
       "anilistA": "Yes. In Settings → Connections, connect AniList via OAuth and import your library into your AniKitty watchlist. MyAnimeList account sign-in was removed — use AniList for list sync. Anime pages still show MyAnimeList metadata (score, rank, popularity, etc.) for reference.",
       "subtitlesQ": "Subtitles and the subtitle library",
-      "subtitlesA": "The player loads subtitle tracks when available. Subtitles are shown in SUB mode and hidden in DUB mode. Customize appearance and timing offset in Settings → Subtitles. The Subtitle Library page lists cached English tracks per anime; the site also fills missing subtitles in the background. Use the refresh button on that page to force a re-fetch.",
+      "subtitlesA": "The player loads subtitle tracks when available. Subtitles are shown in SUB mode and hidden in DUB mode. Customize appearance and timing offset in Settings → Subtitles. The Subtitle Library lists tracks cached when you watch episodes — use refresh on that page to manually fetch more.",
       "scheduleQ": "What are Schedule and Trending?",
       "scheduleA": "Schedule shows what is airing this week in your local timezone. Trending highlights popular and upcoming titles from the catalog feed."
     },
@@ -1258,7 +1268,7 @@
   },
   "subsLibrary": {
     "title": "Subtitle Library",
-    "subtitle": "Search any anime, fetch subtitles through the Anikitty proxy into our library, and download .vtt files in bulk.",
+    "subtitle": "English subtitle tracks cached when you watch episodes — search, browse, and download .vtt files.",
     "searchPlaceholder": "Search anime title or AniList ID…",
     "search": "Search",
     "loading": "Loading…",
@@ -1308,8 +1318,8 @@
     "pagerPrev": "‹ Prev",
     "pagerNext": "Next ›",
     "completedSection": "Completed with full subs ({count})",
-    "emptyCompleted": "No completed series with full subtitle coverage yet. Auto-sync is fetching missing episodes in the background.",
-    "autoSyncing": "Subtitles are fetched when you start watching an episode.",
+    "emptyCompleted": "No completed series with full subtitle coverage yet. Watch episodes to cache subtitles, or use Fetch on an anime card.",
+    "autoSyncing": "Subtitles are saved when you watch an episode in the player.",
     "autoSyncProgress": "Fetched {fetched} episode(s) · {remaining} shows in queue",
     "autoSyncComplete": "Completed {count} show(s) — stats updated",
     "autoSyncDiscover": "Discovering trending anime to add to the library…",

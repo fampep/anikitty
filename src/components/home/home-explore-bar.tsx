@@ -16,7 +16,7 @@ export default function HomeExploreBar() {
   const catalogLabel = CATALOG_ANIME_COUNT.toLocaleString();
 
   return (
-    <Container className="pb-2">
+    <Container className="pb-1 pt-1">
       <div className="site-panel flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-3.5">
         <Link
           href={ROUTES.SEARCH}
@@ -26,8 +26,24 @@ export default function HomeExploreBar() {
           <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-foreground dark:group-hover:text-white/55 truncate transition-colors">
             {t("home.exploreSearch", { count: catalogLabel })}
           </span>
+          <kbd className="ml-auto hidden sm:inline-flex shrink-0 items-center rounded-md border border-border dark:border-white/12 bg-muted/60 dark:bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70 dark:text-white/30">
+            /
+          </kbd>
         </Link>
         <div className="flex items-center gap-2 shrink-0 px-1 sm:px-0">
+          <Link
+            href={ROUTES.STATUS}
+            className="hidden xs:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-sky-400/15 bg-sky-500/10 hover:bg-sky-500/15 transition-colors"
+            title={t("nav.status")}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            </span>
+            <span className="text-[11px] font-semibold text-muted-foreground dark:text-white/70">
+              {t("nav.status")}
+            </span>
+          </Link>
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-violet-500/10 border border-violet-400/15">
             <Library className="w-3.5 h-3.5 text-violet-300/80" />
             <span className="text-[11px] font-semibold text-muted-foreground dark:text-white/70 tabular-nums">
