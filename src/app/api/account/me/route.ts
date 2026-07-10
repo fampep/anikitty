@@ -40,6 +40,8 @@ export async function GET(req: Request) {
       mutedUntil: users.mutedUntil,
       muteReason: users.muteReason,
       createdAt: users.createdAt,
+      lastOnlineAt: users.lastOnlineAt,
+      activityStatus: users.activityStatus,
     })
     .from(users)
     .where(eq(users.id, payload.userId))
@@ -82,6 +84,8 @@ export async function GET(req: Request) {
       role: effectiveRole,
       supporterUntil: user.supporterUntil?.toISOString() ?? null,
       createdAt: safeUser.createdAt?.toISOString() ?? null,
+      lastOnlineAt: safeUser.lastOnlineAt?.toISOString() ?? null,
+      activityStatus: safeUser.activityStatus ?? "online",
       equippedFrame: cosmetics.equipped.frame,
       equippedSticker: cosmetics.equipped.sticker,
       equippedIcon: cosmetics.equipped.icon,

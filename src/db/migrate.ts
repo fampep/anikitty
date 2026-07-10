@@ -641,6 +641,8 @@ export async function migrateDb() {
         updated_at TIMESTAMP DEFAULT NOW(),
         PRIMARY KEY (anilist_id, episode)
       )`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_online_at TIMESTAMP`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS activity_status VARCHAR(12) NOT NULL DEFAULT 'online'`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

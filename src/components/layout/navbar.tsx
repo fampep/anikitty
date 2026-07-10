@@ -4,38 +4,9 @@ import Link from "next/link";
 import { cn } from "@/lib/core/utils";
 import Container from "./container";
 import { ROUTES } from "@/constants/routes";
-import React, { ReactNode, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import SearchBar from "./search-bar";
-import {
-  Activity,
-  CalendarDays,
-  Captions,
-  ChevronDown,
-  Coffee,
-  Coins,
-  Flame,
-  HelpCircle,
-  History,
-  Home,
-  Mail,
-  MenuIcon,
-  MessageCircle,
-  MessageSquare,
-  MessagesSquare,
-  Mic,
-  MoreHorizontal,
-  Scale,
-  ScrollText,
-  Timer,
-  Search,
-  SearchIcon,
-  Tv2,
-  Users,
-  X,
-} from "lucide-react";
-import { useScrolledPast } from "@/hooks/use-scrolled-past";
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Coins, SearchIcon, X } from "lucide-react";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
@@ -49,216 +20,6 @@ import Image from "next/image";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 
-type MenuGroup = "browse" | "watch" | "community" | "site" | "account";
-
-const MENU_GROUP_ORDER: MenuGroup[] = ["browse", "watch", "community", "site", "account"];
-
-const MENU_DEFS = [
-  { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home", group: "browse" as MenuGroup, primary: true },
-  { href: ROUTES.TRENDING, icon: Flame, titleKey: "nav.trending", shortKey: "nav.short.trending", group: "browse" as MenuGroup, primary: true },
-  { href: ROUTES.SCHEDULE, icon: CalendarDays, titleKey: "nav.schedule", shortKey: "nav.short.schedule", group: "browse" as MenuGroup, primary: true },
-  { href: ROUTES.NEW, icon: Tv2, titleKey: "nav.newReleases", shortKey: "nav.short.newReleases", group: "browse" as MenuGroup, primary: true },
-  { href: ROUTES.FORUM, icon: MessagesSquare, titleKey: "nav.forum", shortKey: "nav.short.forum", group: "community" as MenuGroup, primary: true },
-  { href: ROUTES.SEARCH, icon: Search, titleKey: "nav.search", shortKey: "nav.short.search", group: "browse" as MenuGroup },
-  { href: ROUTES.COMMUNITY, icon: MessageSquare, titleKey: "nav.community", shortKey: "nav.short.community", group: "browse" as MenuGroup },
-  { href: ROUTES.VOICE_ACTORS, icon: Mic, titleKey: "nav.voiceActors", shortKey: "nav.short.voiceActors", group: "browse" as MenuGroup },
-  { href: ROUTES.SUBTITLES, icon: Captions, titleKey: "nav.subtitles", shortKey: "nav.short.subtitles", group: "watch" as MenuGroup },
-  { href: ROUTES.TIMESTAMPS, icon: Timer, titleKey: "nav.timestamps", shortKey: "nav.short.timestamps", group: "watch" as MenuGroup },
-  { href: ROUTES.WATCH_TOGETHER, icon: Users, titleKey: "nav.watchTogether", shortKey: "nav.short.together", group: "watch" as MenuGroup },
-  { href: ROUTES.CHAT, icon: MessageCircle, titleKey: "nav.chat", shortKey: "nav.short.chat", group: "community" as MenuGroup },
-  { href: ROUTES.MESSAGES, icon: Mail, titleKey: "nav.messages", shortKey: "nav.short.messages", group: "community" as MenuGroup, authOnly: true },
-  { href: ROUTES.SHOP, icon: Coins, titleKey: "nav.shop", shortKey: "nav.short.shop", group: "site" as MenuGroup },
-  { href: ROUTES.DONATE, icon: Coffee, titleKey: "nav.donate", shortKey: "nav.short.donate", group: "site" as MenuGroup },
-  { href: ROUTES.STATUS, icon: Activity, titleKey: "nav.status", shortKey: "nav.short.status", group: "site" as MenuGroup },
-  { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq", group: "site" as MenuGroup },
-  { href: ROUTES.CHANGELOG, icon: ScrollText, titleKey: "nav.changelog", shortKey: "nav.short.changelog", group: "site" as MenuGroup },
-  { href: ROUTES.DMCA, icon: Scale, titleKey: "nav.dmca", shortKey: "nav.short.dmca", group: "site" as MenuGroup },
-  { href: ROUTES.HISTORY, icon: History, titleKey: "nav.watchHistory", shortKey: "nav.short.watchHistory", group: "account" as MenuGroup, authOnly: true },
-] as const;
-
-type MenuItem = {
-  href: string;
-  icon: (typeof MENU_DEFS)[number]["icon"];
-  title: string;
-  short: string;
-  group: MenuGroup;
-  primary?: boolean;
-};
-
-function isNavActive(pathname: string, href: string): boolean {
-  if (pathname === href) return true;
-  if (href === ROUTES.HOME) return false;
-  if (href === ROUTES.SEARCH) return pathname.startsWith("/search");
-  if (href === ROUTES.FORUM) return pathname.startsWith("/forum");
-  if (href === ROUTES.MESSAGES) return pathname.startsWith("/messages");
-  if (href === ROUTES.VOICE_ACTORS) return pathname.startsWith("/voice-actor");
-  if (href === ROUTES.TIMESTAMPS) return pathname.startsWith("/timestamps");
-  return pathname.startsWith(`${href}/`);
-}
-
-function useMenuItems(): MenuItem[] {
-  const t = useT();
-  const auth = useAuthStore((s) => s.auth);
-  return MENU_DEFS.filter((item) => !("authOnly" in item && item.authOnly) || auth).map((item) => ({
-    href: item.href,
-    icon: item.icon,
-    title: t(item.titleKey),
-    short: t(item.shortKey),
-    group: item.group,
-    primary: "primary" in item ? item.primary : undefined,
-  }));
-}
-
-function navLinkClass(isActive: boolean, compact = false) {
-  return cn(
-    "flex items-center gap-1.5 rounded-xl border border-transparent font-medium transition-all duration-200",
-    compact ? "px-2.5 py-1.5 text-[13px]" : "px-3 py-1.5 text-sm",
-    isActive
-      ? "nav-link-active user-accent-nav-active font-semibold"
-      : "text-muted-foreground hover:bg-accent hover:border-border hover:text-foreground dark:hover:text-white/55 dark:bg-white/[0.07] dark:border-white/[0.08] dark:text-white/95",
-  );
-}
-
-function NavLink({
-  item,
-  pathname,
-  compact,
-  onClick,
-}: {
-  item: MenuItem;
-  pathname: string;
-  compact?: boolean;
-  onClick?: () => void;
-}) {
-  const isActive = isNavActive(pathname, item.href);
-  const Icon = item.icon;
-
-  return (
-    <Link
-      href={item.href}
-      title={item.title}
-      onClick={onClick}
-      className={navLinkClass(isActive, compact)}
-    >
-      <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5 shrink-0")} />
-      <span className="whitespace-nowrap xl:hidden">{item.short}</span>
-      <span className="hidden whitespace-nowrap xl:inline">{item.title}</span>
-    </Link>
-  );
-}
-
-function GroupedNavLinks({
-  items,
-  pathname,
-  onNavigate,
-  compact,
-}: {
-  items: readonly MenuItem[];
-  pathname: string;
-  onNavigate?: () => void;
-  compact?: boolean;
-}) {
-  const t = useT();
-  const groups = MENU_GROUP_ORDER.map((group) => ({
-    group,
-    label: t(`nav.groups.${group}`),
-    items: items.filter((item) => item.group === group),
-  })).filter((section) => section.items.length > 0);
-
-  return (
-    <div className={cn("flex flex-col", compact ? "gap-1" : "gap-2")}>
-      {groups.map((section, index) => (
-        <div key={section.group}>
-          {index > 0 && <div className="my-1.5 h-px bg-border/70 dark:bg-white/[0.06]" />}
-          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80 dark:text-white/30">
-            {section.label}
-          </p>
-          <div className="flex flex-col gap-0.5">
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const active = isNavActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                    active
-                      ? "nav-link-active user-accent-nav-active font-semibold"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground dark:hover:text-white/60 dark:bg-white/[0.06] dark:text-white",
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.title}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function DesktopNav({ pathname }: { pathname: string }) {
-  const t = useT();
-  const menuItems = useMenuItems();
-  const primary = menuItems.filter((item) => item.primary);
-  const secondary = menuItems.filter((item) => !item.primary);
-  const secondaryActive = secondary.some((item) => isNavActive(pathname, item.href));
-
-  return (
-    <nav
-      className="hidden min-w-0 items-center justify-center gap-0.5 rounded-2xl border border-border/60 bg-card/50 p-1 backdrop-blur-sm dark:border-white/[0.06] dark:bg-white/[0.03] lg:flex"
-      aria-label={t("nav.aria.mainNav")}
-    >
-      {primary.map((item) => (
-        <NavLink key={item.href} item={item} pathname={pathname} compact />
-      ))}
-      <MoreNavMenu items={secondary} pathname={pathname} isActive={secondaryActive} compact />
-    </nav>
-  );
-}
-
-function MoreNavMenu({
-  items,
-  pathname,
-  isActive,
-  compact,
-}: {
-  items: readonly MenuItem[];
-  pathname: string;
-  isActive: boolean;
-  compact?: boolean;
-}) {
-  const t = useT();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(navLinkClass(isActive, compact), "cursor-pointer")}
-          aria-label={t("nav.aria.morePages")}
-        >
-          <MoreHorizontal className="h-3.5 w-3.5" />
-          <span>{t("nav.more")}</span>
-          <ChevronDown className={cn("h-3 w-3 opacity-60 transition-transform", open && "rotate-180")} />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="center"
-        sideOffset={10}
-        className="max-h-[min(70vh,28rem)] w-64 overflow-y-auto border-border bg-popover/95 p-2 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0a0a10]/95"
-      >
-        <GroupedNavLinks items={items} pathname={pathname} onNavigate={() => setOpen(false)} compact />
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
   const t = useT();
   return (
@@ -266,20 +27,19 @@ function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       className={cn(
-        "group hidden h-9 shrink-0 items-center rounded-xl border border-border bg-muted/40",
-        "text-muted-foreground transition-colors hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-foreground",
-        "dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/55 dark:hover:border-violet-400/25 dark:hover:bg-violet-500/[0.06] dark:hover:text-white",
-        "lg:inline-flex",
-        "w-9 justify-center p-0",
-        "xl:w-[min(14rem,calc(100vw-44rem))] xl:justify-start xl:gap-2.5 xl:px-3",
+        "group hidden h-9 min-w-0 max-w-md flex-1 items-center rounded-full border border-border/60 bg-muted/30",
+        "text-muted-foreground transition-colors hover:border-violet-400/25 hover:bg-violet-500/[0.06] hover:text-foreground",
+        "dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-white/45 dark:hover:border-violet-400/20 dark:hover:bg-violet-500/[0.05] dark:hover:text-white/80",
+        "lg:inline-flex xl:max-w-lg",
+        "justify-start gap-2.5 px-3.5",
       )}
       aria-label={t("nav.aria.openSearch")}
     >
-      <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-violet-600 dark:text-white/40 dark:group-hover:text-violet-300/80" />
-      <span className="hidden min-w-0 flex-1 truncate text-left text-[13px] text-muted-foreground transition-colors group-hover:text-foreground xl:block dark:text-white/35 dark:group-hover:text-white/55">
+      <SearchIcon className="h-4 w-4 shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
+      <span className="min-w-0 flex-1 truncate text-left text-[13px] opacity-80 transition-opacity group-hover:opacity-100">
         {t("search.placeholder")}
       </span>
-      <kbd className="pointer-events-none hidden shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono leading-none text-muted-foreground xl:inline-block dark:border-white/[0.08] dark:bg-black/25 dark:text-white/25">
+      <kbd className="pointer-events-none hidden shrink-0 rounded-md border border-border/70 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono leading-none text-muted-foreground/70 lg:inline-block dark:border-white/[0.06] dark:bg-black/20 dark:text-white/20">
         Ctrl&nbsp;K
       </kbd>
     </button>
@@ -297,10 +57,10 @@ function KittycoinPill() {
     <Link
       href={ROUTES.SHOP}
       title={t("nav.shop")}
-      className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-500/10 px-2.5 py-1.5 text-[12px] font-bold text-amber-200/90 tabular-nums transition-colors hover:bg-amber-500/15 hover:border-amber-400/30"
+      className="inline-flex items-center gap-1 rounded-full border border-amber-400/15 bg-amber-500/[0.08] px-2 py-1.5 text-[11px] font-bold text-amber-200/85 tabular-nums transition-colors hover:bg-amber-500/12 sm:gap-1.5 sm:px-2.5 sm:text-[12px]"
     >
       <Coins className="h-3.5 w-3.5 shrink-0" />
-      {loaded ? balance.toLocaleString() : "—"}
+      <span className="hidden xs:inline">{loaded ? balance.toLocaleString() : "—"}</span>
     </Link>
   );
 }
@@ -311,7 +71,6 @@ const NavBar = () => {
   const setAuth = useAuthStore((s) => s.setAuth);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const pathname = usePathname();
-  const isScrolled = useScrolledPast(20);
   const isLanding = pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
   const authBag = React.useMemo(
@@ -405,29 +164,15 @@ const NavBar = () => {
   if (isLanding) return null;
 
   return (
-    <header
-      className={cn(
-        "fixed left-0 right-0 top-0 z-[100] pt-safe transition-all duration-300",
-        isScrolled
-          ? "border-b border-border/50 bg-background/96 shadow-lg dark:border-transparent dark:bg-[#08080f]/97 dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
-          : "bg-gradient-to-b from-background/95 via-background/50 to-transparent dark:from-black/80 dark:via-black/40",
-      )}
-    >
-      <div
-        className={cn(
-          "absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent transition-opacity duration-300",
-          isScrolled ? "opacity-100" : "opacity-50",
-        )}
-      />
-
+    <header className="site-header fixed left-0 right-0 top-0 z-[100] pt-safe">
       <Container className="relative">
         {searchOpen && (
-          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border bg-background px-4 dark:border-white/[0.06] dark:bg-[#050508]">
-            <SearchBar className="flex-1 max-w-3xl mx-auto" autoFocus onAnimeClick={() => setSearchOpen(false)} />
+          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl dark:border-white/[0.05] dark:bg-[#050508]/98">
+            <SearchBar className="mx-auto max-w-3xl flex-1" autoFocus onAnimeClick={() => setSearchOpen(false)} />
             <button
               type="button"
               onClick={() => setSearchOpen(false)}
-              className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:hover:text-white/50 dark:bg-white/8 dark:text-white"
+              className="shrink-0 rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:text-white/50 dark:hover:bg-white/8 dark:hover:text-white"
               aria-label={t("nav.aria.closeSearch")}
             >
               <X className="h-4 w-4" />
@@ -435,119 +180,31 @@ const NavBar = () => {
           </div>
         )}
 
-        <div className="flex h-[var(--nav-height)] items-center gap-2 sm:gap-3 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-x-5">
+        <div className="flex h-[var(--nav-height)] items-center gap-3">
           <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center">
             <Image
               src={SITE_LOGO}
               alt="AniKitty"
               width={132}
               height={48}
-              className="h-8 w-auto max-w-[7rem] sm:max-w-none sm:h-9 object-contain transition-opacity group-hover:opacity-95"
+              className="h-7 w-auto max-w-[6.5rem] object-contain opacity-95 transition-opacity group-hover:opacity-100 sm:h-8 sm:max-w-none"
               priority
               unoptimized
             />
           </Link>
 
-          <div className="relative z-10 hidden min-w-0 justify-center overflow-hidden px-0.5 lg:flex">
-            <DesktopNav pathname={pathname} />
+          <div className="hidden min-w-0 flex-1 justify-center lg:flex">
+            <DesktopSearchTrigger onClick={() => setSearchOpen(true)} />
           </div>
 
-          <div className="relative z-20 ml-auto flex min-w-0 shrink-0 items-center justify-end gap-1.5 sm:gap-2 lg:ml-0">
-            <DesktopSearchTrigger onClick={() => setSearchOpen(true)} />
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="touch-target rounded-lg p-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden dark:text-white/60 dark:bg-white/8 dark:text-white"
-              aria-label={t("nav.aria.openSearch")}
-            >
-              <SearchIcon className="h-5 w-5" />
-            </button>
-
-            <div className="hidden items-center gap-1.5 sm:gap-2 lg:flex">
-              {user && <KittycoinPill />}
-              {user && <NotificationBell />}
-              {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
-            </div>
-
-            <div className="flex items-center gap-0.5 sm:gap-1 lg:hidden">
-              {user && <NotificationBell />}
-              <MobileMenuSheet
-                pathname={pathname}
-                onSearchClick={() => setSearchOpen(true)}
-                trigger={<MenuIcon className="h-5 w-5 text-muted-foreground dark:text-white/70" suppressHydrationWarning />}
-              />
-              {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
-            </div>
+          <div className="relative z-20 ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+            {user && <KittycoinPill />}
+            {user && <NotificationBell />}
+            {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
           </div>
         </div>
       </Container>
     </header>
-  );
-};
-
-const MobileMenuSheet = ({
-  trigger,
-  pathname,
-  onSearchClick,
-}: {
-  trigger: ReactNode;
-  pathname: string;
-  onSearchClick?: () => void;
-}) => {
-  const t = useT();
-  const menuItems = useMenuItems();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button type="button" className="touch-target rounded-lg p-2.5 transition-colors hover:bg-accent dark:hover:bg-white/8" aria-label={t("nav.aria.openMenu")}>
-          {trigger}
-        </button>
-      </SheetTrigger>
-      <SheetContent
-        className="z-[150] flex w-[min(88vw,21rem)] flex-col border-border bg-background/98 backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#050508]/98"
-        hideCloseButton
-        onCloseAutoFocus={(e) => e.preventDefault()}
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4 dark:border-white/8">
-            <Image
-              src={SITE_LOGO}
-              alt="AniKitty"
-              width={120}
-              height={44}
-              className="h-8 w-auto object-contain"
-              unoptimized
-            />
-            <SheetClose
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:hover:text-white/50 dark:bg-white/8 dark:text-white"
-              aria-label={t("nav.aria.closeMenu")}
-            >
-              <X className="h-4 w-4" />
-            </SheetClose>
-          </div>
-
-          <div className="border-b border-border p-4 dark:border-white/[0.06]">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onSearchClick?.();
-              }}
-              className="flex w-full items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-border hover:bg-accent dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/70 dark:border-white/15 dark:bg-white/[0.08] dark:text-white"
-            >
-              <SearchIcon className="h-4 w-4 shrink-0" />
-              {t("nav.search")}
-            </button>
-          </div>
-
-          <nav className="flex flex-1 flex-col overflow-y-auto p-3" aria-label={t("nav.aria.mobileNav")}>
-            <GroupedNavLinks items={menuItems} pathname={pathname} onNavigate={() => setOpen(false)} />
-          </nav>
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 };
 

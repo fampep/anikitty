@@ -44,7 +44,7 @@ export async function GET(
   const blocked = viewerId && viewerId !== user.id ? await hasBlocked(db, viewerId, user.id) : false;
 
   return NextResponse.json({
-    user: publicUserFields(user),
+    user: publicUserFields(user, viewerId),
     accountBadges,
     counts: folderCountsFromRows(countRows),
     follow,

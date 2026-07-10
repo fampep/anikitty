@@ -14,6 +14,8 @@ export type PublicUserRow = {
   role: string;
   roleColor: string | null;
   createdAt: Date | null;
+  lastOnlineAt: Date | null;
+  activityStatus: string;
   profilePrivate: boolean;
   equippedFrame: string | null;
   equippedSticker: string | null;
@@ -35,6 +37,8 @@ export async function getUserByUsername(
       role: users.role,
       roleColor: roles.color,
       createdAt: users.createdAt,
+      lastOnlineAt: users.lastOnlineAt,
+      activityStatus: users.activityStatus,
       profilePrivate: users.profilePrivate,
       equippedFrame: users.equippedFrame,
       equippedSticker: users.equippedSticker,

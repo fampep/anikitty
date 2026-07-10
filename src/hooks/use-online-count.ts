@@ -41,6 +41,7 @@ async function beat() {
     const res = await fetch("/api/online", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ sessionId: sid }),
     });
     const data = await res.json();

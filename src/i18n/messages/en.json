@@ -489,14 +489,16 @@
     "fontScaleDefault": "Default",
     "fontScaleLarge": "Large",
     "interfaceDensity": "Interface density",
-    "interfaceDensityDesc": "Tighter spacing across the site — on by default for a denser layout",
+    "interfaceDensityDesc": "Tighter spacing site-wide with a slimmer header and floating dock navigation.",
     "densityComfortable": "Comfortable",
     "densityCompact": "Compact",
     "siteChrome": "Site elements",
     "showBetaBadge": "Version in footer",
     "showBetaBadgeDesc": "Show the Stable/Beta version label in the site footer",
     "showPillNavOnDesktop": "Pill navigation on desktop",
-    "showPillNavOnDesktopDesc": "Show the bottom quick-navigation bar on larger screens, not only on phones",
+    "showPillNavOnDesktopDesc": "Reserved for a future layout option — bottom navigation is always visible",
+    "presenceTitle": "Activity status",
+    "presenceDesc": "Choose how others see you on your profile — online, away, do not disturb, or invisible.",
     "showOnlineCount": "Online count",
     "showOnlineCountDesc": "Show live viewer count in the footer and home bar",
     "showAnnouncements": "Announcements",
@@ -671,6 +673,29 @@
     "subtitleSyncFine": "Fine",
     "subtitleSyncCoarse": "Coarse",
     "subtitleSyncReset": "Reset sync"
+  },
+  "presence": {
+    "status": {
+      "online": "Online",
+      "away": "Away",
+      "dnd": "Do not disturb",
+      "offline": "Offline",
+      "invisible": "Invisible"
+    },
+    "desc": {
+      "online": "Show as active when you're browsing the site.",
+      "away": "Let others know you're stepping away.",
+      "dnd": "Mute presence highlights — you still appear away to others.",
+      "invisible": "Browse without showing online status or last seen."
+    },
+    "lastOnlineNow": "Active now",
+    "lastOnlineAgo": "Last online {time}",
+    "lastOnlineAt": "Last online {datetime}",
+    "minutesAgo": "{count, plural, one {# min ago} other {# mins ago}}",
+    "hoursAgo": "{count, plural, one {# hr ago} other {# hrs ago}}",
+    "daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+    "updated": "Activity status updated",
+    "updateFailed": "Couldn't update activity status"
   },
   "profile": {
     "badges": {

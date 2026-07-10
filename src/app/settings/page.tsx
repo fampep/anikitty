@@ -56,6 +56,8 @@ import { RoleBadge } from "@/components/profile/role-badge";
 import { useT } from "@/providers/i18n-provider";
 import { ROUTES } from "@/constants/routes";
 import { useKittycoins } from "@/hooks/use-kittycoins";
+import PresenceSettings from "@/components/settings/presence-settings";
+import { Radio } from "lucide-react";
 
 type SettingsTab = "general" | "profile" | "security" | "connections";
 
@@ -835,6 +837,16 @@ export default function SettingsPage() {
                     </SectionBody>
                   </SectionCard>
                   <AppearanceSection />
+                  <SectionCard>
+                    <SectionHeader
+                      icon={<Radio className="w-4 h-4" />}
+                      title={t("settings.presenceTitle")}
+                      description={t("settings.presenceDesc")}
+                    />
+                    <SectionBody>
+                      <PresenceSettings />
+                    </SectionBody>
+                  </SectionCard>
                   <NotificationsSection />
                 </div>
               )}

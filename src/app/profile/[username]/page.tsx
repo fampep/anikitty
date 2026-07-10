@@ -73,6 +73,8 @@ import type { FriendStatus } from "@/app/api/users/[username]/friend/route";
 import { useT } from "@/providers/i18n-provider";
 import { useI18n } from "@/providers/i18n-provider";
 import { useKittycoins } from "@/hooks/use-kittycoins";
+import { PresenceStatusLine, PresenceDot } from "@/components/profile/presence-indicator";
+import { formatJoinedAt, type PublicPresenceStatus } from "@/lib/user/presence";
 
 type ProfileCounts = {
   watching: number;
@@ -99,6 +101,9 @@ type ProfileData = {
   role: string;
   roleColor: string | null;
   createdAt: string | null;
+  presenceStatus?: PublicPresenceStatus;
+  lastOnlineAt?: string | null;
+  activityStatus?: string;
   profilePrivate?: boolean;
   equippedFrame?: string | null;
   equippedSticker?: string | null;
@@ -587,25 +592,32 @@ function ProfilePage() {
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 md:items-start mb-10">
           {/* Left rail: avatar + vertical actions */}
           <div className="flex flex-col items-center md:items-stretch md:w-56 shrink-0">
-            <div
-              className={cn(
-                "rounded-full p-[3px] shadow-2xl mx-auto md:mx-0 w-fit",
-                isOwn && profile.themeColor
-                  ? "user-accent-ring"
-                  : profile.themeColor
-                    ? undefined
-                    : "bg-gradient-to-br from-white/30 via-white/20 to-white/10",
-              )}
-              style={!isOwn && profile.themeColor ? profileAccentRingStyle(profile.themeColor) : undefined}
-            >
-              <div className="rounded-full p-[2px] bg-black">
-                <FramedAvatar
-                  className="w-32 h-32 md:w-36 md:h-36"
-                  username={profile.username}
-                  url={profile.avatarUrl ?? undefined}
-                  frameSlug={profile.equippedFrame}
-                />
+            <div className="relative mx-auto md:mx-0 w-fit">
+              <div
+                className={cn(
+                  "rounded-full p-[3px] shadow-2xl",
+                  isOwn && profile.themeColor
+                    ? "user-accent-ring"
+                    : profile.themeColor
+                      ? undefined
+                      : "bg-gradient-to-br from-white/30 via-white/20 to-white/10",
+                )}
+                style={!isOwn && profile.themeColor ? profileAccentRingStyle(profile.themeColor) : undefined}
+              >
+                <div className="rounded-full p-[2px] bg-black">
+                  <FramedAvatar
+                    className="w-32 h-32 md:w-36 md:h-36"
+                    username={profile.username}
+                    url={profile.avatarUrl ?? undefined}
+                    frameSlug={profile.equippedFrame}
+                  />
+                </div>
               </div>
+              {profile.presenceStatus && (
+                <span className="absolute bottom-1 right-1 md:bottom-2 md:right-2">
+                  <PresenceDot status={profile.presenceStatus} pulse={profile.presenceStatus === "online"} className="h-3.5 w-3.5" />
+                </span>
+              )}
             </div>
 
             <div className="mt-4 flex w-full flex-wrap justify-center gap-2 md:max-w-[240px] md:flex-col md:flex-nowrap md:justify-start">
@@ -706,7 +718,7 @@ function ProfilePage() {
                   <CosmeticUsername username={profile.username} iconSlug={profile.equippedIcon} />
                 </h1>
 
-                {/* Status line = current level tier */}
+                {/* Level tier */}
                 {displayLevel && (
                   <div className="mt-2 flex items-center justify-center md:justify-start gap-2">
                     <span
@@ -716,6 +728,27 @@ function ProfilePage() {
                     <span className="text-sm font-semibold" style={{ color: displayLevel.tier.color }}>
                       {displayLevel.tier.name}
                     </span>
+                  </div>
+                )}
+
+                {profile.presenceStatus && (
+                  <div className="mt-2">
+                    {isOwn && profile.activityStatus === "invisible" ? (
+                      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm md:justify-start">
+                        <span className="inline-flex items-center gap-2 font-medium text-foreground/85 dark:text-white/80">
+                          <PresenceDot status="offline" />
+                          {t("presence.status.invisible")}
+                        </span>
+                        <span className="text-muted-foreground/40 dark:text-white/20">·</span>
+                        <span className="text-[12px] text-muted-foreground/80 dark:text-white/40">{t("presence.desc.invisible")}</span>
+                      </div>
+                    ) : (
+                      <PresenceStatusLine
+                        presenceStatus={profile.presenceStatus}
+                        lastOnlineAt={profile.lastOnlineAt}
+                        centered
+                      />
+                    )}
                   </div>
                 )}
 
@@ -752,8 +785,7 @@ function ProfilePage() {
 
                 {profile.createdAt && (
                   <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
-                    {t("profile.joined")}{" "}
-                    {new Date(profile.createdAt).toLocaleDateString(locale, { month: "long", year: "numeric" })}
+                    {t("profile.joined")} {formatJoinedAt(profile.createdAt, locale)}
                   </p>
                 )}
 

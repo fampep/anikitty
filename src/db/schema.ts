@@ -56,6 +56,10 @@ export const users = pgTable("users", {
   loginStreak: integer("login_streak").notNull().default(0),
   longestStreak: integer("longest_streak").notNull().default(0),
   lastLoginDate: varchar("last_login_date", { length: 10 }), // YYYY-MM-DD (UTC)
+  /** Last heartbeat while signed in (site presence). */
+  lastOnlineAt: timestamp("last_online_at"),
+  /** User-selected presence: online | away | dnd | invisible */
+  activityStatus: varchar("activity_status", { length: 12 }).notNull().default("online"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

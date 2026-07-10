@@ -8,6 +8,7 @@ import {
   privateProfileResponse,
 } from "@/lib/user/profile-privacy";
 import { eq } from "drizzle-orm";
+import { resolvePublicPresence, type ActivityStatus } from "@/lib/user/presence";
 
 type ResolveResult =
   | { ok: false; response: NextResponse }
@@ -51,7 +52,15 @@ export async function requireVisibleProfileUser(
   return result.user;
 }
 
-export function publicUserFields(user: PublicUserRow) {
+export function publicUserFields(user: PublicUserRow, viewerId: string | null = null) {
+  const isOwner = viewerId === user.id;
+  const activityStatus = (user.activityStatus ?? "online") as ActivityStatus;
+  const presence = resolvePublicPresence({
+    activityStatus,
+    lastOnlineAt: user.lastOnlineAt,
+    forOwner: isOwner,
+  });
+
   return {
     id: user.id,
     username: user.username,
@@ -66,6 +75,9 @@ export function publicUserFields(user: PublicUserRow) {
     equippedFrame: user.equippedFrame,
     equippedSticker: user.equippedSticker,
     equippedIcon: user.equippedIcon,
+    presenceStatus: presence.status,
+    lastOnlineAt: presence.showLastOnline ? user.lastOnlineAt?.toISOString() ?? null : null,
+    ...(isOwner ? { activityStatus } : {}),
   };
 }
 
