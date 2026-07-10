@@ -96,7 +96,6 @@ export function buildKittyStreamQueryKey(
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
-  kittyNode?: KittyApiNodeId,
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -112,7 +111,6 @@ export function buildKittyStreamQueryKey(
     mkissaMirror ?? "",
     animoServer ?? "",
     title ?? "",
-    kittyNode ?? "primary",
   ];
 }
 
@@ -164,7 +162,6 @@ export const useGetKittyStream = (
       allanimeMirror,
       mkissaMirror,
       animoServer,
-      kittyNode,
     ),
     queryFn: async () => {
       abortRef.current?.abort();

@@ -145,6 +145,9 @@ const VideoPlayerSection = () => {
   useEffect(() => {
     if (!proxyPingReady || kittyProxyManual || !fastestProxyId) return;
     if (kittyProxyNode === fastestProxyId) return;
+    // Switching proxy mid-playback refetches the stream and remounts the player.
+    const video = artPlayerRef.current?.video;
+    if (video && !video.paused && !video.ended) return;
     applyAutoKittyProxyNode(fastestProxyId);
   }, [proxyPingReady, kittyProxyManual, fastestProxyId, kittyProxyNode, applyAutoKittyProxyNode]);
   const compactProviderPicker = simpleProviderPicker;
@@ -894,7 +897,13 @@ const VideoPlayerSection = () => {
     episodePlayable;
 
   const hasStreamFile = Boolean(streamData?.file);
-  const streamStale = Boolean(isPlaceholderData && isFetching);
+  const pendingNewEpisode = Boolean(
+    episodeId && heldStreamSnapshot && episodeId !== heldStreamSnapshot.episodeId,
+  );
+  const streamBackgroundRefresh = Boolean(
+    isFetching && isPlaceholderData && hasStreamFile && !pendingNewEpisode,
+  );
+  const streamStale = Boolean(isPlaceholderData && isFetching && !streamBackgroundRefresh);
   const streamReady = hasStreamFile && !streamStale;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
@@ -936,7 +945,6 @@ const VideoPlayerSection = () => {
         provider === "AllAnime" ? allanimeMirror : null,
         provider === "MKissa" ? mkissaMirror : null,
         provider === "Animo" ? animoServer : null,
-        kittyProxyNode,
       ),
       queryFn: () =>
         getKittyStream(
@@ -970,7 +978,6 @@ const VideoPlayerSection = () => {
     allanimeMirror,
     mkissaMirror,
     animoServer,
-    kittyProxyNode,
     queryClient,
   ]);
   const streamFailed =
@@ -1017,7 +1024,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${streamData?.file ?? ""}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${playbackToken}-${kittyProxyNode}`;
+  const playerKey = `${anilistId}-${episodeNo}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);
@@ -1052,9 +1059,6 @@ const VideoPlayerSection = () => {
     });
   }, [streamReady, streamData?.file, episodeId, playerKey, playerTracks, playerHeaders, skipTimes]);
 
-  const pendingNewEpisode = Boolean(
-    episodeId && heldStreamSnapshot && episodeId !== heldStreamSnapshot.episodeId,
-  );
   const useLiveStream = Boolean(streamReady && streamData?.file);
   const useHeldPlayerShell = Boolean(
     heldStreamSnapshot?.file &&

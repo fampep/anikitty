@@ -26,7 +26,7 @@ export const MEGAPLAY_PROVIDER_CONFIG: MegaplayProviderConfig = {
   slug: "megaplay",
   catalogApi: "anikotoapi.site",
   streamApi: "megaplay.buzz",
-  hint: "Anikoto API catalog · MegaPlay streams · SUB · DUB · VTT on SUB",
+  hint: "stream-direct · merged backends · 1080p/720p/360p · SUB · DUB · VTT",
 };
 
 const LEGACY_MEGAPLAY_SET = new Set<string>(LEGACY_MEGAPLAY_PROVIDER_IDS);
