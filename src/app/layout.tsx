@@ -16,7 +16,6 @@ import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import SiteDisplaySync from "@/components/layout/site-display-sync";
-import ClickAdsScript from "@/components/ads/click-ads-script";
 import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
 import LiteModeSync from "@/components/layout/lite-mode-sync";
@@ -162,7 +161,6 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <QueryProvider>
-              <ClickAdsScript />
               <SiteDisplaySync />
               <SkipToContent />
               <NavBar />

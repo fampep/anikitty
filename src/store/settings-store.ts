@@ -122,6 +122,10 @@ interface ISettingsStore {
   setNotifyReplies: (val: boolean) => void;
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
+
+  /** Show non-intrusive banner ads on supported pages. */
+  showBannerAds: boolean;
+  setShowBannerAds: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -275,10 +279,13 @@ export const useSettingsStore = create<ISettingsStore>()(
       setNotifyReplies: (notifyReplies) => set({ notifyReplies }),
       notifyFollows: true,
       setNotifyFollows: (notifyFollows) => set({ notifyFollows }),
+
+      showBannerAds: true,
+      setShowBannerAds: (showBannerAds) => set({ showBannerAds }),
     }),
     {
       name: "kitty-settings",
-      version: 28,
+      version: 29,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -409,6 +416,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 28) {
           next.interfaceDensity = "compact";
+        }
+        if (version < 29) {
+          next.showBannerAds = next.showBannerAds ?? true;
         }
         return next as ISettingsStore;
       },

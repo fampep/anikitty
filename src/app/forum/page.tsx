@@ -30,6 +30,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
 import CommunityHero from "@/components/community/community-hero";
+import SiteBannerAd from "@/components/ads/site-banner-ad";
 import { cn } from "@/lib/core/utils";
 
 const SORT_IDS = ["active", "new", "top", "unanswered"] as const;
@@ -216,6 +217,8 @@ export default function ForumPage() {
             </>
           )}
         </CommunityHero>
+
+        <SiteBannerAd />
 
         {/* ── Controls row ── */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">

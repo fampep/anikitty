@@ -1392,16 +1392,16 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               </div>
             )}
 
-            {/* Site-wide click ads */}
+            {/* Site-wide banner ads */}
             <div className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-5">
               <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <Banknote className="w-3.5 h-3.5" /> Site settings
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground dark:text-white/85">Global click ads</p>
+                  <p className="text-sm font-semibold text-foreground dark:text-white/85">Global banner ads</p>
                   <p className="text-[11px] text-muted-foreground dark:text-white/35 mt-1 leading-relaxed max-w-xl">
-                    Turn the lightweight click-ad script on or off for everyone. Saved in the database — survives redeploys. User ad-free perks still apply when ads are on.
+                    Turn the banner ad on or off for everyone. Saved in the database — survives redeploys. Users can also hide ads in Settings.
                   </p>
                   <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
                     Status:{" "}

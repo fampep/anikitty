@@ -7,7 +7,7 @@ import {
   type ShopItem,
   type ShopItemType,
 } from "@/lib/shop/catalog";
-import { hasAdFreePerk } from "@/lib/social/supporter-access";
+import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";
 import { and, eq, sql } from "drizzle-orm";
 
 type Db = ReturnType<typeof getDb>;
@@ -118,7 +118,7 @@ export async function purchaseShopItem(
 
   if (owned) return { ok: false, error: "Already owned" };
 
-  if (item.donatorOnly && !hasAdFreePerk(user.role, [], user.supporterUntil)) {
+  if (item.donatorOnly && !hasActiveDonatorStatus(user.role, user.supporterUntil)) {
     return { ok: false, error: "Ko-fi supporter perk required" };
   }
 

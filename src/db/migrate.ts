@@ -663,13 +663,10 @@ export async function migrateDb() {
 
     await client`
       INSERT INTO roles (name, color, permissions)
-      VALUES ('donator', '#f472b6', '["ads.ad_free"]'::jsonb)
+      VALUES ('donator', '#f472b6', '[]'::jsonb)
       ON CONFLICT (name) DO UPDATE SET
-        permissions = CASE
-          WHEN roles.permissions = '[]'::jsonb OR roles.permissions IS NULL
-          THEN '["ads.ad_free"]'::jsonb
-          ELSE roles.permissions
-        END
+        color = EXCLUDED.color,
+        permissions = '[]'::jsonb
     `.catch((e: unknown) => console.error("[migrate] donator role seed failed:", e));
 
     await client`

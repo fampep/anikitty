@@ -59,15 +59,23 @@ function parseSupporterUntil(
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function hasAdFreePerk(
+export function hasActiveDonatorStatus(
   role?: string | null,
-  permissions?: string[] | null,
   supporterUntil?: Date | string | null,
 ): boolean {
-  if (role === "admin") return true;
-
+  if (role !== DONATOR_ROLE) return false;
   const until = parseSupporterUntil(supporterUntil);
-  return until != null && until.getTime() > Date.now();
+  if (!until) return true;
+  return until.getTime() > Date.now();
+}
+
+/** @deprecated Use settings `showBannerAds` — kept for legacy permission checks only. */
+export function hasAdFreePerk(
+  role?: string | null,
+  _permissions?: string[] | null,
+  _supporterUntil?: Date | string | null,
+): boolean {
+  return role === "admin";
 }
 
 export function extendSupporterUntilByDays(

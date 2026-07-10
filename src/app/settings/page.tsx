@@ -50,6 +50,7 @@ import BlockedUsersSection from "@/components/profile/blocked-users-section";
 import AccountDeletionSection from "@/components/auth/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import SiteDisplaySettings from "@/components/settings/site-display-settings";
+import AdsSettingsSection from "@/components/settings/ads-settings-section";
 import DiscordConnect from "@/components/auth/discord-connect";
 import AnisurgeConnect from "@/components/auth/anisurge-connect";
 import { RoleBadge } from "@/components/profile/role-badge";
@@ -800,6 +801,7 @@ export default function SettingsPage() {
               {activeTab === "general" && (
                 <div className="space-y-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
                   <ShopSection />
+                  <AdsSettingsSection />
                   <SiteDisplaySection />
                   <PerformanceSection />
                   <PlaybackSection
@@ -925,6 +927,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <div className="mt-2 space-y-5">
+            <AdsSettingsSection />
             <SiteDisplaySection />
             <PerformanceSection />
             <PlaybackSection

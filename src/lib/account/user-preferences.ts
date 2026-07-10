@@ -35,6 +35,7 @@ export type SyncedUserPreferences = {
   notifyMentions?: boolean;
   notifyReplies?: boolean;
   notifyFollows?: boolean;
+  showBannerAds?: boolean;
 };
 
 export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
@@ -71,6 +72,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.notifyMentions === "boolean") out.notifyMentions = input.notifyMentions;
   if (typeof input.notifyReplies === "boolean") out.notifyReplies = input.notifyReplies;
   if (typeof input.notifyFollows === "boolean") out.notifyFollows = input.notifyFollows;
+  if (typeof input.showBannerAds === "boolean") out.showBannerAds = input.showBannerAds;
   if (input.siteAccentColor === null) {
     out.siteAccentColor = null;
   } else if (typeof input.siteAccentColor === "string" && isValidThemeColor(input.siteAccentColor)) {
