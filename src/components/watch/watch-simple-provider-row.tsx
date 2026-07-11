@@ -24,6 +24,11 @@ import {
   aniwavesServerDropdownLabel,
   type AniwavesServerId,
 } from "@/lib/providers/aniwaves-config";
+import {
+  ANIKURO_SERVERS,
+  anikuroServerDropdownLabel,
+  type AnikuroServerId,
+} from "@/lib/providers/anikuro-config";
 import { ProviderDefaultBadge } from "@/components/player/provider-select";
 import {
   KITTY_PROVIDER_META,
@@ -47,6 +52,7 @@ type Props = {
   animoServer?: AnimoServerId;
   aninekoServer?: AninekoServerId;
   aniwavesServer?: AniwavesServerId;
+  anikuroServer?: AnikuroServerId;
   onProviderChange: (provider: KittyProvider) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
@@ -55,6 +61,7 @@ type Props = {
   onAnimoServerChange?: (server: AnimoServerId) => void;
   onAninekoServerChange?: (server: AninekoServerId) => void;
   onAniwavesServerChange?: (server: AniwavesServerId) => void;
+  onAnikuroServerChange?: (server: AnikuroServerId) => void;
   className?: string;
 };
 
@@ -132,6 +139,7 @@ export default function WatchSimpleProviderRow({
   animoServer,
   aninekoServer,
   aniwavesServer,
+  anikuroServer,
   onProviderChange,
   onMiruroPipeChange,
   onAnimexServerChange,
@@ -140,6 +148,7 @@ export default function WatchSimpleProviderRow({
   onAnimoServerChange,
   onAninekoServerChange,
   onAniwavesServerChange,
+  onAnikuroServerChange,
   className,
 }: Props) {
   const t = useT();
@@ -252,6 +261,17 @@ export default function WatchSimpleProviderRow({
           }))}
           placeholder={t("watch.server")}
           onChange={onAniwavesServerChange}
+        />
+      )}
+      {provider === "AniKuro" && anikuroServer && onAnikuroServerChange && (
+        <ServerSubSelect
+          value={anikuroServer}
+          options={ANIKURO_SERVERS.map((server) => ({
+            id: server.id,
+            label: anikuroServerDropdownLabel(server.id),
+          }))}
+          placeholder={t("watch.server")}
+          onChange={onAnikuroServerChange}
         />
       )}
     </div>

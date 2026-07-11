@@ -11,11 +11,13 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Anitaku",
   "MegaPlay",
-  "AniZone",
-  "AniWaves",
   "AniNeko",
+  "AniBD",
   "AllAnime",
   "MKissa",
+  "AniKuro",
+  "AniWaves",
+  "Anikage",
 ] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];

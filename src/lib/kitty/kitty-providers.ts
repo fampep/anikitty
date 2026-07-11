@@ -54,11 +54,13 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
 export const KITTY_PROVIDERS = [
   "Anitaku",
   "MegaPlay",
-  "AniZone",
-  "AniWaves",
   "AniNeko",
+  "AniBD",
   "AllAnime",
   "MKissa",
+  "AniKuro",
+  "AniWaves",
+  "Anikage",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -111,30 +113,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "AniList ID · stream-direct · up to 1080p · SUB · DUB · VTT",
   },
   {
-    id: "AniZone",
-    label: "Zulu",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "SUB · DUB · multi-route",
-  },
-  {
-    id: "AniWaves",
-    label: "Golf",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "SUB · DUB · multi-route · soft subs",
-  },
-  {
     id: "AniNeko",
     label: "Gamma",
     group: "featured",
@@ -145,6 +123,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · multi-server · soft subs",
+  },
+  {
+    id: "AniBD",
+    label: "Hotel",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: false,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB only · AniList ID · stream-direct",
   },
   {
     id: "AllAnime",
@@ -170,6 +159,41 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsMulti: true,
     hint: "SUB · DUB · redundancy · MP4/HLS",
   },
+  {
+    id: "AniKuro",
+    label: "Foxtrot",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · multi-route · soft subs",
+  },
+  {
+    id: "AniWaves",
+    label: "Golf",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · multi-route · soft subs",
+  },
+  {
+    id: "Anikage",
+    label: "India",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · slug or watch URL · stream-direct",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -177,11 +201,13 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anitaku",
   "MegaPlay",
-  "AniZone",
-  "AniWaves",
   "AniNeko",
+  "AniBD",
   "AllAnime",
   "MKissa",
+  "AniKuro",
+  "AniWaves",
+  "Anikage",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -206,8 +232,10 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   MEGAPLAY_PROVIDER_ID,
   "Anitaku",
   "AniNeko",
-  "AniZone",
+  "AniBD",
+  "AniKuro",
   "AniWaves",
+  "Anikage",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -221,7 +249,7 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 }
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
-  if (value === "AniKuro") return "AniWaves";
+  if (value === "AniZone") return "AniNeko";
   if (value && isActiveKittyProvider(value)) return value;
   if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
   // Any retired provider (or unknown value) falls back to the default.
@@ -269,7 +297,12 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
 }
 
 /** Providers that only appear in the MULTI row (server picker expands below). */
-export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>(["AniZone", "AniWaves", "AllAnime", "MKissa"]);
+export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([
+  "AniKuro",
+  "AniWaves",
+  "AllAnime",
+  "MKissa",
+]);
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {

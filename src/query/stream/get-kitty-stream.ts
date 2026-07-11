@@ -8,6 +8,7 @@ import type { LunarServerId } from "@/lib/providers/lunar-config";
 import type { AnimoServerId } from "@/lib/providers/animo-config";
 import type { AninekoServerId } from "@/lib/providers/anineko-config";
 import type { AniwavesServerId } from "@/lib/providers/aniwaves-config";
+import type { AnikuroServerId } from "@/lib/providers/anikuro-config";
 import type { MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
@@ -65,6 +66,7 @@ export const getKittyStream = async (
   animoServer?: AnimoServerId | null,
   aninekoServer?: AninekoServerId | null,
   aniwavesServer?: AniwavesServerId | null,
+  anikuroServer?: AnikuroServerId | null,
   kittyNode?: KittyApiNodeId,
   signal?: AbortSignal,
 ): Promise<KittyStreamResponse> => {
@@ -85,6 +87,7 @@ export const getKittyStream = async (
       ...(provider === "Animo" && animoServer ? { animoServer } : {}),
       ...(provider === "AniNeko" && aninekoServer ? { aninekoServer } : {}),
       ...(provider === "AniWaves" && aniwavesServer ? { aniwavesServer } : {}),
+      ...(provider === "AniKuro" && anikuroServer ? { anikuroServer } : {}),
     },
     signal,
     timeout: 22_000,
@@ -109,6 +112,7 @@ export function buildKittyStreamQueryKey(
   animoServer?: AnimoServerId | null,
   aninekoServer?: AninekoServerId | null,
   aniwavesServer?: AniwavesServerId | null,
+  anikuroServer?: AnikuroServerId | null,
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -125,6 +129,7 @@ export function buildKittyStreamQueryKey(
     animoServer ?? "",
     aninekoServer ?? "",
     aniwavesServer ?? "",
+    anikuroServer ?? "",
     title ?? "",
   ];
 }
@@ -154,6 +159,7 @@ export const useGetKittyStream = (
   animoServer?: AnimoServerId | null,
   aninekoServer?: AninekoServerId | null,
   aniwavesServer?: AniwavesServerId | null,
+  anikuroServer?: AnikuroServerId | null,
   kittyNode?: KittyApiNodeId,
 ) => {
   const abortRef = useRef<AbortController | null>(null);
@@ -181,6 +187,7 @@ export const useGetKittyStream = (
       animoServer,
       aninekoServer,
       aniwavesServer,
+      anikuroServer,
     ),
     queryFn: async () => {
       abortRef.current?.abort();
@@ -202,6 +209,7 @@ export const useGetKittyStream = (
           animoServer,
           aninekoServer,
           aniwavesServer,
+          anikuroServer,
           kittyNode,
           controller.signal,
         );

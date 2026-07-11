@@ -29,6 +29,10 @@ import {
   ANIWAVES_SERVERS,
   type AniwavesServerId,
 } from "@/lib/providers/aniwaves-config";
+import {
+  ANIKURO_SERVERS,
+  type AnikuroServerId,
+} from "@/lib/providers/anikuro-config";
 import { ServerSubSelect } from "@/components/watch/watch-simple-provider-row";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import {
@@ -44,7 +48,7 @@ import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 
-export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AniZone" | "AniWaves" | "AllAnime" | "MKissa";
+export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AniKuro" | "AniWaves" | "AllAnime" | "MKissa";
 
 type Props = {
   value: KittyProvider;
@@ -157,6 +161,7 @@ export function ProviderQuickPick({
   animoServer,
   aninekoServer,
   aniwavesServer,
+  anikuroServer,
   onSelect,
   onMultiToggle,
   onMiruroPipeChange,
@@ -168,6 +173,7 @@ export function ProviderQuickPick({
   onAnimoServerChange,
   onAninekoServerChange,
   onAniwavesServerChange,
+  onAnikuroServerChange,
   className,
   compact,
 }: {
@@ -183,6 +189,7 @@ export function ProviderQuickPick({
   animoServer?: AnimoServerId;
   aninekoServer?: AninekoServerId;
   aniwavesServer?: AniwavesServerId;
+  anikuroServer?: AnikuroServerId;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
   onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
@@ -194,6 +201,7 @@ export function ProviderQuickPick({
   onAnimoServerChange?: (server: AnimoServerId) => void;
   onAninekoServerChange?: (server: AninekoServerId) => void;
   onAniwavesServerChange?: (server: AniwavesServerId) => void;
+  onAnikuroServerChange?: (server: AnikuroServerId) => void;
   className?: string;
   compact?: boolean;
 }) {
@@ -211,6 +219,7 @@ export function ProviderQuickPick({
       animoServer={animoServer}
       aninekoServer={aninekoServer}
       aniwavesServer={aniwavesServer}
+      anikuroServer={anikuroServer}
       compact={compact}
       onSelect={onSelect}
       onMultiToggle={onMultiToggle}
@@ -223,6 +232,7 @@ export function ProviderQuickPick({
       onAnimoServerChange={onAnimoServerChange}
       onAninekoServerChange={onAninekoServerChange}
       onAniwavesServerChange={onAniwavesServerChange}
+      onAnikuroServerChange={onAnikuroServerChange}
       className={className}
     />
   );
@@ -283,7 +293,9 @@ type ProviderGridProps = {
   aninekoServer?: AninekoServerId;
   onAninekoServerChange?: (server: AninekoServerId) => void;
   aniwavesServer?: AniwavesServerId;
+  anikuroServer?: AnikuroServerId;
   onAniwavesServerChange?: (server: AniwavesServerId) => void;
+  onAnikuroServerChange?: (server: AnikuroServerId) => void;
   disabled?: boolean;
   className?: string;
   rows?: ProviderAudioMode[];
@@ -328,7 +340,7 @@ function providerPillClass(
     providerId === "VideoVib" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
     providerId === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
     providerId === "AniNeko" && isActive && "border-indigo-400/40 bg-indigo-500/20 text-indigo-100",
-    providerId === "AniZone" && isActive && "border-lime-400/40 bg-lime-500/20 text-lime-100",
+    providerId === "AniKuro" && isActive && "border-orange-400/40 bg-orange-500/20 text-orange-100",
     providerId === "AniWaves" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
   );
 }
@@ -365,6 +377,8 @@ export function ProviderGrid({
   onAninekoServerChange,
   aniwavesServer,
   onAniwavesServerChange,
+  anikuroServer,
+  onAnikuroServerChange,
   disabled,
   className,
   rows,
@@ -720,6 +734,30 @@ export function ProviderGrid({
           </MultiServerPanel>
         )}
 
+      {multiPanel === "AniKuro" &&
+        provider === "AniKuro" &&
+        onAnikuroServerChange &&
+        anikuroServer != null && (
+          <MultiServerPanel accent="orange" label={t("watch.server")} compact={compact}>
+            {ANIKURO_SERVERS.map((server) => (
+              <button
+                key={server.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => onAnikuroServerChange(server.id)}
+                className={serverPillClass(
+                  compact,
+                  anikuroServer === server.id,
+                  "bg-orange-500/25 border-orange-400/45 text-orange-100",
+                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-orange-500/30 hover:text-orange-200/80 hover:bg-orange-500/[0.06]",
+                )}
+              >
+                <span>{server.label}</span>
+              </button>
+            ))}
+          </MultiServerPanel>
+        )}
+
       {multiPanel === "AniWaves" &&
         provider === "AniWaves" &&
         onAniwavesServerChange &&
@@ -799,7 +837,7 @@ function MultiServerPanel({
   compact,
 }: {
   label: string;
-  accent: "violet" | "rose" | "cyan" | "fuchsia" | "sky" | "teal" | "amber";
+  accent: "violet" | "rose" | "cyan" | "fuchsia" | "sky" | "teal" | "amber" | "orange";
   children: ReactNode;
   compact?: boolean;
 }) {
@@ -816,7 +854,9 @@ function MultiServerPanel({
               ? "border-teal-500/25 bg-teal-500/[0.04]"
               : accent === "amber"
                 ? "border-amber-500/25 bg-amber-500/[0.04]"
-                : "border-violet-500/25 bg-violet-500/[0.04]";
+                : accent === "orange"
+                  ? "border-orange-500/25 bg-orange-500/[0.04]"
+                  : "border-violet-500/25 bg-violet-500/[0.04]";
   const text =
     accent === "rose"
       ? "text-rose-300/70"
@@ -830,7 +870,9 @@ function MultiServerPanel({
               ? "text-teal-300/70"
               : accent === "amber"
                 ? "text-amber-300/70"
-                : "text-violet-300/70";
+                : accent === "orange"
+                  ? "text-orange-300/70"
+                  : "text-violet-300/70";
 
   return (
     <div className={cn("rounded-lg border px-2.5 py-2", border, compact ? "" : "ml-14")}>
