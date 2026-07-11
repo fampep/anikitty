@@ -616,6 +616,31 @@ function PlaybackSection({
   );
 }
 
+function ContentSection() {
+  const t = useT();
+  const showAdultContent = useSettingsStore((s) => s.showAdultContent);
+  const setShowAdultContent = useSettingsStore((s) => s.setShowAdultContent);
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<EyeOff className="w-4 h-4" />}
+        title={t("settings.content")}
+        description={t("settings.contentDesc")}
+      />
+      <SectionBody>
+        <ToggleRow
+          icon={<EyeOff className="w-4 h-4" />}
+          label={t("settings.showAdultContent")}
+          description={t("settings.showAdultContentDesc")}
+          value={showAdultContent}
+          onChange={setShowAdultContent}
+        />
+      </SectionBody>
+    </SectionCard>
+  );
+}
+
 function SubtitleSection() {
   const t = useT();
 
@@ -832,6 +857,7 @@ export default function SettingsPage() {
                   />
                   <SubtitleSection />
                   <AudioHelpSection />
+                  <ContentSection />
                 </div>
               )}
 
@@ -960,6 +986,7 @@ export default function SettingsPage() {
             />
             <SubtitleSection />
             <AudioHelpSection />
+            <ContentSection />
           </div>
         )}
       </Container>

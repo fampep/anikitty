@@ -595,6 +595,10 @@
       "keepAds": "Keep ads on",
       "disableConfirm": "Turn off anyway"
     },
+    "content": "Content",
+    "contentDesc": "Control what kinds of titles appear across the site",
+    "showAdultContent": "Show adult content (18+)",
+    "showAdultContentDesc": "Include hentai and other 18+ titles in search and suggestions",
     "preferDub": "Prefer Dub",
     "preferDubDesc": "Default to English dub when available",
     "autoPlay": "Auto-play next episode",

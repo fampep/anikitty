@@ -35,6 +35,10 @@ interface ISettingsStore {
   hideFillers: boolean;
   setHideFillers: (val: boolean) => void;
 
+  /** Show adult (18+) / hentai titles in search, suggestions and browse. */
+  showAdultContent: boolean;
+  setShowAdultContent: (val: boolean) => void;
+
   /** Provider grid + stream actions below the player. */
   showPlayerControls: boolean;
   setShowPlayerControls: (val: boolean) => void;
@@ -158,6 +162,9 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       hideFillers: false,
       setHideFillers: (hideFillers) => set({ hideFillers }),
+
+      showAdultContent: false,
+      setShowAdultContent: (showAdultContent) => set({ showAdultContent }),
 
       showPlayerControls: true,
       setShowPlayerControls: (showPlayerControls) => set({ showPlayerControls }),
@@ -297,12 +304,13 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 30,
+      version: 31,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
         autoPlay: state.autoPlay,
         hideFillers: state.hideFillers,
+        showAdultContent: state.showAdultContent,
         subtitleSettings: state.subtitleSettings,
         showPlayerControls: state.showPlayerControls,
         playerSettingsOpen: state.playerSettingsOpen,
@@ -436,6 +444,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 30) {
           next.seekStepSeconds = sanitizeSeekStepSeconds(next.seekStepSeconds);
+        }
+        if (version < 31) {
+          next.showAdultContent = next.showAdultContent ?? false;
         }
         return next as ISettingsStore;
       },

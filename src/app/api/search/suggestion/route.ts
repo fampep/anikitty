@@ -2,9 +2,9 @@ import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 
 const QUERY = `
-  query ($search: String) {
+  query ($search: String, $isAdult: Boolean) {
     Page(page: 1, perPage: 10) {
-      media(type: ANIME, search: $search, sort: SEARCH_MATCH) {
+      media(type: ANIME, search: $search, sort: SEARCH_MATCH, isAdult: $isAdult) {
         id
         title { english romaji }
         coverImage { large }
@@ -22,13 +22,17 @@ const QUERY = `
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") || "").trim();
+  const allowAdult = searchParams.get("adult") === "1";
 
   if (!q) {
     return Response.json({ data: { suggestions: [] } });
   }
 
   try {
-    const raw = await queryAniList(QUERY, { search: q });
+    const raw = await queryAniList(QUERY, {
+      search: q,
+      isAdult: allowAdult ? undefined : false,
+    });
     const media = raw.Page?.media ?? [];
 
     const suggestions = media.map((m: any) => ({

@@ -11,6 +11,7 @@ const QUERY = `
     $season: MediaSeason
     $genre_in: [String]
     $sort: [MediaSort]
+    $isAdult: Boolean
   ) {
     Page(page: $page, perPage: $perPage) {
       pageInfo { total currentPage lastPage hasNextPage perPage }
@@ -22,6 +23,7 @@ const QUERY = `
         season: $season
         genre_in: $genre_in
         sort: $sort
+        isAdult: $isAdult
       ) {
         id
         title { english romaji }
@@ -78,6 +80,8 @@ export async function GET(request: Request) {
   const season = searchParams.get("season") || "";
   const genres = searchParams.get("genres") || "";
   const sortParam = searchParams.get("sort") || "";
+  // Adult content is hidden unless the client opts in (settings toggle).
+  const allowAdult = searchParams.get("adult") === "1";
 
   const cleanQ = q.replace(/^"+|"+$/g, "").trim();
 
@@ -105,6 +109,8 @@ export async function GET(request: Request) {
       season: aniSeason,
       genre_in: genreList,
       sort: sortArr,
+      // false → SFW only; omit → AniList returns both SFW and adult.
+      isAdult: allowAdult ? undefined : false,
     });
 
     const pageInfo = raw.Page?.pageInfo ?? {};
