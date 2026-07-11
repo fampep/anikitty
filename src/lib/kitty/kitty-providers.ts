@@ -51,11 +51,11 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
 export const KITTY_PROVIDERS = [
-  "AllAnime",
-  "MKissa",
   "MegaPlay",
   "Anitaku",
   "AniNeko",
+  "AllAnime",
+  "MKissa",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -85,32 +85,8 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
-    id: "AllAnime",
-    label: "Alpha",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "SUB · DUB · MP4/HLS · multi-server",
-  },
-  {
-    id: "MKissa",
-    label: "Beta",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "SUB · DUB · redundancy · MP4/HLS",
-  },
-  {
     id: "MegaPlay",
-    label: "Gamma",
+    label: "Alpha",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -121,7 +97,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
   {
     id: "Anitaku",
-    label: "Delta",
+    label: "Beta",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -133,7 +109,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
   {
     id: "AniNeko",
-    label: "Echo",
+    label: "Gamma",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -143,16 +119,40 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB · DUB · multi-server · soft subs",
   },
+  {
+    id: "AllAnime",
+    label: "Delta",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · MP4/HLS · multi-server",
+  },
+  {
+    id: "MKissa",
+    label: "Echo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · redundancy · MP4/HLS",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. MegaPlay follows AllAnime/MKissa as fallback. */
+ * tries these before anything else. AllAnime/MKissa are last-resort mirrors. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
-  "AllAnime",
-  "MKissa",
   "MegaPlay",
   "Anitaku",
   "AniNeko",
+  "AllAnime",
+  "MKissa",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
