@@ -1300,7 +1300,7 @@ export default function KittyPlayer({
         setActiveSkip(nextSkip);
       }
 
-      const uiInterval = nextSkip ? 0.25 : 1;
+      const uiInterval = nextSkip ? 0.5 : 2;
       if (skipChanged || current - lastUiTimeRef.current >= uiInterval) {
         lastUiTimeRef.current = current;
         setCurrentTime(current);

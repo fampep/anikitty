@@ -8,8 +8,17 @@ type ProgressCache = Record<string, ProgressEntry>;
 
 let memoryCache: ProgressCache | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
-let notifyTimer: ReturnType<typeof setTimeout> | null = null;
-const NOTIFY_DEBOUNCE_MS = 2000;
+let localBumpTimer: ReturnType<typeof setTimeout> | null = null;
+/** Debounce local UI subscribers (episode bar) — avoids re-renders every timeupdate. */
+const LOCAL_BUMP_DEBOUNCE_MS = 5000;
+
+function scheduleLocalBump(set: (partial: Partial<ProgressStore> | ((s: ProgressStore) => Partial<ProgressStore>)) => void) {
+  if (localBumpTimer) return;
+  localBumpTimer = setTimeout(() => {
+    localBumpTimer = null;
+    set((s) => ({ localVersion: s.localVersion + 1 }));
+  }, LOCAL_BUMP_DEBOUNCE_MS);
+}
 
 function loadCache(): ProgressCache {
   if (memoryCache) return memoryCache;
@@ -32,17 +41,6 @@ function flushCache() {
   } catch {
     /* ignore quota errors */
   }
-}
-
-function scheduleNotify(set: (partial: Partial<ProgressStore>) => void) {
-  if (notifyTimer) return;
-  notifyTimer = setTimeout(() => {
-    notifyTimer = null;
-    set({ lastSaved: Date.now() });
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("anikitty:level-invalidate"));
-    }
-  }, NOTIFY_DEBOUNCE_MS);
 }
 
 export function getAnimeProgressEntries(
@@ -71,7 +69,10 @@ function scheduleSave() {
 }
 
 interface ProgressStore {
+  /** Bumped after remote progress sync — triggers server refetch in hooks. */
   lastSaved: number;
+  /** Bumped after local cache writes — refreshes episode bar without network. */
+  localVersion: number;
   notify: () => void;
   setProgress: (animeId: string, episodeId: string, current: number, duration: number) => void;
   getProgress: (animeId: string, episodeId: string) => ProgressEntry | null;
@@ -81,6 +82,7 @@ interface ProgressStore {
 
 export const useProgressStore = create<ProgressStore>((set) => ({
   lastSaved: 0,
+  localVersion: 0,
   notify: () => {
     set({ lastSaved: Date.now() });
     if (typeof window !== "undefined") {
@@ -101,7 +103,7 @@ export const useProgressStore = create<ProgressStore>((set) => ({
     }
     cache[key] = { current, duration };
     scheduleSave();
-    scheduleNotify(set);
+    scheduleLocalBump(set);
   },
 
   getProgress: (animeId, episodeId) => {
@@ -115,7 +117,7 @@ export const useProgressStore = create<ProgressStore>((set) => ({
     if (!cache[key]) return;
     delete cache[key];
     flushCache();
-    set({ lastSaved: Date.now() });
+    set((s) => ({ lastSaved: Date.now(), localVersion: s.localVersion + 1 }));
   },
 
   flush: () => {
@@ -124,5 +126,6 @@ export const useProgressStore = create<ProgressStore>((set) => ({
       saveTimer = null;
     }
     flushCache();
+    set((s) => ({ localVersion: s.localVersion + 1 }));
   },
 }));

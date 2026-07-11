@@ -8,6 +8,7 @@ import {
   UseInViewOptions,
   Variants,
 } from "framer-motion";
+import { useMotionEnabled } from "@/hooks/use-motion-enabled";
 
 type MarginType = UseInViewOptions["margin"];
 
@@ -37,6 +38,7 @@ export default function BlurFade({
   inViewMargin = "-50px",
   blur = "6px",
 }: BlurFadeProps) {
+  const motionEnabled = useMotionEnabled();
   const ref = useRef(null);
   const inViewResult = useInView(ref, { once: true, margin: inViewMargin });
   const isInView = !inView || inViewResult;
@@ -45,6 +47,15 @@ export default function BlurFade({
     visible: { y: -yOffset, opacity: 1, filter: `blur(0px)` },
   };
   const combinedVariants = variant || defaultVariants;
+
+  if (!motionEnabled) {
+    return (
+      <div ref={ref} className={className}>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <AnimatePresence>
       <motion.div

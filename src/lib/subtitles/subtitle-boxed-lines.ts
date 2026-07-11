@@ -45,10 +45,18 @@ export function installBoxedSubtitleLineFormatter(subEl: HTMLElement): () => voi
   };
 
   format();
-  const observer = new MutationObserver(() => format());
+  let rafId: number | null = null;
+  const observer = new MutationObserver(() => {
+    if (rafId != null) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      format();
+    });
+  });
   observer.observe(subEl, { childList: true, characterData: true, subtree: true });
 
   return () => {
+    if (rafId != null) cancelAnimationFrame(rafId);
     observer.disconnect();
     subEl.replaceChildren();
     lastRendered = "";

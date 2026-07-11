@@ -231,7 +231,7 @@ const SearchResults = () => {
       </div>
 
       {/* Filter panel */}
-      <div className="bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 backdrop-blur-sm rounded-xl p-5 flex flex-col gap-5">
+      <div className="bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 backdrop-blur-sm site-panel rounded-xl p-5 flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-muted-foreground dark:text-white/50" />
@@ -357,6 +357,7 @@ const SearchResults = () => {
                 className="self-center justify-self-center w-full"
                 showGenre={false}
                 episodeCard
+                deferImage
                 sub={anime.episodes?.sub}
                 dub={anime.episodes?.dub}
                 score={anime.score}

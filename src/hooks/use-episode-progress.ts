@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { getAnimeProgressEntries, useProgressStore } from "@/store/progress-store";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
@@ -42,9 +42,10 @@ function mergeEpisodeProgress(
 export function useEpisodeProgress(animeId: string | null): WatchHistory[] {
   const { auth } = useAuthStore();
   const lastSaved = useProgressStore((s) => s.lastSaved);
+  const localVersion = useProgressStore((s) => s.localVersion);
   const [remoteEpisodes, setRemoteEpisodes] = useState<WatchHistory[]>([]);
 
-  useEffect(() => {
+  const fetchRemote = useCallback(() => {
     if (!auth || !animeId) {
       setRemoteEpisodes([]);
       return;
@@ -68,7 +69,21 @@ export function useEpisodeProgress(animeId: string | null): WatchHistory[] {
         );
       })
       .catch(() => setRemoteEpisodes([]));
-  }, [auth, animeId, lastSaved]);
+  }, [auth, animeId]);
+
+  // Initial load + after server-side progress save — not on every local timeupdate tick.
+  useEffect(() => {
+    fetchRemote();
+  }, [fetchRemote, lastSaved]);
+
+  // Refresh remote progress when the tab becomes visible again.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchRemote();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [fetchRemote]);
 
   return useMemo(() => {
     if (!animeId) return [];
@@ -77,5 +92,5 @@ export function useEpisodeProgress(animeId: string | null): WatchHistory[] {
       return mergeEpisodeProgress([], local);
     }
     return mergeEpisodeProgress(remoteEpisodes, local);
-  }, [animeId, auth, remoteEpisodes, lastSaved]);
+  }, [animeId, auth, remoteEpisodes, localVersion]);
 }

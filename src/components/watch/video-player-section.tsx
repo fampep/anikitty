@@ -439,6 +439,8 @@ const VideoPlayerSection = () => {
   // Live position tracking — updated every timeupdate event (no re-render)
   const liveTimeRef = useRef(0);
   const liveDurationRef = useRef(0);
+  const lastMediaSessionTsRef = useRef(0);
+  const lastLocalProgressTsRef = useRef(0);
   /** Episode id currently playing — blocks progress writes during episode transitions. */
   const progressEpisodeIdRef = useRef<string | null>(null);
 
@@ -769,17 +771,32 @@ const VideoPlayerSection = () => {
   const handleLiveTime = useCallback((t: number, dur: number) => {
     liveTimeRef.current = t;
     liveDurationRef.current = dur;
-    // Keep the lock-screen scrubber in sync.
-    if (typeof navigator !== "undefined" && "mediaSession" in navigator && dur > 0) {
+
+    const now = Date.now();
+    if (
+      typeof navigator !== "undefined" &&
+      "mediaSession" in navigator &&
+      dur > 0 &&
+      now - lastMediaSessionTsRef.current >= 5000
+    ) {
+      lastMediaSessionTsRef.current = now;
       try {
-        navigator.mediaSession.setPositionState?.({ duration: dur, position: Math.min(t, dur), playbackRate: 1 });
+        navigator.mediaSession.setPositionState?.({
+          duration: dur,
+          position: Math.min(t, dur),
+          playbackRate: 1,
+        });
       } catch {
         /* invalid state during transitions */
       }
     }
+
     const activeEpisodeId = progressEpisodeIdRef.current;
     if (!animeSlug || !activeEpisodeId || t <= 5 || dur <= 0) return;
-    useProgressStore.getState().setProgress(animeSlug, activeEpisodeId, t, dur);
+    if (now - lastLocalProgressTsRef.current >= 5000) {
+      lastLocalProgressTsRef.current = now;
+      useProgressStore.getState().setProgress(animeSlug, activeEpisodeId, t, dur);
+    }
   }, [animeSlug]);
 
   // Save on pauses as well as on the 10s interval
@@ -995,13 +1012,14 @@ const VideoPlayerSection = () => {
     progressEpisodeIdRef.current = episodeId;
   }, [episodeId, streamReady]);
 
-  // Prefetch the next episode stream so auto-next / Next feels instant.
+  // Prefetch the next episode stream after playback has settled (avoids competing with HLS).
   useEffect(() => {
     if (!streamReady || !nextEpisode || !anilistId) return;
     const nextEpNo = String(nextEpisode.number);
     if (parseInt(nextEpNo, 10) <= 0) return;
 
-    void queryClient.prefetchQuery({
+    const timer = window.setTimeout(() => {
+      void queryClient.prefetchQuery({
       queryKey: buildKittyStreamQueryKey(
         anilistId,
         nextEpNo,
@@ -1040,6 +1058,9 @@ const VideoPlayerSection = () => {
         ),
       staleTime: 30_000,
     });
+    }, 45_000);
+
+    return () => window.clearTimeout(timer);
   }, [
     streamReady,
     nextEpisode,
