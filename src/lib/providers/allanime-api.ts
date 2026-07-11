@@ -1,5 +1,5 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
-import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-core";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { StreamCapabilities } from "@/lib/kitty/stream-capabilities";
@@ -147,21 +147,21 @@ async function fetchAllanimeStreamByLinkId(
 
   if (!res.ok) return null;
 
-  const data = await res.json();
-  if (!data?.file) return null;
+  const parsed = parseKittyStreamJson(await res.json(), res.ok);
+  if (!parsed?.file) return null;
 
-  const tracks: StreamTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
+  const tracks: StreamTrack[] = Array.isArray(parsed.tracks) ? parsed.tracks : [];
   for (const t of tracks as { file?: string; url?: string }[]) {
     if (!t.file && t.url) t.file = t.url;
   }
 
   return {
-    file: data.file,
-    headers: data.headers ?? {},
+    file: parsed.file,
+    headers: parsed.headers ?? {},
     tracks,
-    skipTimes: data.skipTimes,
-    server: data.serverName ?? data.server ?? null,
-    download: data.download ?? null,
+    allServers: parsed.allServers,
+    server: parsed.server ?? null,
+    download: parsed.download ?? null,
   };
 }
 
@@ -190,21 +190,21 @@ async function fetchAllanimeStreamDirect(opts: {
 
   if (!res.ok) return null;
 
-  const data = await res.json();
-  if (!data?.file) return null;
+  const parsed = parseKittyStreamJson(await res.json(), res.ok);
+  if (!parsed?.file) return null;
 
-  const tracks: StreamTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
+  const tracks: StreamTrack[] = Array.isArray(parsed.tracks) ? parsed.tracks : [];
   for (const t of tracks as { file?: string; url?: string }[]) {
     if (!t.file && t.url) t.file = t.url;
   }
 
   return {
-    file: data.file,
-    headers: data.headers ?? {},
+    file: parsed.file,
+    headers: parsed.headers ?? {},
     tracks,
-    skipTimes: data.skipTimes,
-    server: data.serverName ?? data.server ?? null,
-    download: data.download ?? null,
+    allServers: parsed.allServers,
+    server: parsed.server ?? null,
+    download: parsed.download ?? null,
   };
 }
 

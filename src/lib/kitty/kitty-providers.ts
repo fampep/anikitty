@@ -50,7 +50,13 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * Active providers exposed on the VPS cluster. These are the only ids users can
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
-export const KITTY_PROVIDERS = ["MegaPlay", "Anitaku", "AniNeko"] as const;
+export const KITTY_PROVIDERS = [
+  "AllAnime",
+  "MKissa",
+  "MegaPlay",
+  "Anitaku",
+  "AniNeko",
+] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -79,8 +85,32 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
-    id: "MegaPlay",
+    id: "AllAnime",
     label: "Alpha",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · MP4/HLS · multi-server",
+  },
+  {
+    id: "MKissa",
+    label: "Beta",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · redundancy · MP4/HLS",
+  },
+  {
+    id: "MegaPlay",
+    label: "Gamma",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -91,7 +121,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
   {
     id: "Anitaku",
-    label: "Beta",
+    label: "Delta",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -103,7 +133,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
   {
     id: "AniNeko",
-    label: "Gamma",
+    label: "Echo",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -116,8 +146,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. */
+ * tries these before anything else. MegaPlay follows AllAnime/MKissa as fallback. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
+  "AllAnime",
+  "MKissa",
   "MegaPlay",
   "Anitaku",
   "AniNeko",
@@ -140,6 +172,8 @@ export {
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
+  "AllAnime",
+  "MKissa",
   MEGAPLAY_PROVIDER_ID,
   "Anitaku",
   "AniNeko",
@@ -203,7 +237,7 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
 }
 
 /** Providers that only appear in the MULTI row (server picker expands below). */
-export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([]);
+export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>(["AllAnime", "MKissa"]);
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {

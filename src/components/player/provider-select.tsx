@@ -15,8 +15,8 @@ import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-conf
 import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-config";
 import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-config";
 import {
-  ALLANIME_MIRROR_OPTIONS,
-  MKISSA_MIRROR_OPTIONS,
+  ALLANIME_MIRRORS,
+  MKISSA_MIRRORS,
   type AllanimeMirrorId,
 } from "@/lib/providers/allanime-config";
 import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config";
@@ -83,7 +83,9 @@ export default function ProviderSelect({
             ? "h-8 min-w-[9.5rem] text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/[0.07]"
             : "h-9 min-w-[11rem] text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/[0.07]",
           value === "Miruro" && "border-violet-500/25 bg-violet-500/[0.06] text-violet-100/85",
-          value === "MegaPlay" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
+          value === "AllAnime" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
+          value === "MKissa" && "border-amber-500/25 bg-amber-500/[0.06] text-amber-100/85",
+          value === "MegaPlay" && "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-100/85",
           value === "VideoVib" && "border-amber-500/25 bg-amber-500/[0.06] text-amber-100/85",
           value === "Animo" && "border-cyan-500/25 bg-cyan-500/[0.06] text-cyan-100/85",
           className,
@@ -294,7 +296,9 @@ function providerPillClass(
     providerId === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
     providerId === "AniSnatch" && isActive && "border-fuchsia-400/40 bg-fuchsia-500/20 text-fuchsia-100",
     providerId === "Lunar" && isActive && "border-sky-400/40 bg-sky-500/20 text-sky-100",
-    providerId === "MegaPlay" && isActive && "border-teal-400/40 bg-teal-500/20 text-teal-100",
+    providerId === "AllAnime" && isActive && "border-teal-400/40 bg-teal-500/20 text-teal-100",
+    providerId === "MKissa" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
+    providerId === "MegaPlay" && isActive && "border-emerald-400/40 bg-emerald-500/20 text-emerald-100",
     providerId === "VideoVib" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
     providerId === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
   );
@@ -638,21 +642,21 @@ export function ProviderGrid({
         provider === "AllAnime" &&
         onAllanimeMirrorChange &&
         allanimeMirror != null && (
-          <MultiServerPanel accent="teal" label={t("watch.allAnimeMirror")} compact={compact}>
-            {ALLANIME_MIRROR_OPTIONS.map((mirror) => (
+          <MultiServerPanel accent="teal" label={t("watch.server")} compact={compact}>
+            {ALLANIME_MIRRORS.map((mirror) => (
               <button
-                key={mirror}
+                key={mirror.id}
                 type="button"
                 disabled={disabled}
-                onClick={() => onAllanimeMirrorChange(mirror)}
+                onClick={() => onAllanimeMirrorChange(mirror.id)}
                 className={serverPillClass(
                   compact,
-                  allanimeMirror === mirror,
+                  allanimeMirror === mirror.id,
                   "bg-teal-500/25 border-teal-400/45 text-teal-100",
                   "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
                 )}
               >
-                <span>{mirror}</span>
+                <span>{mirror.label}</span>
               </button>
             ))}
           </MultiServerPanel>
@@ -662,21 +666,21 @@ export function ProviderGrid({
         provider === "MKissa" &&
         onMkissaMirrorChange &&
         mkissaMirror != null && (
-          <MultiServerPanel accent="amber" label={t("watch.mkissaMirror")} compact={compact}>
-            {MKISSA_MIRROR_OPTIONS.map((mirror) => (
+          <MultiServerPanel accent="amber" label={t("watch.server")} compact={compact}>
+            {MKISSA_MIRRORS.map((mirror) => (
               <button
-                key={mirror}
+                key={mirror.id}
                 type="button"
                 disabled={disabled}
-                onClick={() => onMkissaMirrorChange(mirror)}
+                onClick={() => onMkissaMirrorChange(mirror.id)}
                 className={serverPillClass(
                   compact,
-                  mkissaMirror === mirror,
+                  mkissaMirror === mirror.id,
                   "bg-amber-500/25 border-amber-400/45 text-amber-100",
                   "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
                 )}
               >
-                <span>{mirror}</span>
+                <span>{mirror.label}</span>
               </button>
             ))}
           </MultiServerPanel>
