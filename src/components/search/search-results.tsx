@@ -23,6 +23,24 @@ import {
   type GenreFilterMode,
 } from "@/lib/search/genre-filters";
 
+function normalizeFilterParam(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === "all") return undefined;
+  return trimmed;
+}
+
+function filtersMatchParams(filters: SearchAnimeParams, params: SearchAnimeParams) {
+  return (
+    normalizeFilterParam(filters.type) === normalizeFilterParam(params.type) &&
+    normalizeFilterParam(filters.status) === normalizeFilterParam(params.status) &&
+    normalizeFilterParam(filters.season) === normalizeFilterParam(params.season) &&
+    normalizeFilterParam(filters.sort) === normalizeFilterParam(params.sort) &&
+    normalizeFilterParam(filters.genres) === normalizeFilterParam(params.genres) &&
+    normalizeFilterParam(filters.excludeGenres) === normalizeFilterParam(params.excludeGenres) &&
+    normalizeFilterParam(filters.year) === normalizeFilterParam(params.year)
+  );
+}
+
 const EMPTY_FILTERS: SearchAnimeParams = {
   q: "",
   page: 1,
@@ -158,15 +176,7 @@ const SearchResults = () => {
 
   React.useEffect(() => {
     if (isMobile) return;
-    const changed =
-      debouncedFilters.type !== params.type ||
-      debouncedFilters.status !== params.status ||
-      debouncedFilters.season !== params.season ||
-      debouncedFilters.sort !== params.sort ||
-      debouncedFilters.genres !== params.genres ||
-      debouncedFilters.excludeGenres !== params.excludeGenres ||
-      debouncedFilters.year !== params.year;
-    if (!changed) return;
+    if (filtersMatchParams(debouncedFilters, params)) return;
     applyFilters({ ...debouncedFilters, page: 1 });
   }, [
     debouncedFilters.type,
@@ -184,6 +194,7 @@ const SearchResults = () => {
     params.genres,
     params.excludeGenres,
     params.year,
+    params,
     applyFilters,
     isMobile,
   ]);

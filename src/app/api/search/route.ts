@@ -12,7 +12,7 @@ const QUERY = `
     $season: MediaSeason
     $seasonYear: Int
     $genre_in: [String]
-    $genre_not: [String]
+    $genre_not_in: [String]
     $sort: [MediaSort]
     $isAdult: Boolean
   ) {
@@ -26,7 +26,7 @@ const QUERY = `
         season: $season
         seasonYear: $seasonYear
         genre_in: $genre_in
-        genre_not: $genre_not
+        genre_not_in: $genre_not_in
         sort: $sort
         isAdult: $isAdult
       ) {
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
       season: aniSeason,
       seasonYear,
       genre_in: genreList,
-      genre_not: excludeGenreList,
+      genre_not_in: excludeGenreList,
       sort: sortArr,
       // false → SFW only; omit → AniList returns both SFW and adult.
       isAdult: allowAdult ? undefined : false,

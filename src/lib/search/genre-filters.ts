@@ -38,8 +38,8 @@ export function parseGenreFilterModes(
 }
 
 export function serializeGenreFilterModes(modes: Record<string, GenreFilterMode>): {
-  genres: string;
-  excludeGenres: string;
+  genres?: string;
+  excludeGenres?: string;
 } {
   const include: string[] = [];
   const exclude: string[] = [];
@@ -48,8 +48,8 @@ export function serializeGenreFilterModes(modes: Record<string, GenreFilterMode>
     if (mode === "exclude") exclude.push(slug);
   }
   return {
-    genres: include.join(","),
-    excludeGenres: exclude.join(","),
+    genres: include.length ? include.join(",") : undefined,
+    excludeGenres: exclude.length ? exclude.join(",") : undefined,
   };
 }
 
