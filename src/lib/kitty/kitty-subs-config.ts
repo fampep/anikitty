@@ -15,7 +15,7 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Anitaku",
   "AniNeko",
   "AniZone",
-  "AniKuro",
+  "AniWaves",
 ] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];

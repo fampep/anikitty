@@ -20,10 +20,10 @@ import {
   type AninekoServerId,
 } from "@/lib/providers/anineko-config";
 import {
-  ANIKURO_SERVERS,
-  anikuroServerDropdownLabel,
-  type AnikuroServerId,
-} from "@/lib/providers/anikuro-config";
+  ANIWAVES_SERVERS,
+  aniwavesServerDropdownLabel,
+  type AniwavesServerId,
+} from "@/lib/providers/aniwaves-config";
 import { ProviderDefaultBadge } from "@/components/player/provider-select";
 import {
   KITTY_PROVIDER_META,
@@ -46,7 +46,7 @@ type Props = {
   lunarServer?: LunarServerId;
   animoServer?: AnimoServerId;
   aninekoServer?: AninekoServerId;
-  anikuroServer?: AnikuroServerId;
+  aniwavesServer?: AniwavesServerId;
   onProviderChange: (provider: KittyProvider) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
@@ -54,7 +54,7 @@ type Props = {
   onLunarServerChange?: (server: LunarServerId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
   onAninekoServerChange?: (server: AninekoServerId) => void;
-  onAnikuroServerChange?: (server: AnikuroServerId) => void;
+  onAniwavesServerChange?: (server: AniwavesServerId) => void;
   className?: string;
 };
 
@@ -131,7 +131,7 @@ export default function WatchSimpleProviderRow({
   lunarServer,
   animoServer,
   aninekoServer,
-  anikuroServer,
+  aniwavesServer,
   onProviderChange,
   onMiruroPipeChange,
   onAnimexServerChange,
@@ -139,7 +139,7 @@ export default function WatchSimpleProviderRow({
   onLunarServerChange,
   onAnimoServerChange,
   onAninekoServerChange,
-  onAnikuroServerChange,
+  onAniwavesServerChange,
   className,
 }: Props) {
   const t = useT();
@@ -243,15 +243,15 @@ export default function WatchSimpleProviderRow({
           onChange={onAninekoServerChange}
         />
       )}
-      {provider === "AniKuro" && anikuroServer && onAnikuroServerChange && (
+      {provider === "AniWaves" && aniwavesServer && onAniwavesServerChange && (
         <ServerSubSelect
-          value={anikuroServer}
-          options={ANIKURO_SERVERS.map((server) => ({
+          value={aniwavesServer}
+          options={ANIWAVES_SERVERS.map((server) => ({
             id: server.id,
-            label: anikuroServerDropdownLabel(server.id),
+            label: aniwavesServerDropdownLabel(server.id),
           }))}
           placeholder={t("watch.server")}
-          onChange={onAnikuroServerChange}
+          onChange={onAniwavesServerChange}
         />
       )}
     </div>

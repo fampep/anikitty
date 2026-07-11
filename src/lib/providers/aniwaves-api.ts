@@ -2,25 +2,26 @@ import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
-  ANIKURO_SERVERS,
-  anikuroServerDisplayLabel,
-  DEFAULT_ANIKURO_SERVER,
-  isAnikuroServerId,
-  type AnikuroKittyServer,
-  type AnikuroServerId,
-  type AnikuroStreamResult,
-} from "@/lib/providers/anikuro-config";
+  ANIWAVES_SERVERS,
+  aniwavesServerDisplayLabel,
+  DEFAULT_ANIWAVES_SERVER,
+  isAniwavesServerId,
+  type AniwavesKittyServer,
+  type AniwavesServerId,
+  type AniwavesStreamResult,
+} from "@/lib/providers/aniwaves-config";
 
-export * from "@/lib/providers/anikuro-config";
+export * from "@/lib/providers/aniwaves-config";
 
-type AnikuroLinkId = {
-  anilistId?: number;
-  episode?: number;
-  backend?: string;
-  audio?: string;
+type AniwavesLinkId = {
+  linkId?: string;
+  displayName?: string;
+  targetType?: string;
+  watchUrl?: string;
+  svId?: string;
 };
 
-function anikuroDataIds(
+function aniwavesDataIds(
   anilistId: number,
   episode: number,
   title?: string | null,
@@ -34,39 +35,38 @@ function normalizeServerToken(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function serverMeta(serverId: AnikuroServerId) {
-  return ANIKURO_SERVERS.find((server) => server.id === serverId);
+function serverMeta(serverId: AniwavesServerId) {
+  return ANIWAVES_SERVERS.find((server) => server.id === serverId);
 }
 
 /** Strip trailing audio tags like "(SUB)" from Kitty server labels. */
-export function parseAnikuroServerLabel(name: string): string {
+export function parseAniwavesServerLabel(name: string): string {
   const trimmed = name.trim();
-  const plain = trimmed.match(/^(.+?)\s*\((?:SUB|DUB|RAW|MULTI)\)/i);
+  const plain = trimmed.match(/^(.+?)\s*\((?:SUB|DUB|RAW|MULTI|SSUB)\)/i);
   return (plain?.[1] ?? trimmed).trim() || trimmed;
 }
 
-function nameMatchesServer(serverId: AnikuroServerId, label: string): boolean {
+function nameMatchesServer(serverId: AniwavesServerId, label: string): boolean {
   const meta = serverMeta(serverId);
   if (!meta) return false;
-  const normalized = normalizeServerToken(parseAnikuroServerLabel(label));
+  const normalized = normalizeServerToken(parseAniwavesServerLabel(label));
   if (!normalized) return false;
   return meta.names.some((name) => normalizeServerToken(name) === normalized);
 }
 
 function serverMatchesRow(
-  serverId: AnikuroServerId,
-  link: AnikuroLinkId,
+  serverId: AniwavesServerId,
+  link: AniwavesLinkId,
   rowName: string,
 ): boolean {
-  if (link.backend === serverId) return true;
+  if (link.svId === serverId) return true;
+  if (link.displayName && nameMatchesServer(serverId, link.displayName)) return true;
   return nameMatchesServer(serverId, rowName);
 }
 
-function normalizeStreamPayload(data: Record<string, unknown>): AnikuroStreamResult | null {
-  const originalUrl = typeof data.originalUrl === "string" ? data.originalUrl.trim() : "";
+function normalizeStreamPayload(data: Record<string, unknown>): AniwavesStreamResult | null {
   const file = typeof data.file === "string" ? data.file.trim() : "";
-  const resolved = originalUrl || file;
-  if (!resolved) return null;
+  if (!file) return null;
 
   const tracks: StreamTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
   for (const t of tracks as { file?: string; url?: string }[]) {
@@ -74,29 +74,29 @@ function normalizeStreamPayload(data: Record<string, unknown>): AnikuroStreamRes
   }
 
   return {
-    file: resolved,
+    file,
     headers: (data.headers as Record<string, string>) ?? {},
     tracks,
     allServers: Array.isArray(data.allServers) ? data.allServers : undefined,
-    skipTimes: data.skipTimes as AnikuroStreamResult["skipTimes"],
+    skipTimes: data.skipTimes as AniwavesStreamResult["skipTimes"],
     server: (data.serverName ?? data.server ?? null) as string | null,
     download: (data.download as string | null) ?? null,
   };
 }
 
-export async function fetchAnikuroServers(opts: {
+export async function fetchAniwavesServers(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
   title?: string | null;
-}): Promise<AnikuroKittyServer[]> {
+}): Promise<AniwavesKittyServer[]> {
   const params = new URLSearchParams({
-    dataIds: anikuroDataIds(opts.anilistId, opts.episode, opts.title),
+    dataIds: aniwavesDataIds(opts.anilistId, opts.episode, opts.title),
     audio: opts.audio,
   });
 
   const res = await kittyApiFetch(
-    `/provider/AniKuro/servers?${params.toString()}`,
+    `/provider/AniWaves/servers?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
@@ -117,10 +117,10 @@ export async function fetchAnikuroServers(opts: {
     .filter((row) => row.id && row.name);
 }
 
-async function fetchAnikuroStreamByLinkId(linkId: string): Promise<AnikuroStreamResult | null> {
+async function fetchAniwavesStreamByLinkId(linkId: string): Promise<AniwavesStreamResult | null> {
   const params = new URLSearchParams({ linkId });
   const res = await kittyApiFetch(
-    `/provider/AniKuro/stream?${params.toString()}`,
+    `/provider/AniWaves/stream?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
@@ -135,12 +135,12 @@ async function fetchAnikuroStreamByLinkId(linkId: string): Promise<AnikuroStream
   return normalizeStreamPayload(data as Record<string, unknown>);
 }
 
-async function fetchAnikuroStreamDirect(opts: {
+async function fetchAniwavesStreamDirect(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
   title?: string | null;
-}): Promise<AnikuroStreamResult | null> {
+}): Promise<AniwavesStreamResult | null> {
   const params = new URLSearchParams({
     anilistId: String(opts.anilistId),
     episode: String(opts.episode),
@@ -149,7 +149,7 @@ async function fetchAnikuroStreamDirect(opts: {
   if (opts.title?.trim()) params.set("title", opts.title.trim());
 
   const res = await kittyApiFetch(
-    `/provider/AniKuro/stream-direct?${params.toString()}`,
+    `/provider/AniWaves/stream-direct?${params.toString()}`,
     {
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
@@ -164,24 +164,24 @@ async function fetchAnikuroStreamDirect(opts: {
   return normalizeStreamPayload(data as Record<string, unknown>);
 }
 
-export function pickDefaultAnikuroServer(
-  preferred?: AnikuroServerId | null,
-): AnikuroServerId {
-  if (preferred && isAnikuroServerId(preferred)) return preferred;
-  return DEFAULT_ANIKURO_SERVER;
+export function pickDefaultAniwavesServer(
+  preferred?: AniwavesServerId | null,
+): AniwavesServerId {
+  if (preferred && isAniwavesServerId(preferred)) return preferred;
+  return DEFAULT_ANIWAVES_SERVER;
 }
 
-/** Resolve a named AniKuro backend via Kitty servers + stream, then stream-direct fallback. */
-export async function fetchAnikuroVideoStream(opts: {
+/** Resolve a named AniWaves server via Kitty servers + stream, then stream-direct fallback. */
+export async function fetchAniwavesVideoStream(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: AnikuroServerId | null;
+  serverId?: AniwavesServerId | null;
   title?: string | null;
-}): Promise<AnikuroStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
+}): Promise<AniwavesStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_ANIWAVES_SERVER;
 
-  const servers = await fetchAnikuroServers({
+  const servers = await fetchAniwavesServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
     audio: opts.audio,
@@ -190,30 +190,30 @@ export async function fetchAnikuroVideoStream(opts: {
 
   for (const row of servers) {
     try {
-      const link = JSON.parse(row.id) as AnikuroLinkId;
+      const link = JSON.parse(row.id) as AniwavesLinkId;
       if (!serverMatchesRow(serverId, link, row.name)) continue;
-      const stream = await fetchAnikuroStreamByLinkId(row.id);
+      const stream = await fetchAniwavesStreamByLinkId(row.id);
       if (stream?.file) {
-        return { ...stream, server: anikuroServerDisplayLabel(serverId) };
+        return { ...stream, server: aniwavesServerDisplayLabel(serverId) };
       }
     } catch {
       if (nameMatchesServer(serverId, row.name)) {
-        const stream = await fetchAnikuroStreamByLinkId(row.id);
+        const stream = await fetchAniwavesStreamByLinkId(row.id);
         if (stream?.file) {
-          return { ...stream, server: anikuroServerDisplayLabel(serverId) };
+          return { ...stream, server: aniwavesServerDisplayLabel(serverId) };
         }
       }
     }
   }
 
-  const direct = await fetchAnikuroStreamDirect(opts);
+  const direct = await fetchAniwavesStreamDirect(opts);
   if (direct?.file) {
-    return { ...direct, server: anikuroServerDisplayLabel(serverId) };
+    return { ...direct, server: aniwavesServerDisplayLabel(serverId) };
   }
   return direct;
 }
 
-export function countAnikuroSubtitleTracks(tracks: StreamTrack[] | undefined): number {
+export function countAniwavesSubtitleTracks(tracks: StreamTrack[] | undefined): number {
   if (!tracks?.length) return 0;
   return tracks.filter(isSubtitleTrack).length;
 }

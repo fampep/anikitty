@@ -59,11 +59,11 @@ import {
   type AninekoServerId,
 } from "@/lib/providers/anineko-config";
 import {
-  DEFAULT_ANIKURO_SERVER,
-  defaultAnikuroServerForMode,
-  isAnikuroServerId,
-  type AnikuroServerId,
-} from "@/lib/providers/anikuro-config";
+  DEFAULT_ANIWAVES_SERVER,
+  defaultAniwavesServerForMode,
+  isAniwavesServerId,
+  type AniwavesServerId,
+} from "@/lib/providers/aniwaves-config";
 import { ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
@@ -176,8 +176,9 @@ const VideoPlayerSection = () => {
       ) {
         return saved;
       }
+      if (MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER)) return "multi";
     }
-    return "sub";
+    return MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER) ? "multi" : "sub";
   });
 
   const [streamAudio, setStreamAudio] = useState<"sub" | "dub">(() => {
@@ -328,12 +329,12 @@ const VideoPlayerSection = () => {
     return DEFAULT_ANINEKO_SERVER;
   });
 
-  const [anikuroServer, setAnikuroServer] = useState<AnikuroServerId>(() => {
+  const [aniwavesServer, setAniwavesServer] = useState<AniwavesServerId>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("anikuroServer");
-      if (saved && isAnikuroServerId(saved)) return saved;
+      const saved = localStorage.getItem("aniwavesServer");
+      if (saved && isAniwavesServerId(saved)) return saved;
     }
-    return DEFAULT_ANIKURO_SERVER;
+    return DEFAULT_ANIWAVES_SERVER;
   });
 
   const [multiPanel, setMultiPanel] = useState<MultiPanelProvider | null>(() => {
@@ -347,8 +348,13 @@ const VideoPlayerSection = () => {
       ) {
         return savedProvider as MultiPanelProvider;
       }
+      if (!savedProvider && MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER)) {
+        return DEFAULT_PROVIDER as MultiPanelProvider;
+      }
     }
-    return null;
+    return MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER)
+      ? (DEFAULT_PROVIDER as MultiPanelProvider)
+      : null;
   });
 
   const animeSlug = anime?.anime?.info?.id ?? null;
@@ -783,7 +789,7 @@ const VideoPlayerSection = () => {
         provider === "MKissa" ? mkissaMirror : null,
         provider === "Animo" ? animoServer : null,
         provider === "AniNeko" ? aninekoServer : null,
-        provider === "AniKuro" ? anikuroServer : null,
+        provider === "AniWaves" ? aniwavesServer : null,
       ),
     });
     fallbackBusyRef.current = false;
@@ -804,7 +810,7 @@ const VideoPlayerSection = () => {
     mkissaMirror,
     animoServer,
     aninekoServer,
-    anikuroServer,
+    aniwavesServer,
   ]);
 
   // On finishing the final episode the server moves the title to Completed —
@@ -923,7 +929,7 @@ const VideoPlayerSection = () => {
     provider === "MKissa" ? mkissaMirror : null,
     provider === "Animo" ? animoServer : null,
     provider === "AniNeko" ? aninekoServer : null,
-    provider === "AniKuro" ? anikuroServer : null,
+    provider === "AniWaves" ? aniwavesServer : null,
     kittyProxyNode,
   );
 
@@ -993,7 +999,7 @@ const VideoPlayerSection = () => {
         provider === "MKissa" ? mkissaMirror : null,
         provider === "Animo" ? animoServer : null,
         provider === "AniNeko" ? aninekoServer : null,
-        provider === "AniKuro" ? anikuroServer : null,
+        provider === "AniWaves" ? aniwavesServer : null,
       ),
       queryFn: () =>
         getKittyStream(
@@ -1010,7 +1016,7 @@ const VideoPlayerSection = () => {
           provider === "MKissa" ? mkissaMirror : null,
           provider === "Animo" ? animoServer : null,
           provider === "AniNeko" ? aninekoServer : null,
-          provider === "AniKuro" ? anikuroServer : null,
+          provider === "AniWaves" ? aniwavesServer : null,
           kittyProxyNode,
         ),
       staleTime: 30_000,
@@ -1030,7 +1036,7 @@ const VideoPlayerSection = () => {
     mkissaMirror,
     animoServer,
     aninekoServer,
-    anikuroServer,
+    aniwavesServer,
     kittyProxyNode,
     queryClient,
   ]);
@@ -1078,7 +1084,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${aninekoServer}-${anikuroServer}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
+  const playerKey = `${anilistId}-${episodeNo}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${aninekoServer}-${aniwavesServer}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);
@@ -1194,10 +1200,10 @@ const VideoPlayerSection = () => {
       setAninekoServer(server);
       localStorage.setItem("aninekoServer", server);
     }
-    if (p === "AniKuro") {
-      const server = defaultAnikuroServerForMode(mode);
-      setAnikuroServer(server);
-      localStorage.setItem("anikuroServer", server);
+    if (p === "AniWaves") {
+      const server = defaultAniwavesServerForMode(mode);
+      setAniwavesServer(server);
+      localStorage.setItem("aniwavesServer", server);
     }
   };
 
@@ -1282,15 +1288,15 @@ const VideoPlayerSection = () => {
     localStorage.setItem("aninekoServer", server);
   };
 
-  const handleAnikuroServerChange = (server: AnikuroServerId) => {
+  const handleAniwavesServerChange = (server: AniwavesServerId) => {
     preservePlaybackPosition();
-    setProvider("AniKuro");
+    setProvider("AniWaves");
     setAudioMode("multi");
-    setAnikuroServer(server);
-    setMultiPanel("AniKuro");
-    localStorage.setItem("kittyProvider", "AniKuro");
+    setAniwavesServer(server);
+    setMultiPanel("AniWaves");
+    localStorage.setItem("kittyProvider", "AniWaves");
     localStorage.setItem("kittyAudioMode", "multi");
-    localStorage.setItem("anikuroServer", server);
+    localStorage.setItem("aniwavesServer", server);
   };
 
   const handleSimpleProviderChange = (p: KittyProvider) => {
@@ -1446,7 +1452,7 @@ const VideoPlayerSection = () => {
       lunarServer={lunarServer}
       animoServer={animoServer}
       aninekoServer={aninekoServer}
-      anikuroServer={anikuroServer}
+      aniwavesServer={aniwavesServer}
       onProviderChange={handleSimpleProviderChange}
       onMiruroPipeChange={handleMiruroPipeChange}
       onAnimexServerChange={handleAnimexServerChange}
@@ -1454,7 +1460,7 @@ const VideoPlayerSection = () => {
       onLunarServerChange={handleLunarServerChange}
       onAnimoServerChange={handleAnimoServerChange}
       onAninekoServerChange={handleAninekoServerChange}
-      onAnikuroServerChange={handleAnikuroServerChange}
+      onAniwavesServerChange={handleAniwavesServerChange}
     />
   ) : (
     <ProviderQuickPick
@@ -1469,7 +1475,7 @@ const VideoPlayerSection = () => {
       mkissaMirror={mkissaMirror}
       animoServer={animoServer}
       aninekoServer={aninekoServer}
-      anikuroServer={anikuroServer}
+      aniwavesServer={aniwavesServer}
       compact={isMobile}
       onSelect={handleProviderGridSelect}
       onMultiToggle={handleMultiToggle}
@@ -1481,7 +1487,7 @@ const VideoPlayerSection = () => {
       onMkissaMirrorChange={handleMkissaMirrorChange}
       onAnimoServerChange={handleAnimoServerChange}
       onAninekoServerChange={handleAninekoServerChange}
-      onAnikuroServerChange={handleAnikuroServerChange}
+      onAniwavesServerChange={handleAniwavesServerChange}
     />
   );
 
