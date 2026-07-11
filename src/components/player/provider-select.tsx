@@ -25,6 +25,10 @@ import {
   aninekoServerDropdownLabel,
   type AninekoServerId,
 } from "@/lib/providers/anineko-config";
+import {
+  ANIKURO_SERVERS,
+  type AnikuroServerId,
+} from "@/lib/providers/anikuro-config";
 import { ServerSubSelect } from "@/components/watch/watch-simple-provider-row";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import {
@@ -40,7 +44,7 @@ import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 
-export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AllAnime" | "MKissa";
+export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AniZone" | "AniKuro" | "AllAnime" | "MKissa";
 
 type Props = {
   value: KittyProvider;
@@ -152,6 +156,7 @@ export function ProviderQuickPick({
   mkissaMirror,
   animoServer,
   aninekoServer,
+  anikuroServer,
   onSelect,
   onMultiToggle,
   onMiruroPipeChange,
@@ -162,6 +167,7 @@ export function ProviderQuickPick({
   onMkissaMirrorChange,
   onAnimoServerChange,
   onAninekoServerChange,
+  onAnikuroServerChange,
   className,
   compact,
 }: {
@@ -176,6 +182,7 @@ export function ProviderQuickPick({
   mkissaMirror?: AllanimeMirrorId;
   animoServer?: AnimoServerId;
   aninekoServer?: AninekoServerId;
+  anikuroServer?: AnikuroServerId;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
   onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
@@ -186,6 +193,7 @@ export function ProviderQuickPick({
   onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
   onAninekoServerChange?: (server: AninekoServerId) => void;
+  onAnikuroServerChange?: (server: AnikuroServerId) => void;
   className?: string;
   compact?: boolean;
 }) {
@@ -202,6 +210,7 @@ export function ProviderQuickPick({
       mkissaMirror={mkissaMirror}
       animoServer={animoServer}
       aninekoServer={aninekoServer}
+      anikuroServer={anikuroServer}
       compact={compact}
       onSelect={onSelect}
       onMultiToggle={onMultiToggle}
@@ -213,6 +222,7 @@ export function ProviderQuickPick({
       onMkissaMirrorChange={onMkissaMirrorChange}
       onAnimoServerChange={onAnimoServerChange}
       onAninekoServerChange={onAninekoServerChange}
+      onAnikuroServerChange={onAnikuroServerChange}
       className={className}
     />
   );
@@ -272,6 +282,8 @@ type ProviderGridProps = {
   onAnimoServerChange?: (server: AnimoServerId) => void;
   aninekoServer?: AninekoServerId;
   onAninekoServerChange?: (server: AninekoServerId) => void;
+  anikuroServer?: AnikuroServerId;
+  onAnikuroServerChange?: (server: AnikuroServerId) => void;
   disabled?: boolean;
   className?: string;
   rows?: ProviderAudioMode[];
@@ -316,6 +328,8 @@ function providerPillClass(
     providerId === "VideoVib" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
     providerId === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
     providerId === "AniNeko" && isActive && "border-indigo-400/40 bg-indigo-500/20 text-indigo-100",
+    providerId === "AniZone" && isActive && "border-lime-400/40 bg-lime-500/20 text-lime-100",
+    providerId === "AniKuro" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
   );
 }
 
@@ -349,6 +363,8 @@ export function ProviderGrid({
   onAnimoServerChange,
   aninekoServer,
   onAninekoServerChange,
+  anikuroServer,
+  onAnikuroServerChange,
   disabled,
   className,
   rows,
@@ -699,6 +715,30 @@ export function ProviderGrid({
                 )}
               >
                 <span>{mirror.label}</span>
+              </button>
+            ))}
+          </MultiServerPanel>
+        )}
+
+      {multiPanel === "AniKuro" &&
+        provider === "AniKuro" &&
+        onAnikuroServerChange &&
+        anikuroServer != null && (
+          <MultiServerPanel accent="rose" label={t("watch.server")} compact={compact}>
+            {ANIKURO_SERVERS.map((server) => (
+              <button
+                key={server.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => onAnikuroServerChange(server.id)}
+                className={serverPillClass(
+                  compact,
+                  anikuroServer === server.id,
+                  "bg-rose-500/25 border-rose-400/45 text-rose-100",
+                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
+                )}
+              >
+                <span>{server.label}</span>
               </button>
             ))}
           </MultiServerPanel>

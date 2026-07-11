@@ -58,6 +58,12 @@ import {
   isAninekoServerId,
   type AninekoServerId,
 } from "@/lib/providers/anineko-config";
+import {
+  DEFAULT_ANIKURO_SERVER,
+  defaultAnikuroServerForMode,
+  isAnikuroServerId,
+  type AnikuroServerId,
+} from "@/lib/providers/anikuro-config";
 import { ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
@@ -320,6 +326,14 @@ const VideoPlayerSection = () => {
       if (saved && isAninekoServerId(saved)) return saved;
     }
     return DEFAULT_ANINEKO_SERVER;
+  });
+
+  const [anikuroServer, setAnikuroServer] = useState<AnikuroServerId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("anikuroServer");
+      if (saved && isAnikuroServerId(saved)) return saved;
+    }
+    return DEFAULT_ANIKURO_SERVER;
   });
 
   const [multiPanel, setMultiPanel] = useState<MultiPanelProvider | null>(() => {
@@ -769,6 +783,7 @@ const VideoPlayerSection = () => {
         provider === "MKissa" ? mkissaMirror : null,
         provider === "Animo" ? animoServer : null,
         provider === "AniNeko" ? aninekoServer : null,
+        provider === "AniKuro" ? anikuroServer : null,
       ),
     });
     fallbackBusyRef.current = false;
@@ -789,6 +804,7 @@ const VideoPlayerSection = () => {
     mkissaMirror,
     animoServer,
     aninekoServer,
+    anikuroServer,
   ]);
 
   // On finishing the final episode the server moves the title to Completed —
@@ -907,6 +923,7 @@ const VideoPlayerSection = () => {
     provider === "MKissa" ? mkissaMirror : null,
     provider === "Animo" ? animoServer : null,
     provider === "AniNeko" ? aninekoServer : null,
+    provider === "AniKuro" ? anikuroServer : null,
     kittyProxyNode,
   );
 
@@ -976,6 +993,7 @@ const VideoPlayerSection = () => {
         provider === "MKissa" ? mkissaMirror : null,
         provider === "Animo" ? animoServer : null,
         provider === "AniNeko" ? aninekoServer : null,
+        provider === "AniKuro" ? anikuroServer : null,
       ),
       queryFn: () =>
         getKittyStream(
@@ -992,6 +1010,7 @@ const VideoPlayerSection = () => {
           provider === "MKissa" ? mkissaMirror : null,
           provider === "Animo" ? animoServer : null,
           provider === "AniNeko" ? aninekoServer : null,
+          provider === "AniKuro" ? anikuroServer : null,
           kittyProxyNode,
         ),
       staleTime: 30_000,
@@ -1011,6 +1030,7 @@ const VideoPlayerSection = () => {
     mkissaMirror,
     animoServer,
     aninekoServer,
+    anikuroServer,
     kittyProxyNode,
     queryClient,
   ]);
@@ -1058,7 +1078,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${aninekoServer}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
+  const playerKey = `${anilistId}-${episodeNo}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${aninekoServer}-${anikuroServer}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);
@@ -1174,6 +1194,11 @@ const VideoPlayerSection = () => {
       setAninekoServer(server);
       localStorage.setItem("aninekoServer", server);
     }
+    if (p === "AniKuro") {
+      const server = defaultAnikuroServerForMode(mode);
+      setAnikuroServer(server);
+      localStorage.setItem("anikuroServer", server);
+    }
   };
 
   const handleMultiToggle = (panel: MultiPanelProvider | null) => {
@@ -1255,6 +1280,17 @@ const VideoPlayerSection = () => {
     setAninekoServer(server);
     localStorage.setItem("kittyProvider", "AniNeko");
     localStorage.setItem("aninekoServer", server);
+  };
+
+  const handleAnikuroServerChange = (server: AnikuroServerId) => {
+    preservePlaybackPosition();
+    setProvider("AniKuro");
+    setAudioMode("multi");
+    setAnikuroServer(server);
+    setMultiPanel("AniKuro");
+    localStorage.setItem("kittyProvider", "AniKuro");
+    localStorage.setItem("kittyAudioMode", "multi");
+    localStorage.setItem("anikuroServer", server);
   };
 
   const handleSimpleProviderChange = (p: KittyProvider) => {
@@ -1410,6 +1446,7 @@ const VideoPlayerSection = () => {
       lunarServer={lunarServer}
       animoServer={animoServer}
       aninekoServer={aninekoServer}
+      anikuroServer={anikuroServer}
       onProviderChange={handleSimpleProviderChange}
       onMiruroPipeChange={handleMiruroPipeChange}
       onAnimexServerChange={handleAnimexServerChange}
@@ -1417,6 +1454,7 @@ const VideoPlayerSection = () => {
       onLunarServerChange={handleLunarServerChange}
       onAnimoServerChange={handleAnimoServerChange}
       onAninekoServerChange={handleAninekoServerChange}
+      onAnikuroServerChange={handleAnikuroServerChange}
     />
   ) : (
     <ProviderQuickPick
@@ -1431,6 +1469,7 @@ const VideoPlayerSection = () => {
       mkissaMirror={mkissaMirror}
       animoServer={animoServer}
       aninekoServer={aninekoServer}
+      anikuroServer={anikuroServer}
       compact={isMobile}
       onSelect={handleProviderGridSelect}
       onMultiToggle={handleMultiToggle}
@@ -1442,6 +1481,7 @@ const VideoPlayerSection = () => {
       onMkissaMirrorChange={handleMkissaMirrorChange}
       onAnimoServerChange={handleAnimoServerChange}
       onAninekoServerChange={handleAninekoServerChange}
+      onAnikuroServerChange={handleAnikuroServerChange}
     />
   );
 
