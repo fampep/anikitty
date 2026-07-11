@@ -607,6 +607,8 @@
     "autoSkipIntroDesc": "Skip opening sequences when outro markers are available",
     "theatreMode": "Theatre mode",
     "theatreModeDesc": "Expand the player and hide the episode list by default",
+    "playerTouchSeekEnabled": "Touch seek on video",
+    "playerTouchSeekEnabledDesc": "Swipe left or right on the video to skip or rewind. The progress bar is not affected.",
     "playThemeSong": "Play theme on anime pages",
     "playThemeSongDesc": "Automatically play the opening theme on anime detail pages (AnimeThemes)",
     "seekStepSeconds": "Keyboard skip interval",
@@ -1623,8 +1625,12 @@
       "proxyPingStats": "{ms} ms · ~{mbps} Mbps",
       "proxyPingLoading": "Measuring…",
       "proxyPingUnavailable": "Unreachable",
-      "proxyFastest": "Fastest"
+      "proxyFastest": "Fastest",
+      "touchSeek": "Touch seek on video",
+      "touchSeekDesc": "Swipe left or right on the video to skip — progress bar still works"
     },
+    "seekBackButton": "Rewind {seconds}s",
+    "seekForwardButton": "Skip forward {seconds}s",
     "resumePrompt": {
       "title": "Continue watching",
       "message": "You left off at {time}. Resume from there?",

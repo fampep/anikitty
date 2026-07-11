@@ -139,6 +139,10 @@ interface ISettingsStore {
   /** Seconds to skip with keyboard shortcuts (← → / J L). */
   seekStepSeconds: PlayerSeekStep;
   setSeekStepSeconds: (seconds: PlayerSeekStep) => void;
+
+  /** Swipe left/right on the video surface to seek (progress bar unaffected). */
+  playerTouchSeekEnabled: boolean;
+  setPlayerTouchSeekEnabled: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -301,10 +305,13 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       seekStepSeconds: DEFAULT_PLAYER_SEEK_STEP,
       setSeekStepSeconds: (seekStepSeconds) => set({ seekStepSeconds: sanitizeSeekStepSeconds(seekStepSeconds) }),
+
+      playerTouchSeekEnabled: true,
+      setPlayerTouchSeekEnabled: (playerTouchSeekEnabled) => set({ playerTouchSeekEnabled }),
     }),
     {
       name: "kitty-settings",
-      version: 31,
+      version: 32,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -335,6 +342,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         notifyFollows: state.notifyFollows,
         showBannerAds: state.showBannerAds,
         seekStepSeconds: state.seekStepSeconds,
+        playerTouchSeekEnabled: state.playerTouchSeekEnabled,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -447,6 +455,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 31) {
           next.showAdultContent = next.showAdultContent ?? false;
+        }
+        if (version < 32) {
+          next.playerTouchSeekEnabled = next.playerTouchSeekEnabled ?? true;
         }
         return next as ISettingsStore;
       },

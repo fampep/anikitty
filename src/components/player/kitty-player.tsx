@@ -21,6 +21,7 @@ import {
   type KittyStreamQuality,
 } from "@/lib/kitty/stream-quality";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
+import { buildKittySeekControls } from "@/lib/player/kitty-player-controls";
 import {
   isElementFullscreen,
   onFullscreenChange,
@@ -407,6 +408,18 @@ export default function KittyPlayer({
   const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
   const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
+  const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
+  const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
+  const seekStepRef = useRef(seekStepSeconds);
+  const playerTouchSeekRef = useRef(playerTouchSeekEnabled);
+
+  useEffect(() => {
+    seekStepRef.current = seekStepSeconds;
+  }, [seekStepSeconds]);
+
+  useEffect(() => {
+    playerTouchSeekRef.current = playerTouchSeekEnabled;
+  }, [playerTouchSeekEnabled]);
 
   useEffect(() => {
     autoNextRef.current = autoPlay;
@@ -810,6 +823,10 @@ export default function KittyPlayer({
 
     const playerQuality = buildArtplayerQualityOption(qualities, src, headers, kittyProxyNode);
     const useHlsLevelQuality = streamType === "m3u8" && !playerQuality;
+    const seekLabels = {
+      back: t("watch.seekBackButton", { seconds: seekStepRef.current }),
+      forward: t("watch.seekForwardButton", { seconds: seekStepRef.current }),
+    };
 
     const art = new Artplayer({
       container,
@@ -835,6 +852,10 @@ export default function KittyPlayer({
       autoMini: false,
       mutex: true,
       playsInline: true,
+      gesture: playerTouchSeekRef.current,
+      fastForward: false,
+      flip: false,
+      controls: buildKittySeekControls(() => seekStepRef.current, seekLabels),
       // useWatchKeyboard owns every shortcut. ArtPlayer's built-in hotkeys also
       // bind Space on document, which double-toggles playback and ignores our
       // typing/interactive-element guards.
@@ -1302,7 +1323,7 @@ export default function KittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, qualitiesSig, streamType, t, locale, applyResume, reportW2g]);
+  }, [proxiedSrc, qualitiesSig, streamType, playerTouchSeekEnabled, seekStepSeconds, t, locale, applyResume, reportW2g]);
 
   if (!proxiedSrc) return null;
 

@@ -10,6 +10,7 @@ import SeekStepSetting from "@/components/settings/seek-step-setting";
 import {
   ChevronDown,
   Mic,
+  MoveHorizontal,
   Monitor,
   Play,
   RefreshCw,
@@ -83,6 +84,8 @@ export default function PlayerSettingsBar() {
     setSimpleProviderPicker,
     seekStepSeconds,
     setSeekStepSeconds,
+    playerTouchSeekEnabled,
+    setPlayerTouchSeekEnabled,
   } = useSettingsStore();
 
   useEffect(() => {
@@ -189,6 +192,14 @@ export default function PlayerSettingsBar() {
           />
 
           <SeekStepSetting value={seekStepSeconds} onChange={setSeekStepSeconds} compact />
+
+          <ToggleRow
+            icon={<MoveHorizontal className="w-3.5 h-3.5" />}
+            label={t("watch.playerSettings.touchSeek")}
+            description={t("watch.playerSettings.touchSeekDesc")}
+            value={playerTouchSeekEnabled}
+            onChange={setPlayerTouchSeekEnabled}
+          />
 
           <KittyProxyChooser />
 

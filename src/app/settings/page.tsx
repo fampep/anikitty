@@ -25,6 +25,7 @@ import {
   Music2,
   SkipForward,
   Maximize2,
+  MoveHorizontal,
   Bell,
   AtSign,
   CornerUpLeft,
@@ -551,6 +552,8 @@ function PlaybackSection({
   setTheatreMode,
   seekStepSeconds,
   setSeekStepSeconds,
+  playerTouchSeekEnabled,
+  setPlayerTouchSeekEnabled,
 }: {
   preferDub: boolean;
   setPreferDub: (v: boolean) => void;
@@ -564,6 +567,8 @@ function PlaybackSection({
   setTheatreMode: (v: boolean) => void;
   seekStepSeconds: PlayerSeekStep;
   setSeekStepSeconds: (v: PlayerSeekStep) => void;
+  playerTouchSeekEnabled: boolean;
+  setPlayerTouchSeekEnabled: (v: boolean) => void;
 }) {
   const t = useT();
 
@@ -611,6 +616,13 @@ function PlaybackSection({
           onChange={setPlayThemeSong}
         />
         <SeekStepSetting value={seekStepSeconds} onChange={setSeekStepSeconds} />
+        <ToggleRow
+          icon={<MoveHorizontal className="w-4 h-4" />}
+          label={t("settings.playerTouchSeekEnabled")}
+          description={t("settings.playerTouchSeekEnabledDesc")}
+          value={playerTouchSeekEnabled}
+          onChange={setPlayerTouchSeekEnabled}
+        />
       </SectionBody>
     </SectionCard>
   );
@@ -762,7 +774,7 @@ export default function SettingsPage() {
   const pathname = usePathname();
   const episodeLayouts = useEpisodeLayouts(t);
   const { auth } = useAuthStore();
-  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong, autoSkipIntro, setAutoSkipIntro, theatreMode, setTheatreMode, seekStepSeconds, setSeekStepSeconds } =
+  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong, autoSkipIntro, setAutoSkipIntro, theatreMode, setTheatreMode, seekStepSeconds, setSeekStepSeconds, playerTouchSeekEnabled, setPlayerTouchSeekEnabled } =
     useSettingsStore();
 
   const defaultTab = useMemo((): SettingsTab => {
@@ -849,6 +861,8 @@ export default function SettingsPage() {
                     setTheatreMode={setTheatreMode}
                     seekStepSeconds={seekStepSeconds}
                     setSeekStepSeconds={setSeekStepSeconds}
+                    playerTouchSeekEnabled={playerTouchSeekEnabled}
+                    setPlayerTouchSeekEnabled={setPlayerTouchSeekEnabled}
                   />
                   <EpisodeLayoutSection
                     episodeLayouts={episodeLayouts}
@@ -978,6 +992,8 @@ export default function SettingsPage() {
               setTheatreMode={setTheatreMode}
               seekStepSeconds={seekStepSeconds}
               setSeekStepSeconds={setSeekStepSeconds}
+              playerTouchSeekEnabled={playerTouchSeekEnabled}
+              setPlayerTouchSeekEnabled={setPlayerTouchSeekEnabled}
             />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}

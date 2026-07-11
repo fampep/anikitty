@@ -43,6 +43,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     notifyFollows: s.notifyFollows,
     showBannerAds: s.showBannerAds,
     seekStepSeconds: s.seekStepSeconds,
+    playerTouchSeekEnabled: s.playerTouchSeekEnabled,
   });
 }
 
@@ -77,6 +78,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.seekStepSeconds !== undefined) {
     patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
   }
+  if (prefs.playerTouchSeekEnabled !== undefined) patch.playerTouchSeekEnabled = prefs.playerTouchSeekEnabled;
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);
