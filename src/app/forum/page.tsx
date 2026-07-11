@@ -57,6 +57,7 @@ export default function ForumPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [announcementThreads, setAnnouncementThreads] = useState<ForumThread[]>([]);
 
   // Debounce search input
   useEffect(() => {
@@ -84,6 +85,10 @@ export default function ForumPage() {
 
   useEffect(() => {
     forumApi.getStats().then(setStats).catch(() => {});
+    forumApi
+      .listThreads({ sort: "top", category: "announcements", page: 1 })
+      .then((res) => setAnnouncementThreads(res.threads.slice(0, 3)))
+      .catch(() => {});
   }, []);
 
   // Fetch threads when filters change
@@ -296,6 +301,41 @@ export default function ForumPage() {
             }}
             onCancel={() => setComposing(false)}
           />
+        )}
+
+        {/* ── Staff announcements ── */}
+        {announcementThreads.length > 0 && category !== "announcements" && !mine && (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.04] p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-foreground dark:text-white/85 flex items-center gap-2">
+                <Pin className="w-4 h-4 text-rose-300" />
+                {t("forum.staffAnnouncements")}
+              </p>
+              <button
+                type="button"
+                onClick={() => updateUrl({ category: "announcements", mine: false })}
+                className="text-[11px] font-semibold text-rose-300/80 hover:text-rose-200"
+              >
+                {t("forum.viewAllAnnouncements")}
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {announcementThreads.map((thread) => (
+                <Link
+                  key={thread.id}
+                  href={`${ROUTES.FORUM}/${thread.id}`}
+                  className="rounded-lg border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] px-3 py-2.5 hover:border-rose-500/25 hover:bg-muted/50 dark:hover:bg-white/[0.05] transition-colors"
+                >
+                  <p className="text-[13px] font-semibold text-foreground dark:text-white/85 line-clamp-2">
+                    {thread.title}
+                  </p>
+                  <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 mt-1">
+                    {forumTimeAgo(thread.createdAt)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* ── Layout: categories sidebar + thread list ── */}

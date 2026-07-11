@@ -8,6 +8,7 @@ import {
   sanitizeSubtitleSettings,
   type SubtitleDisplayMode,
   type SubtitleFontFamily,
+  type SubtitleTextTransform,
   type SubtitleFontWeight,
   type SubtitleSettings,
   type SubtitleTextShadow,
@@ -87,6 +88,8 @@ interface ISettingsStore {
   setSubtitleBorderRadius: (borderRadius: number) => void;
   setSubtitleFontFamily: (fontFamily: SubtitleFontFamily) => void;
   setSubtitleDisplayMode: (displayMode: SubtitleDisplayMode) => void;
+  setSubtitleMaxWidthPercent: (maxWidthPercent: number) => void;
+  setSubtitleTextTransform: (textTransform: SubtitleTextTransform) => void;
   setSubtitleDelayOffset: (delayOffset: number) => void;
   applySubtitlePreset: (settings: SubtitleSettings) => void;
   resetSubtitleSettings: () => void;
@@ -258,6 +261,14 @@ export const useSettingsStore = create<ISettingsStore>()(
         set((s) => ({
           subtitleSettings: { ...s.subtitleSettings, displayMode },
         })),
+      setSubtitleMaxWidthPercent: (maxWidthPercent) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, maxWidthPercent },
+        })),
+      setSubtitleTextTransform: (textTransform) =>
+        set((s) => ({
+          subtitleSettings: { ...s.subtitleSettings, textTransform },
+        })),
       setSubtitleDelayOffset: (delayOffset) =>
         set((s) => ({
           subtitleSettings: { ...s.subtitleSettings, delayOffset },
@@ -318,7 +329,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 33,
+      version: 34,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -469,6 +480,13 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 33) {
           next.autoEnableSubtitles = next.autoEnableSubtitles ?? true;
+        }
+        if (version < 34) {
+          next.subtitleSettings = sanitizeSubtitleSettings({
+            ...next.subtitleSettings,
+            maxWidthPercent: next.subtitleSettings?.maxWidthPercent ?? 92,
+            textTransform: next.subtitleSettings?.textTransform ?? "none",
+          });
         }
         return next as ISettingsStore;
       },

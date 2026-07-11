@@ -695,7 +695,7 @@ html.density-compact .site-bottom-nav {
   gap: 4px;
   text-align: center;
   width: auto !important;
-  max-width: calc(100% - 2rem);
+  max-width: var(--kitty-sub-max-width, calc(100% - 2rem));
   left: 50% !important;
   right: auto !important;
   transform: translateX(-50%);
@@ -709,7 +709,7 @@ html.density-compact .site-bottom-nav {
 .art-kitty-player.kitty-sub-boxed-lines .art-subtitle .kitty-sub-line {
   display: inline-block;
   width: fit-content;
-  max-width: min(92vw, 42rem);
+  max-width: min(var(--kitty-sub-max-width, 92vw), 42rem);
   color: var(--kitty-sub-color, #fff);
   background-color: var(--kitty-sub-line-bg, rgba(0, 0, 0, 0.72));
   border-radius: var(--kitty-sub-border-radius, 4px);

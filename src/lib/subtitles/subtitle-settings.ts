@@ -4,6 +4,8 @@ export type SubtitleTextShadow = "none" | "soft" | "medium" | "strong";
 
 export type SubtitleFontFamily = "system" | "sans" | "mono";
 
+export type SubtitleTextTransform = "none" | "uppercase";
+
 /** `boxedLines` renders each subtitle line in its own semi-transparent box. */
 export type SubtitleDisplayMode = "standard" | "boxedLines";
 
@@ -21,6 +23,9 @@ export type SubtitleSettings = {
   borderRadius: number;
   fontFamily: SubtitleFontFamily;
   displayMode: SubtitleDisplayMode;
+  /** Max width of the subtitle block as a percentage of the player width. */
+  maxWidthPercent: number;
+  textTransform: SubtitleTextTransform;
   /** Timing sync in seconds: negative shows subs earlier, positive later. */
   delayOffset: number;
 };
@@ -34,16 +39,18 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 18,
   color: "#ffffff",
   backgroundColor: "#000000",
-  backgroundOpacity: 78,
+  backgroundOpacity: 0,
   fontWeight: 600,
   bottomOffset: 4.5,
   textShadow: "medium",
-  outlineWidth: 0,
-  letterSpacing: 0.5,
+  outlineWidth: 2,
+  letterSpacing: 0.3,
   lineHeight: 1.45,
-  borderRadius: 6,
+  borderRadius: 4,
   fontFamily: "system",
-  displayMode: "boxedLines",
+  displayMode: "standard",
+  maxWidthPercent: 92,
+  textTransform: "none",
   delayOffset: 0,
 };
 
@@ -52,6 +59,8 @@ export const SUBTITLE_COLOR_PRESETS = [
   { id: "yellow", value: "#fde047", label: "Yellow" },
   { id: "cyan", value: "#67e8f9", label: "Cyan" },
   { id: "green", value: "#86efac", label: "Green" },
+  { id: "pink", value: "#f9a8d4", label: "Pink" },
+  { id: "orange", value: "#fdba74", label: "Orange" },
 ] as const;
 
 export const SUBTITLE_STYLE_PRESETS: {
@@ -91,6 +100,33 @@ export const SUBTITLE_STYLE_PRESETS: {
       outlineWidth: 2,
       letterSpacing: 0.2,
       borderRadius: 0,
+    },
+  },
+  {
+    id: "outline",
+    labelKey: "settings.subtitlePresetOutline",
+    settings: {
+      ...DEFAULT_SUBTITLE_SETTINGS,
+      fontSize: 19,
+      backgroundOpacity: 0,
+      fontWeight: 700,
+      textShadow: "soft",
+      outlineWidth: 2,
+      letterSpacing: 0.2,
+    },
+  },
+  {
+    id: "softBox",
+    labelKey: "settings.subtitlePresetSoftBox",
+    settings: {
+      ...DEFAULT_SUBTITLE_SETTINGS,
+      fontSize: 16,
+      backgroundOpacity: 28,
+      fontWeight: 600,
+      textShadow: "none",
+      outlineWidth: 0,
+      borderRadius: 6,
+      displayMode: "boxedLines",
     },
   },
   {
@@ -212,6 +248,8 @@ export type SubtitleInlineStyles = {
   backgroundColor: string;
   borderRadius: string;
   padding: string;
+  textTransform: string;
+  maxWidth: string;
   WebkitTextStroke?: string;
 };
 
@@ -239,6 +277,8 @@ export function subtitleSettingsToInlineStyles(
       !boxedLines && (settings.backgroundOpacity > 0 || settings.borderRadius > 0)
         ? "2px 8px"
         : "0",
+    textTransform: settings.textTransform === "uppercase" ? "uppercase" : "none",
+    maxWidth: `${Math.min(100, Math.max(60, settings.maxWidthPercent))}%`,
   };
   if (stroke) styles.WebkitTextStroke = stroke;
   return styles;
@@ -261,6 +301,8 @@ export function subtitleLineBoxStyles(
     backgroundColor: getSubtitleBackgroundRgba(settings),
     borderRadius: `${settings.borderRadius}px`,
     padding: "2px 10px",
+    textTransform: settings.textTransform === "uppercase" ? "uppercase" : "none",
+    maxWidth: `${Math.min(100, Math.max(60, settings.maxWidthPercent))}%`,
   };
   if (stroke) styles.WebkitTextStroke = stroke;
   return styles;
@@ -365,6 +407,16 @@ export function sanitizeSubtitleSettings(raw: unknown): SubtitleSettings {
   }
   if (input.displayMode === "standard" || input.displayMode === "boxedLines") {
     base.displayMode = input.displayMode;
+  }
+  if (
+    typeof input.maxWidthPercent === "number" &&
+    input.maxWidthPercent >= 60 &&
+    input.maxWidthPercent <= 100
+  ) {
+    base.maxWidthPercent = input.maxWidthPercent;
+  }
+  if (input.textTransform === "none" || input.textTransform === "uppercase") {
+    base.textTransform = input.textTransform;
   }
   if (
     typeof input.delayOffset === "number" &&

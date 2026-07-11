@@ -16,6 +16,7 @@ import {
   type SubtitleFontFamily,
   type SubtitleFontWeight,
   type SubtitleTextShadow,
+  type SubtitleTextTransform,
 } from "@/lib/subtitles/subtitle-settings";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
@@ -126,6 +127,8 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
     setSubtitleBorderRadius,
     setSubtitleFontFamily,
     setSubtitleDisplayMode,
+    setSubtitleMaxWidthPercent,
+    setSubtitleTextTransform,
     setSubtitleDelayOffset,
     applySubtitlePreset,
     resetSubtitleSettings,
@@ -185,6 +188,11 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
   const displayModeOptions: { value: SubtitleDisplayMode; label: string }[] = [
     { value: "standard", label: t("settings.subtitleDisplayStandard") },
     { value: "boxedLines", label: t("settings.subtitleDisplayBoxedLines") },
+  ];
+
+  const textTransformOptions: { value: SubtitleTextTransform; label: string }[] = [
+    { value: "none", label: t("settings.subtitleTextNormal") },
+    { value: "uppercase", label: t("settings.subtitleTextUppercase") },
   ];
 
   return (
@@ -383,6 +391,23 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         onChange={setSubtitleBorderRadius}
       />
 
+      <SliderRow
+        label={t("settings.subtitleMaxWidth")}
+        valueLabel={`${subtitleSettings.maxWidthPercent}%`}
+        min={60}
+        max={100}
+        step={2}
+        value={subtitleSettings.maxWidthPercent}
+        onChange={setSubtitleMaxWidthPercent}
+      />
+
+      <OptionButtons
+        label={t("settings.subtitleTextTransform")}
+        options={textTransformOptions}
+        value={subtitleSettings.textTransform}
+        onChange={setSubtitleTextTransform}
+      />
+
       <SectionLabel>{t("settings.subtitleSectionTiming")}</SectionLabel>
 
       <SliderRow
@@ -410,13 +435,16 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         )}
       </div>
 
-      <div className="rounded-xl border border-border dark:border-white/10 bg-black/80 p-4 relative min-h-[112px] overflow-hidden">
+      <div className="rounded-xl border border-border dark:border-white/10 bg-gradient-to-b from-zinc-900/90 to-black/70 p-4 relative min-h-[112px] overflow-hidden">
         <div
           className="absolute inset-x-0 flex justify-center px-3"
           style={{ bottom: `${Math.min(subtitleSettings.bottomOffset, 3)}rem` }}
         >
           {subtitleSettings.displayMode === "boxedLines" ? (
-            <div className="flex flex-col items-center gap-1 max-w-[90%]">
+            <div
+              className="flex flex-col items-center gap-1"
+              style={{ maxWidth: previewStyles.maxWidth }}
+            >
               {previewLines.map((line) => (
                 <span key={line} className="inline-block text-center" style={previewLineStyles}>
                   {line}
@@ -424,7 +452,10 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
               ))}
             </div>
           ) : (
-            <span className="inline-block text-center max-w-[90%]" style={previewStyles}>
+            <span
+              className="inline-block text-center"
+              style={{ ...previewStyles, maxWidth: previewStyles.maxWidth }}
+            >
               {t("settings.subtitlePreviewText")}
             </span>
           )}

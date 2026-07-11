@@ -139,6 +139,15 @@ export async function revokeOtherSessions(userId: string, exceptSessionId: strin
   return updated.map((r) => r.id);
 }
 
+export async function revokeAllUserSessions(userId: string) {
+  const db = getDb();
+  const now = new Date();
+  await db
+    .update(userSessions)
+    .set({ revokedAt: now })
+    .where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
+}
+
 export async function revokeSessionById(userId: string, sessionId: string) {
   const db = getDb();
   const now = new Date();

@@ -150,29 +150,29 @@ export default function SiteAnnouncementBanner() {
               )}
             >
               <Icon className={cn("w-3.5 h-3.5 shrink-0", style.iconColor)} />
-              <div className="flex-1 min-w-0 flex items-center gap-x-3 gap-y-0">
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <p className={cn("text-[12px] font-semibold truncate", style.text)}>{a.title}</p>
-                  {a.body && (
-                    <p className="text-[11px] text-muted-foreground dark:text-white/55 truncate hidden sm:block">{a.body}</p>
-                  )}
-                </div>
-                {href && (
-                  <Link
-                    href={href}
-                    className={cn(
-                      "shrink-0 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border transition-colors",
-                      "border-border dark:border-white/15 bg-accent dark:bg-white/[0.06] text-foreground dark:text-white hover:bg-accent dark:hover:bg-white/12",
-                    )}
-                  >
-                    {a.forumThreadId && !a.linkUrl ? (
-                      <MessageSquare className="w-3 h-3" />
-                    ) : null}
-                    {linkLabel}
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                <p className={cn("text-[12px] font-semibold", style.text)}>{a.title}</p>
+                {a.body && (
+                  <p className="text-[11px] text-muted-foreground dark:text-white/55 line-clamp-2 sm:truncate sm:line-clamp-1">
+                    {a.body}
+                  </p>
                 )}
               </div>
+              {href && (
+                <Link
+                  href={href}
+                  className={cn(
+                    "shrink-0 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border transition-colors",
+                    "border-border dark:border-white/15 bg-accent dark:bg-white/[0.06] text-foreground dark:text-white hover:bg-accent dark:hover:bg-white/12",
+                  )}
+                >
+                  {a.forumThreadId && !a.linkUrl ? (
+                    <MessageSquare className="w-3 h-3" />
+                  ) : null}
+                  {linkLabel}
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              )}
               {a.dismissible && (
                 <button
                   onClick={() => handleDismiss(a.id)}

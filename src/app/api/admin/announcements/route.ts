@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth/admin-auth";
 import { and, eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-const VALID_SEVERITIES = ["info", "warn", "critical", "success"] as const;
+const VALID_SEVERITIES = ["info", "warn", "critical", "success", "promo"] as const;
 type Severity = (typeof VALID_SEVERITIES)[number];
 
 function sanitizeTitle(input: unknown): string {

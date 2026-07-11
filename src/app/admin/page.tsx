@@ -57,6 +57,7 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
       }
       const { token } = await res.json();
       sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+      setPassword("");
       onSuccess();
     } catch {
       setError("Something went wrong. Try again.");
@@ -294,6 +295,7 @@ const SEVERITY_META: Record<string, { label: string; color: string; icon: React.
   success:  { label: "Success",  color: "#22c55e", icon: CheckCircle2 },
   warn:     { label: "Warning",  color: "#f59e0b", icon: AlertTriangle },
   critical: { label: "Critical", color: "#ef4444", icon: AlertOctagon },
+  promo:    { label: "Promo",    color: "#a78bfa", icon: Megaphone },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -491,6 +493,23 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   // Site-wide click ads
   const [globalClickAdsEnabled, setGlobalClickAdsEnabled] = useState<boolean | null>(null);
   const [globalClickAdsSaving, setGlobalClickAdsSaving] = useState(false);
+
+  // Re-validate admin token periodically (expired/revoked sessions log out)
+  useEffect(() => {
+    const id = setInterval(() => {
+      const token = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+      if (!token) {
+        onLogout();
+        return;
+      }
+      void fetch("/api/admin/verify", { headers: { "X-Admin-Token": token } })
+        .then((res) => {
+          if (!res.ok) onLogout();
+        })
+        .catch(() => {});
+    }, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [onLogout]);
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async (q?: string) => {
@@ -2801,8 +2820,28 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const token = sessionStorage.getItem(ADMIN_TOKEN_KEY);
-    setAuthed(!!token);
+    let cancelled = false;
+
+    void (async () => {
+      const token = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+      if (!token) {
+        if (!cancelled) setAuthed(false);
+        return;
+      }
+      try {
+        const res = await fetch("/api/admin/verify", {
+          headers: { "X-Admin-Token": token },
+        });
+        if (!res.ok) sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+        if (!cancelled) setAuthed(res.ok);
+      } catch {
+        if (!cancelled) setAuthed(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleLogout = () => {
@@ -2810,7 +2849,13 @@ export default function AdminPage() {
     setAuthed(false);
   };
 
-  if (authed === null) return null;
+  if (authed === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+      </div>
+    );
+  }
   if (!authed) return <AdminLogin onSuccess={() => setAuthed(true)} />;
   return <AdminPanel onLogout={handleLogout} />;
 }

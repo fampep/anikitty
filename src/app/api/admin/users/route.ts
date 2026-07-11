@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb, rowsOf } from "@/db";
 import { users, watchProgress } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/admin-auth";
+import { isAllowedUserRole } from "@/lib/admin/validate-user-role";
 import { eq, desc, ilike, or, sql, inArray, max } from "drizzle-orm";
 import { toModerationStatus } from "@/lib/security/moderation";
 
@@ -129,6 +130,11 @@ export async function PATCH(req: Request) {
   }
 
   const db = getDb();
-  await db.update(users).set({ role: role.trim().slice(0, 50) }).where(eq(users.id, userId));
+  const trimmedRole = role.trim().slice(0, 50);
+  if (!(await isAllowedUserRole(db, trimmedRole))) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
+  await db.update(users).set({ role: trimmedRole }).where(eq(users.id, userId));
   return NextResponse.json({ ok: true });
 }

@@ -291,6 +291,8 @@ function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
     root.style.setProperty("--kitty-sub-font-weight", String(inline.fontWeight));
     root.style.setProperty("--kitty-sub-line-bg", getSubtitleBackgroundRgba(settings));
     root.style.setProperty("--kitty-sub-color", settings.color);
+    root.style.setProperty("--kitty-sub-max-width", inline.maxWidth);
+    root.style.setProperty("--kitty-sub-text-transform", inline.textTransform);
     for (const [key, value] of Object.entries(subtitleSettingsToCssVars(settings))) {
       root.style.setProperty(key, value);
     }
@@ -306,6 +308,7 @@ function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
     subEl.style.letterSpacing = inline.letterSpacing;
     subEl.style.lineHeight = String(inline.lineHeight);
     subEl.style.fontFamily = inline.fontFamily;
+    subEl.style.textTransform = inline.textTransform;
     subEl.style.borderRadius = inline.borderRadius;
     subEl.style.padding = inline.padding;
     if (inline.WebkitTextStroke) {
@@ -317,7 +320,7 @@ function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
       subEl.style.removeProperty("--art-subtitle-bg");
       subEl.style.backgroundColor = "transparent";
       subEl.style.width = "auto";
-      subEl.style.maxWidth = "calc(100% - 2rem)";
+      subEl.style.maxWidth = inline.maxWidth;
       subEl.style.left = "50%";
       subEl.style.right = "auto";
       subEl.style.transform = "translateX(-50%)";
@@ -327,14 +330,14 @@ function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
       subEl.style.removeProperty("left");
       subEl.style.removeProperty("right");
       subEl.style.removeProperty("transform");
-      subEl.style.removeProperty("max-width");
+      subEl.style.maxWidth = inline.maxWidth;
       subEl.style.setProperty("--art-subtitle-bg", inline.backgroundColor);
       subEl.style.backgroundColor = inline.backgroundColor;
     } else {
       subEl.style.removeProperty("left");
       subEl.style.removeProperty("right");
       subEl.style.removeProperty("transform");
-      subEl.style.removeProperty("max-width");
+      subEl.style.maxWidth = inline.maxWidth;
       subEl.style.removeProperty("--art-subtitle-bg");
       subEl.style.backgroundColor = "transparent";
     }
