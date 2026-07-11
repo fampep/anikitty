@@ -10,6 +10,10 @@ import LoadingGirl from "@/components/common/loading-girl";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import artplayerPluginChromecast from "artplayer-plugin-chromecast";
 import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
+import {
+  kittyStreamChromecastMime,
+  resolveKittyStreamType,
+} from "@/lib/kitty/stream-format";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
   dedupeStreamQualities,
@@ -559,6 +563,10 @@ export default function KittyPlayer({
     () => qualities.map((q) => `${q.quality}:${q.file}`).join("|"),
     [qualities],
   );
+  const streamType = useMemo(
+    () => resolveKittyStreamType(src, qualities),
+    [src, qualitiesSig],
+  );
 
   const reportW2g = useCallback((isPlaying: boolean, time: number) => {
     const cfg = w2gRef.current;
@@ -801,12 +809,12 @@ export default function KittyPlayer({
     };
 
     const playerQuality = buildArtplayerQualityOption(qualities, src, headers, kittyProxyNode);
-    const useHlsLevelQuality = !playerQuality;
+    const useHlsLevelQuality = streamType === "m3u8" && !playerQuality;
 
     const art = new Artplayer({
       container,
       url: proxiedSrc,
-      type: "m3u8",
+      type: streamType,
       ...(playerQuality ? { quality: playerQuality } : {}),
       theme: ANIKITTY_PLAYER_THEME,
       cssVar: ANIKITTY_PLAYER_CSS_VAR,
@@ -834,108 +842,116 @@ export default function KittyPlayer({
       lang: locale,
       moreVideoAttr: { crossOrigin: "anonymous" },
       subtitle: subtitleOption,
-      customType: {
-        m3u8(video, url, player) {
-          if (Hls.isSupported()) {
-            hlsRef.current?.destroy();
-            const hls = new Hls(createHlsConfig({ enableWebVTT: showSubs && !hasExternalSubs }));
-            hls.loadSource(url);
-            hls.attachMedia(video as HTMLMediaElement);
-            player.hls = hls;
-            hlsRef.current = hls;
-            hlsForCleanup = hls;
+      ...(streamType === "m3u8"
+        ? {
+            customType: {
+              m3u8(video, url, player) {
+                if (Hls.isSupported()) {
+                  hlsRef.current?.destroy();
+                  const hls = new Hls(createHlsConfig({ enableWebVTT: showSubs && !hasExternalSubs }));
+                  hls.loadSource(url);
+                  hls.attachMedia(video as HTMLMediaElement);
+                  player.hls = hls;
+                  hlsRef.current = hls;
+                  hlsForCleanup = hls;
 
-            const tryPickAudio = () => {
-              pickHlsAudioTrack(hls, preferDubAudioRef.current);
-            };
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              tryPickAudio();
-              refreshHlsControls(player);
-              syncNativeSubsIfNeeded(video as HTMLVideoElement);
-            });
-            hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
-              syncNativeSubsIfNeeded(video as HTMLVideoElement);
-            });
-            hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, () => {
-              syncNativeSubsIfNeeded(video as HTMLVideoElement);
-            });
-            hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
-              tryPickAudio();
-              refreshHlsControls(player);
-            });
-            const fireFatalError = (type: string, details?: string) => {
-              if (fatalErrorFiredRef.current) return;
-              fatalErrorFiredRef.current = true;
-              onFatalErrorRef.current?.({ type, details });
-            };
+                  const tryPickAudio = () => {
+                    pickHlsAudioTrack(hls, preferDubAudioRef.current);
+                  };
+                  hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    tryPickAudio();
+                    refreshHlsControls(player);
+                    syncNativeSubsIfNeeded(video as HTMLVideoElement);
+                  });
+                  hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
+                    syncNativeSubsIfNeeded(video as HTMLVideoElement);
+                  });
+                  hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, () => {
+                    syncNativeSubsIfNeeded(video as HTMLVideoElement);
+                  });
+                  hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
+                    tryPickAudio();
+                    refreshHlsControls(player);
+                  });
+                  const fireFatalError = (type: string, details?: string) => {
+                    if (fatalErrorFiredRef.current) return;
+                    fatalErrorFiredRef.current = true;
+                    onFatalErrorRef.current?.({ type, details });
+                  };
 
-            hls.on(Hls.Events.ERROR, (_event, data) => {
-              if (!data.fatal) return;
-              const video = artRef.current?.video;
-              if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                hls.recoverMediaError();
-                return;
-              }
-              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                // A dead/404 manifest never recovers by reloading — bubble up
-                // immediately so the parent can fail over to another provider.
-                const status = (data.response as { code?: number } | undefined)?.code;
-                const isManifestOr404 =
-                  status === 404 ||
-                  data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
-                  data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
-                  data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
-                  data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR;
-                if (isManifestOr404 || hlsNetworkRecoveries >= 3) {
-                  fireFatalError("network", data.details);
-                  return;
+                  hls.on(Hls.Events.ERROR, (_event, data) => {
+                    if (!data.fatal) return;
+                    const video = artRef.current?.video;
+                    if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                      hls.recoverMediaError();
+                      return;
+                    }
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                      // A dead/404 manifest never recovers by reloading — bubble up
+                      // immediately so the parent can fail over to another provider.
+                      const status = (data.response as { code?: number } | undefined)?.code;
+                      const isManifestOr404 =
+                        status === 404 ||
+                        data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                        data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+                        data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
+                        data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR;
+                      if (isManifestOr404 || hlsNetworkRecoveries >= 3) {
+                        fireFatalError("network", data.details);
+                        return;
+                      }
+                      hlsNetworkRecoveries += 1;
+                      hlsLoadFromVideoTime(hls, video);
+                      return;
+                    }
+                    // Any other fatal error we can't recover from.
+                    fireFatalError(String(data.type), data.details);
+                  });
+
+                  player.on("destroy", () => {
+                    hls.destroy();
+                    if (hlsRef.current === hls) hlsRef.current = null;
+                    player.hls = undefined;
+                  });
+                } else if ((video as HTMLVideoElement).canPlayType("application/vnd.apple.mpegurl")) {
+                  (video as HTMLVideoElement).src = url;
+                } else {
+                  player.notice.show = "HLS is not supported in this browser.";
                 }
-                hlsNetworkRecoveries += 1;
-                hlsLoadFromVideoTime(hls, video);
-                return;
-              }
-              // Any other fatal error we can't recover from.
-              fireFatalError(String(data.type), data.details);
-            });
-
-            player.on("destroy", () => {
-              hls.destroy();
-              if (hlsRef.current === hls) hlsRef.current = null;
-              player.hls = undefined;
-            });
-          } else if ((video as HTMLVideoElement).canPlayType("application/vnd.apple.mpegurl")) {
-            (video as HTMLVideoElement).src = url;
-          } else {
-            player.notice.show = "HLS is not supported in this browser.";
+              },
+            },
           }
-        },
-      },
+        : {}),
       plugins: [
-        artplayerPluginHlsControl({
-          quality: useHlsLevelQuality
-            ? {
-                control: true,
-                setting: true,
-                getName: (level: { height?: number; bitrate?: number }) => {
-                  if (!level.height) return t("watch.streamAuto");
-                  const tier = level.height <= 480 ? "SD" : level.height <= 720 ? "HD" : "FHD";
-                  return `${tier} ${level.height}P`;
+        ...(streamType === "m3u8"
+          ? [
+              artplayerPluginHlsControl({
+                quality: useHlsLevelQuality
+                  ? {
+                      control: true,
+                      setting: true,
+                      getName: (level: { height?: number; bitrate?: number }) => {
+                        if (!level.height) return t("watch.streamAuto");
+                        const tier = level.height <= 480 ? "SD" : level.height <= 720 ? "HD" : "FHD";
+                        return `${tier} ${level.height}P`;
+                      },
+                      title: t("watch.streamQuality"),
+                      auto: t("watch.streamAuto"),
+                    }
+                  : undefined,
+                audio: {
+                  control: true,
+                  setting: true,
+                  getName: (track: { name?: string }) => track.name ?? t("watch.streamAudio"),
+                  title: t("watch.streamAudio"),
+                  auto: t("watch.streamAuto"),
                 },
-                title: t("watch.streamQuality"),
-                auto: t("watch.streamAuto"),
-              }
-            : undefined,
-          audio: {
-            control: true,
-            setting: true,
-            getName: (track: { name?: string }) => track.name ?? t("watch.streamAudio"),
-            title: t("watch.streamAudio"),
-            auto: t("watch.streamAuto"),
-          },
-        }),
+              }),
+            ]
+          : []),
         artplayerPluginChromecast({
           url: resolveTrackSrc(proxiedSrc),
-          mimeType: "application/x-mpegURL",
+          mimeType: kittyStreamChromecastMime(streamType),
         }),
       ],
       highlight: [
@@ -1015,6 +1031,18 @@ export default function KittyPlayer({
     });
 
     artRef.current = art;
+
+    if (streamType === "mp4") {
+      art.on("video:error", () => {
+        if (fatalErrorFiredRef.current) return;
+        fatalErrorFiredRef.current = true;
+        const code = art.video?.error?.code;
+        onFatalErrorRef.current?.({
+          type: "media",
+          details: code != null ? `mp4 error ${code}` : "mp4 playback failed",
+        });
+      });
+    }
 
     art.on("ready", () => {
       setReady(true);
@@ -1274,7 +1302,7 @@ export default function KittyPlayer({
       }
       hlsRef.current = null;
     };
-  }, [proxiedSrc, qualitiesSig, t, locale, applyResume, reportW2g]);
+  }, [proxiedSrc, qualitiesSig, streamType, t, locale, applyResume, reportW2g]);
 
   if (!proxiedSrc) return null;
 
