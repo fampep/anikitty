@@ -246,7 +246,7 @@ async function probeDirectProviderCapabilities(
 }
 
 const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(
-  (p) => !MULTI_ROW_PROVIDERS.has(p) && p !== "Animo",
+  (p) => !MULTI_ROW_PROVIDERS.has(p),
 );
 
 const FEATURED_DIRECT_PROBE_PROVIDERS = DIRECT_PROBE_PROVIDERS.filter(

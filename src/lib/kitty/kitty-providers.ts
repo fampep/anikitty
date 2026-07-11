@@ -1,10 +1,15 @@
 import {
   LEGACY_MEGAPLAY_PROVIDER_IDS,
-  MEGAPLAY_PROVIDER_CONFIG,
   MEGAPLAY_PROVIDER_ID,
 } from "@/lib/kitty/megaplay-providers";
 
-export const KITTY_PROVIDERS = [
+/**
+ * Every provider id AniKitty has ever known — kept only so historical,
+ * provider-specific code paths still type-check. The *active* set that users
+ * can actually select is {@link KITTY_PROVIDERS}. Anything not active is
+ * normalized to the default provider at runtime.
+ */
+export const ALL_KITTY_PROVIDER_IDS = [
   "Miruro",
   "MegaPlay",
   "VideoVib",
@@ -14,6 +19,7 @@ export const KITTY_PROVIDERS = [
   "AniSnatch",
   "Lunar",
   "Anitaku",
+  "AniNeko",
   "Anikage",
   "AnimeHeaven",
   "AnimeHub",
@@ -38,7 +44,13 @@ export const KITTY_PROVIDERS = [
   "AnimaxAnime",
 ] as const;
 
-export type KittyProvider = (typeof KITTY_PROVIDERS)[number];
+export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
+
+/**
+ * Active providers exposed on the VPS cluster. These are the only ids users can
+ * select; the API paths (`/provider/{id}/…`) use these exact names.
+ */
+export const KITTY_PROVIDERS = ["MegaPlay", "Anitaku", "AniNeko"] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -67,343 +79,39 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
-    id: "Miruro",
-    label: "Miruro",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    supportsMulti: true,
-    hint: "sub · ssub · dub pipes · soft VTT/ASS · some hard-sub embeds",
-  },
-  {
-    id: "Animex",
-    label: "Animex",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "Zen · Koto · Beep · Mimi · Yuki · Uwu · Mochi · Neko · Sax · Yume · Kiwi · soft subs on SUB only",
-  },
-  {
-    id: "Animo",
-    label: "Animo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "4animo.xyz · HD-1 / HD-2 / HD-3 · SUB · DUB · /subs",
-  },
-  {
     id: "MegaPlay",
-    label: "MegaPlay",
+    label: "Alpha",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: MEGAPLAY_PROVIDER_CONFIG.hint,
-  },
-  {
-    id: "VideoVib",
-    label: "VideoVib",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    hint: "VideoVib API · AniList watch · SUB · DUB · VTT on SUB",
-  },
-  {
-    id: "AniWatch",
-    label: "AniWatch",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "aniwatch.one · MGCLD · BYFMS · DGHG · MegaCloud · soft subs on SUB · /subs",
-  },
-  {
-    id: "AniSnatch",
-    label: "AniSnatch",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    supportsMulti: true,
-    hint: "AniVibe · Kwik · AniBD · Megaplay · soft-sub servers on site · SUB · DUB",
-  },
-  {
-    id: "Lunar",
-    label: "Lunar",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    supportsMulti: true,
-    hint: "lunaranime.ru · Beep · Mimi · Yuki · Miku · Vee · FlixCloud · Vermillion subs",
-  },
-  {
-    id: "AllAnime",
-    label: "AllAnime",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "allmanga.to · search is dub-mode-specific · SUB · DUB · soft subs on SUB",
-  },
-  {
-    id: "MKissa",
-    label: "MKissa",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "mkissa.to · AllAnime API · audio selects mode · subs vary by mirror",
-  },
-  {
-    id: "AnimeHub",
-    label: "AnimeHub",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "Separate AniList slugs per audio · SUB · DUB · soft subs",
-  },
-  {
-    id: "ReAnime",
-    label: "ReAnime",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    hardSub: true,
-    hint: "reanime.to · FlixCloud · SUB · DUB · no tracks[] · subs may be burned in",
-  },
-  {
-    id: "2Dhive",
-    label: "2Dhive",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    hint: "MegaPlay · hiAnime HLS · HAdfree MP4 · soft/hard sub depends on server",
+    hint: "AniList ID · stream-direct · up to 1080p · SUB · DUB · VTT",
   },
   {
     id: "Anitaku",
-    label: "Anitaku",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · VTT on SUB · site HSUB tab not in API server list",
-  },
-  {
-    id: "Anikage",
-    label: "Anikage",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    hint: "MIKO · VERSE · NEKO · language filter · SUB · DUB",
-  },
-  {
-    id: "AnimeHeaven",
-    label: "AnimeHeaven",
-    group: "other",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: true,
-    nativeSubs: true,
-    hint: "SUB only · soft subs",
-  },
-  {
-    id: "KaaLt",
-    label: "KaaLt",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    hint: "AnimeKai · VidStreaming · CatStream · SUB · DUB",
-  },
-  {
-    id: "Senshi",
-    label: "Senshi",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "sub · softsub · hardsub · dub source tags",
-  },
-  {
-    id: "Animetsu",
-    label: "Animetsu",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "KITE · DIO · MEG · SAGE · SUB · DUB · /subs",
-  },
-  {
-    id: "Animeverse",
-    label: "Animeverse",
-    group: "other",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB only · soft subs · MegaPlay fallback",
-  },
-  {
-    id: "AniZone",
-    label: "AniZone",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "AnimeGG",
-    label: "AnimeGG",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    hint: "GG-SUB · GG-DUB server tabs · soft subs",
-  },
-  {
-    id: "AniDB",
-    label: "AniDB",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    hint: "jpn vs eng audio · SUB · DUB · soft subs",
-  },
-  {
-    id: "AniBD",
-    label: "AniBD",
-    group: "other",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: true,
-    nativeSubs: true,
-    hint: "PlayEng SR streams · SUB only · ASS/SRT when present",
-  },
-  {
-    id: "Nyanime",
-    label: "Nyanime",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "Per-episode hasSub / hasDub · soft subs",
-  },
-  {
-    id: "AnimeOnsen",
-    label: "AnimeOnsen",
-    group: "other",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "DASH · SUB only · parsed subtitle tracks",
-  },
-  {
-    id: "AnimeNexus",
-    label: "AnimeNexus",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "DUB needs English audio on episode · HLS + m3u8 subs",
-  },
-  {
-    id: "Animeya",
-    label: "Animeya",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "ENG vs JPN locale streams · SUB · DUB",
-  },
-  {
-    id: "Anizen",
-    label: "Anizen",
+    label: "Beta",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
+    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "MegaPlay · Ryzex · Abyss · SUB · DUB · Hindi · VTT on SUB · /subs",
+    hint: "SUB · DUB · soft & hard subs · multi-server",
   },
   {
-    id: "AniWaves",
-    label: "AniWaves",
-    group: "other",
+    id: "AniNeko",
+    label: "Gamma",
+    group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "sub + ssub + dub servers · VTT/ASS on SUB · some ssub in-stream",
-  },
-  {
-    id: "AnimaxAnime",
-    label: "Animax",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    // AniList-native; servers return muxed/hardsubbed streams with no soft tracks.
-    softSub: false,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "animaxanime.dpdns.org · AniList-native · Anineko · AllManga · Animegg · Crunchyroll · SUB · DUB · burned-in subs",
+    hint: "SUB · DUB · multi-server · soft subs",
   },
 ];
 
@@ -411,25 +119,11 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "MegaPlay",
-  "VideoVib",
-  "Animex",
-  "Animetsu",
-  "AniWatch",
-  "Animo",
+  "Anitaku",
+  "AniNeko",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
-
-const DEPRECATED_PROVIDERS = new Set([
-  "AnimeParadise",
-  "AniNeko",
-  "AnimeStream",
-  "AniDao",
-  "AnimeLibre",
-  "AniVerse",
-  "KimoiTV",
-  "PimpAnime",
-]);
 
 /** KittyAPI unified MegaPlay provider. */
 export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([MEGAPLAY_PROVIDER_ID]);
@@ -447,44 +141,24 @@ export {
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   MEGAPLAY_PROVIDER_ID,
-  "VideoVib",
-  "Animo",
-  "Miruro",
-  "Animex",
-  "AllAnime",
-  "MKissa",
-  "AnimeHub",
-  "AniWatch",
-  "Lunar",
-  "2Dhive",
   "Anitaku",
-  "Anikage",
-  "AnimeHeaven",
-  "KaaLt",
-  "Senshi",
-  "Animetsu",
-  "Animeverse",
-  "AniZone",
-  "AnimeGG",
-  "AniDB",
-  "AniBD",
-  "Nyanime",
-  "AnimeOnsen",
-  "AnimeNexus",
-  "Animeya",
-  "Anizen",
-  "AniWaves",
-  "AniSnatch",
+  "AniNeko",
 ]);
 
+/** True for any provider id AniKitty knows about (including retired ones). */
 export function isKittyProvider(value: string): value is KittyProvider {
+  return (ALL_KITTY_PROVIDER_IDS as readonly string[]).includes(value);
+}
+
+/** True only for providers that are currently selectable / live on the cluster. */
+export function isActiveKittyProvider(value: string): value is KittyProvider {
   return (KITTY_PROVIDERS as readonly string[]).includes(value);
 }
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
-  if (value && isKittyProvider(value)) return value;
+  if (value && isActiveKittyProvider(value)) return value;
   if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
-  if (value && DEPRECATED_PROVIDERS.has(value)) return DEFAULT_KITTY_PROVIDER;
+  // Any retired provider (or unknown value) falls back to the default.
   return DEFAULT_KITTY_PROVIDER;
 }
 
@@ -529,14 +203,7 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
 }
 
 /** Providers that only appear in the MULTI row (server picker expands below). */
-export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([
-  "Miruro",
-  "Animex",
-  "AniSnatch",
-  "Lunar",
-  "AllAnime",
-  "MKissa",
-]);
+export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([]);
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => {
