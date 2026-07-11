@@ -143,6 +143,10 @@ interface ISettingsStore {
   /** Swipe left/right on the video surface to seek (progress bar unaffected). */
   playerTouchSeekEnabled: boolean;
   setPlayerTouchSeekEnabled: (val: boolean) => void;
+
+  /** Turn on soft subtitles automatically when watching SUB streams (not hard-sub). */
+  autoEnableSubtitles: boolean;
+  setAutoEnableSubtitles: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -308,10 +312,13 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       playerTouchSeekEnabled: true,
       setPlayerTouchSeekEnabled: (playerTouchSeekEnabled) => set({ playerTouchSeekEnabled }),
+
+      autoEnableSubtitles: true,
+      setAutoEnableSubtitles: (autoEnableSubtitles) => set({ autoEnableSubtitles }),
     }),
     {
       name: "kitty-settings",
-      version: 32,
+      version: 33,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -343,6 +350,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         showBannerAds: state.showBannerAds,
         seekStepSeconds: state.seekStepSeconds,
         playerTouchSeekEnabled: state.playerTouchSeekEnabled,
+        autoEnableSubtitles: state.autoEnableSubtitles,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -458,6 +466,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 32) {
           next.playerTouchSeekEnabled = next.playerTouchSeekEnabled ?? true;
+        }
+        if (version < 33) {
+          next.autoEnableSubtitles = next.autoEnableSubtitles ?? true;
         }
         return next as ISettingsStore;
       },

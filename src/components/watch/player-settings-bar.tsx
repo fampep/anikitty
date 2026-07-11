@@ -9,6 +9,7 @@ import KittyProxyChooser from "@/components/watch/kitty-proxy-chooser";
 import SeekStepSetting from "@/components/settings/seek-step-setting";
 import {
   ChevronDown,
+  Captions,
   Mic,
   MoveHorizontal,
   Monitor,
@@ -86,6 +87,8 @@ export default function PlayerSettingsBar() {
     setSeekStepSeconds,
     playerTouchSeekEnabled,
     setPlayerTouchSeekEnabled,
+    autoEnableSubtitles,
+    setAutoEnableSubtitles,
   } = useSettingsStore();
 
   useEffect(() => {
@@ -211,7 +214,16 @@ export default function PlayerSettingsBar() {
                 {t("settings.subtitleAppearance")}
               </p>
             </div>
-            <SubtitleSettingsPanel compact />
+            <ToggleRow
+              icon={<Captions className="w-3.5 h-3.5" />}
+              label={t("watch.playerSettings.autoEnableSubtitles")}
+              description={t("watch.playerSettings.autoEnableSubtitlesDesc")}
+              value={autoEnableSubtitles}
+              onChange={setAutoEnableSubtitles}
+            />
+            <div className="mt-3 border-t border-border dark:border-white/[0.06] pt-3">
+              <SubtitleSettingsPanel compact />
+            </div>
           </div>
           )}
         </div>

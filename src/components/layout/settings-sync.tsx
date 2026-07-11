@@ -44,6 +44,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     showBannerAds: s.showBannerAds,
     seekStepSeconds: s.seekStepSeconds,
     playerTouchSeekEnabled: s.playerTouchSeekEnabled,
+    autoEnableSubtitles: s.autoEnableSubtitles,
   });
 }
 
@@ -79,6 +80,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
     patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
   }
   if (prefs.playerTouchSeekEnabled !== undefined) patch.playerTouchSeekEnabled = prefs.playerTouchSeekEnabled;
+  if (prefs.autoEnableSubtitles !== undefined) patch.autoEnableSubtitles = prefs.autoEnableSubtitles;
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);

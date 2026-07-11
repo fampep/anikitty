@@ -655,6 +655,8 @@ function ContentSection() {
 
 function SubtitleSection() {
   const t = useT();
+  const autoEnableSubtitles = useSettingsStore((s) => s.autoEnableSubtitles);
+  const setAutoEnableSubtitles = useSettingsStore((s) => s.setAutoEnableSubtitles);
 
   return (
     <SectionCard>
@@ -663,7 +665,14 @@ function SubtitleSection() {
         title={t("settings.subtitleAppearance")}
         description={t("settings.subtitleAppearanceDesc")}
       />
-      <SectionBody>
+      <SectionBody className="space-y-4">
+        <ToggleRow
+          icon={<Captions className="w-4 h-4" />}
+          label={t("settings.autoEnableSubtitles")}
+          description={t("settings.autoEnableSubtitlesDesc")}
+          value={autoEnableSubtitles}
+          onChange={setAutoEnableSubtitles}
+        />
         <SubtitleSettingsPanel />
       </SectionBody>
     </SectionCard>

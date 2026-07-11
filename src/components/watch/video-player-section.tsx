@@ -20,6 +20,7 @@ import {
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
 import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, MULTI_ROW_PROVIDERS, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import {
   DEFAULT_ANIMEX_SERVER,
   defaultAnimexServerForMode,
@@ -142,7 +143,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -1509,8 +1510,17 @@ const VideoPlayerSection = () => {
   }
 
   const subtitleTracks = playerTracks.filter(isSubtitleTrack);
-  const subtitlesEnabled = streamAudio === "sub";
-  const tracksForPlayer = subtitlesEnabled
+  const watchingHardSub = isHardSubPlayback({
+    audioMode,
+    streamAudio,
+    provider,
+    aninekoServer,
+    animexServer,
+    lunarServer,
+  });
+  const softSubsAvailable = streamAudio === "sub" && !watchingHardSub;
+  const subtitlesEnabled = softSubsAvailable && autoEnableSubtitles;
+  const tracksForPlayer = softSubsAvailable
     ? displayTracks
     : displayTracks.filter((track) => !isSubtitleTrack(track));
 

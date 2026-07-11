@@ -996,7 +996,7 @@ export default function KittyPlayer({
             return enabled;
           },
         },
-        ...(showSubs
+        ...(hasExternalSubs
           ? [
               {
                 width: 220,
