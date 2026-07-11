@@ -14,6 +14,11 @@ import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-conf
 import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-config";
 import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-config";
 import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config";
+import {
+  ANINEKO_SERVERS,
+  aninekoServerDropdownLabel,
+  type AninekoServerId,
+} from "@/lib/providers/anineko-config";
 import { ProviderDefaultBadge } from "@/components/player/provider-select";
 import {
   KITTY_PROVIDER_META,
@@ -35,12 +40,14 @@ type Props = {
   anisnatchServer?: AnisnatchServerId;
   lunarServer?: LunarServerId;
   animoServer?: AnimoServerId;
+  aninekoServer?: AninekoServerId;
   onProviderChange: (provider: KittyProvider) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
   onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
   onLunarServerChange?: (server: LunarServerId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
+  onAninekoServerChange?: (server: AninekoServerId) => void;
   className?: string;
 };
 
@@ -80,7 +87,7 @@ function LangBadges({ id }: { id: KittyProvider }) {
   );
 }
 
-function ServerSubSelect<T extends string>({
+export function ServerSubSelect<T extends string>({
   value,
   options,
   placeholder,
@@ -116,12 +123,14 @@ export default function WatchSimpleProviderRow({
   anisnatchServer,
   lunarServer,
   animoServer,
+  aninekoServer,
   onProviderChange,
   onMiruroPipeChange,
   onAnimexServerChange,
   onAnisnatchServerChange,
   onLunarServerChange,
   onAnimoServerChange,
+  onAninekoServerChange,
   className,
 }: Props) {
   const t = useT();
@@ -213,6 +222,17 @@ export default function WatchSimpleProviderRow({
       )}
       {provider === "Animo" && animoServer && onAnimoServerChange && (
         <ServerSubSelect value={animoServer} options={ANIMO_SERVERS} placeholder={t("watch.animoServer")} onChange={onAnimoServerChange} />
+      )}
+      {provider === "AniNeko" && aninekoServer && onAninekoServerChange && (
+        <ServerSubSelect
+          value={aninekoServer}
+          options={ANINEKO_SERVERS.map((server) => ({
+            id: server.id,
+            label: aninekoServerDropdownLabel(server.id, streamAudio),
+          }))}
+          placeholder={t("watch.aninekoServer")}
+          onChange={onAninekoServerChange}
+        />
       )}
     </div>
   );

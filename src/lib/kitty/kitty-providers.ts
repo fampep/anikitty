@@ -51,9 +51,9 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
 export const KITTY_PROVIDERS = [
+  "AniNeko",
   "MegaPlay",
   "Anitaku",
-  "AniNeko",
   "AllAnime",
   "MKissa",
 ] as const;
@@ -85,6 +85,18 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
+    id: "AniNeko",
+    label: "Gamma",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · multi-server · soft subs",
+  },
+  {
     id: "MegaPlay",
     label: "Alpha",
     group: "featured",
@@ -106,18 +118,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft & hard subs · multi-server",
-  },
-  {
-    id: "AniNeko",
-    label: "Gamma",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · multi-server · soft subs",
   },
   {
     id: "AllAnime",
@@ -148,9 +148,9 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. AllAnime/MKissa are last-resort mirrors. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
+  "AniNeko",
   "MegaPlay",
   "Anitaku",
-  "AniNeko",
   "AllAnime",
   "MKissa",
 ];

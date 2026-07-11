@@ -33,6 +33,12 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
+import {
+  DEFAULT_ANINEKO_SERVER,
+  fetchAninekoVideoStream,
+  isAninekoServerId,
+  type AninekoServerId,
+} from "@/lib/providers/anineko-api";
 import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
 import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
@@ -67,6 +73,7 @@ const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
 const SAFE_LUNAR_SERVER = /^[a-z0-9-]{2,12}$/;
 const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
+const SAFE_ANINEKO_SERVER = /^(?:hd-[12]|streamhg|earnvids|doodstream)$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
@@ -99,6 +106,7 @@ export async function GET(req: Request) {
   const allanimeMirrorParam = searchParams.get("allanimeMirror");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const animoServerParam = searchParams.get("animoServer");
+  const aninekoServerParam = searchParams.get("aninekoServer");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -178,6 +186,15 @@ export async function GET(req: Request) {
       ? animoServerParam
       : provider === "Animo"
         ? DEFAULT_ANIMO_SERVER
+        : null;
+
+  const aninekoServer =
+    aninekoServerParam &&
+    SAFE_ANINEKO_SERVER.test(aninekoServerParam) &&
+    isAninekoServerId(aninekoServerParam)
+      ? aninekoServerParam
+      : provider === "AniNeko"
+        ? DEFAULT_ANINEKO_SERVER
         : null;
 
   async function finalizeStreamResponse(
@@ -545,6 +562,45 @@ export async function GET(req: Request) {
       if (animoResponse) return animoResponse;
     } catch (e) {
       console.error("[kitty/stream] Animo server failed:", e);
+    }
+  }
+
+  if (provider === "AniNeko") {
+    try {
+      const aninekoAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const anineko = await fetchAninekoVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: aninekoServer as AninekoServerId | null,
+            title: titleParam,
+          });
+
+          if (!anineko?.file) return null;
+
+          return {
+            file: anineko.file,
+            headers: anineko.headers,
+            tracks: anineko.tracks,
+            allServers: anineko.allServers,
+            skipTimes: anineko.skipTimes,
+            server: anineko.server,
+            download: anineko.download,
+          };
+        },
+      );
+
+      const aninekoResponse = await respondWithStream(
+        aninekoAttempt.result,
+        "AniNeko",
+        aninekoAttempt.servedAudio,
+        aninekoAttempt.audioFallback,
+      );
+      if (aninekoResponse) return aninekoResponse;
+    } catch (e) {
+      console.error("[kitty/stream] AniNeko server failed:", e);
     }
   }
 

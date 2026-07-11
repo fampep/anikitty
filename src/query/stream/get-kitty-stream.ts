@@ -6,6 +6,7 @@ import type { AnisnatchServerId } from "@/lib/providers/anisnatch-config";
 import type { AllanimeMirrorId } from "@/lib/providers/allanime-config";
 import type { LunarServerId } from "@/lib/providers/lunar-config";
 import type { AnimoServerId } from "@/lib/providers/animo-config";
+import type { AninekoServerId } from "@/lib/providers/anineko-config";
 import type { MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
@@ -61,6 +62,7 @@ export const getKittyStream = async (
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  aninekoServer?: AninekoServerId | null,
   kittyNode?: KittyApiNodeId,
   signal?: AbortSignal,
 ): Promise<KittyStreamResponse> => {
@@ -79,6 +81,7 @@ export const getKittyStream = async (
       ...(provider === "AllAnime" && allanimeMirror ? { allanimeMirror } : {}),
       ...(provider === "MKissa" && mkissaMirror ? { mkissaMirror } : {}),
       ...(provider === "Animo" && animoServer ? { animoServer } : {}),
+      ...(provider === "AniNeko" && aninekoServer ? { aninekoServer } : {}),
     },
     signal,
     timeout: 22_000,
@@ -101,6 +104,7 @@ export function buildKittyStreamQueryKey(
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  aninekoServer?: AninekoServerId | null,
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -115,6 +119,7 @@ export function buildKittyStreamQueryKey(
     allanimeMirror ?? "",
     mkissaMirror ?? "",
     animoServer ?? "",
+    aninekoServer ?? "",
     title ?? "",
   ];
 }
@@ -142,6 +147,7 @@ export const useGetKittyStream = (
   allanimeMirror?: AllanimeMirrorId | null,
   mkissaMirror?: AllanimeMirrorId | null,
   animoServer?: AnimoServerId | null,
+  aninekoServer?: AninekoServerId | null,
   kittyNode?: KittyApiNodeId,
 ) => {
   const abortRef = useRef<AbortController | null>(null);
@@ -167,6 +173,7 @@ export const useGetKittyStream = (
       allanimeMirror,
       mkissaMirror,
       animoServer,
+      aninekoServer,
     ),
     queryFn: async () => {
       abortRef.current?.abort();
@@ -186,6 +193,7 @@ export const useGetKittyStream = (
           allanimeMirror,
           mkissaMirror,
           animoServer,
+          aninekoServer,
           kittyNode,
           controller.signal,
         );

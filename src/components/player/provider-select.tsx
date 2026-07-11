@@ -20,6 +20,12 @@ import {
   type AllanimeMirrorId,
 } from "@/lib/providers/allanime-config";
 import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config";
+import {
+  ANINEKO_SERVERS,
+  aninekoServerDropdownLabel,
+  type AninekoServerId,
+} from "@/lib/providers/anineko-config";
+import { ServerSubSelect } from "@/components/watch/watch-simple-provider-row";
 import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -145,6 +151,7 @@ export function ProviderQuickPick({
   allanimeMirror,
   mkissaMirror,
   animoServer,
+  aninekoServer,
   onSelect,
   onMultiToggle,
   onMiruroPipeChange,
@@ -154,6 +161,7 @@ export function ProviderQuickPick({
   onAllanimeMirrorChange,
   onMkissaMirrorChange,
   onAnimoServerChange,
+  onAninekoServerChange,
   className,
   compact,
 }: {
@@ -167,6 +175,7 @@ export function ProviderQuickPick({
   allanimeMirror?: AllanimeMirrorId;
   mkissaMirror?: AllanimeMirrorId;
   animoServer?: AnimoServerId;
+  aninekoServer?: AninekoServerId;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
   onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
@@ -176,6 +185,7 @@ export function ProviderQuickPick({
   onAllanimeMirrorChange?: (mirror: AllanimeMirrorId) => void;
   onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
+  onAninekoServerChange?: (server: AninekoServerId) => void;
   className?: string;
   compact?: boolean;
 }) {
@@ -191,6 +201,7 @@ export function ProviderQuickPick({
       allanimeMirror={allanimeMirror}
       mkissaMirror={mkissaMirror}
       animoServer={animoServer}
+      aninekoServer={aninekoServer}
       compact={compact}
       onSelect={onSelect}
       onMultiToggle={onMultiToggle}
@@ -201,6 +212,7 @@ export function ProviderQuickPick({
       onAllanimeMirrorChange={onAllanimeMirrorChange}
       onMkissaMirrorChange={onMkissaMirrorChange}
       onAnimoServerChange={onAnimoServerChange}
+      onAninekoServerChange={onAninekoServerChange}
       className={className}
     />
   );
@@ -258,6 +270,8 @@ type ProviderGridProps = {
   onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
   animoServer?: AnimoServerId;
   onAnimoServerChange?: (server: AnimoServerId) => void;
+  aninekoServer?: AninekoServerId;
+  onAninekoServerChange?: (server: AninekoServerId) => void;
   disabled?: boolean;
   className?: string;
   rows?: ProviderAudioMode[];
@@ -301,6 +315,7 @@ function providerPillClass(
     providerId === "MegaPlay" && isActive && "border-emerald-400/40 bg-emerald-500/20 text-emerald-100",
     providerId === "VideoVib" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
     providerId === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
+    providerId === "AniNeko" && isActive && "border-indigo-400/40 bg-indigo-500/20 text-indigo-100",
   );
 }
 
@@ -332,12 +347,15 @@ export function ProviderGrid({
   onMkissaMirrorChange,
   animoServer,
   onAnimoServerChange,
+  aninekoServer,
+  onAninekoServerChange,
   disabled,
   className,
   rows,
   compact,
 }: ProviderGridProps) {
   const t = useT();
+  const streamAudio: "sub" | "dub" = audioMode === "dub" ? "dub" : "sub";
   const { providerSectionHidden, toggleProviderSectionHidden } = useSettingsStore();
   const visibleRows = rows ?? PROVIDER_GRID_ROWS;
   // Per-row "show all" state — keeps the pill wall short until the user opts in.
@@ -706,6 +724,28 @@ export function ProviderGrid({
             </button>
           ))}
         </MultiServerPanel>
+      )}
+
+      {provider === "AniNeko" && onAninekoServerChange && aninekoServer != null && (
+        <div
+          className={cn(
+            "rounded-lg border border-indigo-500/25 bg-indigo-500/[0.04] px-2.5 py-2",
+            compact ? "mx-0" : "mx-0.5",
+          )}
+        >
+          <p className="mb-1.5 text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-300/70">
+            {t("watch.aninekoServer")}
+          </p>
+          <ServerSubSelect
+            value={aninekoServer}
+            options={ANINEKO_SERVERS.map((server) => ({
+              id: server.id,
+              label: aninekoServerDropdownLabel(server.id, streamAudio),
+            }))}
+            placeholder={t("watch.aninekoServer")}
+            onChange={onAninekoServerChange}
+          />
+        </div>
       )}
 
     </div>
