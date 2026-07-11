@@ -42,6 +42,14 @@ export const sort = [
   { value: "name-a-z", label: "A → Z" },
 ];
 
+const CURRENT_YEAR = new Date().getFullYear();
+const EARLIEST_YEAR = 1963;
+
+export const years = Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => {
+  const year = String(CURRENT_YEAR - i);
+  return { value: year, label: year };
+});
+
 // Genre values match AniList's title-case genre names (after slug→label conversion)
 export const genres = [
   { value: "action", label: "Action" },

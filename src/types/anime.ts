@@ -90,5 +90,7 @@ export interface SearchAnimeParams {
   season?: string;
   language?: string;
   sort?: string;
-  genres?: string; // Comma-separated: "isekai,shounen"
+  genres?: string; // Comma-separated include slugs: "romance,comedy"
+  excludeGenres?: string; // Comma-separated exclude slugs: "horror,fantasy"
+  year?: string;
 }

@@ -353,8 +353,13 @@
       "type": "Type",
       "status": "Status",
       "season": "Season",
+      "year": "Year",
       "sort": "Sort"
     },
+    "genreCycleHint": "Tap: include · tap again: exclude · tap again: clear",
+    "genreIncludeLabel": "Include {genre}",
+    "genreExcludeLabel": "Exclude {genre}",
+    "genreNeutralLabel": "Include or exclude {genre}",
     "filterTypes": {
       "all": "All Types",
       "tv": "TV",
@@ -635,6 +640,8 @@
     "unlinkFailed": "Failed to unlink",
     "subtitleAppearance": "Subtitle Appearance",
     "subtitleAppearanceDesc": "Customize how subtitles look in the video player",
+    "autoEnableSubtitles": "Auto-enable subtitles",
+    "autoEnableSubtitlesDesc": "Turn on soft subtitles when watching SUB streams. Hard-sub streams never load extra subtitles. You can still toggle them in the player.",
     "subtitleFontSize": "Font size",
     "subtitleColor": "Text color",
     "subtitleCustomColor": "Custom",
@@ -1627,7 +1634,9 @@
       "proxyPingUnavailable": "Unreachable",
       "proxyFastest": "Fastest",
       "touchSeek": "Touch seek on video",
-      "touchSeekDesc": "Swipe left or right on the video to skip — progress bar still works"
+      "touchSeekDesc": "Swipe left or right on the video to skip — progress bar still works",
+      "autoEnableSubtitles": "Auto-enable subtitles",
+      "autoEnableSubtitlesDesc": "Turn on soft subtitles for SUB streams. Hard-sub streams are never doubled up."
     },
     "seekBackButton": "Rewind {seconds}s",
     "seekForwardButton": "Skip forward {seconds}s",

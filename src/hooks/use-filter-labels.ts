@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useT } from "@/providers/i18n-provider";
-import { genres, seasons, sort, statuses, types } from "@/constants/search-filters";
+import { genres, seasons, sort, statuses, types, years } from "@/constants/search-filters";
 
 export function useFilterLabels() {
   const t = useT();
@@ -18,6 +18,10 @@ export function useFilterLabels() {
       seasons: seasons.map((o) => ({
         value: o.value,
         label: t(`search.filterSeasons.${o.value}`),
+      })),
+      years: years.map((o) => ({
+        value: o.value,
+        label: o.label,
       })),
       sort: sort.map((o) => ({
         value: o.value,

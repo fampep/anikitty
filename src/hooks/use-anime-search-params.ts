@@ -18,6 +18,8 @@ export const useAnimeSearchParams = (): SearchAnimeParams => {
       language: get("language"),
       sort: get("sort"),
       genres: get("genres"),
+      excludeGenres: get("excludeGenres"),
+      year: get("year"),
     };
   }, [searchParams]);
 };

@@ -1,5 +1,6 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
+import { slugsToAniListGenres } from "@/lib/search/genre-filters";
 
 const QUERY = `
   query (
@@ -9,7 +10,9 @@ const QUERY = `
     $format: MediaFormat
     $status: MediaStatus
     $season: MediaSeason
+    $seasonYear: Int
     $genre_in: [String]
+    $genre_not: [String]
     $sort: [MediaSort]
     $isAdult: Boolean
   ) {
@@ -21,7 +24,9 @@ const QUERY = `
         format: $format
         status: $status
         season: $season
+        seasonYear: $seasonYear
         genre_in: $genre_in
+        genre_not: $genre_not
         sort: $sort
         isAdult: $isAdult
       ) {
@@ -64,13 +69,6 @@ const SORT_MAP: Record<string, string> = {
   "released-date": "START_DATE_DESC",
 };
 
-function slugToGenre(slug: string): string {
-  return slug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") || "";
@@ -79,6 +77,8 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") || "";
   const season = searchParams.get("season") || "";
   const genres = searchParams.get("genres") || "";
+  const excludeGenres = searchParams.get("excludeGenres") || "";
+  const yearParam = searchParams.get("year") || "";
   const sortParam = searchParams.get("sort") || "";
   // Adult content is hidden unless the client opts in (settings toggle).
   const allowAdult = searchParams.get("adult") === "1";
@@ -88,9 +88,9 @@ export async function GET(request: Request) {
   const format = FORMAT_MAP[type] ?? undefined;
   const aniStatus = STATUS_MAP[status] ?? undefined;
   const aniSeason = season ? season.toUpperCase() : undefined;
-  const genreList = genres
-    ? genres.split(",").map(slugToGenre).filter(Boolean)
-    : undefined;
+  const genreList = genres ? slugsToAniListGenres(genres) : undefined;
+  const excludeGenreList = excludeGenres ? slugsToAniListGenres(excludeGenres) : undefined;
+  const seasonYear = /^\d{4}$/.test(yearParam) ? parseInt(yearParam, 10) : undefined;
 
   const sortValue = SORT_MAP[sortParam];
   const sortArr = sortValue
@@ -107,7 +107,9 @@ export async function GET(request: Request) {
       format,
       status: aniStatus,
       season: aniSeason,
+      seasonYear,
       genre_in: genreList,
+      genre_not: excludeGenreList,
       sort: sortArr,
       // false → SFW only; omit → AniList returns both SFW and adult.
       isAdult: allowAdult ? undefined : false,
