@@ -9,13 +9,13 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
  * Providers with Kitty `/subs` support per KittyAPI reference.
  */
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
-  "AllAnime",
-  "MKissa",
-  "MegaPlay",
   "Anitaku",
-  "AniNeko",
+  "MegaPlay",
   "AniZone",
   "AniWaves",
+  "AniNeko",
+  "AllAnime",
+  "MKissa",
 ] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];
