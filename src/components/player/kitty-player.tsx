@@ -76,6 +76,30 @@ function resolveTrackSrc(file: string): string {
   return file;
 }
 
+function normalizeSubtitleUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  try {
+    if (typeof window !== "undefined") {
+      return new URL(trimmed, window.location.origin).href;
+    }
+    return trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
+function isExternalSubtitleLoaded(
+  art: Artplayer,
+  url: string,
+  activeUrlRef: { current: string | null },
+): boolean {
+  if (!activeUrlRef.current || activeUrlRef.current !== url) return false;
+  const current = art.subtitle?.url;
+  if (!current) return false;
+  return normalizeSubtitleUrl(current) === normalizeSubtitleUrl(url);
+}
+
 function generateHighlights(
   start: number | undefined | null,
   end: number | undefined | null,
@@ -182,15 +206,14 @@ function switchExternalSubtitle(
   settings: SubtitleStyleSettings,
   activeUrlRef: { current: string | null },
 ) {
-  disableEmbeddedTextTracks(art.video);
-  art.subtitle.show = true;
-
-  if (activeUrlRef.current === url && art.subtitle?.url === url) {
+  if (isExternalSubtitleLoaded(art, url, activeUrlRef)) {
     ensureArtplayerSubtitleTrack(art);
-    applySubtitleStyles(art, settings);
+    art.subtitle.show = true;
     return;
   }
 
+  disableEmbeddedTextTracks(art.video);
+  art.subtitle.show = true;
   activeUrlRef.current = url;
   void art.subtitle
     .switch(url, buildSubtitleSwitchOptions({ ...track, file: url }))
@@ -202,6 +225,12 @@ function switchExternalSubtitle(
     .catch(() => {
       if (activeUrlRef.current === url) activeUrlRef.current = null;
     });
+}
+
+function syncExternalSubtitleTrack(art: Artplayer, mode: SubtitleMode) {
+  if (mode !== "external") return;
+  ensureArtplayerSubtitleTrack(art);
+  art.subtitle.show = true;
 }
 
 function applySubtitleMode(
@@ -642,6 +671,17 @@ export default function KittyPlayer({
   useEffect(() => {
     const art = artRef.current;
     if (!art || !ready) return;
+
+    const subTracks = resolveSubtitleTracks(tracksRef.current);
+    if (preferSubtitlesRef.current && subTracks.length > 0) {
+      const active = subTracks.find((track) => track.default) ?? subTracks[0];
+      const url = resolveTrackSrc(active.file);
+      if (isExternalSubtitleLoaded(art, url, activeSubtitleUrlRef)) {
+        syncExternalSubtitleTrack(art, "external");
+        return;
+      }
+    }
+
     subtitleModeRef.current = applySubtitleMode(
       art,
       tracksRef.current,
@@ -1071,15 +1111,7 @@ export default function KittyPlayer({
 
     art.on("video:loadedmetadata", () => {
       if (!resumeAppliedRef.current && !playbackStartedRef.current) applyResume(art);
-      if (preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0) {
-        subtitleModeRef.current = applySubtitleMode(
-          art,
-          tracksRef.current,
-          preferSubtitlesRef.current,
-          subtitleStyleSettings,
-          activeSubtitleUrlRef,
-        );
-      }
+      syncExternalSubtitleTrack(art, subtitleModeRef.current);
     });
 
     art.on("video:seeking", () => {
@@ -1104,7 +1136,11 @@ export default function KittyPlayer({
     art.on("video:canplay", () => {
       setBufferingDebounced(false);
       setReady(true);
-      if (preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0) {
+      if (
+        preferSubtitlesRef.current &&
+        resolveSubtitleTracks(tracksRef.current).length > 0 &&
+        !activeSubtitleUrlRef.current
+      ) {
         subtitleModeRef.current = applySubtitleMode(
           art,
           tracksRef.current,
@@ -1112,9 +1148,8 @@ export default function KittyPlayer({
           subtitleStyleSettings,
           activeSubtitleUrlRef,
         );
-      } else if (subtitleModeRef.current === "external") {
-        disableEmbeddedTextTracks(art.video);
-        ensureArtplayerSubtitleTrack(art);
+      } else {
+        syncExternalSubtitleTrack(art, subtitleModeRef.current);
       }
     });
     art.on("video:playing", () => {
