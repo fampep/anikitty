@@ -1,4 +1,6 @@
 import { kittyApiFetch, kittyApiHeaders, kittyApiPath } from "@/lib/kitty/kitty-api-server";
+import { megaplayAnilistSeriesUrl } from "@/lib/kitty/megaplay-api";
+import { isMegaplayProvider } from "@/lib/kitty/megaplay-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import { dedupeSubtitleTracks } from "@/lib/subtitles/subtitle-track-utils";
 import { KITTY_SUB_PROVIDERS_FALLBACK, KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-config";
@@ -161,6 +163,9 @@ async function fetchKittySubsFromProvider(opts: {
     episode: opts.episode,
     audio: opts.audio,
     title: opts.title,
+    seriesUrl: isMegaplayProvider(opts.provider)
+      ? megaplayAnilistSeriesUrl(opts.anilistId)
+      : undefined,
   });
   if (!data) return null;
 
@@ -305,6 +310,9 @@ export async function fetchKittySubsBulk(opts: {
         anilistId: opts.anilistId,
         audio,
         title: opts.title,
+        seriesUrl: isMegaplayProvider(provider)
+          ? megaplayAnilistSeriesUrl(opts.anilistId)
+          : undefined,
       });
       if (!data) continue;
 

@@ -51,22 +51,16 @@ async function testNode(node) {
   const base = node.url;
   const results = { label: node.label, url: base, steps: {} };
 
-  const health = await fetchJson(base, "/health", 10_000);
-  results.steps.health = health.ok ? "ok" : `fail ${health.status}`;
-
   const search = await fetchJson(base, `/provider/MegaPlay/search?q=${encodeURIComponent(QUERY)}`);
-  const searchCount = Array.isArray(search.data)
-    ? search.data.length
-    : Array.isArray(search.data?.results)
-      ? search.data.results.length
-      : Array.isArray(search.data?.animes)
-        ? search.data.animes.length
-        : 0;
-  results.steps.search = search.ok ? `ok (${searchCount} results)` : `fail ${search.status}`;
+  const searchList = Array.isArray(search.data) ? search.data : [];
+  const hasAnilistUrl = searchList.some((r) => String(r?.url ?? "").startsWith("anilist:"));
+  results.steps.search = search.ok
+    ? `ok (${searchList.length} results${hasAnilistUrl ? ", anilist: URLs" : ""})`
+    : `fail ${search.status}`;
 
   const episodes = await fetchJson(
     base,
-    `/provider/MegaPlay/episodes?seriesUrl=anilist:${ANILIST_ID}&audio=sub`,
+    `/provider/MegaPlay/episodes?seriesUrl=anilist:${ANILIST_ID}`,
   );
   const epList = Array.isArray(episodes.data)
     ? episodes.data
@@ -77,7 +71,6 @@ async function testNode(node) {
 
   const ep1 = epList.find((e) => Number(e.number ?? e.episode ?? e.ep) === EPISODE) ?? epList[0];
   let serversOk = false;
-  let serverCount = 0;
   if (ep1?.dataIds) {
     const dataIds =
       typeof ep1.dataIds === "string" ? ep1.dataIds : JSON.stringify(ep1.dataIds);
@@ -86,9 +79,8 @@ async function testNode(node) {
       `/provider/MegaPlay/servers?dataIds=${encodeURIComponent(dataIds)}&audio=sub`,
     );
     const serverList = Array.isArray(servers.data) ? servers.data : [];
-    serverCount = serverList.length;
-    serversOk = servers.ok && serverCount > 0;
-    results.steps.servers = servers.ok ? `ok (${serverCount} servers)` : `fail ${servers.status}`;
+    serversOk = servers.ok && serverList.length > 0;
+    results.steps.servers = servers.ok ? `ok (${serverList.length} servers)` : `fail ${servers.status}`;
 
     if (serverList[0]?.id) {
       const stream = await fetchJson(
@@ -115,7 +107,7 @@ async function testNode(node) {
     : `fail ${direct.status}`;
 
   results.pass =
-    results.steps.health === "ok" &&
+    results.steps.episodes.startsWith("ok") &&
     results.steps.streamDirect.startsWith("ok");
 
   return results;
@@ -146,7 +138,7 @@ async function main() {
     }
   }
 
-  console.log(`Result: ${passed}/${NODES.length} nodes passed stream-direct`);
+  console.log(`Result: ${passed}/${NODES.length} nodes passed`);
   process.exit(passed === NODES.length ? 0 : 1);
 }
 

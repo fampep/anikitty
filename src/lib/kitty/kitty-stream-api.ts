@@ -5,6 +5,7 @@ import {
   parseKittyStreamJson,
   type KittyStreamPayload,
 } from "@/lib/kitty/kitty-api-core";
+import { isMegaplayProvider } from "@/lib/kitty/megaplay-providers";
 import { isVideoVibProvider, videoVibStreamPaths } from "@/lib/kitty/videovib-provider";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 
@@ -90,10 +91,13 @@ export async function fetchKittyAutoStream(
 export async function fetchKittyProviderStream(
   opts: FetchKittyStreamOpts,
 ): Promise<KittyStreamPayload | null> {
+  const directOnly =
+    opts.directOnly ?? (opts.provider ? isMegaplayProvider(opts.provider) : false);
+
   if (opts.provider) {
     const direct = await fetchKittyStreamDirect(opts);
     if (direct?.file) return direct;
-    if (opts.directOnly) return null;
+    if (directOnly) return null;
   }
 
   return fetchKittyAutoStream(opts);

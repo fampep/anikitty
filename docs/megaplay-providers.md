@@ -1,126 +1,121 @@
-# MegaPlay provider (KittyAPI)
-
-AniKitty streams through [KittyAPI](https://github.com/fampep/kittyapi). **MegaPlay** is a single provider — Anikoto, AnimeSogo, Anix, HiAnime, and Animepahe are internal backends behind merged search, not separate API providers.
-
-**AniKitty watch page** uses `stream-direct` only (`anilistId` + episode → HLS). The search → episodes → servers flow below is the full KittyAPI path when you need catalog IDs, sub/dub server lists, or multi-quality `allServers`.
-
-Every call requires:
-
-```http
-Authorization: Bearer YOUR_API_KEY
-```
-
----
-
-## API flow
-
-```
-GET /provider/MegaPlay/search?q=slime
-GET /provider/MegaPlay/episodes?seriesUrl=catalog:8691
-GET /provider/MegaPlay/servers?dataIds={...}&audio=sub
-GET /provider/MegaPlay/servers?dataIds={...}&audio=dub
-GET /provider/MegaPlay/stream-direct?anilistId=1535&episode=1&audio=sub
-```
-
-### 1. Search
-
-```http
-GET /provider/MegaPlay/search?q=slime
-```
-
-### 2. Episodes
-
-Use `catalog:{id}` from the Anikoto API (e.g. Slime S4 → `catalog:8691`):
-
-```http
-GET /provider/MegaPlay/episodes?seriesUrl=catalog:8691
-```
-
-Each episode includes `dataIds` for the servers step.
-
-### 3. Servers
-
-Pass `dataIds` from the episode object — call once per audio track:
-
-```http
-GET /provider/MegaPlay/servers?dataIds={...}&audio=sub
-GET /provider/MegaPlay/servers?dataIds={...}&audio=dub
-```
-
-### 4. Stream-direct
-
-One-shot play URL when you already have AniList ID + episode (what AniKitty uses on the watch page):
-
-```http
-GET /provider/MegaPlay/stream-direct?anilistId=1535&episode=1&audio=sub
-```
-
-For dub: `&audio=dub`
-
-```json
-{
-  "file": "https://your-node/proxy?...",
-  "allServers": [{ "quality": "1080p", "file": "..." }],
-  "tracks": [{ "file": "...", "label": "English" }]
-}
-```
-
----
-
-## Example
-
-```js
-const API = 'https://kittyapi.176-125-240-251.sslip.io';
-const headers = { Authorization: 'Bearer YOUR_API_KEY' };
-
-// Full flow — catalog episodes + sub/dub servers
-const results = await fetch(`${API}/provider/MegaPlay/search?q=slime`, { headers }).then((r) => r.json());
-const episodes = await fetch(`${API}/provider/MegaPlay/episodes?seriesUrl=catalog:8691`, { headers }).then((r) => r.json());
-const ep1 = episodes.find((e) => e.number === 1);
-const dataIds = typeof ep1.dataIds === 'string' ? ep1.dataIds : JSON.stringify(ep1.dataIds);
-const subServers = await fetch(`${API}/provider/MegaPlay/servers?dataIds=${encodeURIComponent(dataIds)}&audio=sub`, { headers }).then((r) => r.json());
-const dubServers = await fetch(`${API}/provider/MegaPlay/servers?dataIds=${encodeURIComponent(dataIds)}&audio=dub`, { headers }).then((r) => r.json());
-
-// Quick play — Death Note ep 1
-const stream = await fetch(
-  `${API}/provider/MegaPlay/stream-direct?anilistId=1535&episode=1&audio=sub`,
-  { headers }
-).then((r) => r.json());
-video.src = stream.file;
-```
-
----
-
-## AniKitty integration
-
-| Topic | Detail |
-|-------|--------|
-| Watch page | `GET /api/kitty/stream?provider=MegaPlay&anilistId=…&episode=…&audio=sub` → KittyAPI `stream-direct` |
-| Default provider | `MegaPlay` (first in `DEFAULT_PROVIDER_PRIORITY`) |
-| Legacy names | Anikoto / AnimeSogo / Anix / HiAnime / Animepahe → `MegaPlay` |
-| Subtitles | `tracks[]` from stream-direct + Kitty `/subs` fallback |
-| Quality | `allServers` quality picker (1080p/720p/360p) when KittyAPI returns multiple URLs |
-| `file` URL | Signed/proxied — pass directly to the HLS player |
-
-Code paths:
-
-- `src/lib/kitty/kitty-stream-api.ts` — `fetchKittyStreamDirect()` → `/provider/MegaPlay/stream-direct`
-- `src/app/api/kitty/stream/route.ts` — generic provider handler for MegaPlay
-- `src/lib/kitty/megaplay-providers.ts` — provider ID, stream paths, legacy migration
-
----
-
-## curl test
-
-```bash
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-  "https://kittyapi.176-125-240-251.sslip.io/provider/MegaPlay/stream-direct?anilistId=1535&episode=1&audio=sub"
-```
-
-Cluster node test:
-
-```bash
-node --env-file=.env.local scripts/test-megaplay-nodes.mjs
-```
-
-Requires `KITTY_API_KEY` in `.env.local`.
+# MegaPlay provider (KittyAPI)
+
+AniKitty streams through [KittyAPI](https://github.com/fampep/kittyapi). **MegaPlay** is the single unified provider — do not call legacy names (Anikoto, HiAnime, AnimeSogo, etc.).
+
+Every call requires:
+
+```http
+Authorization: Bearer YOUR_API_KEY
+```
+
+Keep the API key on your backend only (`KITTY_API_KEY` in `.env.local`).
+
+---
+
+## What changed
+
+| Before (broken) | Now (correct) |
+|-----------------|---------------|
+| Separate providers (Anikoto, HiAnime, …) | One provider: **MegaPlay** |
+| Catalog-only or embed-only paths | AniList ID + catalog lookup under the hood |
+| Picking first search hit | Use AniList ID from your DB |
+| Rebuilding stream URLs yourself | Pass `dataIds` / `linkId` unchanged |
+
+**Rule:** AniKitty already stores AniList IDs — use those everywhere. Don't rely on search alone for popular shows.
+
+---
+
+## AniKitty integration (watch page)
+
+AniKitty uses the **stream-direct shortcut** because every anime page has an AniList ID:
+
+```
+GET /api/kitty/stream?provider=MegaPlay&anilistId=21&episode=1&audio=sub&title=One%20Piece
+  → KittyAPI GET /provider/MegaPlay/stream-direct?anilistId=21&episode=1&audio=sub&title=One%20Piece
+```
+
+| Topic | Detail |
+|-------|--------|
+| Provider | `MegaPlay` (default) — legacy saved names map to MegaPlay |
+| Playback | `stream-direct` only — no `/auto/stream` fallback for MegaPlay |
+| Title | Anime name passed as `title` to help catalog lookup |
+| Quality | `allServers` quality picker when KittyAPI returns 1080p/720p/360p |
+| Subtitles | `tracks[]` from stream + `/subs` with `seriesUrl=anilist:{id}` |
+| Episodes UI | AniList episode list (not MegaPlay `/episodes`) — counts from Anikoto cache |
+
+Code paths:
+
+- `src/lib/kitty/megaplay-api.ts` — KittyAPI path builders + fetch helpers
+- `src/lib/kitty/kitty-stream-api.ts` — `fetchKittyStreamDirect()` → stream-direct
+- `src/app/api/kitty/stream/route.ts` — watch page proxy
+- `src/lib/kitty/megaplay-providers.ts` — provider ID + legacy migration
+
+---
+
+## Full KittyAPI flow (reference)
+
+Use when you don't have stream-direct or need explicit quality/server steps:
+
+```
+GET /provider/MegaPlay/episodes?seriesUrl=anilist:21
+GET /provider/MegaPlay/servers?dataIds={ep.dataIds}&audio=sub
+GET /provider/MegaPlay/stream?linkId={server.id}
+```
+
+Or one-call:
+
+```
+GET /provider/MegaPlay/stream-direct?anilistId=21&episode=1&audio=sub&title=One%20Piece
+```
+
+### Episodes
+
+```http
+GET /provider/MegaPlay/episodes?seriesUrl=anilist:21
+GET /provider/MegaPlay/episodes?seriesUrl=anilist:21&audio=sub
+```
+
+Store `number`, `hasSub`, `hasDub`, and `dataIds` as-is.
+
+### Servers
+
+```http
+GET /provider/MegaPlay/servers?dataIds=<URL-encoded dataIds>&audio=sub
+```
+
+### Stream
+
+```http
+GET /provider/MegaPlay/stream?linkId=<URL-encoded server.id>
+```
+
+Response includes `file`, `headers`, `tracks`, `allServers`.
+
+### Search (only when you lack AniList ID)
+
+```http
+GET /provider/MegaPlay/search?q=one+piece
+```
+
+Results include `url: "anilist:21"` or `catalog:1642`. Prefer matching to your DB AniList ID.
+
+---
+
+## Important don'ts
+
+- Don't build megaplay.buzz URLs yourself — KittyAPI picks ani / mal / s-2.
+- Don't parse or rewrite `dataIds` / `linkId` JSON — pass back unchanged.
+- Don't use `catalog:{id}` unless from search and you have no AniList ID.
+- Don't call old provider names — use **MegaPlay** only.
+
+---
+
+## curl test
+
+```bash
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  "https://kittyapi.92-119-165-226.sslip.io/provider/MegaPlay/stream-direct?anilistId=1535&episode=1&audio=sub"
+
+node --env-file=.env.local scripts/test-megaplay-nodes.mjs
+```
+
