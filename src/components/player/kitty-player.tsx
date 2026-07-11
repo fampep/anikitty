@@ -211,20 +211,22 @@ function switchExternalSubtitle(
   settings: SubtitleStyleSettings,
   activeUrlRef: { current: string | null },
 ) {
+  disableEmbeddedTextTracks(art.video);
+  art.subtitle.show = true;
+
   if (isExternalSubtitleLoaded(art, url, activeUrlRef)) {
     ensureArtplayerSubtitleTrack(art);
-    art.subtitle.show = true;
+    applySubtitleStyles(art, settings);
     return;
   }
 
-  disableEmbeddedTextTracks(art.video);
-  art.subtitle.show = true;
   activeUrlRef.current = url;
   void art.subtitle
     .switch(url, buildSubtitleSwitchOptions({ ...track, file: url }))
     .then(() => {
       if (activeUrlRef.current !== url) return;
       ensureArtplayerSubtitleTrack(art);
+      art.subtitle.show = true;
       applySubtitleStyles(art, settings);
     })
     .catch(() => {
@@ -305,6 +307,8 @@ function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
 
   const subEl = art.template?.$subtitle as HTMLElement | undefined;
   if (subEl) {
+    subEl.style.color = inline.color;
+    subEl.style.fontSize = inline.fontSize;
     subEl.style.letterSpacing = inline.letterSpacing;
     subEl.style.lineHeight = String(inline.lineHeight);
     subEl.style.fontFamily = inline.fontFamily;
@@ -456,6 +460,8 @@ export default function KittyPlayer({
   const w2gRef = useRef(w2g);
   const nextEpisodeRef = useRef(nextEpisode);
   const preferSubtitlesRef = useRef(preferSubtitles);
+  const subsVisibleRef = useRef(preferSubtitles);
+  const userSubsOverrideRef = useRef(false);
   const tracksRef = useRef(tracks);
   const activeSubtitleUrlRef = useRef<string | null>(null);
   const boxedSubtitleCleanupRef = useRef<(() => void) | null>(null);
@@ -658,6 +664,20 @@ export default function KittyPlayer({
   const subtitleStyleSettings = subtitleSettings;
 
   useEffect(() => {
+    if (userSubsOverrideRef.current) return;
+    subsVisibleRef.current = preferSubtitles;
+    const art = artRef.current;
+    if (!art || !ready) return;
+    subtitleModeRef.current = applySubtitleMode(
+      art,
+      tracksRef.current,
+      subsVisibleRef.current,
+      subtitleStyleSettings,
+      activeSubtitleUrlRef,
+    );
+  }, [preferSubtitles, ready, subtitleStyleSettings]);
+
+  useEffect(() => {
     const art = artRef.current;
     if (!art || !ready) return;
 
@@ -697,7 +717,7 @@ export default function KittyPlayer({
     if (!art || !ready) return;
 
     const subTracks = resolveSubtitleTracks(tracksRef.current);
-    if (preferSubtitlesRef.current && subTracks.length > 0) {
+    if (subsVisibleRef.current && subTracks.length > 0) {
       const active = subTracks.find((track) => track.default) ?? subTracks[0];
       const url = resolveTrackSrc(active.file);
       if (isExternalSubtitleLoaded(art, url, activeSubtitleUrlRef)) {
@@ -709,11 +729,11 @@ export default function KittyPlayer({
     subtitleModeRef.current = applySubtitleMode(
       art,
       tracksRef.current,
-      preferSubtitlesRef.current,
+      subsVisibleRef.current,
       subtitleStyleSettings,
       activeSubtitleUrlRef,
     );
-  }, [externalSubtitleSig, preferSubtitles, ready]);
+  }, [externalSubtitleSig, preferSubtitles, ready, subtitleStyleSettings]);
 
   useEffect(() => {
     const cfg = w2gRef.current;
@@ -746,7 +766,7 @@ export default function KittyPlayer({
 
     const subTracks = resolveSubtitleTracks(tracksRef.current);
     const hasExternalSubs = subTracks.length > 0;
-    const showSubs = preferSubtitlesRef.current;
+    const subsVisible = subsVisibleRef.current;
 
     const defaultSub = subTracks.find((tr) => tr.default) ?? subTracks[0];
     const defaultSubType = defaultSub
@@ -754,7 +774,7 @@ export default function KittyPlayer({
       : "vtt";
 
     const subtitleOption: Option["subtitle"] =
-      showSubs && defaultSub
+      hasExternalSubs && defaultSub
         ? {
             url: defaultSub.file,
             type: defaultSubType,
@@ -784,7 +804,9 @@ export default function KittyPlayer({
 
     let hlsForCleanup: Hls | null = null;
     let hlsNetworkRecoveries = 0;
-    subtitleModeRef.current = showSubs
+    userSubsOverrideRef.current = false;
+    subsVisibleRef.current = preferSubtitlesRef.current;
+    subtitleModeRef.current = subsVisibleRef.current
       ? hasExternalSubs
         ? "external"
         : "native"
@@ -800,10 +822,10 @@ export default function KittyPlayer({
     const savedRate = Math.min(4, Math.max(0.25, readNum("kittyPlaybackRate", 1)));
 
     const shouldUseExternalSubs = () =>
-      preferSubtitlesRef.current && resolveSubtitleTracks(tracksRef.current).length > 0;
+      subsVisibleRef.current && resolveSubtitleTracks(tracksRef.current).length > 0;
 
     const syncNativeSubsIfNeeded = (video: HTMLVideoElement) => {
-      if (!preferSubtitlesRef.current) {
+      if (!subsVisibleRef.current) {
         disableEmbeddedTextTracks(video);
         const currentArt = artRef.current;
         if (currentArt) currentArt.subtitle.show = false;
@@ -847,7 +869,7 @@ export default function KittyPlayer({
       aspectRatio: true,
       fullscreen: true,
       fullscreenWeb: true,
-      subtitleOffset: showSubs,
+      subtitleOffset: hasExternalSubs || subsVisibleRef.current,
       screenshot: true,
       backdrop: false,
       autoPlayback: false,
@@ -872,7 +894,7 @@ export default function KittyPlayer({
               m3u8(video, url, player) {
                 if (Hls.isSupported()) {
                   hlsRef.current?.destroy();
-                  const hls = new Hls(createHlsConfig({ enableWebVTT: showSubs && !hasExternalSubs }));
+                  const hls = new Hls(createHlsConfig({ enableWebVTT: subsVisibleRef.current && !hasExternalSubs }));
                   hls.loadSource(url);
                   hls.attachMedia(video as HTMLMediaElement);
                   player.hls = hls;
@@ -1008,10 +1030,12 @@ export default function KittyPlayer({
                 selector: [
                   {
                     html: t("watch.artSubtitleDisplay"),
-                    tooltip: preferSubtitlesRef.current ? t("watch.artHide") : t("watch.artShow"),
-                    switch: preferSubtitlesRef.current,
+                    tooltip: subsVisibleRef.current ? t("watch.artHide") : t("watch.artShow"),
+                    switch: subsVisibleRef.current,
                     onSwitch(item: any) {
                       const show = !item.switch;
+                      userSubsOverrideRef.current = true;
+                      subsVisibleRef.current = show;
                       art.subtitle.show = show;
                       item.tooltip = show ? t("watch.artHide") : t("watch.artShow");
                       if (show && subTracks.length > 0) {
@@ -1027,6 +1051,7 @@ export default function KittyPlayer({
                         );
                       } else if (!show) {
                         disableEmbeddedTextTracks(art.video);
+                        activeSubtitleUrlRef.current = null;
                         subtitleModeRef.current = "off";
                       }
                       return show;
@@ -1036,6 +1061,8 @@ export default function KittyPlayer({
                 ],
                 onSelect(item: { html?: string; url?: string; type?: string }) {
                   if (item.url) {
+                    userSubsOverrideRef.current = true;
+                    subsVisibleRef.current = true;
                     subtitleModeRef.current = "external";
                     const url = resolveTrackSrc(item.url);
                     switchExternalSubtitle(
@@ -1071,10 +1098,13 @@ export default function KittyPlayer({
     art.on("ready", () => {
       setReady(true);
       setBuffering(false);
+      if (hasExternalSubs && !subsVisibleRef.current) {
+        art.subtitle.show = false;
+      }
       subtitleModeRef.current = applySubtitleMode(
         art,
         tracksRef.current,
-        preferSubtitlesRef.current,
+        subsVisibleRef.current,
         subtitleStyleSettings,
         activeSubtitleUrlRef,
       );
@@ -1189,14 +1219,14 @@ export default function KittyPlayer({
       setBufferingDebounced(false);
       setReady(true);
       if (
-        preferSubtitlesRef.current &&
+        subsVisibleRef.current &&
         resolveSubtitleTracks(tracksRef.current).length > 0 &&
         !activeSubtitleUrlRef.current
       ) {
         subtitleModeRef.current = applySubtitleMode(
           art,
           tracksRef.current,
-          preferSubtitlesRef.current,
+          subsVisibleRef.current,
           subtitleStyleSettings,
           activeSubtitleUrlRef,
         );

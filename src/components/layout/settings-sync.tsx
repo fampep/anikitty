@@ -45,6 +45,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     seekStepSeconds: s.seekStepSeconds,
     playerTouchSeekEnabled: s.playerTouchSeekEnabled,
     autoEnableSubtitles: s.autoEnableSubtitles,
+    hardSubSoftSubs: s.hardSubSoftSubs,
   });
 }
 
@@ -81,6 +82,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   }
   if (prefs.playerTouchSeekEnabled !== undefined) patch.playerTouchSeekEnabled = prefs.playerTouchSeekEnabled;
   if (prefs.autoEnableSubtitles !== undefined) patch.autoEnableSubtitles = prefs.autoEnableSubtitles;
+  if (prefs.hardSubSoftSubs !== undefined) patch.hardSubSoftSubs = prefs.hardSubSoftSubs;
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);

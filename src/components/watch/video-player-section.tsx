@@ -143,7 +143,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -1518,9 +1518,9 @@ const VideoPlayerSection = () => {
     animexServer,
     lunarServer,
   });
-  const softSubsAvailable = streamAudio === "sub" && !watchingHardSub;
-  const subtitlesEnabled = softSubsAvailable && autoEnableSubtitles;
-  const tracksForPlayer = softSubsAvailable
+  const allowSoftSubsOverlay = streamAudio === "sub" && (!watchingHardSub || hardSubSoftSubs);
+  const subtitlesEnabled = allowSoftSubsOverlay && autoEnableSubtitles;
+  const tracksForPlayer = allowSoftSubsOverlay
     ? displayTracks
     : displayTracks.filter((track) => !isSubtitleTrack(track));
 
@@ -1637,7 +1637,7 @@ const VideoPlayerSection = () => {
 
       {/* Controls bar */}
       <div className="px-3 py-2.5 sm:px-3 sm:py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-border dark:border-white/8 space-y-2 sm:space-y-2.5">
-        <PlayerSettingsBar />
+        <PlayerSettingsBar watchingHardSub={watchingHardSub && streamAudio === "sub"} />
 
         {showPlayerControls && (
           <>
@@ -1664,6 +1664,12 @@ const VideoPlayerSection = () => {
             {streamData?.server && providerHasNativeSubs(provider) && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/90">
                 {streamData.server}
+              </span>
+            )}
+            {watchingHardSub && streamAudio === "sub" && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-300/90">
+                {t("watch.hardSubBadge")}
+                {hardSubSoftSubs ? ` · ${t("watch.hardSubSoftSubsOn")}` : ""}
               </span>
             )}
             {subtitlesEnabled && subtitleTracks.length > 0 && (

@@ -76,7 +76,7 @@ export default function NewThreadComposer({
                 : "bg-muted/30 dark:bg-white/[0.02] text-muted-foreground dark:text-white/45 border-border dark:border-white/8 hover:text-foreground/85 dark:text-white/75 hover:bg-muted/50 dark:bg-white/5",
             )}
           >
-            {c.label}
+            {t(`forum.categories.${c.id}.label`)}
           </button>
         ))}
       </div>

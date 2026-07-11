@@ -31,6 +31,7 @@ export default function AccountDeletionSection() {
   const [confirmText, setConfirmText] = useState("");
   const [confirmPhrase, setConfirmPhrase] = useState("");
   const [password, setPassword] = useState("");
+  const [requiresPassword, setRequiresPassword] = useState(true);
 
   const load = useCallback(async () => {
     if (!auth) {
@@ -43,12 +44,13 @@ export default function AccountDeletionSection() {
       if (!res.ok) throw new Error("failed");
       const data = await res.json();
       setPending(data.request ?? null);
+      setRequiresPassword(data.requiresPassword !== false);
     } catch {
       toast.error(t("settings.accountDeletionLoadError"));
     } finally {
       setLoading(false);
     }
-  }, [auth]);
+  }, [auth, t]);
 
   useEffect(() => {
     load();
@@ -63,7 +65,7 @@ export default function AccountDeletionSection() {
 
   const submitRequest = async () => {
     if (confirmText !== auth?.username) {
-      toast.error(`Type your username (${auth?.username}) to confirm`);
+      toast.error(t("settings.accountDeletionConfirmUsernameError", { username: auth?.username ?? "" }));
       return;
     }
     setBusy(true);
@@ -82,7 +84,7 @@ export default function AccountDeletionSection() {
       resetForm();
       toast.success(t("settings.accountDeletionRequestSuccess"));
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Could not submit request");
+      toast.error(e instanceof Error ? e.message : t("settings.accountDeletionSubmitError"));
     } finally {
       setBusy(false);
     }
@@ -90,11 +92,11 @@ export default function AccountDeletionSection() {
 
   const deleteInstantly = async () => {
     if (confirmText !== auth?.username) {
-      toast.error(`Type your username (${auth?.username}) to confirm`);
+      toast.error(t("settings.accountDeletionConfirmUsernameError", { username: auth?.username ?? "" }));
       return;
     }
     if (confirmPhrase !== DELETE_PHRASE) {
-      toast.error(`Type "${DELETE_PHRASE}" to confirm`);
+      toast.error(t("settings.accountDeletionConfirmPhraseError", { phrase: DELETE_PHRASE }));
       return;
     }
     setBusy(true);
@@ -118,7 +120,7 @@ export default function AccountDeletionSection() {
       router.push("/");
       router.refresh();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Could not delete account");
+      toast.error(e instanceof Error ? e.message : t("settings.accountDeletionDeleteError"));
     } finally {
       setBusy(false);
     }
@@ -138,7 +140,7 @@ export default function AccountDeletionSection() {
       setPending(null);
       toast.success(t("settings.accountDeletionCancelSuccess"));
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Could not cancel request");
+      toast.error(e instanceof Error ? e.message : t("settings.accountDeletionCancelError"));
     } finally {
       setBusy(false);
     }
@@ -148,7 +150,7 @@ export default function AccountDeletionSection() {
     return (
       <div className="flex items-center gap-2 text-muted-foreground dark:text-white/35 text-sm py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
-        Loading…
+        {t("settings.accountDeletionLoading")}
       </div>
     );
   }
@@ -165,7 +167,9 @@ export default function AccountDeletionSection() {
             </p>
             {pending.requestedAt && (
               <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
-                Requested {new Date(pending.requestedAt).toLocaleString()}
+                {t("settings.accountDeletionRequestedAt", {
+                  date: new Date(pending.requestedAt).toLocaleString(),
+                })}
               </p>
             )}
           </div>
@@ -274,25 +278,36 @@ export default function AccountDeletionSection() {
               className="rounded-xl px-3 py-2 text-sm bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15"
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
-              {t("settings.accountDeletionPassword")}
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t("settings.accountDeletionPasswordPlaceholder")}
-              className="rounded-xl px-3 py-2 text-sm bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15"
-            />
-          </div>
+          {!requiresPassword ? (
+            <p className="text-[11px] text-muted-foreground dark:text-white/45 leading-relaxed">
+              {t("settings.accountDeletionOAuthHint")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
+                {t("settings.accountDeletionPassword")}
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t("settings.accountDeletionPasswordPlaceholder")}
+                className="rounded-xl px-3 py-2 text-sm bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15"
+              />
+            </div>
+          )}
         </>
       )}
 
       <button
         type="button"
         onClick={mode === "instant" ? deleteInstantly : submitRequest}
-        disabled={busy || confirmText !== auth?.username || (mode === "instant" && confirmPhrase !== DELETE_PHRASE)}
+        disabled={
+          busy
+          || confirmText !== auth?.username
+          || (mode === "instant" && confirmPhrase !== DELETE_PHRASE)
+          || (mode === "instant" && requiresPassword && !password)
+        }
         className={cn(
           "self-start inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border disabled:opacity-40",
           "bg-red-500/10 border-red-500/25 text-red-300 hover:bg-red-500/15",

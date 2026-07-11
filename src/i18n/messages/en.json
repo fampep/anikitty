@@ -641,7 +641,7 @@
     "subtitleAppearance": "Subtitle Appearance",
     "subtitleAppearanceDesc": "Customize how subtitles look in the video player",
     "autoEnableSubtitles": "Auto-enable subtitles",
-    "autoEnableSubtitlesDesc": "Turn on soft subtitles when watching SUB streams. Hard-sub streams never load extra subtitles. You can still toggle them in the player.",
+    "autoEnableSubtitlesDesc": "Turn on soft subtitles when watching SUB streams. On hard-sub streams, enable “Soft subs on hard-sub streams” in player settings if you want overlay tracks.",
     "subtitleFontSize": "Font size",
     "subtitleColor": "Text color",
     "subtitleCustomColor": "Custom",
@@ -720,7 +720,15 @@
     "accountDeletionSuccess": "Your account has been permanently deleted",
     "accountDeletionRequestSuccess": "Deletion request submitted — an admin will process it",
     "accountDeletionCancelSuccess": "Deletion request cancelled",
-    "accountDeletionLoadError": "Could not load deletion request status"
+    "accountDeletionLoadError": "Could not load deletion request status",
+    "accountDeletionLoading": "Loading…",
+    "accountDeletionRequestedAt": "Requested {date}",
+    "accountDeletionConfirmUsernameError": "Type your username ({username}) to confirm",
+    "accountDeletionConfirmPhraseError": "Type \"{phrase}\" to confirm",
+    "accountDeletionOAuthHint": "No password needed — you sign in with Discord or another linked provider only.",
+    "accountDeletionSubmitError": "Could not submit request",
+    "accountDeletionDeleteError": "Could not delete account",
+    "accountDeletionCancelError": "Could not cancel request"
   },
   "presence": {
     "status": {
@@ -912,6 +920,16 @@
     "staffAnnouncements": "Staff announcements",
     "viewAllAnnouncements": "View all",
     "locked": "Locked",
+    "upvote": "Upvote",
+    "downvote": "Downvote",
+    "categories": {
+      "announcements": { "label": "Announcements", "description": "Official site updates" },
+      "general": { "label": "General", "description": "Anything anime-related" },
+      "recommendations": { "label": "Recommendations", "description": "What should I watch next?" },
+      "discussion": { "label": "Discussion", "description": "Episode & series discussion" },
+      "news": { "label": "News", "description": "Industry & release news" },
+      "help": { "label": "Help & Support", "description": "Questions about the site" }
+    },
     "activeAgo": "active {time}",
     "edited": "edited",
     "emptyTitle": "No threads found",
@@ -956,7 +974,27 @@
       "linkCopyFailed": "Could not copy link",
       "edited": "(edited)",
       "quote": "Quote",
-      "backToForum": "Back to Forum"
+      "backToForum": "Back to Forum",
+      "editRequired": "Title and body required",
+      "updated": "Thread updated",
+      "updateFailed": "Failed to update",
+      "deleteThreadConfirm": "Delete this thread? This cannot be undone.",
+      "deleted": "Thread deleted",
+      "deleteFailed": "Failed to delete",
+      "pinnedSuccess": "Pinned",
+      "unpinnedSuccess": "Unpinned",
+      "lockedSuccess": "Locked",
+      "unlockedSuccess": "Unlocked",
+      "actionFailed": "Failed",
+      "deleteReplyConfirm": "Delete this reply?",
+      "replyDeleted": "Reply deleted",
+      "replyDeleteFailed": "Failed to delete",
+      "replyEmpty": "Reply cannot be empty",
+      "replyUpdated": "Reply updated",
+      "replyUpdateFailed": "Failed to update",
+      "save": "Save",
+      "cancel": "Cancel",
+      "more": "More"
     }
   },
   "chat": {
@@ -1612,6 +1650,7 @@
     "providerRecommendedBadge": "Recommended",
     "providerSubsBadge": "Subs",
     "hardSubBadge": "Hard sub",
+    "hardSubSoftSubsOn": "soft subs on",
     "softSubBadge": "Soft sub",
     "hideProviderSection": "Hide {section} providers",
     "showProviderSection": "Show {section} providers",
@@ -1664,7 +1703,9 @@
       "touchSeek": "Touch seek on video",
       "touchSeekDesc": "Swipe left or right on the video to skip — progress bar still works",
       "autoEnableSubtitles": "Auto-enable subtitles",
-      "autoEnableSubtitlesDesc": "Turn on soft subtitles for SUB streams. Hard-sub streams are never doubled up."
+      "autoEnableSubtitlesDesc": "Turn on soft subtitles for SUB streams. Hard-sub streams use burned-in text unless you enable soft subs below.",
+      "hardSubSoftSubs": "Soft subs on hard-sub streams",
+      "hardSubSoftSubsDesc": "Load soft subtitle tracks on top of burned-in hard subs. May show double subtitles."
     },
     "seekBackButton": "Rewind {seconds}s",
     "seekForwardButton": "Skip forward {seconds}s",

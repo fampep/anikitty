@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
 import { cn } from "@/lib/core/utils";
+import AdminConfirmDialog from "@/components/admin/admin-confirm-dialog";
+import AnnouncementPreview from "@/components/admin/announcement-preview";
 
 const ADMIN_TOKEN_KEY = "adminToken";
 
@@ -459,6 +461,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     body: "",
     severity: "info" as Announcement["severity"],
     dismissible: true,
+    postToForum: true,
     linkUrl: "",
     linkLabel: "",
     startsAt: "",
@@ -483,6 +486,14 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [grantingUserId, setGrantingUserId] = useState<string | null>(null);
   const [dismissingRequestId, setDismissingRequestId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    destructive?: boolean;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   // Live chat moderation
   const [chatData, setChatData]         = useState<ChatModerationData | null>(null);
@@ -780,22 +791,55 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setChatDeleting(null); }
   };
 
-  const handlePurgeChat = async (kind: "expired" | "all") => {
-    if (kind === "all" && !confirm("Delete ALL chat messages? This cannot be undone.")) return;
-    setChatPurging(kind);
-    try {
-      const res = await fetch("/api/admin/chat", {
-        method: "DELETE",
-        headers: adminHeaders(),
-        body: JSON.stringify(kind === "all" ? { purgeAll: true } : { purgeExpired: true }),
+  const handlePurgeChat = (kind: "expired" | "all") => {
+    if (kind === "all") {
+      setPendingConfirm({
+        title: "Purge all chat messages",
+        message: "Delete ALL live chat messages? This cannot be undone.",
+        confirmLabel: "Purge all",
+        destructive: true,
+        onConfirm: async () => {
+          setChatPurging(kind);
+          try {
+            const res = await fetch("/api/admin/chat", {
+              method: "DELETE",
+              headers: adminHeaders(),
+              body: JSON.stringify({ purgeAll: true }),
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            toast.success(`Removed ${data.deleted ?? 0} message${data.deleted === 1 ? "" : "s"}`);
+            await fetchChat();
+            await fetchStats();
+          } catch {
+            toast.error("Purge failed");
+            throw new Error("Purge failed");
+          } finally {
+            setChatPurging(null);
+          }
+        },
       });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      toast.success(`Removed ${data.deleted ?? 0} message${data.deleted === 1 ? "" : "s"}`);
-      await fetchChat();
-      await fetchStats();
-    } catch { toast.error("Purge failed"); }
-    finally { setChatPurging(null); }
+      return;
+    }
+    void (async () => {
+      setChatPurging(kind);
+      try {
+        const res = await fetch("/api/admin/chat", {
+          method: "DELETE",
+          headers: adminHeaders(),
+          body: JSON.stringify({ purgeExpired: true }),
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        toast.success(`Removed ${data.deleted ?? 0} message${data.deleted === 1 ? "" : "s"}`);
+        await fetchChat();
+        await fetchStats();
+      } catch {
+        toast.error("Purge failed");
+      } finally {
+        setChatPurging(null);
+      }
+    })();
   };
 
   useEffect(() => {
@@ -827,21 +871,29 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setSavingRole(null); }
   };
 
-  const handleDeleteUser = async (user: Pick<AdminUser, "id" | "username">) => {
-    if (!confirm(`Permanently delete @${user.username}? This cannot be undone.`)) return;
-    setDeletingUserId(user.id);
-    try {
-      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE", headers: adminHeaders() });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Delete failed");
-      toast.success(`@${user.username} deleted`);
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      setDeletionRequests((prev) => prev.filter((r) => r.userId !== user.id));
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete user");
-    } finally {
-      setDeletingUserId(null);
-    }
+  const handleDeleteUser = (user: Pick<AdminUser, "id" | "username">) => {
+    setPendingConfirm({
+      title: "Delete user",
+      message: `Permanently delete @${user.username}? This removes their watchlist, progress, comments, and forum posts. This cannot be undone.`,
+      confirmLabel: "Delete account",
+      destructive: true,
+      onConfirm: async () => {
+        setDeletingUserId(user.id);
+        try {
+          const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE", headers: adminHeaders() });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error ?? "Delete failed");
+          toast.success(`@${user.username} deleted`);
+          setUsers((prev) => prev.filter((u) => u.id !== user.id));
+          setDeletionRequests((prev) => prev.filter((r) => r.userId !== user.id));
+        } catch (e: unknown) {
+          toast.error(e instanceof Error ? e.message : "Failed to delete user");
+          throw e;
+        } finally {
+          setDeletingUserId(null);
+        }
+      },
+    });
   };
 
   const handleDisable2fa = async (user: Pick<AdminUser, "id" | "username">) => {
@@ -1058,13 +1110,28 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
-      const row = await res.json();
+      let row = await res.json();
+      if (annForm.postToForum) {
+        try {
+          const forumRes = await fetch(`/api/admin/announcements/${row.id}/post-to-forum`, {
+            method: "POST",
+            headers: adminHeaders(),
+          });
+          const forumData = await forumRes.json().catch(() => ({}));
+          if (forumRes.ok && forumData.threadId) {
+            row = { ...row, forumThreadId: forumData.threadId };
+          }
+        } catch {
+          toast.error("Announcement created but forum cross-post failed");
+        }
+      }
       setAnns((prev) => [row, ...prev]);
       setAnnForm({
         title: "",
         body: "",
         severity: "info",
         dismissible: true,
+        postToForum: true,
         linkUrl: "",
         linkLabel: "",
         startsAt: "",
@@ -2613,8 +2680,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 </label>
               </div>
 
-              {/* Dismissible + Submit */}
-              <div className="flex items-center gap-4">
+              {/* Dismissible + forum + Submit */}
+              <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -2624,6 +2691,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                   />
                   <span className="text-[12px] text-muted-foreground dark:text-white/45 font-mono">Dismissible</span>
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={annForm.postToForum}
+                    onChange={(e) => setAnnForm((f) => ({ ...f, postToForum: e.target.checked }))}
+                    className="accent-white/60 w-3.5 h-3.5"
+                  />
+                  <span className="text-[12px] text-muted-foreground dark:text-white/45 font-mono">Post to forum</span>
+                </label>
                 <button
                   onClick={handleCreateAnn}
                   disabled={!annForm.title.trim() || annCreating}
@@ -2632,6 +2708,18 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                   {annCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   Publish
                 </button>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1 border-t border-border dark:border-white/8">
+                <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest">Banner preview</p>
+                <AnnouncementPreview
+                  title={annForm.title}
+                  body={annForm.body}
+                  severity={annForm.severity}
+                  dismissible={annForm.dismissible}
+                  linkLabel={annForm.linkLabel}
+                  showForumLink={annForm.postToForum}
+                />
               </div>
             </div>
 
@@ -2809,6 +2897,26 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         )}
 
       </Container>
+      <AdminConfirmDialog
+        open={!!pendingConfirm}
+        title={pendingConfirm?.title ?? ""}
+        message={pendingConfirm?.message ?? ""}
+        confirmLabel={pendingConfirm?.confirmLabel}
+        destructive={pendingConfirm?.destructive}
+        busy={confirmBusy}
+        onCancel={() => {
+          if (!confirmBusy) setPendingConfirm(null);
+        }}
+        onConfirm={() => {
+          if (!pendingConfirm || confirmBusy) return;
+          setConfirmBusy(true);
+          void pendingConfirm
+            .onConfirm()
+            .then(() => setPendingConfirm(null))
+            .catch(() => {})
+            .finally(() => setConfirmBusy(false));
+        }}
+      />
     </div>
   );
 }

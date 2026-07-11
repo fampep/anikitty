@@ -3,10 +3,11 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Info, AlertTriangle, AlertOctagon, CheckCircle2, X, MessageSquare, ArrowRight, Megaphone } from "lucide-react";
+import { X, MessageSquare, ArrowRight } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
+import { ANNOUNCEMENT_STYLES, PRIORITY_ANNOUNCEMENT_SEVERITIES } from "@/lib/announcements/announcement-styles";
 import { cn } from "@/lib/core/utils";
 
 interface Announcement {
@@ -20,13 +21,7 @@ interface Announcement {
   forumThreadId: string | null;
 }
 
-const STYLES: Record<string, { bg: string; border: string; text: string; icon: React.ElementType; iconColor: string }> = {
-  info:     { bg: "bg-sky-500/[0.07]",     border: "border-sky-500/25",     text: "text-sky-100",     icon: Info,           iconColor: "text-sky-300" },
-  warn:     { bg: "bg-amber-500/[0.08]",   border: "border-amber-500/25",   text: "text-amber-100",   icon: AlertTriangle,  iconColor: "text-amber-300" },
-  critical: { bg: "bg-rose-500/[0.10]",    border: "border-rose-500/30",    text: "text-rose-100",    icon: AlertOctagon,   iconColor: "text-rose-300" },
-  success:  { bg: "bg-emerald-500/[0.08]", border: "border-emerald-500/25", text: "text-emerald-100", icon: CheckCircle2,   iconColor: "text-emerald-300" },
-  promo:    { bg: "bg-violet-500/[0.08]",  border: "border-violet-500/25",  text: "text-violet-100",  icon: Megaphone,      iconColor: "text-violet-300" },
-};
+const STYLES = ANNOUNCEMENT_STYLES;
 
 const DISMISSED_KEY = "anikitty:dismissedAnnouncements";
 
@@ -81,12 +76,16 @@ export default function SiteAnnouncementBanner() {
     });
   };
 
-  const hideOnPage = !hydrated || !showAnnouncementBanner || pathname === "/" || pathname?.startsWith("/anime/watch");
+  const isRestrictedPage = pathname === "/" || pathname?.startsWith("/anime/watch");
 
   const visible = useMemo(() => {
-    if (hideOnPage) return [];
-    return items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
-  }, [hideOnPage, items, dismissed]);
+    if (!hydrated || !showAnnouncementBanner) return [];
+    const filtered = items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
+    if (!isRestrictedPage) return filtered;
+    return filtered.filter((a) => PRIORITY_ANNOUNCEMENT_SEVERITIES.has(a.severity));
+  }, [hydrated, showAnnouncementBanner, isRestrictedPage, items, dismissed]);
+
+  const hideOnPage = !hydrated || !showAnnouncementBanner || visible.length === 0;
 
   const visibleKey = useMemo(() => visible.map((a) => a.id).join(","), [visible]);
 
@@ -125,7 +124,7 @@ export default function SiteAnnouncementBanner() {
     };
   }, [visibleKey, visible.length]);
 
-  if (hideOnPage || visible.length === 0) return null;
+  if (hideOnPage) return null;
 
   return (
     <>

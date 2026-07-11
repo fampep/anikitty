@@ -40,6 +40,7 @@ export type SyncedUserPreferences = {
   seekStepSeconds?: PlayerSeekStep;
   playerTouchSeekEnabled?: boolean;
   autoEnableSubtitles?: boolean;
+  hardSubSoftSubs?: boolean;
 };
 
 export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
@@ -80,6 +81,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (input.seekStepSeconds !== undefined) out.seekStepSeconds = sanitizeSeekStepSeconds(input.seekStepSeconds);
   if (typeof input.playerTouchSeekEnabled === "boolean") out.playerTouchSeekEnabled = input.playerTouchSeekEnabled;
   if (typeof input.autoEnableSubtitles === "boolean") out.autoEnableSubtitles = input.autoEnableSubtitles;
+  if (typeof input.hardSubSoftSubs === "boolean") out.hardSubSoftSubs = input.hardSubSoftSubs;
   if (input.siteAccentColor === null) {
     out.siteAccentColor = null;
   } else if (typeof input.siteAccentColor === "string" && isValidThemeColor(input.siteAccentColor)) {

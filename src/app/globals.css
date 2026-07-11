@@ -677,6 +677,9 @@ html.density-compact .site-bottom-nav {
 .art-kitty-player .art-subtitle {
   z-index: 40;
   pointer-events: none;
+  color: var(--kitty-sub-color, #fff);
+  opacity: 1;
+  visibility: visible;
   font-weight: var(--kitty-sub-font-weight, 600);
   letter-spacing: var(--kitty-sub-letter-spacing, 0.01em);
   line-height: var(--kitty-sub-line-height, 1.45);

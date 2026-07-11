@@ -172,17 +172,23 @@ export function syncForumPosts(
   return mergeForumPosts(kept, incoming);
 }
 
-export function forumTimeAgo(dateStr: string | null) {
+export function formatForumTimeAgo(dateStr: string | null, locale = "en"): string {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 30) return `${d}d ago`;
-  return `${Math.floor(d / 30)}mo ago`;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return rtf.format(0, "second");
+  if (minutes < 60) return rtf.format(-minutes, "minute");
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return rtf.format(-hours, "hour");
+  const days = Math.floor(hours / 24);
+  if (days < 30) return rtf.format(-days, "day");
+  return rtf.format(-Math.floor(days / 30), "month");
+}
+
+/** @deprecated Prefer `formatForumTimeAgo` or `useForumTimeAgo`. */
+export function forumTimeAgo(dateStr: string | null) {
+  return formatForumTimeAgo(dateStr, "en");
 }
 
 export function buildQuote(username: string, body: string): string {

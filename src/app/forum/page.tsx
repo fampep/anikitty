@@ -25,7 +25,8 @@ import NewThreadComposer from "@/components/forum/new-thread-composer";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { ROUTES } from "@/constants/routes";
 import { FORUM_CATEGORIES } from "@/constants/forum";
-import { forumApi, forumTimeAgo, forumBodyPreview, ForumThread, ForumStats } from "@/lib/social/forum";
+import { forumApi, forumBodyPreview, ForumThread, ForumStats } from "@/lib/social/forum";
+import { useForumTimeAgo } from "@/hooks/use-forum-time-ago";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
@@ -58,6 +59,7 @@ export default function ForumPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [announcementThreads, setAnnouncementThreads] = useState<ForumThread[]>([]);
+  const timeAgo = useForumTimeAgo();
 
   // Debounce search input
   useEffect(() => {
@@ -330,7 +332,7 @@ export default function ForumPage() {
                     {thread.title}
                   </p>
                   <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30 mt-1">
-                    {forumTimeAgo(thread.createdAt)}
+                    {timeAgo(thread.createdAt)}
                   </p>
                 </Link>
               ))}
@@ -352,13 +354,24 @@ export default function ForumPage() {
               <CategoryFilter
                 key={c.id}
                 active={category === c.id && !mine}
-                label={c.label}
-                description={c.description}
+                label={t(`forum.categories.${c.id}.label`)}
+                description={t(`forum.categories.${c.id}.description`)}
                 color={c.color}
                 count={statsMemo?.categoryCounts[c.id]}
                 onClick={() => updateUrl({ category: c.id, mine: false })}
               />
             ))}
+
+            <div className="flex flex-col gap-2 mt-2 lg:mt-4 p-3.5 rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8 lg:hidden">
+              <div className="flex items-center gap-2 text-[12px] font-semibold text-muted-foreground dark:text-white/70">
+                <HelpCircle className="w-3.5 h-3.5" />
+                {t("forum.communityTips")}
+              </div>
+              <ul className="text-[10.5px] text-muted-foreground dark:text-white/35 font-mono space-y-1.5 leading-relaxed">
+                <li>· {t("forum.tipRecommendations")}</li>
+                <li>· {t("forum.tipSearch")}</li>
+              </ul>
+            </div>
 
             <div className="hidden lg:flex flex-col gap-2 mt-4 p-3.5 rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8">
               <div className="flex items-center gap-2 text-[12px] font-semibold text-muted-foreground dark:text-white/70">
@@ -388,8 +401,8 @@ export default function ForumPage() {
               <EmptyState query={debouncedQ} category={category} />
             ) : (
               <>
-                {threads.map((t) => (
-                  <ThreadRow key={t.id} thread={t} onVote={handleVote} />
+                {threads.map((thread) => (
+                  <ThreadRow key={thread.id} thread={thread} onVote={handleVote} />
                 ))}
                 {hasMore && (
                   <button
@@ -479,6 +492,7 @@ function ThreadRow({
   onVote: (t: ForumThread, vote: 1 | -1) => void;
 }) {
   const t = useT();
+  const timeAgo = useForumTimeAgo();
   return (
     <div className="group flex gap-3 sm:gap-4 p-4 rounded-xl bg-muted/30 dark:bg-white/[0.025] border border-border dark:border-white/8 hover:border-border dark:border-white/15 hover:bg-muted/50 dark:bg-white/[0.04] transition-colors">
       <VoteButtons
@@ -537,13 +551,13 @@ function ThreadRow({
             levelTierIcon={thread.levelTierIcon}
           />
           <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
-            {forumTimeAgo(thread.createdAt)}
+            {timeAgo(thread.createdAt)}
           </span>
           {thread.lastActivityAt && (
             <>
               <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15">·</span>
               <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
-                {t("forum.activeAgo", { time: forumTimeAgo(thread.lastActivityAt) })}
+                {t("forum.activeAgo", { time: timeAgo(thread.lastActivityAt) })}
               </span>
             </>
           )}

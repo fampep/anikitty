@@ -66,7 +66,11 @@ function ToggleRow({
   );
 }
 
-export default function PlayerSettingsBar() {
+export default function PlayerSettingsBar({
+  watchingHardSub = false,
+}: {
+  watchingHardSub?: boolean;
+}) {
   const t = useT();
   const {
     autoPlay,
@@ -89,6 +93,8 @@ export default function PlayerSettingsBar() {
     setPlayerTouchSeekEnabled,
     autoEnableSubtitles,
     setAutoEnableSubtitles,
+    hardSubSoftSubs,
+    setHardSubSoftSubs,
   } = useSettingsStore();
 
   useEffect(() => {
@@ -221,6 +227,17 @@ export default function PlayerSettingsBar() {
               value={autoEnableSubtitles}
               onChange={setAutoEnableSubtitles}
             />
+            {watchingHardSub && (
+              <div className="mt-3">
+                <ToggleRow
+                  icon={<Captions className="w-3.5 h-3.5" />}
+                  label={t("watch.playerSettings.hardSubSoftSubs")}
+                  description={t("watch.playerSettings.hardSubSoftSubsDesc")}
+                  value={hardSubSoftSubs}
+                  onChange={setHardSubSoftSubs}
+                />
+              </div>
+            )}
             <div className="mt-3 border-t border-border dark:border-white/[0.06] pt-3">
               <SubtitleSettingsPanel compact />
             </div>

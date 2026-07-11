@@ -4,6 +4,7 @@ import React from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { getCategory } from "@/constants/forum";
+import { useT } from "@/providers/i18n-provider";
 
 const CATEGORY_STYLES: Record<string, string> = {
   sky: "text-sky-300 bg-sky-500/10 border-sky-500/20",
@@ -14,6 +15,7 @@ const CATEGORY_STYLES: Record<string, string> = {
 };
 
 export function CategoryBadge({ category }: { category: string }) {
+  const t = useT();
   const c = getCategory(category);
   return (
     <span
@@ -22,7 +24,7 @@ export function CategoryBadge({ category }: { category: string }) {
         CATEGORY_STYLES[c.color] ?? CATEGORY_STYLES.sky,
       )}
     >
-      {c.label}
+      {t(`forum.categories.${c.id}.label`)}
     </span>
   );
 }
@@ -40,6 +42,7 @@ export function VoteButtons({
   size?: "sm" | "md";
   orientation?: "vertical" | "horizontal";
 }) {
+  const t = useT();
   const icon = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
   return (
     <div
@@ -58,7 +61,7 @@ export function VoteButtons({
           "p-1 rounded-md transition-colors",
           myVote === 1 ? "text-emerald-400 bg-emerald-500/10" : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/70 hover:bg-muted/50 dark:bg-white/5",
         )}
-        aria-label="Upvote"
+        aria-label={t("forum.upvote")}
       >
         <ChevronUp className={icon} />
       </button>
@@ -80,7 +83,7 @@ export function VoteButtons({
           "p-1 rounded-md transition-colors",
           myVote === -1 ? "text-rose-400 bg-rose-500/10" : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/70 hover:bg-muted/50 dark:bg-white/5",
         )}
-        aria-label="Downvote"
+        aria-label={t("forum.downvote")}
       >
         <ChevronDown className={icon} />
       </button>

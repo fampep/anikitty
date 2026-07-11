@@ -45,7 +45,6 @@ export async function POST(req: Request) {
       id: users.id,
       username: users.username,
       passwordHash: users.passwordHash,
-      discordId: users.discordId,
     })
     .from(users)
     .where(eq(users.id, payload.userId))
@@ -57,8 +56,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Username confirmation does not match" }, { status: 400 });
   }
 
-  const discordOnly = Boolean(user.discordId);
-  if (!discordOnly) {
+  const hasPassword = Boolean(user.passwordHash);
+  if (hasPassword) {
     if (!password) {
       return NextResponse.json({ error: "Password is required to delete your account" }, { status: 400 });
     }

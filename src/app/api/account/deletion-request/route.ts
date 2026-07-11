@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { accountDeletionRequests } from "@/db/schema";
+import { accountDeletionRequests, users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { eq } from "drizzle-orm";
@@ -13,6 +13,12 @@ export async function GET(req: Request) {
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = getDb();
+  const [user] = await db
+    .select({ passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.id, payload.userId))
+    .limit(1);
+
   const [row] = await db
     .select({
       id: accountDeletionRequests.id,
@@ -25,6 +31,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     pending: !!row,
+    requiresPassword: Boolean(user?.passwordHash),
     request: row
       ? {
           id: row.id,

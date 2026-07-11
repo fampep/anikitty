@@ -28,7 +28,8 @@ import { CategoryBadge, VoteButtons } from "@/components/forum/forum-ui";
 import { FormattedBody } from "@/components/forum/formatted-body";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { ROUTES } from "@/constants/routes";
-import { forumApi, forumTimeAgo, buildQuote, copyThreadLink, syncForumPosts, latestForumPostActivity, ForumThread, ForumPost } from "@/lib/social/forum";
+import { forumApi, buildQuote, copyThreadLink, syncForumPosts, latestForumPostActivity, ForumThread, ForumPost } from "@/lib/social/forum";
+import { useForumTimeAgo } from "@/hooks/use-forum-time-ago";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
@@ -45,6 +46,7 @@ export default function ThreadPage() {
   const { canModerateForum } = usePermissions();
   const isLoggedIn = !!auth;
   const isMod = canModerateForum;
+  const timeAgo = useForumTimeAgo();
 
   const [thread, setThread] = useState<ForumThread | null>(null);
   const [posts, setPosts] = useState<ForumPost[]>([]);
@@ -121,6 +123,15 @@ export default function ThreadPage() {
   useEffect(() => {
     loadThread();
   }, [loadThread]);
+
+  useEffect(() => {
+    if (!thread?.title) return;
+    const prev = document.title;
+    document.title = `${thread.title} · Forum · AniKitty`;
+    return () => {
+      document.title = prev;
+    };
+  }, [thread?.title]);
 
   useEffect(() => {
     lastActivityRef.current = null;
@@ -211,50 +222,52 @@ export default function ThreadPage() {
     const title = editThreadTitle.trim();
     const body = editThreadBody.trim();
     if (title.length < 3 || !body) {
-      toast.error("Title and body required");
+      toast.error(t("forum.thread.editRequired"));
       return;
     }
     try {
       await forumApi.updateThread(thread.id, { title, body });
       setThread({ ...thread, title, body, updatedAt: new Date().toISOString() });
       setEditingThread(false);
-      toast.success("Thread updated");
+      toast.success(t("forum.thread.updated"));
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to update");
+      toast.error(e?.message ?? t("forum.thread.updateFailed"));
     }
   };
 
   const deleteThread = async () => {
     if (!thread) return;
-    if (!confirm("Delete this thread? This cannot be undone.")) return;
+    if (!confirm(t("forum.thread.deleteThreadConfirm"))) return;
     try {
       await forumApi.deleteThread(thread.id);
-      toast.success("Thread deleted");
+      toast.success(t("forum.thread.deleted"));
       router.push(ROUTES.FORUM);
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to delete");
+      toast.error(e?.message ?? t("forum.thread.deleteFailed"));
     }
   };
 
   const togglePin = async () => {
     if (!thread) return;
+    const wasPinned = thread.isPinned;
     try {
-      await forumApi.updateThread(thread.id, { isPinned: !thread.isPinned });
-      setThread({ ...thread, isPinned: !thread.isPinned });
-      toast.success(thread.isPinned ? "Unpinned" : "Pinned");
+      await forumApi.updateThread(thread.id, { isPinned: !wasPinned });
+      setThread({ ...thread, isPinned: !wasPinned });
+      toast.success(wasPinned ? t("forum.thread.unpinnedSuccess") : t("forum.thread.pinnedSuccess"));
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed");
+      toast.error(e?.message ?? t("forum.thread.actionFailed"));
     }
   };
 
   const toggleLock = async () => {
     if (!thread) return;
+    const wasLocked = thread.isLocked;
     try {
-      await forumApi.updateThread(thread.id, { isLocked: !thread.isLocked });
-      setThread({ ...thread, isLocked: !thread.isLocked });
-      toast.success(thread.isLocked ? "Unlocked" : "Locked");
+      await forumApi.updateThread(thread.id, { isLocked: !wasLocked });
+      setThread({ ...thread, isLocked: !wasLocked });
+      toast.success(wasLocked ? t("forum.thread.unlockedSuccess") : t("forum.thread.lockedSuccess"));
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed");
+      toast.error(e?.message ?? t("forum.thread.actionFailed"));
     }
   };
 
@@ -280,7 +293,7 @@ export default function ThreadPage() {
 
   const deletePost = async (post: ForumPost) => {
     if (!thread) return;
-    if (!confirm("Delete this reply?")) return;
+    if (!confirm(t("forum.thread.deleteReplyConfirm"))) return;
     try {
       await forumApi.deletePost(thread.id, post.id);
       setPosts((arr) => {
@@ -288,9 +301,9 @@ export default function ThreadPage() {
         syncPostCursor(next);
         return next;
       });
-      toast.success("Reply deleted");
+      toast.success(t("forum.thread.replyDeleted"));
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to delete");
+      toast.error(e?.message ?? t("forum.thread.replyDeleteFailed"));
     }
   };
 
@@ -336,12 +349,12 @@ export default function ThreadPage() {
               <CategoryBadge category={thread.category} />
               {thread.isPinned && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
-                  <Pin className="w-2.5 h-2.5" /> Pinned
+                  <Pin className="w-2.5 h-2.5" /> {t("forum.pinned")}
                 </span>
               )}
               {thread.isLocked && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground dark:text-white/40 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 px-1.5 py-0.5 rounded-md">
-                  <Lock className="w-2.5 h-2.5" /> Locked
+                  <Lock className="w-2.5 h-2.5" /> {t("forum.locked")}
                 </span>
               )}
             </div>
@@ -366,13 +379,13 @@ export default function ThreadPage() {
                     onClick={saveEditThread}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:bg-white/90 transition-colors"
                   >
-                    <Check className="w-3.5 h-3.5" /> Save
+                    <Check className="w-3.5 h-3.5" /> {t("forum.thread.save")}
                   </button>
                   <button
                     onClick={() => setEditingThread(false)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:hover:bg-white/10 transition-colors"
                   >
-                    <X className="w-3.5 h-3.5" /> Cancel
+                    <X className="w-3.5 h-3.5" /> {t("forum.thread.cancel")}
                   </button>
                 </div>
               </div>
@@ -410,7 +423,7 @@ export default function ThreadPage() {
                   levelTierIcon={thread.levelTierIcon}
                 />
                 <span className="text-[10.5px] font-mono text-muted-foreground dark:text-white/30">
-                  {forumTimeAgo(thread.createdAt)}
+                  {timeAgo(thread.createdAt)}
                 </span>
                 {thread.updatedAt && (
                   <span className="text-[10.5px] font-mono text-muted-foreground/80 dark:text-white/25">{t("forum.thread.edited")}</span>
@@ -624,6 +637,7 @@ function PostRow({
   onUpdate: (p: ForumPost) => void;
 }) {
   const t = useT();
+  const timeAgo = useForumTimeAgo();
   const { auth } = useAuthStore();
   const isOwner = auth?.id === post.userId;
   const [editing, setEditing] = useState(false);
@@ -633,16 +647,16 @@ function PostRow({
   const save = async () => {
     const body = draft.trim();
     if (!body) {
-      toast.error("Reply cannot be empty");
+      toast.error(t("forum.thread.replyEmpty"));
       return;
     }
     try {
       await forumApi.updatePost(threadId, post.id, body);
       onUpdate({ ...post, body, updatedAt: new Date().toISOString() });
       setEditing(false);
-      toast.success("Reply updated");
+      toast.success(t("forum.thread.replyUpdated"));
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to update");
+      toast.error(e?.message ?? t("forum.thread.replyUpdateFailed"));
     }
   };
 
@@ -677,7 +691,7 @@ function PostRow({
               levelTierIcon={post.levelTierIcon}
             />
             <span className="text-[10.5px] font-mono text-muted-foreground dark:text-white/30">
-              {forumTimeAgo(post.createdAt)}
+              {timeAgo(post.createdAt)}
             </span>
             {post.updatedAt && (
               <span className="text-[10.5px] font-mono text-muted-foreground/80 dark:text-white/25">{t("forum.thread.edited")}</span>
@@ -701,7 +715,7 @@ function PostRow({
                 onClick={() => setMenuOpen((v) => !v)}
                 onBlur={() => setTimeout(() => setMenuOpen(false), 150)}
                 className="p-1 rounded-lg text-muted-foreground dark:text-white/30 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8 transition-colors"
-                aria-label="More"
+                aria-label={t("forum.thread.more")}
               >
                 <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
@@ -716,7 +730,7 @@ function PostRow({
                       }}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
                     >
-                      <Pencil className="w-3.5 h-3.5" /> Edit
+                      <Pencil className="w-3.5 h-3.5" /> {t("forum.thread.edit")}
                     </button>
                   )}
                   <button
@@ -727,7 +741,7 @@ function PostRow({
                     }}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-rose-300 hover:bg-rose-500/10 transition-colors"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                    <Trash2 className="w-3.5 h-3.5" /> {t("forum.thread.delete")}
                   </button>
                 </div>
               )}
@@ -750,7 +764,7 @@ function PostRow({
                 onClick={save}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:bg-white/90 transition-colors"
               >
-                <Check className="w-3.5 h-3.5" /> Save
+                <Check className="w-3.5 h-3.5" /> {t("forum.thread.save")}
               </button>
               <button
                 onClick={() => {
@@ -759,7 +773,7 @@ function PostRow({
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-accent dark:bg-white/[0.06] text-muted-foreground dark:text-white/70 border border-border dark:border-white/10 text-xs font-semibold rounded-lg hover:bg-accent dark:hover:bg-white/10 transition-colors"
               >
-                <X className="w-3.5 h-3.5" /> Cancel
+                <X className="w-3.5 h-3.5" /> {t("forum.thread.cancel")}
               </button>
             </div>
           </div>

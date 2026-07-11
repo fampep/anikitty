@@ -150,6 +150,10 @@ interface ISettingsStore {
   /** Turn on soft subtitles automatically when watching SUB streams (not hard-sub). */
   autoEnableSubtitles: boolean;
   setAutoEnableSubtitles: (val: boolean) => void;
+
+  /** When watching hard-sub streams, also load soft subtitles (may overlap burned-in text). */
+  hardSubSoftSubs: boolean;
+  setHardSubSoftSubs: (val: boolean) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -326,10 +330,13 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       autoEnableSubtitles: true,
       setAutoEnableSubtitles: (autoEnableSubtitles) => set({ autoEnableSubtitles }),
+
+      hardSubSoftSubs: false,
+      setHardSubSoftSubs: (hardSubSoftSubs) => set({ hardSubSoftSubs }),
     }),
     {
       name: "kitty-settings",
-      version: 34,
+      version: 35,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -362,6 +369,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         seekStepSeconds: state.seekStepSeconds,
         playerTouchSeekEnabled: state.playerTouchSeekEnabled,
         autoEnableSubtitles: state.autoEnableSubtitles,
+        hardSubSoftSubs: state.hardSubSoftSubs,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -487,6 +495,9 @@ export const useSettingsStore = create<ISettingsStore>()(
             maxWidthPercent: next.subtitleSettings?.maxWidthPercent ?? 92,
             textTransform: next.subtitleSettings?.textTransform ?? "none",
           });
+        }
+        if (version < 35) {
+          next.hardSubSoftSubs = next.hardSubSoftSubs ?? false;
         }
         return next as ISettingsStore;
       },
