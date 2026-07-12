@@ -296,6 +296,17 @@ html.lite-mode .animate-ping {
   animation: none !important;
 }
 
+/* Neutralize hover zoom/scale transforms so lite mode stays fully static */
+html.lite-mode [class*="hover:scale"],
+html.lite-mode [class*="group-hover:scale"] {
+  transform: none !important;
+}
+
+/* Decorative rail edge fades add no value without motion */
+html.lite-mode .home-rail-fade {
+  display: none !important;
+}
+
 html.lite-mode .site-panel {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;

@@ -386,7 +386,7 @@ const Layout = (props: Props) => {
 
   return (
     <WatchPageProvider openComments={openComments}>
-    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,72rem)] mx-auto")}>
+    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,96rem)] mx-auto")}>
       {!theatreMode && (
         <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
           <AnimeClearLogo
@@ -418,7 +418,15 @@ const Layout = (props: Props) => {
       >
         {/* Left: player + episode info + tabs */}
         <div className="flex flex-col gap-3 min-w-0">
-          <div id="watch-player-root" className="-mx-4 sm:mx-0">{props.children}</div>
+          <div
+            id="watch-player-root"
+            className={cn(
+              "-mx-4 sm:mx-0",
+              theatreMode && "lg:mx-auto lg:w-full lg:max-w-[calc((100dvh-7rem)*16/9)]",
+            )}
+          >
+            {props.children}
+          </div>
 
           {currentEpisode && currentAnimeId && !theatreMode && (
             <div className="hidden lg:block">

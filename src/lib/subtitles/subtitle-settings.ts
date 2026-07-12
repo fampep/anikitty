@@ -2,7 +2,43 @@ export type SubtitleFontWeight = 400 | 600 | 700;
 
 export type SubtitleTextShadow = "none" | "soft" | "medium" | "strong";
 
-export type SubtitleFontFamily = "system" | "sans" | "mono";
+export type SubtitleFontFamily =
+  | "system"
+  | "sans"
+  | "serif"
+  | "rounded"
+  | "condensed"
+  | "mono"
+  | "casual"
+  | "custom";
+
+/** Font-family name registered for a user-uploaded local font (see custom-subtitle-font.ts). */
+export const CUSTOM_SUBTITLE_FONT_FAMILY = "KittySubCustomFont";
+
+/** Built-in, website-provided subtitle fonts shown as quick picks. */
+export const SUBTITLE_FONT_FAMILY_OPTIONS: {
+  value: Exclude<SubtitleFontFamily, "custom">;
+  labelKey: string;
+}[] = [
+  { value: "system", labelKey: "settings.subtitleFontSystem" },
+  { value: "sans", labelKey: "settings.subtitleFontSans" },
+  { value: "serif", labelKey: "settings.subtitleFontSerif" },
+  { value: "rounded", labelKey: "settings.subtitleFontRounded" },
+  { value: "condensed", labelKey: "settings.subtitleFontCondensed" },
+  { value: "mono", labelKey: "settings.subtitleFontMono" },
+  { value: "casual", labelKey: "settings.subtitleFontCasual" },
+];
+
+const VALID_FONT_FAMILIES: ReadonlySet<SubtitleFontFamily> = new Set([
+  "system",
+  "sans",
+  "serif",
+  "rounded",
+  "condensed",
+  "mono",
+  "casual",
+  "custom",
+]);
 
 export type SubtitleTextTransform = "none" | "uppercase";
 
@@ -193,7 +229,15 @@ const FONT_FAMILY_VALUES: Record<SubtitleFontFamily, string> = {
   system:
     'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   sans: '"Inter", "Helvetica Neue", Arial, sans-serif',
+  serif: 'Georgia, "Times New Roman", "Noto Serif", serif',
+  rounded:
+    '"Nunito", "Quicksand", ui-rounded, "Segoe UI", system-ui, sans-serif',
+  condensed:
+    '"Roboto Condensed", "Arial Narrow", "Oswald", system-ui, sans-serif',
   mono: '"Geist Mono", "SF Mono", "Cascadia Code", monospace',
+  casual: '"Comic Neue", "Comic Sans MS", ui-rounded, "Segoe UI", cursive',
+  // Falls back to system fonts until the user-uploaded font registers.
+  custom: `"${CUSTOM_SUBTITLE_FONT_FAMILY}", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`,
 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -402,8 +446,11 @@ export function sanitizeSubtitleSettings(raw: unknown): SubtitleSettings {
   ) {
     base.borderRadius = input.borderRadius;
   }
-  if (input.fontFamily === "system" || input.fontFamily === "sans" || input.fontFamily === "mono") {
-    base.fontFamily = input.fontFamily;
+  if (
+    typeof input.fontFamily === "string" &&
+    VALID_FONT_FAMILIES.has(input.fontFamily as SubtitleFontFamily)
+  ) {
+    base.fontFamily = input.fontFamily as SubtitleFontFamily;
   }
   if (input.displayMode === "standard" || input.displayMode === "boxedLines") {
     base.displayMode = input.displayMode;

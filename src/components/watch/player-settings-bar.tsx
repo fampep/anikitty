@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
@@ -19,7 +19,10 @@ import {
   SlidersHorizontal,
   Server,
   List,
+  Globe2,
 } from "lucide-react";
+
+type PlayerSettingsTab = "playback" | "network" | "subtitles";
 function ToggleRow({
   icon,
   label,
@@ -97,6 +100,14 @@ export default function PlayerSettingsBar({
     setHardSubSoftSubs,
   } = useSettingsStore();
 
+  const [settingsTab, setSettingsTab] = useState<PlayerSettingsTab>("playback");
+
+  const settingsTabs: { id: PlayerSettingsTab; icon: typeof Play; label: string }[] = [
+    { id: "playback", icon: Play, label: t("watch.playerSettings.tabPlayback") },
+    { id: "network", icon: Globe2, label: t("watch.playerSettings.tabNetwork") },
+    { id: "subtitles", icon: Captions, label: t("watch.playerSettings.tabSubtitles") },
+  ];
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (localStorage.getItem("kitty-watch-mobile-defaults-v4")) return;
@@ -171,77 +182,105 @@ export default function PlayerSettingsBar({
 
       {playerSettingsOpen && (
         <div className="px-3 py-3 space-y-3">
-          <ToggleRow
-            icon={<Play className="w-3.5 h-3.5" />}
-            label={t("settings.autoPlay")}
-            description={t("settings.autoPlayDesc")}
-            value={autoPlay}
-            onChange={setAutoPlay}
-          />
-          <ToggleRow
-            icon={<Mic className="w-3.5 h-3.5" />}
-            label={t("settings.preferDub")}
-            description={t("settings.preferDubDesc")}
-            value={preferDub}
-            onChange={setPreferDub}
-          />
-          <ToggleRow
-            icon={<RefreshCw className="w-3.5 h-3.5" />}
-            label={t("watch.playerSettings.autoFallback")}
-            description={t("watch.playerSettings.autoFallbackDesc")}
-            value={providerAutoFallback}
-            onChange={setProviderAutoFallback}
-          />
-          <ToggleRow
-            icon={<List className="w-3.5 h-3.5" />}
-            label={t("watch.playerSettings.simplePicker")}
-            description={t("watch.playerSettings.simplePickerDesc")}
-            value={simpleProviderPicker}
-            onChange={setSimpleProviderPicker}
-          />
+          <div className="flex items-center gap-1 rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-1">
+            {settingsTabs.map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setSettingsTab(id)}
+                aria-pressed={settingsTab === id}
+                className={cn(
+                  "flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold transition-colors",
+                  settingsTab === id
+                    ? "bg-foreground text-background dark:bg-white dark:text-black"
+                    : "text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white/80",
+                )}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
 
-          <SeekStepSetting value={seekStepSeconds} onChange={setSeekStepSeconds} compact />
+          {settingsTab === "playback" && (
+            <div className="space-y-3">
+              <ToggleRow
+                icon={<Play className="w-3.5 h-3.5" />}
+                label={t("settings.autoPlay")}
+                description={t("settings.autoPlayDesc")}
+                value={autoPlay}
+                onChange={setAutoPlay}
+              />
+              <ToggleRow
+                icon={<Mic className="w-3.5 h-3.5" />}
+                label={t("settings.preferDub")}
+                description={t("settings.preferDubDesc")}
+                value={preferDub}
+                onChange={setPreferDub}
+              />
+              <ToggleRow
+                icon={<RefreshCw className="w-3.5 h-3.5" />}
+                label={t("watch.playerSettings.autoFallback")}
+                description={t("watch.playerSettings.autoFallbackDesc")}
+                value={providerAutoFallback}
+                onChange={setProviderAutoFallback}
+              />
+              <ToggleRow
+                icon={<List className="w-3.5 h-3.5" />}
+                label={t("watch.playerSettings.simplePicker")}
+                description={t("watch.playerSettings.simplePickerDesc")}
+                value={simpleProviderPicker}
+                onChange={setSimpleProviderPicker}
+              />
 
-          <ToggleRow
-            icon={<MoveHorizontal className="w-3.5 h-3.5" />}
-            label={t("watch.playerSettings.touchSeek")}
-            description={t("watch.playerSettings.touchSeekDesc")}
-            value={playerTouchSeekEnabled}
-            onChange={setPlayerTouchSeekEnabled}
-          />
+              <SeekStepSetting value={seekStepSeconds} onChange={setSeekStepSeconds} compact />
 
-          <KittyProxyChooser />
-
-          {!preferDub && (
-          <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3">
-            <div className="flex items-center gap-2 mb-3">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-teal-400/70" />
-              <p className="text-[11px] font-bold text-muted-foreground dark:text-white/70">
-                {t("settings.subtitleAppearance")}
-              </p>
+              <ToggleRow
+                icon={<MoveHorizontal className="w-3.5 h-3.5" />}
+                label={t("watch.playerSettings.touchSeek")}
+                description={t("watch.playerSettings.touchSeekDesc")}
+                value={playerTouchSeekEnabled}
+                onChange={setPlayerTouchSeekEnabled}
+              />
             </div>
-            <ToggleRow
-              icon={<Captions className="w-3.5 h-3.5" />}
-              label={t("watch.playerSettings.autoEnableSubtitles")}
-              description={t("watch.playerSettings.autoEnableSubtitlesDesc")}
-              value={autoEnableSubtitles}
-              onChange={setAutoEnableSubtitles}
-            />
-            {watchingHardSub && (
-              <div className="mt-3">
+          )}
+
+          {settingsTab === "network" && <KittyProxyChooser />}
+
+          {settingsTab === "subtitles" && (
+            preferDub ? (
+              <div className="rounded-xl border border-dashed border-border dark:border-white/10 px-3 py-6 text-center text-[12px] text-muted-foreground dark:text-white/40">
+                {t("watch.playerSettings.subtitlesDubHint")}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-teal-400/70" />
+                  <p className="text-[11px] font-bold text-muted-foreground dark:text-white/70">
+                    {t("settings.subtitleAppearance")}
+                  </p>
+                </div>
                 <ToggleRow
                   icon={<Captions className="w-3.5 h-3.5" />}
-                  label={t("watch.playerSettings.hardSubSoftSubs")}
-                  description={t("watch.playerSettings.hardSubSoftSubsDesc")}
-                  value={hardSubSoftSubs}
-                  onChange={setHardSubSoftSubs}
+                  label={t("watch.playerSettings.autoEnableSubtitles")}
+                  description={t("watch.playerSettings.autoEnableSubtitlesDesc")}
+                  value={autoEnableSubtitles}
+                  onChange={setAutoEnableSubtitles}
                 />
+                {watchingHardSub && (
+                  <ToggleRow
+                    icon={<Captions className="w-3.5 h-3.5" />}
+                    label={t("watch.playerSettings.hardSubSoftSubs")}
+                    description={t("watch.playerSettings.hardSubSoftSubsDesc")}
+                    value={hardSubSoftSubs}
+                    onChange={setHardSubSoftSubs}
+                  />
+                )}
+                <div className="border-t border-border dark:border-white/[0.06] pt-3">
+                  <SubtitleSettingsPanel compact />
+                </div>
               </div>
-            )}
-            <div className="mt-3 border-t border-border dark:border-white/[0.06] pt-3">
-              <SubtitleSettingsPanel compact />
-            </div>
-          </div>
+            )
           )}
         </div>
       )}

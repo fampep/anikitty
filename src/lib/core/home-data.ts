@@ -22,9 +22,13 @@ const CRITICAL_QUERY = `
         id title { english romaji } coverImage { extraLarge } episodes format trending averageScore seasonYear status
       }
     }
-    popular: Page(page: 1, perPage: 15) {
-      media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+    recentlyAired: Page(page: 1, perPage: 50) {
+      airingSchedules(notYetAired: false, sort: TIME_DESC) {
+        episode
+        media {
+          id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+          type isAdult
+        }
       }
     }
     recentlyAdded: Page(page: 1, perPage: 15) {
@@ -40,6 +44,11 @@ const DISCOVERY_QUERY = `
   query {
     favorite: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: FAVOURITES_DESC) {
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+      }
+    }
+    rated: Page(page: 1, perPage: 18) {
+      media(type: ANIME, sort: SCORE_DESC, averageScore_greater: 60) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
       }
     }
@@ -68,7 +77,7 @@ export type HomeCriticalData = Pick<
 
 export type HomeDiscoveryData = Pick<
   IAnimeData,
-  "mostFavoriteAnimes" | "mostPopularAnimes" | "latestCompletedAnimes" | "topUpcomingAnimes"
+  "mostFavoriteAnimes" | "mostPopularAnimes" | "topRatedAnimes" | "latestCompletedAnimes" | "topUpcomingAnimes"
 >;
 
 function hasStreamableEpisodes(episodes: { sub: number | null; dub: number | null }) {
@@ -139,7 +148,40 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
   );
 
   const trendingAnimes = (raw.trending?.media ?? []).map(toAnime);
-  const latestEpisodeAnimes = (raw.popular?.media ?? []).map(toAnime);
+
+  type AiringSchedule = {
+    episode: number;
+    media?: {
+      id: number;
+      title?: { english?: string | null; romaji?: string | null };
+      coverImage?: { extraLarge?: string | null };
+      episodes?: number | null;
+      format?: string | null;
+      averageScore?: number | null;
+      seasonYear?: number | null;
+      status?: string | null;
+      type?: string | null;
+      isAdult?: boolean | null;
+    } | null;
+  };
+  const seenAired = new Set<string>();
+  const latestEpisodeAnimes = ((raw.recentlyAired?.airingSchedules ?? []) as AiringSchedule[])
+    .filter((s) => s.media && s.media.type === "ANIME" && !s.media.isAdult)
+    .filter((s) => {
+      const id = String(s.media!.id);
+      if (seenAired.has(id)) return false;
+      seenAired.add(id);
+      return true;
+    })
+    .slice(0, 15)
+    .map((s) =>
+      toAnime({
+        ...s.media!,
+        // The episode that just aired becomes the latest available sub count.
+        nextAiringEpisode: { episode: s.episode + 1 },
+      }),
+    );
+
   let recentlyAddedAnimes = (raw.recentlyAdded?.media ?? []).map(toAnime);
 
   const uniqueById = new Map<string, EnrichableAnime>();
@@ -174,6 +216,7 @@ async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
 
   const mostFavoriteAnimes = (raw.favorite?.media ?? []).map(toAnime);
   const mostPopularAnimes = (raw.popular?.media ?? []).map(toAnime);
+  const topRatedAnimes = (raw.rated?.media ?? []).map(toAnime);
   const latestCompletedAnimes = (raw.latest?.media ?? []).map(toAnime);
   const topUpcomingAnimes = (raw.upcoming?.media ?? []).map(toAnime);
 
@@ -181,6 +224,7 @@ async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
   for (const anime of [
     ...mostFavoriteAnimes,
     ...mostPopularAnimes,
+    ...topRatedAnimes,
     ...latestCompletedAnimes,
     ...topUpcomingAnimes,
   ]) {
@@ -197,6 +241,7 @@ async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
   return {
     mostFavoriteAnimes: withAudio(mostFavoriteAnimes),
     mostPopularAnimes: withAudio(mostPopularAnimes),
+    topRatedAnimes: withAudio(topRatedAnimes),
     latestCompletedAnimes: withAudio(latestCompletedAnimes),
     topUpcomingAnimes: withAudio(topUpcomingAnimes).filter(
       (anime) => !hasStreamableEpisodes(anime.episodes),

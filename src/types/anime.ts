@@ -8,6 +8,7 @@ export interface IAnimeData {
   topAiringAnimes: LatestCompletedAnime[];
   mostPopularAnimes: IAnime[];
   mostFavoriteAnimes: IAnime[];
+  topRatedAnimes?: IAnime[];
   latestCompletedAnimes: LatestCompletedAnime[];
   genres: string[];
 }

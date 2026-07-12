@@ -98,6 +98,14 @@ export function HomeScrollRail({
   );
 }
 
+export function HomeRailEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex items-center justify-center rounded-xl border border-dashed border-border dark:border-white/10 py-10 text-sm text-muted-foreground dark:text-white/40">
+      {message}
+    </div>
+  );
+}
+
 export function AiringDot({ status }: { status?: string | null }) {
   if (status !== "RELEASING") return null;
   return (

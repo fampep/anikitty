@@ -53,13 +53,14 @@ export default function Home() {
   const popular = (discovery?.mostPopularAnimes as IAnime[] | undefined) ?? [];
   const upcoming = (discovery?.topUpcomingAnimes as IAnime[] | undefined) ?? [];
 
-  const topRated = useMemo(
-    () =>
-      [...trending]
-        .filter((a) => a.score != null && a.score > 0)
-        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0)),
-    [trending],
-  );
+  const topRated = useMemo(() => {
+    const rated = (discovery?.topRatedAnimes as IAnime[] | undefined) ?? [];
+    if (rated.length > 0) return rated;
+    // Fallback while discovery loads: derive from trending by score.
+    return [...trending]
+      .filter((a) => a.score != null && a.score > 0)
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  }, [discovery?.topRatedAnimes, trending]);
 
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: [GET_HOME_CRITICAL] });

@@ -5,7 +5,7 @@ import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import HomeCompactPoster from "./home-compact-poster";
-import { HomeScrollRail, HomeSectionLink } from "./home-shared";
+import { HomeRailEmpty, HomeScrollRail, HomeSectionLink } from "./home-shared";
 
 type Props = {
   animes: IAnime[];
@@ -28,25 +28,27 @@ export default function HomeRecentUpdates({ animes, loading }: Props) {
     );
   }
 
-  if (!animes.length) return null;
-
   return (
     <Container className="flex flex-col gap-4">
       <HomeSectionLink href={ROUTES.NEW} title={t("home.recentlyUpdated")} />
-      <HomeScrollRail>
-        {animes.map((anime, i) => {
-          const ep = anime.episodes?.sub ?? anime.episodes?.dub ?? 1;
-          return (
-            <HomeCompactPoster
-              key={anime.id}
-              anime={anime}
-              priority={i < 4}
-              episodeBadge={ep}
-              href={`${ROUTES.WATCH}?anime=${anime.id}`}
-            />
-          );
-        })}
-      </HomeScrollRail>
+      {animes.length ? (
+        <HomeScrollRail>
+          {animes.map((anime, i) => {
+            const ep = anime.episodes?.sub ?? anime.episodes?.dub ?? 1;
+            return (
+              <HomeCompactPoster
+                key={anime.id}
+                anime={anime}
+                priority={i < 4}
+                episodeBadge={ep}
+                href={`${ROUTES.WATCH}?anime=${anime.id}`}
+              />
+            );
+          })}
+        </HomeScrollRail>
+      ) : (
+        <HomeRailEmpty message={t("home.sectionEmpty")} />
+      )}
     </Container>
   );
 }

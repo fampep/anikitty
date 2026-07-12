@@ -6,7 +6,7 @@ import { KITTY_API_NODES } from "@/lib/kitty/kitty-api-nodes";
 import { useSettingsStore } from "@/store/settings-store";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useT } from "@/providers/i18n-provider";
-import { Globe2, Loader2 } from "lucide-react";
+import { Globe2, Loader2, Zap } from "lucide-react";
 
 function formatMbps(mbps: number): string | number {
   return mbps >= 10 ? Math.round(mbps) : mbps.toFixed(1);
@@ -38,6 +38,12 @@ export default function KittyProxyChooser() {
     lightweight: false,
   });
 
+  const fasterAvailable =
+    kittyProxyManual &&
+    fastestId != null &&
+    fastestId !== kittyProxyNode &&
+    pingByNode[fastestId] != null;
+
   return (
     <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3 space-y-2.5">
       <div className="flex items-center gap-2">
@@ -54,6 +60,22 @@ export default function KittyProxyChooser() {
           <Loader2 className="w-3.5 h-3.5 text-muted-foreground/80 dark:text-white/25 animate-spin shrink-0" />
         ) : null}
       </div>
+
+      {fasterAvailable ? (
+        <button
+          type="button"
+          onClick={() => selectKittyProxyNode(fastestId!)}
+          className="flex w-full items-center gap-2 rounded-lg border border-teal-400/25 bg-teal-500/10 px-2.5 py-2 text-left transition-colors hover:bg-teal-500/15"
+        >
+          <Zap className="h-3.5 w-3.5 shrink-0 text-teal-300/85" />
+          <span className="min-w-0 flex-1 text-[11px] font-medium text-teal-100/90 truncate">
+            {t("watch.playerSettings.proxyFasterAvailable")}
+          </span>
+          <span className="shrink-0 rounded-md bg-teal-500/20 px-2 py-0.5 text-[10px] font-semibold text-teal-100">
+            {t("watch.playerSettings.proxySwitchFastest")}
+          </span>
+        </button>
+      ) : null}
 
       <div className="grid gap-2 sm:grid-cols-3">
         {KITTY_API_NODES.map((node) => {

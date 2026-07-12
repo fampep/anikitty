@@ -60,6 +60,7 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
               key={id}
               type="button"
               onClick={() => setTab(id)}
+              aria-pressed={active}
               className={cn(
                 "text-center flex items-center justify-center gap-1 shrink-0 text-nowrap text-sm lg:text-base h-9 rounded-xl transition-all",
                 active

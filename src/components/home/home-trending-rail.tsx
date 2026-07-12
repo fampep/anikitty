@@ -5,7 +5,7 @@ import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import HomeCompactPoster from "./home-compact-poster";
-import { HomeScrollRail, HomeSectionLink } from "./home-shared";
+import { HomeRailEmpty, HomeScrollRail, HomeSectionLink } from "./home-shared";
 
 type Props = {
   animes: IAnime[];
@@ -28,16 +28,18 @@ export default function HomeTrendingRail({ animes, loading }: Props) {
     );
   }
 
-  if (!animes.length) return null;
-
   return (
     <Container className="flex flex-col gap-4">
       <HomeSectionLink href={ROUTES.TRENDING} title={t("home.trendingNow")} />
-      <HomeScrollRail>
-        {animes.map((anime, i) => (
-          <HomeCompactPoster key={anime.id} anime={anime} priority={i < 4} />
-        ))}
-      </HomeScrollRail>
+      {animes.length ? (
+        <HomeScrollRail>
+          {animes.map((anime, i) => (
+            <HomeCompactPoster key={anime.id} anime={anime} priority={i < 4} />
+          ))}
+        </HomeScrollRail>
+      ) : (
+        <HomeRailEmpty message={t("home.sectionEmpty")} />
+      )}
     </Container>
   );
 }

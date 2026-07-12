@@ -10,6 +10,7 @@ import {
   type SyncedUserPreferences,
 } from "@/lib/account/user-preferences";
 import { sanitizeSeekStepSeconds } from "@/lib/player/seek-step";
+import { ensureCustomSubtitleFontLoaded } from "@/lib/subtitles/custom-subtitle-font";
 
 const SYNC_DEBOUNCE_MS = 900;
 
@@ -104,6 +105,11 @@ export default function SettingsSync() {
   const applyingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const lastPushedRef = useRef<string>("");
+
+  // Register any user-uploaded subtitle font so it's ready before playback.
+  useEffect(() => {
+    void ensureCustomSubtitleFontLoaded();
+  }, []);
 
   useEffect(() => {
     if (!useAuthStore.persist.hasHydrated() || !useSettingsStore.persist.hasHydrated()) {

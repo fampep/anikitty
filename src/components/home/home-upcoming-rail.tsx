@@ -6,7 +6,7 @@ import LazyPosterImage from "@/components/anime/lazy-poster-image";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
-import { formatAnimeType, HomeScrollRail, HomeSectionLink } from "./home-shared";
+import { formatAnimeType, HomeRailEmpty, HomeScrollRail, HomeSectionLink } from "./home-shared";
 
 type Props = {
   animes: IAnime[];
@@ -29,7 +29,14 @@ export default function HomeUpcomingRail({ animes, loading }: Props) {
     );
   }
 
-  if (!animes.length) return null;
+  if (!animes.length && !loading) {
+    return (
+      <Container className="flex flex-col gap-4">
+        <HomeSectionLink href={`${ROUTES.SEARCH}?status=NOT_YET_RELEASED`} title={t("home.topUpcoming")} />
+        <HomeRailEmpty message={t("home.sectionEmpty")} />
+      </Container>
+    );
+  }
 
   return (
     <Container className="flex flex-col gap-4">
