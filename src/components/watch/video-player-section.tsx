@@ -20,6 +20,7 @@ import {
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
 import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, MULTI_ROW_PROVIDERS, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import {
   DEFAULT_ANIMEX_SERVER,
@@ -1768,11 +1769,12 @@ const VideoPlayerSection = () => {
                 {streamData.miruroPipe}
               </span>
             )}
-            {streamData?.server && providerHasNativeSubs(provider) && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/90">
-                {streamData.server}
-              </span>
-            )}
+            {providerHasNativeSubs(provider) &&
+              resolveServerCodename(provider, streamData?.server) && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/90">
+                  {resolveServerCodename(provider, streamData?.server)}
+                </span>
+              )}
             {watchingHardSub && streamAudio === "sub" && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-300/90">
                 {t("watch.hardSubBadge")}
