@@ -49,6 +49,26 @@ function isKittyNoApiKeyPath(path: string): boolean {
   return isKittyPublicPath(path) || isKittySignedProxyPath(path);
 }
 
+/**
+ * True when a media URL is routed through the KittyAPI media proxy — either a
+ * signed `/proxy?…` URL or an absolute URL on a KittyAPI cluster node. Raw
+ * origin URLs (e.g. `https://hls.anidb.app/…`) return false: those bypass the
+ * proxy (missing signed token + upstream Referer) and won't play.
+ */
+export function isKittyProxiedUrl(pathOrUrl: string): boolean {
+  const trimmed = pathOrUrl.trim();
+  if (!trimmed) return false;
+  try {
+    if (trimmed.includes("://")) {
+      const parsed = new URL(trimmed);
+      if (isKittyApiHost(parsed.hostname)) return true;
+    }
+  } catch {
+    /* fall through to path check */
+  }
+  return isKittySignedProxyPath(trimmed);
+}
+
 import { parseKittyStreamQualities, type KittyStreamQuality } from "@/lib/kitty/stream-quality";
 
 export type { KittyStreamQuality } from "@/lib/kitty/stream-quality";

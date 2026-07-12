@@ -52,7 +52,7 @@ import {
   type AnikuroServerId,
 } from "@/lib/providers/anikuro-api";
 import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
-import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
+import { isKittyProxiedUrl, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import { fetchWithSubAudioFallback } from "@/lib/kitty/stream-audio-fallback";
 import {
@@ -248,7 +248,12 @@ export async function GET(req: Request) {
           quality: entry.quality,
           file: resolveKittyStreamUrl(entry.file, nodeId),
         }))
-        .filter((entry) => entry.file.trim());
+        .filter((entry) => entry.file.trim())
+        // AniDB's alternate-quality URLs are raw `hls.anidb.app` links that
+        // bypass the signed KittyAPI proxy (no token + upstream Referer) and
+        // won't play. Only keep proxied URLs so the player relies on the
+        // proxied master `file` for quality switching instead.
+        .filter((entry) => providerName !== "AniDB" || isKittyProxiedUrl(entry.file));
     }
 
     if (Array.isArray(data.tracks)) {

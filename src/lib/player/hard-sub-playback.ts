@@ -1,4 +1,4 @@
-import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { providerHasHardSub, type KittyProvider, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { AninekoServerId } from "@/lib/providers/anineko-config";
 import { ANINEKO_SERVERS } from "@/lib/providers/anineko-config";
 import type { AnimexServerId } from "@/lib/providers/animex-config";
@@ -19,7 +19,10 @@ export type HardSubPlaybackContext = {
 /** True when the active stream burns subtitles into the video (soft subs would double up). */
 export function isHardSubPlayback(ctx: HardSubPlaybackContext): boolean {
   if (ctx.streamAudio === "dub") return false;
-  if (ctx.audioMode === "hardsub") return true;
+  // Only honor the generic "hardsub" mode for providers that actually burn
+  // subtitles in. Otherwise a stale/mismatched hardsub selection would
+  // suppress soft subs and leave the video with no subtitles at all.
+  if (ctx.audioMode === "hardsub" && providerHasHardSub(ctx.provider)) return true;
 
   if (ctx.provider === "AniNeko" && ctx.aninekoServer) {
     const meta = ANINEKO_SERVERS.find((server) => server.id === ctx.aninekoServer);

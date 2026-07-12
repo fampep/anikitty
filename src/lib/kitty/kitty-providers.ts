@@ -97,10 +97,9 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
-    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "SUB · DUB · soft & hard subs · multi-server",
+    hint: "SUB · DUB · soft subs · multi-server",
   },
   {
     id: "AniDB",

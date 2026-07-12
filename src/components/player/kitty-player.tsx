@@ -1083,6 +1083,20 @@ export default function KittyPlayer({
 
     artRef.current = art;
 
+    // ArtPlayer's built-in `playing` getter also requires `readyState > 2`,
+    // so mid-stream HLS buffering makes it report "not playing" even while
+    // the video is running. `art.toggle()` (bound to the click/tap handler)
+    // then calls play() instead of pause(), so clicks flash the play state
+    // animation but never pause. Redefine it to trust the actual DOM state.
+    try {
+      Object.defineProperty(art, "playing", {
+        configurable: true,
+        get: () => !!(art.video && !art.video.paused && !art.video.ended),
+      });
+    } catch {
+      /* getter is non-configurable on this build — leave default behavior */
+    }
+
     if (streamType === "mp4") {
       art.on("video:error", () => {
         if (fatalErrorFiredRef.current) return;

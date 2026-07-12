@@ -662,6 +662,25 @@ html.density-compact .site-bottom-nav {
   color: #c4b5fd !important;
 }
 
+/*
+ * Keep the settings / quality / subtitle panels fully reachable and scrollable.
+ * The player element uses `overflow: hidden`, and at a 16/9 aspect ratio the
+ * player can be much shorter than a viewport-based max-height — so tall panels
+ * used to overflow past the top edge and clip their bottom options with no way
+ * to scroll to them. Bounding the height to the space above the control bar
+ * (100% of the player minus the control row) guarantees the panel fits inside
+ * the player and scrolls internally instead of being clipped.
+ */
+.art-kitty-player .art-settings,
+.art-kitty-player .art-control-selector .art-selector-list {
+  max-height: calc(100% - var(--art-control-height) - 16px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
 /* Tooltips & notices */
 .art-kitty-player .art-tooltip,
 .art-kitty-player .art-notice-inner {
