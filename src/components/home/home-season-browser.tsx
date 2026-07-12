@@ -74,25 +74,31 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
         })}
       </div>
 
-      <div className="grid w-full gap-4 sm:gap-6 xl:gap-8 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6">
-        {activeList.slice(0, 18).map((anime, idx) => (
-          <AnimeCard
-            key={anime.id ?? idx}
-            title={anime.name}
-            subTitle={anime.type}
-            poster={anime.poster}
-            className="w-full"
-            href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-            episodeCard
-            sub={anime.episodes?.sub}
-            dub={anime.episodes?.dub}
-            score={anime.score}
-            year={anime.year}
-            status={anime.status}
-            deferImage={idx > 5}
-          />
-        ))}
-      </div>
+      {activeList.length === 0 ? (
+        <div className="flex items-center justify-center rounded-xl border border-dashed border-border dark:border-white/10 py-16 text-sm text-muted-foreground dark:text-white/40">
+          {t("search.noResults")}
+        </div>
+      ) : (
+        <div className="grid w-full gap-4 sm:gap-6 xl:gap-8 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6">
+          {activeList.slice(0, 18).map((anime, idx) => (
+            <AnimeCard
+              key={anime.id ?? idx}
+              title={anime.name}
+              subTitle={anime.type}
+              poster={anime.poster}
+              className="w-full"
+              href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+              episodeCard
+              sub={anime.episodes?.sub}
+              dub={anime.episodes?.dub}
+              score={anime.score}
+              year={anime.year}
+              status={anime.status}
+              deferImage={idx > 5}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

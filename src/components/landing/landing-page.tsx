@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -71,6 +72,15 @@ export default function LandingPage({ initialPosters = [] }: Props) {
   const isLoggedIn = !!auth.auth;
   const { data: homeData, isLoading: homeLoading } = useGetHomeCriticalData();
   const reducedMotion = usePrefersReducedMotion();
+  const router = useRouter();
+
+  const [heroQuery, setHeroQuery] = useState("");
+
+  const submitHeroSearch = () => {
+    const q = heroQuery.trim();
+    trackEvent("landing_search_hero", { hasQuery: q.length > 0 });
+    router.push(q ? `${ROUTES.SEARCH}?q=${encodeURIComponent(q)}` : ROUTES.SEARCH);
+  };
 
   const [posters, setPosters] = useState<string[]>(initialPosters);
   const [postersLoaded, setPostersLoaded] = useState(initialPosters.length > 0);
@@ -220,17 +230,31 @@ export default function LandingPage({ initialPosters = [] }: Props) {
           ))}
         </p>
 
-        <Link
-          href={ROUTES.SEARCH}
-          prefetch
-          onClick={() => trackEvent("landing_search_hero")}
-          className="group w-full max-w-md mb-6 flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] hover:bg-accent dark:hover:bg-white/[0.07] hover:border-border dark:hover:border-white/20 transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitHeroSearch();
+          }}
+          role="search"
+          className="group w-full max-w-md mb-6 flex items-center gap-2 pl-4 pr-2 py-2 rounded-2xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] focus-within:border-violet-400/40 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all"
         >
-          <Search className="w-4 h-4 text-muted-foreground dark:text-white/35 group-hover:text-violet-300/80 shrink-0 transition-colors" />
-          <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-muted-foreground dark:group-hover:text-white/50 transition-colors truncate">
-            {t("landing.searchPlaceholder")}
-          </span>
-        </Link>
+          <Search className="w-4 h-4 text-muted-foreground dark:text-white/35 group-focus-within:text-violet-300/80 shrink-0 transition-colors" />
+          <input
+            type="search"
+            value={heroQuery}
+            onChange={(e) => setHeroQuery(e.target.value)}
+            placeholder={t("landing.searchPlaceholder")}
+            aria-label={t("nav.search")}
+            className="flex-1 min-w-0 bg-transparent py-1.5 text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground dark:placeholder:text-white/35 focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-95 transition-all shrink-0"
+          >
+            {t("nav.search")}
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </form>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto max-w-sm sm:max-w-none">
           <Link

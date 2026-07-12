@@ -1878,11 +1878,13 @@ const VideoPlayerSection = () => {
 
 const PlayerSkeleton = ({
   dim = false,
-  label = "Loading stream",
+  label,
 }: {
   dim?: boolean;
   label?: string;
-}) => (
+}) => {
+  const t = useT();
+  return (
   <div
     className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-border dark:border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
@@ -1897,8 +1899,9 @@ const PlayerSkeleton = ({
         <div className="h-2 w-10 rounded bg-muted/60 dark:bg-white/[0.05] animate-pulse" />
       </div>
     </div>
-    <LoadingGirl size={140} label={label} className="relative z-10" />
+    <LoadingGirl size={140} label={label ?? t("watch.loadingStream")} className="relative z-10" />
   </div>
-);
+  );
+};
 
 export default VideoPlayerSection;

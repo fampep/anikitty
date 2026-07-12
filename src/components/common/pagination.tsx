@@ -10,6 +10,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/core/utils";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   currentPage: number;
@@ -26,6 +27,7 @@ function Pagination({
   handlePreviousPage,
   handlePageChange,
 }: Props) {
+  const t = useT();
   const pages = Array.from({ length: totalPages }, (_, index) => index + 1)
     .filter((page) => {
       return (
@@ -50,11 +52,11 @@ function Pagination({
             type="button"
             onClick={handlePreviousPage}
             disabled={currentPage <= 1}
-            aria-label="Go to previous page"
+            aria-label={t("common.previous")}
             className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1 pl-2.5")}
           >
             <ChevronLeftIcon className="h-4 w-4" />
-            <span>Previous</span>
+            <span>{t("common.previous")}</span>
           </button>
         </PaginationItem>
 
@@ -85,10 +87,10 @@ function Pagination({
             type="button"
             onClick={handleNextPage}
             disabled={currentPage >= totalPages}
-            aria-label="Go to next page"
+            aria-label={t("common.next")}
             className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1 pr-2.5")}
           >
-            <span>Next</span>
+            <span>{t("common.next")}</span>
             <ChevronRightIcon className="h-4 w-4" />
           </button>
         </PaginationItem>

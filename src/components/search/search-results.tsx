@@ -15,7 +15,7 @@ import { SearchAnimeParams } from "@/types/anime";
 import { cn } from "@/lib/core/utils";
 import SearchBar from "@/components/layout/search-bar";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { SlidersHorizontal, RotateCcw, Search, RefreshCw, Minus, Plus } from "lucide-react";
+import { SlidersHorizontal, RotateCcw, Search, RefreshCw, Minus, Plus, ChevronDown, Loader2 } from "lucide-react";
 import {
   cycleGenreFilterMode,
   parseGenreFilterModes,
@@ -114,6 +114,8 @@ const SearchResults = () => {
     () => parseGenreFilterModes(filters.genres, filters.excludeGenres),
     [filters.genres, filters.excludeGenres],
   );
+
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
 
   const handleNextPage = () => {
     if (searchResults?.hasNextPage) handlePageChange((params.page || 1) + 1);
@@ -242,14 +244,27 @@ const SearchResults = () => {
               </span>
             )}
           </div>
-          <button
-            onClick={resetFilters}
-            className="flex items-center gap-1 text-xs text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-colors"
-          >
-            <RotateCcw className="h-3 w-3" />
-            {t("search.reset")}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={resetFilters}
+              className="flex items-center gap-1 text-xs text-muted-foreground dark:text-white/35 hover:text-foreground dark:hover:text-white/60 transition-colors"
+            >
+              <RotateCcw className="h-3 w-3" />
+              {t("search.reset")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
+              className="lg:hidden flex items-center gap-1 text-xs text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white/80 transition-colors"
+            >
+              {filtersOpen ? t("search.hideFilters") : t("search.showFilters")}
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", filtersOpen && "rotate-180")} />
+            </button>
+          </div>
         </div>
+
+        <div className={cn("flex-col gap-5", filtersOpen ? "flex" : "hidden lg:flex")}>
 
         <div className="flex flex-wrap gap-2">
           <Select options={filterLabels.types} placeholder={t("search.placeholders.type")} value={filters.type || ""} onChange={(val) => onChange("type", val)} />
@@ -304,6 +319,7 @@ const SearchResults = () => {
         <p className="hidden lg:block text-[11px] text-muted-foreground/80 dark:text-white/25 font-mono">
           {t("search.filtersAutoApply")}
         </p>
+        </div>
       </div>
 
       {/* Heading */}
@@ -319,6 +335,12 @@ const SearchResults = () => {
         {searchResults && !isLoading && (
           <span className="text-xs text-muted-foreground dark:text-white/35 font-mono">
             {t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}
+          </span>
+        )}
+        {isFetching && !isLoading && (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/35 font-mono">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            {t("search.updating")}
           </span>
         )}
       </div>

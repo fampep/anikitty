@@ -928,13 +928,16 @@ const ArtSection = ({
           href={item.sourceUrl ?? item.image}
           target="_blank"
           rel="noopener noreferrer"
-          className={cn("group relative rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/25 transition-all block", transparent && "bg-muted/50 dark:bg-white/5")}
+          className={cn("group relative rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/25 transition-all block", wide ? "aspect-[16/9]" : "aspect-[2/3]", transparent && "bg-muted/50 dark:bg-white/5")}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={item.thumbnail ?? item.image}
             alt={item.title ?? `${label} ${i + 1}`}
-            className={cn("w-full object-cover transition-transform duration-300 group-hover:scale-105", wide ? "aspect-[16/9]" : "aspect-[2/3]", transparent && "object-contain p-4")}
+            fill
+            unoptimized
+            loading="lazy"
+            sizes={wide ? "(max-width: 640px) 100vw, 33vw" : "(max-width: 640px) 50vw, 20vw"}
+            className={cn("object-cover transition-transform duration-300 group-hover:scale-105", transparent && "object-contain p-4")}
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-muted dark:bg-black/30 transition-colors flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
             <span className="text-[11px] font-mono text-foreground/90 dark:text-white/80 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-border dark:border-white/15 max-w-[90%] truncate">

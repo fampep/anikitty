@@ -12,14 +12,18 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, Info, Play } from "lucide-react";
+import { toast } from "sonner";
 import { ROUTES } from "@/constants/routes";
 import { SpotlightAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { useSettingsStore } from "@/store/settings-store";
+import { useAuthStore } from "@/store/auth-store";
+import useBookMarks from "@/hooks/use-get-bookmark";
 import { trackEvent } from "@/lib/analytics";
+import { cn } from "@/lib/core/utils";
 import { formatAnimeType } from "./home-shared";
 
 function stripHtml(html: string): string {
@@ -106,24 +110,44 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
       </Carousel>
 
       {spotlightAnime.length > 1 ? (
-        <div className="hidden pointer-events-auto md:flex items-center gap-2.5 absolute right-4 md:right-8 bottom-24 z-30">
-          <Button
-            onClick={() => api?.scrollPrev()}
-            aria-label={t("home.heroPreviousSlide")}
-            size="icon"
-            className="h-9 w-9 rounded-full text-muted-foreground bg-white/10 hover:bg-white/15 backdrop-blur-sm border-0"
-          >
-            <ArrowLeft className="h-[18px] w-[18px]" />
-          </Button>
-          <Button
-            onClick={() => api?.scrollNext()}
-            aria-label={t("home.heroNextSlide")}
-            size="icon"
-            className="h-9 w-9 rounded-full text-muted-foreground bg-white/10 hover:bg-white/15 backdrop-blur-sm border-0"
-          >
-            <ArrowRight className="h-[18px] w-[18px]" />
-          </Button>
-        </div>
+        <>
+          <div className="hidden pointer-events-auto md:flex items-center gap-2.5 absolute right-4 md:right-8 bottom-24 z-30">
+            <Button
+              onClick={() => api?.scrollPrev()}
+              aria-label={t("home.heroPreviousSlide")}
+              size="icon"
+              className="h-9 w-9 rounded-full text-muted-foreground bg-white/10 hover:bg-white/15 backdrop-blur-sm border-0"
+            >
+              <ArrowLeft className="h-[18px] w-[18px]" />
+            </Button>
+            <Button
+              onClick={() => api?.scrollNext()}
+              aria-label={t("home.heroNextSlide")}
+              size="icon"
+              className="h-9 w-9 rounded-full text-muted-foreground bg-white/10 hover:bg-white/15 backdrop-blur-sm border-0"
+            >
+              <ArrowRight className="h-[18px] w-[18px]" />
+            </Button>
+          </div>
+
+          <div className="pointer-events-auto flex items-center gap-1.5 absolute left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-8 bottom-16 md:bottom-14 z-30">
+            {spotlightAnime.map((anime, index) => (
+              <button
+                key={anime.id ?? index}
+                type="button"
+                onClick={() => api?.scrollTo(index)}
+                aria-label={t("home.heroGoToSlide", { n: index + 1 })}
+                aria-current={index === current}
+                className={cn(
+                  "h-1.5 rounded-full transition-all duration-300",
+                  index === current
+                    ? "w-6 bg-white"
+                    : "w-1.5 bg-white/40 hover:bg-white/70",
+                )}
+              />
+            ))}
+          </div>
+        </>
       ) : null}
     </div>
   );
@@ -139,6 +163,34 @@ const HeroCarouselItem = ({
   priority?: boolean;
 }) => {
   const t = useT();
+  const { auth } = useAuthStore();
+  const { createOrUpdateBookMark } = useBookMarks({ populate: false });
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleBookmark = async () => {
+    if (!auth) {
+      toast.error(t("home.signInToContinue"));
+      return;
+    }
+    if (saving || saved) return;
+    setSaving(true);
+    const result = await createOrUpdateBookMark(
+      String(anime.id),
+      anime.name ?? "",
+      anime.poster ?? "",
+      "plan to watch",
+      false,
+      { anilistId: Number(anime.id) || undefined },
+    );
+    setSaving(false);
+    if (result) {
+      setSaved(true);
+      toast.success(t("anime.addedToPlanToWatch"));
+    } else {
+      toast.error(t("anime.listError"));
+    }
+  };
 
   return (
     <div className="relative w-full max-h-[45lvh] sm:max-h-[70lvh] min-h-[40lvh] aspect-video overflow-hidden bg-black">
@@ -201,10 +253,18 @@ const HeroCarouselItem = ({
               </Link>
               <button
                 type="button"
-                className="size-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 pointer-events-auto"
-                aria-label={t("anime.addToList")}
+                onClick={handleBookmark}
+                disabled={saving}
+                className={cn(
+                  "size-9 flex items-center justify-center rounded-full pointer-events-auto transition-colors disabled:opacity-60",
+                  saved
+                    ? "text-violet-300 hover:text-violet-200 hover:bg-white/10"
+                    : "text-white/70 hover:text-white hover:bg-white/10",
+                )}
+                aria-label={saved ? t("anime.addedToPlanToWatch") : t("anime.addToList")}
+                aria-pressed={saved}
               >
-                <Bookmark className="h-4 w-4" />
+                <Bookmark className={cn("h-4 w-4", saved && "fill-current")} />
               </button>
             </div>
           </div>
