@@ -2,12 +2,14 @@
 
 import dynamic from "next/dynamic";
 import Container from "@/components/layout/container";
+import QueryRetryPanel from "@/components/shared/query-retry-panel";
 import { Flame, CalendarClock, TrendingUp } from "lucide-react";
 import {
   useGetHomeCriticalData,
   useGetHomeDiscoveryData,
 } from "@/query/home/get-home-page-data";
 import { IAnime } from "@/types/anime";
+import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 import { useEffect, useState } from "react";
 
@@ -17,7 +19,13 @@ const FeaturedCollection = dynamic(() => import("@/components/home/featured-coll
 export default function TrendingPage() {
   const t = useT();
   const [discoveryEnabled, setDiscoveryEnabled] = useState(false);
-  const { data: critical, isLoading: criticalLoading } = useGetHomeCriticalData();
+  const {
+    data: critical,
+    isLoading: criticalLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useGetHomeCriticalData();
   const { data: discovery, isLoading: discoveryLoading } = useGetHomeDiscoveryData(discoveryEnabled);
 
   useEffect(() => {
@@ -48,6 +56,15 @@ export default function TrendingPage() {
         </p>
       </Container>
 
+      {isError && !critical ? (
+        <QueryRetryPanel
+          message={t("home.loadError")}
+          onRetry={() => refetch()}
+          isRetrying={isFetching}
+          backHref={ROUTES.HOME}
+        />
+      ) : (
+      <>
       <AnimeSections
         title={t("trending.trendingNow")}
         icon={<Flame className="w-4 h-4" />}
@@ -70,6 +87,8 @@ export default function TrendingPage() {
           loading={discoveryLoadingState || isLoading}
         />
       </div>
+      </>
+      )}
     </div>
   );
 }

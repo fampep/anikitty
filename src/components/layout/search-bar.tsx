@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useId, useState, useRef, useEffect } from "react";
 import { SearchIcon, X, ArrowRight } from "lucide-react";
 import useDebounce from "@/hooks/use-debounce";
 import { useSearchAnime } from "@/query/search/search-anime";
@@ -27,12 +27,21 @@ const SearchBar = ({
   const t = useT();
   const [searchValue, setSearchValue] = useState(defaultValue);
   const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const debouncedValue = useDebounce(searchValue, 300);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const listboxId = useId();
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   const { data: searchResults, isLoading } = useSearchAnime(debouncedValue);
+
+  const results = searchResults ?? [];
+  const hasResults = results.length > 0;
+  // Navigable rows: each result plus a trailing "view all results" row.
+  const optionCount = hasResults ? results.length + 1 : 0;
+  const viewAllIndex = hasResults ? results.length : -1;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -54,33 +63,88 @@ const SearchBar = ({
     setSearchValue(defaultValue);
   }, [defaultValue]);
 
+  // Reset the highlighted option whenever the result set or query changes.
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [debouncedValue, searchResults]);
+
   const handleClear = () => {
     setSearchValue("");
     setIsOpen(false);
+    setActiveIndex(-1);
     inputRef.current?.focus();
   };
 
   const handleSelect = () => {
     setSearchValue("");
     setIsOpen(false);
+    setActiveIndex(-1);
     onAnimeClick?.();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchValue.trim()) {
-      const q = searchValue.trim();
-      if (onSubmitQuery) {
-        onSubmitQuery(q);
-        handleSelect();
-      } else {
-        router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(q)}`);
-        handleSelect();
-      }
+  const submitQuery = () => {
+    const q = searchValue.trim();
+    if (!q) return;
+    if (onSubmitQuery) {
+      onSubmitQuery(q);
+    } else {
+      router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(q)}`);
     }
-    if (e.key === "Escape") setIsOpen(false);
+    handleSelect();
+  };
+
+  const navigateToOption = (index: number) => {
+    if (index === viewAllIndex) {
+      router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`);
+      handleSelect();
+      return;
+    }
+    const anime = results[index];
+    if (!anime) return;
+    router.push(`${ROUTES.ANIME_DETAILS}/${anime.id}`);
+    handleSelect();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setIsOpen(false);
+      setActiveIndex(-1);
+      return;
+    }
+
+    if (e.key === "ArrowDown" && optionCount > 0) {
+      e.preventDefault();
+      setIsOpen(true);
+      setActiveIndex((prev) => (prev + 1) % optionCount);
+      return;
+    }
+
+    if (e.key === "ArrowUp" && optionCount > 0) {
+      e.preventDefault();
+      setIsOpen(true);
+      setActiveIndex((prev) => (prev <= 0 ? optionCount - 1 : prev - 1));
+      return;
+    }
+
+    if (e.key === "Enter") {
+      if (activeIndex >= 0 && activeIndex < optionCount) {
+        e.preventDefault();
+        navigateToOption(activeIndex);
+        return;
+      }
+      if (searchValue.trim()) submitQuery();
+    }
   };
 
   const showDropdown = isOpen && searchValue.trim().length > 0;
+
+  // Keep the highlighted option scrolled into view during keyboard nav.
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    document.getElementById(optionId(activeIndex))?.scrollIntoView({ block: "nearest" });
+    // optionId is stable per render; listboxId is stable for the component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex]);
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
@@ -91,8 +155,11 @@ const SearchBar = ({
           type="text"
           role="combobox"
           aria-expanded={showDropdown}
-          aria-controls="search-results-listbox"
+          aria-controls={listboxId}
           aria-autocomplete="list"
+          aria-activedescendant={
+            showDropdown && activeIndex >= 0 ? optionId(activeIndex) : undefined
+          }
           value={searchValue}
           onChange={(e) => {
             setSearchValue(e.target.value);
@@ -117,9 +184,9 @@ const SearchBar = ({
 
       {showDropdown && (
         <div
-          id="search-results-listbox"
+          id={listboxId}
           role="listbox"
-          className="absolute top-[calc(100%+8px)] left-0 z-50 w-full overflow-hidden rounded-2xl border border-border dark:border-white/[0.08] bg-[#0a0a10] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
+          className="absolute top-[calc(100%+8px)] left-0 z-50 max-h-[70vh] overflow-y-auto overscroll-contain w-full rounded-2xl border border-border dark:border-white/[0.08] bg-[#0a0a10] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
         >
           {isLoading && (
             <div className="flex flex-col gap-0 p-2">
@@ -135,15 +202,23 @@ const SearchBar = ({
             </div>
           )}
 
-          {!isLoading && searchResults && searchResults.length > 0 && (
+          {!isLoading && hasResults && (
             <div className="flex flex-col">
-              {searchResults.map((anime) => (
+              {results.map((anime, index) => (
                 <Link
                   key={anime.id}
+                  id={optionId(index)}
                   href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
                   role="option"
+                  aria-selected={activeIndex === index}
+                  onMouseEnter={() => setActiveIndex(index)}
                   onClick={handleSelect}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-accent dark:hover:bg-white/8 transition-colors group"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 transition-colors group",
+                    activeIndex === index
+                      ? "bg-accent dark:bg-white/10"
+                      : "hover:bg-accent dark:hover:bg-white/8",
+                  )}
                 >
                   <div className="h-14 w-10 overflow-hidden rounded shrink-0 bg-accent dark:bg-white/8">
                     {anime.poster && (
@@ -174,9 +249,18 @@ const SearchBar = ({
               ))}
 
               <Link
+                id={optionId(viewAllIndex)}
                 href={`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`}
+                role="option"
+                aria-selected={activeIndex === viewAllIndex}
+                onMouseEnter={() => setActiveIndex(viewAllIndex)}
                 onClick={handleSelect}
-                className="flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 hover:bg-muted/50 dark:hover:bg-white/5 transition-colors text-sm font-medium"
+                className={cn(
+                  "flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 transition-colors text-sm font-medium",
+                  activeIndex === viewAllIndex
+                    ? "bg-muted/50 dark:bg-white/5 text-foreground/90 dark:text-white/80"
+                    : "hover:bg-muted/50 dark:hover:bg-white/5",
+                )}
               >
                 <span>{t("search.viewAllResults", { query: searchValue.trim() })}</span>
                 <ArrowRight className="h-4 w-4" />

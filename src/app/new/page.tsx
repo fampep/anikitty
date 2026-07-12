@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Container from "@/components/layout/container";
+import QueryRetryPanel from "@/components/shared/query-retry-panel";
 import { Sparkles, Tv2 } from "lucide-react";
 import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
 import { IAnime, LatestCompletedAnime } from "@/types/anime";
@@ -12,7 +13,7 @@ const AnimeSections = dynamic(() => import("@/components/home/anime-sections"), 
 
 export default function NewReleasesPage() {
   const t = useT();
-  const { data, isLoading } = useGetHomeCriticalData();
+  const { data, isLoading, isError, refetch, isFetching } = useGetHomeCriticalData();
 
   return (
     <div className="min-h-screen pt-8 pb-24">
@@ -29,20 +30,31 @@ export default function NewReleasesPage() {
         </p>
       </Container>
 
-      <LatestEpisodesAnime
-        loading={isLoading}
-        latestEpisodes={data?.latestEpisodeAnimes as LatestCompletedAnime[]}
-      />
+      {isError && !data ? (
+        <QueryRetryPanel
+          message={t("home.loadError")}
+          onRetry={() => refetch()}
+          isRetrying={isFetching}
+          backHref={ROUTES.HOME}
+        />
+      ) : (
+        <>
+          <LatestEpisodesAnime
+            loading={isLoading}
+            latestEpisodes={data?.latestEpisodeAnimes as LatestCompletedAnime[]}
+          />
 
-      <AnimeSections
-        sectionId="recently-added"
-        title={t("home.recentlyAdded")}
-        icon={<Sparkles className="w-4 h-4" />}
-        trendingAnime={data?.recentlyAddedAnimes as IAnime[]}
-        loading={isLoading}
-        layout="row"
-        seeAllHref={ROUTES.SEARCH}
-      />
+          <AnimeSections
+            sectionId="recently-added"
+            title={t("home.recentlyAdded")}
+            icon={<Sparkles className="w-4 h-4" />}
+            trendingAnime={data?.recentlyAddedAnimes as IAnime[]}
+            loading={isLoading}
+            layout="row"
+            seeAllHref={ROUTES.SEARCH}
+          />
+        </>
+      )}
     </div>
   );
 }

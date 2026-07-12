@@ -1886,6 +1886,10 @@ const PlayerSkeleton = ({
   const t = useT();
   return (
   <div
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-label={label ?? t("watch.loadingStream")}
     className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-border dark:border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />

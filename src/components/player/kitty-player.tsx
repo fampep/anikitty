@@ -1430,7 +1430,13 @@ export default function KittyPlayer({
       <div ref={containerRef} className="art-kitty-player-mount absolute inset-0 z-0" />
 
       {showLoading && (
-        <div className="pointer-events-none absolute inset-0 z-[130] flex items-center justify-center bg-black/40 animate-in fade-in duration-300">
+        <div
+          role="status"
+          aria-busy="true"
+          aria-live="polite"
+          aria-label={t("watch.loadingStream")}
+          className="pointer-events-none absolute inset-0 z-[130] flex items-center justify-center bg-black/40 animate-in fade-in duration-300"
+        >
           <LoadingGirl size={120} className="opacity-90 drop-shadow-[0_0_32px_rgba(124,58,237,0.35)]" />
         </div>
       )}
