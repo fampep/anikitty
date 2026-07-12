@@ -10,6 +10,7 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
  */
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Anitaku",
+  "Anikoto",
   "AniDB",
   "MegaPlay",
   "AniNeko",
