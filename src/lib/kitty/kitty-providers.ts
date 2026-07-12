@@ -53,6 +53,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "Anitaku",
+  "AniDB",
   "MegaPlay",
   "AniNeko",
   "AniBD",
@@ -100,6 +101,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft & hard subs · multi-server",
+  },
+  {
+    id: "AniDB",
+    label: "Juliett",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "AniList ID · stream-direct · SUB · DUB · VTT",
   },
   {
     id: "MegaPlay",
@@ -200,6 +212,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. AllAnime/MKissa are last-resort mirrors. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anitaku",
+  "AniDB",
   "MegaPlay",
   "AniNeko",
   "AniBD",
@@ -231,6 +244,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "MKissa",
   MEGAPLAY_PROVIDER_ID,
   "Anitaku",
+  "AniDB",
   "AniNeko",
   "AniBD",
   "AniKuro",
