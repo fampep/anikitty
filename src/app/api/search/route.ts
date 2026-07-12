@@ -139,6 +139,7 @@ export async function GET(request: Request) {
       data: {
         animes: enrichedAnimes,
         totalPages: pageInfo.lastPage ?? 1,
+        totalResults: pageInfo.total ?? 0,
         hasNextPage: pageInfo.hasNextPage ?? false,
         currentPage: pageInfo.currentPage ?? page,
       },

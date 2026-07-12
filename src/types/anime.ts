@@ -45,6 +45,7 @@ export interface IAnime {
 export interface IAnimeSearch {
   animes: IAnime[];
   totalPages: number;
+  totalResults?: number;
   hasNextPage: boolean;
   currentPage: number;
 }

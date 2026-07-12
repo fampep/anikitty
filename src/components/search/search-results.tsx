@@ -15,7 +15,9 @@ import { SearchAnimeParams } from "@/types/anime";
 import { cn } from "@/lib/core/utils";
 import SearchBar from "@/components/layout/search-bar";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { SlidersHorizontal, RotateCcw, Search, RefreshCw, Minus, Plus, ChevronDown, Loader2 } from "lucide-react";
+import { useRecentSearches } from "@/hooks/use-recent-searches";
+import { Clock } from "lucide-react";
+import { SlidersHorizontal, RotateCcw, Search, RefreshCw, Minus, Plus, ChevronDown, Loader2, X } from "lucide-react";
 import {
   cycleGenreFilterMode,
   parseGenreFilterModes,
@@ -62,6 +64,7 @@ const SearchResults = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const { recent, addRecent, removeRecent, clearRecent } = useRecentSearches();
   const displayPhrase = params.q.replace(/^"+|"+$/g, "").trim();
 
   const { data: searchResults, isLoading, isError, refetch, isFetching } = useGetSearchAnimeResults(params);
@@ -109,6 +112,10 @@ const SearchResults = () => {
     params.excludeGenres,
     params.year,
   ]);
+
+  React.useEffect(() => {
+    if (displayPhrase) addRecent(displayPhrase);
+  }, [displayPhrase, addRecent]);
 
   const genreModes = React.useMemo(
     () => parseGenreFilterModes(filters.genres, filters.excludeGenres),
@@ -222,14 +229,98 @@ const SearchResults = () => {
     return t("search.genreNeutralLabel", { genre: label });
   };
 
+  const labelFor = (list: { value: string; label: string }[], value: string) =>
+    list.find((o) => o.value === value)?.label ?? value;
+
+  // Removing a single filter applies immediately on both desktop and mobile so
+  // the chip disappears and results refresh without needing "Apply".
+  const clearFilterKey = (key: keyof SearchAnimeParams) => {
+    const next = { ...filters, [key]: "", page: 1 };
+    setFilters(next);
+    applyFilters(next);
+  };
+
+  const removeGenre = (slug: string) => {
+    const nextModes = { ...genreModes };
+    delete nextModes[slug];
+    const next = { ...filters, ...serializeGenreFilterModes(nextModes), page: 1 };
+    setFilters(next);
+    applyFilters(next);
+  };
+
+  type ActiveChip = {
+    id: string;
+    label: string;
+    tone: "neutral" | "include" | "exclude";
+    onRemove: () => void;
+  };
+
+  const activeChips: ActiveChip[] = [];
+  if (filters.type && filters.type !== "all")
+    activeChips.push({ id: "type", label: labelFor(filterLabels.types, filters.type), tone: "neutral", onRemove: () => clearFilterKey("type") });
+  if (filters.status)
+    activeChips.push({ id: "status", label: labelFor(filterLabels.statuses, filters.status), tone: "neutral", onRemove: () => clearFilterKey("status") });
+  if (filters.season)
+    activeChips.push({ id: "season", label: labelFor(filterLabels.seasons, filters.season), tone: "neutral", onRemove: () => clearFilterKey("season") });
+  if (filters.year)
+    activeChips.push({ id: "year", label: labelFor(filterLabels.years, filters.year), tone: "neutral", onRemove: () => clearFilterKey("year") });
+  if (filters.sort && filters.sort !== "default")
+    activeChips.push({ id: "sort", label: labelFor(filterLabels.sort, filters.sort), tone: "neutral", onRemove: () => clearFilterKey("sort") });
+  Object.entries(genreModes).forEach(([slug, mode]) => {
+    activeChips.push({
+      id: `genre-${slug}`,
+      label: labelFor(filterLabels.genres, slug),
+      tone: mode === "exclude" ? "exclude" : "include",
+      onRemove: () => removeGenre(slug),
+    });
+  });
+
   return (
     <div className="flex flex-col gap-8 mt-28 lg:mt-36 pb-20 min-h-[75vh]">
-      <div className="max-w-2xl">
+      <div className="max-w-2xl flex flex-col gap-3">
         <SearchBar
           key={displayPhrase}
           defaultValue={displayPhrase}
           onSubmitQuery={(q) => applyFilters(filters, q)}
         />
+
+        {displayPhrase === "" && recent.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35 mr-0.5">
+              <Clock className="h-3 w-3" />
+              {t("search.recentSearches")}
+            </span>
+            {recent.map((query) => (
+              <span
+                key={query}
+                className="group inline-flex items-center rounded-full border border-border dark:border-white/15 bg-muted/60 dark:bg-white/[0.06] text-xs text-foreground/80 dark:text-white/70 overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => applyFilters(filters, query)}
+                  className="h-7 pl-2.5 pr-1.5 hover:bg-muted dark:hover:bg-white/10 transition-colors max-w-[12rem] truncate"
+                >
+                  {query}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeRecent(query)}
+                  aria-label={t("search.removeRecent", { query })}
+                  className="h-7 pr-2 pl-0.5 text-muted-foreground/60 dark:text-white/40 hover:text-foreground dark:hover:text-white/80 transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={clearRecent}
+              className="ml-1 text-[11px] text-muted-foreground dark:text-white/35 hover:text-foreground dark:hover:text-white/60 transition-colors"
+            >
+              {t("search.clearRecent")}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter panel */}
@@ -263,6 +354,33 @@ const SearchResults = () => {
             </button>
           </div>
         </div>
+
+        {activeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5" aria-label={t("search.activeFilters")}>
+            {activeChips.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={chip.onRemove}
+                aria-label={t("search.removeFilter", { filter: chip.label })}
+                className={cn(
+                  "group inline-flex items-center gap-1 h-7 pl-2.5 pr-1.5 rounded-full border text-xs font-medium transition-colors",
+                  chip.tone === "neutral" &&
+                    "border-border dark:border-white/15 bg-muted/60 dark:bg-white/[0.06] text-foreground/80 dark:text-white/70 hover:bg-muted dark:hover:bg-white/10",
+                  chip.tone === "include" &&
+                    "border-emerald-500/50 bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20",
+                  chip.tone === "exclude" &&
+                    "border-rose-500/50 bg-rose-500/10 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20",
+                )}
+              >
+                {chip.tone === "exclude" && <Minus className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                {chip.tone === "include" && <Plus className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                <span className="max-w-[10rem] truncate">{chip.label}</span>
+                <X className="h-3.5 w-3.5 shrink-0 opacity-50 group-hover:opacity-90 transition-opacity" aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className={cn("flex-col gap-5", filtersOpen ? "flex" : "hidden lg:flex")}>
 
@@ -334,7 +452,9 @@ const SearchResults = () => {
         </h1>
         {searchResults && !isLoading && (
           <span className="text-xs text-muted-foreground dark:text-white/35 font-mono">
-            {t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}
+            {searchResults.totalResults
+              ? `${t("search.resultsCount", { count: searchResults.totalResults.toLocaleString() })} · ${t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}`
+              : t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}
           </span>
         )}
         {isFetching && !isLoading && (
@@ -393,6 +513,15 @@ const SearchResults = () => {
               <span className="text-5xl mb-4">🐱</span>
               <p className="text-muted-foreground dark:text-white/50 font-medium">{t("search.noResults")}</p>
               <p className="text-muted-foreground dark:text-white/35 text-sm mt-1">{t("search.noResultsHint")}</p>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={resetFilters}
+                  className="mt-5 flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  {t("search.clearFilters")}
+                </button>
+              )}
             </div>
           )}
         </div>
