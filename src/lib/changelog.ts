@@ -28,6 +28,29 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.7.5",
+    date: "2026-07-12",
+    title: "New home, custom subtitle fonts & more servers",
+    changes: [
+      { type: "added", text: "Custom subtitle fonts — pick from a set of built-in styles or upload your own font file from your device to use everywhere subtitles show." },
+      { type: "added", text: "Several new streaming servers added and the server list reworked, so more titles have a working source and failover has more options." },
+      { type: "added", text: "Adult-content toggle in Settings — 18+ titles are hidden by default and can be shown when you opt in." },
+      { type: "added", text: "Smarter search — filter by year and cycle genres to include or exclude them." },
+      { type: "added", text: "Player extras — quick skip/rewind buttons, a touch-to-seek toggle, an auto-enable subtitles option, and a hard-sub overlay toggle." },
+      { type: "added", text: "MP4 playback support for sources that don't stream over HLS." },
+      { type: "improved", text: "Redesigned home page with a cleaner cinema-style layout, poster rail, and refined AniKitty glass theme." },
+      { type: "improved", text: "Faster, smoother watch and search pages, with less lag while a video is playing." },
+      { type: "improved", text: "Tidier settings — subtitle and player options are now organized into tabs." },
+      { type: "improved", text: "Search now has keyboard navigation, browse pages show a clear retry option when data fails to load, and the player announces loading states for screen readers." },
+      { type: "improved", text: "Streaming servers now use consistent, simplified labels across the player." },
+      { type: "fixed", text: "Pause button is reliable again — clicks no longer register without actually pausing." },
+      { type: "fixed", text: "Quality and settings panels in the player scroll properly so every option is reachable on small screens." },
+      { type: "fixed", text: "Subtitles show correctly across servers, including hard-sub sources, with fewer flickers and reloads." },
+      { type: "fixed", text: "Fixed a player freeze loop and a crash on streams that didn't report a quality list." },
+      { type: "fixed", text: "Search filtering by genre works correctly again." },
+    ],
+  },
+  {
     version: "0.7.2",
     date: "2026-07-10",
     title: "Dock navigation, presence & community skip times",
