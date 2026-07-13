@@ -7,6 +7,7 @@ import { LEVEL_TIER_ICONS as TIER_ICONS } from "@/lib/user/level-tier-icons";
 type Props = {
   role?: string | null;
   roleColor?: string | null;
+  isBooster?: boolean;
   level?: number | null;
   levelRole?: string | null;
   levelRoleColor?: string | null;
@@ -58,6 +59,7 @@ function LevelRoleBadge({
 export function UserBadges({
   role,
   roleColor,
+  isBooster,
   level,
   levelRole,
   levelRoleColor,
@@ -65,6 +67,7 @@ export function UserBadges({
   size = "xs",
 }: Props) {
   const showRole = role && role !== "user";
+  const showBoosterBadge = isBooster && role !== "booster";
 
   return (
     <span className="inline-flex items-center gap-1 flex-wrap">
@@ -76,6 +79,7 @@ export function UserBadges({
         size={size}
       />
       {showRole && <RoleBadge role={role!} color={roleColor} size={size} />}
+      {showBoosterBadge && <RoleBadge role="booster" size={size} />}
     </span>
   );
 }

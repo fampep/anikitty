@@ -242,6 +242,15 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS muted_by UUID REFERENCES users(id) ON DELETE SET NULL`,
       `ALTER TABLE roles ADD COLUMN IF NOT EXISTS permissions JSONB NOT NULL DEFAULT '[]'::jsonb`,
       `CREATE UNIQUE INDEX IF NOT EXISTS users_discord_id_unique ON users (discord_id) WHERE discord_id IS NOT NULL`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_boost_since TIMESTAMP`,
+      `CREATE TABLE IF NOT EXISTS discord_link_codes (
+        id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        code        VARCHAR(12) NOT NULL UNIQUE,
+        expires_at  TIMESTAMP NOT NULL,
+        created_at  TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS discord_link_codes_user_idx ON discord_link_codes (user_id)`,
       `CREATE TABLE IF NOT EXISTS user_passkeys (
         id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -668,6 +677,14 @@ export async function migrateDb() {
         color = EXCLUDED.color,
         permissions = '[]'::jsonb
     `.catch((e: unknown) => console.error("[migrate] donator role seed failed:", e));
+
+    await client`
+      INSERT INTO roles (name, color, permissions)
+      VALUES ('booster', '#f47fff', '[]'::jsonb)
+      ON CONFLICT (name) DO UPDATE SET
+        color = EXCLUDED.color,
+        permissions = '[]'::jsonb
+    `.catch((e: unknown) => console.error("[migrate] booster role seed failed:", e));
 
     await client`
       INSERT INTO roles (name, color, permissions)

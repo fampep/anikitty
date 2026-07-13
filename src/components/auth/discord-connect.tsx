@@ -28,6 +28,9 @@ export default function DiscordConnect() {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [botEnabled, setBotEnabled] = useState(false);
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   const loadAccount = useCallback(async () => {
     if (!auth) {
@@ -70,6 +73,39 @@ export default function DiscordConnect() {
     const tab = searchParams.get("tab") ?? "connections";
     router.replace(`/settings?tab=${tab}`, { scroll: false });
   }, [searchParams, router, loadAccount, t]);
+
+  useEffect(() => {
+    fetch("/api/account/auth/discord/status")
+      .then((r) => r.json())
+      .then((d) => setBotEnabled(!!d?.botEnabled))
+      .catch(() => setBotEnabled(false));
+  }, []);
+
+  const handleGenerateLinkCode = async () => {
+    if (!auth) return;
+    setGeneratingCode(true);
+    try {
+      const res = await fetch("/api/account/discord/link-code", withAuth({ method: "POST" }));
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? t("settings.discordLinkCodeFailed"));
+      setLinkCode(body.code);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : t("settings.discordLinkCodeFailed");
+      toast.error(message);
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
+  const handleCopyLinkCode = async () => {
+    if (!linkCode) return;
+    try {
+      await navigator.clipboard.writeText(linkCode);
+      toast.success(t("settings.discordLinkCodeCopy"));
+    } catch {
+      toast.error(t("settings.discordLinkCodeFailed"));
+    }
+  };
 
   const handleConnect = async () => {
     if (!auth) {
@@ -149,19 +185,66 @@ export default function DiscordConnect() {
   }
 
   return (
-    <button
-      onClick={handleConnect}
-      disabled={connecting}
-      className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-[#5865F2]/12 border border-[#5865F2]/25 text-[#c8cdff] text-sm font-medium hover:bg-[#5865F2]/20 disabled:opacity-40 transition-all"
-    >
-      {connecting ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <LinkIcon className="w-4 h-4" />
-      )}
-      <DiscordIcon className="w-4 h-4" />
-      {t("settings.connectDiscord")}
-    </button>
+    <div className="space-y-3">
+      <button
+        onClick={handleConnect}
+        disabled={connecting}
+        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-[#5865F2]/12 border border-[#5865F2]/25 text-[#c8cdff] text-sm font-medium hover:bg-[#5865F2]/20 disabled:opacity-40 transition-all"
+      >
+        {connecting ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <LinkIcon className="w-4 h-4" />
+        )}
+        <DiscordIcon className="w-4 h-4" />
+        {t("settings.connectDiscord")}
+      </button>
+
+      {botEnabled ? (
+        <div className="rounded-xl border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02] p-4 space-y-3">
+          <div>
+            <p className="text-sm font-medium text-foreground/90 dark:text-white/80">
+              {t("settings.discordLinkCodeTitle")}
+            </p>
+            <p className="text-[11px] text-muted-foreground dark:text-white/40 mt-1 leading-relaxed">
+              {t("settings.discordLinkCodeHint")}
+            </p>
+          </div>
+          {linkCode ? (
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-lg bg-black/20 px-3 py-2 text-center font-mono text-lg tracking-[0.2em] text-[#c8cdff]">
+                {linkCode}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyLinkCode}
+                className="px-3 py-2 rounded-lg border border-[#5865F2]/25 text-xs font-medium text-[#c8cdff] hover:bg-[#5865F2]/10"
+              >
+                {t("settings.discordLinkCodeCopy")}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleGenerateLinkCode}
+              disabled={generatingCode}
+              className="w-full px-3 py-2 rounded-lg border border-[#5865F2]/20 text-sm text-[#c8cdff]/90 hover:bg-[#5865F2]/10 disabled:opacity-40"
+            >
+              {generatingCode ? (
+                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+              ) : (
+                t("settings.discordLinkCodeGenerate")
+              )}
+            </button>
+          )}
+          {linkCode ? (
+            <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
+              {t("settings.discordLinkCodeExpires")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

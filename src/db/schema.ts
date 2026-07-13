@@ -39,6 +39,8 @@ export const users = pgTable("users", {
   malUsername: varchar("mal_username", { length: 100 }),
   discordId: varchar("discord_id", { length: 32 }),
   discordUsername: varchar("discord_username", { length: 100 }),
+  /** Set while the linked Discord account is actively boosting the server. */
+  discordBoostSince: timestamp("discord_boost_since"),
   totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   profilePrivate: boolean("profile_private").notNull().default(false),
@@ -62,6 +64,23 @@ export const users = pgTable("users", {
   activityStatus: varchar("activity_status", { length: 12 }).notNull().default("online"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+/** Short-lived codes for linking Discord via /link on the server. */
+export const discordLinkCodes = pgTable(
+  "discord_link_codes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 12 }).notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("discord_link_codes_user_idx").on(t.userId),
+  }),
+);
 
 /** User-uploaded images (avatars, banners) stored in-DB as base64. */
 export const uploads = pgTable(
