@@ -17,5 +17,8 @@ export async function register() {
     await runReactiveTwoFactorMaintenance().catch((e) =>
       console.error("[2fa-reactive] maintenance failed:", e),
     );
+
+    const { startDiscordBot } = await import("./discord-bot/index");
+    startDiscordBot();
   }
 }

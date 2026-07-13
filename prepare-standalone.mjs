@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { execSync } from "node:child_process";
 
 const root = process.cwd();
 const standaloneDir = path.join(root, ".next", "standalone");
@@ -28,12 +27,6 @@ if (!fs.existsSync(standaloneDir)) {
 
 copyDir(path.join(root, "public"), path.join(standaloneDir, "public"));
 copyDir(path.join(root, ".next", "static"), path.join(standaloneDir, ".next", "static"));
-const scriptsSrc = path.join(root, "scripts");
-if (fs.existsSync(scriptsSrc)) {
-  copyDir(scriptsSrc, path.join(standaloneDir, "scripts"));
-} else {
-  console.warn("[prepare-standalone] scripts/ missing — discord bot will not start in standalone");
-}
 
 // Shrink deploy artifacts — safe after standalone bundle is written.
 rmDir(path.join(root, ".next", "cache"));
@@ -43,19 +36,9 @@ const isCiBuild =
   Boolean(process.env.COOLIFY_RESOURCE_UUID) ||
   process.env.RAILPACK === "1";
 
-// Discord bot runs from scripts/ in the standalone bundle — needs discord.js at runtime.
-try {
-  execSync("npm install discord.js@^14.26.5 --omit=dev --no-fund --no-audit", {
-    cwd: standaloneDir,
-    stdio: "inherit",
-  });
-} catch (e) {
-  console.warn("[prepare-standalone] discord.js install failed:", e);
-}
-
 if (isCiBuild) {
   rmDir(path.join(root, "node_modules"));
-  console.log("[prepare-standalone] standalone ready; root node_modules removed");
+  console.log("[prepare-standalone] public + static copied; root node_modules removed");
 } else {
-  console.log("[prepare-standalone] standalone ready");
+  console.log("[prepare-standalone] public + static copied; .next/cache removed");
 }

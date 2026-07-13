@@ -5,7 +5,7 @@
 
 ARG NODE_IMAGE=node:24-alpine
 
-FROM ${NODE_IMAGE} AS deps
+FROM ${NODE_IMAGE} AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package*.json ./
@@ -16,9 +16,6 @@ RUN npm install --no-fund --no-audit --no-update-notifier \
     --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 \
     --fetch-timeout=300000
 
-FROM ${NODE_IMAGE} AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ARG NEXT_PUBLIC_APP_URL
@@ -68,13 +65,10 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
-# prepare-standalone.mjs bundles public/ + scripts/ into standalone during Docker builds (CI=true).
+# prepare-standalone.mjs bundles public/ into standalone during Docker builds (CI=true).
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Belt-and-suspenders: bot startup scripts must exist even if postbuild copy is skipped.
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/start-with-bot.mjs ./scripts/start-with-bot.mjs
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/discord-bot.mjs ./scripts/discord-bot.mjs
 
 USER nextjs
 EXPOSE 3000
-CMD ["node", "scripts/start-with-bot.mjs"]
+CMD ["node", "server.js"]

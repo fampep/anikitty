@@ -26,6 +26,13 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  outputFileTracingIncludes: {
+    "/*": [
+      "./node_modules/discord.js/**/*",
+      "./node_modules/@discordjs/**/*",
+      "./node_modules/@sapphire/**/*",
+    ],
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
