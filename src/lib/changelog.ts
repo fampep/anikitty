@@ -28,6 +28,17 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.7.6",
+    date: "2026-07-13",
+    title: "Profile customization & next-episode countdown",
+    changes: [
+      { type: "added", text: "Profile section toggles in Settings — choose which blocks (About, Watchlist, Activity, sidebar stats, and more) appear on your public profile." },
+      { type: "added", text: "BBCode formatting in About Me — bold, italic, links, colors, and more, with a live preview while editing." },
+      { type: "added", text: "Next-episode countdown on anime detail and watch pages when the next episode has an air date." },
+      { type: "fixed", text: "Skip timestamp submission now uses a normal keyboard on mobile so you can type the colon in times like 1:30." },
+    ],
+  },
+  {
     version: "0.7.5",
     date: "2026-07-12",
     title: "New home, custom subtitle fonts & more servers",

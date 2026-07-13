@@ -865,6 +865,10 @@
     "noCommentsYet": "No comments yet",
     "libraryStats": "Anime library",
     "addBioCta": "Add a bio",
+    "bioPlaceholder": "Tell everyone a little about yourself… BBCode is supported.",
+    "bioBbcodeHint": "Use BBCode to style your bio — bold, colors, links, quotes, spoilers, lists, and more.",
+    "bioBbcodeTags": "BBCode tags",
+    "bioPreview": "Preview",
     "sectionNav": {
       "label": "Profile sections",
       "continue": "Continue",
@@ -873,6 +877,25 @@
       "activity": "Activity",
       "comments": "Comments",
       "achievements": "Achievements"
+    },
+    "sections": {
+      "title": "Profile sections",
+      "desc": "Choose which blocks appear on your public profile page",
+      "hint": "Turn sections off to keep your profile minimal. At least one main section must stay visible.",
+      "saved": "Profile sections updated",
+      "saveFailed": "Could not save profile sections",
+      "loadFailed": "Could not load profile sections",
+      "headerBio": "Bio preview",
+      "headerBioDesc": "Short bio under your name in the profile header",
+      "continueWatching": "Continue watching",
+      "continueWatchingDesc": "Your continue-watching row (only you see this)",
+      "aboutDesc": "About Me section with your full bio",
+      "watchlistDesc": "Anime lists by status",
+      "activityDesc": "Watch activity heatmap",
+      "libraryStats": "Anime library",
+      "libraryStatsDesc": "Library breakdown in the sidebar",
+      "achievementsDesc": "Achievements panel in the sidebar",
+      "skipContributionsDesc": "Community skip timestamp contributions"
     },
     "achievementsMeta": {
       "streakDays": "{count}-day streak",
@@ -1142,7 +1165,7 @@
   },
   "faq": {
     "title": "FAQ",
-    "subtitle": "How AniKitty works, what features need an account, and what data the site collects. Last reviewed for v0.7.5.",
+    "subtitle": "How AniKitty works, what features need an account, and what data the site collects. Last reviewed for v0.7.6.",
     "lastUpdated": "Last updated {date}",
     "stillQuestions": "Still have questions?",
     "contactDesc": "Join the Discord community or open an issue on GitHub. For account-specific requests (deletion, privacy), contact moderators there.",

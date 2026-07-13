@@ -1,0 +1,9 @@
+AniKitty 0.7.6 - Profile customization & next-episode countdown
+
+ADDED
+- Profile section toggles in Settings: choose which blocks (About, Watchlist, Activity, sidebar stats, and more) appear on your public profile.
+- BBCode formatting in About Me — bold, italic, links, colors, and more, with a live preview while editing.
+- Next-episode countdown on anime detail and watch pages when the next episode has an air date.
+
+FIXED
+- Skip timestamp submission now uses a normal keyboard on mobile so you can type the colon in times like 1:30.

@@ -10,6 +10,9 @@ import { withAuth } from "@/lib/auth/auth-fetch";
 import ProfileMediaPreview from "@/components/profile/profile-media-preview";
 import ImageCropper from "@/components/common/image-cropper";
 import { cn } from "@/lib/core/utils";
+import { PROFILE_BBCODE_HINT, PROFILE_BIO_MAX_LENGTH } from "@/lib/text/bbcode";
+import ProfileBioContent from "@/components/profile/profile-bio-content";
+import { useT } from "@/providers/i18n-provider";
 
 type MediaKind = "avatar" | "banner";
 
@@ -33,6 +36,7 @@ export default function ProfileCustomizationForm({
   showBio = true,
   compact = false,
 }: Props) {
+  const t = useT();
   const [avatarUrl, setAvatarUrl] = useState(initial.avatarUrl);
   const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl);
   const [bio, setBio] = useState(initial.bio);
@@ -319,16 +323,39 @@ export default function ProfileCustomizationForm({
 
       {showBio && (
         <div className="flex flex-col gap-2">
-          <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-widest">Bio</label>
+          <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-widest">
+            {t("profile.aboutMe")}
+          </label>
           <textarea
             value={bio}
-            onChange={(e) => setBio(e.target.value.slice(0, 200))}
-            placeholder="Tell everyone a little about yourself…"
-            rows={3}
-            maxLength={200}
-            className="w-full bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-none focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+            onChange={(e) => setBio(e.target.value.slice(0, PROFILE_BIO_MAX_LENGTH))}
+            placeholder={t("profile.bioPlaceholder")}
+            rows={5}
+            maxLength={PROFILE_BIO_MAX_LENGTH}
+            className="w-full bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-y min-h-[120px] focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors font-mono"
           />
-          <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15 text-right">{bio.length}/200</span>
+          <p className="text-[10px] leading-relaxed text-muted-foreground/80 dark:text-white/30">
+            {t("profile.bioBbcodeHint")}
+          </p>
+          <details className="rounded-lg border border-border/60 dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] px-3 py-2">
+            <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wide text-muted-foreground dark:text-white/35">
+              {t("profile.bioBbcodeTags")}
+            </summary>
+            <p className="mt-2 text-[10px] leading-relaxed font-mono text-muted-foreground/80 dark:text-white/30 break-all">
+              {PROFILE_BBCODE_HINT}
+            </p>
+          </details>
+          {bio.trim() && (
+            <div className="rounded-xl border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02] px-4 py-3">
+              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground dark:text-white/30 mb-2">
+                {t("profile.bioPreview")}
+              </p>
+              <ProfileBioContent bio={bio} />
+            </div>
+          )}
+          <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15 text-right">
+            {bio.length}/{PROFILE_BIO_MAX_LENGTH}
+          </span>
         </div>
       )}
 

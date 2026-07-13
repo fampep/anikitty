@@ -20,6 +20,7 @@ export type PublicUserRow = {
   equippedFrame: string | null;
   equippedSticker: string | null;
   equippedIcon: string | null;
+  preferences: Record<string, unknown> | null;
 };
 
 export async function getUserByUsername(
@@ -43,6 +44,7 @@ export async function getUserByUsername(
       equippedFrame: users.equippedFrame,
       equippedSticker: users.equippedSticker,
       equippedIcon: users.equippedIcon,
+      preferences: users.preferences,
     })
     .from(users)
     .leftJoin(roles, eq(roles.name, users.role))

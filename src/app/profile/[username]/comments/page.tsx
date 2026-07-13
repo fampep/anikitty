@@ -7,6 +7,7 @@ import Container from "@/components/layout/container";
 import FramedAvatar from "@/components/common/framed-avatar";
 import { CosmeticUsername } from "@/components/common/user-cosmetics";
 import ProfileMediaPreview from "@/components/profile/profile-media-preview";
+import ProfileBioContent from "@/components/profile/profile-bio-content";
 import ProfileSubNav from "@/components/profile/profile-sub-nav";
 import ProfileCommentsFeed from "@/components/profile/profile-comments-feed";
 import Loading from "@/app/loading";
@@ -146,7 +147,7 @@ export default function ProfileCommentsPage() {
 
         {profile.bio && (
           <div className="mb-6 rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-neutral-900 px-4 py-3 lg:hidden">
-            <p className="text-sm text-muted-foreground dark:text-white/75 leading-relaxed">{profile.bio}</p>
+            <ProfileBioContent bio={profile.bio} />
           </div>
         )}
 

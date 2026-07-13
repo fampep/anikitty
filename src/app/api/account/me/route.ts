@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { eq } from "drizzle-orm";
 import { isSafeHttpsUrl } from "@/lib/security/security";
+import { PROFILE_BIO_MAX_LENGTH } from "@/lib/text/bbcode";
 import { isValidThemeColor, normalizeThemeColor } from "@/lib/core/theme-color";
 import { getRolePermissions } from "@/lib/security/permissions";
 import { expireSupporterIfNeeded } from "@/lib/social/supporter-access";
@@ -123,7 +124,7 @@ export async function PUT(req: Request) {
       .set({
         ...(avatarUrl !== undefined && { avatarUrl: avatarUrl ?? null }),
         ...(bannerUrl !== undefined && { bannerUrl: bannerUrl ?? null }),
-        ...(bio !== undefined && { bio: bio ? String(bio).slice(0, 200) : null }),
+        ...(bio !== undefined && { bio: bio ? String(bio).slice(0, PROFILE_BIO_MAX_LENGTH) : null }),
         ...(themeColor !== undefined && { themeColor: normalizeThemeColor(themeColor) }),
       })
       .where(eq(users.id, payload.userId))

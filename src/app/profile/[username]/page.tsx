@@ -16,6 +16,7 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { applyUserThemeColor, hexToRgb } from "@/lib/core/theme-color";
 import { withAuth } from "@/lib/auth/auth-fetch";
+import ProfileBioContent from "@/components/profile/profile-bio-content";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile/profile-customization-form";
@@ -75,6 +76,11 @@ import { useI18n } from "@/providers/i18n-provider";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 import { PresenceStatusLine, PresenceDot } from "@/components/profile/presence-indicator";
 import { formatJoinedAt, type PublicPresenceStatus } from "@/lib/user/presence";
+import {
+  DEFAULT_PROFILE_SECTIONS,
+  isProfileSectionVisible,
+  type ProfileSectionVisibility,
+} from "@/lib/user/profile-sections";
 
 type ProfileCounts = {
   watching: number;
@@ -105,6 +111,7 @@ type ProfileData = {
   lastOnlineAt?: string | null;
   activityStatus?: string;
   profilePrivate?: boolean;
+  profileSections?: ProfileSectionVisibility;
   equippedFrame?: string | null;
   equippedSticker?: string | null;
   equippedIcon?: string | null;
@@ -512,12 +519,36 @@ function ProfilePage() {
   const themeRgb = profile.themeColor ? hexToRgb(profile.themeColor) : null;
 
   const profileSections = [
-    ...(isOwn ? [{ id: "continue", label: t("profile.sectionNav.continue") }] : []),
-    { id: "about", label: t("profile.sectionNav.about") },
-    { id: "watchlist", label: t("profile.sectionNav.watchlist") },
-    { id: "activity", label: t("profile.sectionNav.activity") },
-    { id: "achievements", label: t("profile.sectionNav.achievements") },
+    ...(isOwn && isProfileSectionVisible(profile.profileSections, "continueWatching")
+      ? [{ id: "continue", label: t("profile.sectionNav.continue") }]
+      : []),
+    ...(isProfileSectionVisible(profile.profileSections, "about")
+      ? [{ id: "about", label: t("profile.sectionNav.about") }]
+      : []),
+    ...(isProfileSectionVisible(profile.profileSections, "watchlist")
+      ? [{ id: "watchlist", label: t("profile.sectionNav.watchlist") }]
+      : []),
+    ...(isProfileSectionVisible(profile.profileSections, "activity")
+      ? [{ id: "activity", label: t("profile.sectionNav.activity") }]
+      : []),
+    ...(isProfileSectionVisible(profile.profileSections, "achievements")
+      ? [{ id: "achievements", label: t("profile.sectionNav.achievements") }]
+      : []),
   ];
+
+  const sectionVis = profile.profileSections ?? DEFAULT_PROFILE_SECTIONS;
+  const showHeaderBio = isProfileSectionVisible(sectionVis, "headerBio");
+  const showContinue = isOwn && isProfileSectionVisible(sectionVis, "continueWatching");
+  const showAbout = isProfileSectionVisible(sectionVis, "about");
+  const showWatchlist = isProfileSectionVisible(sectionVis, "watchlist");
+  const showActivity = isProfileSectionVisible(sectionVis, "activity");
+  const showLibraryStats = isProfileSectionVisible(sectionVis, "libraryStats");
+  const showAchievements = isProfileSectionVisible(sectionVis, "achievements");
+  const showSkipContributions =
+    isProfileSectionVisible(sectionVis, "skipContributions") &&
+    skipContributions &&
+    skipContributions.approved > 0;
+  const hasSidebar = showLibraryStats || showAchievements || showSkipContributions;
 
   const librarySegments: LibrarySegment[] = getStatusTabs(t).map((tab) => ({
     key: tab.key,
@@ -789,10 +820,11 @@ function ProfilePage() {
                   </p>
                 )}
 
-                {profile.bio && (
-                  <p className="mt-3 max-w-xl text-sm text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 text-center md:text-left">
-                    {profile.bio}
-                  </p>
+                {profile.bio && showHeaderBio && (
+                  <ProfileBioContent
+                    bio={profile.bio}
+                    className="mt-3 max-w-xl text-muted-foreground dark:text-white/50 line-clamp-3 text-center md:text-left"
+                  />
                 )}
               </div>
 
@@ -841,7 +873,7 @@ function ProfilePage() {
           </div>
         </div>
 
-        <ProfileSectionNav sections={profileSections} />
+        {profileSections.length > 0 && <ProfileSectionNav sections={profileSections} />}
 
         <ProfileSubNav
           username={profile.username}
@@ -850,8 +882,12 @@ function ProfilePage() {
           placement="mobile"
         />
 
-        {/* ── Main content: sub-nav + two columns (main + sticky sidebar) ─────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-6 lg:gap-8 items-start",
+            hasSidebar ? "lg:grid-cols-[280px_minmax(0,1fr)_340px]" : "lg:grid-cols-[280px_minmax(0,1fr)]",
+          )}
+        >
           <ProfileSubNav
             username={profile.username}
             active="overview"
@@ -861,17 +897,18 @@ function ProfilePage() {
 
           {/* ── Center: primary content ── */}
           <div className="flex flex-col gap-10 min-w-0 lg:col-span-1">
-          {isOwn && (
+          {showContinue && (
             <section id="continue" className="scroll-mt-24">
               <ContinueWatching loading={false} />
             </section>
           )}
 
+          {showAbout && (
           <section id="about" className="scroll-mt-24">
             <SectionLabel icon={<UserRound className="w-4 h-4" />} title={t("profile.aboutMe")} />
             <div className="site-panel p-5">
               {profile.bio ? (
-                <p className="text-sm text-foreground/80 dark:text-white/70 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
+                <ProfileBioContent bio={profile.bio} />
               ) : isOwn ? (
                 <div className="flex flex-col items-center gap-4 py-4 text-center sm:flex-row sm:items-center sm:py-2 sm:text-left">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03]">
@@ -897,7 +934,9 @@ function ProfilePage() {
               )}
             </div>
           </section>
+          )}
 
+          {showWatchlist && (
           <section id="watchlist" className="scroll-mt-24">
             <SectionLabel
               icon={<List className="w-4 h-4" />}
@@ -948,17 +987,21 @@ function ProfilePage() {
               ))}
             </Tabs>
           </section>
+          )}
 
+          {showActivity && (
           <section id="activity" className="scroll-mt-24">
             <SectionLabel icon={<Activity className="w-4 h-4" />} title={t("profile.watchActivity")} />
             <div className="site-panel p-5">
               <AnimeHeatmap username={profile.username} />
             </div>
           </section>
+          )}
           </div>
 
-          {/* ── Right: sticky sidebar (quick stats + achievements) ── */}
+          {hasSidebar && (
           <aside className="flex flex-col gap-6 lg:sticky lg:top-20 lg:col-span-1">
+            {showLibraryStats && (
             <div className="site-panel p-5">
               <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.libraryStats")} inline />
               <ProfileLibraryBreakdownBar segments={librarySegments} total={totalAnime} />
@@ -988,13 +1031,16 @@ function ProfilePage() {
                 {t("profile.stats.total")}
               </p>
             </div>
+            )}
 
+            {showAchievements && (
             <div id="achievements" className="site-panel p-5 scroll-mt-24">
               <SectionLabel icon={<Trophy className="w-4 h-4" />} title={t("profile.achievements")} />
               <AchievementsSection username={profile.username} isOwn={isOwn} compact />
             </div>
+            )}
 
-            {skipContributions && skipContributions.approved > 0 && (
+            {showSkipContributions && skipContributions && (
               <div className="site-panel p-5">
                 <SectionLabel icon={<Timer className="w-4 h-4" />} title={t("profile.skipContributions")} />
                 <div className="flex items-baseline gap-2">
@@ -1015,6 +1061,7 @@ function ProfilePage() {
               </div>
             )}
           </aside>
+          )}
         </div>
       </Container>
 

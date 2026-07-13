@@ -9,6 +9,7 @@ import {
 } from "@/lib/user/profile-privacy";
 import { eq } from "drizzle-orm";
 import { resolvePublicPresence, type ActivityStatus } from "@/lib/user/presence";
+import { readProfileSectionsFromPreferences } from "@/lib/user/profile-sections";
 
 type ResolveResult =
   | { ok: false; response: NextResponse }
@@ -78,6 +79,7 @@ export function publicUserFields(user: PublicUserRow, viewerId: string | null = 
     presenceStatus: presence.status,
     lastOnlineAt: presence.showLastOnline ? user.lastOnlineAt?.toISOString() ?? null : null,
     ...(isOwner ? { activityStatus } : {}),
+    profileSections: readProfileSectionsFromPreferences(user.preferences),
   };
 }
 

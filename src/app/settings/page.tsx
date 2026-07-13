@@ -47,6 +47,7 @@ import TwoFactorSection from "@/components/auth/two-factor-section";
 import PasskeysSection from "@/components/auth/passkeys-section";
 import ActiveSessionsSection from "@/components/auth/active-sessions-section";
 import ProfilePrivacySection from "@/components/profile/profile-privacy-section";
+import ProfileSectionsSettings from "@/components/profile/profile-sections-settings";
 import BlockedUsersSection from "@/components/profile/blocked-users-section";
 import AccountDeletionSection from "@/components/auth/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
@@ -897,6 +898,16 @@ export default function SettingsPage() {
                     </SectionBody>
                   </SectionCard>
                   <AppearanceSection />
+                  <SectionCard>
+                    <SectionHeader
+                      icon={<LayoutGrid className="w-4 h-4" />}
+                      title={t("profile.sections.title")}
+                      description={t("profile.sections.desc")}
+                    />
+                    <SectionBody>
+                      <ProfileSectionsSettings />
+                    </SectionBody>
+                  </SectionCard>
                   <SectionCard>
                     <SectionHeader
                       icon={<Radio className="w-4 h-4" />}
