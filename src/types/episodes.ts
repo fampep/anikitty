@@ -1,5 +1,7 @@
 export interface IEpisodes {
   totalEpisodes: number;
+  /** Episodes that have actually aired (optional — derived from list when absent). */
+  airedCount?: number;
   episodes: Episode[];
 }
 
@@ -11,6 +13,8 @@ export interface Episode {
   image?: string | null;
   overview?: string | null;
   airDate?: string | null;
+  /** False when the episode is listed but not yet released. */
+  aired?: boolean;
 }
 
 export interface IEpisodeSource {

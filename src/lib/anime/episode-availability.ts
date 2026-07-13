@@ -104,10 +104,64 @@ export function resolveAiredEpisodeCount(ctx: AiringContext): number {
   return ctx.episodes ?? ctx.streamingEpisodeCount ?? 0;
 }
 
+function maxPositive(...values: Array<number | null | undefined>): number {
+  let max = 0;
+  for (const value of values) {
+    if (value != null && value > max) max = value;
+  }
+  return max;
+}
+
+/** Highest episode index found in episode metadata maps (AniZip, TMDB, etc.). */
+export function maxEpisodeNumberInRecords(
+  ...records: Array<Record<number, unknown>>
+): number {
+  let max = 0;
+  for (const record of records) {
+    for (const key of Object.keys(record)) {
+      const num = parseInt(key, 10);
+      if (num > max) max = num;
+    }
+  }
+  return max;
+}
+
+/** Full season length for UI lists — includes episodes that have not aired yet. */
+export function resolveTotalEpisodeCount(
+  ctx: AiringContext & { metadataMaxEpisode?: number },
+): number {
+  const aired = resolveAiredEpisodeCount(ctx);
+  const planned = ctx.episodes;
+  const metadataMax = ctx.metadataMaxEpisode ?? 0;
+
+  let total = maxPositive(planned, metadataMax, aired);
+
+  const nextEp = ctx.nextAiringEpisode;
+  if (nextEp != null && nextEp > 0) {
+    total = Math.max(total, nextEp);
+  }
+
+  return total;
+}
+
+/** Whether an episode has been released and can be watched. */
+export function resolveEpisodeAiredStatus(
+  episodeNumber: number,
+  airDate: string | null | undefined,
+  airedUpTo: number,
+): boolean {
+  if (airDate?.trim()) {
+    return isEpisodeAiredByDate(airDate);
+  }
+  return episodeNumber <= airedUpTo;
+}
+
 export function isEpisodePlayable(
   episode: Episode | null | undefined,
 ): boolean {
   if (!episode) return false;
+  if (episode.aired === false) return false;
+  if (episode.aired === true) return true;
   return isEpisodeAiredByDate(episode.airDate);
 }
 

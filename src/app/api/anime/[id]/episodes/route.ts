@@ -1,7 +1,10 @@
 import { queryAniList } from "@/lib/oauth/anilist";
 import {
   fetchAllEpisodeImageSources,
+  maxEpisodeNumberInSources,
+  resolveEpisodeAirDate,
   resolveEpisodeImage,
+  resolveEpisodeOverview,
   resolveEpisodeTitle,
   type EpisodeImageSources,
 } from "@/lib/anime/episode-thumbnails";
@@ -11,8 +14,9 @@ import {
   type EpisodeContentFlags,
 } from "@/lib/anime/episode-filler";
 import {
-  isEpisodeAiredByDate,
   resolveAiredEpisodeCount,
+  resolveEpisodeAiredStatus,
+  resolveTotalEpisodeCount,
 } from "@/lib/anime/episode-availability";
 
 export const revalidate = 3600;
@@ -42,6 +46,17 @@ const MINIMAL_QUERY = `
     }
   }
 `;
+
+const EMPTY_SOURCES: EpisodeImageSources = {
+  anilist: {},
+  anilistTitles: {},
+  anizip: {},
+  tvdbById: {},
+  tvdbByOrder: {},
+  tmdb: {},
+  tmdbMeta: {},
+  mappings: null,
+};
 
 export async function GET(
   _req: Request,
@@ -73,54 +88,59 @@ export async function GET(
     if (!m) return Response.json({ error: "Not found" }, { status: 404 });
 
     const streamingEpisodes = m.streamingEpisodes ?? [];
-    const airedUpTo = resolveAiredEpisodeCount({
+    const airingCtx = {
       status: m.status,
       episodes: m.episodes,
       nextAiringEpisode: m.nextAiringEpisode?.episode ?? null,
       nextAiringAt: m.nextAiringEpisode?.airingAt ?? null,
       streamingEpisodeCount: streamingEpisodes.length,
+    };
+
+    const airedUpTo = resolveAiredEpisodeCount(airingCtx);
+
+    const sources = await fetchAllEpisodeImageSources(numId, streamingEpisodes).catch(
+      () => EMPTY_SOURCES,
+    );
+
+    const totalEpisodes = resolveTotalEpisodeCount({
+      ...airingCtx,
+      metadataMaxEpisode: maxEpisodeNumberInSources(sources),
     });
 
-    if (airedUpTo <= 0) {
-      return Response.json({ data: { totalEpisodes: 0, episodes: [] } });
+    if (totalEpisodes <= 0) {
+      return Response.json({ data: { totalEpisodes: 0, airedCount: 0, episodes: [] } });
     }
 
-    const emptySources: EpisodeImageSources = {
-      anilist: {},
-      anilistTitles: {},
-      anizip: {},
-      tvdbById: {},
-      tvdbByOrder: {},
-      tmdb: {},
-      mappings: null,
-    };
-    const sources = await fetchAllEpisodeImageSources(numId, streamingEpisodes).catch(
-      () => emptySources,
-    );
     const malId = sources.mappings?.mal_id ?? m.idMal ?? null;
     const fillerFlags: Record<number, EpisodeContentFlags> = malId
-      ? await fetchMalEpisodeFlags(malId, airedUpTo).catch(() => ({}))
+      ? await fetchMalEpisodeFlags(malId, totalEpisodes).catch(() => ({}))
       : {};
 
-    const episodes = Array.from({ length: airedUpTo }, (_, i) => {
+    const episodes = Array.from({ length: totalEpisodes }, (_, i) => {
       const num = i + 1;
-      const title = resolveEpisodeTitle(num, sources) ?? `Episode ${num}`;
-      const zip = sources.anizip[num];
-      const flags = fillerFlags[num];
+      const airDate = resolveEpisodeAirDate(num, sources);
+      const aired = resolveEpisodeAiredStatus(num, airDate, airedUpTo);
 
       return {
-        title,
+        title: resolveEpisodeTitle(num, sources) ?? `Episode ${num}`,
         episodeId: `ep-${num}`,
         number: num,
-        isFiller: isSkippableEpisode(flags),
+        isFiller: isSkippableEpisode(fillerFlags[num]),
         image: resolveEpisodeImage(num, sources),
-        overview: zip?.overview ?? null,
-        airDate: zip?.airDate ?? null,
+        overview: resolveEpisodeOverview(num, sources),
+        airDate,
+        aired,
       };
-    }).filter((ep) => isEpisodeAiredByDate(ep.airDate));
+    });
 
     return Response.json(
-      { data: { totalEpisodes: episodes.length, episodes } },
+      {
+        data: {
+          totalEpisodes: episodes.length,
+          airedCount: episodes.filter((ep) => ep.aired).length,
+          episodes,
+        },
+      },
       {
         headers: {
           "Cache-Control":

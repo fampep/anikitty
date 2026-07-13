@@ -52,8 +52,11 @@ const WatchButton = () => {
     return `${ROUTES.WATCH}?${params.toString()}`;
   }, [animeId, hasWatchedAnime, latestEpisodeWatched, resumeTime]);
 
-  if (!isLoading && (episodes?.totalEpisodes ?? 0) === 0) {
-    return null;
+  if (!isLoading) {
+    const playable =
+      (episodes?.airedCount ?? 0) > 0 ||
+      episodes?.episodes.some((ep) => ep.aired !== false);
+    if (!playable) return null;
   }
 
   return (

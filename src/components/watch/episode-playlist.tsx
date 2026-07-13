@@ -7,6 +7,10 @@ import { useSearchParams } from "next/navigation";
 import { useAnimeStore } from "@/store/anime-store";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
+import {
+  firstPlayableEpisode,
+  lastPlayableEpisode,
+} from "@/lib/anime/episode-availability";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { Eye, EyeOff, Grid2x2, LayoutGrid, LayoutList, Search, SkipForward } from "lucide-react";
 import { cn } from "@/lib/core/utils";
@@ -85,8 +89,8 @@ const EpisodePlaylist = ({
   useEffect(() => {
     if (episodeId || !episodes?.episodes.length) return;
     const target = isLatestEpisode
-      ? episodes.episodes[episodes.episodes.length - 1].episodeId
-      : episodes.episodes[0].episodeId;
+      ? lastPlayableEpisode(episodes.episodes)?.episodeId
+      : firstPlayableEpisode(episodes.episodes)?.episodeId;
     if (target) setSelectedEpisode(target);
   }, [episodeId, episodes, isLatestEpisode, setSelectedEpisode]);
 

@@ -18,6 +18,7 @@ export type EpisodeImageSources = {
   tvdbById: Record<number, string>;
   tvdbByOrder: Record<number, string>;
   tmdb: Record<number, string>;
+  tmdbMeta: Record<number, EpisodeMeta>;
   mappings: {
     thetvdb_id?: number;
     themoviedb_id?: number | string;
@@ -133,21 +134,23 @@ export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
   }
 }
 
-async function fetchTmdbEpisodeImages(
+async function fetchTmdbEpisodeData(
   tmdbId: number | string,
-): Promise<Record<number, string>> {
+): Promise<{ images: Record<number, string>; meta: Record<number, EpisodeMeta> }> {
   const apiKey = process.env.TMDB_API_KEY?.trim();
-  const map: Record<number, string> = {};
-  if (!apiKey || !tmdbId) return map;
+  const images: Record<number, string> = {};
+  const meta: Record<number, EpisodeMeta> = {};
+  if (!apiKey || !tmdbId) return { images, meta };
 
   const id = encodeURIComponent(String(tmdbId));
+  const baseUrl = process.env.TMDB_API_URL ?? "https://api.themoviedb.org/3";
 
   try {
     const showRes = await fetch(
-      `${process.env.TMDB_API_URL ?? "https://api.themoviedb.org/3"}/tv/${id}?api_key=${encodeURIComponent(apiKey)}`,
+      `${baseUrl}/tv/${id}?api_key=${encodeURIComponent(apiKey)}`,
       { signal: AbortSignal.timeout(6000), next: { revalidate: 3600 } },
     );
-    if (!showRes.ok) return map;
+    if (!showRes.ok) return { images, meta };
 
     const show = await showRes.json();
     const seasons: Array<{ season_number: number }> = show?.seasons ?? [];
@@ -162,22 +165,36 @@ async function fetchTmdbEpisodeImages(
     for (const seasonNum of seasonNums) {
       try {
         const res = await fetch(
-          `${process.env.TMDB_API_URL ?? "https://api.themoviedb.org/3"}/tv/${id}/season/${seasonNum}?api_key=${encodeURIComponent(apiKey)}`,
+          `${baseUrl}/tv/${id}/season/${seasonNum}?api_key=${encodeURIComponent(apiKey)}`,
           { signal: AbortSignal.timeout(6000), next: { revalidate: 3600 } },
         );
         if (!res.ok) continue;
         const data = await res.json();
-        const eps: Array<{ episode_number?: number; still_path?: string }> =
-          data?.episodes ?? [];
+        const eps: Array<{
+          episode_number?: number;
+          still_path?: string;
+          name?: string;
+          overview?: string;
+          air_date?: string;
+        }> = data?.episodes ?? [];
 
         for (const ep of eps) {
           absolute += 1;
           const still = ep.still_path;
-          if (!still) continue;
-          const url = `${TMDB_IMAGE}${still}`;
-          if (!map[absolute]) map[absolute] = url;
-          if (typeof ep.episode_number === "number" && (seasonNum === 1 || singleSeason)) {
-            if (!map[ep.episode_number]) map[ep.episode_number] = url;
+          const image = still ? `${TMDB_IMAGE}${still}` : undefined;
+          const title = ep.name?.trim() || undefined;
+          const overview = ep.overview?.trim() || undefined;
+          const airDate = ep.air_date?.trim() || undefined;
+          const episodeMeta: EpisodeMeta = { image, title, overview, airDate };
+
+          const keys = new Set<number>([absolute]);
+          if (typeof ep.episode_number === "number" && ep.episode_number > 0) {
+            if (seasonNum === 1 || singleSeason) keys.add(ep.episode_number);
+          }
+
+          for (const num of keys) {
+            if (image && !images[num]) images[num] = image;
+            meta[num] = mergeEpisodeMeta(meta[num], episodeMeta);
           }
         }
       } catch {
@@ -185,10 +202,10 @@ async function fetchTmdbEpisodeImages(
       }
     }
   } catch (err) {
-    console.error("[tmdb] episode images failed:", err);
+    console.error("[tmdb] episode data failed:", err);
   }
 
-  return map;
+  return { images, meta };
 }
 
 export async function fetchAllEpisodeImageSources(
@@ -201,8 +218,8 @@ export async function fetchAllEpisodeImageSources(
   const tvdbId = aniZip.mappings?.thetvdb_id;
   const tmdbId = aniZip.mappings?.themoviedb_id;
 
-  const [tmdb, tvdb] = await Promise.all([
-    tmdbId ? fetchTmdbEpisodeImages(tmdbId) : Promise.resolve({}),
+  const [tmdbData, tvdb] = await Promise.all([
+    tmdbId ? fetchTmdbEpisodeData(tmdbId) : Promise.resolve({ images: {}, meta: {} }),
     tvdbId
       ? fetchTvdbEpisodeImages(tvdbId)
       : Promise.resolve({ byId: {}, byAiredOrder: {} } as const),
@@ -214,7 +231,8 @@ export async function fetchAllEpisodeImageSources(
     anizip: aniZip.episodes,
     tvdbById: tvdb.byId,
     tvdbByOrder: tvdb.byAiredOrder,
-    tmdb,
+    tmdb: tmdbData.images,
+    tmdbMeta: tmdbData.meta,
     mappings: aniZip.mappings,
   };
 }
@@ -224,9 +242,11 @@ export function resolveEpisodeImage(
   sources: EpisodeImageSources,
 ): string | null {
   const zip = sources.anizip[num];
+  const tmdb = sources.tmdbMeta[num];
   return firstDefined(
     sources.anilist[num],
     zip?.image,
+    tmdb?.image,
     sources.tmdb[num],
     zip?.tvdbId ? sources.tvdbById[zip.tvdbId] : undefined,
     sources.tvdbByOrder[num],
@@ -238,7 +258,36 @@ export function resolveEpisodeTitle(
   sources: EpisodeImageSources,
 ): string | undefined {
   const zip = sources.anizip[num];
-  const zipTitle = zip?.title;
+  const tmdb = sources.tmdbMeta[num];
+  const zipTitle = zip?.title ?? tmdb?.title;
   if (zipTitle && zipTitle !== `Episode ${num}`) return zipTitle;
   return sources.anilistTitles[num];
+}
+
+export function resolveEpisodeOverview(
+  num: number,
+  sources: EpisodeImageSources,
+): string | null {
+  return sources.anizip[num]?.overview ?? sources.tmdbMeta[num]?.overview ?? null;
+}
+
+export function resolveEpisodeAirDate(
+  num: number,
+  sources: EpisodeImageSources,
+): string | null {
+  return sources.anizip[num]?.airDate ?? sources.tmdbMeta[num]?.airDate ?? null;
+}
+
+export function maxEpisodeNumberInSources(sources: EpisodeImageSources): number {
+  let max = 0;
+  for (const key of [
+    ...Object.keys(sources.anizip),
+    ...Object.keys(sources.tmdbMeta),
+    ...Object.keys(sources.tmdb),
+    ...Object.keys(sources.anilist),
+  ]) {
+    const num = parseInt(key, 10);
+    if (num > max) max = num;
+  }
+  return max;
 }

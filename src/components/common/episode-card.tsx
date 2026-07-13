@@ -171,7 +171,7 @@ const EpisodeCard = ({
             )}
 
             {!playable && (
-              <span className="absolute top-1.5 left-1.5 text-[9px] font-bold font-mono text-sky-200/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
+              <span className="absolute top-1.5 right-1.5 text-[9px] font-bold font-mono text-sky-200/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
                 SOON
               </span>
             )}
@@ -331,6 +331,11 @@ const EpisodeCard = ({
             {props.episode.isFiller && (
               <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/12 px-1.5 py-px text-[9px] font-mono font-bold uppercase tracking-wide text-amber-300">
                 Filler
+              </span>
+            )}
+            {!playable && (
+              <span className="inline-flex items-center rounded-md border border-sky-500/30 bg-sky-500/12 px-1.5 py-px text-[9px] font-mono font-bold uppercase tracking-wide text-sky-300">
+                Soon
               </span>
             )}
             {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
