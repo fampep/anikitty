@@ -34,6 +34,8 @@ pocketbase
 wrangler.toml
 docs
 drizzle
-scripts
+scripts/*
+!scripts/discord-bot.mjs
+!scripts/start-with-bot.mjs
 add-tvdb-env.txt
 api-id-sources.txt

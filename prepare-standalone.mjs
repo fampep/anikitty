@@ -28,7 +28,12 @@ if (!fs.existsSync(standaloneDir)) {
 
 copyDir(path.join(root, "public"), path.join(standaloneDir, "public"));
 copyDir(path.join(root, ".next", "static"), path.join(standaloneDir, ".next", "static"));
-copyDir(path.join(root, "scripts"), path.join(standaloneDir, "scripts"));
+const scriptsSrc = path.join(root, "scripts");
+if (fs.existsSync(scriptsSrc)) {
+  copyDir(scriptsSrc, path.join(standaloneDir, "scripts"));
+} else {
+  console.warn("[prepare-standalone] scripts/ missing — discord bot will not start in standalone");
+}
 
 // Shrink deploy artifacts — safe after standalone bundle is written.
 rmDir(path.join(root, ".next", "cache"));
