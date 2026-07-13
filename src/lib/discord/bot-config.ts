@@ -43,7 +43,3 @@ export function getInternalApiBaseUrl(): string {
 
   return `http://127.0.0.1:${port}`;
 }
-
-export function getDiscordBoosterRoleId(): string | null {
-  return process.env.DISCORD_BOOSTER_ROLE_ID?.trim() || null;
-}

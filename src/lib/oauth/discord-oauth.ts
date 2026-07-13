@@ -8,6 +8,7 @@ import { buildAuthResponse } from "@/lib/auth/auth-response";
 import { redirectWithAuthCookie } from "@/lib/auth/auth-cookie";
 import { shouldPromptForTwoFactor } from "@/lib/auth/totp-reactive";
 import { isUserBanned } from "@/lib/security/moderation";
+import { syncLinkedUserBoostFromDiscord } from "@/lib/discord/discord-guild-sync";
 
 const DISCORD_AUTHORIZE = "https://discord.com/api/oauth2/authorize";
 const DISCORD_TOKEN = "https://discord.com/api/oauth2/token";
@@ -154,6 +155,7 @@ export async function findOrCreateUserFromDiscord(
       await db.update(users).set(updates).where(eq(users.id, existing.id));
       existing = { ...existing, ...updates };
     }
+    await syncLinkedUserBoostFromDiscord(discordId).catch(() => {});
     return { user: existing, created: false };
   }
 
@@ -176,6 +178,7 @@ export async function findOrCreateUserFromDiscord(
           ...(avatarUrl && !byEmail.avatarUrl ? { avatarUrl } : {}),
         })
         .where(eq(users.id, byEmail.id));
+      await syncLinkedUserBoostFromDiscord(discordId).catch(() => {});
       return { user: { ...byEmail, discordId, discordUsername }, created: false };
     }
   }
@@ -195,6 +198,7 @@ export async function findOrCreateUserFromDiscord(
     })
     .returning();
 
+  await syncLinkedUserBoostFromDiscord(discordId).catch(() => {});
   return { user: created, created: true };
 }
 
@@ -237,6 +241,7 @@ export async function completeDiscordLink(
       })
       .where(eq(users.id, current.id));
 
+    await syncLinkedUserBoostFromDiscord(discordUser.id).catch(() => {});
     return "connected";
   } catch (e) {
     console.error("[discord oauth link]", e);

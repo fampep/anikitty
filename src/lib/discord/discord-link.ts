@@ -3,6 +3,7 @@ import { and, eq, gt, lt } from "drizzle-orm";
 import type { getDb } from "@/db";
 import { discordLinkCodes, users } from "@/db/schema";
 import { discordDisplayName, type DiscordUser } from "@/lib/oauth/discord-oauth";
+import { syncLinkedUserBoostFromDiscord } from "@/lib/discord/discord-guild-sync";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -98,6 +99,7 @@ export async function linkDiscordToUser(
     .set({ discordId, discordUsername })
     .where(eq(users.id, current.id));
 
+  await syncLinkedUserBoostFromDiscord(discordId).catch(() => {});
   return { ok: true, username: current.username };
 }
 

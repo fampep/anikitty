@@ -11,7 +11,6 @@ import { internalApiBase } from "./internal-api-url.mjs";
 const token = process.env.DISCORD_BOT_TOKEN?.trim();
 const guildId = process.env.DISCORD_GUILD_ID?.trim();
 const secret = process.env.DISCORD_BOT_API_SECRET?.trim();
-const boosterRoleId = process.env.DISCORD_BOOSTER_ROLE_ID?.trim() || null;
 
 function apiBase() {
   return internalApiBase();
@@ -31,6 +30,17 @@ async function botFetch(path, init) {
   return { ok: res.ok, status: res.status, data };
 }
 
+/** Discord's built-in Nitro Server Booster role (managed by Discord, not assigned by the bot). */
+function getServerBoosterRole(guild) {
+  return guild.roles.premiumSubscriberRole ?? null;
+}
+
+function isServerBooster(member, guild) {
+  if (member.premiumSince) return true;
+  const boosterRole = getServerBoosterRole(guild);
+  return !!(boosterRole && member.roles.cache.has(boosterRole.id));
+}
+
 async function syncBoostForMember(member, boosting) {
   const result = await botFetch("/api/internal/discord/boost", {
     method: "POST",
@@ -42,16 +52,10 @@ async function syncBoostForMember(member, boosting) {
     return;
   }
 
-  if (boosterRoleId) {
-    const role = member.guild.roles.cache.get(boosterRoleId);
-    if (role && member.guild.members.me?.permissions.has("ManageRoles")) {
-      if (boosting) await member.roles.add(role).catch(() => {});
-      else await member.roles.remove(role).catch(() => {});
-    }
-  }
-
   if (result.data.ok && boosting) {
-    console.info("[discord-bot] boost granted", result.data.username);
+    console.info("[discord-bot] site booster granted", result.data.username);
+  } else if (result.data.ok && !boosting) {
+    console.info("[discord-bot] site booster removed", result.data.username);
   }
 }
 
@@ -94,7 +98,9 @@ async function handleLink(interaction) {
 
   if (result.data.ok) {
     const member = interaction.member;
-    if (member?.premiumSince) await syncBoostForMember(member, true);
+    if (member && isServerBooster(member, member.guild)) {
+      await syncBoostForMember(member, true);
+    }
     await interaction.editReply(
       `Linked to **${result.data.username}** on AniKitty! Use \`/level\` to check your site level.`,
     );
@@ -195,12 +201,17 @@ async function syncExistingBoosters(client) {
   const guild = await client.guilds.fetch(guildId).catch(() => null);
   if (!guild) return;
 
+  const boosterRole = getServerBoosterRole(guild);
+  console.info(
+    `[discord-bot] Server Booster role: ${boosterRole?.name ?? "not found"} (${boosterRole?.id ?? "n/a"})`,
+  );
+
   const members = await guild.members.fetch().catch(() => null);
   if (!members) return;
 
   for (const member of members.values()) {
     if (member.user.bot) continue;
-    if (member.premiumSince) await syncBoostForMember(member, true);
+    if (isServerBooster(member, guild)) await syncBoostForMember(member, true);
   }
 }
 
@@ -232,13 +243,13 @@ async function main() {
     const account = await fetchSiteAccount(member.id);
     if (!account) return;
     console.info(`[discord-bot] recognized site user ${account.username} (${member.user.tag})`);
-    if (member.premiumSince) await syncBoostForMember(member, true);
+    if (isServerBooster(member, member.guild)) await syncBoostForMember(member, true);
   });
 
   client.on("guildMemberUpdate", async (oldMember, newMember) => {
     if (newMember.guild.id !== guildId) return;
-    const wasBoosting = !!oldMember.premiumSince;
-    const isBoosting = !!newMember.premiumSince;
+    const wasBoosting = isServerBooster(oldMember, newMember.guild);
+    const isBoosting = isServerBooster(newMember, newMember.guild);
     if (wasBoosting === isBoosting) return;
     await syncBoostForMember(newMember, isBoosting);
   });
