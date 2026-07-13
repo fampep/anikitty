@@ -1,5 +1,6 @@
 import { queryAniList, toTitle } from "@/lib/oauth/anilist";
 import { getAudioAvailability } from "@/lib/providers/anikoto-availability";
+import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
 
 const TITLE_QUERY = `
   query ($id: Int) {
@@ -9,7 +10,7 @@ const TITLE_QUERY = `
       title { english romaji }
       episodes
       status
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
     }
   }
 `;
@@ -31,9 +32,10 @@ export async function GET(
       return Response.json({ sub: 0, dub: 0, hasSub: false, hasDub: false });
     }
 
-    const fallbackSub = m.nextAiringEpisode
-      ? m.nextAiringEpisode.episode - 1
-      : (m.episodes ?? 0);
+    const fallbackSub = airedCountFromAnilist(m.nextAiringEpisode, {
+      status: m.status,
+      episodes: m.episodes,
+    });
 
     const availability = await getAudioAvailability({
       anilistId: numId,

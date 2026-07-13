@@ -4,8 +4,47 @@ export type AiringContext = {
   status?: string | null;
   episodes?: number | null;
   nextAiringEpisode?: number | null;
+  /** AniList `airingAt` — unix timestamp in seconds. */
+  nextAiringAt?: number | null;
   streamingEpisodeCount?: number;
 };
+
+export type AnilistNextAiring = {
+  episode?: number | null;
+  airingAt?: number | null;
+} | null | undefined;
+
+/** True when AniList still lists this as "next" but its scheduled time has passed. */
+export function isNextAiringEpisodeAlreadyAired(
+  airingAt: number | null | undefined,
+  now = Date.now(),
+): boolean {
+  return airingAt != null && airingAt > 0 && airingAt * 1000 <= now;
+}
+
+/** Count sub episodes that have aired from AniList schedule metadata. */
+export function airedCountFromAnilist(
+  next: AnilistNextAiring,
+  opts?: Omit<AiringContext, "nextAiringEpisode" | "nextAiringAt">,
+): number {
+  return resolveAiredEpisodeCount({
+    ...opts,
+    nextAiringEpisode: next?.episode ?? null,
+    nextAiringAt: next?.airingAt ?? null,
+  });
+}
+
+/** Drop stale next-episode entries once their air time has passed. */
+export function resolveEffectiveNextAiringEpisode(
+  next: AnilistNextAiring,
+  now = Date.now(),
+): { episode: number; airingAt: number } | null {
+  const episode = next?.episode;
+  const airingAt = next?.airingAt;
+  if (episode == null || episode <= 0 || airingAt == null || airingAt <= 0) return null;
+  if (airingAt * 1000 <= now) return null;
+  return { episode, airingAt };
+}
 
 /** Parse YYYY-MM-DD (and optional time suffix) from ani.zip / TVDB-style dates. */
 export function parseEpisodeAirDate(airDate: string): Date | null {
@@ -39,7 +78,18 @@ export function isEpisodeAiredByDate(
 export function resolveAiredEpisodeCount(ctx: AiringContext): number {
   const nextEp = ctx.nextAiringEpisode;
   if (nextEp != null && nextEp > 0) {
-    return Math.max(0, nextEp - 1);
+    if (isNextAiringEpisodeAlreadyAired(ctx.nextAiringAt)) {
+      return nextEp;
+    }
+
+    const unairedBased = Math.max(0, nextEp - 1);
+    if (
+      ctx.streamingEpisodeCount != null &&
+      ctx.streamingEpisodeCount > unairedBased
+    ) {
+      return ctx.streamingEpisodeCount;
+    }
+    return unairedBased;
   }
 
   const status = ctx.status?.toUpperCase();

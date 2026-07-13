@@ -1,5 +1,9 @@
 import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/providers/anikoto-availability";
+import {
+  airedCountFromAnilist,
+  resolveEffectiveNextAiringEpisode,
+} from "@/lib/anime/episode-availability";
 
 export const revalidate = 3600;
 
@@ -121,9 +125,10 @@ export async function GET(
     const m = raw.Media;
     if (!m) return Response.json({ error: "Not found" }, { status: 404 });
 
-    const episodeCount = m.nextAiringEpisode
-      ? m.nextAiringEpisode.episode - 1
-      : (m.episodes ?? 0);
+    const episodeCount = airedCountFromAnilist(m.nextAiringEpisode, {
+      status: m.status,
+      episodes: m.episodes,
+    });
 
     const audio = await getAudioAvailability({
       anilistId: numId,
@@ -177,17 +182,11 @@ export async function GET(
           stats: {
             rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
             quality: "HD",
-            episodes: { sub: audio.sub || episodeCount, dub: audio.dub },
+            episodes: { sub: Math.max(audio.sub, episodeCount) || episodeCount, dub: audio.dub },
             type: toFormat(m.format),
             duration: m.duration ? `${m.duration} min` : "N/A",
           },
-          nextAiringEpisode:
-            m.nextAiringEpisode?.airingAt && m.nextAiringEpisode?.episode
-              ? {
-                  episode: m.nextAiringEpisode.episode,
-                  airingAt: m.nextAiringEpisode.airingAt,
-                }
-              : null,
+          nextAiringEpisode: resolveEffectiveNextAiringEpisode(m.nextAiringEpisode),
           promotionalVideos: m.trailer?.site === "youtube" && m.trailer.id
             ? [{
                 title: "Trailer",
@@ -271,7 +270,15 @@ export async function GET(
         relatedAnimes,
         recommendedAnimes,
       },
-    }, { headers: cacheHeaders });
+    }, {
+      headers: {
+        ...cacheHeaders,
+        "Cache-Control":
+          m.status === "RELEASING"
+            ? "public, s-maxage=300, stale-while-revalidate=1800"
+            : cacheHeaders["Cache-Control"],
+      },
+    });
   } catch (err) {
     console.error("AniList details error:", err);
     const message = err instanceof Error ? err.message : "Failed to fetch anime details";

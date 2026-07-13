@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { animeEpisodeAlerts, animeAudioAvailability, userNotifications } from "@/db/schema";
 import { getAudioAvailability } from "@/lib/providers/anikoto-availability";
 import { queryAniList, toTitle } from "@/lib/oauth/anilist";
+import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
 import { eq, and } from "drizzle-orm";
 
 export type EpisodeAlertPrefs = {
@@ -21,7 +22,7 @@ const ANILIST_META_QUERY = `
       title { english romaji }
       episodes
       status
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
     }
   }
 `;
@@ -268,9 +269,10 @@ export async function refreshAllEpisodeAlerts(opts?: { limit?: number }): Promis
       const m = raw.Media;
       if (!m) continue;
 
-      const fallbackSub = m.nextAiringEpisode
-        ? m.nextAiringEpisode.episode - 1
-        : (m.episodes ?? 0);
+      const fallbackSub = airedCountFromAnilist(m.nextAiringEpisode, {
+        status: m.status,
+        episodes: m.episodes,
+      });
 
       const [prevRow] = await db
         .select({

@@ -1,5 +1,6 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
+import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
 
 const QUERY = `
   query ($search: String, $isAdult: Boolean) {
@@ -13,7 +14,7 @@ const QUERY = `
         status
         averageScore
         seasonYear
-        nextAiringEpisode { episode }
+        nextAiringEpisode { episode airingAt }
       }
     }
   }
@@ -42,9 +43,10 @@ export async function GET(request: Request) {
       poster: m.coverImage?.large ?? "",
       type: toFormat(m.format),
       episodes: {
-        sub: m.nextAiringEpisode
-          ? m.nextAiringEpisode.episode - 1
-          : (m.episodes ?? 0),
+        sub: airedCountFromAnilist(m.nextAiringEpisode, {
+          status: m.status,
+          episodes: m.episodes,
+        }),
         dub: 0,
       },
       moreInfo: [

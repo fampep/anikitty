@@ -23,7 +23,7 @@ const QUERY = `
       episodes
       status
       idMal
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
       streamingEpisodes {
         title
         thumbnail
@@ -38,7 +38,7 @@ const MINIMAL_QUERY = `
       episodes
       status
       idMal
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
     }
   }
 `;
@@ -59,7 +59,7 @@ export async function GET(
       episodes?: number | null;
       status?: string | null;
       idMal?: number | null;
-      nextAiringEpisode?: { episode?: number | null } | null;
+      nextAiringEpisode?: { episode?: number | null; airingAt?: number | null } | null;
       streamingEpisodes?: Array<{ title: string; thumbnail?: string }>;
     } };
     try {
@@ -77,6 +77,7 @@ export async function GET(
       status: m.status,
       episodes: m.episodes,
       nextAiringEpisode: m.nextAiringEpisode?.episode ?? null,
+      nextAiringAt: m.nextAiringEpisode?.airingAt ?? null,
       streamingEpisodeCount: streamingEpisodes.length,
     });
 
@@ -120,7 +121,14 @@ export async function GET(
 
     return Response.json(
       { data: { totalEpisodes: episodes.length, episodes } },
-      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } },
+      {
+        headers: {
+          "Cache-Control":
+            m.status === "RELEASING"
+              ? "public, s-maxage=300, stale-while-revalidate=1800"
+              : "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      },
     );
   } catch (err) {
     console.error("Episodes fetch error:", err);

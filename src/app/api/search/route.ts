@@ -1,6 +1,7 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { slugsToAniListGenres } from "@/lib/search/genre-filters";
+import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
 
 const QUERY = `
   query (
@@ -36,7 +37,7 @@ const QUERY = `
         episodes
         format
         status
-        nextAiringEpisode { episode }
+        nextAiringEpisode { episode airingAt }
         averageScore
         seasonYear
       }
@@ -122,9 +123,10 @@ export async function GET(request: Request) {
       jname: m.title?.romaji ?? "",
       poster: m.coverImage?.extraLarge ?? "",
       episodes: {
-        sub: m.nextAiringEpisode
-          ? m.nextAiringEpisode.episode - 1
-          : (m.episodes ?? 0),
+        sub: airedCountFromAnilist(m.nextAiringEpisode, {
+          status: m.status,
+          episodes: m.episodes,
+        }),
         dub: 0,
       },
       type: toFormat(m.format),

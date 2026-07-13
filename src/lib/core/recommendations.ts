@@ -26,7 +26,7 @@ const RECS_QUERY = `
               seasonYear
               status
               isAdult
-              nextAiringEpisode { episode }
+              nextAiringEpisode { episode airingAt }
             }
           }
         }
@@ -45,7 +45,7 @@ type RecMedia = {
   seasonYear?: number | null;
   status?: string | null;
   isAdult?: boolean;
-  nextAiringEpisode?: { episode: number } | null;
+  nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
 };
 
 /**

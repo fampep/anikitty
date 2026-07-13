@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
+import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
 import type { IAnimeData } from "@/types/anime";
 
 const CRITICAL_QUERY = `
@@ -13,7 +14,7 @@ const CRITICAL_QUERY = `
         bannerImage
         description(asHtml: false)
         episodes
-        nextAiringEpisode { episode }
+        nextAiringEpisode { episode airingAt }
         format
       }
     }
@@ -34,7 +35,7 @@ const CRITICAL_QUERY = `
     recentlyAdded: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: START_DATE_DESC, status: RELEASING) {
         id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
-        nextAiringEpisode { episode }
+        nextAiringEpisode { episode airingAt }
       }
     }
   }
@@ -94,7 +95,7 @@ export function toAnime(m: {
   averageScore?: number | null;
   seasonYear?: number | null;
   status?: string | null;
-  nextAiringEpisode?: { episode: number } | null;
+  nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
 }) {
   return {
     id: String(m.id),
@@ -102,7 +103,10 @@ export function toAnime(m: {
     jname: m.title?.romaji ?? "",
     poster: m.coverImage?.extraLarge ?? "",
     episodes: {
-      sub: m.nextAiringEpisode ? m.nextAiringEpisode.episode - 1 : (m.episodes ?? 0),
+      sub: airedCountFromAnilist(m.nextAiringEpisode, {
+        status: m.status,
+        episodes: m.episodes,
+      }),
       dub: 0,
     },
     type: toFormat(m.format),
@@ -128,7 +132,8 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
         description?: string | null;
         episodes?: number | null;
         format?: string | null;
-        nextAiringEpisode?: { episode: number } | null;
+        status?: string | null;
+        nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
       },
       i: number,
     ) => ({
@@ -139,7 +144,10 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
       poster: m.bannerImage ?? m.coverImage?.extraLarge ?? "",
       description: (m.description ?? "").replace(/<[^>]*>/g, ""),
       episodes: {
-        sub: m.nextAiringEpisode ? m.nextAiringEpisode.episode - 1 : (m.episodes ?? 0),
+        sub: airedCountFromAnilist(m.nextAiringEpisode, {
+          status: m.status,
+          episodes: m.episodes,
+        }),
         dub: 0,
       },
       type: toFormat(m.format),

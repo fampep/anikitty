@@ -29,6 +29,7 @@ import {
   KITTY_SUB_SOURCE_PROVIDER,
   tracksFromSubsEpisode,
 } from "@/lib/kitty/kitty-subs-api";
+import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
 
 export type EpisodeSubtitleCacheContext = Pick<
   SubtitleCacheContext,
@@ -53,7 +54,7 @@ const ANILIST_EPISODE_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
       episodes
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
     }
   }
 `;
@@ -637,9 +638,9 @@ async function fetchAnilistEpisodeCount(anilistId: number): Promise<number> {
     const m = raw.Media;
     if (!m) return 0;
 
-    const total = m.nextAiringEpisode
-      ? m.nextAiringEpisode.episode - 1
-      : (m.episodes ?? 0);
+    const total = airedCountFromAnilist(m.nextAiringEpisode, {
+      episodes: m.episodes,
+    });
 
     return Math.max(total, 0);
   } catch {
