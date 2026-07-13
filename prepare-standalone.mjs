@@ -5,6 +5,8 @@ import { execSync } from "node:child_process";
 const root = process.cwd();
 const standaloneDir = path.join(root, ".next", "standalone");
 
+const botScripts = ["start-with-bot.mjs", "discord-bot.mjs", "internal-api-url.mjs"];
+
 function copyFile(src, dest) {
   if (!fs.existsSync(src)) return false;
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -23,9 +25,25 @@ function copyDir(src, dest) {
   }
 }
 
-function rmDir(target) {
+function safeRmDir(target) {
   if (!fs.existsSync(target)) return;
-  fs.rmSync(target, { recursive: true, force: true });
+  try {
+    fs.rmSync(target, { recursive: true, force: true });
+  } catch (e) {
+    console.warn(`[prepare-standalone] could not remove ${target}:`, e?.message ?? e);
+  }
+}
+
+/** Railpack copies bot scripts to /app/*.mjs; repo + Docker use scripts/*.mjs */
+function resolveScriptSource(file) {
+  const candidates = [
+    path.join(root, "scripts", file),
+    path.join(root, file),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 if (!fs.existsSync(standaloneDir)) {
@@ -36,13 +54,18 @@ if (!fs.existsSync(standaloneDir)) {
 copyDir(path.join(root, "public"), path.join(standaloneDir, "public"));
 copyDir(path.join(root, ".next", "static"), path.join(standaloneDir, ".next", "static"));
 
-const scriptsDir = path.join(standaloneDir, "scripts");
-const botScripts = ["start-with-bot.mjs", "discord-bot.mjs", "internal-api-url.mjs"];
+const standaloneScriptsDir = path.join(standaloneDir, "scripts");
+const rootScriptsDir = path.join(root, "scripts");
+
 for (const file of botScripts) {
-  const copied = copyFile(path.join(root, "scripts", file), path.join(scriptsDir, file));
-  if (!copied) {
-    console.warn(`[prepare-standalone] missing scripts/${file}`);
+  const src = resolveScriptSource(file);
+  if (!src) {
+    console.warn(`[prepare-standalone] missing ${file}`);
+    continue;
   }
+  copyFile(src, path.join(standaloneScriptsDir, file));
+  // Railpack runtime starts `node scripts/start-with-bot.mjs` from /app.
+  copyFile(src, path.join(rootScriptsDir, file));
 }
 
 // Discord bot runs outside the Next bundle — install runtime deps into standalone.
@@ -55,15 +78,12 @@ try {
   console.warn("[prepare-standalone] discord.js install failed:", e);
 }
 
-rmDir(path.join(root, ".next", "cache"));
+// Railpack mounts .next/cache — deletion fails with EBUSY; best-effort only.
+safeRmDir(path.join(root, ".next", "cache"));
 
-const isCiBuild =
-  process.env.CI === "true" ||
-  Boolean(process.env.COOLIFY_RESOURCE_UUID) ||
-  process.env.RAILPACK === "1";
-
-if (isCiBuild) {
-  rmDir(path.join(root, "node_modules"));
+// Docker runner copies only standalone; Railpack deploys the full app tree.
+if (process.env.STANDALONE_ONLY_BUILD === "1") {
+  safeRmDir(path.join(root, "node_modules"));
   console.log("[prepare-standalone] standalone ready; root node_modules removed");
 } else {
   console.log("[prepare-standalone] standalone ready");

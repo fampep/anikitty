@@ -29,6 +29,8 @@ function resolveBotScript() {
   const candidates = [
     path.join(process.cwd(), "scripts", "discord-bot.mjs"),
     path.join(root, "scripts", "discord-bot.mjs"),
+    path.join(process.cwd(), "discord-bot.mjs"),
+    path.join(root, "discord-bot.mjs"),
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) return candidate;
