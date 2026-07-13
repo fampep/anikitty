@@ -150,7 +150,9 @@ export function resolveEpisodeAiredStatus(
   episodeNumber: number,
   airDate: string | null | undefined,
   airedUpTo: number,
+  opts?: { anikotoAvailable?: boolean },
 ): boolean {
+  if (opts?.anikotoAvailable) return true;
   if (airDate?.trim()) {
     return isEpisodeAiredByDate(airDate);
   }

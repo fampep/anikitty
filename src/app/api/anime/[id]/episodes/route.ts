@@ -125,7 +125,12 @@ export async function GET(
       const num = i + 1;
       const airDate = resolveEpisodeAirDate(num, sources);
       const anikotoEp = anikotoSchedule?.episodesByNumber.get(num);
-      const aired = resolveEpisodeAiredStatus(num, airDate, airedUpTo);
+      const anikotoAvailable =
+        !!anikotoEp ||
+        (anikotoSchedule != null && num <= anikotoSchedule.airedSub);
+      const aired = resolveEpisodeAiredStatus(num, airDate, airedUpTo, {
+        anikotoAvailable,
+      });
 
       return {
         title:
