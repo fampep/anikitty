@@ -41,6 +41,8 @@ export const users = pgTable("users", {
   discordUsername: varchar("discord_username", { length: 100 }),
   /** Set while the linked Discord account is actively boosting the server. */
   discordBoostSince: timestamp("discord_boost_since"),
+  /** XP earned from Discord server chat (bot-awarded). */
+  discordXp: integer("discord_xp").notNull().default(0),
   totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   profilePrivate: boolean("profile_private").notNull().default(false),

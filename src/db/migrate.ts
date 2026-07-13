@@ -243,6 +243,7 @@ export async function migrateDb() {
       `ALTER TABLE roles ADD COLUMN IF NOT EXISTS permissions JSONB NOT NULL DEFAULT '[]'::jsonb`,
       `CREATE UNIQUE INDEX IF NOT EXISTS users_discord_id_unique ON users (discord_id) WHERE discord_id IS NOT NULL`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_boost_since TIMESTAMP`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_xp INTEGER NOT NULL DEFAULT 0`,
       `CREATE TABLE IF NOT EXISTS discord_link_codes (
         id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

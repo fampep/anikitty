@@ -5,7 +5,13 @@ import { execSync } from "node:child_process";
 const root = process.cwd();
 const standaloneDir = path.join(root, ".next", "standalone");
 
-const botScripts = ["start-with-bot.mjs", "discord-bot.mjs", "internal-api-url.mjs"];
+const botScripts = [
+  "start-with-bot.mjs",
+  "discord-bot.mjs",
+  "internal-api-url.mjs",
+  "discord-level-tiers.mjs",
+  "discord-level-roles.mjs",
+];
 
 function copyFile(src, dest) {
   if (!fs.existsSync(src)) return false;

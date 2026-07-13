@@ -38,6 +38,7 @@ export async function GET(req: Request) {
     xpNeeded: progress.needed,
     completedEpisodes: stats.completedEpisodes,
     commentCount: stats.commentCount,
+    discordXp: stats.discordXp,
     role: user.role,
     boosting: !!user.discordBoostSince,
   });

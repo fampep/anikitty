@@ -7,10 +7,23 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { internalApiBase } from "./internal-api-url.mjs";
+import {
+  MESSAGE_XP_COOLDOWN_MS,
+  MIN_MESSAGE_LENGTH,
+} from "./discord-level-tiers.mjs";
+import {
+  ensureLevelRoles,
+  syncMemberTierRole,
+  syncAllLinkedMemberRoles,
+  getTierRoleMap,
+} from "./discord-level-roles.mjs";
 
 const token = process.env.DISCORD_BOT_TOKEN?.trim();
 const guildId = process.env.DISCORD_GUILD_ID?.trim();
 const secret = process.env.DISCORD_BOT_API_SECRET?.trim();
+
+/** @type {Map<string, number>} */
+const messageXpCooldowns = new Map();
 
 function apiBase() {
   return internalApiBase();
@@ -67,6 +80,48 @@ async function fetchSiteAccount(discordId) {
   return result.data;
 }
 
+async function syncTierRoleForMember(member, tierName) {
+  if (!member || !tierName) return;
+  await syncMemberTierRole(member, tierName, getTierRoleMap());
+}
+
+async function awardMessageXp(message) {
+  if (message.guild?.id !== guildId || message.author.bot) return;
+
+  const content = message.content?.trim() ?? "";
+  if (content.length < MIN_MESSAGE_LENGTH) return;
+  if (content.startsWith("/") || content.startsWith("!")) return;
+
+  const now = Date.now();
+  const last = messageXpCooldowns.get(message.author.id) ?? 0;
+  if (now - last < MESSAGE_XP_COOLDOWN_MS) return;
+  messageXpCooldowns.set(message.author.id, now);
+
+  const result = await botFetch("/api/internal/discord/xp", {
+    method: "POST",
+    body: JSON.stringify({ discordId: message.author.id }),
+  });
+
+  if (!result.ok || !result.data.ok) return;
+
+  const member = message.member;
+  if (!member) return;
+
+  const roleMap = getTierRoleMap();
+  const tierRole = roleMap.get(result.data.tier);
+  const hasCorrect = tierRole && member.roles.cache.has(tierRole.id);
+  if (!hasCorrect || result.data.tierChanged) {
+    await syncMemberTierRole(member, result.data.tier, roleMap);
+  }
+
+  if (result.data.tierChanged) {
+    await message.react("🎉").catch(() => {});
+    console.info(
+      `[discord-bot] ${result.data.username} reached tier ${result.data.tier} (Lv.${result.data.level})`,
+    );
+  }
+}
+
 async function handleLink(interaction) {
   const code = interaction.options.getString("code");
   await interaction.deferReply({ ephemeral: true });
@@ -101,6 +156,8 @@ async function handleLink(interaction) {
     if (member && isServerBooster(member, member.guild)) {
       await syncBoostForMember(member, true);
     }
+    const account = await fetchSiteAccount(interaction.user.id);
+    if (member && account?.tier) await syncTierRoleForMember(member, account.tier);
     await interaction.editReply(
       `Linked to **${result.data.username}** on AniKitty! Use \`/level\` to check your site level.`,
     );
@@ -146,6 +203,14 @@ async function handleLevel(interaction) {
       { name: "Comments", value: String(d.commentCount ?? 0), inline: true },
     )
     .setURL(d.profileUrl ?? null);
+
+  if (d.discordXp > 0) {
+    embed.addFields({
+      name: "Discord chat XP",
+      value: `${d.discordXp.toLocaleString()} XP from server messages`,
+      inline: false,
+    });
+  }
 
   if (d.boosting) {
     embed.addFields({ name: "Server Booster", value: "Active — Booster role on AniKitty", inline: false });
@@ -201,6 +266,9 @@ async function syncExistingBoosters(client) {
   const guild = await client.guilds.fetch(guildId).catch(() => null);
   if (!guild) return;
 
+  await ensureLevelRoles(guild);
+  console.info(`[discord-bot] level tier roles ready (${getTierRoleMap().size} tiers)`);
+
   const boosterRole = getServerBoosterRole(guild);
   console.info(
     `[discord-bot] Server Booster role: ${boosterRole?.name ?? "not found"} (${boosterRole?.id ?? "n/a"})`,
@@ -213,6 +281,8 @@ async function syncExistingBoosters(client) {
     if (member.user.bot) continue;
     if (isServerBooster(member, guild)) await syncBoostForMember(member, true);
   }
+
+  await syncAllLinkedMemberRoles(guild, fetchSiteAccount, getTierRoleMap());
 }
 
 async function main() {
@@ -224,7 +294,12 @@ async function main() {
   console.info(`[discord-bot] API base: ${apiBase()}`);
 
   const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+    ],
   });
 
   client.once("ready", async () => {
@@ -243,7 +318,14 @@ async function main() {
     const account = await fetchSiteAccount(member.id);
     if (!account) return;
     console.info(`[discord-bot] recognized site user ${account.username} (${member.user.tag})`);
+    if (account.tier) await syncTierRoleForMember(member, account.tier);
     if (isServerBooster(member, member.guild)) await syncBoostForMember(member, true);
+  });
+
+  client.on("messageCreate", (message) => {
+    awardMessageXp(message).catch((e) => {
+      console.warn("[discord-bot] message XP failed:", e?.message ?? e);
+    });
   });
 
   client.on("guildMemberUpdate", async (oldMember, newMember) => {
