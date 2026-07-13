@@ -166,6 +166,11 @@ export default function DiscordConnect() {
             {username && (
               <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30 mt-0.5">{username}</p>
             )}
+            {botEnabled && (
+              <p className="text-[10px] text-muted-foreground dark:text-white/40 mt-1 leading-relaxed">
+                {t("settings.discordBotLinkedHint")}
+              </p>
+            )}
           </div>
         </div>
         <button

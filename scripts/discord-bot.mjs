@@ -55,9 +55,32 @@ async function syncBoostForMember(member, boosting) {
   }
 }
 
+async function fetchSiteAccount(discordId) {
+  const result = await botFetch(
+    `/api/internal/discord/level?discordId=${encodeURIComponent(discordId)}`,
+  );
+  if (!result.ok || !result.data.ok) return null;
+  return result.data;
+}
+
 async function handleLink(interaction) {
-  const code = interaction.options.getString("code", true);
+  const code = interaction.options.getString("code");
   await interaction.deferReply({ ephemeral: true });
+
+  const existing = await fetchSiteAccount(interaction.user.id);
+  if (existing) {
+    await interaction.editReply(
+      `You're already linked to **${existing.username}** on AniKitty (including if you sign in with Discord on the site). Use \`/level\` — no link code needed.`,
+    );
+    return;
+  }
+
+  if (!code) {
+    await interaction.editReply(
+      "If you **sign in with Discord** on AniKitty or connect Discord under **Settings → Connections**, you're recognized here automatically — try \`/level\`.\n\nNeed a manual link? Generate a code on the site and run `/link <code>`.",
+    );
+    return;
+  }
 
   const result = await botFetch("/api/internal/discord/link", {
     method: "POST",
@@ -99,7 +122,7 @@ async function handleLevel(interaction) {
   if (!result.ok || !result.data.ok) {
     const msg =
       target.id === interaction.user.id
-        ? "Link your account first with `/link` — get a code from **Settings → Connections** on AniKitty."
+        ? "No AniKitty account is linked to this Discord yet. **Sign in with Discord** on the site, connect Discord in **Settings → Connections**, or use `/link` with a code from there."
         : `${target.displayName} hasn't linked their AniKitty account yet.`;
     await interaction.editReply(msg);
     return;
@@ -134,7 +157,7 @@ async function handleProfile(interaction) {
 
   if (!result.ok || !result.data.ok || !result.data.profileUrl) {
     await interaction.editReply(
-      "Link your account first with `/link` — get a code from **Settings → Connections** on AniKitty.",
+      "No AniKitty account linked yet. **Sign in with Discord** on the site, connect in **Settings → Connections**, or use `/link` with a code.",
     );
     return;
   }
@@ -146,9 +169,12 @@ async function registerSlashCommands(clientId) {
   const commands = [
     new SlashCommandBuilder()
       .setName("link")
-      .setDescription("Link your Discord account to AniKitty")
+      .setDescription("Link Discord to AniKitty (only if you don't sign in with Discord)")
       .addStringOption((o) =>
-        o.setName("code").setDescription("Link code from Settings → Connections").setRequired(true),
+        o
+          .setName("code")
+          .setDescription("Link code from Settings → Connections (optional if you use Discord sign-in)")
+          .setRequired(false),
       ),
     new SlashCommandBuilder()
       .setName("level")
@@ -199,6 +225,14 @@ async function main() {
     } catch (e) {
       console.error("[discord-bot] setup failed:", e);
     }
+  });
+
+  client.on("guildMemberAdd", async (member) => {
+    if (member.guild.id !== guildId || member.user.bot) return;
+    const account = await fetchSiteAccount(member.id);
+    if (!account) return;
+    console.info(`[discord-bot] recognized site user ${account.username} (${member.user.tag})`);
+    if (member.premiumSince) await syncBoostForMember(member, true);
   });
 
   client.on("guildMemberUpdate", async (oldMember, newMember) => {
