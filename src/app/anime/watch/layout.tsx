@@ -14,6 +14,7 @@ import WatchQuickNav from "@/components/watch/watch-quick-nav";
 import { WatchPageProvider } from "@/components/watch/watch-page-context";
 import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
+import NextEpisodeCountdown from "@/components/anime/next-episode-countdown";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
 import Select from "@/components/common/select";
@@ -326,6 +327,7 @@ const Layout = (props: Props) => {
           },
           promotionalVideos: [],
           charactersVoiceActors: [],
+          nextAiringEpisode: null,
         }
       : null;
 
@@ -427,6 +429,15 @@ const Layout = (props: Props) => {
           >
             {props.children}
           </div>
+
+          {info.nextAiringEpisode?.airingAt &&
+            info.nextAiringEpisode.airingAt * 1000 > Date.now() && (
+              <NextEpisodeCountdown
+                airingAt={info.nextAiringEpisode.airingAt}
+                episode={info.nextAiringEpisode.episode}
+                variant="banner"
+              />
+            )}
 
           {currentEpisode && currentAnimeId && !theatreMode && (
             <div className="hidden lg:block">

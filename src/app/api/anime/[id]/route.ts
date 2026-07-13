@@ -24,7 +24,7 @@ const DETAIL_QUERY = `
       source
       startDate { year month day }
       endDate { year month day }
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
       studios { nodes { name isAnimationStudio } }
       trailer { id site }
       recommendations(page: 1, perPage: 12) {
@@ -74,7 +74,7 @@ const MINIMAL_DETAIL_QUERY = `
       source
       startDate { year month day }
       endDate { year month day }
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
       studios { nodes { name isAnimationStudio } }
       trailer { id site }
     }
@@ -181,6 +181,13 @@ export async function GET(
             type: toFormat(m.format),
             duration: m.duration ? `${m.duration} min` : "N/A",
           },
+          nextAiringEpisode:
+            m.nextAiringEpisode?.airingAt && m.nextAiringEpisode?.episode
+              ? {
+                  episode: m.nextAiringEpisode.episode,
+                  airingAt: m.nextAiringEpisode.airingAt,
+                }
+              : null,
           promotionalVideos: m.trailer?.site === "youtube" && m.trailer.id
             ? [{
                 title: "Trailer",

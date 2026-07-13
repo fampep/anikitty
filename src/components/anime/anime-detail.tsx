@@ -41,6 +41,7 @@ import dynamic from "next/dynamic";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
+import NextEpisodeCountdown from "@/components/anime/next-episode-countdown";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
@@ -677,6 +678,20 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             <OverviewPanel title={t("anime.details")}>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {info.nextAiringEpisode?.airingAt &&
+                  info.nextAiringEpisode.airingAt * 1000 > Date.now() && (
+                    <div className="col-span-2 rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 dark:bg-primary/[0.06]">
+                      <span className="text-[10px] font-mono text-primary/80 uppercase tracking-wider block mb-1">
+                        {t("anime.detailFields.upcomingEp")}
+                      </span>
+                      <NextEpisodeCountdown
+                        airingAt={info.nextAiringEpisode.airingAt}
+                        episode={info.nextAiringEpisode.episode}
+                        variant="inline"
+                        className="text-[13px] text-foreground/90 dark:text-white/85 font-semibold"
+                      />
+                    </div>
+                  )}
                 {[
                   { label: t("anime.detailFields.type"), value: stats?.type },
                   { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },

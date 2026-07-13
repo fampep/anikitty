@@ -1451,7 +1451,16 @@
       "tvdbStatus": "TVDB Status",
       "network": "Network",
       "country": "Country",
-      "tmdbSeasons": "TMDB Seasons"
+      "tmdbSeasons": "TMDB Seasons",
+      "upcomingEp": "Upcoming EP"
+    },
+    "nextEpisode": {
+      "label": "Upcoming Episode",
+      "episodeAirsIn": "Episode {episode} airs in",
+      "airsIn": "Next episode airs in",
+      "arrivesOn": "The next episode is predicted to arrive on {date}",
+      "airingNow": "Airing now",
+      "aired": "Just aired"
     },
     "bookmark": {
       "planToWatch": "Plan to Watch",

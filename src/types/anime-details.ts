@@ -30,6 +30,13 @@ export interface Info {
   stats: Stats;
   promotionalVideos: PromotionalVideo[];
   charactersVoiceActors: CharactersVoiceActor[];
+  /** Next airing episode countdown (AniList). `airingAt` is a unix timestamp in seconds. */
+  nextAiringEpisode?: NextAiringEpisode | null;
+}
+
+export interface NextAiringEpisode {
+  episode: number;
+  airingAt: number;
 }
 
 export interface Stats {
