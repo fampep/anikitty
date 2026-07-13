@@ -77,7 +77,7 @@ function TimeField({
       <div className="flex gap-2">
         <input
           type="text"
-          inputMode="numeric"
+          inputMode="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="1:30"
