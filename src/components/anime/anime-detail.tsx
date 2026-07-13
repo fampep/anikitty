@@ -268,6 +268,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const mappings  = mappingData?.mappings;
   const mapImages = mappingData?.images;
   const extMeta   = mappingData?.metadata;
+  const tmdb      = extMeta?.tmdb;
+  const tmdbUrl   = mappings?.themoviedb_id
+    ? `https://www.themoviedb.org/tv/${mappings.themoviedb_id}`
+    : null;
+
+  const plannedTotal = episodesData?.plannedTotal;
+  const episodeCountLabel =
+    totalEpisodeCount > 0 && plannedTotal && plannedTotal > totalEpisodeCount
+      ? `${totalEpisodeCount} / ${plannedTotal}`
+      : totalEpisodeCount > 0
+        ? String(totalEpisodeCount)
+        : tmdb?.episodes ?? stats?.episodes?.sub ?? null;
 
   const malScoreLabel =
     extMeta?.ratings?.find((r) => r.provider === "mal")?.label ??
@@ -390,7 +402,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               )}
               {stats?.type && <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />}
               {stats?.episodes?.sub !== undefined && (
-                <StatPill label={`${stats.episodes.sub} ${t("card.sub")}`} teal />
+                <StatPill
+                  label={
+                    plannedTotal && plannedTotal > totalEpisodeCount && totalEpisodeCount > 0
+                      ? `${totalEpisodeCount} / ${plannedTotal} ${t("card.sub")}`
+                      : `${stats.episodes.sub} ${t("card.sub")}`
+                  }
+                  teal
+                />
               )}
               {hasDub && (
                 <StatPill label={`${stats!.episodes!.dub} ${t("card.dub")}`} purple />
@@ -551,6 +570,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-8 space-y-5">
             <OverviewPanel title={t("anime.synopsis")}>
+              {tmdb?.tagline ? (
+                <p className="text-sm italic text-sky-300/75 mb-4 leading-relaxed">
+                  &ldquo;{tmdb.tagline}&rdquo;
+                </p>
+              ) : null}
               <AniListRichText
                 text={info.description as string}
                 className="text-sm text-muted-foreground dark:text-white/65 leading-8"
@@ -658,6 +682,31 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                     ) : null}
                   </div>
                 )}
+                {tmdb && (tmdb.popularity || tmdb.episodes || tmdb.seasons) && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {tmdb.popularity ? (
+                      <TmdbStatChip
+                        href={tmdbUrl ?? undefined}
+                        label={t("anime.detailFields.tmdbPopularity")}
+                        value={tmdb.popularity.toLocaleString()}
+                      />
+                    ) : null}
+                    {tmdb.episodes ? (
+                      <TmdbStatChip
+                        href={tmdbUrl ?? undefined}
+                        label={t("anime.detailFields.tmdbEpisodes")}
+                        value={String(tmdb.episodes)}
+                      />
+                    ) : null}
+                    {tmdb.seasons ? (
+                      <TmdbStatChip
+                        href={tmdbUrl ?? undefined}
+                        label={t("anime.detailFields.tmdbSeasons")}
+                        value={String(tmdb.seasons)}
+                      />
+                    ) : null}
+                  </div>
+                )}
               </OverviewPanel>
             )}
 
@@ -675,6 +724,44 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 </div>
               </OverviewPanel>
             )}
+
+            {tmdb?.genres && tmdb.genres.length > 0 && (
+              <OverviewPanel title={t("anime.detailFields.tmdbGenres")}>
+                <div className="flex flex-wrap gap-2">
+                  {tmdb.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-sky-500/20 text-sky-300/90 bg-sky-500/8 font-medium"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+              </OverviewPanel>
+            )}
+
+            {(tmdb?.production?.length || tmdb?.creators?.length) ? (
+              <OverviewPanel title={t("anime.detailFields.tmdbProduction")}>
+                <div className="flex flex-wrap gap-2">
+                  {tmdb?.creators?.map((creator) => (
+                    <span
+                      key={`creator-${creator}`}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-sky-500/25 text-sky-200/85 bg-sky-500/10 font-medium"
+                    >
+                      {creator}
+                    </span>
+                  ))}
+                  {tmdb?.production?.map((company) => (
+                    <span
+                      key={`prod-${company}`}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/8 text-muted-foreground dark:text-white/35 bg-muted/30 dark:bg-white/[0.02]"
+                    >
+                      {company}
+                    </span>
+                  ))}
+                </div>
+              </OverviewPanel>
+            ) : null}
 
             <OverviewPanel title={t("anime.details")}>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -694,12 +781,12 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   )}
                 {[
                   { label: t("anime.detailFields.type"), value: stats?.type },
-                  { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
-                  { label: t("anime.detailFields.duration"), value: (moreInfo as any).duration },
+                  { label: t("anime.detailFields.episodes"), value: episodeCountLabel },
+                  { label: t("anime.detailFields.duration"), value: (moreInfo as any).duration ?? (tmdb?.episodeRuntime ? `${tmdb.episodeRuntime} min` : null) },
                   { label: t("anime.detailFields.status"), value: moreInfo.status },
                   { label: t("anime.detailFields.source"), value: moreInfo.source },
-                  { label: t("anime.detailFields.aired"), value: moreInfo.aired },
-                  { label: t("anime.detailFields.premiered"), value: moreInfo.premiered },
+                  { label: t("anime.detailFields.aired"), value: moreInfo.aired ?? tmdb?.firstAirDate },
+                  { label: t("anime.detailFields.premiered"), value: moreInfo.premiered ?? tmdb?.firstAirDate },
                   { label: t("anime.detailFields.score"), value: malScoreLabel },
                   { label: t("anime.detailFields.malRank"), value: extMeta?.mal?.rank ? `#${extMeta.mal.rank.toLocaleString()}` : null },
                   { label: t("anime.detailFields.malPopularity"), value: extMeta?.mal?.popularity ? `#${extMeta.mal.popularity.toLocaleString()}` : null },
@@ -710,9 +797,25 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   { label: t("anime.detailFields.malLicensors"), value: extMeta?.mal?.licensors?.length ? extMeta.mal.licensors.join(", ") : null },
                   { label: t("anime.detailFields.malSource"), value: extMeta?.mal?.source && extMeta.mal.source !== moreInfo.source ? extMeta.mal.source : null },
                   { label: t("anime.detailFields.tvdbStatus"), value: extMeta?.tvdb?.status },
-                  { label: t("anime.detailFields.network"), value: extMeta?.tvdb?.network ?? extMeta?.tmdb?.networks?.[0] },
-                  { label: t("anime.detailFields.country"), value: extMeta?.tvdb?.country },
-                  { label: t("anime.detailFields.tmdbSeasons"), value: extMeta?.tmdb?.seasons },
+                  { label: t("anime.detailFields.network"), value: extMeta?.tvdb?.network ?? tmdb?.networks?.[0] },
+                  { label: t("anime.detailFields.tmdbNetworks"), value: tmdb?.networks?.length ? tmdb.networks.join(", ") : null },
+                  { label: t("anime.detailFields.country"), value: extMeta?.tvdb?.country ?? tmdb?.originCountry?.join(", ") },
+                  { label: t("anime.detailFields.tmdbStatus"), value: tmdb?.status },
+                  { label: t("anime.detailFields.tmdbSeasons"), value: tmdb?.seasons },
+                  { label: t("anime.detailFields.tmdbEpisodes"), value: tmdb?.episodes },
+                  { label: t("anime.detailFields.tmdbPopularity"), value: tmdb?.popularity ? tmdb.popularity.toLocaleString() : null },
+                  { label: t("anime.detailFields.tmdbOriginalName"), value: tmdb?.originalName && tmdb.originalName !== info.name ? tmdb.originalName : null },
+                  { label: t("anime.detailFields.tmdbFirstAirDate"), value: tmdb?.firstAirDate && tmdb.firstAirDate !== moreInfo.aired ? tmdb.firstAirDate : null },
+                  { label: t("anime.detailFields.tmdbLastAirDate"), value: tmdb?.lastAirDate },
+                  { label: t("anime.detailFields.tmdbOriginCountry"), value: tmdb?.originCountry?.length ? tmdb.originCountry.join(", ") : null },
+                  { label: t("anime.detailFields.tmdbLanguages"), value: tmdb?.spokenLanguages?.length ? tmdb.spokenLanguages.join(", ") : null },
+                  { label: t("anime.detailFields.tmdbCreators"), value: tmdb?.creators?.length ? tmdb.creators.join(", ") : null },
+                  { label: t("anime.detailFields.tmdbProduction"), value: tmdb?.production?.length ? tmdb.production.join(", ") : null },
+                  { label: t("anime.detailFields.tmdbProductionCountries"), value: tmdb?.productionCountries?.length ? tmdb.productionCountries.join(", ") : null },
+                  { label: t("anime.detailFields.tmdbShowType"), value: tmdb?.showType },
+                  { label: t("anime.detailFields.tmdbEpisodeRuntime"), value: tmdb?.episodeRuntime ? `${tmdb.episodeRuntime} min` : null },
+                  { label: t("anime.detailFields.tmdbNextEpisode"), value: formatTmdbEpisode(tmdb?.nextEpisode) },
+                  { label: t("anime.detailFields.tmdbLastEpisode"), value: formatTmdbEpisode(tmdb?.lastEpisode) },
                 ].filter((r) => r.value).map((row) => (
                   <div key={row.label} className="rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8 px-4 py-3 hover:border-border dark:border-white/14 transition-colors">
                     <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider block mb-1">{row.label}</span>
@@ -913,6 +1016,43 @@ const MalStatChip = ({
   }
   return <div className={className}>{inner}</div>;
 };
+
+const TmdbStatChip = ({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) => {
+  const inner = (
+    <>
+      <span className="text-[10px] font-mono uppercase tracking-wider text-sky-300/70 block">{label}</span>
+      <span className="text-sm font-bold tabular-nums text-sky-100">{value}</span>
+    </>
+  );
+  const className =
+    "rounded-xl border border-sky-500/20 bg-sky-500/8 px-3 py-2 transition-colors hover:bg-sky-500/12";
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {inner}
+      </a>
+    );
+  }
+  return <div className={className}>{inner}</div>;
+};
+
+function formatTmdbEpisode(
+  ep: { episodeNumber: number; name?: string | null; airDate?: string | null } | null | undefined,
+): string | null {
+  if (!ep?.episodeNumber) return null;
+  const parts = [`EP ${ep.episodeNumber}`];
+  if (ep.name) parts.push(ep.name);
+  if (ep.airDate) parts.push(ep.airDate);
+  return parts.join(" · ");
+}
 
 const OverviewPanel = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="site-panel p-5 sm:p-6">

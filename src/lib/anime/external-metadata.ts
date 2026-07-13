@@ -23,6 +23,28 @@ export type ExternalMetadata = {
     popularity?: number | null;
     networks?: string[];
     production?: string[];
+    tagline?: string | null;
+    originalName?: string | null;
+    firstAirDate?: string | null;
+    lastAirDate?: string | null;
+    originCountry?: string[];
+    spokenLanguages?: string[];
+    genres?: string[];
+    creators?: string[];
+    productionCountries?: string[];
+    showType?: string | null;
+    inProduction?: boolean | null;
+    episodeRuntime?: number | null;
+    nextEpisode?: {
+      episodeNumber: number;
+      name?: string | null;
+      airDate?: string | null;
+    } | null;
+    lastEpisode?: {
+      episodeNumber: number;
+      name?: string | null;
+      airDate?: string | null;
+    } | null;
   };
   mal?: {
     rank?: number | null;
@@ -210,17 +232,55 @@ async function fetchTmdbExtras(
     const data = await res.json();
 
     const avg = typeof data.vote_average === "number" && data.vote_average > 0 ? data.vote_average : null;
+    const nextRaw = data.next_episode_to_air;
+    const lastRaw = data.last_episode_to_air;
+    const episodeRunTime = Array.isArray(data.episode_run_time)
+      ? data.episode_run_time.find((n: unknown) => typeof n === "number" && n > 0)
+      : null;
+
     return {
       tmdb: {
         status: data.status ? String(data.status) : null,
         seasons: data.number_of_seasons ?? null,
         episodes: data.number_of_episodes ?? null,
-        popularity: data.popularity ?? null,
+        popularity:
+          typeof data.popularity === "number" ? Math.round(data.popularity) : null,
         networks: (data.networks ?? []).map((n: { name?: string }) => n.name).filter(Boolean),
         production: (data.production_companies ?? [])
           .map((c: { name?: string }) => c.name)
           .filter(Boolean)
+          .slice(0, 6),
+        tagline: data.tagline ? String(data.tagline) : null,
+        originalName: data.original_name ? String(data.original_name) : null,
+        firstAirDate: data.first_air_date ? String(data.first_air_date) : null,
+        lastAirDate: data.last_air_date ? String(data.last_air_date) : null,
+        originCountry: (data.origin_country ?? []).map(String).filter(Boolean),
+        spokenLanguages: (data.spoken_languages ?? []).map(String).filter(Boolean),
+        genres: (data.genres ?? []).map((g: { name?: string }) => g.name).filter(Boolean),
+        creators: (data.created_by ?? [])
+          .map((c: { name?: string }) => c.name)
+          .filter(Boolean)
           .slice(0, 4),
+        productionCountries: (data.production_countries ?? [])
+          .map((c: { name?: string }) => c.name)
+          .filter(Boolean),
+        showType: data.type ? String(data.type) : null,
+        inProduction: typeof data.in_production === "boolean" ? data.in_production : null,
+        episodeRuntime: typeof episodeRunTime === "number" ? episodeRunTime : null,
+        nextEpisode: nextRaw?.air_date || nextRaw?.episode_number
+          ? {
+              episodeNumber: Number(nextRaw.episode_number) || 0,
+              name: nextRaw.name ? String(nextRaw.name) : null,
+              airDate: nextRaw.air_date ? String(nextRaw.air_date) : null,
+            }
+          : null,
+        lastEpisode: lastRaw?.air_date || lastRaw?.episode_number
+          ? {
+              episodeNumber: Number(lastRaw.episode_number) || 0,
+              name: lastRaw.name ? String(lastRaw.name) : null,
+              airDate: lastRaw.air_date ? String(lastRaw.air_date) : null,
+            }
+          : null,
       },
       rating: avg
         ? {
