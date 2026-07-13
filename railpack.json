@@ -16,14 +16,21 @@
   "variables": {
     "NODE_ENV": "production",
     "NODE_OPTIONS": "--max-old-space-size=6144",
-    "SKIP_NEXT_TYPECHECK": "1"
+    "SKIP_NEXT_TYPECHECK": "1",
+    "CI": "true"
+  },
+  "steps": {
+    "build": {
+      "commands": ["npm run build"]
+    }
   },
   "deploy": {
-    "startCommand": "node .next/standalone/server.js",
+    "startCommand": "node scripts/start-with-bot.mjs",
     "variables": {
       "HOSTNAME": "0.0.0.0",
       "NODE_ENV": "production",
-      "PORT": "3000"
+      "PORT": "3000",
+      "INTERNAL_API_URL": "http://127.0.0.1:3000"
     }
   }
 }
