@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { internalApiBase } from "./internal-api-url.mjs";
+import { internalApiBase, resolveInternalApiBase } from "./internal-api-url.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -64,25 +64,24 @@ function resolveServerScript() {
 }
 
 async function waitForSite(maxMs = 120_000) {
-  const base = internalApiBase();
   const started = Date.now();
   while (Date.now() - started < maxMs) {
-    try {
-      const res = await fetch(`${base}/api/health`, {
-        signal: AbortSignal.timeout(4000),
-      });
-      if (res.ok) return true;
-    } catch {
-      // site still booting
+    const base = await resolveInternalApiBase({ timeoutMs: 4000 });
+    if (base) {
+      resolvedInternalApi = base;
+      return true;
     }
     await new Promise((r) => setTimeout(r, 1500));
   }
+  resolvedInternalApi = internalApiBase();
   return false;
 }
 
 let botProc = null;
 let serverProc = null;
 let botRestartTimer = null;
+/** Resolved after the site health check; passed to the bot subprocess. */
+let resolvedInternalApi = internalApiBase();
 
 function startBot() {
   if (!botConfigured()) {
@@ -102,7 +101,10 @@ function startBot() {
   console.info(`[start] Starting Discord bot from ${botScript} (cwd=${appRoot})`);
   botProc = spawn(process.execPath, [botScript], {
     stdio: "inherit",
-    env: process.env,
+    env: {
+      ...process.env,
+      INTERNAL_API_URL: resolvedInternalApi,
+    },
     cwd: appRoot,
   });
 
@@ -158,10 +160,15 @@ async function main() {
     process.exit(code ?? 0);
   });
 
-  console.info(`[start] Waiting for site at ${internalApiBase()}/api/health …`);
+  console.info(`[start] Waiting for site health (PORT=${process.env.PORT ?? "3000"}) …`);
   const ready = await waitForSite();
-  if (ready) console.info("[start] Site is ready — launching bot");
-  else console.warn("[start] Site slow to respond — launching bot anyway");
+  if (ready) {
+    console.info(`[start] Site is ready at ${resolvedInternalApi} — launching bot`);
+  } else {
+    console.warn(
+      `[start] Site slow to respond — launching bot with ${resolvedInternalApi}`,
+    );
+  }
 
   startBot();
 }

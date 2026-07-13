@@ -17,10 +17,26 @@ export function isDiscordBotConfigured(): boolean {
 }
 
 export function getInternalApiBaseUrl(): string {
+  const port = process.env.PORT?.trim() || "3000";
   const explicit = process.env.INTERNAL_API_URL?.trim();
-  if (explicit) return explicit.replace(/\/$/, "");
 
-  const port = process.env.PORT ?? "3000";
+  if (explicit) {
+    const normalized = explicit.replace(/\/$/, "");
+    try {
+      const url = new URL(normalized);
+      const isLocal =
+        url.hostname === "127.0.0.1" ||
+        url.hostname === "localhost" ||
+        url.hostname === "::1";
+      if (isLocal && url.port && url.port !== port) {
+        return `http://127.0.0.1:${port}`;
+      }
+    } catch {
+      // use explicit below
+    }
+    return normalized;
+  }
+
   return `http://127.0.0.1:${port}`;
 }
 
