@@ -170,12 +170,6 @@ const EpisodeCard = ({
               </div>
             )}
 
-            {!playable && (
-              <span className="absolute top-1.5 right-1.5 text-[9px] font-bold font-mono text-sky-200/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
-                SOON
-              </span>
-            )}
-
             {/* Bottom-left: ep number + filler badge */}
             <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
               <span className="text-[10px] font-mono font-bold text-foreground dark:text-white/85 bg-black/55 backdrop-blur-sm px-1.5 py-0.5 rounded">
@@ -327,15 +321,15 @@ const EpisodeCard = ({
           >
             {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}
           </p>
-          <div className="flex items-center gap-1.5">
+          {props.episode.overview && (
+            <p className="text-[10px] leading-snug text-muted-foreground/75 dark:text-white/35 line-clamp-2">
+              {props.episode.overview}
+            </p>
+          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
             {props.episode.isFiller && (
               <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/12 px-1.5 py-px text-[9px] font-mono font-bold uppercase tracking-wide text-amber-300">
                 Filler
-              </span>
-            )}
-            {!playable && (
-              <span className="inline-flex items-center rounded-md border border-sky-500/30 bg-sky-500/12 px-1.5 py-px text-[9px] font-mono font-bold uppercase tracking-wide text-sky-300">
-                Soon
               </span>
             )}
             {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
@@ -347,6 +341,21 @@ const EpisodeCard = ({
             {listInProgress && listCurrent > 0 && (
               <span className="text-[9px] font-mono text-amber-300/60 ml-auto">
                 {Math.floor(listCurrent / 60)}:{String(Math.floor(listCurrent % 60)).padStart(2, "0")}
+              </span>
+            )}
+            {!listInProgress && props.episode.airDate && (
+              <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/30 ml-auto">
+                {props.episode.airDate}
+              </span>
+            )}
+            {!listInProgress && props.episode.rating != null && props.episode.rating > 0 && (
+              <span className="text-[9px] font-mono text-emerald-300/70">
+                {Math.round(props.episode.rating * 10)}%
+              </span>
+            )}
+            {props.episode.runtime != null && props.episode.runtime > 0 && (
+              <span className="text-[9px] font-mono text-muted-foreground/60 dark:text-white/25">
+                {props.episode.runtime}m
               </span>
             )}
           </div>

@@ -9,6 +9,12 @@ export type EpisodeMeta = {
   tvdbId?: number;
   overview?: string;
   airDate?: string;
+  /** TMDB episode runtime in minutes. */
+  runtime?: number;
+  /** TMDB vote average (0–10). */
+  voteAverage?: number;
+  seasonNumber?: number;
+  episodeNumber?: number;
 };
 
 export type EpisodeImageSources = {
@@ -43,6 +49,10 @@ function mergeEpisodeMeta(existing: EpisodeMeta | undefined, next: EpisodeMeta):
     tvdbId: existing?.tvdbId ?? next.tvdbId,
     overview: existing?.overview ?? next.overview,
     airDate: existing?.airDate ?? next.airDate,
+    runtime: existing?.runtime ?? next.runtime,
+    voteAverage: existing?.voteAverage ?? next.voteAverage,
+    seasonNumber: existing?.seasonNumber ?? next.seasonNumber,
+    episodeNumber: existing?.episodeNumber ?? next.episodeNumber,
   };
 }
 
@@ -176,6 +186,8 @@ async function fetchTmdbEpisodeData(
           name?: string;
           overview?: string;
           air_date?: string;
+          runtime?: number;
+          vote_average?: number;
         }> = data?.episodes ?? [];
 
         for (const ep of eps) {
@@ -185,7 +197,22 @@ async function fetchTmdbEpisodeData(
           const title = ep.name?.trim() || undefined;
           const overview = ep.overview?.trim() || undefined;
           const airDate = ep.air_date?.trim() || undefined;
-          const episodeMeta: EpisodeMeta = { image, title, overview, airDate };
+          const runtime =
+            typeof ep.runtime === "number" && ep.runtime > 0 ? ep.runtime : undefined;
+          const voteAverage =
+            typeof ep.vote_average === "number" && ep.vote_average > 0
+              ? ep.vote_average
+              : undefined;
+          const episodeMeta: EpisodeMeta = {
+            image,
+            title,
+            overview,
+            airDate,
+            runtime,
+            voteAverage,
+            seasonNumber: seasonNum,
+            episodeNumber: ep.episode_number,
+          };
 
           const keys = new Set<number>([absolute]);
           if (typeof ep.episode_number === "number" && ep.episode_number > 0) {
@@ -268,14 +295,43 @@ export function resolveEpisodeOverview(
   num: number,
   sources: EpisodeImageSources,
 ): string | null {
-  return sources.anizip[num]?.overview ?? sources.tmdbMeta[num]?.overview ?? null;
+  const tmdb = sources.tmdbMeta[num]?.overview;
+  const zip = sources.anizip[num]?.overview;
+  return tmdb?.trim() || zip?.trim() || null;
 }
 
 export function resolveEpisodeAirDate(
   num: number,
   sources: EpisodeImageSources,
 ): string | null {
-  return sources.anizip[num]?.airDate ?? sources.tmdbMeta[num]?.airDate ?? null;
+  return sources.tmdbMeta[num]?.airDate ?? sources.anizip[num]?.airDate ?? null;
+}
+
+export function resolveEpisodeRuntime(
+  num: number,
+  sources: EpisodeImageSources,
+): number | null {
+  const runtime = sources.tmdbMeta[num]?.runtime;
+  return runtime != null && runtime > 0 ? runtime : null;
+}
+
+export function resolveEpisodeRating(
+  num: number,
+  sources: EpisodeImageSources,
+): number | null {
+  const rating = sources.tmdbMeta[num]?.voteAverage;
+  return rating != null && rating > 0 ? rating : null;
+}
+
+export function resolveEpisodeTmdbMeta(
+  num: number,
+  sources: EpisodeImageSources,
+): Pick<EpisodeMeta, "seasonNumber" | "episodeNumber"> {
+  const meta = sources.tmdbMeta[num];
+  return {
+    seasonNumber: meta?.seasonNumber,
+    episodeNumber: meta?.episodeNumber,
+  };
 }
 
 export function maxEpisodeNumberInSources(sources: EpisodeImageSources): number {

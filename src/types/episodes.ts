@@ -1,6 +1,8 @@
 export interface IEpisodes {
+  /** Aired episodes returned in `episodes`. */
   totalEpisodes: number;
-  /** Episodes that have actually aired (optional — derived from list when absent). */
+  /** Full season length when known (AniList / Anikoto / TMDB). */
+  plannedTotal?: number;
   airedCount?: number;
   episodes: Episode[];
 }
@@ -13,7 +15,12 @@ export interface Episode {
   image?: string | null;
   overview?: string | null;
   airDate?: string | null;
-  /** False when the episode is listed but not yet released. */
+  /** TMDB episode runtime in minutes. */
+  runtime?: number | null;
+  /** TMDB vote average (0–10). */
+  rating?: number | null;
+  seasonNumber?: number | null;
+  tmdbEpisodeNumber?: number | null;
   aired?: boolean;
 }
 

@@ -5,7 +5,10 @@ import {
   resolveEpisodeAirDate,
   resolveEpisodeImage,
   resolveEpisodeOverview,
+  resolveEpisodeRating,
+  resolveEpisodeRuntime,
   resolveEpisodeTitle,
+  resolveEpisodeTmdbMeta,
   type EpisodeImageSources,
 } from "@/lib/anime/episode-thumbnails";
 import {
@@ -106,31 +109,36 @@ export async function GET(
 
     const airedUpTo = Math.max(airedUpToFromAnilist, anikotoSchedule?.airedSub ?? 0);
 
-    const totalEpisodes = resolveTotalEpisodeCount({
+    const plannedTotal = resolveTotalEpisodeCount({
       ...airingCtx,
       metadataMaxEpisode: maxEpisodeNumberInSources(sources),
       anikotoTotal: anikotoSchedule?.catalogTotalEpisodes,
     });
 
-    if (totalEpisodes <= 0) {
-      return Response.json({ data: { totalEpisodes: 0, airedCount: 0, episodes: [] } });
+    if (airedUpTo <= 0) {
+      return Response.json({
+        data: {
+          totalEpisodes: 0,
+          plannedTotal: plannedTotal > 0 ? plannedTotal : undefined,
+          airedCount: 0,
+          episodes: [],
+        },
+      });
     }
 
     const malId = sources.mappings?.mal_id ?? m.idMal ?? null;
     const fillerFlags: Record<number, EpisodeContentFlags> = malId
-      ? await fetchMalEpisodeFlags(malId, totalEpisodes).catch(() => ({}))
+      ? await fetchMalEpisodeFlags(malId, airedUpTo).catch(() => ({}))
       : {};
 
-    const episodes = Array.from({ length: totalEpisodes }, (_, i) => {
+    const episodes = Array.from({ length: airedUpTo }, (_, i) => {
       const num = i + 1;
       const airDate = resolveEpisodeAirDate(num, sources);
       const anikotoEp = anikotoSchedule?.episodesByNumber.get(num);
       const anikotoAvailable =
         !!anikotoEp ||
         (anikotoSchedule != null && num <= anikotoSchedule.airedSub);
-      const aired = resolveEpisodeAiredStatus(num, airDate, airedUpTo, {
-        anikotoAvailable,
-      });
+      const tmdbMeta = resolveEpisodeTmdbMeta(num, sources);
 
       return {
         title:
@@ -143,15 +151,22 @@ export async function GET(
         image: resolveEpisodeImage(num, sources),
         overview: resolveEpisodeOverview(num, sources),
         airDate,
-        aired,
+        runtime: resolveEpisodeRuntime(num, sources),
+        rating: resolveEpisodeRating(num, sources),
+        seasonNumber: tmdbMeta.seasonNumber ?? null,
+        tmdbEpisodeNumber: tmdbMeta.episodeNumber ?? null,
+        aired: resolveEpisodeAiredStatus(num, airDate, airedUpTo, {
+          anikotoAvailable,
+        }),
       };
-    });
+    }).filter((ep) => ep.aired);
 
     return Response.json(
       {
         data: {
           totalEpisodes: episodes.length,
-          airedCount: episodes.filter((ep) => ep.aired).length,
+          plannedTotal: plannedTotal > episodes.length ? plannedTotal : undefined,
+          airedCount: episodes.length,
           episodes,
         },
       },
