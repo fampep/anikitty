@@ -6,12 +6,14 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/start-with-bot.mjs --dev",
+    "dev:next": "next dev",
     "prebuild": "node -e \"const f=require('fs'),p=require('path');f.mkdirSync(p.join('public','fonts'),{recursive:true});f.copyFileSync(p.join('src','assets','fonts','NightinTokyo.ttf'),p.join('public','fonts','NightinTokyo.ttf'));\"",
     "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --no-lint",
     "postbuild": "node prepare-standalone.mjs",
     "typecheck": "tsc --noEmit",
-    "start": "node .next/standalone/server.js",
+    "start": "node scripts/start-with-bot.mjs",
+    "start:next": "node .next/standalone/server.js",
     "lint": "next lint",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"

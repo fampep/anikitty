@@ -65,10 +65,12 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
-# prepare-standalone.mjs bundles public/ into standalone during Docker builds (CI=true).
+# prepare-standalone.mjs bundles public/ + discord bot scripts into standalone.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/start-with-bot.mjs ./scripts/start-with-bot.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/discord-bot.mjs ./scripts/discord-bot.mjs
 
 USER nextjs
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["node", "scripts/start-with-bot.mjs"]
