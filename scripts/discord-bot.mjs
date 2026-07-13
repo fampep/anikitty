@@ -184,6 +184,8 @@ async function main() {
     process.exit(1);
   }
 
+  console.info(`[discord-bot] API base: ${apiBase()}`);
+
   const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   });

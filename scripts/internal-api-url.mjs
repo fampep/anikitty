@@ -1,38 +1,60 @@
-/** Base URL for server-to-server calls from the same container (bot → Next API). */
-export function internalApiBase() {
-  const port = process.env.PORT?.trim() || "3000";
-  const explicit = process.env.INTERNAL_API_URL?.trim();
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1", "0.0.0.0"]);
 
-  if (explicit) {
-    const normalized = explicit.replace(/\/$/, "");
-    try {
-      const url = new URL(normalized);
-      const isLocal =
-        url.hostname === "127.0.0.1" ||
-        url.hostname === "localhost" ||
-        url.hostname === "::1";
-      // Ignore stale localhost URLs that still pin port 3000 while the app listens on PORT.
-      if (isLocal && url.port && url.port !== port) {
-        return `http://127.0.0.1:${port}`;
-      }
-    } catch {
-      // fall through to explicit value
-    }
-    return normalized;
-  }
+function runtimePort() {
+  return process.env.PORT?.trim() || "3000";
+}
 
-  // Never use NEXT_PUBLIC_APP_URL here — from inside Docker that often fails (hairpin NAT).
+function loopbackBase(port = runtimePort()) {
   return `http://127.0.0.1:${port}`;
 }
 
-/** Probe common local bases until /api/health responds. */
+/** True when the URL is safe for bot → Next calls inside the same container. */
+export function isUsableInternalApiUrl(raw) {
+  if (!raw?.trim()) return false;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== "http:") return false;
+    if (!LOOPBACK_HOSTS.has(url.hostname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Base URL for server-to-server calls from the same container (bot → Next API). */
+export function internalApiBase() {
+  const port = runtimePort();
+  const explicit = process.env.INTERNAL_API_URL?.trim();
+
+  if (explicit && isUsableInternalApiUrl(explicit)) {
+    const url = new URL(explicit);
+    // Normalize 0.0.0.0 / localhost to 127.0.0.1 and honor runtime PORT when unset.
+    const resolvedPort = url.port || port;
+    if (resolvedPort !== port) {
+      return loopbackBase(port);
+    }
+    return `http://127.0.0.1:${resolvedPort}`;
+  }
+
+  if (explicit) {
+    console.warn(
+      `[internal-api] ignoring INTERNAL_API_URL=${explicit} — use http://127.0.0.1:\${PORT} inside the container`,
+    );
+  }
+
+  return loopbackBase(port);
+}
+
+/** Probe common local bases until /api/health responds. Returns null if none work yet. */
 export async function resolveInternalApiBase({ timeoutMs = 4000 } = {}) {
-  const port = process.env.PORT?.trim() || "3000";
+  const port = runtimePort();
   const candidates = [
-    `http://127.0.0.1:${port}`,
-    process.env.INTERNAL_API_URL?.trim()?.replace(/\/$/, ""),
+    loopbackBase(port),
     "http://127.0.0.1:80",
     "http://127.0.0.1:3000",
+    isUsableInternalApiUrl(process.env.INTERNAL_API_URL)
+      ? process.env.INTERNAL_API_URL.trim().replace(/\/$/, "")
+      : null,
   ].filter(Boolean);
 
   const seen = new Set();
@@ -50,5 +72,5 @@ export async function resolveInternalApiBase({ timeoutMs = 4000 } = {}) {
     }
   }
 
-  return internalApiBase();
+  return null;
 }

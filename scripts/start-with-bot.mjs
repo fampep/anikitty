@@ -73,7 +73,6 @@ async function waitForSite(maxMs = 120_000) {
     }
     await new Promise((r) => setTimeout(r, 1500));
   }
-  resolvedInternalApi = internalApiBase();
   return false;
 }
 
@@ -160,11 +159,15 @@ async function main() {
     process.exit(code ?? 0);
   });
 
-  console.info(`[start] Waiting for site health (PORT=${process.env.PORT ?? "3000"}) …`);
+  resolvedInternalApi = internalApiBase();
+  console.info(
+    `[start] Waiting for site health at ${resolvedInternalApi}/api/health (PORT=${process.env.PORT ?? "3000"}) …`,
+  );
   const ready = await waitForSite();
   if (ready) {
     console.info(`[start] Site is ready at ${resolvedInternalApi} — launching bot`);
   } else {
+    resolvedInternalApi = internalApiBase();
     console.warn(
       `[start] Site slow to respond — launching bot with ${resolvedInternalApi}`,
     );
