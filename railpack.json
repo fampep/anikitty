@@ -28,9 +28,7 @@
     "startCommand": "node scripts/start-with-bot.mjs",
     "variables": {
       "HOSTNAME": "0.0.0.0",
-      "NODE_ENV": "production",
-      "PORT": "3000",
-      "INTERNAL_API_URL": "http://127.0.0.1:3000"
+      "NODE_ENV": "production"
     }
   }
 }
