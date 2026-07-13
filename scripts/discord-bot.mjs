@@ -6,7 +6,8 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
 } from "discord.js";
-import { internalApiBase } from "./internal-api-url.mjs";
+import { internalApiBase, resolveInternalApiBase, getLoopbackPort } from "./internal-api-url.mjs";
+import { loopbackGet, loopbackPost } from "./loopback-fetch.mjs";
 import {
   MESSAGE_XP_COOLDOWN_MS,
   MIN_MESSAGE_LENGTH,
@@ -22,6 +23,9 @@ const token = process.env.DISCORD_BOT_TOKEN?.trim();
 const guildId = process.env.DISCORD_GUILD_ID?.trim();
 const secret = process.env.DISCORD_BOT_API_SECRET?.trim();
 
+/** Cached after first successful internal call. */
+let loopbackPort = getLoopbackPort();
+
 /** @type {Map<string, number>} */
 const messageXpCooldowns = new Map();
 
@@ -30,17 +34,29 @@ function apiBase() {
 }
 
 async function botFetch(path, init) {
-  const res = await fetch(`${apiBase()}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${secret}`,
-      ...(init?.headers ?? {}),
-    },
-    signal: AbortSignal.timeout(12_000),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, status: res.status, data };
+  const method = init?.method ?? "GET";
+  const headers = {
+    Authorization: `Bearer ${secret}`,
+    ...(init?.headers ?? {}),
+  };
+  const ports = [...new Set([loopbackPort, Number(process.env.PORT) || 80, 80, 3000])];
+
+  let lastError;
+  for (const port of ports) {
+    try {
+      const res =
+        method === "POST"
+          ? await loopbackPost(path, init?.body, { headers, port, timeoutMs: 12_000 })
+          : await loopbackGet(path, { headers, port, timeoutMs: 12_000 });
+      loopbackPort = port;
+      return { ok: res.ok, status: res.status, data: res.json() };
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  console.error("[discord-bot] loopback API unreachable:", lastError);
+  return { ok: false, status: 0, data: {} };
 }
 
 /** Discord's built-in Nitro Server Booster role (managed by Discord, not assigned by the bot). */
@@ -291,7 +307,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.info(`[discord-bot] API base: ${apiBase()}`);
+  console.info(`[discord-bot] API base: ${apiBase()} (loopback port ${loopbackPort})`);
 
   const client = new Client({
     intents: [
@@ -302,7 +318,7 @@ async function main() {
     ],
   });
 
-  client.once("ready", async () => {
+  client.once("clientReady", async () => {
     console.info(`[discord-bot] logged in as ${client.user?.tag}`);
     try {
       await registerSlashCommands(client.user.id);

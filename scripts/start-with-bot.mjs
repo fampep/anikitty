@@ -103,6 +103,8 @@ function startBot() {
     env: {
       ...process.env,
       INTERNAL_API_URL: resolvedInternalApi,
+      NO_PROXY: "127.0.0.1,localhost,0.0.0.0,::1",
+      no_proxy: "127.0.0.1,localhost,0.0.0.0,::1",
     },
     cwd: appRoot,
   });
@@ -167,7 +169,8 @@ async function main() {
   if (ready) {
     console.info(`[start] Site is ready at ${resolvedInternalApi} — launching bot`);
   } else {
-    resolvedInternalApi = internalApiBase();
+    const probed = await resolveInternalApiBase({ timeoutMs: 2000 });
+    resolvedInternalApi = probed ?? internalApiBase();
     console.warn(
       `[start] Site slow to respond — launching bot with ${resolvedInternalApi}`,
     );

@@ -9,6 +9,7 @@ const botScripts = [
   "start-with-bot.mjs",
   "discord-bot.mjs",
   "internal-api-url.mjs",
+  "loopback-fetch.mjs",
   "discord-level-tiers.mjs",
   "discord-level-roles.mjs",
 ];
