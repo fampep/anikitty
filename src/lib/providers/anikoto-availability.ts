@@ -14,8 +14,9 @@ import {
 const ANIKOTO_API_BASE =
   process.env.ANIKOTO_API_BASE?.replace(/\/$/, "") ?? "https://www.anikotoapi.site";
 
+/** @deprecated Use ANIKOTO_API_BASE — search lives on `/recent-anime`. */
 const ANIKOTO_SEARCH_BASE =
-  process.env.ANIKOTO_SEARCH_API?.replace(/\/$/, "") ?? "https://anikototvapi.vercel.app";
+  process.env.ANIKOTO_SEARCH_API?.replace(/\/$/, "") ?? ANIKOTO_API_BASE;
 
 export type AudioAvailability = {
   sub: number;
@@ -40,7 +41,10 @@ type SearchHit = {
   japaneseTitle: string;
   sub: number;
   dub: number;
+  totalEpisodes: number;
   type: string;
+  anilistId?: number;
+  malId?: number;
 };
 
 type SeriesAnime = {
@@ -49,10 +53,27 @@ type SeriesAnime = {
   mal_id?: string | number;
   is_sub?: number;
   is_dub?: number;
+  episodes?: string | number | null;
+  next_air_ep?: number | null;
+};
+
+export type AnikotoCatalogEpisode = {
+  number: number;
+  title: string;
+};
+
+export type AnikotoSeriesSchedule = {
+  catalogId: number;
+  /** Planned season length from Anikoto `episodes` field (0 when unknown). */
+  catalogTotalEpisodes: number;
+  airedSub: number;
+  airedDub: number;
+  episodesByNumber: Map<number, AnikotoCatalogEpisode>;
 };
 
 type FetchResult = AudioAvailability & {
   catalogId?: number;
+  totalEpisodes?: number;
 };
 
 type MemoryEntry = {
@@ -132,8 +153,40 @@ function memoryIsFresh(entry: MemoryEntry, ctx: AudioCacheContext): boolean {
   );
 }
 
-async function searchCatalog(query: string): Promise<SearchHit[]> {
-  const url = `${ANIKOTO_SEARCH_BASE}/api/search?keyword=${encodeURIComponent(query)}`;
+function parseAnikotoEpisodeTotal(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return Math.floor(raw);
+  }
+  if (typeof raw === "string") {
+    const n = parseInt(raw.trim(), 10);
+    return n > 0 ? n : 0;
+  }
+  return 0;
+}
+
+function mapRecentAnimeRow(row: Record<string, unknown>): SearchHit | null {
+  const catalogId = parseInt(String(row.id ?? row.animeId ?? ""), 10);
+  const title = String(row.title ?? "");
+  if (!catalogId || !title) return null;
+
+  return {
+    catalogId,
+    title,
+    japaneseTitle: String(row.native ?? row.japaneseTitle ?? ""),
+    sub: Number(row.is_sub ?? row.sub ?? 0) || 0,
+    dub: Number(row.is_dub ?? row.dub ?? 0) || 0,
+    totalEpisodes: parseAnikotoEpisodeTotal(row.episodes),
+    type: String(
+      (row.terms_by_type as { type?: string[] } | undefined)?.type?.[0] ??
+        row.type ??
+        "TV",
+    ),
+    anilistId: parseInt(String(row.ani_id ?? ""), 10) || undefined,
+    malId: parseInt(String(row.mal_id ?? ""), 10) || undefined,
+  };
+}
+
+async function fetchRecentAnimeList(url: string): Promise<SearchHit[]> {
   const res = await fetch(url, {
     signal: AbortSignal.timeout(10_000),
     cache: "no-store",
@@ -142,19 +195,48 @@ async function searchCatalog(query: string): Promise<SearchHit[]> {
   if (!res.ok) return [];
 
   const json = await res.json();
-  const rows: any[] = json?.results?.data ?? json?.data ?? [];
+  const rows: unknown[] = json?.data ?? [];
   if (!Array.isArray(rows)) return [];
 
   return rows
-    .map((row) => ({
-      catalogId: parseInt(String(row.animeId ?? row.id ?? ""), 10),
-      title: String(row.title ?? ""),
-      japaneseTitle: String(row.japaneseTitle ?? row.native ?? ""),
-      sub: Number(row.sub ?? row.is_sub ?? 0) || 0,
-      dub: Number(row.dub ?? row.is_dub ?? 0) || 0,
-      type: String(row.type ?? "TV"),
-    }))
-    .filter((r) => r.catalogId > 0 && r.title);
+    .map((row) => mapRecentAnimeRow(row as Record<string, unknown>))
+    .filter((row): row is SearchHit => row != null);
+}
+
+/** Resolve catalog id via AniList / MAL ids (official Anikoto API). */
+async function lookupCatalogByIds(
+  anilistId: number,
+  malId?: number | null,
+): Promise<SearchHit | null> {
+  const urls = [`${ANIKOTO_API_BASE}/recent-anime?ani_id=${anilistId}`];
+  if (malId && malId > 0) {
+    urls.push(`${ANIKOTO_API_BASE}/recent-anime?mal_id=${malId}`);
+  }
+
+  for (const url of urls) {
+    const hits = await fetchRecentAnimeList(url);
+    const match = hits.find(
+      (hit) =>
+        hit.anilistId === anilistId ||
+        (malId != null && malId > 0 && hit.malId === malId),
+    );
+    if (match) return match;
+    if (hits[0]) return hits[0];
+  }
+  return null;
+}
+
+async function searchCatalog(query: string): Promise<SearchHit[]> {
+  const url = `${ANIKOTO_SEARCH_BASE}/recent-anime?keyword=${encodeURIComponent(query)}&per_page=50`;
+  const hits = await fetchRecentAnimeList(url);
+  const q = normalizeTitle(query);
+  if (!q) return hits;
+
+  const filtered = hits.filter((hit) => {
+    const score = titleScore(query, hit);
+    return score >= 65;
+  });
+  return filtered.length > 0 ? filtered : hits;
 }
 
 async function fetchSeriesAnime(catalogId: number): Promise<SeriesAnime | null> {
@@ -188,7 +270,11 @@ function idsMatch(
 function countsFromSeries(series: SeriesAnime, fallbackSub: number): FetchResult {
   const sub = series.is_sub ?? fallbackSub;
   const dub = series.is_dub ?? 0;
-  return { ...toCounts(sub, dub), catalogId: series.id };
+  return {
+    ...toCounts(sub, dub),
+    catalogId: series.id,
+    totalEpisodes: parseAnikotoEpisodeTotal(series.episodes),
+  };
 }
 
 async function refreshFromCatalog(
@@ -203,6 +289,23 @@ async function refreshFromCatalog(
 
 async function fetchFromAnikotoApi(opts: AudioAvailabilityOpts): Promise<FetchResult> {
   const { anilistId, malId, fallbackSub = 0 } = opts;
+
+  const byIds = await lookupCatalogByIds(anilistId, malId);
+  if (byIds) {
+    try {
+      const series = await fetchSeriesAnime(byIds.catalogId);
+      if (series && idsMatch(series, anilistId, malId)) {
+        return countsFromSeries(series, fallbackSub || byIds.sub);
+      }
+    } catch {
+      /* fall through to list hit */
+    }
+    return {
+      ...toCounts(byIds.sub || fallbackSub, byIds.dub),
+      catalogId: byIds.catalogId,
+      totalEpisodes: byIds.totalEpisodes,
+    };
+  }
 
   const queries = [...new Set(opts.titles.map((t) => t?.trim()).filter(Boolean) as string[])];
   if (queries.length === 0) {
@@ -344,6 +447,61 @@ export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
   }
 
   return enriched;
+}
+
+/** Season schedule from the public Anikoto API (https://www.anikotoapi.site). */
+export async function getAnikotoSeriesSchedule(opts: {
+  anilistId: number;
+  malId?: number | null;
+}): Promise<AnikotoSeriesSchedule | null> {
+  try {
+    const hit = await lookupCatalogByIds(opts.anilistId, opts.malId);
+    if (!hit) return null;
+
+    const res = await fetch(`${ANIKOTO_API_BASE}/series/${hit.catalogId}`, {
+      signal: AbortSignal.timeout(12_000),
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    const anime = (json?.data?.anime ?? json?.anime) as SeriesAnime | undefined;
+    const episodeRows: Array<{ number?: number; title?: string; jp_title?: string }> =
+      json?.data?.episodes ?? json?.episodes ?? [];
+    if (!anime) return null;
+
+    const episodesByNumber = new Map<number, AnikotoCatalogEpisode>();
+    for (const ep of episodeRows) {
+      const num = Number(ep.number);
+      if (!num || num <= 0) continue;
+      episodesByNumber.set(num, {
+        number: num,
+        title: String(ep.title ?? ep.jp_title ?? `Episode ${num}`).trim(),
+      });
+    }
+
+    const airedSub = Math.max(
+      Number(anime.is_sub) || 0,
+      hit.sub || 0,
+      episodesByNumber.size,
+    );
+    const airedDub = Number(anime.is_dub) || hit.dub || 0;
+    const catalogTotalEpisodes = Math.max(
+      parseAnikotoEpisodeTotal(anime.episodes),
+      hit.totalEpisodes,
+    );
+
+    return {
+      catalogId: hit.catalogId,
+      catalogTotalEpisodes,
+      airedSub,
+      airedDub,
+      episodesByNumber,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function getAudioAvailability(

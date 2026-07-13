@@ -18,6 +18,7 @@ import {
   resolveEpisodeAiredStatus,
   resolveTotalEpisodeCount,
 } from "@/lib/anime/episode-availability";
+import { getAnikotoSeriesSchedule } from "@/lib/providers/anikoto-availability";
 
 export const revalidate = 3600;
 
@@ -96,15 +97,19 @@ export async function GET(
       streamingEpisodeCount: streamingEpisodes.length,
     };
 
-    const airedUpTo = resolveAiredEpisodeCount(airingCtx);
+    const airedUpToFromAnilist = resolveAiredEpisodeCount(airingCtx);
 
-    const sources = await fetchAllEpisodeImageSources(numId, streamingEpisodes).catch(
-      () => EMPTY_SOURCES,
-    );
+    const [sources, anikotoSchedule] = await Promise.all([
+      fetchAllEpisodeImageSources(numId, streamingEpisodes).catch(() => EMPTY_SOURCES),
+      getAnikotoSeriesSchedule({ anilistId: numId, malId: m.idMal }).catch(() => null),
+    ]);
+
+    const airedUpTo = Math.max(airedUpToFromAnilist, anikotoSchedule?.airedSub ?? 0);
 
     const totalEpisodes = resolveTotalEpisodeCount({
       ...airingCtx,
       metadataMaxEpisode: maxEpisodeNumberInSources(sources),
+      anikotoTotal: anikotoSchedule?.catalogTotalEpisodes,
     });
 
     if (totalEpisodes <= 0) {
@@ -119,10 +124,14 @@ export async function GET(
     const episodes = Array.from({ length: totalEpisodes }, (_, i) => {
       const num = i + 1;
       const airDate = resolveEpisodeAirDate(num, sources);
+      const anikotoEp = anikotoSchedule?.episodesByNumber.get(num);
       const aired = resolveEpisodeAiredStatus(num, airDate, airedUpTo);
 
       return {
-        title: resolveEpisodeTitle(num, sources) ?? `Episode ${num}`,
+        title:
+          anikotoEp?.title ??
+          resolveEpisodeTitle(num, sources) ??
+          `Episode ${num}`,
         episodeId: `ep-${num}`,
         number: num,
         isFiller: isSkippableEpisode(fillerFlags[num]),

@@ -128,13 +128,14 @@ export function maxEpisodeNumberInRecords(
 
 /** Full season length for UI lists — includes episodes that have not aired yet. */
 export function resolveTotalEpisodeCount(
-  ctx: AiringContext & { metadataMaxEpisode?: number },
+  ctx: AiringContext & { metadataMaxEpisode?: number; anikotoTotal?: number },
 ): number {
   const aired = resolveAiredEpisodeCount(ctx);
   const planned = ctx.episodes;
   const metadataMax = ctx.metadataMaxEpisode ?? 0;
+  const anikotoTotal = ctx.anikotoTotal ?? 0;
 
-  let total = maxPositive(planned, metadataMax, aired);
+  let total = maxPositive(planned, metadataMax, aired, anikotoTotal);
 
   const nextEp = ctx.nextAiringEpisode;
   if (nextEp != null && nextEp > 0) {
