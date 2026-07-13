@@ -609,7 +609,7 @@ const Layout = (props: Props) => {
 
         {/* Right sidebar: now-watching card + episodes list (desktop) */}
         {!theatreMode && (
-          <div className="hidden lg:flex flex-col gap-4">
+          <div className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-[calc(var(--nav-height)+0.75rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-height)-1.5rem)] lg:overflow-y-auto scrollbar-hide">
             {currentEpisode && (
               <div className="site-panel p-4 space-y-3.5">
                 {/* Series header */}

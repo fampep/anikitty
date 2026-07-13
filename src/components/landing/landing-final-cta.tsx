@@ -12,7 +12,7 @@ export default function LandingFinalCta() {
   return (
     <section className="relative z-10 px-4 sm:px-6 md:px-12 py-14 sm:py-16 border-t border-border dark:border-white/[0.06]">
       <div className="max-w-6xl mx-auto">
-        <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-600/20 via-violet-950/30 to-black px-6 sm:px-10 py-10 sm:py-12 text-center">
+        <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-600/20 via-violet-950/30 to-[#0a0a0f] px-6 sm:px-10 py-10 sm:py-12 text-center">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(167,139,250,0.18),transparent_65%)]" />
           <div className="relative">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent dark:bg-white/10 border border-border dark:border-white/15 text-violet-200">

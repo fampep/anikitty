@@ -49,7 +49,7 @@ export default function LandingSpotlightCard({ anime, loading }: Props) {
               sizes="(max-width: 768px) 100vw, 1152px"
               unoptimized
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/92 to-black/70" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/92 to-[#0a0a0f]/70" />
           </div>
 
           <div className="relative flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-5">

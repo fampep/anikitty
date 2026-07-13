@@ -56,10 +56,10 @@ function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) 
 
 function HeroStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/40 dark:bg-white/[0.03] backdrop-blur-sm px-3 py-2.5 text-center">
+    <div className="site-panel px-3 py-2.5 text-center">
       <div className="flex items-center justify-center gap-1.5 text-violet-300/80 mb-0.5">{icon}</div>
-      <p className="text-sm font-bold text-foreground dark:text-white/90 tabular-nums">{value}</p>
-      <p className="text-[10px] font-medium text-muted-foreground dark:text-white/35 mt-0.5">{label}</p>
+      <p className="text-sm font-bold text-white/90 tabular-nums">{value}</p>
+      <p className="text-[10px] font-medium text-white/35 mt-0.5">{label}</p>
     </div>
   );
 }
@@ -131,15 +131,25 @@ export default function LandingPage({ initialPosters = [] }: Props) {
   }, [t]);
 
   return (
-    <div className="relative min-h-screen bg-black text-foreground dark:text-white overflow-x-hidden flex flex-col">
+    <div className="relative min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden flex flex-col">
+      {/* Ambient spotlight backdrop — mirrors the home page's blurred-poster glow. */}
+      {spotlight?.poster && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[min(78lvh,760px)] overflow-hidden" aria-hidden>
+          <div className="relative size-full blur-3xl brightness-[0.18] saturate-125 scale-110">
+            <Image src={spotlight.poster} alt="" fill sizes="100vw" className="object-cover object-top" priority unoptimized />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/40 via-[#0a0a0f]/70 to-[#0a0a0f]" />
+        </div>
+      )}
+
       <LandingPosterWall posters={posters} loaded={postersLoaded} />
 
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/92 via-black/78 to-black" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-transparent to-black/85" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_38%,rgba(124,58,237,0.2),transparent)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/92 via-[#0a0a0f]/80 to-[#0a0a0f]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f]/85 via-transparent to-[#0a0a0f]/85" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_36%,rgba(124,58,237,0.13),transparent)]" />
       </div>
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
 
       <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5">
         <Link href="/" className="flex items-center group">
