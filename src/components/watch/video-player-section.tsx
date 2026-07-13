@@ -379,6 +379,14 @@ const VideoPlayerSection = () => {
   const animeName = anime?.anime?.info?.name;
   const animePoster = anime?.anime?.info?.poster;
 
+  // The global anime store lags the URL while navigating between anime, so the
+  // previously loaded anime is briefly still in the store. Treat the URL's
+  // `anime` param as the source of truth and only fetch/play once the loaded
+  // anime matches it — otherwise we'd play the previous anime's episode.
+  const urlAnimeId = searchParams.get("anime");
+  const animeMatchesUrl =
+    animeSlug != null && urlAnimeId != null && String(animeSlug) === String(urlAnimeId);
+
   // Episode list for next-episode navigation (also resolves episode number for stream API)
   const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(animeSlug ?? "");
   const watchedEpisodes = useEpisodeProgress(animeSlug ?? "");
@@ -950,7 +958,7 @@ const VideoPlayerSection = () => {
     error: streamError,
     refetch: retryStream,
   } = useGetKittyStream(
-    anilistId,
+    animeMatchesUrl ? anilistId : undefined,
     episodeNo || undefined,
     streamQueryAudio,
     provider,
@@ -969,6 +977,7 @@ const VideoPlayerSection = () => {
   );
 
   const streamQueryEnabled =
+    animeMatchesUrl &&
     !!anilistId &&
     !!episodeNo &&
     parseInt(episodeNo, 10) > 0 &&
@@ -995,6 +1004,12 @@ const VideoPlayerSection = () => {
   useEffect(() => {
     setHeldStreamSnapshot(null);
   }, [streamQueryAudio]);
+
+  // Clear the previous episode's held stream when the anime changes so the old
+  // anime's video can never bleed into the newly selected one during the switch.
+  useEffect(() => {
+    setHeldStreamSnapshot(null);
+  }, [urlAnimeId]);
 
   useEffect(() => {
     if (!streamData?.audioFallback) return;
@@ -1445,6 +1460,16 @@ const VideoPlayerSection = () => {
     const switched = attemptProviderFallback();
     if (!switched) toast.error(t("watch.playbackFailed"));
   }, [providerAutoFallback, attemptProviderFallback, t]);
+
+  // Anime just changed in the URL but the loaded anime hasn't caught up yet —
+  // show the loading state rather than the previous anime's episode.
+  if (urlAnimeId && !animeMatchesUrl) {
+    return (
+      <div className="flex flex-col gap-3">
+        <PlayerSkeleton label={t("watch.loadingStream")} />
+      </div>
+    );
+  }
 
   if (!episodeId && !selectedEpisode) {
     if (!episodesLoading && (allEpisodes?.totalEpisodes ?? 0) === 0) {
