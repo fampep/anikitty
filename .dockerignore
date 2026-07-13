@@ -37,5 +37,6 @@ drizzle
 scripts/*
 !scripts/discord-bot.mjs
 !scripts/start-with-bot.mjs
+!scripts/internal-api-url.mjs
 add-tvdb-env.txt
 api-id-sources.txt

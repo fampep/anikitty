@@ -61,6 +61,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV INTERNAL_API_URL=http://127.0.0.1:3000
 
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
@@ -70,6 +71,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/start-with-bot.mjs ./scripts/start-with-bot.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/discord-bot.mjs ./scripts/discord-bot.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/internal-api-url.mjs ./scripts/internal-api-url.mjs
+
+# Ensure discord.js is present even if postbuild install was skipped/failed.
+USER root
+RUN npm install discord.js@^14.26.5 --omit=dev --no-fund --no-audit \
+ && chown -R nextjs:nodejs /app
+USER nextjs
 
 USER nextjs
 EXPOSE 3000

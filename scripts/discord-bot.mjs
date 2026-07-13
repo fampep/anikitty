@@ -6,6 +6,7 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
 } from "discord.js";
+import { internalApiBase } from "./internal-api-url.mjs";
 
 const token = process.env.DISCORD_BOT_TOKEN?.trim();
 const guildId = process.env.DISCORD_GUILD_ID?.trim();
@@ -13,11 +14,7 @@ const secret = process.env.DISCORD_BOT_API_SECRET?.trim();
 const boosterRoleId = process.env.DISCORD_BOOSTER_ROLE_ID?.trim() || null;
 
 function apiBase() {
-  return (
-    process.env.INTERNAL_API_URL?.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    `http://127.0.0.1:${process.env.PORT ?? "3000"}`
-  ).replace(/\/$/, "");
+  return internalApiBase();
 }
 
 async function botFetch(path, init) {

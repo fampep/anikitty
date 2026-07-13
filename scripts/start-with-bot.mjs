@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
+import { internalApiBase } from "./internal-api-url.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -15,6 +16,15 @@ function botConfigured() {
   );
 }
 
+function logBotEnvStatus() {
+  const hasToken = !!process.env.DISCORD_BOT_TOKEN?.trim();
+  const hasGuild = !!process.env.DISCORD_GUILD_ID?.trim();
+  const hasSecret = !!process.env.DISCORD_BOT_API_SECRET?.trim();
+  console.info(
+    `[start] Discord bot env: token=${hasToken} guild=${hasGuild} apiSecret=${hasSecret} internalApi=${internalApiBase()}`,
+  );
+}
+
 function resolveBotScript() {
   const candidates = [
     path.join(process.cwd(), "scripts", "discord-bot.mjs"),
@@ -24,6 +34,18 @@ function resolveBotScript() {
     if (fs.existsSync(candidate)) return candidate;
   }
   return path.join(root, "scripts", "discord-bot.mjs");
+}
+
+function resolveAppRoot() {
+  const candidates = [
+    process.cwd(),
+    root,
+    path.dirname(resolveServerScript() ?? root),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(path.join(candidate, "server.js"))) return candidate;
+  }
+  return process.cwd();
 }
 
 function resolveServerScript() {
@@ -39,21 +61,12 @@ function resolveServerScript() {
   return path.join(root, ".next", "standalone", "server.js");
 }
 
-function siteBaseUrl() {
-  const port = process.env.PORT ?? "3000";
-  return (
-    process.env.INTERNAL_API_URL?.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    `http://127.0.0.1:${port}`
-  ).replace(/\/$/, "");
-}
-
 async function waitForSite(maxMs = 120_000) {
-  const base = siteBaseUrl();
+  const base = internalApiBase();
   const started = Date.now();
   while (Date.now() - started < maxMs) {
     try {
-      const res = await fetch(`${base}/api/account/auth/discord/status`, {
+      const res = await fetch(`${base}/api/health`, {
         signal: AbortSignal.timeout(4000),
       });
       if (res.ok) return true;
@@ -67,33 +80,45 @@ async function waitForSite(maxMs = 120_000) {
 
 let botProc = null;
 let serverProc = null;
+let botRestartTimer = null;
 
 function startBot() {
   if (!botConfigured()) {
     console.info(
-      "[start] Discord bot skipped — set DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_BOT_API_SECRET",
+      "[start] Discord bot skipped — set DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, and DISCORD_BOT_API_SECRET as runtime env vars",
     );
     return;
   }
 
   const botScript = resolveBotScript();
-  console.info("[start] Starting Discord bot…");
+  if (!fs.existsSync(botScript)) {
+    console.error(`[start] Discord bot script missing at ${botScript}`);
+    return;
+  }
+
+  const appRoot = resolveAppRoot();
+  console.info(`[start] Starting Discord bot from ${botScript} (cwd=${appRoot})`);
   botProc = spawn(process.execPath, [botScript], {
     stdio: "inherit",
     env: process.env,
-    cwd: path.dirname(botScript),
+    cwd: appRoot,
   });
 
   botProc.on("exit", (code, signal) => {
     console.error(`[start] Discord bot stopped (code=${code ?? "null"}, signal=${signal ?? "null"})`);
     botProc = null;
-    if (!isDev && serverProc) {
-      serverProc.kill("SIGTERM");
+    if (!isDev && botConfigured()) {
+      clearTimeout(botRestartTimer);
+      botRestartTimer = setTimeout(() => {
+        console.info("[start] Restarting Discord bot…");
+        startBot();
+      }, 5000);
     }
   });
 }
 
 function shutdown() {
+  clearTimeout(botRestartTimer);
   if (botProc) botProc.kill("SIGTERM");
   if (serverProc) serverProc.kill("SIGTERM");
   process.exit(0);
@@ -103,6 +128,8 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 async function main() {
+  logBotEnvStatus();
+
   if (isDev) {
     const nextBin = path.join(root, "node_modules", "next", "dist", "bin", "next");
     serverProc = spawn(process.execPath, [nextBin, "dev"], {
@@ -124,11 +151,12 @@ async function main() {
   }
 
   serverProc.on("exit", (code) => {
+    clearTimeout(botRestartTimer);
     if (botProc) botProc.kill("SIGTERM");
     process.exit(code ?? 0);
   });
 
-  console.info(`[start] Waiting for site at ${siteBaseUrl()}…`);
+  console.info(`[start] Waiting for site at ${internalApiBase()}/api/health …`);
   const ready = await waitForSite();
   if (ready) console.info("[start] Site is ready — launching bot");
   else console.warn("[start] Site slow to respond — launching bot anyway");

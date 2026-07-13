@@ -37,7 +37,7 @@ copyDir(path.join(root, "public"), path.join(standaloneDir, "public"));
 copyDir(path.join(root, ".next", "static"), path.join(standaloneDir, ".next", "static"));
 
 const scriptsDir = path.join(standaloneDir, "scripts");
-const botScripts = ["start-with-bot.mjs", "discord-bot.mjs"];
+const botScripts = ["start-with-bot.mjs", "discord-bot.mjs", "internal-api-url.mjs"];
 for (const file of botScripts) {
   const copied = copyFile(path.join(root, "scripts", file), path.join(scriptsDir, file));
   if (!copied) {
