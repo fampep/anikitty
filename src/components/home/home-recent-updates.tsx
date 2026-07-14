@@ -1,5 +1,6 @@
 "use client";
 
+import { Tv2 } from "lucide-react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
@@ -29,8 +30,13 @@ export default function HomeRecentUpdates({ animes, loading }: Props) {
   }
 
   return (
-    <Container className="flex flex-col gap-4">
-      <HomeSectionLink href={ROUTES.NEW} title={t("home.recentlyUpdated")} />
+    <Container id="new-episodes" className="flex flex-col gap-4 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+      <HomeSectionLink
+        href={ROUTES.NEW}
+        title={t("home.recentlyUpdated")}
+        subtitle={t("home.newEpisodes")}
+        icon={<Tv2 className="w-4 h-4" />}
+      />
       {animes.length ? (
         <HomeScrollRail>
           {animes.map((anime, i) => {

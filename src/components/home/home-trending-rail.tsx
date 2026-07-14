@@ -1,5 +1,6 @@
 "use client";
 
+import { Flame } from "lucide-react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
@@ -29,8 +30,13 @@ export default function HomeTrendingRail({ animes, loading }: Props) {
   }
 
   return (
-    <Container className="flex flex-col gap-4">
-      <HomeSectionLink href={ROUTES.TRENDING} title={t("home.trendingNow")} />
+    <Container id="trending" className="flex flex-col gap-4 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+      <HomeSectionLink
+        href={ROUTES.TRENDING}
+        title={t("home.trendingNow")}
+        subtitle={t("home.trendingDesc")}
+        icon={<Flame className="w-4 h-4" />}
+      />
       {animes.length ? (
         <HomeScrollRail>
           {animes.map((anime, i) => (

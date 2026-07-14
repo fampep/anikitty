@@ -1165,7 +1165,7 @@
   },
   "faq": {
     "title": "FAQ",
-    "subtitle": "How AniKitty works, what features need an account, and what data the site collects. Last reviewed for v0.7.8.",
+    "subtitle": "How AniKitty works, what features need an account, and what data the site collects. Last reviewed for v0.7.9.",
     "lastUpdated": "Last updated {date}",
     "stillQuestions": "Still have questions?",
     "contactDesc": "Join the Discord community or open an issue on GitHub. For account-specific requests (deletion, privacy), contact moderators there.",

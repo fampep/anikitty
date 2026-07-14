@@ -28,6 +28,19 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.7.9",
+    date: "2026-07-14",
+    title: "Homepage refresh",
+    changes: [
+      { type: "added", text: "Sticky quick-nav bar — jump to Continue, New Episodes, Trending, Schedule, Discover, and Community in one tap." },
+      { type: "added", text: "Explore bar with catalog search, title count, and live online stats below the hero." },
+      { type: "added", text: "Signed-in welcome strip with level progress and quick links to profile, settings, and watchlist." },
+      { type: "added", text: "Recently viewed and Recommended for you rails — personalized picks from your history." },
+      { type: "added", text: "Discover promo cards for Shop, Watch Together, Subtitles, and Forum." },
+      { type: "improved", text: "Home feed reordered — new episodes and personalization appear earlier; section headers use unified cinema styling." },
+    ],
+  },
+  {
     version: "0.7.8",
     date: "2026-07-14",
     title: "Watch player UX overhaul",

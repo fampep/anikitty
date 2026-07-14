@@ -24,6 +24,12 @@ import { useT } from "@/providers/i18n-provider";
 
 const HeroSection = dynamic(() => import("@/components/home/hero-section"));
 const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
+const HomeQuickNav = dynamic(() => import("@/components/home/home-quick-nav"));
+const HomeExploreBar = dynamic(() => import("@/components/home/home-explore-bar"));
+const HomeWelcomeBar = dynamic(() => import("@/components/home/home-welcome-bar"));
+const RecentlyViewed = dynamic(() => import("@/components/home/recently-viewed"));
+const HomeRecommendations = dynamic(() => import("@/components/home/home-recommendations"));
+const HomeFeaturePromos = dynamic(() => import("@/components/home/home-feature-promos"));
 
 export default function Home() {
   const t = useT();
@@ -56,7 +62,6 @@ export default function Home() {
   const topRated = useMemo(() => {
     const rated = (discovery?.topRatedAnimes as IAnime[] | undefined) ?? [];
     if (rated.length > 0) return rated;
-    // Fallback while discovery loads: derive from trending by score.
     return [...trending]
       .filter((a) => a.score != null && a.score > 0)
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
@@ -95,11 +100,27 @@ export default function Home() {
 
       <HomeAdsNotice className="py-2 sm:py-3" />
 
-      <div className="home-cinema-body relative z-[5] flex flex-col gap-6 sm:gap-10 p-2 -mt-8">
+      <HomeQuickNav />
+      <HomeExploreBar />
+      <HomeWelcomeBar />
+
+      <div className="home-cinema-body relative z-[5] flex flex-col gap-6 sm:gap-10 p-2 -mt-4 sm:-mt-6">
         <LazyMount minHeight={120}>
-          <div id="continue" className="scroll-mt-[calc(var(--nav-height)+1rem)]">
+          <div id="continue" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
             <ContinueWatching />
           </div>
+        </LazyMount>
+
+        <LazyMount minHeight={120}>
+          <RecentlyViewed />
+        </LazyMount>
+
+        <LazyMount minHeight={120}>
+          <HomeRecommendations />
+        </LazyMount>
+
+        <LazyMount minHeight={280}>
+          <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
         </LazyMount>
 
         <HomeTrendingRail animes={trending} loading={isLoading} />
@@ -107,12 +128,12 @@ export default function Home() {
         <Container className="flex max-xl:flex-col w-full gap-6 sm:gap-10 xl:gap-0">
           <aside className="flex gap-6 sm:gap-8 flex-col w-full xl:w-[32%] xl:order-last xl:pl-8">
             <LazyMount minHeight={320}>
-              <div id="community" className="scroll-mt-[calc(var(--nav-height)+1rem)]">
+              <div id="community" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
                 <LatestComments bare />
               </div>
             </LazyMount>
             <LazyMount minHeight={280}>
-              <div id="schedule" className="scroll-mt-[calc(var(--nav-height)+1rem)]">
+              <div id="schedule" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
                 <HomeSchedulePanel />
               </div>
             </LazyMount>
@@ -134,8 +155,8 @@ export default function Home() {
           <HomeUpcomingRail animes={upcoming} loading={discoveryLoadingState} />
         </LazyMount>
 
-        <LazyMount minHeight={320}>
-          <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
+        <LazyMount minHeight={200}>
+          <HomeFeaturePromos />
         </LazyMount>
       </div>
     </div>
