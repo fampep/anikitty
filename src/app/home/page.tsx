@@ -30,6 +30,7 @@ const HomeWelcomeBar = dynamic(() => import("@/components/home/home-welcome-bar"
 const RecentlyViewed = dynamic(() => import("@/components/home/recently-viewed"));
 const HomeRecommendations = dynamic(() => import("@/components/home/home-recommendations"));
 const HomeFeaturePromos = dynamic(() => import("@/components/home/home-feature-promos"));
+const HomeW2gRail = dynamic(() => import("@/components/home/home-w2g-rail"));
 
 export default function Home() {
   const t = useT();
@@ -102,13 +103,18 @@ export default function Home() {
 
       <HomeQuickNav />
       <HomeExploreBar />
-      <HomeWelcomeBar />
 
-      <div className="home-cinema-body relative z-[5] flex flex-col gap-6 sm:gap-10 p-2 -mt-4 sm:-mt-6">
+      <div className="home-cinema-body relative z-[5] flex flex-col gap-6 sm:gap-10 p-2 pt-3 sm:pt-4">
+        <HomeWelcomeBar />
+
         <LazyMount minHeight={120}>
-          <div id="continue" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+          <div id="continue" className="scroll-mt-[calc(var(--nav-height)+5rem)]">
             <ContinueWatching />
           </div>
+        </LazyMount>
+
+        <LazyMount minHeight={100}>
+          <HomeW2gRail />
         </LazyMount>
 
         <LazyMount minHeight={120}>

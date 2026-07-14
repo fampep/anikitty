@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { w2gRooms, w2gMembers, w2gMessages, users } from "@/db/schema";
 import { decryptStoredMessage } from "@/lib/security/message-crypto";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, gt, sql } from "drizzle-orm";
 
 export type W2gRoomRow = typeof w2gRooms.$inferSelect;
 
@@ -9,6 +9,7 @@ export function serializeRoom(room: W2gRoomRow) {
   return {
     id: room.id,
     code: room.code,
+    name: room.name,
     hostUserId: room.hostUserId,
     animeId: room.animeId,
     animeTitle: room.animeTitle,
@@ -25,6 +26,21 @@ export function serializeRoom(room: W2gRoomRow) {
   };
 }
 
+export function defaultW2gRoomName(opts: {
+  animeTitle?: string | null;
+  episodeNumber?: number;
+  hostUsername?: string;
+}) {
+  const title = opts.animeTitle?.trim();
+  const ep =
+    opts.episodeNumber != null && opts.episodeNumber > 0
+      ? ` · EP ${opts.episodeNumber}`
+      : "";
+  if (title) return `${title}${ep}`.slice(0, 80);
+  if (opts.hostUsername) return `${opts.hostUsername}'s party`.slice(0, 80);
+  return "Watch party";
+}
+
 export async function getRoomByCode(code: string) {
   const db = getDb();
   const [room] = await db
@@ -33,6 +49,31 @@ export async function getRoomByCode(code: string) {
     .where(eq(w2gRooms.code, code))
     .limit(1);
   return room ?? null;
+}
+
+export async function listW2gRooms(limit = 48) {
+  const db = getDb();
+  const staleCutoff = new Date(Date.now() - 12 * 60 * 60_000);
+
+  const rows = await db
+    .select({
+      room: w2gRooms,
+      hostUsername: users.username,
+      memberCount: sql<number>`count(${w2gMembers.id})::int`,
+    })
+    .from(w2gRooms)
+    .innerJoin(users, eq(users.id, w2gRooms.hostUserId))
+    .leftJoin(w2gMembers, eq(w2gMembers.roomId, w2gRooms.id))
+    .where(gt(w2gRooms.updatedAt, staleCutoff))
+    .groupBy(w2gRooms.id, users.username)
+    .orderBy(desc(w2gRooms.updatedAt))
+    .limit(limit);
+
+  return rows.map((row) => ({
+    ...serializeRoom(row.room),
+    hostUsername: row.hostUsername,
+    memberCount: row.memberCount,
+  }));
 }
 
 export async function getRoomPayload(code: string, viewerUserId?: string | null) {

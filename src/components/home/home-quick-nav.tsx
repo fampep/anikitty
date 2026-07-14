@@ -56,7 +56,7 @@ export default function HomeQuickNav() {
     <Container className="sticky top-[calc(var(--nav-height))] z-20 py-2 pb-3">
       <nav
         aria-label={t("home.quickNav.label")}
-        className="flex gap-1.5 overflow-x-auto rounded-xl border border-border dark:border-white/10 bg-background/90 dark:bg-[#0a0a0a]/90 p-1 backdrop-blur-md scrollbar-hide scroll-momentum shadow-sm shadow-black/5"
+        className="flex gap-1.5 overflow-x-auto site-panel p-1 scrollbar-hide scroll-momentum"
       >
         {LINKS.map(({ id, href, icon: Icon, key }) => {
           const active = activeId === id;

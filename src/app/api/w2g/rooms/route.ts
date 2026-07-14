@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { w2gRooms, w2gMembers } from "@/db/schema";
+import { w2gRooms, w2gMembers, users } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { generateW2gCode } from "@/lib/social/w2g-code";
-import { serializeRoom } from "@/lib/social/w2g-server";
+import { defaultW2gRoomName, listW2gRooms, serializeRoom } from "@/lib/social/w2g-server";
+import { eq } from "drizzle-orm";
 
 const MAX_CREATE_ATTEMPTS = 5;
+
+export async function GET() {
+  const rooms = await listW2gRooms();
+  return NextResponse.json({ rooms });
+}
 
 export async function POST(req: Request) {
   const token = extractToken(req);
@@ -20,6 +26,23 @@ export async function POST(req: Request) {
   }
 
   const db = getDb();
+  const [host] = await db
+    .select({ username: users.username })
+    .from(users)
+    .where(eq(users.id, payload.userId))
+    .limit(1);
+
+  const episodeNumber = Math.max(0, parseInt(String(raw.episodeNumber ?? 0)) || 0);
+  const animeTitle = typeof raw.animeTitle === "string" ? raw.animeTitle.slice(0, 300) : null;
+  const nameRaw = typeof raw.name === "string" ? raw.name.trim().slice(0, 80) : "";
+  const name =
+    nameRaw ||
+    defaultW2gRoomName({
+      animeTitle,
+      episodeNumber,
+      hostUsername: host?.username,
+    });
+
   let room = null;
 
   for (let i = 0; i < MAX_CREATE_ATTEMPTS; i++) {
@@ -29,14 +52,15 @@ export async function POST(req: Request) {
         .insert(w2gRooms)
         .values({
           code,
+          name,
           hostUserId: payload.userId,
           animeId,
-          animeTitle: typeof raw.animeTitle === "string" ? raw.animeTitle.slice(0, 300) : null,
+          animeTitle,
           animeThumbnail:
             typeof raw.animeThumbnail === "string" ? raw.animeThumbnail.slice(0, 500) : null,
           episodeId,
-          episodeNumber: Math.max(0, parseInt(String(raw.episodeNumber ?? 0)) || 0),
-          provider: typeof raw.provider === "string" ? raw.provider.slice(0, 50) : "Miruro",
+          episodeNumber,
+          provider: typeof raw.provider === "string" ? raw.provider.slice(0, 50) : "Anitaku",
           audio: raw.audio === "dub" ? "dub" : "sub",
           isPlaying: false,
           currentTime: Math.max(0, Math.floor(Number(raw.currentTime) || 0)),

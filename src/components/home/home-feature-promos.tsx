@@ -17,7 +17,7 @@ export default function HomeFeaturePromos() {
   const t = useT();
 
   return (
-    <Container id="discover" className="py-4 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+    <Container id="features" className="py-4 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       <p className="site-label mb-3 px-0.5">{t("home.discover")}</p>
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2.5">
         {PROMOS.map(({ href, icon: Icon, color, bg, key }) => (

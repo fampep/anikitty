@@ -192,6 +192,7 @@ export function useW2g({
 
   const createRoom = useCallback(
     async (opts: {
+      name?: string;
       animeId: string;
       animeTitle?: string;
       animeThumbnail?: string;
@@ -212,6 +213,14 @@ export function useW2g({
     [provider, audio],
   );
 
+  const deleteRoom = useCallback(async () => {
+    if (!code) return;
+    await w2gApi.deleteRoom(code);
+    setRoom(null);
+    setIsMember(false);
+    setIsHost(false);
+  }, [code]);
+
   return {
     room,
     members,
@@ -223,6 +232,7 @@ export function useW2g({
     syncState,
     join,
     leave,
+    deleteRoom,
     refresh,
     createRoom,
     sendMessage,

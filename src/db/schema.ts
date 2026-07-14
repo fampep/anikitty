@@ -370,11 +370,13 @@ export const w2gRooms = pgTable(
     isPlaying: boolean("is_playing").notNull().default(false),
     currentTime: integer("current_time").notNull().default(0),
     stateVersion: integer("state_version").notNull().default(0),
+    name: varchar("name", { length: 80 }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (t) => ({
     codeIdx: index("w2g_rooms_code_idx").on(t.code),
+    updatedAtIdx: index("w2g_rooms_updated_at_idx").on(t.updatedAt),
   }),
 );
 

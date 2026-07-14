@@ -53,28 +53,8 @@ export async function DELETE(
   const isHost = room.hostUserId === payload.userId;
 
   if (isHost) {
-    const remaining = await db
-      .select({ userId: w2gMembers.userId })
-      .from(w2gMembers)
-      .where(eq(w2gMembers.roomId, room.id));
-
-    const others = remaining.filter((m) => m.userId !== payload.userId);
-
-    if (others.length === 0) {
-      await db.delete(w2gRooms).where(eq(w2gRooms.id, room.id));
-      return NextResponse.json({ ok: true, closed: true });
-    }
-
-    await db
-      .delete(w2gMembers)
-      .where(and(eq(w2gMembers.roomId, room.id), eq(w2gMembers.userId, payload.userId)));
-
-    await db
-      .update(w2gRooms)
-      .set({ hostUserId: others[0].userId, updatedAt: new Date() })
-      .where(eq(w2gRooms.id, room.id));
-
-    return NextResponse.json({ ok: true, closed: false, transferred: true });
+    await db.delete(w2gRooms).where(eq(w2gRooms.id, room.id));
+    return NextResponse.json({ ok: true, closed: true });
   }
 
   await db

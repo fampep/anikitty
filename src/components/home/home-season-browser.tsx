@@ -51,7 +51,7 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 xl:gap-8 w-full">
+    <div id="discover" className="flex flex-col gap-4 sm:gap-6 xl:gap-8 w-full scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       <div className="grid grid-cols-3 w-full gap-2 lg:gap-4">
         {TABS.map(({ id, icon: Icon, labelKey }) => {
           const active = tab === id;

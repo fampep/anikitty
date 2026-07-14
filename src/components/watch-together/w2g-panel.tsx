@@ -8,6 +8,7 @@ import {
   Send,
   Crown,
   Loader2,
+  Trash2,
   LogOut,
   ChevronDown,
   ChevronUp,
@@ -19,6 +20,7 @@ import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   code: string;
+  roomName?: string | null;
   isHost: boolean;
   members: W2gMember[];
   messages: W2gMessage[];
@@ -29,6 +31,7 @@ type Props = {
 
 export default function W2gPanel({
   code,
+  roomName,
   isHost,
   members,
   messages,
@@ -78,12 +81,17 @@ export default function W2gPanel({
   };
 
   const handleLeave = async () => {
-    if (!confirm(t("watch.w2g.leaveConfirm"))) return;
+    if (!confirm(isHost ? t("watch.w2g.deleteConfirm") : t("watch.w2g.leaveConfirm"))) return;
     try {
       await onLeave();
-      toast.success(t("watch.w2g.leftRoom"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t("watch.w2g.leaveFailed"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : isHost
+            ? t("watch.w2g.deleteFailed")
+            : t("watch.w2g.leaveFailed"),
+      );
     }
   };
 
@@ -98,8 +106,10 @@ export default function W2gPanel({
       >
         <div className="flex items-center gap-2 min-w-0">
           <Users className="h-4 w-4 text-violet-400 shrink-0" />
-          <span className="text-xs font-bold text-foreground dark:text-white truncate">{t("watch.w2g.title")}</span>
-          <span className="text-[10px] font-mono text-violet-300/80 bg-violet-500/15 px-1.5 py-0.5 rounded">
+          <span className="text-xs font-bold text-foreground dark:text-white truncate">
+            {roomName ?? t("watch.w2g.title")}
+          </span>
+          <span className="text-[10px] font-mono text-violet-300/80 bg-violet-500/15 px-1.5 py-0.5 rounded shrink-0">
             {code}
           </span>
           {isHost && (
@@ -135,9 +145,15 @@ export default function W2gPanel({
             <button
               type="button"
               onClick={handleLeave}
-              className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-rose-300/80 hover:bg-rose-500/10 transition-colors"
+              className={cn(
+                "ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-colors",
+                isHost
+                  ? "text-rose-300/90 hover:bg-rose-500/10"
+                  : "text-rose-300/80 hover:bg-rose-500/10",
+              )}
             >
-              <LogOut className="h-3 w-3" /> {t("watch.w2g.leave")}
+              {isHost ? <Trash2 className="h-3 w-3" /> : <LogOut className="h-3 w-3" />}
+              {isHost ? t("watch.w2g.deleteRoom") : t("watch.w2g.leave")}
             </button>
           </div>
 

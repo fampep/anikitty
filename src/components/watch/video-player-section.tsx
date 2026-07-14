@@ -366,18 +366,23 @@ const VideoPlayerSection = () => {
     if (!animeSlug || !episodeId) return;
     setCreatingW2g(true);
     try {
+      const epNum = parseInt(episodeNo, 10) || 0;
+      const defaultName = anime?.anime?.info?.name
+        ? `${anime.anime.info.name}${epNum > 0 ? ` · EP ${epNum}` : ""}`
+        : undefined;
       const room = await w2g.createRoom({
+        name: defaultName,
         animeId: animeSlug,
         animeTitle: anime?.anime?.info?.name,
         animeThumbnail: anime?.anime?.info?.poster,
         episodeId,
-        episodeNumber: parseInt(episodeNo) || 0,
+        episodeNumber: epNum,
         currentTime: Math.floor(liveTimeRef.current),
       });
       const params = new URLSearchParams(searchParams.toString());
       params.set("w2g", room.code);
       router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
-      toast.success(t("watch.w2gRoomCreated", { code: room.code }));
+      toast.success(t("watch.w2gRoomCreated", { name: room.name ?? room.code }));
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t("watch.w2gCreateFailed"));
     } finally {
@@ -386,7 +391,13 @@ const VideoPlayerSection = () => {
   };
 
   const handleLeaveW2g = async () => {
-    await w2g.leave();
+    if (w2g.isHost) {
+      await w2g.deleteRoom();
+      toast.success(t("watch.w2g.deletedRoom"));
+    } else {
+      await w2g.leave();
+      toast.success(t("watch.w2g.leftRoom"));
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.delete("w2g");
     router.replace(`/anime/watch?${params.toString()}`, { scroll: false });
@@ -1716,6 +1727,7 @@ const VideoPlayerSection = () => {
     {w2gCode && w2g.isMember && (
       <W2gPanel
         code={w2gCode}
+        roomName={w2g.room?.name}
         isHost={w2g.isHost}
         members={w2g.members}
         messages={w2g.messages}

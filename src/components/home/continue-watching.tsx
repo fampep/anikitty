@@ -426,8 +426,8 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
   if (!auth) {
     return (
-      <Container className="py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 rounded-2xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
+      <Container className="pt-2 pb-6 sm:pt-4 sm:pb-8">
+        <div className="site-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <History className="w-5 h-5 text-muted-foreground/80 dark:text-white/25 mt-0.5 shrink-0" />
             <div>
@@ -478,7 +478,8 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
   return (
     <>
-      <Container className="flex flex-col gap-4 py-8 items-start">
+      <Container className="flex flex-col gap-4 pt-2 pb-6 sm:pt-4 sm:pb-8 items-start">
+      <div className="site-panel w-full p-3 sm:p-4 flex flex-col gap-4">
       <div className="flex items-center gap-2 w-full min-w-0">
         <div className="min-w-0 flex-1">
           <SectionHeading
@@ -555,6 +556,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
           })}
         </div>
       </div>
+      </div>
       </Container>
 
       <RemoveContinueDialog
@@ -578,7 +580,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
 };
 
 const LoadingSkeleton = () => (
-  <Container className="flex flex-col gap-4 py-8 items-start">
+  <Container className="flex flex-col gap-4 pt-2 pb-6 sm:pt-4 sm:pb-8 items-start">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
       <div className="h-6 w-44 animate-pulse bg-accent dark:bg-white/8 rounded" />

@@ -25,6 +25,7 @@ async function w2gFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 export type W2gRoom = {
   id: string;
   code: string;
+  name: string | null;
   hostUserId: string;
   animeId: string;
   animeTitle: string | null;
@@ -38,6 +39,11 @@ export type W2gRoom = {
   stateVersion: number;
   updatedAt: string | null;
   createdAt: string | null;
+};
+
+export type W2gRoomListItem = W2gRoom & {
+  hostUsername: string;
+  memberCount: number;
 };
 
 export type W2gMember = {
@@ -67,7 +73,10 @@ export type W2gRoomPayload = {
 };
 
 export const w2gApi = {
+  listRooms: () => w2gFetch<{ rooms: W2gRoomListItem[] }>("/rooms"),
+
   createRoom: (body: {
+    name?: string;
     animeId: string;
     animeTitle?: string;
     animeThumbnail?: string;
@@ -87,6 +96,9 @@ export const w2gApi = {
     w2gFetch<W2gRoomPayload>(`/rooms/${code}/join`, { method: "POST" }),
 
   leaveRoom: (code: string) =>
+    w2gFetch<{ ok: boolean; closed?: boolean }>(`/rooms/${code}`, { method: "DELETE" }),
+
+  deleteRoom: (code: string) =>
     w2gFetch<{ ok: boolean; closed?: boolean }>(`/rooms/${code}`, { method: "DELETE" }),
 
   syncPlayback: (
