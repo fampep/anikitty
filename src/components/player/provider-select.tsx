@@ -19,7 +19,7 @@ import {
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
-import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities";
+import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import {
   buildAvailableProviderSet,
   isProviderAvailableForMode,

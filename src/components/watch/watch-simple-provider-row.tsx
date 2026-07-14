@@ -17,7 +17,7 @@ import {
   providerSupportsDub,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
-import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities";
+import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import {
   isProviderAvailableForMode,
   providerCapabilityBadges,

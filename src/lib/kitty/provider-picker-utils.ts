@@ -3,7 +3,7 @@ import {
   supportsStreamAudioMode,
   type EpisodeStreamCapabilities,
   type StreamCapabilities,
-} from "@/lib/kitty/stream-capabilities";
+} from "@/lib/kitty/stream-capabilities-shared";
 
 export function buildAvailableProviderSet(
   caps: EpisodeStreamCapabilities | undefined,

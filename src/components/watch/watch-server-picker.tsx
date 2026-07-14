@@ -7,7 +7,7 @@ import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
 import {
   fetchAnilistSiteServers,
   type AnilistSiteServer,
-} from "@/lib/kitty/anilist-site-api";
+} from "@/lib/kitty/anilist-site-client";
 import { isAnilistSiteProvider, type AnilistSiteProviderId } from "@/lib/kitty/anilist-site-providers";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 import { cn } from "@/lib/core/utils";

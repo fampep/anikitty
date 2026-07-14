@@ -6,7 +6,7 @@ import {
   mergeEpisodeStreamCapabilities,
   type EpisodeStreamCapabilities,
   type StreamCapabilityTarget,
-} from "@/lib/kitty/stream-capabilities";
+} from "@/lib/kitty/stream-capabilities-shared";
 
 const getEpisodeStreamCapabilities = async (
   anilistId: number,

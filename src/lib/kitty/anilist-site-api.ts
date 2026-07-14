@@ -1,3 +1,4 @@
+import "server-only";
 import {
   buildKittyStreamDirectPath,
   parseKittyStreamJson,
@@ -9,22 +10,9 @@ import {
   isHardSubServerName,
   type AnilistSiteProviderId,
 } from "@/lib/kitty/anilist-site-providers";
+import type { AnilistSiteEpisode, AnilistSiteServer } from "@/lib/kitty/anilist-site-types";
 
-export type AnilistSiteEpisode = {
-  number: number;
-  title?: string;
-  hasSub?: boolean;
-  hasDub?: boolean;
-  /** Opaque JSON from KittyAPI — pass unchanged to `/servers`. */
-  dataIds?: string;
-  url?: string;
-};
-
-export type AnilistSiteServer = {
-  name: string;
-  /** Opaque JSON from KittyAPI — pass unchanged to `/stream`. */
-  id: string;
-};
+export type { AnilistSiteEpisode, AnilistSiteServer };
 
 export { isHardSubServerName };
 

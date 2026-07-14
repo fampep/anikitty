@@ -2,7 +2,7 @@ import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-core";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
-import type { StreamCapabilities } from "@/lib/kitty/stream-capabilities";
+import type { StreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import {
   ALLANIME_MIRROR_OPTIONS,
   DEFAULT_ALLANIME_MIRROR,

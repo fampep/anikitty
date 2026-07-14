@@ -75,7 +75,7 @@ import {
   hasSeenAutoFallbackHint,
   markAutoFallbackHintSeen,
 } from "@/lib/kitty/provider-prefs";
-import { fetchAnilistSiteEpisodes } from "@/lib/kitty/anilist-site-api";
+import { fetchAnilistSiteEpisodes } from "@/lib/kitty/anilist-site-client";
 import { isAnilistSiteProvider } from "@/lib/kitty/anilist-site-providers";
 import { getKittyApiNode } from "@/lib/kitty/kitty-api-nodes";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
