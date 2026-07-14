@@ -58,9 +58,6 @@ export const KITTY_PROVIDERS = [
   "MegaPlay",
   "AniNeko",
   "AniBD",
-  "AllAnime",
-  "MKissa",
-  "AniKuro",
   "AniWaves",
   "Anikage",
 ] as const;
@@ -134,7 +131,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "SUB · DUB · multi-server · soft subs",
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "AniBD",
@@ -148,39 +145,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB only · AniList ID · stream-direct",
   },
   {
-    id: "AllAnime",
-    label: "Delta",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · MP4/HLS · multi-server",
-  },
-  {
-    id: "MKissa",
-    label: "Echo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · redundancy · MP4/HLS",
-  },
-  {
-    id: "AniKuro",
-    label: "Foxtrot",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · multi-route · soft subs",
-  },
-  {
     id: "AniWaves",
     label: "Golf",
     group: "featured",
@@ -189,7 +153,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "SUB · DUB · multi-route · soft subs",
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "Anikage",
@@ -205,16 +169,13 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. AllAnime/MKissa are last-resort mirrors. */
+ * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anitaku",
   "Anikoto",
   "MegaPlay",
   "AniNeko",
   "AniBD",
-  "AllAnime",
-  "MKissa",
-  "AniKuro",
   "AniWaves",
   "Anikage",
 ];
@@ -236,14 +197,11 @@ export {
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
-  "AllAnime",
-  "MKissa",
   MEGAPLAY_PROVIDER_ID,
   "Anitaku",
   "Anikoto",
   "AniNeko",
   "AniBD",
-  "AniKuro",
   "AniWaves",
   "Anikage",
 ]);
@@ -260,7 +218,9 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   if (value === "AniZone") return "AniNeko";
-  if (value === "AniDB") return DEFAULT_KITTY_PROVIDER;
+  if (value === "AniDB" || value === "AllAnime" || value === "MKissa" || value === "AniKuro") {
+    return DEFAULT_KITTY_PROVIDER;
+  }
   if (value && isActiveKittyProvider(value)) return value;
   if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
   // Any retired provider (or unknown value) falls back to the default.

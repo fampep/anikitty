@@ -36,21 +36,11 @@ import {
 import {
   DEFAULT_ANINEKO_SERVER,
   fetchAninekoVideoStream,
-  isAninekoServerId,
-  type AninekoServerId,
 } from "@/lib/providers/anineko-api";
 import {
   DEFAULT_ANIWAVES_SERVER,
   fetchAniwavesVideoStream,
-  isAniwavesServerId,
-  type AniwavesServerId,
 } from "@/lib/providers/aniwaves-api";
-import {
-  DEFAULT_ANIKURO_SERVER,
-  fetchAnikuroVideoStream,
-  isAnikuroServerId,
-  type AnikuroServerId,
-} from "@/lib/providers/anikuro-api";
 import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
 import { isKittyProxiedUrl, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
@@ -85,9 +75,6 @@ const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
 const SAFE_LUNAR_SERVER = /^[a-z0-9-]{2,12}$/;
 const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
-const SAFE_ANINEKO_SERVER = /^(?:hd-[12]|streamhg|earnvids|doodstream)$/;
-const SAFE_ANIWAVES_SERVER = /^(?:4|1|2|12)$/;
-const SAFE_ANIKURO_SERVER = /^[a-z]{2,12}$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
@@ -120,9 +107,6 @@ export async function GET(req: Request) {
   const allanimeMirrorParam = searchParams.get("allanimeMirror");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const animoServerParam = searchParams.get("animoServer");
-  const aninekoServerParam = searchParams.get("aninekoServer");
-  const aniwavesServerParam = searchParams.get("aniwavesServer");
-  const anikuroServerParam = searchParams.get("anikuroServer");
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -204,32 +188,9 @@ export async function GET(req: Request) {
         ? DEFAULT_ANIMO_SERVER
         : null;
 
-  const aninekoServer =
-    aninekoServerParam &&
-    SAFE_ANINEKO_SERVER.test(aninekoServerParam) &&
-    isAninekoServerId(aninekoServerParam)
-      ? aninekoServerParam
-      : provider === "AniNeko"
-        ? DEFAULT_ANINEKO_SERVER
-        : null;
+  const aninekoServer = provider === "AniNeko" ? DEFAULT_ANINEKO_SERVER : null;
 
-  const aniwavesServer =
-    aniwavesServerParam &&
-    SAFE_ANIWAVES_SERVER.test(aniwavesServerParam) &&
-    isAniwavesServerId(aniwavesServerParam)
-      ? aniwavesServerParam
-      : provider === "AniWaves"
-        ? DEFAULT_ANIWAVES_SERVER
-        : null;
-
-  const anikuroServer =
-    anikuroServerParam &&
-    SAFE_ANIKURO_SERVER.test(anikuroServerParam) &&
-    isAnikuroServerId(anikuroServerParam)
-      ? anikuroServerParam
-      : provider === "AniKuro"
-        ? DEFAULT_ANIKURO_SERVER
-        : null;
+  const aniwavesServer = provider === "AniWaves" ? DEFAULT_ANIWAVES_SERVER : null;
 
   async function finalizeStreamResponse(
     data: StreamPayload,
@@ -613,7 +574,7 @@ export async function GET(req: Request) {
             anilistId: subtitleCtx.anilistId,
             episode: subtitleCtx.episode,
             audio: streamAudio,
-            serverId: aninekoServer as AninekoServerId | null,
+            serverId: aninekoServer,
             title: titleParam,
           });
 
@@ -643,45 +604,6 @@ export async function GET(req: Request) {
     }
   }
 
-  if (provider === "AniKuro") {
-    try {
-      const anikuroAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          const anikuro = await fetchAnikuroVideoStream({
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            serverId: anikuroServer as AnikuroServerId | null,
-            title: titleParam,
-          });
-
-          if (!anikuro?.file) return null;
-
-          return {
-            file: anikuro.file,
-            headers: anikuro.headers,
-            tracks: anikuro.tracks,
-            allServers: anikuro.allServers,
-            skipTimes: anikuro.skipTimes,
-            server: anikuro.server,
-            download: anikuro.download,
-          };
-        },
-      );
-
-      const anikuroResponse = await respondWithStream(
-        anikuroAttempt.result,
-        "AniKuro",
-        anikuroAttempt.servedAudio,
-        anikuroAttempt.audioFallback,
-      );
-      if (anikuroResponse) return anikuroResponse;
-    } catch (e) {
-      console.error("[kitty/stream] AniKuro server failed:", e);
-    }
-  }
-
   if (provider === "AniWaves") {
     try {
       const aniwavesAttempt = await fetchWithSubAudioFallback(
@@ -691,7 +613,7 @@ export async function GET(req: Request) {
             anilistId: subtitleCtx.anilistId,
             episode: subtitleCtx.episode,
             audio: streamAudio,
-            serverId: aniwavesServer as AniwavesServerId | null,
+            serverId: aniwavesServer,
             title: titleParam,
           });
 
@@ -730,6 +652,7 @@ export async function GET(req: Request) {
         episode: subtitleCtx.episode,
         audio: streamAudio,
         title: titleParam,
+        directOnly: true,
       });
 
       if (!streamResult?.file) return null;

@@ -22,61 +22,7 @@ import {
 import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
-import {
-  DEFAULT_ANIMEX_SERVER,
-  defaultAnimexServerForMode,
-  animexServerUsesInPlayerAudioSwitch,
-  isAnimexServerId,
-  type AnimexServerId,
-} from "@/lib/providers/animex-config";
-import {
-  DEFAULT_ANISNATCH_SERVER,
-  defaultAnisnatchServerForMode,
-  isAnisnatchServerId,
-  type AnisnatchServerId,
-} from "@/lib/providers/anisnatch-config";
-import {
-  DEFAULT_LUNAR_SERVER,
-  defaultLunarServerForMode,
-  isLunarServerId,
-  type LunarServerId,
-} from "@/lib/providers/lunar-config";
-import {
-  DEFAULT_ALLANIME_MIRROR,
-  DEFAULT_MKISSA_MIRROR,
-  defaultAllanimeMirrorForMode,
-  isAllanimeMirrorId,
-  type AllanimeMirrorId,
-} from "@/lib/providers/allanime-config";
-import {
-  DEFAULT_ANIMO_SERVER,
-  isAnimoServerId,
-  type AnimoServerId,
-} from "@/lib/providers/animo-config";
-import {
-  DEFAULT_ANINEKO_SERVER,
-  defaultAninekoServerForMode,
-  isAninekoServerId,
-  type AninekoServerId,
-} from "@/lib/providers/anineko-config";
-import {
-  DEFAULT_ANIWAVES_SERVER,
-  defaultAniwavesServerForMode,
-  isAniwavesServerId,
-  type AniwavesServerId,
-} from "@/lib/providers/aniwaves-config";
-import {
-  DEFAULT_ANIKURO_SERVER,
-  defaultAnikuroServerForMode,
-  isAnikuroServerId,
-  type AnikuroServerId,
-} from "@/lib/providers/anikuro-config";
 import { ProviderQuickPick } from "@/components/player/provider-select";
-import {
-  DEFAULT_MIRURO_PIPE_PROVIDER,
-  MIRURO_PIPE_PROVIDERS,
-  type MiruroPipeProviderId,
-} from "@/lib/providers/miruro-types";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
 
 import { useSkipTimes, useCommunitySkipTimes, mergeSkipTimesPriority } from "@/hooks/use-aniskip";
@@ -259,88 +205,6 @@ const VideoPlayerSection = () => {
     return DEFAULT_PROVIDER;
   });
 
-  const [miruroPipe, setMiruroPipe] = useState<MiruroPipeProviderId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("miruroPipe");
-      if (saved && MIRURO_PIPE_PROVIDERS.some((p) => p.id === saved)) {
-        return saved as MiruroPipeProviderId;
-      }
-    }
-    return DEFAULT_MIRURO_PIPE_PROVIDER;
-  });
-
-  const [animexServer, setAnimexServer] = useState<AnimexServerId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("animexServer");
-      if (saved && isAnimexServerId(saved)) return saved;
-    }
-    return DEFAULT_ANIMEX_SERVER;
-  });
-
-  const [anisnatchServer, setAnisnatchServer] = useState<AnisnatchServerId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("anisnatchServer");
-      if (saved && isAnisnatchServerId(saved)) return saved;
-    }
-    return DEFAULT_ANISNATCH_SERVER;
-  });
-
-  const [lunarServer, setLunarServer] = useState<LunarServerId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("lunarServer");
-      if (saved && isLunarServerId(saved)) return saved;
-    }
-    return DEFAULT_LUNAR_SERVER;
-  });
-
-  const [allanimeMirror, setAllanimeMirror] = useState<AllanimeMirrorId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("allanimeMirror");
-      if (saved && isAllanimeMirrorId(saved)) return saved;
-    }
-    return DEFAULT_ALLANIME_MIRROR;
-  });
-
-  const [mkissaMirror, setMkissaMirror] = useState<AllanimeMirrorId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("mkissaMirror");
-      if (saved && isAllanimeMirrorId(saved)) return saved;
-    }
-    return DEFAULT_MKISSA_MIRROR;
-  });
-
-  const [animoServer, setAnimoServer] = useState<AnimoServerId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("animoServer");
-      if (saved && isAnimoServerId(saved)) return saved;
-    }
-    return DEFAULT_ANIMO_SERVER;
-  });
-
-  const [aninekoServer, setAninekoServer] = useState<AninekoServerId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("aninekoServer");
-      if (saved && isAninekoServerId(saved)) return saved;
-    }
-    return DEFAULT_ANINEKO_SERVER;
-  });
-
-  const [aniwavesServer, setAniwavesServer] = useState<AniwavesServerId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("aniwavesServer");
-      if (saved && isAniwavesServerId(saved)) return saved;
-    }
-    return DEFAULT_ANIWAVES_SERVER;
-  });
-
-  const [anikuroServer, setAnikuroServer] = useState<AnikuroServerId>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("anikuroServer");
-      if (saved && isAnikuroServerId(saved)) return saved;
-    }
-    return DEFAULT_ANIKURO_SERVER;
-  });
-
   const animeSlug = anime?.anime?.info?.id ?? null;
   const anilistId = anime?.anime?.info?.anilistId;
   const malId = anime?.anime?.info?.malId;
@@ -366,6 +230,8 @@ const VideoPlayerSection = () => {
     tracks: KittyTrack[];
     headers: Record<string, string>;
     episodeId: string;
+    anilistId: number;
+    provider: KittyProvider;
     audio: "sub" | "dub";
     qualities?: import("@/lib/kitty/stream-quality").KittyStreamQuality[];
     skipTimes?: { intro?: { start: number; end: number }; outro?: { start: number; end: number } };
@@ -387,15 +253,7 @@ const VideoPlayerSection = () => {
     return selectedEpisode ?? "";
   }, [currentEpisodeInfo?.number, episodeId, selectedEpisode]);
 
-  const usesInPlayerHlsAudioSwitch = useMemo(
-    () =>
-      provider === "Animex" &&
-      animexServer != null &&
-      animexServerUsesInPlayerAudioSwitch(animexServer),
-    [provider, animexServer],
-  );
-
-  const streamQueryAudio: "sub" | "dub" = usesInPlayerHlsAudioSwitch ? "sub" : streamAudio;
+  const streamQueryAudio: "sub" | "dub" = streamAudio;
 
   // ── Resume position ──────────────────────────────────────────────
   const [savedResumeTime, setSavedResumeTime] = useState(0);
@@ -788,17 +646,7 @@ const VideoPlayerSection = () => {
         episodeNo || undefined,
         streamQueryAudio,
         provider,
-        provider === "Miruro" ? miruroPipe : null,
         animeTitle,
-        provider === "Animex" ? animexServer : null,
-        provider === "AniSnatch" ? anisnatchServer : null,
-        provider === "Lunar" ? lunarServer : null,
-        provider === "AllAnime" ? allanimeMirror : null,
-        provider === "MKissa" ? mkissaMirror : null,
-        provider === "Animo" ? animoServer : null,
-        provider === "AniNeko" ? aninekoServer : null,
-        provider === "AniWaves" ? aniwavesServer : null,
-        provider === "AniKuro" ? anikuroServer : null,
       ),
     });
     fallbackBusyRef.current = false;
@@ -810,17 +658,7 @@ const VideoPlayerSection = () => {
     episodeNo,
     streamQueryAudio,
     provider,
-    miruroPipe,
     animeTitle,
-    animexServer,
-    anisnatchServer,
-    lunarServer,
-    allanimeMirror,
-    mkissaMirror,
-    animoServer,
-    aninekoServer,
-    aniwavesServer,
-    anikuroServer,
   ]);
 
   // On finishing the final episode the server moves the title to Completed —
@@ -930,17 +768,7 @@ const VideoPlayerSection = () => {
     episodeNo || undefined,
     streamQueryAudio,
     provider,
-    provider === "Miruro" ? miruroPipe : null,
     animeTitle,
-    provider === "Animex" ? animexServer : null,
-    provider === "AniSnatch" ? anisnatchServer : null,
-    provider === "Lunar" ? lunarServer : null,
-    provider === "AllAnime" ? allanimeMirror : null,
-    provider === "MKissa" ? mkissaMirror : null,
-    provider === "Animo" ? animoServer : null,
-    provider === "AniNeko" ? aninekoServer : null,
-    provider === "AniWaves" ? aniwavesServer : null,
-    provider === "AniKuro" ? anikuroServer : null,
     kittyProxyNode,
   );
 
@@ -958,26 +786,15 @@ const VideoPlayerSection = () => {
   /** Placeholder sub/dub must not play while the matching stream loads (MegaPlay, etc.). */
   const audioMatchesRequest =
     !streamData?.servedAudio || streamData.servedAudio === streamQueryAudio;
-  const pendingAudioSwitch = Boolean(
-    isFetching && isPlaceholderData && hasStreamFile && !audioMatchesRequest,
-  );
-  const streamBackgroundRefresh = Boolean(
-    isFetching && isPlaceholderData && hasStreamFile && !pendingNewEpisode && !pendingAudioSwitch,
-  );
-  const streamStale = Boolean(isPlaceholderData && isFetching && !streamBackgroundRefresh);
+  /** keepPreviousData must never play while a new anime/episode/provider/audio request loads. */
+  const streamStale = Boolean(isPlaceholderData && isFetching);
   const streamReady = hasStreamFile && !streamStale && audioMatchesRequest;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
 
   useEffect(() => {
     setHeldStreamSnapshot(null);
-  }, [streamQueryAudio]);
-
-  // Clear the previous episode's held stream when the anime changes so the old
-  // anime's video can never bleed into the newly selected one during the switch.
-  useEffect(() => {
-    setHeldStreamSnapshot(null);
-  }, [urlAnimeId]);
+  }, [streamQueryAudio, provider, urlAnimeId, anilistId]);
 
   useEffect(() => {
     if (!streamData?.audioFallback) return;
@@ -1009,17 +826,7 @@ const VideoPlayerSection = () => {
         nextEpNo,
         streamQueryAudio,
         provider,
-        provider === "Miruro" ? miruroPipe : null,
         animeTitle,
-        provider === "Animex" ? animexServer : null,
-        provider === "AniSnatch" ? anisnatchServer : null,
-        provider === "Lunar" ? lunarServer : null,
-        provider === "AllAnime" ? allanimeMirror : null,
-        provider === "MKissa" ? mkissaMirror : null,
-        provider === "Animo" ? animoServer : null,
-        provider === "AniNeko" ? aninekoServer : null,
-        provider === "AniWaves" ? aniwavesServer : null,
-        provider === "AniKuro" ? anikuroServer : null,
       ),
       queryFn: () =>
         getKittyStream(
@@ -1027,17 +834,7 @@ const VideoPlayerSection = () => {
           nextEpNo,
           streamQueryAudio,
           provider,
-          provider === "Miruro" ? miruroPipe : null,
           animeTitle,
-          provider === "Animex" ? animexServer : null,
-          provider === "AniSnatch" ? anisnatchServer : null,
-          provider === "Lunar" ? lunarServer : null,
-          provider === "AllAnime" ? allanimeMirror : null,
-          provider === "MKissa" ? mkissaMirror : null,
-          provider === "Animo" ? animoServer : null,
-          provider === "AniNeko" ? aninekoServer : null,
-          provider === "AniWaves" ? aniwavesServer : null,
-          provider === "AniKuro" ? anikuroServer : null,
           kittyProxyNode,
         ),
       staleTime: 30_000,
@@ -1051,17 +848,7 @@ const VideoPlayerSection = () => {
     anilistId,
     streamQueryAudio,
     provider,
-    miruroPipe,
     animeTitle,
-    animexServer,
-    anisnatchServer,
-    lunarServer,
-    allanimeMirror,
-    mkissaMirror,
-    animoServer,
-    aninekoServer,
-    aniwavesServer,
-    anikuroServer,
     kittyProxyNode,
     queryClient,
   ]);
@@ -1109,7 +896,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${provider}-${miruroPipe}-${animexServer}-${anisnatchServer}-${lunarServer}-${allanimeMirror}-${mkissaMirror}-${animoServer}-${aninekoServer}-${aniwavesServer}-${anikuroServer}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
+  const playerKey = `${anilistId}-${episodeNo}-${provider}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);
@@ -1140,18 +927,24 @@ const VideoPlayerSection = () => {
       tracks: playerTracks,
       headers: playerHeaders,
       episodeId,
+      anilistId: anilistId!,
+      provider,
       audio: streamQueryAudio,
       qualities: streamData.allServers,
       skipTimes,
     });
-  }, [streamReady, streamData?.file, streamData?.allServers, episodeId, playerKey, playerTracks, playerHeaders, skipTimes, streamQueryAudio]);
+  }, [streamReady, streamData?.file, streamData?.allServers, episodeId, anilistId, provider, playerKey, playerTracks, playerHeaders, skipTimes, streamQueryAudio]);
 
-  const heldSnapshotMatchesAudio =
-    !heldStreamSnapshot || heldStreamSnapshot.audio === streamQueryAudio;
+  const heldSnapshotMatchesRequest =
+    !heldStreamSnapshot ||
+    (heldStreamSnapshot.anilistId === anilistId &&
+      heldStreamSnapshot.provider === provider &&
+      heldStreamSnapshot.audio === streamQueryAudio);
+
   const useLiveStream = Boolean(streamReady && streamData?.file);
   const useHeldPlayerShell = Boolean(
     heldStreamSnapshot?.file &&
-      heldSnapshotMatchesAudio &&
+      heldSnapshotMatchesRequest &&
       (showStreamLoading || (pendingNewEpisode && (!useLiveStream || !resumeReady))),
   );
   const showTransitionOverlay = Boolean(
@@ -1188,128 +981,6 @@ const VideoPlayerSection = () => {
     } else if (mode === "sub" || mode === "hardsub") {
       applyStreamAudio("sub");
     }
-    if (p === "Animex") {
-      const server = defaultAnimexServerForMode(mode);
-      setAnimexServer(server);
-      localStorage.setItem("animexServer", server);
-    }
-    if (p === "AniSnatch") {
-      const server = defaultAnisnatchServerForMode(mode);
-      setAnisnatchServer(server);
-      localStorage.setItem("anisnatchServer", server);
-    }
-    if (p === "Lunar") {
-      const server = defaultLunarServerForMode(mode);
-      setLunarServer(server);
-      localStorage.setItem("lunarServer", server);
-    }
-    if (p === "AllAnime") {
-      const mirror = defaultAllanimeMirrorForMode("AllAnime", mode);
-      setAllanimeMirror(mirror);
-      localStorage.setItem("allanimeMirror", mirror);
-    }
-    if (p === "MKissa") {
-      const mirror = defaultAllanimeMirrorForMode("MKissa", mode);
-      setMkissaMirror(mirror);
-      localStorage.setItem("mkissaMirror", mirror);
-    }
-    if (p === "Animo") {
-      setAnimoServer(DEFAULT_ANIMO_SERVER);
-      localStorage.setItem("animoServer", DEFAULT_ANIMO_SERVER);
-    }
-    if (p === "AniNeko") {
-      const server = defaultAninekoServerForMode(mode);
-      setAninekoServer(server);
-      localStorage.setItem("aninekoServer", server);
-    }
-    if (p === "AniWaves") {
-      const server = defaultAniwavesServerForMode(mode);
-      setAniwavesServer(server);
-      localStorage.setItem("aniwavesServer", server);
-    }
-    if (p === "AniKuro") {
-      const server = defaultAnikuroServerForMode(mode);
-      setAnikuroServer(server);
-      localStorage.setItem("anikuroServer", server);
-    }
-  };
-
-  const handleAnimexServerChange = (server: AnimexServerId) => {
-    preservePlaybackPosition();
-    setProvider("Animex");
-    setAnimexServer(server);
-    localStorage.setItem("kittyProvider", "Animex");
-    localStorage.setItem("animexServer", server);
-  };
-
-  const handleAnisnatchServerChange = (server: AnisnatchServerId) => {
-    preservePlaybackPosition();
-    setProvider("AniSnatch");
-    setAnisnatchServer(server);
-    localStorage.setItem("kittyProvider", "AniSnatch");
-    localStorage.setItem("anisnatchServer", server);
-  };
-
-  const handleLunarServerChange = (server: LunarServerId) => {
-    preservePlaybackPosition();
-    setProvider("Lunar");
-    setLunarServer(server);
-    localStorage.setItem("kittyProvider", "Lunar");
-    localStorage.setItem("lunarServer", server);
-  };
-
-  const handleAllanimeMirrorChange = (mirror: AllanimeMirrorId) => {
-    preservePlaybackPosition();
-    setProvider("AllAnime");
-    setAllanimeMirror(mirror);
-    localStorage.setItem("kittyProvider", "AllAnime");
-    localStorage.setItem("allanimeMirror", mirror);
-  };
-
-  const handleMkissaMirrorChange = (mirror: AllanimeMirrorId) => {
-    preservePlaybackPosition();
-    setProvider("MKissa");
-    setMkissaMirror(mirror);
-    localStorage.setItem("kittyProvider", "MKissa");
-    localStorage.setItem("mkissaMirror", mirror);
-  };
-
-  const handleMiruroPipeChange = (pipe: MiruroPipeProviderId) => {
-    preservePlaybackPosition();
-    setMiruroPipe(pipe);
-    localStorage.setItem("miruroPipe", pipe);
-  };
-
-  const handleAnimoServerChange = (server: AnimoServerId) => {
-    preservePlaybackPosition();
-    setProvider("Animo");
-    setAnimoServer(server);
-    localStorage.setItem("kittyProvider", "Animo");
-    localStorage.setItem("animoServer", server);
-  };
-
-  const handleAninekoServerChange = (server: AninekoServerId) => {
-    preservePlaybackPosition();
-    setProvider("AniNeko");
-    setAninekoServer(server);
-    localStorage.setItem("kittyProvider", "AniNeko");
-    localStorage.setItem("aninekoServer", server);
-  };
-
-  const handleAniwavesServerChange = (server: AniwavesServerId) => {
-    preservePlaybackPosition();
-    setProvider("AniWaves");
-    setAniwavesServer(server);
-    localStorage.setItem("kittyProvider", "AniWaves");
-    localStorage.setItem("aniwavesServer", server);
-  };
-
-  const handleAnikuroServerChange = (server: AnikuroServerId) => {
-    preservePlaybackPosition();
-    setProvider("AniKuro");
-    setAnikuroServer(server);
-    localStorage.setItem("kittyProvider", "AniKuro");
-    localStorage.setItem("anikuroServer", server);
   };
 
   const handleSimpleProviderChange = (p: KittyProvider) => {
@@ -1461,54 +1132,14 @@ const VideoPlayerSection = () => {
       provider={provider}
       streamAudio={streamAudio}
       onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
-      miruroPipe={miruroPipe}
-      animexServer={animexServer}
-      anisnatchServer={anisnatchServer}
-      lunarServer={lunarServer}
-      allanimeMirror={allanimeMirror}
-      mkissaMirror={mkissaMirror}
-      animoServer={animoServer}
-      aninekoServer={aninekoServer}
-      aniwavesServer={aniwavesServer}
-      anikuroServer={anikuroServer}
       onProviderChange={handleSimpleProviderChange}
-      onMiruroPipeChange={handleMiruroPipeChange}
-      onAnimexServerChange={handleAnimexServerChange}
-      onAnisnatchServerChange={handleAnisnatchServerChange}
-      onLunarServerChange={handleLunarServerChange}
-      onAllanimeMirrorChange={handleAllanimeMirrorChange}
-      onMkissaMirrorChange={handleMkissaMirrorChange}
-      onAnimoServerChange={handleAnimoServerChange}
-      onAninekoServerChange={handleAninekoServerChange}
-      onAniwavesServerChange={handleAniwavesServerChange}
-      onAnikuroServerChange={handleAnikuroServerChange}
     />
   ) : (
     <ProviderQuickPick
       value={provider}
       audioMode={audioMode}
-      miruroPipe={miruroPipe}
-      animexServer={animexServer}
-      anisnatchServer={anisnatchServer}
-      lunarServer={lunarServer}
-      allanimeMirror={allanimeMirror}
-      mkissaMirror={mkissaMirror}
-      animoServer={animoServer}
-      aninekoServer={aninekoServer}
-      aniwavesServer={aniwavesServer}
-      anikuroServer={anikuroServer}
       compact={isMobile}
       onSelect={handleProviderGridSelect}
-      onMiruroPipeChange={handleMiruroPipeChange}
-      onAnimexServerChange={handleAnimexServerChange}
-      onAnisnatchServerChange={handleAnisnatchServerChange}
-      onLunarServerChange={handleLunarServerChange}
-      onAllanimeMirrorChange={handleAllanimeMirrorChange}
-      onMkissaMirrorChange={handleMkissaMirrorChange}
-      onAnimoServerChange={handleAnimoServerChange}
-      onAninekoServerChange={handleAninekoServerChange}
-      onAniwavesServerChange={handleAniwavesServerChange}
-      onAnikuroServerChange={handleAnikuroServerChange}
     />
   );
 
@@ -1581,9 +1212,6 @@ const VideoPlayerSection = () => {
     audioMode,
     streamAudio,
     provider,
-    aninekoServer,
-    animexServer,
-    lunarServer,
   });
   const allowSoftSubsOverlay = streamAudio === "sub" && (!watchingHardSub || hardSubSoftSubs);
   const subtitlesEnabled = allowSoftSubsOverlay && autoEnableSubtitles;

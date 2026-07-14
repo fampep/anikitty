@@ -5,7 +5,6 @@ import {
   parseKittyStreamJson,
   type KittyStreamPayload,
 } from "@/lib/kitty/kitty-api-core";
-import { isMegaplayProvider } from "@/lib/kitty/megaplay-providers";
 import { isVideoVibProvider, videoVibStreamPaths } from "@/lib/kitty/videovib-provider";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 
@@ -85,14 +84,14 @@ export async function fetchKittyAutoStream(
 }
 
 /**
- * stream-direct for a named provider, then `/auto/stream` as fallback.
+ * stream-direct for a named provider. `/auto/stream` is only used when no provider is set.
  * Dub→sub retry is handled by the stream API route (same provider, same anime).
  */
 export async function fetchKittyProviderStream(
   opts: FetchKittyStreamOpts,
 ): Promise<KittyStreamPayload | null> {
-  const directOnly =
-    opts.directOnly ?? (opts.provider ? isMegaplayProvider(opts.provider) : false);
+  // Named providers must not fall back to /auto/stream — it can resolve a different anime.
+  const directOnly = opts.directOnly ?? Boolean(opts.provider?.trim());
 
   if (opts.provider) {
     const direct = await fetchKittyStreamDirect(opts);

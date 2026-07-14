@@ -11,30 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ANIMEX_SERVERS, type AnimexServerId } from "@/lib/providers/animex-config";
-import { ANISNATCH_SERVERS, type AnisnatchServerId } from "@/lib/providers/anisnatch-config";
-import { LUNAR_SERVERS, type LunarServerId } from "@/lib/providers/lunar-config";
-import {
-  ALLANIME_MIRRORS,
-  MKISSA_MIRRORS,
-  type AllanimeMirrorId,
-} from "@/lib/providers/allanime-config";
-import { ANIMO_SERVERS, type AnimoServerId } from "@/lib/providers/animo-config";
-import {
-  ANINEKO_SERVERS,
-  aninekoServerDropdownLabel,
-  type AninekoServerId,
-} from "@/lib/providers/anineko-config";
-import {
-  ANIWAVES_SERVERS,
-  type AniwavesServerId,
-} from "@/lib/providers/aniwaves-config";
-import {
-  ANIKURO_SERVERS,
-  type AnikuroServerId,
-} from "@/lib/providers/anikuro-config";
-import { ServerSubSelect } from "@/components/watch/watch-simple-provider-row";
-import { MIRURO_PIPE_PROVIDERS, type MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import {
   DEFAULT_KITTY_PROVIDER,
   isDefaultProvider,
@@ -46,8 +22,6 @@ import {
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
-
-export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AllAnime" | "MKissa" | "AniKuro" | "AniWaves";
 
 type Props = {
   value: KittyProvider;
@@ -95,12 +69,9 @@ export default function ProviderSelect({
           compact
             ? "h-8 min-w-[9.5rem] text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/[0.07]"
             : "h-9 min-w-[11rem] text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/[0.07]",
-          value === "Miruro" && "border-violet-500/25 bg-violet-500/[0.06] text-violet-100/85",
-          value === "AllAnime" && "border-teal-500/25 bg-teal-500/[0.06] text-teal-100/85",
-          value === "MKissa" && "border-amber-500/25 bg-amber-500/[0.06] text-amber-100/85",
           value === "MegaPlay" && "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-100/85",
-          value === "VideoVib" && "border-amber-500/25 bg-amber-500/[0.06] text-amber-100/85",
-          value === "Animo" && "border-cyan-500/25 bg-cyan-500/[0.06] text-cyan-100/85",
+          value === "AniNeko" && "border-indigo-500/25 bg-indigo-500/[0.06] text-indigo-100/85",
+          value === "AniWaves" && "border-rose-500/25 bg-rose-500/[0.06] text-rose-100/85",
           className,
         )}
       >
@@ -150,53 +121,13 @@ export default function ProviderSelect({
 export function ProviderQuickPick({
   value,
   audioMode = "sub",
-  miruroPipe,
-  animexServer,
-  anisnatchServer,
-  lunarServer,
-  allanimeMirror,
-  mkissaMirror,
-  animoServer,
-  aninekoServer,
-  aniwavesServer,
-  anikuroServer,
   onSelect,
-  onMiruroPipeChange,
-  onAnimexServerChange,
-  onAnisnatchServerChange,
-  onLunarServerChange,
-  onAllanimeMirrorChange,
-  onMkissaMirrorChange,
-  onAnimoServerChange,
-  onAninekoServerChange,
-  onAniwavesServerChange,
-  onAnikuroServerChange,
   className,
   compact,
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
-  miruroPipe?: MiruroPipeProviderId;
-  animexServer?: AnimexServerId;
-  anisnatchServer?: AnisnatchServerId;
-  lunarServer?: LunarServerId;
-  allanimeMirror?: AllanimeMirrorId;
-  mkissaMirror?: AllanimeMirrorId;
-  animoServer?: AnimoServerId;
-  aninekoServer?: AninekoServerId;
-  aniwavesServer?: AniwavesServerId;
-  anikuroServer?: AnikuroServerId;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
-  onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
-  onAnimexServerChange?: (server: AnimexServerId) => void;
-  onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
-  onLunarServerChange?: (server: LunarServerId) => void;
-  onAllanimeMirrorChange?: (mirror: AllanimeMirrorId) => void;
-  onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
-  onAnimoServerChange?: (server: AnimoServerId) => void;
-  onAninekoServerChange?: (server: AninekoServerId) => void;
-  onAniwavesServerChange?: (server: AniwavesServerId) => void;
-  onAnikuroServerChange?: (server: AnikuroServerId) => void;
   className?: string;
   compact?: boolean;
 }) {
@@ -204,28 +135,8 @@ export function ProviderQuickPick({
     <ProviderGrid
       provider={value}
       audioMode={audioMode}
-      miruroPipe={miruroPipe}
-      animexServer={animexServer}
-      anisnatchServer={anisnatchServer}
-      lunarServer={lunarServer}
-      allanimeMirror={allanimeMirror}
-      mkissaMirror={mkissaMirror}
-      animoServer={animoServer}
-      aninekoServer={aninekoServer}
-      aniwavesServer={aniwavesServer}
-      anikuroServer={anikuroServer}
       compact={compact}
       onSelect={onSelect}
-      onMiruroPipeChange={onMiruroPipeChange}
-      onAnimexServerChange={onAnimexServerChange}
-      onAnisnatchServerChange={onAnisnatchServerChange}
-      onLunarServerChange={onLunarServerChange}
-      onAllanimeMirrorChange={onAllanimeMirrorChange}
-      onMkissaMirrorChange={onMkissaMirrorChange}
-      onAnimoServerChange={onAnimoServerChange}
-      onAninekoServerChange={onAninekoServerChange}
-      onAniwavesServerChange={onAniwavesServerChange}
-      onAnikuroServerChange={onAnikuroServerChange}
       className={className}
     />
   );
@@ -235,31 +146,27 @@ const PROVIDER_GRID_ROWS: ProviderAudioMode[] = ["sub", "dub", "hardsub"];
 
 const PROVIDER_ROW_STYLES: Record<
   ProviderAudioMode,
-  { active: string; idle: string; label: string; expanded: string }
+  { active: string; idle: string; label: string }
 > = {
   sub: {
     label: "text-teal-300/70",
     active: "bg-teal-500/25 border-teal-400/45 text-teal-100",
     idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
-    expanded: "",
   },
   dub: {
     label: "text-amber-300/70",
     active: "bg-amber-500/25 border-amber-400/45 text-amber-100",
     idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
-    expanded: "",
   },
   hardsub: {
     label: "text-sky-300/70",
     active: "bg-sky-500/25 border-sky-400/45 text-sky-100",
     idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
-    expanded: "",
   },
   multi: {
     label: "text-violet-300/70",
     active: "bg-violet-500/25 border-violet-400/45 text-violet-100",
     idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
-    expanded: "ring-1 ring-violet-400/35",
   },
 };
 
@@ -267,26 +174,6 @@ type ProviderGridProps = {
   provider: KittyProvider;
   audioMode: ProviderAudioMode;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
-  miruroPipe?: MiruroPipeProviderId;
-  onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
-  animexServer?: AnimexServerId;
-  onAnimexServerChange?: (server: AnimexServerId) => void;
-  anisnatchServer?: AnisnatchServerId;
-  onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
-  lunarServer?: LunarServerId;
-  onLunarServerChange?: (server: LunarServerId) => void;
-  allanimeMirror?: AllanimeMirrorId;
-  onAllanimeMirrorChange?: (mirror: AllanimeMirrorId) => void;
-  mkissaMirror?: AllanimeMirrorId;
-  onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
-  animoServer?: AnimoServerId;
-  onAnimoServerChange?: (server: AnimoServerId) => void;
-  aninekoServer?: AninekoServerId;
-  onAninekoServerChange?: (server: AninekoServerId) => void;
-  aniwavesServer?: AniwavesServerId;
-  anikuroServer?: AnikuroServerId;
-  onAniwavesServerChange?: (server: AniwavesServerId) => void;
-  onAnikuroServerChange?: (server: AnikuroServerId) => void;
   disabled?: boolean;
   className?: string;
   rows?: ProviderAudioMode[];
@@ -313,7 +200,6 @@ function ProviderScrollRow({
 function providerPillClass(
   compact: boolean | undefined,
   isActive: boolean,
-  isExpanded: boolean,
   styles: (typeof PROVIDER_ROW_STYLES)[ProviderAudioMode],
   providerId: KittyProvider,
 ) {
@@ -321,26 +207,9 @@ function providerPillClass(
     "inline-flex items-center gap-1 font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none shrink-0 touch-manipulation",
     compact ? "min-h-9 px-3 py-2 text-xs rounded-lg" : "px-2 py-1 text-[11px] rounded-md",
     isActive ? styles.active : styles.idle,
-    isExpanded && styles.expanded,
-    providerId === "Animex" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
-    providerId === "AniSnatch" && isActive && "border-fuchsia-400/40 bg-fuchsia-500/20 text-fuchsia-100",
-    providerId === "Lunar" && isActive && "border-sky-400/40 bg-sky-500/20 text-sky-100",
-    providerId === "AllAnime" && isActive && "border-teal-400/40 bg-teal-500/20 text-teal-100",
-    providerId === "MKissa" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
     providerId === "MegaPlay" && isActive && "border-emerald-400/40 bg-emerald-500/20 text-emerald-100",
-    providerId === "VideoVib" && isActive && "border-amber-400/40 bg-amber-500/20 text-amber-100",
-    providerId === "Animo" && isActive && "border-cyan-400/40 bg-cyan-500/20 text-cyan-100",
     providerId === "AniNeko" && isActive && "border-indigo-400/40 bg-indigo-500/20 text-indigo-100",
-    providerId === "AniKuro" && isActive && "border-orange-400/40 bg-orange-500/20 text-orange-100",
     providerId === "AniWaves" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
-  );
-}
-
-function serverPillClass(compact: boolean | undefined, isActive: boolean, accentActive: string, accentIdle: string) {
-  return cn(
-    "inline-flex items-center gap-1 font-mono font-semibold border transition-colors disabled:opacity-40 shrink-0 touch-manipulation",
-    compact ? "min-h-9 px-3 py-2 text-xs rounded-lg" : "px-2.5 py-1 text-[11px] rounded-md",
-    isActive ? accentActive : accentIdle,
   );
 }
 
@@ -348,36 +217,14 @@ export function ProviderGrid({
   provider,
   audioMode,
   onSelect,
-  miruroPipe,
-  onMiruroPipeChange,
-  animexServer,
-  onAnimexServerChange,
-  anisnatchServer,
-  onAnisnatchServerChange,
-  lunarServer,
-  onLunarServerChange,
-  allanimeMirror,
-  onAllanimeMirrorChange,
-  mkissaMirror,
-  onMkissaMirrorChange,
-  animoServer,
-  onAnimoServerChange,
-  aninekoServer,
-  onAninekoServerChange,
-  aniwavesServer,
-  onAniwavesServerChange,
-  anikuroServer,
-  onAnikuroServerChange,
   disabled,
   className,
   rows,
   compact,
 }: ProviderGridProps) {
   const t = useT();
-  const streamAudio: "sub" | "dub" = audioMode === "dub" ? "dub" : "sub";
   const { providerSectionHidden, toggleProviderSectionHidden } = useSettingsStore();
   const visibleRows = rows ?? PROVIDER_GRID_ROWS;
-  // Per-row "show all" state — keeps the pill wall short until the user opts in.
   const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
 
   const rowLabels: Partial<Record<ProviderAudioMode, string>> = {
@@ -406,7 +253,6 @@ export function ProviderGrid({
         const isHidden = providerSectionHidden[mode] ?? false;
         const activeItem = items.find((p) => provider === p.id && audioMode === mode);
 
-        // Curate: show a handful by default, tuck the long tail behind "+N more".
         const rowExpanded = !!expandedRows[mode];
         const defaultVisible = compact ? 6 : 9;
         const collapsible = items.length > defaultVisible + 2;
@@ -429,7 +275,7 @@ export function ProviderGrid({
               disabled={disabled}
               onClick={() => onSelect(p.id, mode)}
               title={p.hint}
-              className={providerPillClass(compact, isActive, false, styles, p.id)}
+              className={providerPillClass(compact, isActive, styles, p.id)}
             >
               <span className="truncate max-w-[8.5rem] sm:max-w-none">{p.label}</span>
               <ProviderDefaultBadge id={p.id} compact />
@@ -558,355 +404,6 @@ export function ProviderGrid({
           </div>
         );
       })}
-
-      {provider === "Miruro" && onMiruroPipeChange && miruroPipe != null && (
-        <MultiServerPanel accent="violet" label={t("watch.miruroPipe")} compact={compact}>
-          {MIRURO_PIPE_PROVIDERS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => onMiruroPipeChange(p.id)}
-              title={p.native ? undefined : "embed"}
-              className={serverPillClass(
-                compact,
-                miruroPipe === p.id,
-                "bg-violet-500/25 border-violet-400/45 text-violet-100",
-                "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
-              )}
-            >
-              <span>{p.native ? p.label : `${p.label}*`}</span>
-            </button>
-          ))}
-        </MultiServerPanel>
-      )}
-
-      {provider === "Animex" && onAnimexServerChange && animexServer != null && (
-        <MultiServerPanel accent="rose" label={t("watch.animexServer")} compact={compact}>
-          {ANIMEX_SERVERS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => onAnimexServerChange(s.id)}
-              title={s.hint}
-              className={serverPillClass(
-                compact,
-                animexServer === s.id,
-                "bg-rose-500/25 border-rose-400/45 text-rose-100",
-                "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
-              )}
-            >
-              <span>{s.label}</span>
-            </button>
-          ))}
-        </MultiServerPanel>
-      )}
-
-      {provider === "AniSnatch" &&
-        onAnisnatchServerChange &&
-        anisnatchServer != null && (
-          <MultiServerPanel accent="fuchsia" label={t("watch.anisnatchServer")} compact={compact}>
-            {ANISNATCH_SERVERS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => onAnisnatchServerChange(s.id)}
-                title={s.hint}
-                className={serverPillClass(
-                  compact,
-                  anisnatchServer === s.id,
-                  "bg-fuchsia-500/25 border-fuchsia-400/45 text-fuchsia-100",
-                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-fuchsia-500/30 hover:text-fuchsia-200/80 hover:bg-fuchsia-500/[0.06]",
-                )}
-              >
-                <span>{s.label}</span>
-              </button>
-            ))}
-          </MultiServerPanel>
-        )}
-
-      {provider === "Lunar" &&
-        onLunarServerChange &&
-        lunarServer != null && (
-          <MultiServerPanel accent="sky" label={t("watch.lunarServer")} compact={compact}>
-            {LUNAR_SERVERS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => onLunarServerChange(s.id)}
-                title={s.hint}
-                className={serverPillClass(
-                  compact,
-                  lunarServer === s.id,
-                  "bg-sky-500/25 border-sky-400/45 text-sky-100",
-                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
-                )}
-              >
-                <span>{s.label}</span>
-              </button>
-            ))}
-          </MultiServerPanel>
-        )}
-
-      {provider === "AllAnime" &&
-        onAllanimeMirrorChange &&
-        allanimeMirror != null && (
-          <MultiServerPanel accent="teal" label={t("watch.server")} compact={compact}>
-            {ALLANIME_MIRRORS.map((mirror) => (
-              <button
-                key={mirror.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => onAllanimeMirrorChange(mirror.id)}
-                className={serverPillClass(
-                  compact,
-                  allanimeMirror === mirror.id,
-                  "bg-teal-500/25 border-teal-400/45 text-teal-100",
-                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
-                )}
-              >
-                <span>{mirror.label}</span>
-              </button>
-            ))}
-          </MultiServerPanel>
-        )}
-
-      {provider === "MKissa" &&
-        onMkissaMirrorChange &&
-        mkissaMirror != null && (
-          <MultiServerPanel accent="amber" label={t("watch.server")} compact={compact}>
-            {MKISSA_MIRRORS.map((mirror) => (
-              <button
-                key={mirror.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => onMkissaMirrorChange(mirror.id)}
-                className={serverPillClass(
-                  compact,
-                  mkissaMirror === mirror.id,
-                  "bg-amber-500/25 border-amber-400/45 text-amber-100",
-                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
-                )}
-              >
-                <span>{mirror.label}</span>
-              </button>
-            ))}
-          </MultiServerPanel>
-        )}
-
-      {provider === "AniKuro" &&
-        onAnikuroServerChange &&
-        anikuroServer != null && (
-          <MultiServerPanel accent="orange" label={t("watch.server")} compact={compact}>
-            {ANIKURO_SERVERS.map((server) => (
-              <button
-                key={server.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => onAnikuroServerChange(server.id)}
-                className={serverPillClass(
-                  compact,
-                  anikuroServer === server.id,
-                  "bg-orange-500/25 border-orange-400/45 text-orange-100",
-                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-orange-500/30 hover:text-orange-200/80 hover:bg-orange-500/[0.06]",
-                )}
-              >
-                <span>{server.label}</span>
-              </button>
-            ))}
-          </MultiServerPanel>
-        )}
-
-      {provider === "AniWaves" &&
-        onAniwavesServerChange &&
-        aniwavesServer != null && (
-          <MultiServerPanel accent="rose" label={t("watch.server")} compact={compact}>
-            {ANIWAVES_SERVERS.map((server) => (
-              <button
-                key={server.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => onAniwavesServerChange(server.id)}
-                className={serverPillClass(
-                  compact,
-                  aniwavesServer === server.id,
-                  "bg-rose-500/25 border-rose-400/45 text-rose-100",
-                  "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
-                )}
-              >
-                <span>{server.label}</span>
-              </button>
-            ))}
-          </MultiServerPanel>
-        )}
-
-      {provider === "Animo" && onAnimoServerChange && animoServer != null && (
-        <MultiServerPanel accent="cyan" label={t("watch.animoServer")} compact={compact}>
-          {ANIMO_SERVERS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => onAnimoServerChange(s.id)}
-              title={s.hint}
-              className={serverPillClass(
-                compact,
-                animoServer === s.id,
-                "bg-cyan-500/25 border-cyan-400/45 text-cyan-100",
-                "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-cyan-500/30 hover:text-cyan-200/80 hover:bg-cyan-500/[0.06]",
-              )}
-            >
-              <span>{s.label}</span>
-            </button>
-          ))}
-        </MultiServerPanel>
-      )}
-
-      {provider === "AniNeko" && onAninekoServerChange && aninekoServer != null && (
-        <div
-          className={cn(
-            "rounded-lg border border-indigo-500/25 bg-indigo-500/[0.04] px-2.5 py-2",
-            compact ? "mx-0" : "mx-0.5",
-          )}
-        >
-          <p className="mb-1.5 text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-300/70">
-            {t("watch.aninekoServer")}
-          </p>
-          <ServerSubSelect
-            value={aninekoServer}
-            options={ANINEKO_SERVERS.map((server) => ({
-              id: server.id,
-              label: aninekoServerDropdownLabel(server.id, streamAudio),
-            }))}
-            placeholder={t("watch.aninekoServer")}
-            onChange={onAninekoServerChange}
-          />
-        </div>
-      )}
-
-    </div>
-  );
-}
-
-function MultiServerPanel({
-  label,
-  accent,
-  children,
-  compact,
-}: {
-  label: string;
-  accent: "violet" | "rose" | "cyan" | "fuchsia" | "sky" | "teal" | "amber" | "orange";
-  children: ReactNode;
-  compact?: boolean;
-}) {
-  const border =
-    accent === "rose"
-      ? "border-rose-500/25 bg-rose-500/[0.04]"
-      : accent === "cyan"
-        ? "border-cyan-500/25 bg-cyan-500/[0.04]"
-        : accent === "fuchsia"
-          ? "border-fuchsia-500/25 bg-fuchsia-500/[0.04]"
-          : accent === "sky"
-            ? "border-sky-500/25 bg-sky-500/[0.04]"
-            : accent === "teal"
-              ? "border-teal-500/25 bg-teal-500/[0.04]"
-              : accent === "amber"
-                ? "border-amber-500/25 bg-amber-500/[0.04]"
-                : accent === "orange"
-                  ? "border-orange-500/25 bg-orange-500/[0.04]"
-                  : "border-violet-500/25 bg-violet-500/[0.04]";
-  const text =
-    accent === "rose"
-      ? "text-rose-300/70"
-      : accent === "cyan"
-        ? "text-cyan-300/70"
-        : accent === "fuchsia"
-          ? "text-fuchsia-300/70"
-          : accent === "sky"
-            ? "text-sky-300/70"
-            : accent === "teal"
-              ? "text-teal-300/70"
-              : accent === "amber"
-                ? "text-amber-300/70"
-                : accent === "orange"
-                  ? "text-orange-300/70"
-                  : "text-violet-300/70";
-
-  return (
-    <div className={cn("rounded-lg border px-2.5 py-2", border, compact ? "" : "ml-14")}>
-      <p className={cn("text-[10px] font-mono uppercase tracking-wide mb-2", text)}>{label}</p>
-      {compact ? (
-        <div className="overflow-x-auto overscroll-x-contain -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex flex-nowrap gap-1.5 w-max min-w-full">{children}</div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">{children}</div>
-      )}
-    </div>
-  );
-}
-
-export function ProviderChipRow<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-  disabled,
-  accent = "violet",
-  className,
-}: {
-  label: string;
-  value: T;
-  options: readonly { id: T; label: string; hint?: string }[];
-  onChange: (id: T) => void;
-  disabled?: boolean;
-  accent?: "violet" | "rose";
-  className?: string;
-}) {
-  const accentActive =
-    accent === "rose"
-      ? "bg-rose-500/25 border-rose-400/45 text-rose-100"
-      : "bg-violet-500/25 border-violet-400/45 text-violet-100";
-  const accentIdle =
-    accent === "rose"
-      ? "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-rose-500/30 hover:text-rose-200/80 hover:bg-rose-500/[0.06]"
-      : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]";
-  const accentLabel = accent === "rose" ? "text-rose-300/70" : "text-violet-300/70";
-
-  return (
-    <div className={cn("flex items-start gap-2 min-w-0", className)}>
-      <span
-        className={cn(
-          "flex items-center gap-1 w-14 shrink-0 pt-1.5 text-[10px] font-bold font-mono uppercase tracking-wide",
-          accentLabel,
-        )}
-      >
-        <Server className="w-3 h-3 shrink-0" />
-        <span className="truncate">{label}</span>
-      </span>
-      <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
-        {options.map((opt) => {
-          const isActive = value === opt.id;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => onChange(opt.id)}
-              title={opt.hint}
-              className={cn(
-                "px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors disabled:opacity-40",
-                isActive ? accentActive : accentIdle,
-              )}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

@@ -14,9 +14,6 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "MegaPlay",
   "AniNeko",
   "AniBD",
-  "AllAnime",
-  "MKissa",
-  "AniKuro",
   "AniWaves",
   "Anikage",
 ] as const;
