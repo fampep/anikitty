@@ -1736,7 +1736,7 @@
     "softSubBadge": "Soft sub",
     "hideProviderSection": "Hide {section} providers",
     "showProviderSection": "Show {section} providers",
-    "providerSectionsMobileHint": "Tap a row header to show or hide SUB, DUB, HARDSUB, or MULTI sources.",
+    "providerSectionsMobileHint": "Tap a row header to show or hide soft sub or dub sources.",
     "episodeSourceChecking": "Checking sub/dub for episode {episode} on each source…",
     "episodeSourceReady": "Episode {episode}: badges show what each source has for this episode ({count} with streams)",
     "episodeSourceUpdating": "Still scanning more providers…",

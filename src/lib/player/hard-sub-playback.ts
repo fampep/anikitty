@@ -1,5 +1,10 @@
 import { isHardSubServerName } from "@/lib/kitty/anilist-site-providers";
-import { providerHasHardSub, type KittyProvider, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import {
+  providerHasHardSub,
+  providerHasSoftSub,
+  type KittyProvider,
+  type ProviderAudioMode,
+} from "@/lib/kitty/kitty-providers";
 
 export { isHardSubServerName };
 
@@ -15,5 +20,5 @@ export type HardSubPlaybackContext = {
 export function isHardSubPlayback(ctx: HardSubPlaybackContext): boolean {
   if (ctx.streamAudio === "dub") return false;
   if (ctx.serverName && isHardSubServerName(ctx.serverName)) return true;
-  return ctx.audioMode === "hardsub" && providerHasHardSub(ctx.provider);
+  return providerHasHardSub(ctx.provider) && !providerHasSoftSub(ctx.provider);
 }

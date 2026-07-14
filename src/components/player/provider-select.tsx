@@ -142,7 +142,7 @@ export function ProviderQuickPick({
   );
 }
 
-const PROVIDER_GRID_ROWS: ProviderAudioMode[] = ["sub", "dub", "hardsub"];
+const PROVIDER_GRID_ROWS: ProviderAudioMode[] = ["sub", "dub"];
 
 const PROVIDER_ROW_STYLES: Record<
   ProviderAudioMode,
@@ -228,15 +228,13 @@ export function ProviderGrid({
   const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
 
   const rowLabels: Partial<Record<ProviderAudioMode, string>> = {
-    sub: t("card.sub"),
+    sub: t("watch.softSubBadge"),
     dub: t("card.dub"),
-    hardsub: t("watch.hardSubBadge"),
   };
 
   const rowIcons: Partial<Record<ProviderAudioMode, ReactNode>> = {
     sub: <Captions className="w-3 h-3 shrink-0" />,
     dub: <Mic className="w-3 h-3 shrink-0" />,
-    hardsub: <Captions className="w-3 h-3 shrink-0" />,
   };
 
   return (

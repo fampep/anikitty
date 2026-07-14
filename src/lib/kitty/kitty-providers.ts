@@ -109,7 +109,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "AniList ID · anikototv scrape · SUB · DUB · HS: hard-sub",
+    hint: "AniList ID · anikototv scrape · SUB · DUB · soft subs",
   },
   {
     id: "MegaPlay",
@@ -271,12 +271,13 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
   return getKittyProviderMeta(provider).supportsMulti === true;
 }
 
-/** Maps legacy saved modes (e.g. removed MULTI row) to sub/dub/hardsub. */
+/** Maps legacy saved modes (e.g. removed MULTI / HARDSUB rows) to sub or dub. */
 export function normalizeProviderAudioMode(
   mode: string | null | undefined,
   fallback: ProviderAudioMode = "sub",
 ): ProviderAudioMode {
-  if (mode === "sub" || mode === "dub" || mode === "hardsub") return mode;
+  if (mode === "dub") return "dub";
+  if (mode === "sub" || mode === "hardsub" || mode === "multi") return "sub";
   return fallback;
 }
 
@@ -284,7 +285,6 @@ export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProvid
   const normalized = normalizeProviderAudioMode(mode);
   return KITTY_PROVIDER_META.filter((p) => {
     if (normalized === "dub") return p.supportsDub === true;
-    if (normalized === "hardsub") return p.hardSub === true;
     if (normalized === "sub") return p.supportsSub === true;
     return false;
   });
