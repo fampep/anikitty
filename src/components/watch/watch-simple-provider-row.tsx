@@ -73,6 +73,7 @@ export default function WatchSimpleProviderRow({
 }: Props) {
   const t = useT();
   const serverCount = KITTY_PROVIDER_META.length;
+  const dubEnabled = providerSupportsDub(provider);
 
   return (
     <div
@@ -93,7 +94,9 @@ export default function WatchSimpleProviderRow({
             </SelectTrigger>
             <SelectContent className={CONTENT_CLASS}>
               <SelectItem value="sub" className="text-xs">{t("card.sub")}</SelectItem>
-              <SelectItem value="dub" className="text-xs">{t("card.dub")}</SelectItem>
+              <SelectItem value="dub" className="text-xs" disabled={!dubEnabled}>
+                {t("card.dub")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

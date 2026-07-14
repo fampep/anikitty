@@ -19,7 +19,7 @@ import {
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import { ProviderQuickPick } from "@/components/player/provider-select";
@@ -136,6 +136,14 @@ const VideoPlayerSection = () => {
     return "sub";
   });
 
+  const [provider, setProvider] = useState<KittyProvider>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kittyProvider");
+      return normalizeKittyProvider(saved);
+    }
+    return DEFAULT_PROVIDER;
+  });
+
   const syncDubSearchParam = useCallback(
     (dub: boolean) => {
       const params = new URLSearchParams(searchParamsKey);
@@ -159,30 +167,30 @@ const VideoPlayerSection = () => {
     [setPreferDub, syncDubSearchParam],
   );
 
-  const animeHasDub = (anime?.anime?.info?.stats?.episodes?.dub ?? 0) > 0;
+  const providerAllowsDub = providerSupportsDub(provider);
 
   useEffect(() => {
     if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
-    if (!animeHasDub) {
+    if (!providerSupportsDub(provider)) {
       applyStreamAudio("sub");
       return;
     }
     setAudioMode((mode) => (mode === "hardsub" ? mode : "dub"));
     applyStreamAudio("dub");
-  }, [dubSearchParam, animeHasDub, applyStreamAudio]);
+  }, [dubSearchParam, provider, applyStreamAudio]);
 
   useEffect(() => {
-    if (animeHasDub) return;
+    if (providerAllowsDub) return;
     if (streamAudio !== "dub" && audioMode !== "dub") return;
     applyStreamAudio("sub");
     setAudioMode((mode) => (mode === "hardsub" ? mode : "sub"));
-  }, [animeHasDub, streamAudio, audioMode, applyStreamAudio]);
+  }, [providerAllowsDub, streamAudio, audioMode, applyStreamAudio]);
 
   // Settings → prefer dub toggle (do not bounce back through streamAudio effects).
   useEffect(() => {
     return useSettingsStore.subscribe((state, prevState) => {
       if (state.preferDub === prevState.preferDub) return;
-      const target = state.preferDub && animeHasDub ? "dub" : "sub";
+      const target = state.preferDub && providerSupportsDub(provider) ? "dub" : "sub";
       setStreamAudio((current) => {
         if (current === target) return current;
         localStorage.setItem("kittyStreamAudio", target);
@@ -190,20 +198,12 @@ const VideoPlayerSection = () => {
         return target;
       });
     });
-  }, [syncDubSearchParam, animeHasDub]);
+  }, [syncDubSearchParam, provider]);
 
   const resolveProviderAudioMode = useCallback(
     (_p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => normalizeProviderAudioMode(mode),
     [],
   );
-
-  const [provider, setProvider] = useState<KittyProvider>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kittyProvider");
-      return normalizeKittyProvider(saved);
-    }
-    return DEFAULT_PROVIDER;
-  });
 
   const animeSlug = anime?.anime?.info?.id ?? null;
   const anilistId = anime?.anime?.info?.anilistId;
@@ -977,7 +977,7 @@ const VideoPlayerSection = () => {
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", resolvedMode);
     if (mode === "dub") {
-      applyStreamAudio(animeHasDub ? "dub" : "sub");
+      applyStreamAudio(providerSupportsDub(p) ? "dub" : "sub");
     } else if (mode === "sub" || mode === "hardsub") {
       applyStreamAudio("sub");
     }
