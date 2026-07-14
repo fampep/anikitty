@@ -15,9 +15,13 @@ function copyDir(src, dest) {
   }
 }
 
-function rmDir(target) {
+function safeRmDir(target) {
   if (!fs.existsSync(target)) return;
-  fs.rmSync(target, { recursive: true, force: true });
+  try {
+    fs.rmSync(target, { recursive: true, force: true });
+  } catch (e) {
+    console.warn(`[prepare-standalone] could not remove ${target}:`, e?.message ?? e);
+  }
 }
 
 if (!fs.existsSync(standaloneDir)) {
@@ -28,17 +32,13 @@ if (!fs.existsSync(standaloneDir)) {
 copyDir(path.join(root, "public"), path.join(standaloneDir, "public"));
 copyDir(path.join(root, ".next", "static"), path.join(standaloneDir, ".next", "static"));
 
-// Shrink deploy artifacts — safe after standalone bundle is written.
-rmDir(path.join(root, ".next", "cache"));
+// Railpack mounts .next/cache — deletion fails with EBUSY; best-effort only.
+safeRmDir(path.join(root, ".next", "cache"));
 
-const isCiBuild =
-  process.env.CI === "true" ||
-  Boolean(process.env.COOLIFY_RESOURCE_UUID) ||
-  process.env.RAILPACK === "1";
-
-if (isCiBuild) {
-  rmDir(path.join(root, "node_modules"));
-  console.log("[prepare-standalone] public + static copied; .next/cache and node_modules removed");
+// Docker runner copies only standalone; Railpack deploys the full app tree.
+if (process.env.STANDALONE_ONLY_BUILD === "1") {
+  safeRmDir(path.join(root, "node_modules"));
+  console.log("[prepare-standalone] standalone ready; root node_modules removed");
 } else {
-  console.log("[prepare-standalone] public + static copied; .next/cache removed");
+  console.log("[prepare-standalone] standalone ready");
 }
