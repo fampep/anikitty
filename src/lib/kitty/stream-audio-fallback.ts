@@ -1,5 +1,10 @@
+type StreamAudioPayload = {
+  file?: string | null;
+  audio?: "sub" | "dub";
+};
+
 /** When DUB is missing, retry SUB on the same provider (avoids wrong-anime auto/stream). */
-export async function fetchWithSubAudioFallback<T extends { file?: string | null }>(
+export async function fetchWithSubAudioFallback<T extends StreamAudioPayload>(
   requestedAudio: "sub" | "dub",
   fetcher: (audio: "sub" | "dub") => Promise<T | null>,
 ): Promise<{
@@ -9,6 +14,10 @@ export async function fetchWithSubAudioFallback<T extends { file?: string | null
 }> {
   const primary = await fetcher(requestedAudio);
   if (primary?.file) {
+    const actualAudio = primary.audio ?? requestedAudio;
+    if (requestedAudio === "dub" && actualAudio === "sub") {
+      return { result: primary, servedAudio: "sub", audioFallback: true };
+    }
     return { result: primary, servedAudio: requestedAudio, audioFallback: false };
   }
 

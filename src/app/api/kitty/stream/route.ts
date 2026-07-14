@@ -42,7 +42,7 @@ import {
   fetchAniwavesVideoStream,
 } from "@/lib/providers/aniwaves-api";
 import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
-import { isKittyProxiedUrl, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
+import { isKittyProxiedUrl, parseKittyStreamAudio, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import { fetchWithSubAudioFallback } from "@/lib/kitty/stream-audio-fallback";
 import {
@@ -88,6 +88,7 @@ type StreamPayload = {
   server?: string | null;
   download?: string | null;
   subtitleSource?: string;
+  audio?: "sub" | "dub";
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
   error?: string;
@@ -588,6 +589,7 @@ export async function GET(req: Request) {
             skipTimes: anineko.skipTimes,
             server: anineko.server,
             download: anineko.download,
+            audio: anineko.audio,
           };
         },
       );
@@ -627,6 +629,7 @@ export async function GET(req: Request) {
             skipTimes: aniwaves.skipTimes,
             server: aniwaves.server,
             download: aniwaves.download,
+            audio: aniwaves.audio,
           };
         },
       );
@@ -663,6 +666,7 @@ export async function GET(req: Request) {
         const trimmed = serverLabel.trim();
         payload.server = trimmed || undefined;
       }
+      payload.audio = streamResult.audio;
       return payload;
     },
   );

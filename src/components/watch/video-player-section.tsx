@@ -797,12 +797,22 @@ const VideoPlayerSection = () => {
   }, [streamQueryAudio, provider, urlAnimeId, anilistId]);
 
   useEffect(() => {
-    if (!streamData?.audioFallback) return;
-    if (streamAudio === "sub") return;
+    if (streamAudio !== "dub") return;
+    const dubUnavailable =
+      streamData?.audioFallback ||
+      streamData?.servedAudio === "sub";
+    if (!dubUnavailable) return;
     applyStreamAudio("sub");
     setAudioMode((mode) => (mode === "hardsub" ? mode : "sub"));
     toast.info(t("watch.dubUnavailableSub"));
-  }, [streamData?.audioFallback, streamAudio, applyStreamAudio, t]);
+  }, [streamData?.audioFallback, streamData?.servedAudio, streamAudio, applyStreamAudio, t]);
+
+  const handleDubAudioUnavailable = useCallback(() => {
+    if (streamAudio !== "dub") return;
+    applyStreamAudio("sub");
+    setAudioMode((mode) => (mode === "hardsub" ? mode : "sub"));
+    toast.info(t("watch.dubUnavailableSub"));
+  }, [streamAudio, applyStreamAudio, t]);
 
   // Only persist progress once the stream for this episode is loaded (avoids cross-episode leaks).
   useEffect(() => {
@@ -1293,6 +1303,7 @@ const VideoPlayerSection = () => {
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
         onFatalError={handleFatalPlayerError}
+        onDubAudioUnavailable={handleDubAudioUnavailable}
         onPlayerReady={handlePlayerReady}
         w2g={playerW2g}
       />

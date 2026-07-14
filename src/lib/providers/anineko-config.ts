@@ -65,6 +65,7 @@ export type AninekoStreamResult = {
   skipTimes?: MiruroSkipTimes;
   server?: string | null;
   download?: string | null;
+  audio?: "sub" | "dub";
 };
 
 export function isAninekoServerId(value: string | null | undefined): value is AninekoServerId {

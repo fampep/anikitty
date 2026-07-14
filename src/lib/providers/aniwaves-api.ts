@@ -1,5 +1,5 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
-import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { kittyStreamHeaders, parseKittyStreamAudio } from "@/lib/kitty/kitty-api-core";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANIWAVES_SERVERS,
@@ -81,6 +81,7 @@ function normalizeStreamPayload(data: Record<string, unknown>): AniwavesStreamRe
     skipTimes: data.skipTimes as AniwavesStreamResult["skipTimes"],
     server: (data.serverName ?? data.server ?? null) as string | null,
     download: (data.download as string | null) ?? null,
+    audio: parseKittyStreamAudio(data),
   };
 }
 

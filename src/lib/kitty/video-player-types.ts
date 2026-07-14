@@ -26,6 +26,8 @@ export interface VideoPlayerProps {
   onEnded?: () => void;
   /** Fired when HLS playback fatally fails and can't recover (e.g. the stream 404s mid-load). */
   onFatalError?: (info: { type: string; details?: string }) => void;
+  /** Fired when dub was requested but the loaded stream has no English audio track. */
+  onDubAudioUnavailable?: () => void;
   onPlayerReady?: (art: import("artplayer").default) => void;
   w2g?: {
     isHost: boolean;

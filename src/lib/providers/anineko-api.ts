@@ -1,5 +1,5 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
-import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { kittyStreamHeaders, parseKittyStreamAudio } from "@/lib/kitty/kitty-api-core";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANINEKO_SERVERS,
@@ -124,6 +124,7 @@ async function fetchAninekoStreamByLinkId(linkId: string): Promise<AninekoStream
     skipTimes: data.skipTimes,
     server: data.serverName ?? data.server ?? null,
     download: data.download ?? null,
+    audio: parseKittyStreamAudio(data),
   };
 }
 
@@ -167,6 +168,7 @@ async function fetchAninekoStreamDirect(opts: {
     skipTimes: data.skipTimes,
     server: data.serverName ?? data.server ?? null,
     download: data.download ?? null,
+    audio: parseKittyStreamAudio(data),
   };
 }
 

@@ -80,8 +80,18 @@ export type KittyStreamPayload = {
   tracks?: Array<{ file?: string; url?: string; kind?: string; label?: string; default?: boolean }>;
   allServers?: KittyStreamQuality[];
   server?: string | null;
+  /** Actual audio on the stream when KittyAPI reports it (may differ from the request). */
+  audio?: "sub" | "dub";
   error?: string;
 };
+
+/** Reads `audio` / `servedAudio` from a KittyAPI stream JSON body. */
+export function parseKittyStreamAudio(data: unknown): "sub" | "dub" | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const row = data as Record<string, unknown>;
+  const raw = row.audio ?? row.servedAudio ?? row.streamAudio;
+  return raw === "sub" || raw === "dub" ? raw : undefined;
+}
 
 function normalizeBase(base: string): string {
   return base.replace(/\/$/, "");
@@ -282,6 +292,7 @@ export function parseKittyStreamJson(
     download: typeof row.download === "string" ? row.download : null,
     tracks: Array.isArray(row.tracks) ? row.tracks : undefined,
     allServers: parseKittyStreamQualities(row.allServers),
+    audio: parseKittyStreamAudio(row),
     server:
       typeof row.server === "string"
         ? row.server

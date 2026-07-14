@@ -43,6 +43,7 @@ export type AniwavesStreamResult = {
   skipTimes?: MiruroSkipTimes;
   server?: string | null;
   download?: string | null;
+  audio?: "sub" | "dub";
 };
 
 export function isAniwavesServerId(value: string | null | undefined): value is AniwavesServerId {
