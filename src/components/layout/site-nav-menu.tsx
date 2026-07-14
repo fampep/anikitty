@@ -19,7 +19,6 @@ import {
   MessagesSquare,
   Mic,
   Scale,
-  ScrollText,
   Search,
   Timer,
   Tv2,
@@ -50,7 +49,6 @@ export const MENU_DEFS = [
   { href: ROUTES.DONATE, icon: Coffee, titleKey: "nav.donate", shortKey: "nav.short.donate", group: "site" as MenuGroup },
   { href: ROUTES.STATUS, icon: Activity, titleKey: "nav.status", shortKey: "nav.short.status", group: "site" as MenuGroup },
   { href: ROUTES.FAQ, icon: HelpCircle, titleKey: "nav.faq", shortKey: "nav.short.faq", group: "site" as MenuGroup },
-  { href: ROUTES.CHANGELOG, icon: ScrollText, titleKey: "nav.changelog", shortKey: "nav.short.changelog", group: "site" as MenuGroup },
   { href: ROUTES.DMCA, icon: Scale, titleKey: "nav.dmca", shortKey: "nav.short.dmca", group: "site" as MenuGroup },
   { href: ROUTES.HISTORY, icon: History, titleKey: "nav.watchHistory", shortKey: "nav.short.watchHistory", group: "account" as MenuGroup, authOnly: true },
 ] as const;

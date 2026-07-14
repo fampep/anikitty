@@ -19,7 +19,6 @@ export const ROUTES = {
   STATUS: "/status",
   DONATE: "/donate",
   SHOP: "/shop",
-  CHANGELOG: "/changelog",
   TIMESTAMPS: "/timestamps",
   VOICE_ACTOR: "/voice-actor",
   VOICE_ACTORS: "/voice-actors",
