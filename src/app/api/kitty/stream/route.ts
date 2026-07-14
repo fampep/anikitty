@@ -72,8 +72,10 @@ const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
-/** Active providers use KittyAPI stream-direct (`audio=sub|dub`) only — no server picker. */
-const STREAM_DIRECT_PROVIDERS = new Set<string>(KITTY_PROVIDERS);
+/** Active providers that use generic KittyAPI stream-direct only (not AllAnime/MKissa mirrors). */
+const STREAM_DIRECT_PROVIDERS = new Set<string>(
+  KITTY_PROVIDERS.filter((p) => p !== "AllAnime" && p !== "MKissa"),
+);
 
 type StreamPayload = {
   file: string;
