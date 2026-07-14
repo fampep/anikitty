@@ -1,0 +1,35 @@
+AniKitty 0.7.10 - Streaming, watch UI, and watch parties
+
+STREAMING & PROVIDERS
+- Active sources only: Anitaku (Beta), Anikoto (Kilo), MegaPlay (Alpha), AllAnime (Delta), MKissa (Echo), AniNeko (Gamma), AniBD (Hotel).
+- All providers use KittyAPI stream-direct with audio=sub or audio=dub (no per-provider server carousel for active sources).
+- Fixed wrong anime playing (removed risky auto/stream fallbacks for named providers).
+- Dub works when the provider supports it — no longer blocked by incomplete AniList dub counts.
+- AniBD stays sub-only; dub missing on an episode retries sub on the same source.
+- MegaPlay and Anikoto updated for AniList-first site scrape API (shared anilist-site modules).
+- Auto-switch to the next source when playback fails (optional in player settings).
+
+WATCH PAGE UI
+- Shared provider accent colors (pills, toolbar chip, info bar, loading skeleton).
+- Compact source picker: segmented SUB/DUB toggle and provider dropdown.
+- Full provider grid: colored pills and gradient section cards.
+- Provider-tinted loading overlay and stream info chips.
+- FAQ updated for stream-direct sources, sub/dub behavior, and player settings.
+
+HOMEPAGE
+- Fixed Continue Watching overlapping the welcome bar.
+- Quick nav and explore bar use unified site-panel / site-chip styling.
+- Continue Watching wrapped in site-panel card.
+- Discover anchor points at the season browser; feature promos moved to #features.
+- Live watch parties rail on home (join open rooms in one tap).
+
+WATCH TOGETHER
+- Public room list on /watch-together — browse and join without a code.
+- Rooms have names (auto from anime + episode when created from the player).
+- Hosts delete rooms for everyone; guests leave without closing the room.
+- GET /api/w2g/rooms lists open parties (last 12 hours).
+- DB migration: w2g_rooms.name column (0033_w2g_room_name.sql).
+
+OTHER
+- Removed in-app changelog page and nav links (changelog kept as plain text files).
+- Deploy: skip typecheck on CI for faster builds.
