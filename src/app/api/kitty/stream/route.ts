@@ -61,6 +61,11 @@ import {
 } from "@/lib/subtitles/subtitle-track-utils";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
+import { fetchAnilistSiteStream } from "@/lib/kitty/anilist-site-api";
+import {
+  isAnilistSiteProvider,
+  type AnilistSiteProviderId,
+} from "@/lib/kitty/anilist-site-providers";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
@@ -109,6 +114,7 @@ export async function GET(req: Request) {
   const allanimeMirrorParam = searchParams.get("allanimeMirror");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const animoServerParam = searchParams.get("animoServer");
+  const linkIdParam = searchParams.get("linkId")?.trim() || undefined;
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -299,6 +305,15 @@ export async function GET(req: Request) {
   }
 
   if (STREAM_DIRECT_PROVIDERS.has(provider)) {
+    if (linkIdParam && isAnilistSiteProvider(provider)) {
+      const linked = await fetchAnilistSiteStream({
+        provider: provider as AnilistSiteProviderId,
+        linkId: linkIdParam,
+      });
+      const linkedResponse = await respondWithStream(linked, provider, audio as "sub" | "dub", false);
+      if (linkedResponse) return linkedResponse;
+    }
+
     const directAttempt = await fetchStreamDirectPlayback(provider);
     const directResponse = await respondWithStream(
       directAttempt.result,

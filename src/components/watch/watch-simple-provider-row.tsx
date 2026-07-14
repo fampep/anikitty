@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProviderDefaultBadge } from "@/components/player/provider-select";
+import { ProviderDefaultBadge, ProviderCapabilityBadge } from "@/components/player/provider-select";
 import {
   KITTY_PROVIDER_META,
   kittyProvidersByGroup,
@@ -17,6 +17,12 @@ import {
   providerSupportsDub,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
+import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities";
+import {
+  isProviderAvailableForMode,
+  providerCapabilityBadges,
+} from "@/lib/kitty/provider-picker-utils";
+import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
 import { Captions, Headphones, Mic, Server, Zap } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
@@ -26,6 +32,8 @@ type Props = {
   streamAudio: "sub" | "dub";
   onAudioChange: (audio: "sub" | "dub") => void;
   onProviderChange: (provider: KittyProvider) => void;
+  streamCaps?: EpisodeStreamCapabilities;
+  preferredProvider?: KittyProvider | null;
   className?: string;
 };
 
@@ -69,6 +77,8 @@ export default function WatchSimpleProviderRow({
   streamAudio,
   onAudioChange,
   onProviderChange,
+  streamCaps,
+  preferredProvider,
   className,
 }: Props) {
   const t = useT();
@@ -115,7 +125,18 @@ export default function WatchSimpleProviderRow({
             </SelectTrigger>
             <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
               {(["featured", "other"] as const).map((group) => {
-                const items = kittyProvidersByGroup(group);
+                const baseItems = kittyProvidersByGroup(group);
+                const availableSet = streamCaps?.providers
+                  ? new Set(
+                      baseItems
+                        .filter((p) => isProviderAvailableForMode(p.id, streamAudio, streamCaps))
+                        .map((p) => p.id),
+                    )
+                  : null;
+                const items = sortProvidersForPicker(baseItems, {
+                  preferredId: preferredProvider,
+                  availableIds: availableSet,
+                });
                 if (items.length === 0) return null;
                 return (
                   <SelectGroup key={group}>
@@ -124,20 +145,31 @@ export default function WatchSimpleProviderRow({
                         ? t("watch.providerGroupFeatured")
                         : t("watch.providerGroupOther")}
                     </SelectLabel>
-                    {items.map((p) => (
+                    {items.map((p) => {
+                      const available = isProviderAvailableForMode(p.id, streamAudio, streamCaps);
+                      const badges = providerCapabilityBadges(streamCaps?.providers?.[p.id] ?? null);
+                      return (
                       <SelectItem
                         key={p.id}
                         value={p.id}
                         textValue={p.label}
+                        disabled={!available && provider !== p.id}
                         className="text-xs text-foreground/90 dark:text-white/80"
                       >
                         <span className="flex w-full items-center gap-2 min-w-0">
-                          <span className="font-semibold truncate">{p.label}</span>
+                          <span className={cn("font-semibold truncate", !available && "opacity-45")}>
+                            {p.label}
+                          </span>
                           <ProviderDefaultBadge id={p.id} />
-                          <LangBadges id={p.id} />
+                          {streamCaps ? (
+                            <ProviderCapabilityBadge caps={badges} />
+                          ) : (
+                            <LangBadges id={p.id} />
+                          )}
                         </span>
                       </SelectItem>
-                    ))}
+                    );
+                    })}
                   </SelectGroup>
                 );
               })}

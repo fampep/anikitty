@@ -388,7 +388,10 @@ const Layout = (props: Props) => {
 
   return (
     <WatchPageProvider openComments={openComments}>
-    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,96rem)] mx-auto")}>
+    {theatreMode && (
+      <div className="fixed inset-0 z-[-1] bg-black/85 pointer-events-none" aria-hidden />
+    )}
+    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[1]")}>
       {!theatreMode && (
         <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
           <AnimeClearLogo

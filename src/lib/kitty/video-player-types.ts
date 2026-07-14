@@ -17,7 +17,7 @@ export interface VideoPlayerProps {
   skipTimes?: SkipTimes;
   startTime?: number;
   autoFullscreen?: boolean;
-  nextEpisode?: { id: string; number: number; title: string };
+  nextEpisode?: { id: string; number: number; title: string; image?: string | null };
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;

@@ -19,6 +19,13 @@ import {
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
+import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities";
+import {
+  buildAvailableProviderSet,
+  isProviderAvailableForMode,
+  providerCapabilityBadges,
+} from "@/lib/kitty/provider-picker-utils";
+import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
@@ -30,6 +37,27 @@ type Props = {
   compact?: boolean;
   className?: string;
 };
+
+export function ProviderCapabilityBadge({
+  caps,
+  compact,
+}: {
+  caps: { sub: boolean; dub: boolean };
+  compact?: boolean;
+}) {
+  if (!caps.sub && !caps.dub) return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 font-mono opacity-80",
+        compact ? "text-[8px]" : "text-[9px]",
+      )}
+    >
+      {caps.sub && <span className="text-teal-300/80">S</span>}
+      {caps.dub && <span className="text-amber-300/80">D</span>}
+    </span>
+  );
+}
 
 export function ProviderDefaultBadge({
   id,
@@ -124,12 +152,16 @@ export function ProviderQuickPick({
   onSelect,
   className,
   compact,
+  streamCaps,
+  preferredProvider,
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
   className?: string;
   compact?: boolean;
+  streamCaps?: EpisodeStreamCapabilities;
+  preferredProvider?: KittyProvider | null;
 }) {
   return (
     <ProviderGrid
@@ -138,6 +170,8 @@ export function ProviderQuickPick({
       compact={compact}
       onSelect={onSelect}
       className={className}
+      streamCaps={streamCaps}
+      preferredProvider={preferredProvider}
     />
   );
 }
@@ -178,6 +212,8 @@ type ProviderGridProps = {
   className?: string;
   rows?: ProviderAudioMode[];
   compact?: boolean;
+  streamCaps?: EpisodeStreamCapabilities;
+  preferredProvider?: KittyProvider | null;
 };
 
 function ProviderScrollRow({
@@ -221,6 +257,8 @@ export function ProviderGrid({
   className,
   rows,
   compact,
+  streamCaps,
+  preferredProvider,
 }: ProviderGridProps) {
   const t = useT();
   const { providerSectionHidden, toggleProviderSectionHidden } = useSettingsStore();
@@ -245,7 +283,12 @@ export function ProviderGrid({
         </p>
       )}
       {visibleRows.map((mode) => {
-        const items = kittyProvidersForAudioMode(mode);
+        const baseItems = kittyProvidersForAudioMode(mode);
+        const availableSet = buildAvailableProviderSet(streamCaps, mode);
+        const items = sortProvidersForPicker(baseItems, {
+          preferredId: preferredProvider,
+          availableIds: availableSet,
+        });
         if (items.length === 0) return null;
         const styles = PROVIDER_ROW_STYLES[mode];
         const isHidden = providerSectionHidden[mode] ?? false;
@@ -265,17 +308,24 @@ export function ProviderGrid({
 
         const providerPills = visibleItems.map((p) => {
           const isActive = provider === p.id && audioMode === mode;
+          const rowCaps = streamCaps?.providers?.[p.id] ?? null;
+          const available = isProviderAvailableForMode(p.id, mode, streamCaps);
+          const badges = providerCapabilityBadges(rowCaps);
 
           return (
             <button
               key={`${mode}-${p.id}`}
               type="button"
-              disabled={disabled}
+              disabled={disabled || (!available && !isActive)}
               onClick={() => onSelect(p.id, mode)}
               title={p.hint}
-              className={providerPillClass(compact, isActive, styles, p.id)}
+              className={cn(
+                providerPillClass(compact, isActive, styles, p.id),
+                !available && !isActive && "opacity-45",
+              )}
             >
               <span className="truncate max-w-[8.5rem] sm:max-w-none">{p.label}</span>
+              <ProviderCapabilityBadge caps={badges} compact />
               <ProviderDefaultBadge id={p.id} compact />
             </button>
           );

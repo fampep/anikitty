@@ -13,6 +13,8 @@ import { useT } from "@/providers/i18n-provider";
 import type { Episode, IEpisodes } from "@/types/episodes";
 import type { WatchHistory } from "@/hooks/use-get-bookmark";
 import { EpisodeThumbPreview } from "@/components/watch/episode-nav-preview";
+import WatchMarkEpisodeButton from "@/components/watch/watch-mark-episode-button";
+import { useState } from "react";
 
 type Props = {
   currentEpisode: Episode;
@@ -25,8 +27,11 @@ type Props = {
   onTogglePlaylist: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onJumpToEpisode?: (episodeNumber: number) => void;
   watchedEpisodes?: WatchHistory[];
   getLivePreview?: () => string | null;
+  animeId?: string;
+  episodeDuration?: number;
 };
 
 function episodeTitle(ep: Episode, animeName: string | undefined, t: (key: string, vars?: Record<string, string | number>) => string) {
@@ -48,10 +53,14 @@ export default function WatchEpisodeBar({
   onTogglePlaylist,
   onPrev,
   onNext,
+  onJumpToEpisode,
   watchedEpisodes = [],
   getLivePreview,
+  animeId,
+  episodeDuration,
 }: Props) {
   const t = useT();
+  const [jumpValue, setJumpValue] = useState("");
 
   const history = watchedEpisodes.find((w) => w.episodeId === currentEpisode.episodeId);
   const progressPct =
@@ -145,6 +154,45 @@ export default function WatchEpisodeBar({
             <p className="text-sm sm:text-[15px] font-semibold text-foreground dark:text-white leading-snug line-clamp-2">
               {title}
             </p>
+
+            {onJumpToEpisode && total > 1 && (
+              <form
+                className="mt-2 flex items-center gap-1.5 max-w-[11rem]"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const n = parseInt(jumpValue, 10);
+                  if (Number.isFinite(n) && n >= 1 && n <= total) {
+                    onJumpToEpisode(n);
+                    setJumpValue("");
+                  }
+                }}
+              >
+                <input
+                  type="number"
+                  min={1}
+                  max={total}
+                  inputMode="numeric"
+                  value={jumpValue}
+                  onChange={(e) => setJumpValue(e.target.value)}
+                  placeholder={t("watch.episodeJumpPlaceholder")}
+                  className="h-7 w-14 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.04] px-2 text-[11px] font-mono text-foreground dark:text-white/80 focus:outline-none focus:border-violet-400/35"
+                  aria-label={t("watch.episodeJumpLabel")}
+                />
+                <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
+                  / {total}
+                </span>
+              </form>
+            )}
+
+            {animeId && (
+              <div className="mt-2">
+                <WatchMarkEpisodeButton
+                  animeId={animeId}
+                  episodeId={currentEpisode.episodeId}
+                  duration={episodeDuration}
+                />
+              </div>
+            )}
 
             {inProgress && (
               <div className="mt-2 h-1 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden max-w-xs">

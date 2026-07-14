@@ -28,6 +28,27 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.7.8",
+    date: "2026-07-14",
+    title: "Watch player UX overhaul",
+    changes: [
+      { type: "added", text: "Per-episode provider capability badges (S/D) — see which sources have sub or dub for the current episode." },
+      { type: "added", text: "Remember your preferred provider per anime; smart ordering puts working sources first." },
+      { type: "added", text: "Stuck-loading banner after 12s with a one-tap try-another-source action." },
+      { type: "added", text: "Auto-fallback discovery hint on first stream failure — opt in to switch sources automatically." },
+      { type: "added", text: "Episode jump input and mark-complete button on the episode bar." },
+      { type: "added", text: "Stream info strip — provider, audio, server, quality, and API node at a glance." },
+      { type: "added", text: "Quality and site-server picker for MegaPlay/Anikoto (alternate mirrors via linkId)." },
+      { type: "added", text: "Mobile swipe prev/next on the video, PiP toggle in the toolbar, and next-episode thumbnail in the end overlay." },
+      { type: "added", text: "Live episode preview on hover in the episode bar." },
+      { type: "added", text: "Theatre mode dims the page behind the player." },
+      { type: "improved", text: "Try another source on stream errors; provider chip stays visible when controls are hidden." },
+      { type: "improved", text: "Held-stream shell keeps playback position when switching provider on the same episode." },
+      { type: "improved", text: "Provider picker grays out sources unavailable for the current episode and audio mode." },
+      { type: "removed", text: "Hard-sub row removed from the provider picker — only Soft sub and DUB rows remain." },
+    ],
+  },
+  {
     version: "0.7.7",
     date: "2026-07-14",
     title: "AllAnime sources & AniList streaming fixes",

@@ -1,14 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import { ChevronRight, X } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 
 export function NextEpisodeButton({
   episode,
+  imageUrl,
   stackClass = "kitty-overlay--base",
   onClick,
 }: {
   episode: { number: number; title: string };
+  imageUrl?: string | null;
   stackClass?: string;
   onClick: () => void;
 }) {
@@ -23,11 +26,17 @@ export function NextEpisodeButton({
       type="button"
       onClick={onClick}
       aria-label={t("watch.nextEpisodeTitle", { title })}
-      className={`kitty-overlay ${stackClass} kitty-next-card pointer-events-auto group absolute right-4 z-[130] flex max-w-[min(100%,300px)] items-center gap-3 px-3 py-2.5 text-left animate-in slide-in-from-right-4 fade-in duration-300`}
+      className={`kitty-overlay ${stackClass} kitty-next-card pointer-events-auto group absolute right-4 z-[130] flex max-w-[min(100%,320px)] items-center gap-3 px-3 py-2.5 text-left animate-in slide-in-from-right-4 fade-in duration-300`}
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 ring-1 ring-violet-400/20">
-        <ChevronRight className="h-4 w-4 text-violet-200 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
-      </span>
+      {imageUrl ? (
+        <div className="relative h-10 w-[4.5rem] shrink-0 overflow-hidden rounded-lg ring-1 ring-violet-400/20">
+          <Image src={imageUrl} alt="" fill className="object-cover" unoptimized sizes="72px" />
+        </div>
+      ) : (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 ring-1 ring-violet-400/20">
+          <ChevronRight className="h-4 w-4 text-violet-200 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">
           {t("watch.nextEpisode")}
@@ -40,11 +49,13 @@ export function NextEpisodeButton({
 
 export function CountdownOverlay({
   episode,
+  imageUrl,
   countdown,
   onSkip,
   onCancel,
 }: {
   episode: { number: number; title: string };
+  imageUrl?: string | null;
   countdown: number;
   onSkip: () => void;
   onCancel: () => void;
@@ -61,32 +72,38 @@ export function CountdownOverlay({
   return (
     <div className="pointer-events-none absolute inset-0 z-[140] flex items-center justify-center bg-black/55 p-4 animate-in fade-in duration-300">
       <div className="kitty-overlay pointer-events-auto flex w-full max-w-md flex-col gap-4 p-5 sm:flex-row sm:items-center">
-        <div className="relative mx-auto h-16 w-16 shrink-0 sm:mx-0">
-          <svg className="h-full w-full -rotate-90" viewBox="0 0 48 48" aria-hidden>
-            <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
-            <circle
-              cx="24"
-              cy="24"
-              r="20"
-              fill="none"
-              stroke="url(#kitty-countdown-gradient)"
-              strokeWidth="3"
-              strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="round"
-              className="transition-[stroke-dashoffset] duration-1000 ease-linear"
-            />
-            <defs>
-              <linearGradient id="kitty-countdown-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#7c3aed" />
-                <stop offset="100%" stopColor="#c084fc" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-lg font-bold tabular-nums text-white">
-            {countdown}
-          </span>
-        </div>
+        {imageUrl ? (
+          <div className="relative mx-auto h-16 w-28 shrink-0 overflow-hidden rounded-lg ring-1 ring-violet-400/20 sm:mx-0">
+            <Image src={imageUrl} alt="" fill className="object-cover" unoptimized sizes="112px" />
+          </div>
+        ) : (
+          <div className="relative mx-auto h-16 w-16 shrink-0 sm:mx-0">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 48 48" aria-hidden>
+              <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+              <circle
+                cx="24"
+                cy="24"
+                r="20"
+                fill="none"
+                stroke="url(#kitty-countdown-gradient)"
+                strokeWidth="3"
+                strokeDasharray={circumference}
+                strokeDashoffset={dashOffset}
+                strokeLinecap="round"
+                className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+              />
+              <defs>
+                <linearGradient id="kitty-countdown-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#7c3aed" />
+                  <stop offset="100%" stopColor="#c084fc" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-lg font-bold tabular-nums text-white">
+              {countdown}
+            </span>
+          </div>
+        )}
 
         <div className="min-w-0 flex-1 text-center sm:text-left">
           <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">

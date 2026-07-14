@@ -65,6 +65,24 @@ import WatchErrorPanel from "@/components/watch/watch-error-panel";
 import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
 import { useWatchPage } from "@/components/watch/watch-page-context";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
+import { useGetStreamCapabilities } from "@/query/stream/get-stream-capabilities";
+import { useWatchSwipeNav } from "@/hooks/use-watch-swipe-nav";
+import { useStreamLoadingStuck } from "@/hooks/use-stream-loading-stuck";
+import {
+  getAnimeProviderPreference,
+  saveAnimeProviderPreference,
+  recordProviderOutcome,
+  hasSeenAutoFallbackHint,
+  markAutoFallbackHintSeen,
+} from "@/lib/kitty/provider-prefs";
+import { fetchAnilistSiteEpisodes } from "@/lib/kitty/anilist-site-api";
+import { isAnilistSiteProvider } from "@/lib/kitty/anilist-site-providers";
+import { getKittyApiNode } from "@/lib/kitty/kitty-api-nodes";
+import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
+import WatchStreamInfoBar from "@/components/watch/watch-stream-info-bar";
+import WatchStuckLoadingBanner from "@/components/watch/watch-stuck-loading-banner";
+import WatchAutoFallbackHint from "@/components/watch/watch-auto-fallback-hint";
+import WatchServerPicker from "@/components/watch/watch-server-picker";
 
 const KittyPlayer = dynamic(() => import("@/components/player/kitty-player"), {
   ssr: false,
@@ -102,7 +120,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -200,6 +218,10 @@ const VideoPlayerSection = () => {
     });
   }, [syncDubSearchParam, provider]);
 
+  useEffect(() => {
+    setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
+  }, []);
+
   const resolveProviderAudioMode = useCallback(
     (_p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => normalizeProviderAudioMode(mode),
     [],
@@ -219,6 +241,12 @@ const VideoPlayerSection = () => {
   const urlAnimeId = searchParams.get("anime");
   const animeMatchesUrl =
     animeSlug != null && urlAnimeId != null && String(animeSlug) === String(urlAnimeId);
+
+  useEffect(() => {
+    if (!anilistId) return;
+    const saved = getAnimeProviderPreference(anilistId);
+    if (saved) setProvider(normalizeKittyProvider(saved));
+  }, [anilistId]);
 
   // Episode list for next-episode navigation (also resolves episode number for stream API)
   const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(animeSlug ?? "");
@@ -255,6 +283,38 @@ const VideoPlayerSection = () => {
 
   const streamQueryAudio: "sub" | "dub" = streamAudio;
 
+  useEffect(() => {
+    setStreamLinkId(null);
+    setManualStreamFile(null);
+    setManualStreamHeaders(null);
+    setSiteEpisodeDataIds(null);
+  }, [anilistId, episodeNo, provider, streamAudio]);
+
+  useEffect(() => {
+    if (!isAnilistSiteProvider(provider) || !anilistId || !episodeNo) return;
+    let cancelled = false;
+    void fetchAnilistSiteEpisodes({
+      provider: provider as "MegaPlay" | "Anikoto",
+      anilistId,
+      audio: streamAudio,
+    }).then((eps) => {
+      if (cancelled) return;
+      const ep = eps.find((row) => row.number === parseInt(episodeNo, 10));
+      setSiteEpisodeDataIds(ep?.dataIds ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [provider, anilistId, episodeNo, streamAudio]);
+
+  const { data: streamCaps, isFetching: capsFetching } = useGetStreamCapabilities(
+    animeMatchesUrl ? anilistId : undefined,
+    episodeNo || undefined,
+    animeTitle,
+  );
+
+  const preferredAnimeProvider = anilistId ? getAnimeProviderPreference(anilistId) : null;
+
   // ── Resume position ──────────────────────────────────────────────
   const [savedResumeTime, setSavedResumeTime] = useState(0);
   const [resumeReady, setResumeReady] = useState(false);
@@ -270,6 +330,12 @@ const VideoPlayerSection = () => {
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const fallbackBusyRef = useRef(false);
   const [playbackToken, setPlaybackToken] = useState(0);
+  const [streamLinkId, setStreamLinkId] = useState<string | null>(null);
+  const [manualStreamFile, setManualStreamFile] = useState<string | null>(null);
+  const [manualStreamHeaders, setManualStreamHeaders] = useState<Record<string, string> | null>(null);
+  const [siteEpisodeDataIds, setSiteEpisodeDataIds] = useState<string | null>(null);
+  const [showFallbackHint, setShowFallbackHint] = useState(false);
+  const [pipSupported, setPipSupported] = useState(false);
 
   // Live position tracking — updated every timeupdate event (no re-render)
   const liveTimeRef = useRef(0);
@@ -425,6 +491,14 @@ const VideoPlayerSection = () => {
     }
   }, []);
 
+  const handleJumpToEpisode = useCallback(
+    (episodeNumber: number) => {
+      const ep = allEpisodes?.episodes.find((row) => row.number === episodeNumber);
+      if (ep) navigateToEpisode(ep);
+    },
+    [allEpisodes?.episodes, navigateToEpisode],
+  );
+
   const episodeBar =
     currentEpisodeInfo && allEpisodes ? (
       <WatchEpisodeBar
@@ -438,8 +512,11 @@ const VideoPlayerSection = () => {
         onTogglePlaylist={toggleMobilePlaylist}
         onPrev={handlePrevEpisode}
         onNext={handleNextEpisode}
+        onJumpToEpisode={handleJumpToEpisode}
         watchedEpisodes={watchedEpisodes}
         getLivePreview={getLivePreview}
+        animeId={animeSlug ?? undefined}
+        episodeDuration={liveDurationRef.current || undefined}
       />
     ) : null;
 
@@ -789,6 +866,8 @@ const VideoPlayerSection = () => {
     provider,
     animeTitle,
     kittyProxyNode,
+    false,
+    streamLinkId,
   );
 
   const streamQueryEnabled =
@@ -810,6 +889,17 @@ const VideoPlayerSection = () => {
   const streamReady = hasStreamFile && !streamStale && audioMatchesRequest;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
+  const loadingStuck = useStreamLoadingStuck(showStreamLoading);
+
+  const togglePip = useCallback(() => {
+    const video = artPlayerRef.current?.video;
+    if (!video) return;
+    if (document.pictureInPictureElement) {
+      void document.exitPictureInPicture();
+      return;
+    }
+    void video.requestPictureInPicture?.();
+  }, []);
 
   useEffect(() => {
     setHeldStreamSnapshot(null);
@@ -878,6 +968,25 @@ const VideoPlayerSection = () => {
       Boolean(streamData?.error));
 
   useEffect(() => {
+    if (!streamReady) return;
+    recordProviderOutcome(provider, true);
+  }, [streamReady, provider]);
+
+  useEffect(() => {
+    if (!streamFailed) return;
+    recordProviderOutcome(provider, false);
+    if (!providerAutoFallback && !hasSeenAutoFallbackHint()) {
+      setShowFallbackHint(true);
+    }
+  }, [streamFailed, provider, providerAutoFallback]);
+
+  useWatchSwipeNav({
+    enabled: streamReady && !needsResumePrompt,
+    onPrev: prevEpisode ? handlePrevEpisode : undefined,
+    onNext: nextEpisode ? handleNextEpisode : undefined,
+  });
+
+  useEffect(() => {
     if (!streamQueryEnabled) return;
     if (streamReady) return;
     if (!streamError || !isKittyStreamAbortError(streamError)) return;
@@ -898,9 +1007,14 @@ const VideoPlayerSection = () => {
   const playerNextEpisode = useMemo(
     () =>
       nextEpisode
-        ? { id: nextEpisode.episodeId, number: nextEpisode.number, title: nextEpisode.title }
+        ? {
+            id: nextEpisode.episodeId,
+            number: nextEpisode.number,
+            title: nextEpisode.title,
+            image: nextEpisode.image || animePoster || null,
+          }
         : undefined,
-    [nextEpisode],
+    [nextEpisode, animePoster],
   );
   const playerW2g = useMemo(
     () =>
@@ -953,26 +1067,37 @@ const VideoPlayerSection = () => {
     });
   }, [streamReady, streamData?.file, streamData?.allServers, episodeId, anilistId, provider, playerKey, playerTracks, playerHeaders, skipTimes, streamQueryAudio]);
 
-  const heldSnapshotMatchesRequest =
-    !heldStreamSnapshot ||
-    (heldStreamSnapshot.anilistId === anilistId &&
-      heldStreamSnapshot.provider === provider &&
-      heldStreamSnapshot.audio === streamQueryAudio);
+  const heldSnapshotSameEpisode = Boolean(
+    heldStreamSnapshot &&
+      episodeId &&
+      heldStreamSnapshot.episodeId === episodeId &&
+      heldStreamSnapshot.anilistId === anilistId,
+  );
 
-  const useLiveStream = Boolean(streamReady && streamData?.file);
+  const useLiveStream = Boolean(streamReady && streamData?.file && !manualStreamFile);
   const useHeldPlayerShell = Boolean(
     heldStreamSnapshot?.file &&
-      heldSnapshotMatchesRequest &&
+      heldSnapshotSameEpisode &&
       (showStreamLoading || (pendingNewEpisode && (!useLiveStream || !resumeReady))),
   );
   const showTransitionOverlay = Boolean(
-    heldStreamSnapshot?.file && (showStreamLoading || (pendingNewEpisode && !useLiveStream)),
+    heldStreamSnapshot?.file &&
+      heldSnapshotSameEpisode &&
+      (showStreamLoading || (pendingNewEpisode && !useLiveStream)),
   );
-  const canRenderPlayerShell = useHeldPlayerShell || useLiveStream;
-  const displayPlayerKey = useLiveStream ? playerKey : (heldStreamSnapshot?.key ?? playerKey);
-  const displayFile = useLiveStream ? streamData!.file : (heldStreamSnapshot?.file ?? "");
-  const displayTracks = useLiveStream ? playerTracks : (heldStreamSnapshot?.tracks ?? EMPTY_PLAYER_TRACKS);
-  const displayHeaders = useLiveStream ? playerHeaders : (heldStreamSnapshot?.headers ?? EMPTY_PLAYER_HEADERS);
+  const canRenderPlayerShell = useHeldPlayerShell || useLiveStream || Boolean(manualStreamFile);
+  const displayPlayerKey = useLiveStream || manualStreamFile ? playerKey : (heldStreamSnapshot?.key ?? playerKey);
+  const displayFile =
+    manualStreamFile ??
+    (useLiveStream ? streamData!.file : (heldStreamSnapshot?.file ?? ""));
+  const displayTracks = useLiveStream
+    ? playerTracks
+    : manualStreamFile
+      ? playerTracks
+      : (heldStreamSnapshot?.tracks ?? EMPTY_PLAYER_TRACKS);
+  const displayHeaders =
+    manualStreamHeaders ??
+    (useLiveStream ? playerHeaders : (heldStreamSnapshot?.headers ?? EMPTY_PLAYER_HEADERS));
   const displayQualities = useLiveStream
     ? (streamData?.allServers ?? [])
     : (heldStreamSnapshot?.qualities ?? []);
@@ -994,6 +1119,7 @@ const VideoPlayerSection = () => {
     setAudioMode(resolvedMode);
     localStorage.setItem("kittyProvider", p);
     localStorage.setItem("kittyAudioMode", resolvedMode);
+    if (anilistId) saveAnimeProviderPreference(anilistId, p);
     if (mode === "dub") {
       applyStreamAudio(providerSupportsDub(p) ? "dub" : "sub");
     } else {
@@ -1183,6 +1309,8 @@ const VideoPlayerSection = () => {
       streamAudio={streamAudio}
       onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
       onProviderChange={handleSimpleProviderChange}
+      streamCaps={streamCaps}
+      preferredProvider={preferredAnimeProvider}
     />
   ) : (
     <ProviderQuickPick
@@ -1190,8 +1318,28 @@ const VideoPlayerSection = () => {
       audioMode={audioMode}
       compact={isMobile}
       onSelect={handleProviderGridSelect}
+      streamCaps={streamCaps}
+      preferredProvider={preferredAnimeProvider}
     />
   );
+
+  const handlePickQuality = (entry: KittyStreamQuality) => {
+    preservePlaybackPosition();
+    setManualStreamFile(entry.file);
+    setManualStreamHeaders(streamData?.headers ?? playerHeaders);
+  };
+
+  const handlePickSiteServer = (server: { id: string; name: string }) => {
+    preservePlaybackPosition();
+    setManualStreamFile(null);
+    setManualStreamHeaders(null);
+    setStreamLinkId(server.id);
+  };
+
+  const stuckNextFallback = peekNextFallbackProvider();
+  const stuckNextLabel = stuckNextFallback ? getKittyProviderMeta(stuckNextFallback).label : null;
+  const proxyNodeLabel = getKittyApiNode(kittyProxyNode).label;
+  const activeQualityLabel = displayQualities.find((q) => q.file === displayFile)?.quality ?? null;
 
   const streamProviderControls = providerControlsBlock;
 
@@ -1256,9 +1404,21 @@ const VideoPlayerSection = () => {
           }
         />
         <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] px-2.5 sm:px-3 py-3 space-y-2.5">
+          {loadingStuck && (
+            <WatchStuckLoadingBanner
+              providerLabel={getKittyProviderMeta(provider).label}
+              nextProviderLabel={stuckNextLabel}
+              onTryAnother={stuckNextFallback ? handleTryAnotherServer : undefined}
+            />
+          )}
           <p className="text-[11px] font-mono text-muted-foreground dark:text-white/40 leading-relaxed">
             {t("watch.switchProviderWhileLoading")}
           </p>
+          {capsFetching && (
+            <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/30">
+              {t("watch.capabilitiesLoading")}
+            </p>
+          )}
           {streamProviderControls}
         </div>
       </div>
@@ -1393,6 +1553,8 @@ const VideoPlayerSection = () => {
         onNext={handleNextEpisode}
         onShowShortcuts={() => setShortcutsOpen(true)}
         onShowProviders={revealProviderControls}
+        onTogglePip={togglePip}
+        pipSupported={pipSupported}
         onOpenComments={watchPage ? () => watchPage.openComments("episode") : undefined}
         onSubmitSkipTimes={
           anilistId && episodeNumberParsed != null
@@ -1401,8 +1563,30 @@ const VideoPlayerSection = () => {
         }
       />
 
+      <WatchStreamInfoBar
+        providerLabel={getKittyProviderMeta(provider).label}
+        streamAudio={streamAudio}
+        serverName={streamData?.server}
+        provider={provider}
+        qualityLabel={activeQualityLabel}
+        proxyNodeLabel={proxyNodeLabel}
+      />
+
       {/* Controls bar */}
       <div className="px-3 py-2.5 sm:px-3 sm:py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-border dark:border-white/8 space-y-2 sm:space-y-2.5">
+        {showFallbackHint && !providerAutoFallback && (
+          <WatchAutoFallbackHint
+            onEnable={() => {
+              setProviderAutoFallback(true);
+              markAutoFallbackHintSeen();
+              setShowFallbackHint(false);
+            }}
+            onDismiss={() => {
+              markAutoFallbackHintSeen();
+              setShowFallbackHint(false);
+            }}
+          />
+        )}
         <PlayerSettingsBar watchingHardSub={watchingHardSub && streamAudio === "sub"} />
 
         {showPlayerControls && (
@@ -1410,6 +1594,16 @@ const VideoPlayerSection = () => {
         <div id="watch-provider-controls">
         {providerControlsBlock}
         </div>
+
+        <WatchServerPicker
+          provider={provider}
+          streamAudio={streamAudio}
+          qualities={displayQualities}
+          activeFile={displayFile}
+          dataIds={siteEpisodeDataIds}
+          onPickQuality={handlePickQuality}
+          onPickSiteServer={handlePickSiteServer}
+        />
 
         {/* Row 2 — badges + actions */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">

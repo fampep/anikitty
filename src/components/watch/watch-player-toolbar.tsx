@@ -7,6 +7,7 @@ import {
   Command,
   Lightbulb,
   MessageSquare,
+  PictureInPicture,
   Play,
   Server,
   SkipForward,
@@ -60,6 +61,8 @@ type Props = {
   onNext: () => void;
   onShowShortcuts: () => void;
   onShowProviders?: () => void;
+  onTogglePip?: () => void;
+  pipSupported?: boolean;
   onOpenComments?: () => void;
   onSubmitSkipTimes?: () => void;
 };
@@ -77,6 +80,8 @@ export default function WatchPlayerToolbar({
   onNext,
   onShowShortcuts,
   onShowProviders,
+  onTogglePip,
+  pipSupported = false,
   onOpenComments,
   onSubmitSkipTimes,
 }: Props) {
@@ -121,6 +126,17 @@ export default function WatchPlayerToolbar({
           label={t("watch.toolbar.lightsOff")}
           onClick={() => setTheatreMode(!theatreMode)}
         />
+        {pipSupported && onTogglePip && (
+          <button
+            type="button"
+            onClick={onTogglePip}
+            aria-label={t("watch.toolbar.pip")}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0 lg:hidden"
+          >
+            <PictureInPicture className="w-3 h-3 shrink-0" />
+            <span className="hidden sm:inline">{t("watch.toolbar.pip")}</span>
+          </button>
+        )}
         {onSubmitSkipTimes && (
           <button
             type="button"

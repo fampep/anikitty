@@ -1375,6 +1375,7 @@ export default function KittyPlayer({
       {showNext && nextEpisode && (
         <NextEpisodeButton
           episode={nextEpisode}
+          imageUrl={nextEpisode.image}
           stackClass={overlayBottom}
           onClick={triggerNextEpisode}
         />
@@ -1393,6 +1394,7 @@ export default function KittyPlayer({
       {countdown !== null && nextEpisode && (
         <CountdownOverlay
           episode={nextEpisode}
+          imageUrl={nextEpisode.image}
           countdown={countdown}
           onSkip={triggerNextEpisode}
           onCancel={() => setCountdown(null)}
