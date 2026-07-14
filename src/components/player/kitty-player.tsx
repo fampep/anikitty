@@ -394,7 +394,6 @@ export default function KittyPlayer({
   onOutroStart,
   onEnded,
   onFatalError,
-  onDubAudioUnavailable,
   onPlayerReady,
   w2g,
   preferSubtitles = true,
@@ -456,8 +455,6 @@ export default function KittyPlayer({
   const onOutroStartRef = useRef(onOutroStart);
   const onEndedRef = useRef(onEnded);
   const onFatalErrorRef = useRef(onFatalError);
-  const onDubAudioUnavailableRef = useRef(onDubAudioUnavailable);
-  const dubUnavailableFiredRef = useRef(false);
   const fatalErrorFiredRef = useRef(false);
   const skipTimesRef = useRef(skipTimes);
   const w2gRef = useRef(w2g);
@@ -521,10 +518,6 @@ export default function KittyPlayer({
   useEffect(() => { onOutroStartRef.current = onOutroStart; }, [onOutroStart]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
   useEffect(() => { onFatalErrorRef.current = onFatalError; }, [onFatalError]);
-  useEffect(() => { onDubAudioUnavailableRef.current = onDubAudioUnavailable; }, [onDubAudioUnavailable]);
-  useEffect(() => {
-    dubUnavailableFiredRef.current = false;
-  }, [src, preferDubAudio]);
   useEffect(() => { skipTimesRef.current = skipTimes; }, [skipTimes]);
   useEffect(() => { w2gRef.current = w2g; }, [w2g]);
   useEffect(() => { nextEpisodeRef.current = nextEpisode; }, [nextEpisode]);
@@ -909,15 +902,7 @@ export default function KittyPlayer({
                   hlsForCleanup = hls;
 
                   const tryPickAudio = () => {
-                    const result = pickHlsAudioTrack(hls, preferDubAudioRef.current);
-                    if (
-                      preferDubAudioRef.current &&
-                      !result.dubAvailable &&
-                      !dubUnavailableFiredRef.current
-                    ) {
-                      dubUnavailableFiredRef.current = true;
-                      onDubAudioUnavailableRef.current?.();
-                    }
+                    pickHlsAudioTrack(hls, preferDubAudioRef.current);
                   };
                   hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     tryPickAudio();

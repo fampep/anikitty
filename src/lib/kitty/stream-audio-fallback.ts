@@ -14,10 +14,6 @@ export async function fetchWithSubAudioFallback<T extends StreamAudioPayload>(
 }> {
   const primary = await fetcher(requestedAudio);
   if (primary?.file) {
-    const actualAudio = primary.audio ?? requestedAudio;
-    if (requestedAudio === "dub" && actualAudio === "sub") {
-      return { result: primary, servedAudio: "sub", audioFallback: true };
-    }
     return { result: primary, servedAudio: requestedAudio, audioFallback: false };
   }
 
