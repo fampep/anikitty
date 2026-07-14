@@ -104,49 +104,49 @@ export default function Home() {
       <HomeQuickNav />
       <HomeExploreBar />
 
-      <div className="home-cinema-body relative z-[5] flex flex-col gap-6 sm:gap-10 p-2 pt-3 sm:pt-4">
+      <div className="home-cinema-body relative z-[5] flex flex-col gap-3 sm:gap-5 p-2 pt-2 sm:pt-3">
         <HomeWelcomeBar />
 
-        <LazyMount minHeight={120}>
-          <div id="continue" className="scroll-mt-[calc(var(--nav-height)+5rem)]">
+        <div id="continue" className="scroll-mt-[calc(var(--nav-height)+5rem)]">
+          <LazyMount rootMargin="400px 0px">
             <ContinueWatching />
-          </div>
-        </LazyMount>
+          </LazyMount>
+        </div>
 
-        <LazyMount minHeight={100}>
+        <LazyMount rootMargin="400px 0px">
           <HomeW2gRail />
         </LazyMount>
 
-        <LazyMount minHeight={120}>
+        <LazyMount rootMargin="400px 0px">
           <RecentlyViewed />
         </LazyMount>
 
-        <LazyMount minHeight={120}>
+        <LazyMount rootMargin="400px 0px">
           <HomeRecommendations />
         </LazyMount>
 
-        <LazyMount minHeight={280}>
+        <LazyMount rootMargin="500px 0px">
           <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
         </LazyMount>
 
         <HomeTrendingRail animes={trending} loading={isLoading} />
 
-        <Container className="flex max-xl:flex-col w-full gap-6 sm:gap-10 xl:gap-0">
-          <aside className="flex gap-6 sm:gap-8 flex-col w-full xl:w-[32%] xl:order-last xl:pl-8">
-            <LazyMount minHeight={320}>
+        <Container className="flex max-xl:flex-col w-full gap-4 sm:gap-6 xl:gap-0">
+          <aside className="flex gap-4 sm:gap-5 flex-col w-full xl:w-[32%] xl:order-last xl:pl-8">
+            <LazyMount rootMargin="500px 0px">
               <div id="community" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
                 <LatestComments bare />
               </div>
             </LazyMount>
-            <LazyMount minHeight={280}>
+            <LazyMount rootMargin="600px 0px">
               <div id="schedule" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
                 <HomeSchedulePanel />
               </div>
             </LazyMount>
           </aside>
 
-          <main className="flex flex-col gap-8 w-full xl:w-[68%]">
-            <LazyMount minHeight={400}>
+          <main className="flex flex-col gap-4 w-full xl:w-[68%]">
+            <LazyMount rootMargin="500px 0px">
               <HomeSeasonBrowser
                 seasonAnimes={recentlyAdded}
                 popularAnimes={popular}
@@ -157,11 +157,11 @@ export default function Home() {
           </main>
         </Container>
 
-        <LazyMount minHeight={280}>
+        <LazyMount rootMargin="600px 0px">
           <HomeUpcomingRail animes={upcoming} loading={discoveryLoadingState} />
         </LazyMount>
 
-        <LazyMount minHeight={200}>
+        <LazyMount rootMargin="700px 0px">
           <HomeFeaturePromos />
         </LazyMount>
       </div>

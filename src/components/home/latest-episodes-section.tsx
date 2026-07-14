@@ -45,7 +45,7 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
   if (!latestEpisodes?.length) return null;
 
   return (
-    <Container className="relative z-20 flex flex-col items-start gap-4 py-8">
+    <Container className="relative z-20 flex flex-col items-start gap-4 py-3 sm:py-4">
       <div className="flex items-center gap-2 w-full min-w-0">
         <div className="min-w-0 flex-1">
           <SectionHeading icon={<Tv2 className="w-4 h-4" />} title={t("home.recentReleases")} href={ROUTES.SEARCH} />
@@ -110,7 +110,7 @@ const LatestEpisodesAnime = ({ latestEpisodes, loading }: Props) => {
 };
 
 const LoadingSkeleton = () => (
-  <Container className="relative z-20 flex flex-col items-start gap-4 py-8">
+  <Container className="relative z-20 flex flex-col items-start gap-4 py-3 sm:py-4">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
       <div className="h-6 w-44 animate-pulse bg-accent dark:bg-white/8 rounded" />

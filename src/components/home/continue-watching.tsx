@@ -426,7 +426,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
   if (!auth) {
     return (
-      <Container className="pt-2 pb-6 sm:pt-4 sm:pb-8">
+      <Container className="pt-1 pb-3 sm:pb-4">
         <div className="site-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <History className="w-5 h-5 text-muted-foreground/80 dark:text-white/25 mt-0.5 shrink-0" />
@@ -478,7 +478,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
   return (
     <>
-      <Container className="flex flex-col gap-4 pt-2 pb-6 sm:pt-4 sm:pb-8 items-start">
+      <Container className="flex flex-col gap-4 pt-1 pb-3 sm:pb-4 items-start">
       <div className="site-panel w-full p-3 sm:p-4 flex flex-col gap-4">
       <div className="flex items-center gap-2 w-full min-w-0">
         <div className="min-w-0 flex-1">
@@ -580,7 +580,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
 };
 
 const LoadingSkeleton = () => (
-  <Container className="flex flex-col gap-4 pt-2 pb-6 sm:pt-4 sm:pb-8 items-start">
+  <Container className="flex flex-col gap-4 pt-1 pb-3 sm:pb-4 items-start">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
       <div className="h-6 w-44 animate-pulse bg-accent dark:bg-white/8 rounded" />

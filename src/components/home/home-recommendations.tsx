@@ -25,7 +25,7 @@ export default function HomeRecommendations() {
   // New user with no watch history yet — nudge them to start watching.
   if (!isLoading && data && !data.hasHistory) {
     return (
-      <Container className="py-8">
+      <Container className="py-3 sm:py-4">
         <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.04] px-5 py-6 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
             <Sparkles className="w-5 h-5" />

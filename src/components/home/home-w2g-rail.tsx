@@ -56,7 +56,7 @@ export default function HomeW2gRail() {
   };
 
   return (
-    <Container className="pt-2 pb-6 sm:pb-8">
+    <Container className="pt-1 pb-3 sm:pb-4">
       <div className="site-panel p-3 sm:p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <SectionHeading
@@ -67,7 +67,7 @@ export default function HomeW2gRail() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground dark:text-white/30" />
           </div>
         ) : (
