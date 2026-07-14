@@ -84,9 +84,6 @@ export function getTierProgress(level: number): number {
   return Math.min(100, (into / span) * 100);
 }
 
-/** XP per Discord chat message (linked accounts only). */
-export const DISCORD_MESSAGE_XP = 2;
-
 /** XP per comment (top-level and replies). */
 export const COMMENT_XP = 3;
 
@@ -104,9 +101,8 @@ export function computeTotalXp(
   started: number,
   completed: number,
   commentCount: number,
-  discordXp = 0,
 ): number {
-  return computeWatchXp(started, completed) + computeCommentXp(commentCount) + Math.max(0, discordXp);
+  return computeWatchXp(started, completed) + computeCommentXp(commentCount);
 }
 
 export function xpToNextLevel(xp: number): number {

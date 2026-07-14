@@ -16,19 +16,14 @@
   "variables": {
     "NODE_ENV": "production",
     "NODE_OPTIONS": "--max-old-space-size=6144",
-    "SKIP_NEXT_TYPECHECK": "1",
-    "CI": "true"
-  },
-  "steps": {
-    "build": {
-      "commands": ["npm run build"]
-    }
+    "SKIP_NEXT_TYPECHECK": "1"
   },
   "deploy": {
-    "startCommand": "node scripts/start-with-bot.mjs",
+    "startCommand": "node .next/standalone/server.js",
     "variables": {
       "HOSTNAME": "0.0.0.0",
-      "NODE_ENV": "production"
+      "NODE_ENV": "production",
+      "PORT": "3000"
     }
   }
 }

@@ -105,9 +105,6 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 **Railpack** (faster builds when the host is configured):
 1. Set **Build Pack** to **Railpack**
 2. Config in `coolify.json` and `railpack.json`
-3. **Build command:** `npm run build` (or leave empty — do **not** use `node scripts/start-with-bot.mjs` here; that is the runtime start script)
-4. **Start command:** `node scripts/start-with-bot.mjs` (or leave empty to use the `start` script from `package.json`)
-5. Discord bot env vars (`DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_BOT_API_SECRET`) must be **runtime** variables
 
 Local Docker build:
 

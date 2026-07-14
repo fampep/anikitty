@@ -19,7 +19,6 @@ export async function GET(req: Request) {
     xp: stats.xp,
     watchXp: stats.watchXp,
     commentXp: stats.commentXp,
-    discordXp: stats.discordXp,
     level: info.level,
     tier: info.tier,
     levelRole: stats.levelRole,
