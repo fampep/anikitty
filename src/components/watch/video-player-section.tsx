@@ -19,7 +19,7 @@ import {
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import { ProviderQuickPick } from "@/components/player/provider-select";
@@ -102,7 +102,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -407,6 +407,24 @@ const VideoPlayerSection = () => {
     });
   }, []);
 
+  const getLivePreview = useCallback(() => {
+    const video = artPlayerRef.current?.video;
+    if (!video || video.readyState < 2 || !video.videoWidth) return null;
+    try {
+      const width = Math.min(video.videoWidth, 426);
+      const height = Math.round((width / video.videoWidth) * video.videoHeight);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(video, 0, 0, width, height);
+      return canvas.toDataURL("image/jpeg", 0.65);
+    } catch {
+      return null;
+    }
+  }, []);
+
   const episodeBar =
     currentEpisodeInfo && allEpisodes ? (
       <WatchEpisodeBar
@@ -421,6 +439,7 @@ const VideoPlayerSection = () => {
         onPrev={handlePrevEpisode}
         onNext={handleNextEpisode}
         watchedEpisodes={watchedEpisodes}
+        getLivePreview={getLivePreview}
       />
     ) : null;
 
@@ -1037,6 +1056,38 @@ const VideoPlayerSection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleProviderGridSelect is stable enough for fallback
   }, [providerAutoFallback, provider, audioMode, t]);
 
+  const handleTryAnotherServer = useCallback(() => {
+    if (!triedProvidersRef.current.has(provider)) {
+      triedProvidersRef.current.add(provider);
+    }
+    const next = getNextFallbackProvider(provider, triedProvidersRef.current);
+    if (!next) {
+      toast.error(t("watch.noMoreProviders"));
+      return;
+    }
+    toast.info(t("watch.providerFallback", { from: provider, to: next }));
+    const mode = normalizeProviderAudioMode(audioMode, streamAudio);
+    handleProviderGridSelect(next, mode, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleProviderGridSelect is stable enough
+  }, [provider, audioMode, streamAudio, t]);
+
+  const revealProviderControls = useCallback(() => {
+    setShowPlayerControls(true);
+    setPlayerSettingsOpen(true);
+    requestAnimationFrame(() => {
+      document.getElementById("watch-provider-controls")?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  }, [setShowPlayerControls, setPlayerSettingsOpen]);
+
+  const peekNextFallbackProvider = useCallback(() => {
+    const tried = new Set(triedProvidersRef.current);
+    tried.add(provider);
+    return getNextFallbackProvider(provider, tried);
+  }, [provider]);
+
   // Stream fetch failed (provider API returned an error / 404) → fail over.
   useEffect(() => {
     if (!providerAutoFallback || !streamQueryEnabled) return;
@@ -1171,6 +1222,8 @@ const VideoPlayerSection = () => {
     const streamFailMessage = isEpisodeNotFound(rawMessage)
       ? t("watch.episodeNotFoundOnProvider", { provider })
       : (rawMessage ?? t("watch.streamNotFound"));
+    const nextFallback = peekNextFallbackProvider();
+    const nextFallbackLabel = nextFallback ? getKittyProviderMeta(nextFallback).label : undefined;
 
     return (
       <div className="flex flex-col gap-3">
@@ -1178,6 +1231,12 @@ const VideoPlayerSection = () => {
         <WatchErrorPanel
           error={new Error(streamFailMessage)}
           onRetry={() => void retryStream()}
+          onTryAnother={nextFallback ? handleTryAnotherServer : undefined}
+          tryAnotherLabel={
+            nextFallbackLabel
+              ? t("watch.tryAnotherSourceNamed", { provider: nextFallbackLabel })
+              : undefined
+          }
         />
 
         {streamProviderControls}
@@ -1220,11 +1279,20 @@ const VideoPlayerSection = () => {
     : displayTracks.filter((track) => !isSubtitleTrack(track));
 
   if ((!streamReady || !streamData?.file) && !canRenderPlayerShell) {
+    const nextFallback = peekNextFallbackProvider();
+    const nextFallbackLabel = nextFallback ? getKittyProviderMeta(nextFallback).label : undefined;
+
     return (
       <div className="flex flex-col gap-3">
         <WatchErrorPanel
           error={new Error(streamData?.error ?? t("watch.streamNotFound"))}
           onRetry={() => void retryStream()}
+          onTryAnother={nextFallback ? handleTryAnotherServer : undefined}
+          tryAnotherLabel={
+            nextFallbackLabel
+              ? t("watch.tryAnotherSourceNamed", { provider: nextFallbackLabel })
+              : undefined
+          }
         />
         {streamProviderControls}
       </div>
@@ -1314,6 +1382,9 @@ const VideoPlayerSection = () => {
 
       <WatchPlayerToolbar
         provider={provider}
+        providerLabel={getKittyProviderMeta(provider).label}
+        streamAudio={streamAudio}
+        showProviderControls={showPlayerControls}
         hasPrev={Boolean(prevEpisode)}
         hasNext={Boolean(nextEpisode)}
         prevEpisodeNumber={prevEpisode?.number}
@@ -1321,6 +1392,7 @@ const VideoPlayerSection = () => {
         onPrev={handlePrevEpisode}
         onNext={handleNextEpisode}
         onShowShortcuts={() => setShortcutsOpen(true)}
+        onShowProviders={revealProviderControls}
         onOpenComments={watchPage ? () => watchPage.openComments("episode") : undefined}
         onSubmitSkipTimes={
           anilistId && episodeNumberParsed != null
@@ -1335,7 +1407,9 @@ const VideoPlayerSection = () => {
 
         {showPlayerControls && (
           <>
+        <div id="watch-provider-controls">
         {providerControlsBlock}
+        </div>
 
         {/* Row 2 — badges + actions */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">

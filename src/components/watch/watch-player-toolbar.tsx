@@ -8,6 +8,7 @@ import {
   Lightbulb,
   MessageSquare,
   Play,
+  Server,
   SkipForward,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
@@ -48,6 +49,9 @@ function ToolbarToggle({
 
 type Props = {
   provider: string;
+  providerLabel?: string;
+  streamAudio?: "sub" | "dub";
+  showProviderControls?: boolean;
   hasPrev: boolean;
   hasNext: boolean;
   prevEpisodeNumber?: number;
@@ -55,12 +59,16 @@ type Props = {
   onPrev: () => void;
   onNext: () => void;
   onShowShortcuts: () => void;
+  onShowProviders?: () => void;
   onOpenComments?: () => void;
   onSubmitSkipTimes?: () => void;
 };
 
 export default function WatchPlayerToolbar({
   provider,
+  providerLabel,
+  streamAudio,
+  showProviderControls = true,
   hasPrev,
   hasNext,
   prevEpisodeNumber,
@@ -68,6 +76,7 @@ export default function WatchPlayerToolbar({
   onPrev,
   onNext,
   onShowShortcuts,
+  onShowProviders,
   onOpenComments,
   onSubmitSkipTimes,
 }: Props) {
@@ -78,6 +87,9 @@ export default function WatchPlayerToolbar({
   const setAutoSkipIntro = useSettingsStore((s) => s.setAutoSkipIntro);
   const theatreMode = useSettingsStore((s) => s.theatreMode);
   const setTheatreMode = useSettingsStore((s) => s.setTheatreMode);
+
+  const displayProvider = providerLabel ?? provider;
+  const audioLabel = streamAudio === "dub" ? t("card.dub") : t("watch.softSubBadge");
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 sm:px-3 border-b border-border dark:border-white/8 bg-[#0a0a0a] overflow-x-auto scrollbar-hide">
@@ -129,12 +141,32 @@ export default function WatchPlayerToolbar({
             <span className="hidden sm:inline">{t("watch.toolbar.comments")}</span>
           </button>
         )}
-        <span className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[10px] font-mono border border-border dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] text-muted-foreground dark:text-white/35 shrink-0">
-          {provider}
-        </span>
+        {onShowProviders && !showProviderControls ? (
+          <button
+            type="button"
+            onClick={onShowProviders}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[10px] font-mono font-semibold border border-violet-400/30 bg-violet-500/10 text-violet-200/90 hover:bg-violet-500/18 transition-colors shrink-0"
+            title={t("watch.playerSettings.showProviders")}
+          >
+            <Server className="w-3 h-3 shrink-0" />
+            <span className="truncate max-w-[7rem]">{displayProvider}</span>
+            <span className="text-violet-300/60">·</span>
+            <span>{audioLabel}</span>
+          </button>
+        ) : (
+          <span className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[10px] font-mono border border-border dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] text-muted-foreground dark:text-white/35 shrink-0">
+            {displayProvider}
+            {streamAudio && (
+              <>
+                <span className="opacity-40">·</span>
+                <span>{audioLabel}</span>
+              </>
+            )}
+          </span>
+        )}
       </div>
 
-      <div className="hidden sm:flex items-center gap-1 shrink-0 ml-auto">
+      <div className="flex items-center gap-1 shrink-0 ml-auto">
         <button
           type="button"
           onClick={onPrev}
@@ -145,7 +177,7 @@ export default function WatchPlayerToolbar({
               : t("watch.prevEpisode")
           }
           className={cn(
-            "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors",
+            "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
             hasPrev
               ? "border-border dark:border-white/12 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-muted/40 dark:hover:bg-white/[0.04]"
               : "border-transparent text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",
@@ -153,7 +185,7 @@ export default function WatchPlayerToolbar({
         >
           <ChevronLeft className="w-3.5 h-3.5" />
           {prevEpisodeNumber != null && (
-            <span>{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
+            <span className="hidden sm:inline">{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
           )}
         </button>
         <button
@@ -166,14 +198,14 @@ export default function WatchPlayerToolbar({
               : t("watch.nextEpisode")
           }
           className={cn(
-            "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors",
+            "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
             hasNext
               ? "border-border dark:border-white/12 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-muted/40 dark:hover:bg-white/[0.04]"
               : "border-transparent text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",
           )}
         >
           {nextEpisodeNumber != null && (
-            <span>{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
+            <span className="hidden sm:inline">{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
           )}
           <ChevronRight className="w-3.5 h-3.5" />
         </button>

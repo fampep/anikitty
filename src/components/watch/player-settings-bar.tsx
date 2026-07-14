@@ -16,6 +16,7 @@ import {
   Play,
   RefreshCw,
   Settings2,
+  SkipForward,
   SlidersHorizontal,
   Server,
   List,
@@ -78,6 +79,8 @@ export default function PlayerSettingsBar({
   const {
     autoPlay,
     setAutoPlay,
+    autoSkipIntro,
+    setAutoSkipIntro,
     preferDub,
     setPreferDub,
     showPlayerControls,
@@ -210,6 +213,13 @@ export default function PlayerSettingsBar({
                 description={t("settings.autoPlayDesc")}
                 value={autoPlay}
                 onChange={setAutoPlay}
+              />
+              <ToggleRow
+                icon={<SkipForward className="w-3.5 h-3.5" />}
+                label={t("settings.autoSkipIntro")}
+                description={t("settings.autoSkipIntroDesc")}
+                value={autoSkipIntro}
+                onChange={setAutoSkipIntro}
               />
               <ToggleRow
                 icon={<Mic className="w-3.5 h-3.5" />}
