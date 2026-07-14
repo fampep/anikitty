@@ -52,3 +52,8 @@ export function isAnilistSiteProvider(provider: string): provider is AnilistSite
 export function anilistSiteSeriesUrl(anilistId: number): `anilist:${number}` {
   return `anilist:${anilistId}`;
 }
+
+/** Hard-sub server lines from anikototv scrape (`HS: VidPlay-1`, etc.). */
+export function isHardSubServerName(name: string): boolean {
+  return /^HS:\s*/i.test(name.trim());
+}

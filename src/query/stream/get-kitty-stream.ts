@@ -50,6 +50,7 @@ export const getKittyStream = async (
   title?: string | null,
   kittyNode?: KittyApiNodeId,
   signal?: AbortSignal,
+  preferHardSub?: boolean,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -59,6 +60,7 @@ export const getKittyStream = async (
       provider,
       kittyNode: kittyNode ?? "primary",
       ...(title ? { title } : {}),
+      ...(preferHardSub ? { preferHardSub: "true" } : {}),
     },
     signal,
     timeout: 22_000,
@@ -74,8 +76,9 @@ export function buildKittyStreamQueryKey(
   audio: "sub" | "dub",
   provider: KittyProvider,
   title?: string | null,
+  preferHardSub?: boolean,
 ) {
-  return [KITTY_STREAM_QUERY_KEY, anilistId, episode, audio, provider, title ?? ""];
+  return [KITTY_STREAM_QUERY_KEY, anilistId, episode, audio, provider, title ?? "", preferHardSub === true];
 }
 
 export function isKittyStreamAbortError(error: unknown): boolean {
@@ -95,6 +98,7 @@ export const useGetKittyStream = (
   provider: KittyProvider = DEFAULT_KITTY_PROVIDER,
   title?: string | null,
   kittyNode?: KittyApiNodeId,
+  preferHardSub = false,
 ) => {
   const abortRef = useRef<AbortController | null>(null);
 
@@ -106,7 +110,7 @@ export const useGetKittyStream = (
   }, []);
 
   return useQuery({
-    queryKey: buildKittyStreamQueryKey(anilistId, episode, audio, provider, title),
+    queryKey: buildKittyStreamQueryKey(anilistId, episode, audio, provider, title, preferHardSub),
     queryFn: async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -120,6 +124,7 @@ export const useGetKittyStream = (
           title,
           kittyNode,
           controller.signal,
+          preferHardSub,
         );
       } finally {
         if (abortRef.current === controller) {

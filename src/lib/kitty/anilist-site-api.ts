@@ -6,6 +6,7 @@ import {
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import {
   anilistSiteSeriesUrl,
+  isHardSubServerName,
   type AnilistSiteProviderId,
 } from "@/lib/kitty/anilist-site-providers";
 
@@ -24,6 +25,8 @@ export type AnilistSiteServer = {
   /** Opaque JSON from KittyAPI — pass unchanged to `/stream`. */
   id: string;
 };
+
+export { isHardSubServerName };
 
 export function buildAnilistSiteEpisodesPath(
   provider: AnilistSiteProviderId,
@@ -183,4 +186,48 @@ export async function fetchAnilistSiteStreamDirect(opts: {
   } catch {
     return null;
   }
+}
+
+/**
+ * Prefer burned-in sub servers (`HS: …`) from site scrape.
+ * Falls back to stream-direct when no hard-sub line is available.
+ */
+export async function fetchAnilistSiteHardSubStream(opts: {
+  provider: AnilistSiteProviderId;
+  anilistId: number;
+  episode: number;
+  title?: string | null;
+  timeoutMs?: number;
+}): Promise<KittyStreamPayload | null> {
+  const timeoutMs = opts.timeoutMs ?? 25_000;
+
+  const episodes = await fetchAnilistSiteEpisodes({
+    provider: opts.provider,
+    anilistId: opts.anilistId,
+    audio: "sub",
+    timeoutMs,
+  });
+  const ep = episodes.find((row) => row.number === opts.episode);
+  if (!ep?.dataIds) {
+    return fetchAnilistSiteStreamDirect({ ...opts, audio: "sub", timeoutMs });
+  }
+
+  const servers = await fetchAnilistSiteServers({
+    provider: opts.provider,
+    dataIds: ep.dataIds,
+    audio: "sub",
+    timeoutMs,
+  });
+  const hardSubServers = servers.filter((s) => isHardSubServerName(s.name));
+
+  for (const server of hardSubServers) {
+    const stream = await fetchAnilistSiteStream({
+      provider: opts.provider,
+      linkId: server.id,
+      timeoutMs,
+    });
+    if (stream?.file) return stream;
+  }
+
+  return fetchAnilistSiteStreamDirect({ ...opts, audio: "sub", timeoutMs });
 }

@@ -1,10 +1,16 @@
+import "server-only";
+
 import {
   buildKittyAutoStreamPath,
   buildKittyStreamDirectPath,
-  kittyApiFetch,
   parseKittyStreamJson,
   type KittyStreamPayload,
 } from "@/lib/kitty/kitty-api-core";
+import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
+import {
+  fetchAnilistSiteHardSubStream,
+} from "@/lib/kitty/anilist-site-api";
+import { isAnilistSiteProvider, type AnilistSiteProviderId } from "@/lib/kitty/anilist-site-providers";
 import { isVideoVibProvider, videoVibStreamPaths } from "@/lib/kitty/videovib-provider";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 
@@ -19,6 +25,8 @@ export type FetchKittyStreamOpts = {
   timeoutMs?: number;
   /** When true, skip `/auto/stream` after stream-direct fails. */
   directOnly?: boolean;
+  /** MegaPlay / Anikoto — pick `HS:` site servers before soft-sub lines. */
+  preferHardSub?: boolean;
 };
 
 async function fetchKittyStreamPath(
@@ -44,6 +52,21 @@ export async function fetchKittyStreamDirect(
   if (!provider) return null;
 
   const timeoutMs = opts.timeoutMs ?? 20_000;
+
+  if (
+    opts.preferHardSub &&
+    opts.audio === "sub" &&
+    isAnilistSiteProvider(provider)
+  ) {
+    const hardSub = await fetchAnilistSiteHardSubStream({
+      provider: provider as AnilistSiteProviderId,
+      anilistId: opts.anilistId,
+      episode: opts.episode,
+      title: opts.title,
+      timeoutMs,
+    });
+    if (hardSub?.file) return hardSub;
+  }
 
   if (isVideoVibProvider(provider)) {
     for (const path of videoVibStreamPaths({
@@ -71,7 +94,7 @@ export async function fetchKittyStreamDirect(
 
 /** GET /auto/stream — tries providers automatically when stream-direct fails. */
 export async function fetchKittyAutoStream(
-  opts: Omit<FetchKittyStreamOpts, "provider" | "directOnly">,
+  opts: Omit<FetchKittyStreamOpts, "provider" | "directOnly" | "preferHardSub">,
 ): Promise<KittyStreamPayload | null> {
   const path = buildKittyAutoStreamPath({
     anilistId: opts.anilistId,

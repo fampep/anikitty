@@ -40,6 +40,7 @@ import { fetchWithSubAudioFallback } from "@/lib/kitty/stream-audio-fallback";
 import {
   DEFAULT_KITTY_PROVIDER,
   KITTY_PROVIDERS,
+  normalizeKittyProvider,
   providerHasNativeSubs,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
@@ -95,7 +96,10 @@ export async function GET(req: Request) {
   const anilistId = searchParams.get("anilistId");
   const episode = searchParams.get("episode");
   const audio = searchParams.get("audio") || "sub";
-  const provider = (searchParams.get("provider") || DEFAULT_KITTY_PROVIDER) as KittyProvider;
+  const provider = normalizeKittyProvider(
+    searchParams.get("provider") || DEFAULT_KITTY_PROVIDER,
+  );
+  const preferHardSub = searchParams.get("preferHardSub") === "true";
   const miruroPipeParam = searchParams.get("miruroPipe");
   const animexServerParam = searchParams.get("animexServer");
   const anisnatchServerParam = searchParams.get("anisnatchServer");
@@ -277,6 +281,7 @@ export async function GET(req: Request) {
         audio: streamAudio,
         title: titleParam,
         directOnly: true,
+        preferHardSub,
       });
 
       if (!streamResult?.file) return null;
