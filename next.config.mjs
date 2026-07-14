@@ -30,8 +30,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Types are checked locally/CI; skip in Railpack/Coolify to avoid OOM during deploy builds.
-    ignoreBuildErrors: process.env.SKIP_NEXT_TYPECHECK === "1",
+    // Types are checked locally via `npm run typecheck`; skip during Coolify/Railpack builds (CI=true).
+    ignoreBuildErrors:
+      process.env.SKIP_NEXT_TYPECHECK === "1" || process.env.CI === "true",
   },
   env: {
     NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ?? "",

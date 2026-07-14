@@ -282,10 +282,6 @@ export function normalizeProviderAudioMode(
 }
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
-  const normalized = normalizeProviderAudioMode(mode);
-  return KITTY_PROVIDER_META.filter((p) => {
-    if (normalized === "dub") return p.supportsDub === true;
-    if (normalized === "sub") return p.supportsSub === true;
-    return false;
-  });
+  void mode;
+  return KITTY_PROVIDER_META;
 }

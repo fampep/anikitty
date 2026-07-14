@@ -18,10 +18,7 @@ import {
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
-import {
-  isProviderAvailableForMode,
-  providerCapabilityBadges,
-} from "@/lib/kitty/provider-picker-utils";
+import { providerCapabilityBadges } from "@/lib/kitty/provider-picker-utils";
 import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
 import { Captions, Headphones, Mic, Server, Zap } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
@@ -83,7 +80,6 @@ export default function WatchSimpleProviderRow({
 }: Props) {
   const t = useT();
   const serverCount = KITTY_PROVIDER_META.length;
-  const dubEnabled = providerSupportsDub(provider);
 
   return (
     <div
@@ -104,9 +100,7 @@ export default function WatchSimpleProviderRow({
             </SelectTrigger>
             <SelectContent className={CONTENT_CLASS}>
               <SelectItem value="sub" className="text-xs">{t("card.sub")}</SelectItem>
-              <SelectItem value="dub" className="text-xs" disabled={!dubEnabled}>
-                {t("card.dub")}
-              </SelectItem>
+              <SelectItem value="dub" className="text-xs">{t("card.dub")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -125,17 +119,8 @@ export default function WatchSimpleProviderRow({
             </SelectTrigger>
             <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
               {(["featured", "other"] as const).map((group) => {
-                const baseItems = kittyProvidersByGroup(group);
-                const availableSet = streamCaps?.providers
-                  ? new Set(
-                      baseItems
-                        .filter((p) => isProviderAvailableForMode(p.id, streamAudio, streamCaps))
-                        .map((p) => p.id),
-                    )
-                  : null;
-                const items = sortProvidersForPicker(baseItems, {
+                const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
                   preferredId: preferredProvider,
-                  availableIds: availableSet,
                 });
                 if (items.length === 0) return null;
                 return (
@@ -146,29 +131,25 @@ export default function WatchSimpleProviderRow({
                         : t("watch.providerGroupOther")}
                     </SelectLabel>
                     {items.map((p) => {
-                      const available = isProviderAvailableForMode(p.id, streamAudio, streamCaps);
                       const badges = providerCapabilityBadges(streamCaps?.providers?.[p.id] ?? null);
                       return (
-                      <SelectItem
-                        key={p.id}
-                        value={p.id}
-                        textValue={p.label}
-                        disabled={!available && provider !== p.id}
-                        className="text-xs text-foreground/90 dark:text-white/80"
-                      >
-                        <span className="flex w-full items-center gap-2 min-w-0">
-                          <span className={cn("font-semibold truncate", !available && "opacity-45")}>
-                            {p.label}
+                        <SelectItem
+                          key={p.id}
+                          value={p.id}
+                          textValue={p.label}
+                          className="text-xs text-foreground/90 dark:text-white/80"
+                        >
+                          <span className="flex w-full items-center gap-2 min-w-0">
+                            <span className="font-semibold truncate">{p.label}</span>
+                            <ProviderDefaultBadge id={p.id} />
+                            {streamCaps ? (
+                              <ProviderCapabilityBadge caps={badges} />
+                            ) : (
+                              <LangBadges id={p.id} />
+                            )}
                           </span>
-                          <ProviderDefaultBadge id={p.id} />
-                          {streamCaps ? (
-                            <ProviderCapabilityBadge caps={badges} />
-                          ) : (
-                            <LangBadges id={p.id} />
-                          )}
-                        </span>
-                      </SelectItem>
-                    );
+                        </SelectItem>
+                      );
                     })}
                   </SelectGroup>
                 );

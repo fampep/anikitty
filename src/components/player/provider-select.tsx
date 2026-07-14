@@ -21,8 +21,6 @@ import {
 } from "@/lib/kitty/kitty-providers";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import {
-  buildAvailableProviderSet,
-  isProviderAvailableForMode,
   providerCapabilityBadges,
 } from "@/lib/kitty/provider-picker-utils";
 import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
@@ -284,10 +282,8 @@ export function ProviderGrid({
       )}
       {visibleRows.map((mode) => {
         const baseItems = kittyProvidersForAudioMode(mode);
-        const availableSet = buildAvailableProviderSet(streamCaps, mode);
         const items = sortProvidersForPicker(baseItems, {
           preferredId: preferredProvider,
-          availableIds: availableSet,
         });
         if (items.length === 0) return null;
         const styles = PROVIDER_ROW_STYLES[mode];
@@ -309,20 +305,16 @@ export function ProviderGrid({
         const providerPills = visibleItems.map((p) => {
           const isActive = provider === p.id && audioMode === mode;
           const rowCaps = streamCaps?.providers?.[p.id] ?? null;
-          const available = isProviderAvailableForMode(p.id, mode, streamCaps);
           const badges = providerCapabilityBadges(rowCaps);
 
           return (
             <button
               key={`${mode}-${p.id}`}
               type="button"
-              disabled={disabled || (!available && !isActive)}
+              disabled={disabled}
               onClick={() => onSelect(p.id, mode)}
               title={p.hint}
-              className={cn(
-                providerPillClass(compact, isActive, styles, p.id),
-                !available && !isActive && "opacity-45",
-              )}
+              className={providerPillClass(compact, isActive, styles, p.id)}
             >
               <span className="truncate max-w-[8.5rem] sm:max-w-none">{p.label}</span>
               <ProviderCapabilityBadge caps={badges} compact />

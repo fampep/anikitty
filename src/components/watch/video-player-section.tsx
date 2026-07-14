@@ -19,7 +19,7 @@ import {
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import { ProviderQuickPick } from "@/components/player/provider-select";
@@ -185,30 +185,17 @@ const VideoPlayerSection = () => {
     [setPreferDub, syncDubSearchParam],
   );
 
-  const providerAllowsDub = providerSupportsDub(provider);
-
   useEffect(() => {
     if (dubSearchParam !== "1" && dubSearchParam !== "true") return;
-    if (!providerSupportsDub(provider)) {
-      applyStreamAudio("sub");
-      return;
-    }
     setAudioMode("dub");
     applyStreamAudio("dub");
-  }, [dubSearchParam, provider, applyStreamAudio]);
-
-  useEffect(() => {
-    if (providerAllowsDub) return;
-    if (streamAudio !== "dub" && audioMode !== "dub") return;
-    applyStreamAudio("sub");
-    setAudioMode("sub");
-  }, [providerAllowsDub, streamAudio, audioMode, applyStreamAudio]);
+  }, [dubSearchParam, applyStreamAudio]);
 
   // Settings → prefer dub toggle (do not bounce back through streamAudio effects).
   useEffect(() => {
     return useSettingsStore.subscribe((state, prevState) => {
       if (state.preferDub === prevState.preferDub) return;
-      const target = state.preferDub && providerSupportsDub(provider) ? "dub" : "sub";
+      const target = state.preferDub ? "dub" : "sub";
       setStreamAudio((current) => {
         if (current === target) return current;
         localStorage.setItem("kittyStreamAudio", target);
@@ -216,7 +203,7 @@ const VideoPlayerSection = () => {
         return target;
       });
     });
-  }, [syncDubSearchParam, provider]);
+  }, [syncDubSearchParam]);
 
   useEffect(() => {
     setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
@@ -1121,7 +1108,7 @@ const VideoPlayerSection = () => {
     localStorage.setItem("kittyAudioMode", resolvedMode);
     if (anilistId) saveAnimeProviderPreference(anilistId, p);
     if (mode === "dub") {
-      applyStreamAudio(providerSupportsDub(p) ? "dub" : "sub");
+      applyStreamAudio("dub");
     } else {
       applyStreamAudio("sub");
     }
