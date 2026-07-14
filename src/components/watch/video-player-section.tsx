@@ -83,6 +83,8 @@ import WatchStreamInfoBar from "@/components/watch/watch-stream-info-bar";
 import WatchStuckLoadingBanner from "@/components/watch/watch-stuck-loading-banner";
 import WatchAutoFallbackHint from "@/components/watch/watch-auto-fallback-hint";
 import WatchServerPicker from "@/components/watch/watch-server-picker";
+import { getProviderAccent, PROVIDER_PANEL, providerChipClass } from "@/lib/kitty/provider-ui-styles";
+import { cn } from "@/lib/core/utils";
 
 const KittyPlayer = dynamic(() => import("@/components/player/kitty-player"), {
   ssr: false,
@@ -1384,13 +1386,14 @@ const VideoPlayerSection = () => {
       <div className="flex flex-col gap-3">
         {episodeBar}
         <PlayerSkeleton
+          provider={provider}
           label={
             currentEpisodeInfo
               ? t("watch.loadingEpisode", { n: currentEpisodeInfo.number })
-              : t("watch.loadingStreamProvider", { provider })
+              : t("watch.loadingStreamProvider", { provider: getKittyProviderMeta(provider).label })
           }
         />
-        <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] px-2.5 sm:px-3 py-3 space-y-2.5">
+        <div className={cn(PROVIDER_PANEL.shell, PROVIDER_PANEL.inner)}>
           {loadingStuck && (
             <WatchStuckLoadingBanner
               providerLabel={getKittyProviderMeta(provider).label}
@@ -1512,14 +1515,20 @@ const VideoPlayerSection = () => {
       />
       {showTransitionOverlay && (
         <div
-          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[2px] pointer-events-none"
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/65 backdrop-blur-[3px] pointer-events-none"
           aria-live="polite"
         >
-          <Loader2 className="w-9 h-9 animate-spin text-white/75" />
-          <p className="mt-3 text-[11px] font-mono text-white/60">
+          <span className={cn(providerChipClass(provider), "mb-4 px-3 py-1.5 text-[11px]")}>
+            <span className={cn("h-2 w-2 rounded-full shrink-0 animate-pulse", getProviderAccent(provider).dot)} />
+            {getKittyProviderMeta(provider).label}
+            <span className="opacity-40">·</span>
+            {streamAudio === "dub" ? t("card.dub") : t("card.sub")}
+          </span>
+          <Loader2 className="w-8 h-8 animate-spin text-white/80" />
+          <p className="mt-3 text-[11px] font-mono text-white/55">
             {currentEpisodeInfo
               ? t("watch.loadingEpisode", { n: currentEpisodeInfo.number })
-              : t("watch.loadingStreamProvider", { provider })}
+              : t("watch.loadingStreamProvider", { provider: getKittyProviderMeta(provider).label })}
           </p>
         </div>
       )}
@@ -1722,11 +1731,14 @@ const VideoPlayerSection = () => {
 const PlayerSkeleton = ({
   dim = false,
   label,
+  provider: providerId,
 }: {
   dim?: boolean;
   label?: string;
+  provider?: KittyProvider;
 }) => {
   const t = useT();
+  const accent = providerId ? getProviderAccent(providerId) : null;
   return (
   <div
     role="status"
@@ -1736,10 +1748,23 @@ const PlayerSkeleton = ({
     className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-border dark:border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
+    {accent && (
+      <div
+        className={cn(
+          "absolute inset-x-0 top-0 h-24 bg-gradient-to-b to-transparent pointer-events-none opacity-30",
+          accent.glow,
+        )}
+      />
+    )}
     <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-background/50 dark:via-black/40 to-transparent pointer-events-none" />
     <div className="absolute inset-x-4 bottom-4 flex flex-col gap-2 pointer-events-none">
       <div className="h-1 w-full rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden">
-        <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-violet-600/40 to-violet-400/40 animate-pulse" />
+        <div
+          className={cn(
+            "h-full w-1/3 rounded-full animate-pulse",
+            accent ? "bg-gradient-to-r from-white/10 to-white/25" : "bg-gradient-to-r from-violet-600/40 to-violet-400/40",
+          )}
+        />
       </div>
       <div className="flex justify-between">
         <div className="h-2 w-16 rounded bg-muted/60 dark:bg-white/[0.05] animate-pulse" />

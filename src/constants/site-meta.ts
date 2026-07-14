@@ -11,4 +11,4 @@ export const CATALOG_ANIME_COUNT = 6500;
 export const DISCORD_INVITE_URL = "https://discord.gg/qn55BfU5Ur";
 
 /** ISO date for the FAQ & privacy page — update when content changes. */
-export const FAQ_LAST_UPDATED = "2026-07-10";
+export const FAQ_LAST_UPDATED = "2026-07-14";

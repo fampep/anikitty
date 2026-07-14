@@ -13,6 +13,8 @@ import {
   SkipForward,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
+import type { KittyProvider } from "@/lib/kitty/kitty-providers";
+import { getProviderAccent, providerChipClass } from "@/lib/kitty/provider-ui-styles";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 
@@ -35,9 +37,9 @@ function ToolbarToggle({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-colors shrink-0",
+        "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-150 shrink-0",
         active
-          ? "border-violet-400/35 bg-violet-500/15 text-violet-100/90"
+          ? "border-violet-400/35 bg-violet-500/15 text-violet-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
           : "border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-border dark:hover:border-white/18",
         className,
       )}
@@ -49,7 +51,7 @@ function ToolbarToggle({
 }
 
 type Props = {
-  provider: string;
+  provider: KittyProvider;
   providerLabel?: string;
   streamAudio?: "sub" | "dub";
   showProviderControls?: boolean;
@@ -94,10 +96,11 @@ export default function WatchPlayerToolbar({
   const setTheatreMode = useSettingsStore((s) => s.setTheatreMode);
 
   const displayProvider = providerLabel ?? provider;
-  const audioLabel = streamAudio === "dub" ? t("card.dub") : t("watch.softSubBadge");
+  const accent = getProviderAccent(provider);
+  const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 sm:px-3 border-b border-border dark:border-white/8 bg-[#0a0a0a] overflow-x-auto scrollbar-hide">
+    <div className="flex items-center gap-2 px-3 py-2 sm:px-3 border-b border-border dark:border-white/8 bg-gradient-to-b from-[#0c0c0c] to-[#0a0a0a] overflow-x-auto scrollbar-hide">
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <ToolbarToggle
           active={autoPlay}
@@ -161,16 +164,24 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onShowProviders}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[10px] font-mono font-semibold border border-violet-400/30 bg-violet-500/10 text-violet-200/90 hover:bg-violet-500/18 transition-colors shrink-0"
+            className={cn(
+              providerChipClass(provider),
+              "h-8 px-2.5 hover:brightness-110 transition-all touch-manipulation",
+            )}
             title={t("watch.playerSettings.showProviders")}
           >
-            <Server className="w-3 h-3 shrink-0" />
+            <Server className="w-3 h-3 shrink-0 opacity-70" />
             <span className="truncate max-w-[7rem]">{displayProvider}</span>
-            <span className="text-violet-300/60">·</span>
-            <span>{audioLabel}</span>
+            {streamAudio && (
+              <>
+                <span className="opacity-40">·</span>
+                <span>{audioLabel}</span>
+              </>
+            )}
           </button>
         ) : (
-          <span className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[10px] font-mono border border-border dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] text-muted-foreground dark:text-white/35 shrink-0">
+          <span className={cn("hidden md:inline-flex h-8 items-center", providerChipClass(provider))}>
+            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent.dot)} />
             {displayProvider}
             {streamAudio && (
               <>

@@ -18,7 +18,7 @@ export default function WatchStuckLoadingBanner({
   const t = useT();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2.5">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-gradient-to-r from-amber-500/[0.08] to-amber-500/[0.03] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <div className="flex items-center gap-2 min-w-0 text-[11px] font-mono text-amber-200/85">
         <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
         <span>{t("watch.stuckLoading", { provider: providerLabel })}</span>

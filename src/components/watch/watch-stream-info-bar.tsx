@@ -5,6 +5,7 @@ import { cn } from "@/lib/core/utils";
 import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
+import { audioChipClass, getProviderAccent, providerChipClass } from "@/lib/kitty/provider-ui-styles";
 import { useT } from "@/providers/i18n-provider";
 
 type Props = {
@@ -17,6 +18,28 @@ type Props = {
   className?: string;
 };
 
+function MetaChip({
+  children,
+  className,
+  title,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <span
+      title={title}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md border border-border/80 dark:border-white/[0.08] bg-muted/25 dark:bg-white/[0.03] px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground dark:text-white/50",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 export default function WatchStreamInfoBar({
   providerLabel,
   streamAudio,
@@ -27,46 +50,42 @@ export default function WatchStreamInfoBar({
   className,
 }: Props) {
   const t = useT();
+  const accent = getProviderAccent(provider);
   const server = resolveServerCodename(provider, serverName) ?? serverName?.trim();
-  const audioLabel = streamAudio === "dub" ? t("card.dub") : t("watch.softSubBadge");
+  const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
   const quality = qualityLabel ? formatStreamQualityLabel(qualityLabel) : null;
 
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-[10px] font-mono text-muted-foreground dark:text-white/45 border-t border-border dark:border-white/[0.06] bg-[#080808]",
+        "flex flex-wrap items-center gap-1.5 px-3 py-2 text-[10px] font-mono border-t border-border dark:border-white/[0.06] bg-gradient-to-r from-[#080808] via-[#0a0a0a] to-[#080808]",
         className,
       )}
     >
-      <span className="inline-flex items-center gap-1 text-foreground/75 dark:text-white/65">
-        <Server className="w-3 h-3 opacity-60" />
+      <span className={providerChipClass(provider)}>
+        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent.dot)} />
+        <Server className="w-3 h-3 opacity-70 shrink-0" />
         {providerLabel}
       </span>
-      <span className="opacity-30">·</span>
-      <span className="inline-flex items-center gap-1">
-        {streamAudio === "dub" ? <Mic className="w-3 h-3 opacity-60" /> : <Captions className="w-3 h-3 opacity-60" />}
+
+      <span className={audioChipClass(streamAudio)}>
+        {streamAudio === "dub" ? <Mic className="w-2.5 h-2.5 shrink-0" /> : <Captions className="w-2.5 h-2.5 shrink-0" />}
         {audioLabel}
       </span>
+
       {server && (
-        <>
-          <span className="opacity-30">·</span>
-          <span className="truncate max-w-[10rem]">{server}</span>
-        </>
+        <MetaChip className="max-w-[11rem] truncate" title={server}>
+          {server}
+        </MetaChip>
       )}
-      {quality && (
-        <>
-          <span className="opacity-30">·</span>
-          <span>{quality}</span>
-        </>
-      )}
+
+      {quality && <MetaChip>{quality}</MetaChip>}
+
       {proxyNodeLabel && (
-        <>
-          <span className="opacity-30">·</span>
-          <span className="inline-flex items-center gap-1">
-            <Globe2 className="w-3 h-3 opacity-60" />
-            {proxyNodeLabel}
-          </span>
-        </>
+        <MetaChip>
+          <Globe2 className="w-2.5 h-2.5 opacity-70 shrink-0" />
+          {proxyNodeLabel}
+        </MetaChip>
       )}
     </div>
   );

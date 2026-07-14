@@ -24,6 +24,7 @@ import {
   providerCapabilityBadges,
 } from "@/lib/kitty/provider-picker-utils";
 import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
+import { getProviderAccent, providerPillClass as providerPillAccentClass } from "@/lib/kitty/provider-ui-styles";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
@@ -95,9 +96,7 @@ export default function ProviderSelect({
           compact
             ? "h-8 min-w-[9.5rem] text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/[0.07]"
             : "h-9 min-w-[11rem] text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/[0.07]",
-          value === "MegaPlay" && "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-100/85",
-          value === "AniNeko" && "border-indigo-500/25 bg-indigo-500/[0.06] text-indigo-100/85",
-          value === "AniWaves" && "border-rose-500/25 bg-rose-500/[0.06] text-rose-100/85",
+          getProviderAccent(value).chip,
           className,
         )}
       >
@@ -234,16 +233,12 @@ function ProviderScrollRow({
 function providerPillClass(
   compact: boolean | undefined,
   isActive: boolean,
-  styles: (typeof PROVIDER_ROW_STYLES)[ProviderAudioMode],
+  _styles: (typeof PROVIDER_ROW_STYLES)[ProviderAudioMode],
   providerId: KittyProvider,
 ) {
   return cn(
-    "inline-flex items-center gap-1 font-mono font-semibold border transition-colors disabled:opacity-40 disabled:pointer-events-none shrink-0 touch-manipulation",
-    compact ? "min-h-9 px-3 py-2 text-xs rounded-lg" : "px-2 py-1 text-[11px] rounded-md",
-    isActive ? styles.active : styles.idle,
-    providerId === "MegaPlay" && isActive && "border-emerald-400/40 bg-emerald-500/20 text-emerald-100",
-    providerId === "AniNeko" && isActive && "border-indigo-400/40 bg-indigo-500/20 text-indigo-100",
-    providerId === "AniWaves" && isActive && "border-rose-400/40 bg-rose-500/20 text-rose-100",
+    providerPillAccentClass(providerId, isActive),
+    compact ? "min-h-9 px-3 py-2 text-xs rounded-lg" : "px-2.5 py-1.5 text-[11px] rounded-md",
   );
 }
 
@@ -346,7 +341,7 @@ export function ProviderGrid({
           return (
             <div
               key={mode}
-              className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.02] overflow-hidden"
+              className="rounded-xl border border-border dark:border-white/[0.08] bg-gradient-to-b from-muted/30 to-transparent dark:from-white/[0.03] dark:to-transparent overflow-hidden shadow-sm"
             >
               <button
                 type="button"
@@ -397,7 +392,10 @@ export function ProviderGrid({
         }
 
         return (
-          <div key={mode} className="flex items-start gap-2 min-w-0">
+          <div
+            key={mode}
+            className="rounded-xl border border-border dark:border-white/[0.06] bg-muted/20 dark:bg-white/[0.015] px-2.5 py-2 flex items-start gap-2 min-w-0"
+          >
             <button
               type="button"
               onClick={() => toggleProviderSectionHidden(mode)}
