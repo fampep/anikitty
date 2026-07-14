@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import Artplayer from "artplayer";
 import type { Option } from "artplayer";
 import Hls from "hls.js";
-import { pickHlsAudioTrack } from "@/lib/kitty/hls-audio";
 import LoadingGirl from "@/components/common/loading-girl";
 import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
 import artplayerPluginChromecast from "artplayer-plugin-chromecast";
@@ -397,7 +396,6 @@ export default function KittyPlayer({
   onPlayerReady,
   w2g,
   preferSubtitles = true,
-  preferDubAudio = false,
 }: VideoPlayerProps) {
   const t = useT();
   const { locale } = useI18n();
@@ -487,15 +485,6 @@ export default function KittyPlayer({
   const isSeekingRef = useRef(false);
   const bufferingShowTimerRef = useRef<number | null>(null);
   const isPlayerFullscreenRef = useRef(false);
-  const preferDubAudioRef = useRef(preferDubAudio);
-
-  useEffect(() => {
-    preferDubAudioRef.current = preferDubAudio;
-  }, [preferDubAudio]);
-  useEffect(() => {
-    const hls = hlsRef.current;
-    if (hls) pickHlsAudioTrack(hls, preferDubAudio);
-  }, [preferDubAudio]);
 
   const syncPlayerOrientation = useCallback(() => {
     const nativeFs = isElementFullscreen(wrapperRef.current);
@@ -901,11 +890,7 @@ export default function KittyPlayer({
                   hlsRef.current = hls;
                   hlsForCleanup = hls;
 
-                  const tryPickAudio = () => {
-                    pickHlsAudioTrack(hls, preferDubAudioRef.current);
-                  };
                   hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    tryPickAudio();
                     refreshHlsControls(player);
                     syncNativeSubsIfNeeded(video as HTMLVideoElement);
                   });
@@ -916,7 +901,6 @@ export default function KittyPlayer({
                     syncNativeSubsIfNeeded(video as HTMLVideoElement);
                   });
                   hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
-                    tryPickAudio();
                     refreshHlsControls(player);
                   });
                   const fireFatalError = (type: string, details?: string) => {

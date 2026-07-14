@@ -33,5 +33,4 @@ export interface VideoPlayerProps {
     onPlaybackSync?: (state: { isPlaying: boolean; currentTime: number }) => void;
   };
   preferSubtitles?: boolean;
-  preferDubAudio?: boolean;
 }

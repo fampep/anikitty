@@ -1,10 +1,5 @@
-type StreamAudioPayload = {
-  file?: string | null;
-  audio?: "sub" | "dub";
-};
-
 /** When DUB is missing, retry SUB on the same provider (avoids wrong-anime auto/stream). */
-export async function fetchWithSubAudioFallback<T extends StreamAudioPayload>(
+export async function fetchWithSubAudioFallback<T extends { file?: string | null }>(
   requestedAudio: "sub" | "dub",
   fetcher: (audio: "sub" | "dub") => Promise<T | null>,
 ): Promise<{

@@ -33,20 +33,13 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import {
-  DEFAULT_ANINEKO_SERVER,
-  fetchAninekoVideoStream,
-} from "@/lib/providers/anineko-api";
-import {
-  DEFAULT_ANIWAVES_SERVER,
-  fetchAniwavesVideoStream,
-} from "@/lib/providers/aniwaves-api";
 import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
-import { isKittyProxiedUrl, parseKittyStreamAudio, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
+import { isKittyProxiedUrl, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import { fetchWithSubAudioFallback } from "@/lib/kitty/stream-audio-fallback";
 import {
   DEFAULT_KITTY_PROVIDER,
+  KITTY_PROVIDERS,
   providerHasNativeSubs,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
@@ -78,6 +71,9 @@ const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
+/** Active providers use KittyAPI stream-direct (`audio=sub|dub`) only — no server picker. */
+const STREAM_DIRECT_PROVIDERS = new Set<string>(KITTY_PROVIDERS);
+
 type StreamPayload = {
   file: string;
   headers?: Record<string, string>;
@@ -88,7 +84,6 @@ type StreamPayload = {
   server?: string | null;
   download?: string | null;
   subtitleSource?: string;
-  audio?: "sub" | "dub";
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
   error?: string;
@@ -189,10 +184,6 @@ export async function GET(req: Request) {
         ? DEFAULT_ANIMO_SERVER
         : null;
 
-  const aninekoServer = provider === "AniNeko" ? DEFAULT_ANINEKO_SERVER : null;
-
-  const aniwavesServer = provider === "AniWaves" ? DEFAULT_ANIWAVES_SERVER : null;
-
   async function finalizeStreamResponse(
     data: StreamPayload,
     providerName: KittyProvider,
@@ -275,6 +266,48 @@ export async function GET(req: Request) {
   ) {
     if (!payload?.file) return null;
     return finalizeStreamResponse(payload, providerName, servedAudio, audioFallback);
+  }
+
+  async function fetchStreamDirectPlayback(providerName: KittyProvider) {
+    return fetchWithSubAudioFallback(subtitleCtx.audio, async (streamAudio) => {
+      const streamResult = await fetchKittyProviderStream({
+        provider: providerName,
+        anilistId: subtitleCtx.anilistId,
+        episode: subtitleCtx.episode,
+        audio: streamAudio,
+        title: titleParam,
+        directOnly: true,
+      });
+
+      if (!streamResult?.file) return null;
+
+      const payload = streamResult as StreamPayload;
+      const serverLabel = payload.server;
+      if (typeof serverLabel === "string") {
+        const trimmed = serverLabel.trim();
+        payload.server = trimmed || undefined;
+      }
+      return payload;
+    });
+  }
+
+  if (STREAM_DIRECT_PROVIDERS.has(provider)) {
+    const directAttempt = await fetchStreamDirectPlayback(provider);
+    const directResponse = await respondWithStream(
+      directAttempt.result,
+      provider,
+      directAttempt.servedAudio,
+      directAttempt.audioFallback,
+    );
+    if (directResponse) return directResponse;
+
+    return Response.json(
+      {
+        file: null,
+        error: "Provider unavailable",
+      },
+      { status: 200 },
+    );
   }
 
   if (provider === "Miruro") {
@@ -566,110 +599,7 @@ export async function GET(req: Request) {
     }
   }
 
-  if (provider === "AniNeko") {
-    try {
-      const aninekoAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          const anineko = await fetchAninekoVideoStream({
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            serverId: aninekoServer,
-            title: titleParam,
-          });
-
-          if (!anineko?.file) return null;
-
-          return {
-            file: anineko.file,
-            headers: anineko.headers,
-            tracks: anineko.tracks,
-            allServers: anineko.allServers,
-            skipTimes: anineko.skipTimes,
-            server: anineko.server,
-            download: anineko.download,
-            audio: anineko.audio,
-          };
-        },
-      );
-
-      const aninekoResponse = await respondWithStream(
-        aninekoAttempt.result,
-        "AniNeko",
-        aninekoAttempt.servedAudio,
-        aninekoAttempt.audioFallback,
-      );
-      if (aninekoResponse) return aninekoResponse;
-    } catch (e) {
-      console.error("[kitty/stream] AniNeko server failed:", e);
-    }
-  }
-
-  if (provider === "AniWaves") {
-    try {
-      const aniwavesAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          const aniwaves = await fetchAniwavesVideoStream({
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            serverId: aniwavesServer,
-            title: titleParam,
-          });
-
-          if (!aniwaves?.file) return null;
-
-          return {
-            file: aniwaves.file,
-            headers: aniwaves.headers,
-            tracks: aniwaves.tracks,
-            allServers: aniwaves.allServers,
-            skipTimes: aniwaves.skipTimes,
-            server: aniwaves.server,
-            download: aniwaves.download,
-            audio: aniwaves.audio,
-          };
-        },
-      );
-
-      const aniwavesResponse = await respondWithStream(
-        aniwavesAttempt.result,
-        "AniWaves",
-        aniwavesAttempt.servedAudio,
-        aniwavesAttempt.audioFallback,
-      );
-      if (aniwavesResponse) return aniwavesResponse;
-    } catch (e) {
-      console.error("[kitty/stream] AniWaves server failed:", e);
-    }
-  }
-
-  const genericAttempt = await fetchWithSubAudioFallback(
-    subtitleCtx.audio,
-    async (streamAudio) => {
-      const streamResult = await fetchKittyProviderStream({
-        provider,
-        anilistId: subtitleCtx.anilistId,
-        episode: subtitleCtx.episode,
-        audio: streamAudio,
-        title: titleParam,
-        directOnly: true,
-      });
-
-      if (!streamResult?.file) return null;
-
-      const payload = streamResult as StreamPayload;
-      const serverLabel = payload.server;
-      if (typeof serverLabel === "string") {
-        const trimmed = serverLabel.trim();
-        payload.server = trimmed || undefined;
-      }
-      payload.audio = streamResult.audio;
-      return payload;
-    },
-  );
+  const genericAttempt = await fetchStreamDirectPlayback(provider);
 
   const genericResponse = await respondWithStream(
     genericAttempt.result,
