@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Captions, ChevronDown, ChevronRight, Eye, EyeOff, Mic, Server, Sparkles } from "lucide-react";
+import { Captions, ChevronDown, ChevronRight, Eye, EyeOff, Mic, Server } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -40,7 +40,6 @@ import {
   isDefaultProvider,
   kittyProvidersByGroup,
   kittyProvidersForAudioMode,
-  MULTI_ROW_PROVIDERS,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -48,7 +47,7 @@ import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 
-export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AniKuro" | "AniWaves" | "AllAnime" | "MKissa";
+export type MultiPanelProvider = "Miruro" | "Animex" | "AniSnatch" | "Lunar" | "AllAnime" | "MKissa" | "AniKuro" | "AniWaves";
 
 type Props = {
   value: KittyProvider;
@@ -151,7 +150,6 @@ export default function ProviderSelect({
 export function ProviderQuickPick({
   value,
   audioMode = "sub",
-  multiPanel = null,
   miruroPipe,
   animexServer,
   anisnatchServer,
@@ -163,7 +161,6 @@ export function ProviderQuickPick({
   aniwavesServer,
   anikuroServer,
   onSelect,
-  onMultiToggle,
   onMiruroPipeChange,
   onAnimexServerChange,
   onAnisnatchServerChange,
@@ -179,7 +176,6 @@ export function ProviderQuickPick({
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
-  multiPanel?: MultiPanelProvider | null;
   miruroPipe?: MiruroPipeProviderId;
   animexServer?: AnimexServerId;
   anisnatchServer?: AnisnatchServerId;
@@ -191,7 +187,6 @@ export function ProviderQuickPick({
   aniwavesServer?: AniwavesServerId;
   anikuroServer?: AnikuroServerId;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
-  onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   onAnimexServerChange?: (server: AnimexServerId) => void;
   onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
@@ -209,7 +204,6 @@ export function ProviderQuickPick({
     <ProviderGrid
       provider={value}
       audioMode={audioMode}
-      multiPanel={multiPanel}
       miruroPipe={miruroPipe}
       animexServer={animexServer}
       anisnatchServer={anisnatchServer}
@@ -222,7 +216,6 @@ export function ProviderQuickPick({
       anikuroServer={anikuroServer}
       compact={compact}
       onSelect={onSelect}
-      onMultiToggle={onMultiToggle}
       onMiruroPipeChange={onMiruroPipeChange}
       onAnimexServerChange={onAnimexServerChange}
       onAnisnatchServerChange={onAnisnatchServerChange}
@@ -238,7 +231,7 @@ export function ProviderQuickPick({
   );
 }
 
-const PROVIDER_GRID_ROWS: ProviderAudioMode[] = ["sub", "dub", "hardsub", "multi"];
+const PROVIDER_GRID_ROWS: ProviderAudioMode[] = ["sub", "dub", "hardsub"];
 
 const PROVIDER_ROW_STYLES: Record<
   ProviderAudioMode,
@@ -274,8 +267,6 @@ type ProviderGridProps = {
   provider: KittyProvider;
   audioMode: ProviderAudioMode;
   onSelect: (provider: KittyProvider, mode: ProviderAudioMode) => void;
-  multiPanel?: MultiPanelProvider | null;
-  onMultiToggle?: (panel: MultiPanelProvider | null) => void;
   miruroPipe?: MiruroPipeProviderId;
   onMiruroPipeChange?: (pipe: MiruroPipeProviderId) => void;
   animexServer?: AnimexServerId;
@@ -357,8 +348,6 @@ export function ProviderGrid({
   provider,
   audioMode,
   onSelect,
-  multiPanel = null,
-  onMultiToggle,
   miruroPipe,
   onMiruroPipeChange,
   animexServer,
@@ -391,27 +380,16 @@ export function ProviderGrid({
   // Per-row "show all" state — keeps the pill wall short until the user opts in.
   const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
 
-  const rowLabels: Record<ProviderAudioMode, string> = {
+  const rowLabels: Partial<Record<ProviderAudioMode, string>> = {
     sub: t("card.sub"),
     dub: t("card.dub"),
     hardsub: t("watch.hardSubBadge"),
-    multi: t("watch.multi"),
   };
 
-  const rowIcons: Record<ProviderAudioMode, ReactNode> = {
+  const rowIcons: Partial<Record<ProviderAudioMode, ReactNode>> = {
     sub: <Captions className="w-3 h-3 shrink-0" />,
     dub: <Mic className="w-3 h-3 shrink-0" />,
     hardsub: <Captions className="w-3 h-3 shrink-0" />,
-    multi: <Sparkles className="w-3 h-3 shrink-0" />,
-  };
-
-  const handleMultiClick = (p: MultiPanelProvider) => {
-    if (provider === p && audioMode === "multi" && multiPanel === p) {
-      onMultiToggle?.(null);
-      return;
-    }
-    onSelect(p, "multi");
-    onMultiToggle?.(p);
   };
 
   return (
@@ -442,33 +420,19 @@ export function ProviderGrid({
         const hiddenCount = items.length - visibleItems.length;
 
         const providerPills = visibleItems.map((p) => {
-          const isMulti = MULTI_ROW_PROVIDERS.has(p.id);
           const isActive = provider === p.id && audioMode === mode;
-          const isExpanded = mode === "multi" && multiPanel === p.id && isActive;
 
           return (
             <button
               key={`${mode}-${p.id}`}
               type="button"
               disabled={disabled}
-              onClick={() =>
-                isMulti && mode === "multi"
-                  ? handleMultiClick(p.id as MultiPanelProvider)
-                  : onSelect(p.id, mode)
-              }
+              onClick={() => onSelect(p.id, mode)}
               title={p.hint}
-              className={providerPillClass(compact, isActive, isExpanded, styles, p.id)}
+              className={providerPillClass(compact, isActive, false, styles, p.id)}
             >
               <span className="truncate max-w-[8.5rem] sm:max-w-none">{p.label}</span>
               <ProviderDefaultBadge id={p.id} compact />
-              {isMulti && mode === "multi" && (
-                <ChevronDown
-                  className={cn(
-                    "w-3 h-3 opacity-60 transition-transform shrink-0",
-                    isExpanded && "rotate-180",
-                  )}
-                />
-              )}
             </button>
           );
         });
@@ -489,6 +453,9 @@ export function ProviderGrid({
           </button>
         ) : null;
 
+        const sectionLabel = rowLabels[mode] ?? mode;
+        const sectionIcon = rowIcons[mode];
+
         if (compact) {
           return (
             <div
@@ -504,9 +471,9 @@ export function ProviderGrid({
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={cn("shrink-0", styles.label)}>{rowIcons[mode]}</span>
+                  <span className={cn("shrink-0", styles.label)}>{sectionIcon}</span>
                   <span className={cn("text-[11px] font-bold font-mono uppercase tracking-wide", styles.label)}>
-                    {rowLabels[mode]}
+                    {sectionLabel}
                   </span>
                   {!isHidden && (
                     <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 tabular-nums">
@@ -550,8 +517,8 @@ export function ProviderGrid({
               onClick={() => toggleProviderSectionHidden(mode)}
               title={
                 isHidden
-                  ? t("watch.showProviderSection", { section: rowLabels[mode] })
-                  : t("watch.hideProviderSection", { section: rowLabels[mode] })
+                  ? t("watch.showProviderSection", { section: sectionLabel })
+                  : t("watch.hideProviderSection", { section: sectionLabel })
               }
               className={cn(
                 "flex items-center gap-1 w-14 shrink-0 pt-1.5 text-[10px] font-bold font-mono uppercase tracking-wide transition-opacity hover:opacity-100 touch-manipulation",
@@ -562,9 +529,9 @@ export function ProviderGrid({
               {isHidden ? (
                 <ChevronRight className="w-3 h-3 shrink-0" />
               ) : (
-                rowIcons[mode]
+                sectionIcon
               )}
-              <span className="truncate">{rowLabels[mode]}</span>
+              <span className="truncate">{sectionLabel}</span>
               {isHidden ? (
                 <EyeOff className="w-2.5 h-2.5 shrink-0 opacity-70" />
               ) : (
@@ -592,7 +559,7 @@ export function ProviderGrid({
         );
       })}
 
-      {multiPanel === "Miruro" && provider === "Miruro" && onMiruroPipeChange && miruroPipe != null && (
+      {provider === "Miruro" && onMiruroPipeChange && miruroPipe != null && (
         <MultiServerPanel accent="violet" label={t("watch.miruroPipe")} compact={compact}>
           {MIRURO_PIPE_PROVIDERS.map((p) => (
             <button
@@ -614,7 +581,7 @@ export function ProviderGrid({
         </MultiServerPanel>
       )}
 
-      {multiPanel === "Animex" && provider === "Animex" && onAnimexServerChange && animexServer != null && (
+      {provider === "Animex" && onAnimexServerChange && animexServer != null && (
         <MultiServerPanel accent="rose" label={t("watch.animexServer")} compact={compact}>
           {ANIMEX_SERVERS.map((s) => (
             <button
@@ -636,8 +603,7 @@ export function ProviderGrid({
         </MultiServerPanel>
       )}
 
-      {multiPanel === "AniSnatch" &&
-        provider === "AniSnatch" &&
+      {provider === "AniSnatch" &&
         onAnisnatchServerChange &&
         anisnatchServer != null && (
           <MultiServerPanel accent="fuchsia" label={t("watch.anisnatchServer")} compact={compact}>
@@ -661,8 +627,7 @@ export function ProviderGrid({
           </MultiServerPanel>
         )}
 
-      {multiPanel === "Lunar" &&
-        provider === "Lunar" &&
+      {provider === "Lunar" &&
         onLunarServerChange &&
         lunarServer != null && (
           <MultiServerPanel accent="sky" label={t("watch.lunarServer")} compact={compact}>
@@ -686,8 +651,7 @@ export function ProviderGrid({
           </MultiServerPanel>
         )}
 
-      {multiPanel === "AllAnime" &&
-        provider === "AllAnime" &&
+      {provider === "AllAnime" &&
         onAllanimeMirrorChange &&
         allanimeMirror != null && (
           <MultiServerPanel accent="teal" label={t("watch.server")} compact={compact}>
@@ -710,8 +674,7 @@ export function ProviderGrid({
           </MultiServerPanel>
         )}
 
-      {multiPanel === "MKissa" &&
-        provider === "MKissa" &&
+      {provider === "MKissa" &&
         onMkissaMirrorChange &&
         mkissaMirror != null && (
           <MultiServerPanel accent="amber" label={t("watch.server")} compact={compact}>
@@ -734,8 +697,7 @@ export function ProviderGrid({
           </MultiServerPanel>
         )}
 
-      {multiPanel === "AniKuro" &&
-        provider === "AniKuro" &&
+      {provider === "AniKuro" &&
         onAnikuroServerChange &&
         anikuroServer != null && (
           <MultiServerPanel accent="orange" label={t("watch.server")} compact={compact}>
@@ -758,8 +720,7 @@ export function ProviderGrid({
           </MultiServerPanel>
         )}
 
-      {multiPanel === "AniWaves" &&
-        provider === "AniWaves" &&
+      {provider === "AniWaves" &&
         onAniwavesServerChange &&
         aniwavesServer != null && (
           <MultiServerPanel accent="rose" label={t("watch.server")} compact={compact}>

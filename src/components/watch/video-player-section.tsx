@@ -19,7 +19,7 @@ import {
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, MULTI_ROW_PROVIDERS, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import {
@@ -71,7 +71,7 @@ import {
   isAnikuroServerId,
   type AnikuroServerId,
 } from "@/lib/providers/anikuro-config";
-import { ProviderQuickPick, type MultiPanelProvider } from "@/components/player/provider-select";
+import { ProviderQuickPick } from "@/components/player/provider-select";
 import {
   DEFAULT_MIRURO_PIPE_PROVIDER,
   MIRURO_PIPE_PROVIDERS,
@@ -175,17 +175,9 @@ const VideoPlayerSection = () => {
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kittyAudioMode");
-      if (
-        saved === "multi" ||
-        saved === "hardsub" ||
-        saved === "dub" ||
-        saved === "sub"
-      ) {
-        return saved;
-      }
-      if (MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER)) return "multi";
+      return normalizeProviderAudioMode(saved, "sub");
     }
-    return MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER) ? "multi" : "sub";
+    return "sub";
   });
 
   const [streamAudio, setStreamAudio] = useState<"sub" | "dub">(() => {
@@ -229,7 +221,7 @@ const VideoPlayerSection = () => {
       applyStreamAudio("sub");
       return;
     }
-    setAudioMode((mode) => (mode === "multi" ? mode : "dub"));
+    setAudioMode((mode) => (mode === "hardsub" ? mode : "dub"));
     applyStreamAudio("dub");
   }, [dubSearchParam, animeHasDub, applyStreamAudio]);
 
@@ -237,7 +229,7 @@ const VideoPlayerSection = () => {
     if (animeHasDub) return;
     if (streamAudio !== "dub" && audioMode !== "dub") return;
     applyStreamAudio("sub");
-    setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
+    setAudioMode((mode) => (mode === "hardsub" ? mode : "sub"));
   }, [animeHasDub, streamAudio, audioMode, applyStreamAudio]);
 
   // Settings → prefer dub toggle (do not bounce back through streamAudio effects).
@@ -255,10 +247,7 @@ const VideoPlayerSection = () => {
   }, [syncDubSearchParam, animeHasDub]);
 
   const resolveProviderAudioMode = useCallback(
-    (p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => {
-      if (MULTI_ROW_PROVIDERS.has(p) && (mode === "dub" || mode === "sub")) return "multi";
-      return mode;
-    },
+    (_p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => normalizeProviderAudioMode(mode),
     [],
   );
 
@@ -352,26 +341,6 @@ const VideoPlayerSection = () => {
     return DEFAULT_ANIKURO_SERVER;
   });
 
-  const [multiPanel, setMultiPanel] = useState<MultiPanelProvider | null>(() => {
-    if (typeof window !== "undefined") {
-      const savedProvider = localStorage.getItem("kittyProvider");
-      const savedMode = localStorage.getItem("kittyAudioMode");
-      if (
-        savedMode === "multi" &&
-        savedProvider &&
-        MULTI_ROW_PROVIDERS.has(savedProvider as KittyProvider)
-      ) {
-        return savedProvider as MultiPanelProvider;
-      }
-      if (!savedProvider && MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER)) {
-        return DEFAULT_PROVIDER as MultiPanelProvider;
-      }
-    }
-    return MULTI_ROW_PROVIDERS.has(DEFAULT_PROVIDER)
-      ? (DEFAULT_PROVIDER as MultiPanelProvider)
-      : null;
-  });
-
   const animeSlug = anime?.anime?.info?.id ?? null;
   const anilistId = anime?.anime?.info?.anilistId;
   const malId = anime?.anime?.info?.malId;
@@ -420,11 +389,10 @@ const VideoPlayerSection = () => {
 
   const usesInPlayerHlsAudioSwitch = useMemo(
     () =>
-      audioMode === "multi" &&
       provider === "Animex" &&
       animexServer != null &&
       animexServerUsesInPlayerAudioSwitch(animexServer),
-    [audioMode, provider, animexServer],
+    [provider, animexServer],
   );
 
   const streamQueryAudio: "sub" | "dub" = usesInPlayerHlsAudioSwitch ? "sub" : streamAudio;
@@ -1015,7 +983,7 @@ const VideoPlayerSection = () => {
     if (!streamData?.audioFallback) return;
     if (streamAudio === "sub") return;
     applyStreamAudio("sub");
-    setAudioMode((mode) => (mode === "multi" ? mode : "sub"));
+    setAudioMode((mode) => (mode === "hardsub" ? mode : "sub"));
     toast.info(t("watch.dubUnavailableSub"));
   }, [streamData?.audioFallback, streamAudio, applyStreamAudio, t]);
 
@@ -1220,9 +1188,6 @@ const VideoPlayerSection = () => {
     } else if (mode === "sub" || mode === "hardsub") {
       applyStreamAudio("sub");
     }
-    if (resolvedMode !== "multi" || !MULTI_ROW_PROVIDERS.has(p)) {
-      setMultiPanel(null);
-    }
     if (p === "Animex") {
       const server = defaultAnimexServerForMode(mode);
       setAnimexServer(server);
@@ -1269,62 +1234,43 @@ const VideoPlayerSection = () => {
     }
   };
 
-  const handleMultiToggle = (panel: MultiPanelProvider | null) => {
-    setMultiPanel(panel);
-  };
-
   const handleAnimexServerChange = (server: AnimexServerId) => {
     preservePlaybackPosition();
     setProvider("Animex");
-    setAudioMode("multi");
     setAnimexServer(server);
-    setMultiPanel("Animex");
     localStorage.setItem("kittyProvider", "Animex");
-    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("animexServer", server);
   };
 
   const handleAnisnatchServerChange = (server: AnisnatchServerId) => {
     preservePlaybackPosition();
     setProvider("AniSnatch");
-    setAudioMode("multi");
     setAnisnatchServer(server);
-    setMultiPanel("AniSnatch");
     localStorage.setItem("kittyProvider", "AniSnatch");
-    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("anisnatchServer", server);
   };
 
   const handleLunarServerChange = (server: LunarServerId) => {
     preservePlaybackPosition();
     setProvider("Lunar");
-    setAudioMode("multi");
     setLunarServer(server);
-    setMultiPanel("Lunar");
     localStorage.setItem("kittyProvider", "Lunar");
-    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("lunarServer", server);
   };
 
   const handleAllanimeMirrorChange = (mirror: AllanimeMirrorId) => {
     preservePlaybackPosition();
     setProvider("AllAnime");
-    setAudioMode("multi");
     setAllanimeMirror(mirror);
-    setMultiPanel("AllAnime");
     localStorage.setItem("kittyProvider", "AllAnime");
-    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("allanimeMirror", mirror);
   };
 
   const handleMkissaMirrorChange = (mirror: AllanimeMirrorId) => {
     preservePlaybackPosition();
     setProvider("MKissa");
-    setAudioMode("multi");
     setMkissaMirror(mirror);
-    setMultiPanel("MKissa");
     localStorage.setItem("kittyProvider", "MKissa");
-    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("mkissaMirror", mirror);
   };
 
@@ -1353,31 +1299,21 @@ const VideoPlayerSection = () => {
   const handleAniwavesServerChange = (server: AniwavesServerId) => {
     preservePlaybackPosition();
     setProvider("AniWaves");
-    setAudioMode("multi");
     setAniwavesServer(server);
-    setMultiPanel("AniWaves");
     localStorage.setItem("kittyProvider", "AniWaves");
-    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("aniwavesServer", server);
   };
 
   const handleAnikuroServerChange = (server: AnikuroServerId) => {
     preservePlaybackPosition();
     setProvider("AniKuro");
-    setAudioMode("multi");
     setAnikuroServer(server);
-    setMultiPanel("AniKuro");
     localStorage.setItem("kittyProvider", "AniKuro");
-    localStorage.setItem("kittyAudioMode", "multi");
     localStorage.setItem("anikuroServer", server);
   };
 
   const handleSimpleProviderChange = (p: KittyProvider) => {
-    const mode: ProviderAudioMode = MULTI_ROW_PROVIDERS.has(p)
-      ? "multi"
-      : audioMode === "multi"
-        ? streamAudio
-        : audioMode;
+    const mode = normalizeProviderAudioMode(audioMode, streamAudio);
     handleProviderGridSelect(p, mode);
   };
 
@@ -1421,11 +1357,7 @@ const VideoPlayerSection = () => {
     fallbackBusyRef.current = true;
     toast.info(t("watch.providerFallback", { from: provider, to: next }));
 
-    const mode: ProviderAudioMode = MULTI_ROW_PROVIDERS.has(next)
-      ? "multi"
-      : audioMode === "multi"
-        ? "sub"
-        : audioMode;
+    const mode = normalizeProviderAudioMode(audioMode, "sub");
     handleProviderGridSelect(next, mode, true);
 
     window.setTimeout(() => {
@@ -1533,6 +1465,8 @@ const VideoPlayerSection = () => {
       animexServer={animexServer}
       anisnatchServer={anisnatchServer}
       lunarServer={lunarServer}
+      allanimeMirror={allanimeMirror}
+      mkissaMirror={mkissaMirror}
       animoServer={animoServer}
       aninekoServer={aninekoServer}
       aniwavesServer={aniwavesServer}
@@ -1542,6 +1476,8 @@ const VideoPlayerSection = () => {
       onAnimexServerChange={handleAnimexServerChange}
       onAnisnatchServerChange={handleAnisnatchServerChange}
       onLunarServerChange={handleLunarServerChange}
+      onAllanimeMirrorChange={handleAllanimeMirrorChange}
+      onMkissaMirrorChange={handleMkissaMirrorChange}
       onAnimoServerChange={handleAnimoServerChange}
       onAninekoServerChange={handleAninekoServerChange}
       onAniwavesServerChange={handleAniwavesServerChange}
@@ -1551,7 +1487,6 @@ const VideoPlayerSection = () => {
     <ProviderQuickPick
       value={provider}
       audioMode={audioMode}
-      multiPanel={multiPanel}
       miruroPipe={miruroPipe}
       animexServer={animexServer}
       anisnatchServer={anisnatchServer}
@@ -1564,7 +1499,6 @@ const VideoPlayerSection = () => {
       anikuroServer={anikuroServer}
       compact={isMobile}
       onSelect={handleProviderGridSelect}
-      onMultiToggle={handleMultiToggle}
       onMiruroPipeChange={handleMiruroPipeChange}
       onAnimexServerChange={handleAnimexServerChange}
       onAnisnatchServerChange={handleAnisnatchServerChange}

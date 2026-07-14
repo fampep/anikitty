@@ -20,16 +20,20 @@ import {
   type AninekoServerId,
 } from "@/lib/providers/anineko-config";
 import {
-  ANIWAVES_SERVERS,
-  aniwavesServerDropdownLabel,
-  type AniwavesServerId,
-} from "@/lib/providers/aniwaves-config";
-import {
   ANIKURO_SERVERS,
   anikuroServerDropdownLabel,
   type AnikuroServerId,
 } from "@/lib/providers/anikuro-config";
-import { ProviderDefaultBadge } from "@/components/player/provider-select";
+import {
+  ALLANIME_MIRRORS,
+  MKISSA_MIRRORS,
+  type AllanimeMirrorId,
+} from "@/lib/providers/allanime-config";
+import {
+  ANIWAVES_SERVERS,
+  aniwavesServerDropdownLabel,
+  type AniwavesServerId,
+} from "@/lib/providers/aniwaves-config";
 import {
   KITTY_PROVIDER_META,
   kittyProvidersByGroup,
@@ -37,6 +41,7 @@ import {
   providerSupportsDub,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
+import { ProviderDefaultBadge } from "@/components/player/provider-select";
 import { Captions, Headphones, Mic, Server, Zap } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
@@ -49,6 +54,8 @@ type Props = {
   animexServer?: AnimexServerId;
   anisnatchServer?: AnisnatchServerId;
   lunarServer?: LunarServerId;
+  allanimeMirror?: AllanimeMirrorId;
+  mkissaMirror?: AllanimeMirrorId;
   animoServer?: AnimoServerId;
   aninekoServer?: AninekoServerId;
   aniwavesServer?: AniwavesServerId;
@@ -58,6 +65,8 @@ type Props = {
   onAnimexServerChange?: (server: AnimexServerId) => void;
   onAnisnatchServerChange?: (server: AnisnatchServerId) => void;
   onLunarServerChange?: (server: LunarServerId) => void;
+  onAllanimeMirrorChange?: (mirror: AllanimeMirrorId) => void;
+  onMkissaMirrorChange?: (mirror: AllanimeMirrorId) => void;
   onAnimoServerChange?: (server: AnimoServerId) => void;
   onAninekoServerChange?: (server: AninekoServerId) => void;
   onAniwavesServerChange?: (server: AniwavesServerId) => void;
@@ -136,6 +145,8 @@ export default function WatchSimpleProviderRow({
   animexServer,
   anisnatchServer,
   lunarServer,
+  allanimeMirror,
+  mkissaMirror,
   animoServer,
   aninekoServer,
   aniwavesServer,
@@ -145,6 +156,8 @@ export default function WatchSimpleProviderRow({
   onAnimexServerChange,
   onAnisnatchServerChange,
   onLunarServerChange,
+  onAllanimeMirrorChange,
+  onMkissaMirrorChange,
   onAnimoServerChange,
   onAninekoServerChange,
   onAniwavesServerChange,
@@ -225,7 +238,7 @@ export default function WatchSimpleProviderRow({
         </div>
       </div>
 
-      {/* Multi providers expose their own server list below. */}
+      {/* Server-specific options for the selected provider. */}
       {provider === "Miruro" && miruroPipe && onMiruroPipeChange && (
         <ServerSubSelect value={miruroPipe} options={MIRURO_PIPE_PROVIDERS} placeholder={t("watch.miruroPipe")} onChange={onMiruroPipeChange} />
       )}
@@ -237,6 +250,12 @@ export default function WatchSimpleProviderRow({
       )}
       {provider === "Lunar" && lunarServer && onLunarServerChange && (
         <ServerSubSelect value={lunarServer} options={LUNAR_SERVERS} placeholder={t("watch.lunarServer")} onChange={onLunarServerChange} />
+      )}
+      {provider === "AllAnime" && allanimeMirror && onAllanimeMirrorChange && (
+        <ServerSubSelect value={allanimeMirror} options={ALLANIME_MIRRORS} placeholder={t("watch.server")} onChange={onAllanimeMirrorChange} />
+      )}
+      {provider === "MKissa" && mkissaMirror && onMkissaMirrorChange && (
+        <ServerSubSelect value={mkissaMirror} options={MKISSA_MIRRORS} placeholder={t("watch.server")} onChange={onMkissaMirrorChange} />
       )}
       {provider === "Animo" && animoServer && onAnimoServerChange && (
         <ServerSubSelect value={animoServer} options={ANIMO_SERVERS} placeholder={t("watch.animoServer")} onChange={onAnimoServerChange} />

@@ -10,7 +10,6 @@ export const ANIKURO_SERVERS = [
   { id: "reanime", label: "Verve", names: ["ReAnime", "Reanime", "Verve"] },
   { id: "animedao", label: "Haven", names: ["AnimeDao", "Animedao", "Haven"] },
   { id: "animegg", label: "Glyph", names: ["AnimeGG", "Animegg", "Glyph"] },
-  { id: "anidb", label: "Index", names: ["AniDB", "Anidb", "Index"] },
   { id: "animedunya", label: "Scope", names: ["AnimeDunya", "Animedunya", "Scope"] },
   { id: "animeverse", label: "Realm", names: ["AnimeVerse", "Animeverse", "Realm"] },
   { id: "allanime", label: "Link", names: ["AllAni", "AllAnime", "Link"] },

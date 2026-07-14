@@ -52,8 +52,8 @@ import {
 import {
   isKittyProvider,
   KITTY_PROVIDERS,
-  MULTI_ROW_PROVIDERS,
   getKittyProviderMeta,
+  normalizeProviderAudioMode,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -231,23 +231,10 @@ async function probeDirectProviderCapabilities(
     probeStreamDirect(provider, anilistId, episode, "dub", title),
   ]);
   const caps = capabilitiesFromProbes(subProbe, dubProbe);
-  if (
-    MULTI_ROW_PROVIDERS.has(provider) &&
-    provider !== "AniSnatch" &&
-    provider !== "Lunar" &&
-    provider !== "AllAnime" &&
-    provider !== "MKissa" &&
-    caps.sub &&
-    caps.dub
-  ) {
-    return { ...caps, multi: true };
-  }
   return caps;
 }
 
-const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(
-  (p) => !MULTI_ROW_PROVIDERS.has(p),
-);
+const DIRECT_PROBE_PROVIDERS = [...KITTY_PROVIDERS];
 
 const FEATURED_DIRECT_PROBE_PROVIDERS = DIRECT_PROBE_PROVIDERS.filter(
   (p) => getKittyProviderMeta(p).group === "featured",
@@ -585,19 +572,13 @@ export function providerVisibleInAudioMode(
   mode: ProviderAudioMode,
   caps: StreamCapabilities | null | undefined,
 ): boolean {
-  if (MULTI_ROW_PROVIDERS.has(provider)) {
-    if (mode !== "multi") return false;
-    if (!caps) return true;
-    return providerHasStreamCapabilities(caps);
-  }
-
-  if (mode === "multi") return false;
+  const normalized = normalizeProviderAudioMode(mode);
 
   if (!caps) return true;
 
-  if (mode === "hardsub") return Boolean(caps.hardSub && caps.sub);
-  if (mode === "dub") return supportsStreamAudioMode(caps, "dub");
-  if (mode === "sub") return supportsStreamAudioMode(caps, "sub") && !caps.hardSub;
+  if (normalized === "hardsub") return Boolean(caps.hardSub && caps.sub);
+  if (normalized === "dub") return supportsStreamAudioMode(caps, "dub");
+  if (normalized === "sub") return supportsStreamAudioMode(caps, "sub") && !caps.hardSub;
 
   return false;
 }
@@ -615,14 +596,12 @@ export function resolveActiveStreamCapabilities(
   mkissaMirror?: AllanimeMirrorId,
 ): StreamCapabilities | null | undefined {
   if (!caps) return undefined;
-  if (audioMode === "multi") {
-    if (provider === "Miruro" && miruroPipe) return caps.miruroPipes[miruroPipe];
-    if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
-    if (provider === "AniSnatch" && anisnatchServer) return caps.anisnatchServers[anisnatchServer];
-    if (provider === "Lunar" && lunarServer) return caps.lunarServers[lunarServer];
-    if (provider === "AllAnime" && allanimeMirror) return caps.allanimeServers[allanimeMirror];
-    if (provider === "MKissa" && mkissaMirror) return caps.mkissaServers[mkissaMirror];
-  }
+  if (provider === "Miruro" && miruroPipe) return caps.miruroPipes[miruroPipe];
+  if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
+  if (provider === "AniSnatch" && anisnatchServer) return caps.anisnatchServers[anisnatchServer];
+  if (provider === "Lunar" && lunarServer) return caps.lunarServers[lunarServer];
+  if (provider === "AllAnime" && allanimeMirror) return caps.allanimeServers[allanimeMirror];
+  if (provider === "MKissa" && mkissaMirror) return caps.mkissaServers[mkissaMirror];
   if (provider === "Animo" && animoServer) return caps.animoServers[animoServer] ?? caps.providers[provider];
   return caps.providers[provider];
 }

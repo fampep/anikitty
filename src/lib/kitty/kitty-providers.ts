@@ -63,7 +63,6 @@ export const KITTY_PROVIDERS = [
   "AniKuro",
   "AniWaves",
   "Anikage",
-  "AniDB",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -157,7 +156,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    supportsMulti: true,
     hint: "SUB · DUB · MP4/HLS · multi-server",
   },
   {
@@ -169,7 +167,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    supportsMulti: true,
     hint: "SUB · DUB · redundancy · MP4/HLS",
   },
   {
@@ -181,7 +178,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    supportsMulti: true,
     hint: "SUB · DUB · multi-route · soft subs",
   },
   {
@@ -193,7 +189,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    supportsMulti: true,
     hint: "SUB · DUB · multi-route · soft subs",
   },
   {
@@ -206,17 +201,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · slug or watch URL · stream-direct",
-  },
-  {
-    id: "AniDB",
-    label: "Juliett",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "AniList ID · stream-direct · SUB · DUB · VTT",
   },
 ];
 
@@ -233,7 +217,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniKuro",
   "AniWaves",
   "Anikage",
-  "AniDB",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -257,7 +240,6 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "MKissa",
   MEGAPLAY_PROVIDER_ID,
   "Anitaku",
-  "AniDB",
   "Anikoto",
   "AniNeko",
   "AniBD",
@@ -278,6 +260,7 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   if (value === "AniZone") return "AniNeko";
+  if (value === "AniDB") return DEFAULT_KITTY_PROVIDER;
   if (value && isActiveKittyProvider(value)) return value;
   if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
   // Any retired provider (or unknown value) falls back to the default.
@@ -324,21 +307,21 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
   return getKittyProviderMeta(provider).supportsMulti === true;
 }
 
-/** Providers that only appear in the MULTI row (server picker expands below). */
-export const MULTI_ROW_PROVIDERS = new Set<KittyProvider>([
-  "AniKuro",
-  "AniWaves",
-  "AllAnime",
-  "MKissa",
-]);
+/** Maps legacy saved modes (e.g. removed MULTI row) to sub/dub/hardsub. */
+export function normalizeProviderAudioMode(
+  mode: string | null | undefined,
+  fallback: ProviderAudioMode = "sub",
+): ProviderAudioMode {
+  if (mode === "sub" || mode === "dub" || mode === "hardsub") return mode;
+  return fallback;
+}
 
 export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
+  const normalized = normalizeProviderAudioMode(mode);
   return KITTY_PROVIDER_META.filter((p) => {
-    if (mode === "multi") return p.supportsMulti === true;
-    if (MULTI_ROW_PROVIDERS.has(p.id)) return false;
-    if (mode === "dub") return p.supportsDub === true;
-    if (mode === "hardsub") return p.hardSub === true;
-    if (mode === "sub") return p.supportsSub === true;
+    if (normalized === "dub") return p.supportsDub === true;
+    if (normalized === "hardsub") return p.hardSub === true;
+    if (normalized === "sub") return p.supportsSub === true;
     return false;
   });
 }
