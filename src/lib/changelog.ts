@@ -28,6 +28,17 @@ export const CHANGE_TYPE_META: Record<ChangeType, { label: string; className: st
 // ── Entries (newest first) ───────────────────────────────────────────────────
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.7.7",
+    date: "2026-07-14",
+    title: "AllAnime sources & AniList streaming fixes",
+    changes: [
+      { type: "added", text: "AllAnime (Delta) and MKissa (Echo) — new streaming sources with mirror pickers, powered by api.allanime.day (ani-cli flow)." },
+      { type: "improved", text: "MegaPlay & Anikoto now resolve streams via your AniList ID and anikototv.to site scrape — correct dub audio and show matching (e.g. Hunter × Hunter 2011)." },
+      { type: "improved", text: "Hard-sub mode on MegaPlay/Anikoto prefers burned-in HS: server lines instead of soft-sub tracks." },
+      { type: "removed", text: "Golf (AniWaves) and India (Anikage) removed from the provider picker." },
+    ],
+  },
+  {
     version: "0.7.6",
     date: "2026-07-13",
     title: "Profile customization & next-episode countdown",

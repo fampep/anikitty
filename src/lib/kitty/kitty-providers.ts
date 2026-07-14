@@ -60,8 +60,6 @@ export const KITTY_PROVIDERS = [
   "MKissa",
   "AniNeko",
   "AniBD",
-  "AniWaves",
-  "Anikage",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -172,28 +170,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB only · AniList ID · stream-direct",
   },
-  {
-    id: "AniWaves",
-    label: "Golf",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "Anikage",
-    label: "India",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · slug or watch URL · stream-direct",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -206,8 +182,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "MKissa",
   "AniNeko",
   "AniBD",
-  "AniWaves",
-  "Anikage",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -234,8 +208,6 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "MKissa",
   "AniNeko",
   "AniBD",
-  "AniWaves",
-  "Anikage",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
