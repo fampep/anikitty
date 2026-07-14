@@ -106,9 +106,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
+    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "AniList ID · stream-direct · SUB · DUB · VTT",
+    hint: "AniList ID · anikototv scrape · SUB · DUB · HS: hard-sub",
   },
   {
     id: "MegaPlay",
@@ -117,9 +118,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
+    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "AniList ID · stream-direct · up to 1080p · SUB · DUB · VTT",
+    hint: "AniList ID only · same streams as Anikoto · SUB · DUB",
   },
   {
     id: "AniNeko",
