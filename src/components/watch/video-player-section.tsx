@@ -747,6 +747,7 @@ const VideoPlayerSection = () => {
         streamQueryAudio,
         provider,
         animeTitle,
+        kittyProxyNode,
       ),
     });
     fallbackBusyRef.current = false;
@@ -759,6 +760,7 @@ const VideoPlayerSection = () => {
     streamQueryAudio,
     provider,
     animeTitle,
+    kittyProxyNode,
   ]);
 
   // On finishing the final episode the server moves the title to Completed —
@@ -910,6 +912,15 @@ const VideoPlayerSection = () => {
     setPlaybackToken((n) => n + 1);
   }, [streamQueryAudio, provider, urlAnimeId, anilistId, episodeId]);
 
+  // Proxy node switch: drop the held shell, remount the player, and keep resume time.
+  const prevKittyProxyNodeRef = useRef(kittyProxyNode);
+  useEffect(() => {
+    if (prevKittyProxyNodeRef.current === kittyProxyNode) return;
+    prevKittyProxyNodeRef.current = kittyProxyNode;
+    commitResumeForSourceSwitch();
+    setHeldStreamSnapshot(null);
+  }, [kittyProxyNode, commitResumeForSourceSwitch]);
+
   useEffect(() => {
     if (!streamData?.audioFallback) return;
     if (streamAudio !== "dub") return;
@@ -941,6 +952,7 @@ const VideoPlayerSection = () => {
         streamQueryAudio,
         provider,
         animeTitle,
+        kittyProxyNode,
       ),
       queryFn: () =>
         getKittyStream(
@@ -963,6 +975,7 @@ const VideoPlayerSection = () => {
     streamQueryAudio,
     provider,
     animeTitle,
+    kittyProxyNode,
     queryClient,
   ]);
   const streamFailed =
@@ -1033,7 +1046,7 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const playerKey = `${anilistId}-${episodeNo}-${provider}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
+  const playerKey = `${anilistId}-${episodeNo}-${provider}-${audioMode}-${streamQueryAudio}-${kittyProxyNode}-${playbackToken}`;
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);

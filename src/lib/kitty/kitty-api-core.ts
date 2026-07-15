@@ -117,21 +117,24 @@ export function isKittyApiHost(hostname: string): boolean {
   return KITTY_API_NODES.some((node) => node.host.toLowerCase() === lower);
 }
 
-/** Align stream URLs with the node base scheme (API may return http while base is https). */
+/**
+ * Pin KittyAPI absolute URLs to the selected node origin (and https when the
+ * base is https). Relative paths are handled by {@link resolveKittyStreamUrl}.
+ */
 export function normalizeKittyApiUrl(url: string, nodeId?: KittyApiNodeId): string {
   const kittyBase = getKittyApiBase(nodeId);
-  if (!url.startsWith("http://") || !kittyBase.startsWith("https://")) return url;
 
   try {
     const parsed = new URL(url);
-    if (isKittyApiHost(parsed.hostname)) {
-      parsed.protocol = "https:";
-      return parsed.toString();
-    }
+    if (!isKittyApiHost(parsed.hostname)) return url;
+
+    const baseUrl = new URL(kittyBase);
+    parsed.protocol = baseUrl.protocol;
+    parsed.host = baseUrl.host;
+    return parsed.toString();
   } catch {
-    /* keep original */
+    return url;
   }
-  return url;
 }
 
 /** Resolve KittyAPI relative paths (e.g. `/proxy?token=…`) to absolute URLs on the active node. */

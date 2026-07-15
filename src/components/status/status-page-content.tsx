@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import Container from "@/components/layout/container";
 import { KITTY_API_NODES, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
@@ -21,6 +22,9 @@ import {
   Globe2,
   Loader2,
   ExternalLink,
+  Zap,
+  Gauge,
+  Wifi,
 } from "lucide-react";
 import { DiscordIcon } from "@/components/auth/discord-connect";
 
@@ -59,7 +63,6 @@ const STATUS_META: Record<
   },
 };
 
-// Flag per cluster node for a quicker read than a generic globe.
 const NODE_FLAGS: Record<string, string> = {
   primary: "🇨🇭",
   fallback: "🇸🇪",
@@ -69,7 +72,6 @@ const NODE_FLAGS: Record<string, string> = {
   "sixth-choice": "🇨🇦",
 };
 
-/** Color-code latency: green good, amber okay, red slow. */
 function latencyClass(ms: number | null | undefined): string {
   if (ms == null) return "text-muted-foreground/60 dark:text-white/25";
   if (ms < 120) return "text-emerald-400";
@@ -77,11 +79,22 @@ function latencyClass(ms: number | null | undefined): string {
   return "text-rose-400";
 }
 
+function formatMbps(mbps: number): string | number {
+  return mbps >= 10 ? Math.round(mbps) : mbps.toFixed(1);
+}
+
+function latencyBarWidth(ms: number | null, maxMs: number): number {
+  if (ms == null || maxMs <= 0) return 0;
+  return Math.max(8, Math.min(100, Math.round((ms / maxMs) * 100)));
+}
+
 export default function StatusPageContent() {
   const t = useT();
   const liteMode = useSettingsStore((s) => s.liteMode);
   const selectedNode = useSettingsStore((s) => s.kittyProxyNode);
   const manualNode = useSettingsStore((s) => s.kittyProxyManual);
+  const selectKittyProxyNode = useSettingsStore((s) => s.selectKittyProxyNode);
+  const enableAutoKittyProxyNode = useSettingsStore((s) => s.enableAutoKittyProxyNode);
   const statusPollMs = usePollingIntervalMs("status");
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
     useKittyNodePing();
@@ -103,8 +116,47 @@ export default function StatusPageContent() {
   );
 
   const onlineCount = nodes.filter((n) => n.ok).length;
-  const fastestNode = KITTY_API_NODES.find((n) => n.id === (recommended ?? fastestId));
-  const fastestPing = fastestNode ? pingByNode[fastestNode.id as KittyApiNodeId] : null;
+  const offlineCount = Math.max(0, nodes.length - onlineCount);
+  const fastestNodeId = (recommended ?? fastestId) as KittyApiNodeId | null;
+  const fastestNode = KITTY_API_NODES.find((n) => n.id === fastestNodeId);
+  const fastestPing = fastestNode ? pingByNode[fastestNode.id] : null;
+  const selectedMeta = KITTY_API_NODES.find((n) => n.id === selectedNode);
+
+  const sortedNodes = useMemo(() => {
+    return [...KITTY_API_NODES].sort((a, b) => {
+      const aPing = pingByNode[a.id];
+      const bPing = pingByNode[b.id];
+      const aOk = nodes.find((n) => n.id === a.id)?.ok ?? false;
+      const bOk = nodes.find((n) => n.id === b.id)?.ok ?? false;
+      if (aOk !== bOk) return aOk ? -1 : 1;
+      if (aPing == null && bPing == null) return a.index - b.index;
+      if (aPing == null) return 1;
+      if (bPing == null) return -1;
+      return aPing - bPing;
+    });
+  }, [pingByNode, nodes]);
+
+  const maxPing = useMemo(() => {
+    const values = sortedNodes
+      .map((n) => pingByNode[n.id])
+      .filter((ms): ms is number => ms != null && ms > 0);
+    return values.length ? Math.max(...values) : 1;
+  }, [sortedNodes, pingByNode]);
+
+  const avgLatency = useMemo(() => {
+    const values = nodes
+      .filter((n) => n.ok && n.pingMs != null)
+      .map((n) => n.pingMs as number);
+    if (!values.length) return null;
+    return Math.round(values.reduce((sum, ms) => sum + ms, 0) / values.length);
+  }, [nodes]);
+
+  const bestBandwidth = useMemo(() => {
+    const values = Object.values(bandwidthByNode).filter(
+      (mbps): mbps is number => mbps != null && mbps > 0,
+    );
+    return values.length ? Math.max(...values) : null;
+  }, [bandwidthByNode]);
 
   const overallLabel =
     overall === "checking"
@@ -116,11 +168,38 @@ export default function StatusPageContent() {
       ? Loader2
       : STATUS_META[overall].icon;
 
+  const handleSelectNode = useCallback(
+    (nodeId: KittyApiNodeId, location: string) => {
+      if (selectedNode === nodeId && manualNode) return;
+      selectKittyProxyNode(nodeId);
+      toast.success(t("status.nodeSelected", { location }));
+    },
+    [selectedNode, manualNode, selectKittyProxyNode, t],
+  );
+
+  const handleUseFastest = useCallback(() => {
+    if (!fastestNodeId || !fastestNode) return;
+    selectKittyProxyNode(fastestNodeId);
+    toast.success(t("status.nodeSelected", { location: fastestNode.location }));
+  }, [fastestNodeId, fastestNode, selectKittyProxyNode, t]);
+
+  const handleEnableAuto = useCallback(() => {
+    enableAutoKittyProxyNode(fastestNodeId ?? undefined);
+    toast.success(t("status.autoEnabled"));
+  }, [enableAutoKittyProxyNode, fastestNodeId, t]);
+
+  const showFastestCta =
+    ready &&
+    fastestNodeId != null &&
+    fastestNode != null &&
+    selectedNode !== fastestNodeId &&
+    Boolean(pingByNode[fastestNodeId] != null || nodes.find((n) => n.id === fastestNodeId)?.ok);
+
   return (
     <Container className="py-10 sm:py-14 pb-20">
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-indigo-400/80">
+          <div className="flex items-center gap-2 text-sky-400/80">
             <Activity className="w-4 h-4" />
             <span className="text-[11px] font-mono uppercase tracking-widest">
               {t("status.eyebrow")}
@@ -136,134 +215,306 @@ export default function StatusPageContent() {
 
         <div
           className={cn(
-            "site-panel p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4",
+            "site-panel p-5 sm:p-6 flex flex-col gap-4",
             overall !== "checking" && STATUS_META[overall].bg,
           )}
         >
-          <div className="flex items-center gap-3">
-            <OverallIcon
-              className={cn(
-                "w-8 h-8 shrink-0",
-                overall === "checking" && "animate-spin text-muted-foreground",
-                overall !== "checking" && STATUS_META[overall].color,
-              )}
-            />
-            <div>
-              <p className="text-lg font-semibold text-foreground dark:text-white">{overallLabel}</p>
-              {ready && (
-                <p className="text-[12px] text-muted-foreground dark:text-white/50 mt-0.5">
-                  {t("status.nodesOnline", { online: onlineCount, total: nodes.length })}
-                  {fastestNode && fastestPing != null && (
-                    <>
-                      {" · "}
-                      {t("status.fastest")}: {NODE_FLAGS[fastestNode.id] ?? ""} {fastestNode.location} ({fastestPing}ms)
-                    </>
-                  )}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <OverallIcon
+                className={cn(
+                  "w-8 h-8 shrink-0",
+                  overall === "checking" && "animate-spin text-muted-foreground",
+                  overall !== "checking" && STATUS_META[overall].color,
+                )}
+              />
+              <div className="min-w-0">
+                <p className="text-lg font-semibold text-foreground dark:text-white">
+                  {overallLabel}
                 </p>
+                {ready && (
+                  <p className="text-[12px] text-muted-foreground dark:text-white/50 mt-0.5">
+                    {t("status.nodesOnline", { online: onlineCount, total: nodes.length })}
+                    {fastestNode && fastestPing != null && (
+                      <>
+                        {" · "}
+                        {t("status.fastest")}: {NODE_FLAGS[fastestNode.id] ?? ""}{" "}
+                        {fastestNode.location} ({fastestPing}ms)
+                      </>
+                    )}
+                  </p>
+                )}
+                <p className="text-[12px] text-muted-foreground dark:text-white/40 mt-0.5">
+                  {lastRefresh
+                    ? t("status.lastChecked", { time: lastRefresh.toLocaleTimeString() })
+                    : liteMode
+                      ? t("status.manualRefreshLite")
+                      : t("status.autoRefresh")}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/12 text-sm font-medium text-muted-foreground dark:text-white/60 hover:bg-accent dark:hover:bg-white/8 transition-colors disabled:opacity-40 shrink-0"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              {t("status.refresh")}
+            </button>
+          </div>
+
+          {ready && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-border/60 dark:border-white/8">
+              <div className="rounded-xl bg-black/10 dark:bg-white/[0.03] px-3 py-2.5">
+                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground/80 dark:text-white/30">
+                  <Gauge className="w-3 h-3" />
+                  {t("status.avgLatency")}
+                </div>
+                <p className={cn("mt-1 text-sm font-semibold tabular-nums", latencyClass(avgLatency))}>
+                  {avgLatency != null ? t("status.latency", { ms: avgLatency }) : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl bg-black/10 dark:bg-white/[0.03] px-3 py-2.5">
+                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground/80 dark:text-white/30">
+                  <Wifi className="w-3 h-3" />
+                  {t("status.bestBandwidth")}
+                </div>
+                <p className="mt-1 text-sm font-semibold tabular-nums text-foreground/85 dark:text-white/80">
+                  {bestBandwidth != null
+                    ? t("status.bandwidth", { mbps: formatMbps(bestBandwidth) })
+                    : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl bg-black/10 dark:bg-white/[0.03] px-3 py-2.5 col-span-2 sm:col-span-1">
+                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground/80 dark:text-white/30">
+                  <Activity className="w-3 h-3" />
+                  {t("status.proxyNodes")}
+                </div>
+                <p className="mt-1 text-sm font-semibold tabular-nums text-foreground/85 dark:text-white/80">
+                  {onlineCount}/{nodes.length}
+                  {offlineCount > 0 ? (
+                    <span className="ml-1.5 text-[11px] font-medium text-rose-300/80">
+                      · {t("status.offlineCount", { count: offlineCount })}
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div
+          className={cn(
+            "site-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3",
+            manualNode
+              ? "border-violet-400/20 bg-violet-500/[0.06]"
+              : "border-teal-400/20 bg-teal-500/[0.06]",
+          )}
+        >
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div
+              className={cn(
+                "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
+                manualNode
+                  ? "bg-violet-500/15 ring-violet-400/25 text-violet-300"
+                  : "bg-teal-500/15 ring-teal-400/25 text-teal-300",
               )}
-              <p className="text-[12px] text-muted-foreground dark:text-white/40 mt-0.5">
-                {lastRefresh
-                  ? t("status.lastChecked", { time: lastRefresh.toLocaleTimeString() })
-                  : liteMode
-                    ? t("status.manualRefreshLite")
-                    : t("status.autoRefresh")}
+            >
+              {manualNode ? <Globe2 className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground dark:text-white/90">
+                {manualNode ? t("status.modeManual") : t("status.modeAuto")}
+              </p>
+              <p className="text-[12px] text-muted-foreground dark:text-white/45 mt-0.5 leading-relaxed">
+                {manualNode
+                  ? t("status.modeManualDesc", {
+                      location: selectedMeta?.location ?? selectedNode,
+                    })
+                  : t("status.modeAutoDesc")}
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/12 text-sm font-medium text-muted-foreground dark:text-white/60 hover:bg-accent dark:hover:bg-white/8 transition-colors disabled:opacity-40"
-          >
-            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-            {t("status.refresh")}
-          </button>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {showFastestCta && (
+              <button
+                type="button"
+                onClick={handleUseFastest}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-teal-400/25 bg-teal-500/10 text-[12px] font-semibold text-teal-100 hover:bg-teal-500/15 transition-colors"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                {t("status.switchFastest")}
+              </button>
+            )}
+            {manualNode && (
+              <button
+                type="button"
+                onClick={handleEnableAuto}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-border dark:border-white/12 text-[12px] font-semibold text-muted-foreground dark:text-white/65 hover:bg-accent dark:hover:bg-white/8 transition-colors"
+              >
+                {t("status.enableAuto")}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col gap-3">
-          <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest">
-            {t("status.proxyNodes")}
-          </p>
-          {KITTY_API_NODES.map((node) => {
-            const ping = pingByNode[node.id as KittyApiNodeId];
-            const bandwidth = bandwidthByNode[node.id as KittyApiNodeId];
-            const online = nodes.find((n) => n.id === node.id)?.ok ?? false;
-            const isRecommended = (recommended ?? fastestId) === node.id && online;
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest">
+                {t("status.proxyNodes")}
+              </p>
+              <p className="text-[12px] text-muted-foreground dark:text-white/40 mt-1">
+                {t("status.proxyNodesHint")}
+              </p>
+            </div>
+            {ready && (
+              <p className="hidden sm:block text-[10px] font-mono text-muted-foreground/70 dark:text-white/25 shrink-0">
+                {t("status.sortByPing")}
+              </p>
+            )}
+          </div>
 
-            return (
-              <div
-                key={node.id}
-                className={cn(
-                  "site-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4",
-                  !online && "opacity-80",
-                )}
-              >
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div
-                    className={cn(
-                      "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 text-lg leading-none",
-                      online
-                        ? "bg-emerald-500/10 ring-emerald-500/20"
-                        : "bg-red-500/10 ring-red-500/20 grayscale opacity-70",
-                    )}
-                  >
-                    {NODE_FLAGS[node.id] ?? <Globe2 className="w-4 h-4 text-muted-foreground" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-foreground dark:text-white/90">
-                        {node.location}
-                      </p>
-                      {isRecommended && (
-                        <span className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-teal-500/15 border border-teal-400/25 text-teal-300/90">
-                          {t("status.recommended")}
-                        </span>
-                      )}
-                      {manualNode && selectedNode === node.id && (
-                        <span className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-400/25 text-violet-300/90">
-                          {t("status.yourNode")}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/80 dark:text-white/25 mt-1.5">
-                      {online ? t("status.nodeOnline") : t("status.nodeOffline")}
-                      {ping != null && (
-                        <>
-                          {" · "}
-                          <span className={cn("font-medium", latencyClass(ping))}>
-                            {t("status.latency", { ms: ping })}
-                          </span>
-                        </>
-                      )}
-                      {bandwidth != null && bandwidth > 0 && (
-                        <>
-                          {" · "}
-                          {t("status.bandwidth", { mbps: bandwidth >= 10 ? Math.round(bandwidth) : bandwidth.toFixed(1) })}
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
+          {!ready && loading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <div
+                  key={i}
+                  className="site-panel p-4 sm:p-5 h-[88px] animate-pulse bg-muted/40 dark:bg-white/[0.03]"
+                />
+              ))}
+            </div>
+          ) : (
+            sortedNodes.map((node) => {
+              const ping = pingByNode[node.id];
+              const bandwidth = bandwidthByNode[node.id];
+              const online = nodes.find((n) => n.id === node.id)?.ok ?? false;
+              const isRecommended = fastestNodeId === node.id && online;
+              const isSelected = selectedNode === node.id;
+              const barWidth = latencyBarWidth(ping ?? null, maxPing);
+
+              return (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => handleSelectNode(node.id, node.location)}
+                  disabled={!online && !isSelected}
                   className={cn(
-                    "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono border",
-                    online
-                      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300/90"
-                      : "border-red-500/25 bg-red-500/10 text-red-300/90",
+                    "site-panel p-4 sm:p-5 flex flex-col gap-3 text-left transition-all",
+                    "hover:border-border dark:hover:border-white/18 hover:bg-accent/40 dark:hover:bg-white/[0.04]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40",
+                    !online && "opacity-70",
+                    isSelected &&
+                      "border-sky-400/35 bg-sky-500/10 ring-1 ring-sky-400/20",
+                    isRecommended && !isSelected && "border-teal-400/20",
                   )}
                 >
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 rounded-full",
-                      online ? "bg-emerald-400" : "bg-red-400",
-                    )}
-                  />
-                  {online ? t("status.up") : t("status.down")}
-                </div>
-              </div>
-            );
-          })}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div
+                        className={cn(
+                          "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 text-lg leading-none",
+                          online
+                            ? "bg-emerald-500/10 ring-emerald-500/20"
+                            : "bg-red-500/10 ring-red-500/20 grayscale opacity-70",
+                        )}
+                      >
+                        {NODE_FLAGS[node.id] ?? (
+                          <Globe2 className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-semibold text-foreground dark:text-white/90">
+                            {node.location}
+                          </p>
+                          {isRecommended && (
+                            <span className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-teal-500/15 border border-teal-400/25 text-teal-300/90">
+                              {t("status.recommended")}
+                            </span>
+                          )}
+                          {isSelected && (
+                            <span className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-400/25 text-sky-300/90">
+                              {manualNode ? t("status.yourNode") : t("status.activeNode")}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground/80 dark:text-white/35 mt-1.5">
+                          {loading && ping == null
+                            ? t("status.measuring")
+                            : online
+                              ? t("status.nodeOnline")
+                              : t("status.nodeOffline")}
+                          {ping != null && (
+                            <>
+                              {" · "}
+                              <span className={cn("font-medium", latencyClass(ping))}>
+                                {t("status.latency", { ms: ping })}
+                              </span>
+                            </>
+                          )}
+                          {bandwidth != null && bandwidth > 0 && (
+                            <>
+                              {" · "}
+                              {t("status.bandwidth", { mbps: formatMbps(bandwidth) })}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono border",
+                          online
+                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300/90"
+                            : "border-red-500/25 bg-red-500/10 text-red-300/90",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            online ? "bg-emerald-400" : "bg-red-400",
+                          )}
+                        />
+                        {online ? t("status.up") : t("status.down")}
+                      </span>
+                      <span
+                        className={cn(
+                          "hidden sm:inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-semibold border",
+                          isSelected
+                            ? "border-sky-400/30 bg-sky-500/15 text-sky-200"
+                            : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45",
+                        )}
+                      >
+                        {isSelected ? t("status.usingNode") : t("status.useNode")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {ping != null && (
+                    <div className="pl-12">
+                      <div className="h-1.5 rounded-full bg-muted/70 dark:bg-white/[0.06] overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-[width] duration-500",
+                            ping < 120
+                              ? "bg-emerald-400/80"
+                              : ping < 280
+                                ? "bg-amber-400/80"
+                                : "bg-rose-400/80",
+                          )}
+                          style={{ width: `${barWidth}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
 
         <div className="site-panel p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
@@ -288,7 +539,10 @@ export default function StatusPageContent() {
         </div>
 
         <p className="text-center text-[11px] text-muted-foreground/70 dark:text-white/25 font-mono">
-          <Link href={ROUTES.FAQ} className="hover:text-foreground dark:hover:text-white/60 transition-colors">
+          <Link
+            href={ROUTES.FAQ}
+            className="hover:text-foreground dark:hover:text-white/60 transition-colors"
+          >
             {t("status.faqLink")}
           </Link>
         </p>

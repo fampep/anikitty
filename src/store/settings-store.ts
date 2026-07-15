@@ -78,6 +78,8 @@ interface ISettingsStore {
   selectKittyProxyNode: (node: KittyApiNodeId) => void;
   /** Apply lowest-ping proxy only when the user has not chosen manually. */
   applyAutoKittyProxyNode: (node: KittyApiNodeId) => void;
+  /** Resume auto-picking the lowest-ping proxy (optionally pin to a node first). */
+  enableAutoKittyProxyNode: (node?: KittyApiNodeId) => void;
 
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
@@ -222,6 +224,11 @@ export const useSettingsStore = create<ISettingsStore>()(
       selectKittyProxyNode: (kittyProxyNode) => set({ kittyProxyNode, kittyProxyManual: true }),
       applyAutoKittyProxyNode: (kittyProxyNode) =>
         set((s) => (s.kittyProxyManual ? s : { kittyProxyNode })),
+      enableAutoKittyProxyNode: (node) =>
+        set({
+          kittyProxyManual: false,
+          ...(node ? { kittyProxyNode: node } : {}),
+        }),
 
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>

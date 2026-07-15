@@ -78,10 +78,21 @@ export function buildKittyStreamQueryKey(
   audio: "sub" | "dub",
   provider: KittyProvider,
   title?: string | null,
+  kittyNode?: KittyApiNodeId,
   preferHardSub?: boolean,
   linkId?: string | null,
 ) {
-  return [KITTY_STREAM_QUERY_KEY, anilistId, episode, audio, provider, title ?? "", preferHardSub === true, linkId ?? ""];
+  return [
+    KITTY_STREAM_QUERY_KEY,
+    anilistId,
+    episode,
+    audio,
+    provider,
+    title ?? "",
+    kittyNode ?? "primary",
+    preferHardSub === true,
+    linkId ?? "",
+  ];
 }
 
 export function isKittyStreamAbortError(error: unknown): boolean {
@@ -114,7 +125,16 @@ export const useGetKittyStream = (
   }, []);
 
   return useQuery({
-    queryKey: buildKittyStreamQueryKey(anilistId, episode, audio, provider, title, preferHardSub, linkId),
+    queryKey: buildKittyStreamQueryKey(
+      anilistId,
+      episode,
+      audio,
+      provider,
+      title,
+      kittyNode,
+      preferHardSub,
+      linkId,
+    ),
     queryFn: async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
