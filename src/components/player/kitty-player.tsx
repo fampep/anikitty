@@ -11,6 +11,7 @@ import {
   useMediaRemote,
   useMediaState,
   type MediaErrorDetail,
+  type MediaProviderAdapter,
 } from "@vidstack/react";
 import {
   DefaultVideoLayout,
@@ -19,6 +20,11 @@ import {
 import LoadingGirl from "@/components/common/loading-girl";
 import { buildVidstackPlayerSrc } from "@/lib/player/build-vidstack-src";
 import { createPlayerController } from "@/lib/player/player-controller";
+import {
+  configureVidstackHlsProvider,
+  isFatalHlsError,
+  isFatalNativeMediaError,
+} from "@/lib/player/vidstack-hls";
 import {
   isElementFullscreen,
   onFullscreenChange,
@@ -491,6 +497,27 @@ export default function KittyPlayer(props: VideoPlayerProps) {
 
   const srcKey = useMemo(() => resolvePlayerSrcKey(playerSrc), [playerSrc]);
 
+  const fatalErrorFiredRef = useRef(false);
+  const hlsNetworkRecoveriesRef = useRef(0);
+
+  useEffect(() => {
+    fatalErrorFiredRef.current = false;
+    hlsNetworkRecoveriesRef.current = 0;
+  }, [srcKey]);
+
+  const fireFatalError = useCallback(
+    (type: string, details?: string) => {
+      if (fatalErrorFiredRef.current) return;
+      fatalErrorFiredRef.current = true;
+      onFatalError?.({ type, details });
+    },
+    [onFatalError],
+  );
+
+  const handleProviderChange = useCallback((provider: MediaProviderAdapter | null) => {
+    configureVidstackHlsProvider(provider);
+  }, []);
+
   const syncPlayerOrientation = useCallback(() => {
     setOrientClass(
       resolvePlayerOrientClass({
@@ -551,12 +578,27 @@ export default function KittyPlayer(props: VideoPlayerProps) {
         crossOrigin
         playsInline
         autoplay
+        preferNativeHLS={false}
         storage="kitty-vidstack"
+        onProviderChange={handleProviderChange}
+        onHlsLibLoadError={() => {
+          fireFatalError("hls-lib", "Failed to load hls.js");
+        }}
+        onHlsError={(detail) => {
+          if (!detail.fatal) return;
+          if (detail.type === "networkError") {
+            hlsNetworkRecoveriesRef.current += 1;
+          }
+          if (isFatalHlsError(detail, hlsNetworkRecoveriesRef.current)) {
+            fireFatalError(String(detail.type), detail.details);
+          }
+        }}
         onError={(detail: MediaErrorDetail) => {
-          onFatalError?.({
-            type: detail.code != null ? String(detail.code) : "media",
-            details: detail.message,
-          });
+          if (!isFatalNativeMediaError(detail, playerSrc)) return;
+          fireFatalError(
+            detail.code != null ? String(detail.code) : "media",
+            detail.message,
+          );
         }}
       >
         <MediaProvider />
