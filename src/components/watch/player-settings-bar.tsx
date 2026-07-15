@@ -11,8 +11,8 @@ import {
   ChevronDown,
   Captions,
   Mic,
-  MoveHorizontal,
   Monitor,
+  MoveHorizontal,
   Play,
   RefreshCw,
   Settings2,
@@ -21,7 +21,12 @@ import {
   Server,
   List,
   Globe2,
+  Sparkles,
 } from "lucide-react";
+import {
+  ANIME4K_MODES,
+  isWebGpuSupported,
+} from "@/lib/player/anime4k";
 
 type PlayerSettingsTab = "playback" | "network" | "subtitles";
 function ToggleRow({
@@ -101,6 +106,11 @@ export default function PlayerSettingsBar({
     setAutoEnableSubtitles,
     hardSubSoftSubs,
     setHardSubSoftSubs,
+    anime4kEnabled,
+    setAnime4kEnabled,
+    anime4kMode,
+    setAnime4kMode,
+    liteMode,
   } = useSettingsStore();
 
   const [settingsTab, setSettingsTab] = useState<PlayerSettingsTab>("playback");
@@ -110,6 +120,8 @@ export default function PlayerSettingsBar({
     { id: "network", icon: Globe2, label: t("watch.playerSettings.tabNetwork") },
     { id: "subtitles", icon: Captions, label: t("watch.playerSettings.tabSubtitles") },
   ];
+
+  const webGpuReady = isWebGpuSupported();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -252,6 +264,46 @@ export default function PlayerSettingsBar({
                 value={playerTouchSeekEnabled}
                 onChange={setPlayerTouchSeekEnabled}
               />
+
+              {webGpuReady ? (
+                <>
+                  <ToggleRow
+                    icon={<Sparkles className="w-3.5 h-3.5" />}
+                    label={t("watch.anime4k")}
+                    description={
+                      liteMode
+                        ? t("watch.anime4kLiteDisabled")
+                        : t("watch.anime4kHint")
+                    }
+                    value={anime4kEnabled && !liteMode}
+                    onChange={(enabled) => setAnime4kEnabled(enabled)}
+                  />
+                  {anime4kEnabled && !liteMode ? (
+                    <div className="flex flex-wrap gap-1.5 px-0.5">
+                      {ANIME4K_MODES.map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setAnime4kMode(mode)}
+                          aria-pressed={anime4kMode === mode}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors",
+                            anime4kMode === mode
+                              ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                              : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75",
+                          )}
+                        >
+                          {t("watch.anime4kMode", { mode })}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-[10px] text-muted-foreground dark:text-white/35 font-mono px-0.5">
+                  {t("watch.anime4kUnsupported")}
+                </p>
+              )}
             </div>
           )}
 

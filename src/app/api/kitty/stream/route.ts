@@ -77,9 +77,9 @@ const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
-/** Active providers that use generic KittyAPI stream-direct only (not AllAnime/MKissa mirrors). */
+/** Active providers that use generic KittyAPI stream-direct only (not AllAnime/MKissa mirrors or Miruro pipe). */
 const STREAM_DIRECT_PROVIDERS = new Set<string>(
-  KITTY_PROVIDERS.filter((p) => p !== "AllAnime" && p !== "MKissa"),
+  KITTY_PROVIDERS.filter((p) => p !== "AllAnime" && p !== "MKissa" && p !== "Miruro"),
 );
 
 type StreamPayload = {

@@ -156,6 +156,68 @@ body {
     @apply right-0 bg-gradient-to-l from-background to-transparent dark:from-[#0a0a0f];
   }
 
+  .home-classic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    gap: 0.875rem 0.75rem;
+  }
+
+  @media (min-width: 450px) {
+    .home-classic-grid {
+      grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+      gap: 1rem;
+    }
+  }
+
+  @media (min-width: 800px) {
+    .home-classic-grid {
+      grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    }
+  }
+
+  @media (min-width: 1350px) {
+    .home-classic-grid {
+      grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+      gap: 1.125rem 1rem;
+    }
+  }
+
+  @media (min-width: 1450px) {
+    .home-classic-grid {
+      grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    }
+  }
+
+  .home-side-list-card {
+    @apply transition-transform duration-300;
+  }
+
+  .home-side-list-card:hover {
+    @apply -translate-y-0.5;
+  }
+
+  .home-schedule-list::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to bottom,
+      rgb(167 139 250 / 0.85) 0%,
+      rgb(167 139 250 / 0.85) var(--schedule-progress, 0%),
+      rgb(255 255 255 / 0.08) var(--schedule-progress, 0%),
+      rgb(255 255 255 / 0.08) 100%
+    );
+    pointer-events: none;
+  }
+
+  .home-schedule-row {
+    padding-left: 0.75rem;
+  }
+
   /* Momentum scrolling on iOS */
   .scroll-momentum {
     -webkit-overflow-scrolling: touch;
@@ -534,6 +596,23 @@ html.density-compact .site-bottom-nav {
 .art-kitty-player .art-video,
 .art-kitty-player video {
   filter: none !important;
+}
+
+.art-kitty-player .art-video {
+  position: relative;
+}
+
+.art-kitty-player.anime4k-active .art-video video {
+  opacity: 0 !important;
+}
+
+.kitty-anime4k-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* Bottom control bar — a short, subtle dock behind the controls only.

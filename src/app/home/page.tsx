@@ -6,7 +6,6 @@ import HomeRecentUpdates from "@/components/home/home-recent-updates";
 import HomeSchedulePanel from "@/components/home/home-schedule-panel";
 import HomeSeasonBrowser from "@/components/home/home-season-browser";
 import HomeTrendingRail from "@/components/home/home-trending-rail";
-import HomeUpcomingRail from "@/components/home/home-upcoming-rail";
 import HomeAdsNotice from "@/components/home/home-ads-notice";
 import Container from "@/components/layout/container";
 import LazyMount from "@/components/shared/lazy-mount";
@@ -31,6 +30,7 @@ const RecentlyViewed = dynamic(() => import("@/components/home/recently-viewed")
 const HomeRecommendations = dynamic(() => import("@/components/home/home-recommendations"));
 const HomeFeaturePromos = dynamic(() => import("@/components/home/home-feature-promos"));
 const HomeW2gRail = dynamic(() => import("@/components/home/home-w2g-rail"));
+const HomeSideLists = dynamic(() => import("@/components/home/home-side-lists"));
 
 export default function Home() {
   const t = useT();
@@ -129,37 +129,40 @@ export default function Home() {
           <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
         </LazyMount>
 
-        <HomeTrendingRail animes={trending} loading={isLoading} />
-
-        <Container className="flex max-xl:flex-col w-full gap-4 sm:gap-6 xl:gap-0">
-          <aside className="flex gap-4 sm:gap-5 flex-col w-full xl:w-[32%] xl:order-last xl:pl-8">
-            <LazyMount rootMargin="500px 0px">
-              <div id="community" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
-                <LatestComments bare />
-              </div>
-            </LazyMount>
-            <LazyMount rootMargin="600px 0px">
-              <div id="schedule" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
-                <HomeSchedulePanel />
-              </div>
-            </LazyMount>
-          </aside>
-
-          <main className="flex flex-col gap-4 w-full xl:w-[68%]">
-            <LazyMount rootMargin="500px 0px">
-              <HomeSeasonBrowser
-                seasonAnimes={recentlyAdded}
-                popularAnimes={popular}
-                ratedAnimes={topRated}
-                loading={isLoading || discoveryLoadingState}
-              />
-            </LazyMount>
-          </main>
-        </Container>
+        <LazyMount rootMargin="500px 0px">
+          <Container>
+            <HomeSeasonBrowser
+              seasonAnimes={recentlyAdded}
+              popularAnimes={popular}
+              ratedAnimes={topRated}
+              loading={isLoading || discoveryLoadingState}
+            />
+          </Container>
+        </LazyMount>
 
         <LazyMount rootMargin="600px 0px">
-          <HomeUpcomingRail animes={upcoming} loading={discoveryLoadingState} />
+          <HomeSideLists
+            latestCompleted={(discovery?.latestCompletedAnimes as IAnime[] | undefined) ?? []}
+            popular={popular}
+            upcoming={upcoming}
+            loading={discoveryLoadingState}
+          />
         </LazyMount>
+
+        <HomeTrendingRail animes={trending} loading={isLoading} />
+
+        <Container className="grid w-full gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <LazyMount rootMargin="500px 0px">
+            <div id="community" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+              <LatestComments bare />
+            </div>
+          </LazyMount>
+          <LazyMount rootMargin="600px 0px">
+            <div id="schedule" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+              <HomeSchedulePanel />
+            </div>
+          </LazyMount>
+        </Container>
 
         <LazyMount rootMargin="700px 0px">
           <HomeFeaturePromos />

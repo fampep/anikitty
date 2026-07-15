@@ -10,6 +10,7 @@ import {
   type SyncedUserPreferences,
 } from "@/lib/account/user-preferences";
 import { sanitizeSeekStepSeconds } from "@/lib/player/seek-step";
+import { sanitizeAnime4kMode } from "@/lib/player/anime4k";
 import { ensureCustomSubtitleFontLoaded } from "@/lib/subtitles/custom-subtitle-font";
 
 const SYNC_DEBOUNCE_MS = 900;
@@ -47,6 +48,8 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     playerTouchSeekEnabled: s.playerTouchSeekEnabled,
     autoEnableSubtitles: s.autoEnableSubtitles,
     hardSubSoftSubs: s.hardSubSoftSubs,
+    anime4kEnabled: s.anime4kEnabled,
+    anime4kMode: s.anime4kMode,
   });
 }
 
@@ -84,6 +87,8 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.playerTouchSeekEnabled !== undefined) patch.playerTouchSeekEnabled = prefs.playerTouchSeekEnabled;
   if (prefs.autoEnableSubtitles !== undefined) patch.autoEnableSubtitles = prefs.autoEnableSubtitles;
   if (prefs.hardSubSoftSubs !== undefined) patch.hardSubSoftSubs = prefs.hardSubSoftSubs;
+  if (prefs.anime4kEnabled !== undefined) patch.anime4kEnabled = prefs.anime4kEnabled;
+  if (prefs.anime4kMode !== undefined) patch.anime4kMode = sanitizeAnime4kMode(prefs.anime4kMode);
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);

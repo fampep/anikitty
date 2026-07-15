@@ -8,6 +8,7 @@ import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
 import { sanitizeSeekStepSeconds, type PlayerSeekStep } from "@/lib/player/seek-step";
+import { sanitizeAnime4kMode, type Anime4kMode } from "@/lib/player/anime4k";
 import { isValidThemeColor } from "@/lib/core/theme-color";
 
 export type SyncedUserPreferences = {
@@ -41,6 +42,8 @@ export type SyncedUserPreferences = {
   playerTouchSeekEnabled?: boolean;
   autoEnableSubtitles?: boolean;
   hardSubSoftSubs?: boolean;
+  anime4kEnabled?: boolean;
+  anime4kMode?: Anime4kMode;
 };
 
 export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
@@ -82,6 +85,8 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.playerTouchSeekEnabled === "boolean") out.playerTouchSeekEnabled = input.playerTouchSeekEnabled;
   if (typeof input.autoEnableSubtitles === "boolean") out.autoEnableSubtitles = input.autoEnableSubtitles;
   if (typeof input.hardSubSoftSubs === "boolean") out.hardSubSoftSubs = input.hardSubSoftSubs;
+  if (typeof input.anime4kEnabled === "boolean") out.anime4kEnabled = input.anime4kEnabled;
+  if (input.anime4kMode !== undefined) out.anime4kMode = sanitizeAnime4kMode(input.anime4kMode);
   if (input.siteAccentColor === null) {
     out.siteAccentColor = null;
   } else if (typeof input.siteAccentColor === "string" && isValidThemeColor(input.siteAccentColor)) {

@@ -41,7 +41,7 @@ const AnimeSections = ({ trendingAnime, loading, title, subtitle, icon, showRank
   }
 
   return (
-    <Container id={sectionId} className="flex flex-col gap-5 py-3 sm:py-4 items-center lg:items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
+    <Container id={sectionId} className="flex flex-col gap-4 items-center lg:items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
       <SectionHeading icon={icon} title={title} subtitle={subtitle} href={seeAllHref} />
       <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 w-full gap-3 md:gap-4">
         {trendingAnime.map((anime, idx) => (
@@ -107,7 +107,7 @@ function RowLayout({
   };
 
   return (
-    <Container id={sectionId} className="flex flex-col gap-4 py-3 sm:py-4 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+    <Container id={sectionId} className="flex flex-col gap-4 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       <div className="flex items-center gap-2 w-full min-w-0">
         <div className="min-w-0 flex-1">
           <SectionHeading icon={icon} title={title} subtitle={subtitle} href={seeAllHref} />
@@ -173,7 +173,7 @@ function RowLayout({
 }
 
 const LoadingSkeleton = ({ layout, sectionId }: { layout?: "grid" | "row"; sectionId?: string }) => (
-  <Container id={sectionId} className="flex flex-col gap-4 py-3 sm:py-4 items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
+  <Container id={sectionId} className="flex flex-col gap-4 py-2 items-start scroll-mt-[calc(var(--nav-height)+1rem)]">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
       <div className="h-6 w-48 animate-pulse bg-accent dark:bg-white/8 rounded" />

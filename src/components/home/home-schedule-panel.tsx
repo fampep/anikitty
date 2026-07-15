@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useI18n, useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
-import { HomeScrollRail, HomeSectionLink } from "./home-shared";
+import { HomeSectionLink } from "./home-shared";
 
 type ScheduleItem = {
   id: string;
@@ -36,8 +36,7 @@ export default function HomeSchedulePanel() {
     const list: Date[] = [];
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - 7);
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 7; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       list.push(d);
@@ -62,46 +61,64 @@ export default function HomeSchedulePanel() {
 
   const todayKey = dayKey(new Date());
 
+  const listProgress = useMemo(() => {
+    if (!items.length) return 0;
+    const aired = items.filter((item) => item.secondsUntilAiring <= 0).length;
+    return Math.round((aired / items.length) * 100);
+  }, [items]);
+
   return (
     <div className="flex flex-col w-full gap-4 overflow-hidden">
-      <HomeSectionLink href={ROUTES.SCHEDULE} title={t("home.estimatedSchedule")} />
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">
+          {t("home.estimated")}
+        </span>
+        <HomeSectionLink href={ROUTES.SCHEDULE} title={t("home.estimatedSchedule")} />
+      </div>
 
-      <HomeScrollRail className="rounded-xl" edgeFade>
-        {days.map((d) => {
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide scroll-momentum py-1">
+        {days.map((d, index) => {
           const key = dayKey(d);
           const active = key === selectedDay;
           const isToday = key === todayKey;
           return (
-            <button
-              key={key}
-              type="button"
-              data-today={isToday ? "true" : undefined}
-              onClick={() => setSelectedDay(key)}
-              className={cn(
-                "w-20 py-2 flex flex-col items-center justify-center shrink-0 rounded-xl ring-inset transition-all",
-                active
-                  ? "bg-foreground text-background font-bold dark:bg-white dark:text-black"
-                  : "font-bold text-muted-foreground hover:text-foreground dark:hover:text-white/80 transition-colors",
-              )}
-            >
-              <span>{d.toLocaleDateString(locale, { weekday: "short" })}</span>
-              <span
+            <div key={key} className="flex items-center gap-1 shrink-0">
+              {index > 0 ? (
+                <span className="text-muted-foreground/40 dark:text-white/15 px-0.5 select-none" aria-hidden>
+                  /
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setSelectedDay(key)}
                 className={cn(
-                  "font-semibold text-xs mt-0.5",
-                  active ? "text-background/80 dark:text-black/70" : "text-muted-foreground",
+                  "flex flex-col items-center min-w-[2.75rem] px-1 py-1 rounded-lg transition-colors",
+                  active
+                    ? "text-foreground dark:text-white"
+                    : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70",
                 )}
               >
-                {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}
-              </span>
-            </button>
+                <span className={cn("text-xs font-bold", active && "text-violet-300")}>
+                  {d.toLocaleDateString(locale, { weekday: "short" })}
+                </span>
+                {active || isToday ? (
+                  <span className="text-[10px] font-medium mt-0.5 tabular-nums opacity-70">
+                    {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}
+                  </span>
+                ) : null}
+              </button>
+            </div>
           );
         })}
-      </HomeScrollRail>
+      </div>
 
-      <div className="flex flex-col w-full gap-2 home-glass-panel rounded-xl p-1">
+      <div
+        className="home-schedule-list relative flex flex-col w-full gap-0.5 rounded-xl overflow-hidden"
+        style={{ "--schedule-progress": `${listProgress}%` } as CSSProperties}
+      >
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-10 rounded-xl bg-muted/30 dark:bg-white/5 animate-pulse" />
+            <div key={i} className="h-10 rounded-lg bg-muted/30 dark:bg-white/5 animate-pulse" />
           ))
         ) : error ? (
           <div className="flex items-center justify-between gap-3 px-3 py-3 text-xs text-muted-foreground">
@@ -118,29 +135,35 @@ export default function HomeSchedulePanel() {
         ) : items.length === 0 ? (
           <p className="px-3 py-4 text-sm text-muted-foreground text-center">{t("home.noScheduleToday")}</p>
         ) : (
-          items.slice(0, 10).map((item) => {
-            const aired = item.secondsUntilAiring <= 0;
-            return (
-              <Link
-                key={`${item.id}-${item.episode}`}
-                href={`${ROUTES.WATCH}?anime=${item.id}`}
-                className={cn(
-                  "flex items-center h-10 gap-3 w-full hover:bg-white/10 dark:hover:bg-white/10 p-1 px-2 rounded-xl transition-colors",
-                  aired && "opacity-75 hover:opacity-100",
-                )}
-              >
-                <div className="shrink-0 text-xs font-semibold text-muted-foreground w-11 tabular-nums">
-                  {formatTime(item.airingTimestamp)}
-                </div>
-                <div className="flex items-center gap-3 w-full min-w-0">
-                  <span className="text-sm line-clamp-1 grow font-medium">{item.name}</span>
-                  <span className="shrink-0 text-xs min-w-[4.5rem] text-center font-semibold px-2 py-1 rounded-lg bg-white/10">
-                    {t("home.episode", { n: item.episode })}
+          <>
+            {items.slice(0, 10).map((item) => {
+              const aired = item.secondsUntilAiring <= 0;
+              return (
+                <Link
+                  key={`${item.id}-${item.episode}`}
+                  href={`${ROUTES.WATCH}?anime=${item.id}`}
+                  className={cn(
+                    "home-schedule-row flex items-center gap-3 w-full px-2 py-2 rounded-lg transition-colors hover:bg-muted/40 dark:hover:bg-white/[0.06]",
+                    aired && "opacity-70 hover:opacity-100",
+                  )}
+                >
+                  <span className="shrink-0 text-[11px] font-semibold text-muted-foreground dark:text-white/45 w-11 tabular-nums">
+                    {formatTime(item.airingTimestamp)}
                   </span>
-                </div>
-              </Link>
-            );
-          })
+                  <span className="text-sm line-clamp-1 grow font-medium min-w-0">{item.name}</span>
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-muted-foreground dark:text-white/45 tabular-nums">
+                    {t("common.ep")} {item.episode}
+                  </span>
+                </Link>
+              );
+            })}
+            <Link
+              href={ROUTES.SCHEDULE}
+              className="mt-1 px-2 py-2 text-xs font-semibold text-violet-300/80 hover:text-violet-200 transition-colors"
+            >
+              {t("common.viewAll")} →
+            </Link>
+          </>
         )}
       </div>
     </div>

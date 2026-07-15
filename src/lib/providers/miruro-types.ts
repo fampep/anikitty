@@ -14,6 +14,7 @@ export const MIRURO_PIPE_PROVIDERS = [
   { id: "bun", label: "Bun", native: false },
   { id: "twin", label: "Twin", native: false },
   { id: "cog", label: "Cog", native: false },
+  { id: "telli", label: "Telli", native: false },
 ] as const;
 
 export type MiruroPipeProviderId = (typeof MIRURO_PIPE_PROVIDERS)[number]["id"];

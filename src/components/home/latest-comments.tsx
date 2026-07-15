@@ -192,7 +192,7 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
   if (!comments.length) return null;
 
   return (
-    <Container className="flex flex-col gap-5 py-8 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+    <Container className="flex flex-col gap-4 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       {header}
       <CommentsFeed comments={comments} />
     </Container>
@@ -222,7 +222,7 @@ const BareLoadingSkeleton = () => (
 );
 
 const LoadingSkeleton = () => (
-  <Container className="flex flex-col gap-4 py-8">
+  <Container className="flex flex-col gap-4 py-2">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-white/15 animate-pulse" />
       <div className="h-5 w-40 animate-pulse bg-white/10 rounded" />

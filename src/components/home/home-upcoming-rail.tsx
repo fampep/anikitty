@@ -18,7 +18,7 @@ export default function HomeUpcomingRail({ animes, loading }: Props) {
 
   if (loading) {
     return (
-      <Container className="flex flex-col gap-4 py-4">
+      <Container className="flex flex-col gap-4 py-2">
         <div className="h-7 w-36 rounded-lg bg-muted/50 dark:bg-white/10 animate-pulse" />
         <div className="flex gap-4">
           {Array.from({ length: 3 }).map((_, i) => (

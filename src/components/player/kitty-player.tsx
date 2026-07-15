@@ -60,6 +60,12 @@ import {
   ANIKITTY_PLAYER_CSS_VAR,
   ANIKITTY_PLAYER_THEME,
 } from "@/lib/kitty/artplayer-theme";
+import {
+  ANIME4K_MODES,
+  attachAnime4k,
+  isWebGpuSupported,
+  type Anime4kMode,
+} from "@/lib/player/anime4k";
 
 function isArtPaused(art: Artplayer): boolean {
   return art.video?.paused ?? true;
@@ -415,6 +421,9 @@ export default function KittyPlayer({
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
   const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
   const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
+  const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
+  const anime4kMode = useSettingsStore((s) => s.anime4kMode);
+  const liteMode = useSettingsStore((s) => s.liteMode);
   const seekStepRef = useRef(seekStepSeconds);
   const playerTouchSeekRef = useRef(playerTouchSeekEnabled);
 
@@ -434,6 +443,16 @@ export default function KittyPlayer({
     autoSkipRef.current = autoSkipIntro;
   }, [autoSkipIntro]);
 
+  useEffect(() => {
+    anime4kEnabledRef.current = anime4kEnabled;
+  }, [anime4kEnabled]);
+
+  useEffect(() => {
+    anime4kModeRef.current = anime4kMode;
+  }, [anime4kMode]);
+
+  const effectiveAnime4k = anime4kEnabled && !liteMode && isWebGpuSupported();
+
   const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -441,6 +460,10 @@ export default function KittyPlayer({
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
   const [buffering, setBuffering] = useState(true);
   const [ready, setReady] = useState(false);
+  const [anime4kActive, setAnime4kActive] = useState(false);
+  const anime4kDetachRef = useRef<(() => void) | null>(null);
+  const anime4kEnabledRef = useRef(anime4kEnabled);
+  const anime4kModeRef = useRef(anime4kMode);
   // Host for the skip/next/countdown overlays, mounted INSIDE ArtPlayer's
   // player element so they stay visible in every fullscreen mode.
   const [overlayHost, setOverlayHost] = useState<HTMLElement | null>(null);
@@ -725,6 +748,48 @@ export default function KittyPlayer({
   }, [externalSubtitleSig, preferSubtitles, ready, subtitleStyleSettings]);
 
   useEffect(() => {
+    const art = artRef.current;
+    const video = art?.video;
+    const videoContainer = art?.template?.$video as HTMLElement | undefined;
+
+    if (!ready || !effectiveAnime4k || !video || !videoContainer) {
+      setAnime4kActive(false);
+      anime4kDetachRef.current?.();
+      anime4kDetachRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+
+    void attachAnime4k({
+      video,
+      videoContainer,
+      mode: anime4kMode,
+    })
+      .then((attachment) => {
+        if (cancelled) {
+          attachment.detach();
+          return;
+        }
+        anime4kDetachRef.current?.();
+        anime4kDetachRef.current = attachment.detach;
+        video.style.opacity = "0";
+        attachment.canvas.style.display = "block";
+        setAnime4kActive(true);
+      })
+      .catch(() => {
+        if (!cancelled) setAnime4kActive(false);
+      });
+
+    return () => {
+      cancelled = true;
+      anime4kDetachRef.current?.();
+      anime4kDetachRef.current = null;
+      setAnime4kActive(false);
+    };
+  }, [ready, effectiveAnime4k, anime4kMode, proxiedSrc]);
+
+  useEffect(() => {
     const cfg = w2gRef.current;
     if (!cfg || cfg.isHost || !cfg.syncState) return;
     const art = artRef.current;
@@ -1005,6 +1070,43 @@ export default function KittyPlayer({
             return enabled;
           },
         },
+        ...(isWebGpuSupported()
+          ? [
+              {
+                width: 220,
+                html: t("watch.anime4k"),
+                tooltip: anime4kEnabledRef.current ? t("watch.on") : t("watch.off"),
+                switch: anime4kEnabledRef.current,
+                onSwitch(item: any) {
+                  const enabled = !item.switch;
+                  anime4kEnabledRef.current = enabled;
+                  useSettingsStore.getState().setAnime4kEnabled(enabled);
+                  item.tooltip = enabled ? t("watch.on") : t("watch.off");
+                  art.notice.show = enabled
+                    ? t("watch.artAnime4kEnabled")
+                    : t("watch.artAnime4kDisabled");
+                  return enabled;
+                },
+              },
+              {
+                width: 220,
+                html: t("watch.anime4kMode", { mode: anime4kModeRef.current }),
+                tooltip: t("watch.anime4kModeHint"),
+                selector: ANIME4K_MODES.map((mode) => ({
+                  html: t("watch.anime4kMode", { mode }),
+                  mode,
+                  default: mode === anime4kModeRef.current,
+                })),
+                onSelect(item: any) {
+                  const picked = (item.mode ?? anime4kModeRef.current) as Anime4kMode;
+                  anime4kModeRef.current = picked;
+                  useSettingsStore.getState().setAnime4kMode(picked);
+                  art.notice.show = t("watch.anime4kMode", { mode: picked });
+                  return item.html ?? t("watch.anime4k");
+                },
+              },
+            ]
+          : []),
         ...(hasExternalSubs
           ? [
               {
@@ -1337,6 +1439,9 @@ export default function KittyPlayer({
       }
       activeSubtitleUrlRef.current = null;
       subtitleModeRef.current = "off";
+      anime4kDetachRef.current?.();
+      anime4kDetachRef.current = null;
+      setAnime4kActive(false);
       startFiredRef.current = false;
       fatalErrorFiredRef.current = false;
       setReady(false);
@@ -1410,6 +1515,7 @@ export default function KittyPlayer({
         "art-kitty-player relative w-full min-w-0 overflow-hidden rounded-none sm:rounded-xl bg-[#030303]",
         "shadow-none sm:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-0 sm:ring-1 ring-white/[0.08]",
         orientClass,
+        anime4kActive && "anime4k-active",
       )}
       style={orientClass ? undefined : { aspectRatio: "16/9" }}
     >

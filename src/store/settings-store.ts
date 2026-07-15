@@ -19,6 +19,11 @@ import {
   type PlayerSeekStep,
   sanitizeSeekStepSeconds,
 } from "@/lib/player/seek-step";
+import {
+  DEFAULT_ANIME4K_MODE,
+  sanitizeAnime4kMode,
+  type Anime4kMode,
+} from "@/lib/player/anime4k";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
@@ -154,6 +159,12 @@ interface ISettingsStore {
   /** When watching hard-sub streams, also load soft subtitles (may overlap burned-in text). */
   hardSubSoftSubs: boolean;
   setHardSubSoftSubs: (val: boolean) => void;
+
+  /** Real-time Anime4K upscale via WebGPU (Kitty player). */
+  anime4kEnabled: boolean;
+  setAnime4kEnabled: (val: boolean) => void;
+  anime4kMode: Anime4kMode;
+  setAnime4kMode: (mode: Anime4kMode) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -333,10 +344,15 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       hardSubSoftSubs: false,
       setHardSubSoftSubs: (hardSubSoftSubs) => set({ hardSubSoftSubs }),
+
+      anime4kEnabled: false,
+      setAnime4kEnabled: (anime4kEnabled) => set({ anime4kEnabled }),
+      anime4kMode: DEFAULT_ANIME4K_MODE,
+      setAnime4kMode: (anime4kMode) => set({ anime4kMode: sanitizeAnime4kMode(anime4kMode) }),
     }),
     {
       name: "kitty-settings",
-      version: 35,
+      version: 36,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -370,6 +386,8 @@ export const useSettingsStore = create<ISettingsStore>()(
         playerTouchSeekEnabled: state.playerTouchSeekEnabled,
         autoEnableSubtitles: state.autoEnableSubtitles,
         hardSubSoftSubs: state.hardSubSoftSubs,
+        anime4kEnabled: state.anime4kEnabled,
+        anime4kMode: state.anime4kMode,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -498,6 +516,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 35) {
           next.hardSubSoftSubs = next.hardSubSoftSubs ?? false;
+        }
+        if (version < 36) {
+          next.anime4kEnabled = next.anime4kEnabled ?? false;
+          next.anime4kMode = sanitizeAnime4kMode(next.anime4kMode);
         }
         return next as ISettingsStore;
       },
