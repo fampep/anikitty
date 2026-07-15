@@ -85,7 +85,10 @@ const Layout = (props: Props) => {
   const [animeId, setAnimeId] = useState<string | null>(currentAnimeId);
 
   useEffect(() => {
-    if (currentAnimeId !== animeId) setAnimeId(currentAnimeId);
+    if (currentAnimeId !== animeId) {
+      setAnimeId(currentAnimeId);
+      if (!episodeId) setSelectedEpisode("");
+    }
     if (episodeId && episodeId !== selectedEpisode) setSelectedEpisode(episodeId);
   }, [currentAnimeId, episodeId, animeId, selectedEpisode, setSelectedEpisode]);
 

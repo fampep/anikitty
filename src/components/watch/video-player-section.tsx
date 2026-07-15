@@ -228,6 +228,8 @@ const VideoPlayerSection = () => {
   const animeMatchesUrl =
     animeSlug != null && urlAnimeId != null && String(animeSlug) === String(urlAnimeId);
 
+  const episodesAnimeId = animeMatchesUrl ? (animeSlug ?? "") : (urlAnimeId ?? "");
+
   useEffect(() => {
     if (!anilistId) return;
     const saved = getAnimeProviderPreference(anilistId);
@@ -235,8 +237,8 @@ const VideoPlayerSection = () => {
   }, [anilistId]);
 
   // Episode list for next-episode navigation (also resolves episode number for stream API)
-  const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(animeSlug ?? "");
-  const watchedEpisodes = useEpisodeProgress(animeSlug ?? "");
+  const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(episodesAnimeId);
+  const watchedEpisodes = useEpisodeProgress(episodesAnimeId);
   const [mobilePlaylistOpen, setMobilePlaylistOpen] = useState(false);
   type HeldStreamSnapshot = {
     key: string;
@@ -253,19 +255,21 @@ const VideoPlayerSection = () => {
   const [heldStreamSnapshot, setHeldStreamSnapshot] = useState<HeldStreamSnapshot | null>(null);
   const playerRef = useRef<PlayerController | null>(null);
   const currentEpisodeInfo = React.useMemo(() => {
-    if (!allEpisodes?.episodes || !episodeId) return undefined;
-    return findPlayableEpisode(allEpisodes.episodes, episodeId);
-  }, [allEpisodes, episodeId]);
+    if (!allEpisodes?.episodes?.length) return undefined;
+    const id = episodeId ?? (selectedEpisode || null);
+    if (!id) return undefined;
+    return findPlayableEpisode(allEpisodes.episodes, id);
+  }, [allEpisodes, episodeId, selectedEpisode]);
 
+  const activeEpisodeId = episodeId ?? currentEpisodeInfo?.episodeId ?? null;
   const episodePlayable = Boolean(currentEpisodeInfo);
 
   const episodeNo = useMemo(() => {
     if (currentEpisodeInfo?.number != null) return String(currentEpisodeInfo.number);
     if (episodeId?.startsWith("ep-")) return episodeId.replace("ep-", "");
     if (episodeId && /^\d+$/.test(episodeId)) return episodeId;
-    if (selectedEpisode?.startsWith("ep-")) return selectedEpisode.replace("ep-", "");
-    return selectedEpisode ?? "";
-  }, [currentEpisodeInfo?.number, episodeId, selectedEpisode]);
+    return "";
+  }, [currentEpisodeInfo?.number, episodeId]);
 
   const streamQueryAudio: "sub" | "dub" = streamAudio;
 
@@ -532,7 +536,10 @@ const VideoPlayerSection = () => {
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
     setMobilePlaylistOpen(false);
-  }, [episodeId]);
+    setHeldStreamSnapshot(null);
+    setManualStreamFile(null);
+    setManualStreamHeaders(null);
+  }, [episodeId, urlAnimeId]);
 
   // Fetch saved resume position when the episode changes
   useEffect(() => {
@@ -881,7 +888,7 @@ const VideoPlayerSection = () => {
   /** Placeholder sub/dub must not play while the matching stream loads (MegaPlay, etc.). */
   const audioMatchesRequest =
     !streamData?.servedAudio || streamData.servedAudio === streamQueryAudio;
-  /** keepPreviousData must never play while a new anime/episode/provider/audio request loads. */
+  /** keepPreviousData must never play a cached stream from another anime/episode. */
   const streamStale = Boolean(isPlaceholderData && isFetching);
   const streamReady = hasStreamFile && !streamStale && audioMatchesRequest;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
@@ -900,7 +907,8 @@ const VideoPlayerSection = () => {
 
   useEffect(() => {
     setHeldStreamSnapshot(null);
-  }, [streamQueryAudio, provider, urlAnimeId, anilistId]);
+    setPlaybackToken((n) => n + 1);
+  }, [streamQueryAudio, provider, urlAnimeId, anilistId, episodeId]);
 
   useEffect(() => {
     if (!streamData?.audioFallback) return;
@@ -1247,7 +1255,7 @@ const VideoPlayerSection = () => {
     );
   }
 
-  if (!episodeId && !selectedEpisode) {
+  if (!episodeId && !activeEpisodeId) {
     if (!episodesLoading && (allEpisodes?.totalEpisodes ?? 0) === 0) {
       return (
         <div className="w-full aspect-video bg-[#030303] flex flex-col items-center justify-center gap-4 rounded-xl border border-border dark:border-white/10 ring-1 ring-white/[0.06] shadow-2xl shadow-black/60 overflow-hidden relative">
@@ -1272,7 +1280,6 @@ const VideoPlayerSection = () => {
     );
   }
 
-  const activeEpisodeId = episodeId ?? selectedEpisode;
   if (activeEpisodeId && episodesLoading) {
     return (
       <div className="flex flex-col gap-3">

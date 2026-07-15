@@ -12,8 +12,10 @@ export const useAnimeStore = create<IAnimeStore>((set, get) => ({
     anime: {} as IAnimeDetails,
     setAnime: (state: IAnimeDetails) => {
         const prev = get().anime;
-        if (prev?.anime?.info?.id === state?.anime?.info?.id) return;
-        set({ anime: state });
+        const prevId = prev?.anime?.info?.id;
+        const nextId = state?.anime?.info?.id;
+        if (prevId === nextId) return;
+        set({ anime: state, selectedEpisode: "" });
     },
 
     selectedEpisode: '',

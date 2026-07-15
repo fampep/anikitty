@@ -23,6 +23,8 @@
   aspect-ratio: 16 / 9;
   overflow: visible;
   background: #030303;
+  --kitty-overlay-bottom: 72px;
+  --kitty-overlay-stacked: 130px;
 }
 
 .kitty-vidstack-player media-player {
@@ -58,4 +60,12 @@
 
 .kitty-vidstack-player .kitty-player-overlays > * {
   pointer-events: auto;
+}
+
+.kitty-vidstack-player .kitty-overlay--base {
+  bottom: var(--kitty-overlay-bottom);
+}
+
+.kitty-vidstack-player .kitty-overlay--stacked {
+  bottom: var(--kitty-overlay-stacked);
 }

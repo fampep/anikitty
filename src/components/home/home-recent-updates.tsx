@@ -47,7 +47,7 @@ export default function HomeRecentUpdates({ animes, loading }: Props) {
                 anime={anime}
                 priority={i < 4}
                 episodeBadge={ep}
-                href={`${ROUTES.WATCH}?anime=${anime.id}`}
+                href={`${ROUTES.WATCH}?anime=${anime.id}&type=latest`}
               />
             );
           })}

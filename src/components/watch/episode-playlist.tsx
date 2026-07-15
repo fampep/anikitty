@@ -7,10 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { useAnimeStore } from "@/store/anime-store";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
-import {
-  firstPlayableEpisode,
-  lastPlayableEpisode,
-} from "@/lib/anime/episode-availability";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { Eye, EyeOff, Grid2x2, LayoutGrid, LayoutList, Search, SkipForward } from "lucide-react";
 import { cn } from "@/lib/core/utils";
@@ -48,9 +44,8 @@ const EpisodePlaylist = ({
   const isWatch = variant === "watch";
   const searchParams = useSearchParams();
   const episodeId = searchParams.get("episode");
-  const isLatestEpisode = searchParams.get("type");
 
-  const { setSelectedEpisode, anime } = useAnimeStore();
+  const { anime } = useAnimeStore();
   const { episodeLayout, setEpisodeLayout, hideFillers, setHideFillers } = useSettingsStore();
 
   const watchedEpisodes = useEpisodeProgress(animeId);
@@ -88,14 +83,6 @@ const EpisodePlaylist = ({
 
   const baseFiltered = episodes.episodes.filter((_, i) => i >= start - 1 && i <= end - 1);
   const [filteredEpisodes, setFilteredEpisodes] = useState<Episode[]>(baseFiltered);
-
-  useEffect(() => {
-    if (episodeId || !episodes?.episodes.length) return;
-    const target = isLatestEpisode
-      ? lastPlayableEpisode(episodes.episodes)?.episodeId
-      : firstPlayableEpisode(episodes.episodes)?.episodeId;
-    if (target) setSelectedEpisode(target);
-  }, [episodeId, episodes, isLatestEpisode, setSelectedEpisode]);
 
   useEffect(() => {
     if (!episodeId || !episodes?.episodes.length || total <= 0) return;

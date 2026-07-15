@@ -405,7 +405,7 @@ function PlayerBridge({
 
   const nearEnd = duration > 60 && currentTime >= duration - 90;
   const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
-  const overlayBottom = showNext ? "kitty-overlay--stacked" : "kitty-overlay--base";
+  const skipStackClass = showNext ? "kitty-overlay--stacked" : "kitty-overlay--base";
 
   const handleSkip = (end: number) => {
     remote.seek(end);
@@ -419,7 +419,7 @@ function PlayerBridge({
         <NextEpisodeButton
           episode={nextEpisode}
           imageUrl={nextEpisode.image}
-          stackClass={overlayBottom}
+          stackClass="kitty-overlay--base"
           onClick={() => onNextEpisodeRef.current?.()}
         />
       )}
@@ -429,7 +429,7 @@ function PlayerBridge({
           type={activeSkip}
           interval={activeInterval}
           currentTime={currentTime}
-          stackClass={overlayBottom}
+          stackClass={skipStackClass}
           onSkip={() => handleSkip(activeInterval.end)}
         />
       )}
