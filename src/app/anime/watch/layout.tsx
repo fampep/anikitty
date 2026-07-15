@@ -405,18 +405,6 @@ const Layout = (props: Props) => {
         </div>
       )}
 
-      {!theatreMode && (
-        <div className="sticky top-[calc(var(--nav-height)+0.25rem)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/85 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/60 dark:border-white/[0.06] pb-0 mb-2">
-          <WatchQuickNav
-            activeTab={watchTab}
-            onTabChange={handleWatchTabChangeWithMobile}
-            animeId={info.id}
-            hasRelated={hasRelated}
-            className="mb-0 pb-2"
-          />
-        </div>
-      )}
-
       {/* Main grid: player + sidebar */}
       <div
         className={cn(
@@ -435,6 +423,21 @@ const Layout = (props: Props) => {
           >
             {props.children}
           </div>
+
+          {!theatreMode && (
+            <div
+              id="watch-quick-nav"
+              className="sticky top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/95 dark:bg-[#050505]/95 backdrop-blur-md border-y border-border/60 dark:border-white/[0.06] py-1"
+            >
+              <WatchQuickNav
+                activeTab={watchTab}
+                onTabChange={handleWatchTabChangeWithMobile}
+                animeId={info.id}
+                hasRelated={hasRelated}
+                className="mb-0 pb-1"
+              />
+            </div>
+          )}
 
           {info.nextAiringEpisode?.airingAt &&
             info.nextAiringEpisode.airingAt * 1000 > Date.now() && (
@@ -468,7 +471,7 @@ const Layout = (props: Props) => {
           )}
 
           {/* Mobile: episode grid + comments */}
-          <div id="watch-mobile-playlist" className="flex flex-col gap-3 lg:hidden scroll-mt-24">
+          <div id="watch-mobile-playlist" className="flex flex-col gap-3 lg:hidden scroll-mt-[calc(var(--nav-total-height)+3.5rem)]">
             {currentEpisode && currentAnimeId && !theatreMode && (
               <WatchCommentsPreview
                 animeId={currentAnimeId}
@@ -492,7 +495,7 @@ const Layout = (props: Props) => {
           {!theatreMode && (
           <>
           {/* Comments (desktop — mobile uses the bottom sheet) */}
-          <section id="watch-comments-panel" className="scroll-mt-24 hidden lg:block">
+          <section id="watch-comments-panel" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] hidden lg:block">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
                 <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40" />
@@ -525,7 +528,7 @@ const Layout = (props: Props) => {
           </section>
 
           {/* Info section */}
-          <section id="watch-tab-info" className="scroll-mt-24 space-y-5 mt-1">
+          <section id="watch-tab-info" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-5 mt-1">
             <div className="flex items-center gap-2.5">
               <Info className="w-4 h-4 text-muted-foreground dark:text-white/40" />
               <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.info")}</h2>
@@ -705,7 +708,7 @@ const Layout = (props: Props) => {
       {!theatreMode && (
       <div className="mt-8 space-y-10">
         {hasRelated && (
-          <section id="watch-tab-related" className="scroll-mt-24 space-y-8">
+          <section id="watch-tab-related" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-8">
             <AnimeCarousel title={t("common.alsoWatch")} anime={(anime?.relatedAnimes ?? []) as IAnime[]} />
             <AnimeCarousel title={t("common.recommended")} anime={(anime?.recommendedAnimes ?? []) as IAnime[]} />
           </section>
@@ -786,13 +789,15 @@ function WatchLayoutSkeleton() {
         <div className="h-8 w-48 max-w-[60%] rounded-lg bg-muted/50 dark:bg-white/[0.05]" />
         <div className="h-9 w-28 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
       </div>
-      <div className="flex gap-2 mb-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-8 w-20 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
-        ))}
-      </div>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
-        <div className="aspect-video rounded-xl bg-muted/50 dark:bg-white/[0.05]" />
+        <div className="flex flex-col gap-3">
+          <div className="aspect-video rounded-xl bg-muted/50 dark:bg-white/[0.05]" />
+          <div className="flex gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-8 w-20 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
+            ))}
+          </div>
+        </div>
         <div className="hidden lg:block h-80 rounded-xl bg-muted/30 dark:bg-white/[0.03]" />
       </div>
     </Container>

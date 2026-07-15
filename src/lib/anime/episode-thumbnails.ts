@@ -25,6 +25,8 @@ export type EpisodeImageSources = {
   tvdbByOrder: Record<number, string>;
   tmdb: Record<number, string>;
   tmdbMeta: Record<number, EpisodeMeta>;
+  /** TMDB show-level `number_of_episodes` when mapped. */
+  tmdbTotalEpisodes?: number | null;
   mappings: {
     thetvdb_id?: number;
     themoviedb_id?: number | string;
@@ -146,11 +148,16 @@ export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
 
 async function fetchTmdbEpisodeData(
   tmdbId: number | string,
-): Promise<{ images: Record<number, string>; meta: Record<number, EpisodeMeta> }> {
+): Promise<{
+  images: Record<number, string>;
+  meta: Record<number, EpisodeMeta>;
+  totalEpisodes: number | null;
+}> {
   const apiKey = process.env.TMDB_API_KEY?.trim();
   const images: Record<number, string> = {};
   const meta: Record<number, EpisodeMeta> = {};
-  if (!apiKey || !tmdbId) return { images, meta };
+  let totalEpisodes: number | null = null;
+  if (!apiKey || !tmdbId) return { images, meta, totalEpisodes };
 
   const id = encodeURIComponent(String(tmdbId));
   const baseUrl = process.env.TMDB_API_URL ?? "https://api.themoviedb.org/3";
@@ -160,9 +167,13 @@ async function fetchTmdbEpisodeData(
       `${baseUrl}/tv/${id}?api_key=${encodeURIComponent(apiKey)}`,
       { signal: AbortSignal.timeout(6000), next: { revalidate: 3600 } },
     );
-    if (!showRes.ok) return { images, meta };
+    if (!showRes.ok) return { images, meta, totalEpisodes };
 
     const show = await showRes.json();
+    totalEpisodes =
+      typeof show?.number_of_episodes === "number" && show.number_of_episodes > 0
+        ? show.number_of_episodes
+        : null;
     const seasons: Array<{ season_number: number }> = show?.seasons ?? [];
 
     const seasonNums = seasons
@@ -232,7 +243,7 @@ async function fetchTmdbEpisodeData(
     console.error("[tmdb] episode data failed:", err);
   }
 
-  return { images, meta };
+  return { images, meta, totalEpisodes };
 }
 
 export async function fetchAllEpisodeImageSources(
@@ -246,7 +257,9 @@ export async function fetchAllEpisodeImageSources(
   const tmdbId = aniZip.mappings?.themoviedb_id;
 
   const [tmdbData, tvdb] = await Promise.all([
-    tmdbId ? fetchTmdbEpisodeData(tmdbId) : Promise.resolve({ images: {}, meta: {} }),
+    tmdbId
+      ? fetchTmdbEpisodeData(tmdbId)
+      : Promise.resolve({ images: {}, meta: {}, totalEpisodes: null }),
     tvdbId
       ? fetchTvdbEpisodeImages(tvdbId)
       : Promise.resolve({ byId: {}, byAiredOrder: {} } as const),
@@ -260,6 +273,7 @@ export async function fetchAllEpisodeImageSources(
     tvdbByOrder: tvdb.byAiredOrder,
     tmdb: tmdbData.images,
     tmdbMeta: tmdbData.meta,
+    tmdbTotalEpisodes: tmdbData.totalEpisodes,
     mappings: aniZip.mappings,
   };
 }

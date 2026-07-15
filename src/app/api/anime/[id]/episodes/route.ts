@@ -17,6 +17,7 @@ import {
   type EpisodeContentFlags,
 } from "@/lib/anime/episode-filler";
 import {
+  capEpisodeCount,
   resolveAiredEpisodeCount,
   resolveEpisodeAiredStatus,
   resolveTotalEpisodeCount,
@@ -59,6 +60,7 @@ const EMPTY_SOURCES: EpisodeImageSources = {
   tvdbByOrder: {},
   tmdb: {},
   tmdbMeta: {},
+  tmdbTotalEpisodes: null,
   mappings: null,
 };
 
@@ -107,12 +109,25 @@ export async function GET(
       getAnikotoSeriesSchedule({ anilistId: numId, malId: m.idMal }).catch(() => null),
     ]);
 
-    const airedUpTo = Math.max(airedUpToFromAnilist, anikotoSchedule?.airedSub ?? 0);
+    const tmdbTotal = sources.tmdbTotalEpisodes ?? null;
+    const anikotoAiredSub = capEpisodeCount(
+      anikotoSchedule?.airedSub ?? 0,
+      tmdbTotal,
+      m.episodes,
+    );
+
+    let airedUpTo = Math.max(airedUpToFromAnilist, anikotoAiredSub);
+    airedUpTo = capEpisodeCount(airedUpTo, tmdbTotal, m.episodes);
 
     const plannedTotal = resolveTotalEpisodeCount({
       ...airingCtx,
       metadataMaxEpisode: maxEpisodeNumberInSources(sources),
-      anikotoTotal: anikotoSchedule?.catalogTotalEpisodes,
+      anikotoTotal: capEpisodeCount(
+        anikotoSchedule?.catalogTotalEpisodes ?? 0,
+        tmdbTotal,
+        m.episodes,
+      ),
+      tmdbTotal: tmdbTotal ?? undefined,
     });
 
     if (airedUpTo <= 0) {
@@ -136,8 +151,9 @@ export async function GET(
       const airDate = resolveEpisodeAirDate(num, sources);
       const anikotoEp = anikotoSchedule?.episodesByNumber.get(num);
       const anikotoAvailable =
-        !!anikotoEp ||
-        (anikotoSchedule != null && num <= anikotoSchedule.airedSub);
+        (!tmdbTotal || num <= tmdbTotal) &&
+        (!!anikotoEp ||
+          (anikotoSchedule != null && num <= anikotoAiredSub));
       const tmdbMeta = resolveEpisodeTmdbMeta(num, sources);
 
       return {

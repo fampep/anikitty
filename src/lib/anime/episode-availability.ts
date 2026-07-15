@@ -112,6 +112,21 @@ function maxPositive(...values: Array<number | null | undefined>): number {
   return max;
 }
 
+/** Clamp an episode count to the lowest positive limit (TMDB, AniList plan, etc.). */
+export function capEpisodeCount(
+  count: number,
+  ...limits: Array<number | null | undefined>
+): number {
+  if (count <= 0) return 0;
+  let result = count;
+  for (const limit of limits) {
+    if (limit != null && limit > 0) {
+      result = Math.min(result, limit);
+    }
+  }
+  return result;
+}
+
 /** Highest episode index found in episode metadata maps (AniZip, TMDB, etc.). */
 export function maxEpisodeNumberInRecords(
   ...records: Array<Record<number, unknown>>
@@ -128,18 +143,28 @@ export function maxEpisodeNumberInRecords(
 
 /** Full season length for UI lists — includes episodes that have not aired yet. */
 export function resolveTotalEpisodeCount(
-  ctx: AiringContext & { metadataMaxEpisode?: number; anikotoTotal?: number },
+  ctx: AiringContext & {
+    metadataMaxEpisode?: number;
+    anikotoTotal?: number;
+    tmdbTotal?: number;
+  },
 ): number {
   const aired = resolveAiredEpisodeCount(ctx);
   const planned = ctx.episodes;
-  const metadataMax = ctx.metadataMaxEpisode ?? 0;
   const anikotoTotal = ctx.anikotoTotal ?? 0;
+  const tmdbTotal = ctx.tmdbTotal ?? 0;
+  // Prefer TMDB show-level count over per-episode metadata keys (multi-season maps inflate).
+  const metadataMax = tmdbTotal > 0 ? 0 : (ctx.metadataMaxEpisode ?? 0);
 
-  let total = maxPositive(planned, metadataMax, aired, anikotoTotal);
+  let total = maxPositive(planned, metadataMax, aired, anikotoTotal, tmdbTotal);
 
   const nextEp = ctx.nextAiringEpisode;
   if (nextEp != null && nextEp > 0) {
     total = Math.max(total, nextEp);
+  }
+
+  if (tmdbTotal > 0) {
+    total = Math.min(total, tmdbTotal);
   }
 
   return total;

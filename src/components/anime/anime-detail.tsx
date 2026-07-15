@@ -49,6 +49,7 @@ import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
+import { capEpisodeCount } from "@/lib/anime/episode-availability";
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
 });
@@ -125,7 +126,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: episodesData } = useGetAllEpisodes(slug);
   const watchedEpisodes = useEpisodeProgress(slug);
 
-  const totalEpisodeCount =
+  const rawEpisodeCount =
     episodesData?.episodes?.length ?? episodesData?.totalEpisodes ?? 0;
 
   const watchedEpisodeCount = useMemo(() => {
@@ -273,7 +274,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     ? `https://www.themoviedb.org/tv/${mappings.themoviedb_id}`
     : null;
 
-  const plannedTotal = episodesData?.plannedTotal;
+  const totalEpisodeCount =
+    capEpisodeCount(rawEpisodeCount, tmdb?.episodes) ||
+    (tmdb?.episodes && tmdb.episodes > 0 ? tmdb.episodes : rawEpisodeCount);
+
+  const plannedTotalRaw = episodesData?.plannedTotal;
+  const plannedTotal = plannedTotalRaw
+    ? capEpisodeCount(plannedTotalRaw, tmdb?.episodes) || undefined
+    : undefined;
   const episodeCountLabel =
     totalEpisodeCount > 0 && plannedTotal && plannedTotal > totalEpisodeCount
       ? `${totalEpisodeCount} / ${plannedTotal}`

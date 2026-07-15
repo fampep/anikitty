@@ -72,7 +72,7 @@ export default function WatchEpisodeBar({
 
   const title = episodeTitle(currentEpisode, animeName, t);
   const thumb = currentEpisode.image || animePoster || null;
-  const total = episodes.totalEpisodes || episodes.episodes.length;
+  const total = episodes.episodes.length || episodes.totalEpisodes || 0;
 
   return (
     <div className="rounded-xl border border-border dark:border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-visible">

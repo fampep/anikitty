@@ -59,7 +59,10 @@ const EpisodePlaylist = ({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const episodeRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const total = episodes?.totalEpisodes ?? 0;
+  const total =
+    episodes.episodes.length > 0
+      ? episodes.episodes.length
+      : episodes?.totalEpisodes ?? 0;
   const [currentGroup, setCurrentGroup] = useState(`1-${Math.min(50, total)}`);
   const [search, setSearch] = useState("");
   // Debounced value drives filtering so typing doesn't refilter on every keystroke.
