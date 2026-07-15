@@ -29,7 +29,7 @@ export function PlayerSkipButton({
       type="button"
       onClick={onSkip}
       aria-label={label}
-      className={`kitty-overlay kitty-skip-card ${stackClass} pointer-events-auto group absolute left-4 z-[130] flex max-w-[min(100%,280px)] items-stretch overflow-hidden text-left animate-in slide-in-from-left-4 fade-in duration-300`}
+      className={`kitty-overlay kitty-skip-card ${stackClass} pointer-events-auto group absolute right-4 z-[130] flex max-w-[min(100%,280px)] items-stretch overflow-hidden text-left animate-in slide-in-from-right-4 fade-in duration-300`}
     >
       <div className="flex w-1 shrink-0 bg-gradient-to-b from-violet-400 via-violet-500 to-violet-700" />
       <div className="flex min-w-0 flex-1 flex-col">

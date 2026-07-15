@@ -928,18 +928,11 @@ html.density-compact .site-bottom-nav {
     padding-right: 2px !important;
   }
 
-  .kitty-overlay--base,
-  .kitty-overlay--stacked {
-    left: 10px;
-    right: 10px;
-    width: auto;
-    max-width: none;
-  }
-
   .kitty-skip-card,
   .kitty-next-card {
-    left: 10px !important;
+    left: auto !important;
     right: 10px !important;
+    max-width: min(calc(100% - 20px), 320px);
   }
 }
 
