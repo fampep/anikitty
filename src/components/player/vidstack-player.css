@@ -1,0 +1,61 @@
+@import "@vidstack/react/player/styles/base.css";
+@import "@vidstack/react/player/styles/default/theme.css";
+@import "@vidstack/react/player/styles/default/layouts/video.css";
+@import "@vidstack/react/player/styles/default/buttons.css";
+@import "@vidstack/react/player/styles/default/buffering.css";
+@import "@vidstack/react/player/styles/default/captions.css";
+@import "@vidstack/react/player/styles/default/controls.css";
+@import "@vidstack/react/player/styles/default/gestures.css";
+@import "@vidstack/react/player/styles/default/icons.css";
+@import "@vidstack/react/player/styles/default/keyboard.css";
+@import "@vidstack/react/player/styles/default/menus.css";
+@import "@vidstack/react/player/styles/default/poster.css";
+@import "@vidstack/react/player/styles/default/sliders.css";
+@import "@vidstack/react/player/styles/default/thumbnail.css";
+@import "@vidstack/react/player/styles/default/time.css";
+@import "@vidstack/react/player/styles/default/tooltips.css";
+@import "@vidstack/react/player/styles/default/chapter-title.css";
+
+.kitty-vidstack-player {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  overflow: visible;
+  background: #030303;
+}
+
+.kitty-vidstack-player media-player {
+  display: block;
+  width: 100%;
+  height: 100%;
+  --media-font-family: inherit;
+  --media-controls-padding: 10px;
+}
+
+@media (max-width: 640px) {
+  .kitty-vidstack-player {
+    --kitty-overlay-bottom: 52px;
+    --kitty-overlay-stacked: 100px;
+  }
+
+  .kitty-vidstack-player media-player {
+    --media-controls-padding: 8px;
+  }
+}
+
+.kitty-vidstack-player media-player[data-view-type="video"] {
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.kitty-vidstack-player .kitty-player-overlays {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.kitty-vidstack-player .kitty-player-overlays > * {
+  pointer-events: auto;
+}

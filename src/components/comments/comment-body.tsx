@@ -26,7 +26,7 @@ function TimestampChip({ label, seconds }: { label: string; seconds: number }) {
       onClick={() => {
         seek(seconds);
         document
-          .querySelector(".art-kitty-player")
+          .querySelector(".kitty-vidstack-player")
           ?.scrollIntoView({ behavior: "smooth", block: "center" });
       }}
       className="inline text-violet-300 hover:text-violet-200 font-mono font-medium underline decoration-violet-400/40 underline-offset-2"

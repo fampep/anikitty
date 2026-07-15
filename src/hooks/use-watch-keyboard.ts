@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import type Artplayer from "artplayer";
+import type { PlayerController } from "@/lib/player/player-controller";
 
 type Options = {
   enabled?: boolean;
-  art: Artplayer | null;
+  player: PlayerController | null;
   seekStepSeconds?: number;
   onPrevEpisode?: () => void;
   onNextEpisode?: () => void;
@@ -27,10 +27,6 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
-/**
- * Elements where Space has its own meaning (activating a button, following a
- * link, toggling a details summary). Stealing Space from these breaks them.
- */
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (isTypingTarget(target)) return true;
@@ -40,9 +36,8 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
   return el !== null;
 }
 
-/** Is any part of the player on screen? */
-function isPlayerVisible(art: Artplayer | null): boolean {
-  const el = art?.template?.$player as HTMLElement | undefined;
+function isPlayerVisible(player: PlayerController | null): boolean {
+  const el = player?.video;
   if (!el) return false;
   const r = el.getBoundingClientRect();
   const vh = window.innerHeight || document.documentElement.clientHeight;
@@ -52,7 +47,7 @@ function isPlayerVisible(art: Artplayer | null): boolean {
 
 export function useWatchKeyboard({
   enabled = true,
-  art,
+  player,
   seekStepSeconds = 10,
   onPrevEpisode,
   onNextEpisode,
@@ -103,53 +98,49 @@ export function useWatchKeyboard({
         return;
       }
 
-      if (!art) return;
+      if (!player) return;
 
       if (key === "f") {
         e.preventDefault();
-        art.fullscreen = !art.fullscreen;
+        player.toggleFullscreen();
         return;
       }
 
       if (key === "m") {
         e.preventDefault();
-        art.muted = !art.muted;
+        player.setMuted(!player.muted);
         return;
       }
 
       const isSpace = e.code === "Space" || key === " " || key === "spacebar";
       if (isSpace || key === "k") {
-        // `k` is the explicit play/pause key and always applies. Space, though,
-        // is shared with the page: let it activate a focused button/link, and
-        // let it scroll when the player is scrolled out of view (e.g. while
-        // reading comments) instead of silently pausing playback.
-        if (isSpace && (isInteractiveTarget(e.target) || !isPlayerVisible(art))) return;
+        if (isSpace && (isInteractiveTarget(e.target) || !isPlayerVisible(player))) return;
         e.preventDefault();
-        art.toggle();
+        player.toggle();
         return;
       }
 
       if (key === "arrowleft" || key === "j") {
         e.preventDefault();
-        art.backward = seekStepSeconds;
+        player.seek(Math.max(0, player.currentTime - seekStepSeconds));
         return;
       }
 
       if (key === "arrowright" || key === "l") {
         e.preventDefault();
-        art.forward = seekStepSeconds;
+        player.seek(player.currentTime + seekStepSeconds);
         return;
       }
 
       if (key === "arrowup") {
         e.preventDefault();
-        art.volume = Math.min(1, art.volume + 0.1);
+        player.setVolume(Math.min(1, player.volume + 0.1));
         return;
       }
 
       if (key === "arrowdown") {
         e.preventDefault();
-        art.volume = Math.max(0, art.volume - 0.1);
+        player.setVolume(Math.max(0, player.volume - 0.1));
         return;
       }
     };
@@ -158,7 +149,7 @@ export function useWatchKeyboard({
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [
     enabled,
-    art,
+    player,
     seekStepSeconds,
     onPrevEpisode,
     onNextEpisode,

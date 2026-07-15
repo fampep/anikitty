@@ -945,7 +945,9 @@ html.density-compact .site-bottom-nav {
 
 /* Rotation lock: device sideways but viewport still portrait */
 .art-kitty-player.kitty-orient-landscape,
-.art-kitty-player.kitty-orient-landscape-reverse {
+.art-kitty-player.kitty-orient-landscape-reverse,
+.kitty-vidstack-player.kitty-orient-landscape,
+.kitty-vidstack-player.kitty-orient-landscape-reverse {
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
@@ -960,11 +962,13 @@ html.density-compact .site-bottom-nav {
   margin: 0 !important;
 }
 
-.art-kitty-player.kitty-orient-landscape {
+.art-kitty-player.kitty-orient-landscape,
+.kitty-vidstack-player.kitty-orient-landscape {
   transform: translate(-50%, -50%) rotate(90deg) !important;
 }
 
-.art-kitty-player.kitty-orient-landscape-reverse {
+.art-kitty-player.kitty-orient-landscape-reverse,
+.kitty-vidstack-player.kitty-orient-landscape-reverse {
   transform: translate(-50%, -50%) rotate(-90deg) !important;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type Artplayer from "artplayer";
+import type { PlayerController } from "@/lib/player/player-controller";
 import { useAnimeStore } from "@/store/anime-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
@@ -129,7 +129,7 @@ const VideoPlayerSection = () => {
     if (!proxyPingReady || kittyProxyManual || !fastestProxyId) return;
     if (kittyProxyNode === fastestProxyId) return;
     // Switching proxy mid-playback refetches the stream and remounts the player.
-    const video = artPlayerRef.current?.video;
+    const video = playerRef.current?.video;
     if (video && !video.paused && !video.ended) return;
     applyAutoKittyProxyNode(fastestProxyId);
   }, [proxyPingReady, kittyProxyManual, fastestProxyId, kittyProxyNode, applyAutoKittyProxyNode]);
@@ -251,7 +251,7 @@ const VideoPlayerSection = () => {
     skipTimes?: { intro?: { start: number; end: number }; outro?: { start: number; end: number } };
   };
   const [heldStreamSnapshot, setHeldStreamSnapshot] = useState<HeldStreamSnapshot | null>(null);
-  const artPlayerRef = useRef<Artplayer | null>(null);
+  const playerRef = useRef<PlayerController | null>(null);
   const currentEpisodeInfo = React.useMemo(() => {
     if (!allEpisodes?.episodes || !episodeId) return undefined;
     return findPlayableEpisode(allEpisodes.episodes, episodeId);
@@ -306,10 +306,10 @@ const VideoPlayerSection = () => {
   const [resumeReady, setResumeReady] = useState(false);
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
   const resumeReadyRef = useRef(false);
-  const [artPlayer, setArtPlayer] = useState<Artplayer | null>(null);
-  const handlePlayerReady = useCallback((art: Artplayer) => {
-    artPlayerRef.current = art;
-    setArtPlayer(art);
+  const [playerController, setPlayerController] = useState<PlayerController | null>(null);
+  const handlePlayerReady = useCallback((player: PlayerController) => {
+    playerRef.current = player;
+    setPlayerController(player);
   }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [skipSubmitOpen, setSkipSubmitOpen] = useState(false);
@@ -420,7 +420,7 @@ const VideoPlayerSection = () => {
       if (!animeSlug || navigatingRef.current) return;
       if (ep.episodeId === episodeId) return;
       navigatingRef.current = true;
-      artPlayerRef.current?.pause?.();
+      playerRef.current?.pause?.();
       const isFs = !!document.fullscreenElement;
       if (isFs && playerWrapperRef.current) {
         playerWrapperRef.current.requestFullscreen().catch(() => {});
@@ -471,7 +471,7 @@ const VideoPlayerSection = () => {
   }, []);
 
   const getLivePreview = useCallback(() => {
-    const video = artPlayerRef.current?.video;
+    const video = playerRef.current?.video;
     if (!video || video.readyState < 2 || !video.videoWidth) return null;
     try {
       const width = Math.min(video.videoWidth, 426);
@@ -528,7 +528,7 @@ const VideoPlayerSection = () => {
     setSavedResumeTime(0);
     setResumeChoice(null);
     setResumeReady(false);
-    artPlayerRef.current?.pause?.();
+    playerRef.current?.pause?.();
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
     setMobilePlaylistOpen(false);
@@ -799,18 +799,18 @@ const VideoPlayerSection = () => {
 
   // Let comment timestamps seek this player.
   useEffect(() => {
-    if (!artPlayer) return;
+    if (!playerController) return;
     usePlayerSeekStore.getState().setSeek((seconds) => {
-      artPlayer.seek = seconds;
-      artPlayer.play?.();
+      playerController.seek(seconds);
+      playerController.play();
     });
-    usePlayerSeekStore.getState().setGetCurrentTime(() => artPlayer.currentTime ?? 0);
+    usePlayerSeekStore.getState().setGetCurrentTime(() => playerController.currentTime ?? 0);
     return () => usePlayerSeekStore.getState().clearSeek();
-  }, [artPlayer]);
+  }, [playerController]);
 
   // Media Session: lock-screen / notification playback controls on mobile.
   useEffect(() => {
-    if (!artPlayer || typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    if (!playerController || typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     if (!animeName) return;
 
     const ms = navigator.mediaSession;
@@ -829,15 +829,15 @@ const VideoPlayerSection = () => {
     const set = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
       try { ms.setActionHandler(action, handler); } catch { /* unsupported action */ }
     };
-    set("play", () => void artPlayer.play?.());
-    set("pause", () => artPlayer.pause?.());
+    set("play", () => void playerController.play());
+    set("pause", () => playerController.pause());
     set("seekbackward", (d) => {
       const step = d.seekOffset || seekStepSeconds;
-      artPlayer.seek = Math.max(0, (artPlayer.currentTime ?? 0) - step);
+      playerController.seek(Math.max(0, (playerController.currentTime ?? 0) - step));
     });
     set("seekforward", (d) => {
       const step = d.seekOffset || seekStepSeconds;
-      artPlayer.seek = (artPlayer.currentTime ?? 0) + step;
+      playerController.seek((playerController.currentTime ?? 0) + step);
     });
     set("previoustrack", prevEpisode ? () => handlePrevEpisode() : null);
     set("nexttrack", nextEpisode ? () => handleNextEpisode() : null);
@@ -847,7 +847,7 @@ const VideoPlayerSection = () => {
         set(a, null);
       }
     };
-  }, [artPlayer, animeName, animePoster, currentEpisodeInfo, prevEpisode, nextEpisode, handlePrevEpisode, handleNextEpisode, seekStepSeconds, t]);
+  }, [playerController, animeName, animePoster, currentEpisodeInfo, prevEpisode, nextEpisode, handlePrevEpisode, handleNextEpisode, seekStepSeconds, t]);
 
   const {
     data: streamData,
@@ -889,7 +889,7 @@ const VideoPlayerSection = () => {
   const loadingStuck = useStreamLoadingStuck(showStreamLoading);
 
   const togglePip = useCallback(() => {
-    const video = artPlayerRef.current?.video;
+    const video = playerRef.current?.video;
     if (!video) return;
     if (document.pictureInPictureElement) {
       void document.exitPictureInPicture();
@@ -1143,7 +1143,7 @@ const VideoPlayerSection = () => {
 
   useWatchKeyboard({
     enabled: streamReady && !needsResumePrompt,
-    art: artPlayer,
+    player: playerController,
     seekStepSeconds,
     onPrevEpisode: handlePrevEpisode,
     onNextEpisode: handleNextEpisode,

@@ -1,6 +1,7 @@
 import type { KittyTrack } from "@/query/stream/get-kitty-stream";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import type { SkipTimes } from "@/hooks/use-aniskip";
+import type { PlayerController } from "@/lib/player/player-controller";
 
 export interface W2gSyncState {
   version: number;
@@ -26,7 +27,7 @@ export interface VideoPlayerProps {
   onEnded?: () => void;
   /** Fired when HLS playback fatally fails and can't recover (e.g. the stream 404s mid-load). */
   onFatalError?: (info: { type: string; details?: string }) => void;
-  onPlayerReady?: (art: import("artplayer").default) => void;
+  onPlayerReady?: (player: PlayerController) => void;
   w2g?: {
     isHost: boolean;
     syncState?: W2gSyncState | null;

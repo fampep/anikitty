@@ -1,26 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { createPortal } from "react-dom";
-import Artplayer from "artplayer";
-import type { Option } from "artplayer";
-import Hls from "hls.js";
+import "./vidstack-player.css";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MediaPlayer,
+  MediaProvider,
+  Track,
+  useMediaPlayer,
+  useMediaRemote,
+  useMediaState,
+  type MediaErrorDetail,
+} from "@vidstack/react";
+import {
+  DefaultVideoLayout,
+  defaultLayoutIcons,
+} from "@vidstack/react/player/layouts/default";
 import LoadingGirl from "@/components/common/loading-girl";
-import artplayerPluginHlsControl from "artplayer-plugin-hls-control";
-import artplayerPluginChromecast from "artplayer-plugin-chromecast";
-import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
-import {
-  kittyStreamChromecastMime,
-  resolveKittyStreamType,
-} from "@/lib/kitty/stream-format";
-import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
-import {
-  dedupeStreamQualities,
-  formatStreamQualityLabel,
-  type KittyStreamQuality,
-} from "@/lib/kitty/stream-quality";
-import { createHlsConfig } from "@/lib/kitty/hls-config";
-import { buildKittySeekControls } from "@/lib/player/kitty-player-controls";
+import { buildVidstackPlayerSrc } from "@/lib/player/build-vidstack-src";
+import { createPlayerController } from "@/lib/player/player-controller";
 import {
   isElementFullscreen,
   onFullscreenChange,
@@ -34,48 +32,22 @@ import {
   type PlayerOrientClass,
 } from "@/lib/kitty/player-orientation";
 import {
-  detectSubtitleFormat,
   getTrackFile,
   isSubtitleTrack,
   labelToLanguage,
-  type StreamTrack,
 } from "@/lib/subtitles/subtitle-track-utils";
-import { sanitizeVttOrSrtContent } from "@/lib/subtitles/vtt-parse";
-import {
-  getSubtitleBackgroundRgba,
-  subtitleSettingsToCssVars,
-  subtitleSettingsToInlineStyles,
-  usesBoxedSubtitleLines,
-  type SubtitleSettings,
-} from "@/lib/subtitles/subtitle-settings";
-import { installBoxedSubtitleLineFormatter } from "@/lib/subtitles/subtitle-boxed-lines";
 import { useSettingsStore } from "@/store/settings-store";
-import { useT, useI18n } from "@/providers/i18n-provider";
+import { useT } from "@/providers/i18n-provider";
 import type { VideoPlayerProps } from "@/lib/kitty/video-player-types";
 import type { SkipInterval } from "@/hooks/use-aniskip";
 import { cn } from "@/lib/core/utils";
 import { PlayerSkipButton } from "@/components/player/player-skip-button";
 import { CountdownOverlay, NextEpisodeButton } from "@/components/player/player-overlays";
 import {
-  ANIKITTY_PLAYER_CSS_VAR,
-  ANIKITTY_PLAYER_THEME,
-} from "@/lib/kitty/artplayer-theme";
-import {
-  ANIME4K_MODES,
   attachAnime4k,
   isWebGpuSupported,
   type Anime4kMode,
 } from "@/lib/player/anime4k";
-
-function isArtPaused(art: Artplayer): boolean {
-  return art.video?.paused ?? true;
-}
-
-function shouldResumeAt(time: number, duration: number): boolean {
-  if (time <= 10) return false;
-  if (duration > 0 && time >= duration - 30) return false;
-  return true;
-}
 
 function resolveTrackSrc(file: string): string {
   if (!file) return file;
@@ -86,388 +58,84 @@ function resolveTrackSrc(file: string): string {
   return file;
 }
 
-function normalizeSubtitleUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return "";
-  try {
-    if (typeof window !== "undefined") {
-      return new URL(trimmed, window.location.origin).href;
-    }
-    return trimmed;
-  } catch {
-    return trimmed;
-  }
+function shouldResumeAt(time: number, duration: number): boolean {
+  if (time <= 10) return false;
+  if (duration > 0 && time >= duration - 30) return false;
+  return true;
 }
 
-function isExternalSubtitleLoaded(
-  art: Artplayer,
-  url: string,
-  activeUrlRef: { current: string | null },
-): boolean {
-  if (!activeUrlRef.current || activeUrlRef.current !== url) return false;
-  const current = art.subtitle?.url;
-  if (!current) return false;
-  return normalizeSubtitleUrl(current) === normalizeSubtitleUrl(url);
+function resolvePlayerSrcKey(src: import("@vidstack/react").PlayerSrc): string {
+  if (typeof src === "string") return src;
+  if (Array.isArray(src)) return src.map(resolvePlayerSrcKey).join("|");
+  if (src && typeof src === "object" && "src" in src) return String(src.src);
+  return "kitty-stream";
 }
 
-function generateHighlights(
-  start: number | undefined | null,
-  end: number | undefined | null,
-  label: string,
-): { time: number; text: string }[] {
-  if (start == null || end == null || start >= end) return [];
-  const s = Math.floor(start);
-  const e = Math.floor(end);
-  if (s === e) return [{ time: s, text: label }];
-  return [
-    { time: s, text: label },
-    { time: e, text: label },
-  ];
-}
+type BridgeProps = VideoPlayerProps & {
+  srcKey: string;
+  wrapperRef: React.RefObject<HTMLDivElement | null>;
+  anime4kEnabled: boolean;
+  anime4kMode: Anime4kMode;
+  liteMode: boolean;
+  setActiveSkip: (v: "intro" | "outro" | null) => void;
+  setCurrentTime: (v: number) => void;
+  setDuration: (v: number) => void;
+  setCountdown: React.Dispatch<React.SetStateAction<number | null>>;
+  setReady: (v: boolean) => void;
+  setBuffering: (v: boolean) => void;
+  setAnime4kActive: (v: boolean) => void;
+  activeSkip: "intro" | "outro" | null;
+  currentTime: number;
+  duration: number;
+  countdown: number | null;
+  skipTimes?: VideoPlayerProps["skipTimes"];
+  nextEpisode?: VideoPlayerProps["nextEpisode"];
+};
 
-type SubtitleMode = "external" | "native" | "off";
-
-function isEmbeddedTextTrackKind(kind: string): boolean {
-  const k = kind.toLowerCase();
-  return k === "subtitles" || k === "captions";
-}
-
-/** Disable HLS embedded subs/captions only — Artplayer uses a metadata track for external VTT. */
-function disableEmbeddedTextTracks(video: HTMLVideoElement | null | undefined) {
-  if (!video?.textTracks) return;
-  for (let i = 0; i < video.textTracks.length; i++) {
-    const track = video.textTracks[i];
-    if (isEmbeddedTextTrackKind(track.kind)) {
-      track.mode = "disabled";
-    }
-  }
-}
-
-/** Keep Artplayer's metadata cue track active so the .art-subtitle layer updates. */
-function ensureArtplayerSubtitleTrack(art: Artplayer) {
-  const track = art.subtitle?.textTrack;
-  if (track && track.kind.toLowerCase() === "metadata") {
-    track.mode = "hidden";
-  }
-}
-
-function enableNativeHlsSubtitles(video: HTMLVideoElement | null | undefined) {
-  if (!video?.textTracks) return false;
-  let enabled = false;
-  for (let i = 0; i < video.textTracks.length; i++) {
-    const track = video.textTracks[i];
-    const kind = track.kind.toLowerCase();
-    if (kind === "metadata") continue;
-    if (!enabled && isEmbeddedTextTrackKind(kind)) {
-      track.mode = "showing";
-      enabled = true;
-    } else if (isEmbeddedTextTrackKind(kind)) {
-      track.mode = "hidden";
-    }
-  }
-  return enabled;
-}
-
-function handleTextTrackAdded(
-  track: TextTrack,
-  mode: SubtitleMode,
-  onNativeSync: () => void,
-) {
-  const kind = track.kind.toLowerCase();
-  if (mode === "external") {
-    if (kind === "metadata") {
-      track.mode = "hidden";
-    } else if (isEmbeddedTextTrackKind(kind)) {
-      track.mode = "disabled";
-    }
-    return;
-  }
-  onNativeSync();
-}
-
-function resolveSubtitleTracks(tracks: StreamTrack[]) {
-  return tracks
-    .filter(isSubtitleTrack)
-    .map((track) => {
-      const file = resolveTrackSrc(getTrackFile(track) ?? "");
-      return { ...track, file };
-    })
-    .filter((track) => Boolean(track.file));
-}
-
-function buildSubtitleSwitchOptions(track: { file: string; label?: string }) {
-  const type = detectSubtitleFormat({ url: track.file, label: track.label });
-  return {
-    name: track.label,
-    type,
-    encoding: "utf-8",
-    escape: false,
-    onVttLoad: (vtt: string) =>
-      type === "ass" ? vtt : sanitizeVttOrSrtContent(vtt),
-  };
-}
-
-type SubtitleStyleSettings = Parameters<typeof applySubtitleStyles>[1];
-
-function switchExternalSubtitle(
-  art: Artplayer,
-  url: string,
-  track: { file: string; label?: string },
-  settings: SubtitleStyleSettings,
-  activeUrlRef: { current: string | null },
-) {
-  disableEmbeddedTextTracks(art.video);
-  art.subtitle.show = true;
-
-  if (isExternalSubtitleLoaded(art, url, activeUrlRef)) {
-    ensureArtplayerSubtitleTrack(art);
-    applySubtitleStyles(art, settings);
-    return;
-  }
-
-  activeUrlRef.current = url;
-  void art.subtitle
-    .switch(url, buildSubtitleSwitchOptions({ ...track, file: url }))
-    .then(() => {
-      if (activeUrlRef.current !== url) return;
-      ensureArtplayerSubtitleTrack(art);
-      art.subtitle.show = true;
-      applySubtitleStyles(art, settings);
-    })
-    .catch(() => {
-      if (activeUrlRef.current === url) activeUrlRef.current = null;
-    });
-}
-
-function syncExternalSubtitleTrack(art: Artplayer, mode: SubtitleMode) {
-  if (mode !== "external") return;
-  ensureArtplayerSubtitleTrack(art);
-  art.subtitle.show = true;
-}
-
-function applySubtitleMode(
-  art: Artplayer,
-  tracks: StreamTrack[],
-  preferSubtitles: boolean,
-  settings: SubtitleStyleSettings,
-  activeUrlRef: { current: string | null },
-): SubtitleMode {
-  const subTracks = resolveSubtitleTracks(tracks);
-
-  if (preferSubtitles && subTracks.length > 0) {
-    const active = subTracks.find((track) => track.default) ?? subTracks[0];
-    const url = resolveTrackSrc(active.file);
-    switchExternalSubtitle(art, url, { ...active, file: url }, settings, activeUrlRef);
-    return "external";
-  }
-
-  activeUrlRef.current = null;
-  art.subtitle.show = false;
-
-  if (!preferSubtitles) {
-    disableEmbeddedTextTracks(art.video);
-    return "off";
-  }
-
-  const nativeEnabled = enableNativeHlsSubtitles(art.video);
-  return nativeEnabled ? "native" : "off";
-}
-
-function applySubtitleStyles(art: Artplayer, settings: SubtitleSettings) {
-  const scaled = Math.max(14, Math.min(32, art.height * 0.04, settings.fontSize + 4));
-  const inline = subtitleSettingsToInlineStyles(settings, scaled);
-  const boxedLines = usesBoxedSubtitleLines(settings);
-
-  art.subtitle.style({
-    color: inline.color,
-    fontSize: inline.fontSize,
-    fontWeight: String(inline.fontWeight),
-    textShadow: inline.textShadow,
-  });
-
-  const root = art.template?.$player as HTMLElement | undefined;
-  if (root) {
-    root.classList.toggle("kitty-sub-boxed-lines", boxedLines);
-    root.style.setProperty("--art-subtitle-bottom", `${settings.bottomOffset * 16}px`);
-    root.style.setProperty("--kitty-sub-letter-spacing", inline.letterSpacing);
-    root.style.setProperty("--kitty-sub-line-height", String(inline.lineHeight));
-    root.style.setProperty("--kitty-sub-font-family", inline.fontFamily);
-    root.style.setProperty("--kitty-sub-border-radius", `${settings.borderRadius}px`);
-    root.style.setProperty("--kitty-sub-padding", inline.padding);
-    root.style.setProperty("--kitty-sub-text-shadow", inline.textShadow);
-    root.style.setProperty("--kitty-sub-font-weight", String(inline.fontWeight));
-    root.style.setProperty("--kitty-sub-line-bg", getSubtitleBackgroundRgba(settings));
-    root.style.setProperty("--kitty-sub-color", settings.color);
-    root.style.setProperty("--kitty-sub-max-width", inline.maxWidth);
-    root.style.setProperty("--kitty-sub-text-transform", inline.textTransform);
-    for (const [key, value] of Object.entries(subtitleSettingsToCssVars(settings))) {
-      root.style.setProperty(key, value);
-    }
-    if (inline.WebkitTextStroke) {
-      root.style.setProperty("--kitty-sub-text-stroke", inline.WebkitTextStroke);
-    } else {
-      root.style.removeProperty("--kitty-sub-text-stroke");
-    }
-  }
-
-  const subEl = art.template?.$subtitle as HTMLElement | undefined;
-  if (subEl) {
-    subEl.style.color = inline.color;
-    subEl.style.fontSize = inline.fontSize;
-    subEl.style.letterSpacing = inline.letterSpacing;
-    subEl.style.lineHeight = String(inline.lineHeight);
-    subEl.style.fontFamily = inline.fontFamily;
-    subEl.style.textTransform = inline.textTransform;
-    subEl.style.borderRadius = inline.borderRadius;
-    subEl.style.padding = inline.padding;
-    if (inline.WebkitTextStroke) {
-      subEl.style.webkitTextStroke = inline.WebkitTextStroke;
-    } else {
-      subEl.style.webkitTextStroke = "";
-    }
-    if (boxedLines) {
-      subEl.style.removeProperty("--art-subtitle-bg");
-      subEl.style.backgroundColor = "transparent";
-      subEl.style.width = "auto";
-      subEl.style.maxWidth = inline.maxWidth;
-      subEl.style.left = "50%";
-      subEl.style.right = "auto";
-      subEl.style.transform = "translateX(-50%)";
-      subEl.style.padding = "0";
-      subEl.style.borderRadius = "0";
-    } else if (settings.backgroundOpacity > 0) {
-      subEl.style.removeProperty("left");
-      subEl.style.removeProperty("right");
-      subEl.style.removeProperty("transform");
-      subEl.style.maxWidth = inline.maxWidth;
-      subEl.style.setProperty("--art-subtitle-bg", inline.backgroundColor);
-      subEl.style.backgroundColor = inline.backgroundColor;
-    } else {
-      subEl.style.removeProperty("left");
-      subEl.style.removeProperty("right");
-      subEl.style.removeProperty("transform");
-      subEl.style.maxWidth = inline.maxWidth;
-      subEl.style.removeProperty("--art-subtitle-bg");
-      subEl.style.backgroundColor = "transparent";
-    }
-  }
-}
-
-function refreshHlsControls(art: Artplayer) {
-  const plugin = art.plugins?.artplayerPluginHlsControl as { update?: () => void } | undefined;
-  plugin?.update?.();
-}
-
-function hlsLoadFromVideoTime(hls: Hls, video: HTMLVideoElement | null | undefined) {
-  const time = video?.currentTime ?? 0;
-  hls.startLoad(Math.max(0, time - 0.25));
-}
-
-function buildArtplayerQualityOption(
-  qualities: KittyStreamQuality[],
-  src: string,
-  headers: Record<string, string>,
-  nodeId?: KittyApiNodeId,
-): Option["quality"] {
-  const unique = dedupeStreamQualities(qualities);
-  if (unique.length < 2) return undefined;
-  const normalizedSrc = src.trim();
-  const defaultIndex = Math.max(
-    0,
-    unique.findIndex((entry) => entry.file.trim() === normalizedSrc),
-  );
-  return unique.map((entry, index) => ({
-    html: formatStreamQualityLabel(entry.quality),
-    url: buildKittyHlsUrl(entry.file, headers, nodeId),
-    default: index === defaultIndex,
-  }));
-}
-
-export default function KittyPlayer({
-  src,
-  tracks = [],
-  headers = {},
-  qualities = [],
-  skipTimes,
+function PlayerBridge({
+  srcKey,
   startTime = 0,
-  autoFullscreen = false,
+  preferSubtitles = true,
+  skipTimes,
   nextEpisode,
+  w2g,
   onStart,
   onProgress,
   onLiveTime,
   onNextEpisode,
   onOutroStart,
   onEnded,
-  onFatalError,
   onPlayerReady,
-  w2g,
-  preferSubtitles = true,
-}: VideoPlayerProps) {
-  const t = useT();
-  const { locale } = useI18n();
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const artRef = useRef<Artplayer | null>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const onPlayerReadyRef = useRef(onPlayerReady);
-  useEffect(() => {
-    onPlayerReadyRef.current = onPlayerReady;
-  }, [onPlayerReady]);
+  autoFullscreen,
+  wrapperRef,
+  anime4kEnabled,
+  anime4kMode,
+  liteMode,
+  setActiveSkip,
+  setCurrentTime,
+  setDuration,
+  setCountdown,
+  setReady,
+  setBuffering,
+  setAnime4kActive,
+  activeSkip,
+  currentTime,
+  duration,
+  countdown,
+}: BridgeProps) {
+  const player = useMediaPlayer();
+  const remote = useMediaRemote();
+  const paused = useMediaState("paused");
+  const mediaCurrentTime = useMediaState("currentTime");
+  const mediaDuration = useMediaState("duration");
+  const waiting = useMediaState("waiting");
+  const canPlay = useMediaState("canPlay");
+  const ended = useMediaState("ended");
+
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
-  const autoPlay = useSettingsStore((s) => s.autoPlay);
   const autoSkipRef = useRef(useSettingsStore.getState().autoSkipIntro);
+  const autoPlay = useSettingsStore((s) => s.autoPlay);
   const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
-  const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
-  const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
-  const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
-  const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
-  const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
-  const anime4kMode = useSettingsStore((s) => s.anime4kMode);
-  const liteMode = useSettingsStore((s) => s.liteMode);
-  const seekStepRef = useRef(seekStepSeconds);
-  const playerTouchSeekRef = useRef(playerTouchSeekEnabled);
-
-  useEffect(() => {
-    seekStepRef.current = seekStepSeconds;
-  }, [seekStepSeconds]);
-
-  useEffect(() => {
-    playerTouchSeekRef.current = playerTouchSeekEnabled;
-  }, [playerTouchSeekEnabled]);
-
-  useEffect(() => {
-    autoNextRef.current = autoPlay;
-  }, [autoPlay]);
-
-  useEffect(() => {
-    autoSkipRef.current = autoSkipIntro;
-  }, [autoSkipIntro]);
-
-  useEffect(() => {
-    anime4kEnabledRef.current = anime4kEnabled;
-  }, [anime4kEnabled]);
-
-  useEffect(() => {
-    anime4kModeRef.current = anime4kMode;
-  }, [anime4kMode]);
-
-  const effectiveAnime4k = anime4kEnabled && !liteMode && isWebGpuSupported();
-
-  const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
-  const [buffering, setBuffering] = useState(true);
-  const [ready, setReady] = useState(false);
-  const [anime4kActive, setAnime4kActive] = useState(false);
-  const anime4kDetachRef = useRef<(() => void) | null>(null);
-  const anime4kEnabledRef = useRef(anime4kEnabled);
-  const anime4kModeRef = useRef(anime4kMode);
-  // Host for the skip/next/countdown overlays, mounted INSIDE ArtPlayer's
-  // player element so they stay visible in every fullscreen mode.
-  const [overlayHost, setOverlayHost] = useState<HTMLElement | null>(null);
-  const overlayHostRef = useRef<HTMLDivElement | null>(null);
 
   const onStartRef = useRef(onStart);
   const onProgressRef = useRef(onProgress);
@@ -475,18 +143,13 @@ export default function KittyPlayer({
   const onNextEpisodeRef = useRef(onNextEpisode);
   const onOutroStartRef = useRef(onOutroStart);
   const onEndedRef = useRef(onEnded);
-  const onFatalErrorRef = useRef(onFatalError);
-  const fatalErrorFiredRef = useRef(false);
+  const onPlayerReadyRef = useRef(onPlayerReady);
   const skipTimesRef = useRef(skipTimes);
   const w2gRef = useRef(w2g);
   const nextEpisodeRef = useRef(nextEpisode);
-  const preferSubtitlesRef = useRef(preferSubtitles);
-  const subsVisibleRef = useRef(preferSubtitles);
-  const userSubsOverrideRef = useRef(false);
-  const tracksRef = useRef(tracks);
-  const activeSubtitleUrlRef = useRef<string | null>(null);
-  const boxedSubtitleCleanupRef = useRef<(() => void) | null>(null);
-  const subtitleModeRef = useRef<SubtitleMode>("off");
+  const startTimeRef = useRef(startTime);
+  const anime4kDetachRef = useRef<(() => void) | null>(null);
+
   const startFiredRef = useRef(false);
   const outroFiredRef = useRef(false);
   const endHandledRef = useRef(false);
@@ -497,110 +160,43 @@ export default function KittyPlayer({
   const skipUiRef = useRef<"intro" | "outro" | null>(null);
   const lastUiTimeRef = useRef(0);
   const lastW2gReportRef = useRef(0);
-  const lastAppliedW2gVersion = useRef(0);
   const applyingW2gRef = useRef(false);
-  const autoFsRef = useRef(false);
-  const durationRef = useRef(0);
-  const startTimeRef = useRef(startTime);
   const resumeAppliedRef = useRef(false);
-  const resumeSeekTargetRef = useRef<number | null>(null);
-  const playbackStartedRef = useRef(false);
-  const isSeekingRef = useRef(false);
-  const bufferingShowTimerRef = useRef<number | null>(null);
-  const isPlayerFullscreenRef = useRef(false);
-
-  const syncPlayerOrientation = useCallback(() => {
-    const nativeFs = isElementFullscreen(wrapperRef.current);
-    const cls = resolvePlayerOrientClass({
-      isFullscreen: nativeFs || isPlayerFullscreenRef.current,
-    });
-    setOrientClass(cls);
-  }, []);
-
-  const syncPlayerOrientationRef = useRef(syncPlayerOrientation);
-  useEffect(() => {
-    syncPlayerOrientationRef.current = syncPlayerOrientation;
-  }, [syncPlayerOrientation]);
+  const autoFsRef = useRef(false);
+  const controllerSentRef = useRef(false);
 
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
   useEffect(() => { onLiveTimeRef.current = onLiveTime; }, [onLiveTime]);
-  useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
   useEffect(() => { onNextEpisodeRef.current = onNextEpisode; }, [onNextEpisode]);
   useEffect(() => { onOutroStartRef.current = onOutroStart; }, [onOutroStart]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
-  useEffect(() => { onFatalErrorRef.current = onFatalError; }, [onFatalError]);
+  useEffect(() => { onPlayerReadyRef.current = onPlayerReady; }, [onPlayerReady]);
   useEffect(() => { skipTimesRef.current = skipTimes; }, [skipTimes]);
   useEffect(() => { w2gRef.current = w2g; }, [w2g]);
   useEffect(() => { nextEpisodeRef.current = nextEpisode; }, [nextEpisode]);
-  useEffect(() => { preferSubtitlesRef.current = preferSubtitles; }, [preferSubtitles]);
-  useEffect(() => { tracksRef.current = tracks; }, [tracks]);
-
-  const externalSubtitleSig = useMemo(
-    () =>
-      resolveSubtitleTracks(tracks)
-        .map((track) => track.file)
-        .join("|"),
-    [tracks],
-  );
-
+  useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
+  useEffect(() => { autoNextRef.current = autoPlay; }, [autoPlay]);
+  useEffect(() => { autoSkipRef.current = autoSkipIntro; }, [autoSkipIntro]);
   useEffect(() => {
     if (autoFullscreen) autoFsRef.current = true;
   }, [autoFullscreen]);
 
   useEffect(() => {
-    const sync = () => syncPlayerOrientationRef.current();
-    const onFsChange = () => {
-      const nativeFs = isElementFullscreen(wrapperRef.current);
-      if (nativeFs) {
-        void tryLockLandscapeOrientation();
-      } else if (!isPlayerFullscreenRef.current) {
-        void tryUnlockScreenOrientation();
-      }
-      sync();
-    };
-
-    sync();
-    const offOrient = onPlayerOrientationChange(sync);
-    const offFs = onFullscreenChange(onFsChange);
-    return () => {
-      offOrient();
-      offFs();
-      isPlayerFullscreenRef.current = false;
-      void tryUnlockScreenOrientation();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown === 0) {
-      setCountdown(null);
-      if (!autoNextStartedRef.current) {
-        autoNextStartedRef.current = true;
-        onNextEpisodeRef.current?.();
-      }
-      return;
-    }
-    const timer = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
-
-  const triggerNextEpisode = useCallback(() => {
-    if (autoNextStartedRef.current) return;
-    autoNextStartedRef.current = true;
+    controllerSentRef.current = false;
+    introAutoSkippedRef.current = false;
+    outroAutoSkippedRef.current = false;
+    outroFiredRef.current = false;
+    endHandledRef.current = false;
+    autoNextStartedRef.current = false;
+    startFiredRef.current = false;
+    resumeAppliedRef.current = false;
+    skipUiRef.current = null;
+    setActiveSkip(null);
     setCountdown(null);
-    onNextEpisodeRef.current?.();
-  }, []);
-
-  const proxiedSrc = buildKittyHlsUrl(src, headers, kittyProxyNode);
-  const qualitiesSig = useMemo(
-    () => qualities.map((q) => `${q.quality}:${q.file}`).join("|"),
-    [qualities],
-  );
-  const streamType = useMemo(
-    () => resolveKittyStreamType(src, qualities),
-    [src, qualitiesSig],
-  );
+    setReady(false);
+    setBuffering(true);
+  }, [srcKey, setActiveSkip, setCountdown, setReady, setBuffering]);
 
   const reportW2g = useCallback((isPlaying: boolean, time: number) => {
     const cfg = w2gRef.current;
@@ -609,177 +205,35 @@ export default function KittyPlayer({
     lastW2gReportRef.current = time;
   }, []);
 
-  const seekTo = useCallback((time: number) => {
-    const art = artRef.current;
-    if (art) {
-      art.seek = time;
-      art.play();
-    }
-    setActiveSkip(null);
-    skipUiRef.current = null;
-  }, []);
-
-  const applyResume = useCallback((art: Artplayer) => {
-    const resumeAt = startTimeRef.current;
-    const dur = art.duration || durationRef.current;
-    if (!shouldResumeAt(resumeAt, dur)) {
-      resumeAppliedRef.current = true;
-      resumeSeekTargetRef.current = null;
-      return;
-    }
-    if (resumeAppliedRef.current) return;
-    if (Math.abs(art.currentTime - resumeAt) <= 2) {
-      resumeAppliedRef.current = true;
-      resumeSeekTargetRef.current = null;
-      return;
-    }
-    if (resumeSeekTargetRef.current === resumeAt) return;
-    resumeSeekTargetRef.current = resumeAt;
-    art.seek = resumeAt;
-  }, []);
+  useEffect(() => {
+    if (!player || controllerSentRef.current) return;
+    controllerSentRef.current = true;
+    onPlayerReadyRef.current?.(createPlayerController(player, remote));
+  }, [player, remote]);
 
   useEffect(() => {
-    startFiredRef.current = false;
-    outroFiredRef.current = false;
-    endHandledRef.current = false;
-    autoNextStartedRef.current = false;
-    introAutoSkippedRef.current = false;
-    outroAutoSkippedRef.current = false;
-    lastProgressTs.current = 0;
-    skipUiRef.current = null;
-    resumeAppliedRef.current = false;
-    resumeSeekTargetRef.current = null;
-    playbackStartedRef.current = false;
-    isSeekingRef.current = false;
-    if (bufferingShowTimerRef.current != null) {
-      window.clearTimeout(bufferingShowTimerRef.current);
-      bufferingShowTimerRef.current = null;
-    }
-    activeSubtitleUrlRef.current = null;
-    fatalErrorFiredRef.current = false;
-    setActiveSkip(null);
-    setCurrentTime(0);
-    setCountdown(null);
-    durationRef.current = 0;
-    setDuration(0);
-    setBuffering(true);
-    setReady(false);
-  }, [proxiedSrc]);
-
-  useEffect(() => {
-    const art = artRef.current;
-    if (!art || resumeAppliedRef.current || playbackStartedRef.current) return;
-    if (startFiredRef.current && art.currentTime > 5) return;
-    applyResume(art);
-  }, [startTime, applyResume]);
-
-  const subtitleStyleSettings = subtitleSettings;
-
-  useEffect(() => {
-    if (userSubsOverrideRef.current) return;
-    subsVisibleRef.current = preferSubtitles;
-    const art = artRef.current;
-    if (!art || !ready) return;
-    subtitleModeRef.current = applySubtitleMode(
-      art,
-      tracksRef.current,
-      subsVisibleRef.current,
-      subtitleStyleSettings,
-      activeSubtitleUrlRef,
-    );
-  }, [preferSubtitles, ready, subtitleStyleSettings]);
-
-  useEffect(() => {
-    const art = artRef.current;
-    if (!art || !ready) return;
-
-    applySubtitleStyles(art, subtitleStyleSettings);
-
-    boxedSubtitleCleanupRef.current?.();
-    boxedSubtitleCleanupRef.current = null;
-
-    if (subtitleStyleSettings.displayMode === "boxedLines") {
-      const subEl = art.template?.$subtitle as HTMLElement | undefined;
-      if (subEl) {
-        boxedSubtitleCleanupRef.current = installBoxedSubtitleLineFormatter(subEl);
-      }
-    }
-
-    return () => {
-      boxedSubtitleCleanupRef.current?.();
-      boxedSubtitleCleanupRef.current = null;
-    };
-  }, [ready, subtitleStyleSettings]);
-
-  // Persisted subtitle timing offset (seconds). ArtPlayer shifts all cues by it.
-  // `subtitle.offset` is added at runtime by the `subtitleOffset` option and
-  // isn't in ArtPlayer's TS types, hence the cast.
-  useEffect(() => {
-    const art = artRef.current;
-    if (!art?.subtitle || !ready) return;
-    try {
-      (art.subtitle as unknown as { offset: number }).offset = subtitleSettings.delayOffset;
-    } catch {
-      /* offset control not ready yet */
-    }
-  }, [ready, subtitleSettings.delayOffset]);
-
-  useEffect(() => {
-    const art = artRef.current;
-    if (!art || !ready) return;
-
-    const subTracks = resolveSubtitleTracks(tracksRef.current);
-    if (subsVisibleRef.current && subTracks.length > 0) {
-      const active = subTracks.find((track) => track.default) ?? subTracks[0];
-      const url = resolveTrackSrc(active.file);
-      if (isExternalSubtitleLoaded(art, url, activeSubtitleUrlRef)) {
-        syncExternalSubtitleTrack(art, "external");
-        return;
-      }
-    }
-
-    subtitleModeRef.current = applySubtitleMode(
-      art,
-      tracksRef.current,
-      subsVisibleRef.current,
-      subtitleStyleSettings,
-      activeSubtitleUrlRef,
-    );
-  }, [externalSubtitleSig, preferSubtitles, ready, subtitleStyleSettings]);
-
-  useEffect(() => {
-    const art = artRef.current;
-    const video = art?.video;
-    const videoContainer = art?.template?.$video as HTMLElement | undefined;
-
-    if (!ready || !effectiveAnime4k || !video || !videoContainer) {
-      setAnime4kActive(false);
-      anime4kDetachRef.current?.();
-      anime4kDetachRef.current = null;
-      return;
-    }
-
+    if (!player) return;
+    const effectiveAnime4k = anime4kEnabled && !liteMode && isWebGpuSupported();
     let cancelled = false;
 
-    void attachAnime4k({
-      video,
-      videoContainer,
-      mode: anime4kMode,
-    })
-      .then((attachment) => {
-        if (cancelled) {
-          attachment.detach();
-          return;
-        }
-        anime4kDetachRef.current?.();
-        anime4kDetachRef.current = attachment.detach;
-        video.style.opacity = "0";
-        attachment.canvas.style.display = "block";
-        setAnime4kActive(true);
-      })
-      .catch(() => {
-        if (!cancelled) setAnime4kActive(false);
-      });
+    anime4kDetachRef.current?.();
+    anime4kDetachRef.current = null;
+    setAnime4kActive(false);
+
+    if (!effectiveAnime4k) return;
+
+    const video = player.el?.querySelector("video");
+    const videoContainer = player.el;
+    if (!video || !videoContainer) return;
+
+    void attachAnime4k({ video, videoContainer, mode: anime4kMode }).then((attachment) => {
+      if (cancelled) {
+        attachment.detach();
+        return;
+      }
+      anime4kDetachRef.current = attachment.detach;
+      setAnime4kActive(true);
+    });
 
     return () => {
       cancelled = true;
@@ -787,681 +241,154 @@ export default function KittyPlayer({
       anime4kDetachRef.current = null;
       setAnime4kActive(false);
     };
-  }, [ready, effectiveAnime4k, anime4kMode, proxiedSrc]);
+  }, [player, anime4kEnabled, anime4kMode, liteMode, setAnime4kActive]);
 
   useEffect(() => {
-    const cfg = w2gRef.current;
-    if (!cfg || cfg.isHost || !cfg.syncState) return;
-    const art = artRef.current;
-    if (!art) return;
-
-    const { version, isPlaying, currentTime: syncTime } = cfg.syncState;
-    if (version === lastAppliedW2gVersion.current) return;
-    lastAppliedW2gVersion.current = version;
-    applyingW2gRef.current = true;
-
-    if (Math.abs(art.currentTime - syncTime) > 2.5) {
-      art.seek = syncTime;
+    if (!player || !canPlay || resumeAppliedRef.current) return;
+    const resumeAt = startTimeRef.current;
+    if (!shouldResumeAt(resumeAt, mediaDuration)) {
+      resumeAppliedRef.current = true;
+      return;
     }
-    if (isPlaying && isArtPaused(art)) {
-      art.play();
-    } else if (!isPlaying && !isArtPaused(art)) {
-      art.pause();
-    }
-
-    window.setTimeout(() => {
-      applyingW2gRef.current = false;
-    }, 600);
-  }, [w2g?.syncState]);
+    remote.seek(resumeAt);
+    resumeAppliedRef.current = true;
+  }, [player, canPlay, mediaDuration, remote]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !proxiedSrc) return;
+    if (!player || !canPlay) return;
+    setReady(true);
+    setBuffering(false);
 
-    const subTracks = resolveSubtitleTracks(tracksRef.current);
-    const hasExternalSubs = subTracks.length > 0;
-    const subsVisible = subsVisibleRef.current;
-
-    const defaultSub = subTracks.find((tr) => tr.default) ?? subTracks[0];
-    const defaultSubType = defaultSub
-      ? detectSubtitleFormat({ url: defaultSub.file, label: defaultSub.label })
-      : "vtt";
-
-    const subtitleOption: Option["subtitle"] =
-      hasExternalSubs && defaultSub
-        ? {
-            url: defaultSub.file,
-            type: defaultSubType,
-            encoding: "utf-8",
-            escape: false,
-            onVttLoad: (vtt: string) =>
-              defaultSubType === "ass" ? vtt : sanitizeVttOrSrtContent(vtt),
-            style: {
-              color: subtitleSettings.color,
-              fontSize: `${subtitleSettings.fontSize}px`,
-              textShadow: "2px 2px 4px rgba(0,0,0,0.85)",
-            },
-          }
-        : {};
-
-    const subtitleSelector = subTracks.map((track) => {
-      const type = detectSubtitleFormat({ url: track.file, label: track.label });
-      return {
-        html: track.label || labelToLanguage(track.label || ""),
-        url: track.file,
-        type,
-        encoding: "utf-8",
-        escape: false,
-        onVttLoad: (vtt: string) => (type === "ass" ? vtt : sanitizeVttOrSrtContent(vtt)),
-      };
-    });
-
-    let hlsForCleanup: Hls | null = null;
-    let hlsNetworkRecoveries = 0;
-    userSubsOverrideRef.current = false;
-    subsVisibleRef.current = preferSubtitlesRef.current;
-    subtitleModeRef.current = subsVisibleRef.current
-      ? hasExternalSubs
-        ? "external"
-        : "native"
-      : "off";
-
-    // Persisted volume / mute / speed so they survive episode changes + reloads.
-    const readNum = (key: string, fallback: number) => {
-      const n = parseFloat(localStorage.getItem(key) ?? "");
-      return Number.isFinite(n) ? n : fallback;
-    };
-    const savedVolume = Math.min(1, Math.max(0, readNum("kittyVolume", 0.85)));
-    const savedMuted = localStorage.getItem("kittyMuted") === "1";
-    const savedRate = Math.min(4, Math.max(0.25, readNum("kittyPlaybackRate", 1)));
-
-    const shouldUseExternalSubs = () =>
-      subsVisibleRef.current && resolveSubtitleTracks(tracksRef.current).length > 0;
-
-    const syncNativeSubsIfNeeded = (video: HTMLVideoElement) => {
-      if (!subsVisibleRef.current) {
-        disableEmbeddedTextTracks(video);
-        const currentArt = artRef.current;
-        if (currentArt) currentArt.subtitle.show = false;
-        subtitleModeRef.current = "off";
-        return;
-      }
-      if (subtitleModeRef.current === "external") {
-        disableEmbeddedTextTracks(video);
-        const currentArt = artRef.current;
-        if (currentArt) ensureArtplayerSubtitleTrack(currentArt);
-        return;
-      }
-      if (shouldUseExternalSubs()) {
-        disableEmbeddedTextTracks(video);
-        return;
-      }
-      const enabled = enableNativeHlsSubtitles(video);
-      if (enabled) subtitleModeRef.current = "native";
-    };
-
-    const playerQuality = buildArtplayerQualityOption(qualities, src, headers, kittyProxyNode);
-    const useHlsLevelQuality = streamType === "m3u8" && !playerQuality;
-    const seekLabels = {
-      back: t("watch.seekBackButton", { seconds: seekStepRef.current }),
-      forward: t("watch.seekForwardButton", { seconds: seekStepRef.current }),
-    };
-
-    const art = new Artplayer({
-      container,
-      url: proxiedSrc,
-      type: streamType,
-      ...(playerQuality ? { quality: playerQuality } : {}),
-      theme: ANIKITTY_PLAYER_THEME,
-      cssVar: ANIKITTY_PLAYER_CSS_VAR,
-      volume: savedVolume,
-      autoplay: true,
-      muted: savedMuted,
-      pip: true,
-      setting: true,
-      playbackRate: true,
-      aspectRatio: true,
-      fullscreen: true,
-      fullscreenWeb: true,
-      subtitleOffset: hasExternalSubs || subsVisibleRef.current,
-      screenshot: true,
-      backdrop: false,
-      autoPlayback: false,
-      autoSize: false,
-      autoMini: false,
-      mutex: true,
-      playsInline: true,
-      gesture: playerTouchSeekRef.current,
-      fastForward: false,
-      flip: false,
-      controls: buildKittySeekControls(() => seekStepRef.current, seekLabels),
-      // useWatchKeyboard owns every shortcut. ArtPlayer's built-in hotkeys also
-      // bind Space on document, which double-toggles playback and ignores our
-      // typing/interactive-element guards.
-      hotkey: false,
-      lang: locale,
-      moreVideoAttr: { crossOrigin: "anonymous" },
-      subtitle: subtitleOption,
-      ...(streamType === "m3u8"
-        ? {
-            customType: {
-              m3u8(video, url, player) {
-                if (Hls.isSupported()) {
-                  hlsRef.current?.destroy();
-                  const hls = new Hls(createHlsConfig({ enableWebVTT: subsVisibleRef.current && !hasExternalSubs }));
-                  hls.loadSource(url);
-                  hls.attachMedia(video as HTMLMediaElement);
-                  player.hls = hls;
-                  hlsRef.current = hls;
-                  hlsForCleanup = hls;
-
-                  hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    refreshHlsControls(player);
-                    syncNativeSubsIfNeeded(video as HTMLVideoElement);
-                  });
-                  hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
-                    syncNativeSubsIfNeeded(video as HTMLVideoElement);
-                  });
-                  hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, () => {
-                    syncNativeSubsIfNeeded(video as HTMLVideoElement);
-                  });
-                  hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
-                    refreshHlsControls(player);
-                  });
-                  const fireFatalError = (type: string, details?: string) => {
-                    if (fatalErrorFiredRef.current) return;
-                    fatalErrorFiredRef.current = true;
-                    onFatalErrorRef.current?.({ type, details });
-                  };
-
-                  hls.on(Hls.Events.ERROR, (_event, data) => {
-                    if (!data.fatal) return;
-                    const video = artRef.current?.video;
-                    if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                      hls.recoverMediaError();
-                      return;
-                    }
-                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                      // A dead/404 manifest never recovers by reloading — bubble up
-                      // immediately so the parent can fail over to another provider.
-                      const status = (data.response as { code?: number } | undefined)?.code;
-                      const isManifestOr404 =
-                        status === 404 ||
-                        data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
-                        data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
-                        data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
-                        data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR;
-                      if (isManifestOr404 || hlsNetworkRecoveries >= 3) {
-                        fireFatalError("network", data.details);
-                        return;
-                      }
-                      hlsNetworkRecoveries += 1;
-                      hlsLoadFromVideoTime(hls, video);
-                      return;
-                    }
-                    // Any other fatal error we can't recover from.
-                    fireFatalError(String(data.type), data.details);
-                  });
-
-                  player.on("destroy", () => {
-                    hls.destroy();
-                    if (hlsRef.current === hls) hlsRef.current = null;
-                    player.hls = undefined;
-                  });
-                } else if ((video as HTMLVideoElement).canPlayType("application/vnd.apple.mpegurl")) {
-                  (video as HTMLVideoElement).src = url;
-                } else {
-                  player.notice.show = "HLS is not supported in this browser.";
-                }
-              },
-            },
-          }
-        : {}),
-      plugins: [
-        ...(streamType === "m3u8"
-          ? [
-              artplayerPluginHlsControl({
-                quality: useHlsLevelQuality
-                  ? {
-                      control: true,
-                      setting: true,
-                      getName: (level: { height?: number; bitrate?: number }) => {
-                        if (!level.height) return t("watch.streamAuto");
-                        const tier = level.height <= 480 ? "SD" : level.height <= 720 ? "HD" : "FHD";
-                        return `${tier} ${level.height}P`;
-                      },
-                      title: t("watch.streamQuality"),
-                      auto: t("watch.streamAuto"),
-                    }
-                  : undefined,
-                audio: {
-                  control: true,
-                  setting: true,
-                  getName: (track: { name?: string }) => track.name ?? t("watch.streamAudio"),
-                  title: t("watch.streamAudio"),
-                  auto: t("watch.streamAuto"),
-                },
-              }),
-            ]
-          : []),
-        artplayerPluginChromecast({
-          url: resolveTrackSrc(proxiedSrc),
-          mimeType: kittyStreamChromecastMime(streamType),
-        }),
-      ],
-      highlight: [
-        ...generateHighlights(skipTimes?.intro?.start, skipTimes?.intro?.end, t("watch.segmentIntro")),
-        ...generateHighlights(skipTimes?.outro?.start, skipTimes?.outro?.end, t("watch.segmentOutro")),
-      ],
-      settings: [
-        {
-          width: 220,
-          html: t("watch.artAutoNext"),
-          tooltip: autoNextRef.current ? t("watch.on") : t("watch.off"),
-          switch: autoNextRef.current,
-          onSwitch(item) {
-            const enabled = !item.switch;
-            autoNextRef.current = enabled;
-            useSettingsStore.getState().setAutoPlay(enabled);
-            item.tooltip = enabled ? t("watch.on") : t("watch.off");
-            art.notice.show = enabled
-              ? t("watch.artAutoNextEnabled")
-              : t("watch.artAutoNextDisabled");
-            return enabled;
-          },
-        },
-        ...(isWebGpuSupported()
-          ? [
-              {
-                width: 220,
-                html: t("watch.anime4k"),
-                tooltip: anime4kEnabledRef.current ? t("watch.on") : t("watch.off"),
-                switch: anime4kEnabledRef.current,
-                onSwitch(item: any) {
-                  const enabled = !item.switch;
-                  anime4kEnabledRef.current = enabled;
-                  useSettingsStore.getState().setAnime4kEnabled(enabled);
-                  item.tooltip = enabled ? t("watch.on") : t("watch.off");
-                  art.notice.show = enabled
-                    ? t("watch.artAnime4kEnabled")
-                    : t("watch.artAnime4kDisabled");
-                  return enabled;
-                },
-              },
-              {
-                width: 220,
-                html: t("watch.anime4kMode", { mode: anime4kModeRef.current }),
-                tooltip: t("watch.anime4kModeHint"),
-                selector: ANIME4K_MODES.map((mode) => ({
-                  html: t("watch.anime4kMode", { mode }),
-                  mode,
-                  default: mode === anime4kModeRef.current,
-                })),
-                onSelect(item: any) {
-                  const picked = (item.mode ?? anime4kModeRef.current) as Anime4kMode;
-                  anime4kModeRef.current = picked;
-                  useSettingsStore.getState().setAnime4kMode(picked);
-                  art.notice.show = t("watch.anime4kMode", { mode: picked });
-                  return item.html ?? t("watch.anime4k");
-                },
-              },
-            ]
-          : []),
-        ...(hasExternalSubs
-          ? [
-              {
-                width: 220,
-                html: t("watch.subtitleSettings"),
-                tooltip: t("watch.subtitleSettings"),
-                selector: [
-                  {
-                    html: t("watch.artSubtitleDisplay"),
-                    tooltip: subsVisibleRef.current ? t("watch.artHide") : t("watch.artShow"),
-                    switch: subsVisibleRef.current,
-                    onSwitch(item: any) {
-                      const show = !item.switch;
-                      userSubsOverrideRef.current = true;
-                      subsVisibleRef.current = show;
-                      art.subtitle.show = show;
-                      item.tooltip = show ? t("watch.artHide") : t("watch.artShow");
-                      if (show && subTracks.length > 0) {
-                        subtitleModeRef.current = "external";
-                        const active = subTracks.find((tr) => tr.default) ?? subTracks[0];
-                        const url = resolveTrackSrc(active.file);
-                        switchExternalSubtitle(
-                          art,
-                          url,
-                          { ...active, file: url },
-                          subtitleStyleSettings,
-                          activeSubtitleUrlRef,
-                        );
-                      } else if (!show) {
-                        disableEmbeddedTextTracks(art.video);
-                        activeSubtitleUrlRef.current = null;
-                        subtitleModeRef.current = "off";
-                      }
-                      return show;
-                    },
-                  },
-                  ...subtitleSelector,
-                ],
-                onSelect(item: { html?: string; url?: string; type?: string }) {
-                  if (item.url) {
-                    userSubsOverrideRef.current = true;
-                    subsVisibleRef.current = true;
-                    subtitleModeRef.current = "external";
-                    const url = resolveTrackSrc(item.url);
-                    switchExternalSubtitle(
-                      art,
-                      url,
-                      { file: url, label: item.html },
-                      subtitleStyleSettings,
-                      activeSubtitleUrlRef,
-                    );
-                  }
-                  return item.html ?? t("watch.subtitleSettings");
-                },
-              },
-            ]
-          : []),
-      ],
-    });
-
-    artRef.current = art;
-
-    // ArtPlayer's built-in `playing` getter also requires `readyState > 2`,
-    // so mid-stream HLS buffering makes it report "not playing" even while
-    // the video is running. `art.toggle()` (bound to the click/tap handler)
-    // then calls play() instead of pause(), so clicks flash the play state
-    // animation but never pause. Redefine it to trust the actual DOM state.
-    try {
-      Object.defineProperty(art, "playing", {
-        configurable: true,
-        get: () => !!(art.video && !art.video.paused && !art.video.ended),
-      });
-    } catch {
-      /* getter is non-configurable on this build — leave default behavior */
-    }
-
-    if (streamType === "mp4") {
-      art.on("video:error", () => {
-        if (fatalErrorFiredRef.current) return;
-        fatalErrorFiredRef.current = true;
-        const code = art.video?.error?.code;
-        onFatalErrorRef.current?.({
-          type: "media",
-          details: code != null ? `mp4 error ${code}` : "mp4 playback failed",
-        });
-      });
-    }
-
-    art.on("ready", () => {
-      setReady(true);
-      setBuffering(false);
-      if (hasExternalSubs && !subsVisibleRef.current) {
-        art.subtitle.show = false;
-      }
-      subtitleModeRef.current = applySubtitleMode(
-        art,
-        tracksRef.current,
-        subsVisibleRef.current,
-        subtitleStyleSettings,
-        activeSubtitleUrlRef,
-      );
-      applyResume(art);
-      refreshHlsControls(art);
-      if (savedRate !== 1) art.playbackRate = savedRate;
-
-      // Mount overlays inside the player element (the native-fullscreen target)
-      // so the skip/next/countdown UI shows in fullscreen.
-      const playerEl = (art.template?.$player ?? container) as HTMLElement;
-      const host = document.createElement("div");
-      host.className = "kitty-overlay-host";
-      host.style.cssText = "position:absolute;inset:0;z-index:120;pointer-events:none;";
-      playerEl.appendChild(host);
-      overlayHostRef.current = host;
-      setOverlayHost(host);
-
-      onPlayerReadyRef.current?.(art);
-
-      const video = art.video;
-      if (video?.textTracks) {
-        video.textTracks.addEventListener("addtrack", (ev: Event) => {
-          const track = (ev as TrackEvent).track;
-          if (!track) return;
-          handleTextTrackAdded(track, subtitleModeRef.current, () =>
-            syncNativeSubsIfNeeded(video),
-          );
-        });
-      }
-
-      if (autoFsRef.current) {
-        autoFsRef.current = false;
-        const target = wrapperRef.current ?? container;
+    if (autoFsRef.current) {
+      autoFsRef.current = false;
+      const target = wrapperRef.current;
+      if (target) {
         requestElementFullscreen(target)
           .then(() => {
             void tryLockLandscapeOrientation();
-            syncPlayerOrientationRef.current();
           })
           .catch(() => {
-            art.fullscreen = true;
-            isPlayerFullscreenRef.current = true;
-            void tryLockLandscapeOrientation();
-            syncPlayerOrientationRef.current();
+            remote.enterFullscreen();
           });
-      }
-    });
-
-    art.on("fullscreen", (enabled: boolean) => {
-      isPlayerFullscreenRef.current = enabled;
-      if (enabled) {
-        void tryLockLandscapeOrientation();
-      } else if (!isElementFullscreen(wrapperRef.current)) {
-        void tryUnlockScreenOrientation();
-      }
-      syncPlayerOrientationRef.current();
-    });
-
-    art.on("resize", () => {
-      applySubtitleStyles(art, subtitleStyleSettings);
-    });
-
-    // Remember volume / mute / playback speed across episodes and sessions.
-    art.on("video:volumechange", () => {
-      localStorage.setItem("kittyVolume", String(art.volume));
-      localStorage.setItem("kittyMuted", art.muted ? "1" : "0");
-    });
-    art.on("video:ratechange", () => {
-      localStorage.setItem("kittyPlaybackRate", String(art.playbackRate));
-    });
-
-    const setBufferingDebounced = (show: boolean) => {
-      if (show) {
-        if (bufferingShowTimerRef.current != null) return;
-        bufferingShowTimerRef.current = window.setTimeout(() => {
-          bufferingShowTimerRef.current = null;
-          setBuffering(true);
-        }, 300);
-        return;
-      }
-      if (bufferingShowTimerRef.current != null) {
-        window.clearTimeout(bufferingShowTimerRef.current);
-        bufferingShowTimerRef.current = null;
-      }
-      setBuffering(false);
-    };
-
-    art.on("video:loadedmetadata", () => {
-      if (!resumeAppliedRef.current && !playbackStartedRef.current) applyResume(art);
-      syncExternalSubtitleTrack(art, subtitleModeRef.current);
-    });
-
-    art.on("video:seeking", () => {
-      isSeekingRef.current = true;
-    });
-
-    art.on("video:seeked", () => {
-      isSeekingRef.current = false;
-      const target = resumeSeekTargetRef.current;
-      if (target != null && Math.abs(art.currentTime - target) <= 3) {
-        resumeAppliedRef.current = true;
-        resumeSeekTargetRef.current = null;
-      }
-      const video = art.video;
-      const hls = hlsRef.current;
-      if (hls && video && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
-        hlsLoadFromVideoTime(hls, video);
-      }
-    });
-
-    art.on("video:waiting", () => setBufferingDebounced(true));
-    art.on("video:canplay", () => {
-      setBufferingDebounced(false);
-      setReady(true);
-      if (
-        subsVisibleRef.current &&
-        resolveSubtitleTracks(tracksRef.current).length > 0 &&
-        !activeSubtitleUrlRef.current
-      ) {
-        subtitleModeRef.current = applySubtitleMode(
-          art,
-          tracksRef.current,
-          subsVisibleRef.current,
-          subtitleStyleSettings,
-          activeSubtitleUrlRef,
-        );
       } else {
-        syncExternalSubtitleTrack(art, subtitleModeRef.current);
+        remote.enterFullscreen();
       }
-    });
-    art.on("video:playing", () => {
-      playbackStartedRef.current = true;
-      setBufferingDebounced(false);
-    });
+    }
+  }, [player, canPlay, remote, setReady, setBuffering, wrapperRef]);
 
-    const setMediaPlaybackState = (state: "playing" | "paused") => {
+  useEffect(() => {
+    if (!player) return;
+    if (preferSubtitles) remote.showCaptions();
+    else remote.disableCaptions();
+  }, [player, preferSubtitles, remote]);
+
+  useEffect(() => {
+    setBuffering(waiting && !canPlay);
+  }, [waiting, canPlay, setBuffering]);
+
+  useEffect(() => {
+    if (!paused && !startFiredRef.current) {
+      startFiredRef.current = true;
+      onStartRef.current?.();
+    }
+    if (!paused) {
+      reportW2g(true, mediaCurrentTime);
       if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
-        navigator.mediaSession.playbackState = state;
+        navigator.mediaSession.playbackState = "playing";
       }
-    };
-
-    art.on("play", () => {
-      playbackStartedRef.current = true;
-      if (!startFiredRef.current) {
-        startFiredRef.current = true;
-        onStartRef.current?.();
+    } else if (mediaCurrentTime > 0) {
+      reportW2g(false, mediaCurrentTime);
+      if (mediaDuration > 0 && mediaCurrentTime > 5) {
+        onProgressRef.current?.(mediaCurrentTime, mediaDuration);
       }
-      reportW2g(true, art.currentTime);
-      setBufferingDebounced(false);
-      setMediaPlaybackState("playing");
-    });
-
-    art.on("pause", () => {
-      const current = art.currentTime;
-      const dur = art.duration;
-      if (current > 5 && dur > 0) onProgressRef.current?.(current, dur);
-      reportW2g(false, current);
-      setMediaPlaybackState("paused");
-    });
-
-    art.on("video:timeupdate", () => {
-      const current = art.currentTime;
-      const dur = art.duration;
-      onLiveTimeRef.current?.(current, dur);
-
-      if (dur > 0 && Math.abs(dur - durationRef.current) > 0.5) {
-        durationRef.current = dur;
-        setDuration(dur);
+      if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "paused";
       }
+    }
+  }, [paused, mediaCurrentTime, mediaDuration, reportW2g]);
 
-      const st = skipTimesRef.current;
-      let nextSkip: "intro" | "outro" | null = null;
-      if (st?.intro && current >= st.intro.start && current < st.intro.end) {
-        nextSkip = "intro";
-        if (autoSkipRef.current && !introAutoSkippedRef.current) {
-          introAutoSkippedRef.current = true;
-          art.currentTime = st.intro.end;
-        }
-      } else if (st?.outro && current >= st.outro.start && current < st.outro.end) {
-        nextSkip = "outro";
-        if (autoSkipRef.current && !outroAutoSkippedRef.current) {
-          outroAutoSkippedRef.current = true;
-          art.currentTime = st.outro.end;
-        }
-        if (!outroFiredRef.current && dur > 0) {
-          outroFiredRef.current = true;
-          onOutroStartRef.current?.(dur);
-        }
-      }
+  useEffect(() => {
+    if (mediaDuration > 0) setDuration(mediaDuration);
+    onLiveTimeRef.current?.(mediaCurrentTime, mediaDuration);
 
-      const skipChanged = nextSkip !== skipUiRef.current;
-      if (skipChanged) {
-        skipUiRef.current = nextSkip;
-        setActiveSkip(nextSkip);
+    const st = skipTimesRef.current;
+    let nextSkip: "intro" | "outro" | null = null;
+    if (st?.intro && mediaCurrentTime >= st.intro.start && mediaCurrentTime < st.intro.end) {
+      nextSkip = "intro";
+      if (autoSkipRef.current && !introAutoSkippedRef.current) {
+        introAutoSkippedRef.current = true;
+        remote.seek(st.intro.end);
       }
+    } else if (st?.outro && mediaCurrentTime >= st.outro.start && mediaCurrentTime < st.outro.end) {
+      nextSkip = "outro";
+      if (autoSkipRef.current && !outroAutoSkippedRef.current) {
+        outroAutoSkippedRef.current = true;
+        remote.seek(st.outro.end);
+      }
+      if (!outroFiredRef.current && mediaDuration > 0) {
+        outroFiredRef.current = true;
+        onOutroStartRef.current?.(mediaDuration);
+      }
+    }
 
-      const uiInterval = nextSkip ? 0.5 : 2;
-      if (skipChanged || current - lastUiTimeRef.current >= uiInterval) {
-        lastUiTimeRef.current = current;
-        setCurrentTime(current);
-      }
+    const skipChanged = nextSkip !== skipUiRef.current;
+    if (skipChanged) {
+      skipUiRef.current = nextSkip;
+      setActiveSkip(nextSkip);
+    }
 
-      if (current > 5 && dur > 0) {
-        const now = Date.now();
-        if (now - lastProgressTs.current >= 10_000) {
-          lastProgressTs.current = now;
-          onProgressRef.current?.(current, dur);
-        }
-      }
+    const uiInterval = nextSkip ? 0.5 : 2;
+    if (skipChanged || mediaCurrentTime - lastUiTimeRef.current >= uiInterval) {
+      lastUiTimeRef.current = mediaCurrentTime;
+      setCurrentTime(mediaCurrentTime);
+    }
 
-      const cfg = w2gRef.current;
-      if (cfg?.isHost && !applyingW2gRef.current && Math.abs(current - lastW2gReportRef.current) > 2.5) {
-        reportW2g(!isArtPaused(art), current);
+    if (mediaCurrentTime > 5 && mediaDuration > 0) {
+      const now = Date.now();
+      if (now - lastProgressTs.current >= 10_000) {
+        lastProgressTs.current = now;
+        onProgressRef.current?.(mediaCurrentTime, mediaDuration);
       }
-    });
+    }
 
-    art.on("video:ended", () => {
-      if (endHandledRef.current) return;
-      endHandledRef.current = true;
-      onEndedRef.current?.();
-      // Don't set autoNextStartedRef here — that flag guards the actual
-      // navigation, which the countdown fires when it reaches 0. Setting it
-      // now would block the countdown from ever advancing the episode.
-      if (nextEpisodeRef.current && autoNextRef.current && !autoNextStartedRef.current) {
-        setCountdown(5);
-      }
-    });
+    const cfg = w2gRef.current;
+    if (
+      cfg?.isHost &&
+      !applyingW2gRef.current &&
+      Math.abs(mediaCurrentTime - lastW2gReportRef.current) > 2.5
+    ) {
+      reportW2g(!paused, mediaCurrentTime);
+    }
+  }, [
+    mediaCurrentTime,
+    mediaDuration,
+    paused,
+    remote,
+    reportW2g,
+    setActiveSkip,
+    setCurrentTime,
+    setDuration,
+  ]);
 
-    return () => {
-      if (bufferingShowTimerRef.current != null) {
-        window.clearTimeout(bufferingShowTimerRef.current);
-        bufferingShowTimerRef.current = null;
-      }
-      activeSubtitleUrlRef.current = null;
-      subtitleModeRef.current = "off";
-      anime4kDetachRef.current?.();
-      anime4kDetachRef.current = null;
-      setAnime4kActive(false);
-      startFiredRef.current = false;
-      fatalErrorFiredRef.current = false;
-      setReady(false);
-      setBuffering(true);
-      // Detach the overlay host before ArtPlayer tears down its DOM, and let
-      // React unmount the portal into it.
-      setOverlayHost(null);
-      overlayHostRef.current?.remove();
-      overlayHostRef.current = null;
-      art.destroy();
-      artRef.current = null;
-      if (hlsForCleanup) {
-        hlsForCleanup.destroy();
-        hlsForCleanup = null;
-      }
-      hlsRef.current = null;
-    };
-  }, [proxiedSrc, qualitiesSig, streamType, playerTouchSeekEnabled, seekStepSeconds, t, locale, applyResume, reportW2g]);
+  useEffect(() => {
+    if (!ended || endHandledRef.current) return;
+    endHandledRef.current = true;
+    onEndedRef.current?.();
+    if (nextEpisodeRef.current && autoNextRef.current && !autoNextStartedRef.current) {
+      autoNextStartedRef.current = true;
+      setCountdown(5);
+    }
+  }, [ended, setCountdown]);
 
-  if (!proxiedSrc) return null;
+  useEffect(() => {
+    const cfg = w2gRef.current;
+    if (!player || !cfg?.syncState || cfg.isHost) return;
+    applyingW2gRef.current = true;
+    remote.seek(cfg.syncState.currentTime);
+    if (cfg.syncState.isPlaying) remote.play();
+    else remote.pause();
+    applyingW2gRef.current = false;
+  }, [player, remote, w2g?.syncState?.version, w2g?.isHost, w2g?.syncState]);
 
   const activeInterval: SkipInterval | undefined =
     activeSkip === "intro"
@@ -1473,16 +400,21 @@ export default function KittyPlayer({
   const nearEnd = duration > 60 && currentTime >= duration - 90;
   const showNext = !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
   const overlayBottom = showNext ? "kitty-overlay--stacked" : "kitty-overlay--base";
-  const showLoading = buffering && !ready;
 
-  const overlays = (
-    <>
+  const handleSkip = (end: number) => {
+    remote.seek(end);
+    skipUiRef.current = null;
+    setActiveSkip(null);
+  };
+
+  return (
+    <div className="kitty-player-overlays">
       {showNext && nextEpisode && (
         <NextEpisodeButton
           episode={nextEpisode}
           imageUrl={nextEpisode.image}
           stackClass={overlayBottom}
-          onClick={triggerNextEpisode}
+          onClick={() => onNextEpisodeRef.current?.()}
         />
       )}
 
@@ -1492,7 +424,7 @@ export default function KittyPlayer({
           interval={activeInterval}
           currentTime={currentTime}
           stackClass={overlayBottom}
-          onSkip={() => seekTo(activeInterval.end)}
+          onSkip={() => handleSkip(activeInterval.end)}
         />
       )}
 
@@ -1501,25 +433,174 @@ export default function KittyPlayer({
           episode={nextEpisode}
           imageUrl={nextEpisode.image}
           countdown={countdown}
-          onSkip={triggerNextEpisode}
+          onSkip={() => onNextEpisodeRef.current?.()}
           onCancel={() => setCountdown(null)}
         />
       )}
-    </>
+    </div>
   );
+}
+
+export default function KittyPlayer(props: VideoPlayerProps) {
+  const {
+    src,
+    tracks = [],
+    headers = {},
+    qualities = [],
+    skipTimes,
+    startTime = 0,
+    autoFullscreen = false,
+    nextEpisode,
+    onFatalError,
+    preferSubtitles = true,
+  } = props;
+
+  const t = useT();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
+  const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
+  const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
+  const anime4kMode = useSettingsStore((s) => s.anime4kMode);
+  const liteMode = useSettingsStore((s) => s.liteMode);
+
+  const [activeSkip, setActiveSkip] = useState<"intro" | "outro" | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
+  const [buffering, setBuffering] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [anime4kActive, setAnime4kActive] = useState(false);
+
+  const playerSrc = useMemo(
+    () => buildVidstackPlayerSrc(src, qualities, headers, kittyProxyNode),
+    [src, qualities, headers, kittyProxyNode],
+  );
+
+  const subtitleTracks = useMemo(
+    () =>
+      tracks
+        .filter(isSubtitleTrack)
+        .map((track) => ({
+          ...track,
+          file: resolveTrackSrc(getTrackFile(track) ?? ""),
+        }))
+        .filter((track) => Boolean(track.file)),
+    [tracks],
+  );
+
+  const srcKey = useMemo(() => resolvePlayerSrcKey(playerSrc), [playerSrc]);
+
+  const syncPlayerOrientation = useCallback(() => {
+    setOrientClass(
+      resolvePlayerOrientClass({
+        isFullscreen: isElementFullscreen(wrapperRef.current),
+      }),
+    );
+  }, []);
+
+  useEffect(() => {
+    syncPlayerOrientation();
+    const offOrient = onPlayerOrientationChange(syncPlayerOrientation);
+    const offFs = onFullscreenChange(() => {
+      if (isElementFullscreen(wrapperRef.current)) void tryLockLandscapeOrientation();
+      else void tryUnlockScreenOrientation();
+      syncPlayerOrientation();
+    });
+    return () => {
+      offOrient();
+      offFs();
+      void tryUnlockScreenOrientation();
+    };
+  }, [syncPlayerOrientation]);
+
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return;
+    const timer = window.setTimeout(() => {
+      setCountdown((value) => {
+        if (value === null || value <= 1) {
+          props.onNextEpisode?.();
+          return null;
+        }
+        return value - 1;
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [countdown, props.onNextEpisode]);
+
+  if (!src) return null;
+
+  const showLoading = buffering && !ready;
 
   return (
     <div
       ref={wrapperRef}
       className={cn(
-        "art-kitty-player relative w-full min-w-0 overflow-hidden rounded-none sm:rounded-xl bg-[#030303]",
+        "kitty-vidstack-player rounded-none sm:rounded-xl",
         "shadow-none sm:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-0 sm:ring-1 ring-white/[0.08]",
         orientClass,
         anime4kActive && "anime4k-active",
       )}
-      style={orientClass ? undefined : { aspectRatio: "16/9" }}
     >
-      <div ref={containerRef} className="art-kitty-player-mount absolute inset-0 z-0" />
+      <MediaPlayer
+        key={srcKey}
+        className="kitty-vidstack-media"
+        src={playerSrc}
+        viewType="video"
+        streamType="on-demand"
+        crossOrigin
+        playsInline
+        autoplay
+        storage="kitty-vidstack"
+        onError={(detail: MediaErrorDetail) => {
+          onFatalError?.({
+            type: detail.code != null ? String(detail.code) : "media",
+            details: detail.message,
+          });
+        }}
+      >
+        <MediaProvider />
+        <PlayerBridge
+          {...props}
+          srcKey={srcKey}
+          skipTimes={skipTimes}
+          nextEpisode={nextEpisode}
+          startTime={startTime}
+          autoFullscreen={autoFullscreen}
+          preferSubtitles={preferSubtitles}
+          wrapperRef={wrapperRef}
+          anime4kEnabled={anime4kEnabled}
+          anime4kMode={anime4kMode}
+          liteMode={liteMode}
+          setActiveSkip={setActiveSkip}
+          setCurrentTime={setCurrentTime}
+          setDuration={setDuration}
+          setCountdown={setCountdown}
+          setReady={setReady}
+          setBuffering={setBuffering}
+          setAnime4kActive={setAnime4kActive}
+          activeSkip={activeSkip}
+          currentTime={currentTime}
+          duration={duration}
+          countdown={countdown}
+        />
+        {subtitleTracks.map((track, index) => (
+          <Track
+            key={`${track.file}-${index}`}
+            src={track.file}
+            kind="subtitles"
+            label={track.label || `Subtitle ${index + 1}`}
+            language={labelToLanguage(track.label || "")}
+            default={track.default ?? (index === 0 && preferSubtitles)}
+          />
+        ))}
+        <DefaultVideoLayout
+          icons={defaultLayoutIcons}
+          colorScheme="dark"
+          seekStep={seekStepSeconds}
+          smallLayoutWhen={({ width }) => width < 576}
+        />
+      </MediaPlayer>
 
       {showLoading && (
         <div
@@ -1532,10 +613,6 @@ export default function KittyPlayer({
           <LoadingGirl size={120} className="opacity-90 drop-shadow-[0_0_32px_rgba(124,58,237,0.35)]" />
         </div>
       )}
-
-      {/* Mounted inside ArtPlayer's player element so they survive fullscreen. */}
-      {overlayHost ? createPortal(overlays, overlayHost) : overlays}
     </div>
   );
 }
-
