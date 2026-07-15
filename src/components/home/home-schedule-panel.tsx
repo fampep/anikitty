@@ -68,13 +68,8 @@ export default function HomeSchedulePanel() {
   }, [items]);
 
   return (
-    <div className="flex flex-col w-full gap-4 overflow-hidden">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">
-          {t("home.estimated")}
-        </span>
-        <HomeSectionLink href={ROUTES.SCHEDULE} title={t("home.estimatedSchedule")} />
-      </div>
+    <div className="flex flex-col w-full gap-3 overflow-hidden">
+      <HomeSectionLink href={ROUTES.SCHEDULE} title={t("home.estimatedSchedule")} compact />
 
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide scroll-momentum py-1">
         {days.map((d, index) => {
@@ -136,7 +131,7 @@ export default function HomeSchedulePanel() {
           <p className="px-3 py-4 text-sm text-muted-foreground text-center">{t("home.noScheduleToday")}</p>
         ) : (
           <>
-            {items.slice(0, 10).map((item) => {
+            {items.slice(0, 6).map((item) => {
               const aired = item.secondsUntilAiring <= 0;
               return (
                 <Link

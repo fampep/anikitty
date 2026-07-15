@@ -20,7 +20,7 @@ export default function HomeRecommendations() {
 
   if (!auth) return null;
 
-  const items = data?.data ?? [];
+  const items = (data?.data ?? []).slice(0, 10);
 
   // New user with no watch history yet — nudge them to start watching.
   if (!isLoading && data && !data.hasHistory) {

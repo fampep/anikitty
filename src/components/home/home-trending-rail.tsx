@@ -30,12 +30,12 @@ export default function HomeTrendingRail({ animes, loading }: Props) {
   }
 
   return (
-    <Container id="trending" className="flex flex-col gap-4 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+    <Container id="trending" className="flex flex-col gap-3 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       <HomeSectionLink
         href={ROUTES.TRENDING}
         title={t("home.trendingNow")}
-        subtitle={t("home.trendingDesc")}
         icon={<Flame className="w-4 h-4" />}
+        compact
       />
       {animes.length ? (
         <HomeScrollRail>

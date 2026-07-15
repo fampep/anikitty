@@ -22,15 +22,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useT } from "@/providers/i18n-provider";
 
 const HeroSection = dynamic(() => import("@/components/home/hero-section"));
-const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
 const HomeQuickNav = dynamic(() => import("@/components/home/home-quick-nav"));
-const HomeExploreBar = dynamic(() => import("@/components/home/home-explore-bar"));
 const HomeWelcomeBar = dynamic(() => import("@/components/home/home-welcome-bar"));
-const RecentlyViewed = dynamic(() => import("@/components/home/recently-viewed"));
 const HomeRecommendations = dynamic(() => import("@/components/home/home-recommendations"));
-const HomeFeaturePromos = dynamic(() => import("@/components/home/home-feature-promos"));
-const HomeW2gRail = dynamic(() => import("@/components/home/home-w2g-rail"));
-const HomeSideLists = dynamic(() => import("@/components/home/home-side-lists"));
+
+const HOME_RAIL_LIMIT = 12;
 
 export default function Home() {
   const t = useT();
@@ -54,9 +50,12 @@ export default function Home() {
 
   const discoveryLoadingState = discoveryEnabled && discoveryLoading && !discovery;
 
-  const trending = (critical?.trendingAnimes as IAnime[] | undefined) ?? [];
+  const trending = ((critical?.trendingAnimes as IAnime[] | undefined) ?? []).slice(0, HOME_RAIL_LIMIT);
   const recentlyAdded = (critical?.recentlyAddedAnimes as IAnime[] | undefined) ?? [];
-  const latestEpisodes = (critical?.latestEpisodeAnimes as IAnime[] | undefined) ?? [];
+  const latestEpisodes = ((critical?.latestEpisodeAnimes as IAnime[] | undefined) ?? []).slice(
+    0,
+    HOME_RAIL_LIMIT,
+  );
   const popular = (discovery?.mostPopularAnimes as IAnime[] | undefined) ?? [];
   const upcoming = (discovery?.topUpcomingAnimes as IAnime[] | undefined) ?? [];
 
@@ -90,7 +89,7 @@ export default function Home() {
   }
 
   return (
-    <div className="home-cinema flex flex-col pb-20 overflow-x-hidden">
+    <div className="home-cinema flex flex-col pb-10 overflow-x-hidden">
       <HomeAmbientBackdrop imageUrl={backdropPoster ?? critical?.spotlightAnimes?.[0]?.poster} />
 
       <HeroSection
@@ -99,73 +98,49 @@ export default function Home() {
         onActivePosterChange={setBackdropPoster}
       />
 
-      <HomeAdsNotice className="py-2 sm:py-3" />
+      <HomeAdsNotice className="py-1 sm:py-1.5" />
 
       <HomeQuickNav />
-      <HomeExploreBar />
 
-      <div className="home-cinema-body relative z-[5] flex flex-col gap-3 sm:gap-5 p-2 pt-2 sm:pt-3">
+      <div className="home-cinema-body relative z-[5] flex flex-col gap-3 sm:gap-5 p-2 pt-0.5 sm:pt-1 pb-8">
         <HomeWelcomeBar />
 
-        <div id="continue" className="scroll-mt-[calc(var(--nav-height)+5rem)]">
-          <LazyMount rootMargin="400px 0px">
+        <div id="continue" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+          <LazyMount rootMargin="300px 0px">
             <ContinueWatching />
           </LazyMount>
         </div>
 
         <LazyMount rootMargin="400px 0px">
-          <HomeW2gRail />
-        </LazyMount>
-
-        <LazyMount rootMargin="400px 0px">
-          <RecentlyViewed />
-        </LazyMount>
-
-        <LazyMount rootMargin="400px 0px">
-          <HomeRecommendations />
-        </LazyMount>
-
-        <LazyMount rootMargin="500px 0px">
           <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
         </LazyMount>
 
+        <LazyMount rootMargin="400px 0px">
+          <HomeTrendingRail animes={trending} loading={isLoading} />
+        </LazyMount>
+
         <LazyMount rootMargin="500px 0px">
+          <HomeRecommendations />
+        </LazyMount>
+
+        <LazyMount rootMargin="600px 0px">
           <Container>
             <HomeSeasonBrowser
               seasonAnimes={recentlyAdded}
               popularAnimes={popular}
               ratedAnimes={topRated}
+              upcomingAnimes={upcoming}
               loading={isLoading || discoveryLoadingState}
             />
           </Container>
         </LazyMount>
 
-        <LazyMount rootMargin="600px 0px">
-          <HomeSideLists
-            latestCompleted={(discovery?.latestCompletedAnimes as IAnime[] | undefined) ?? []}
-            popular={popular}
-            upcoming={upcoming}
-            loading={discoveryLoadingState}
-          />
-        </LazyMount>
-
-        <HomeTrendingRail animes={trending} loading={isLoading} />
-
-        <Container className="grid w-full gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <LazyMount rootMargin="500px 0px">
-            <div id="community" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
-              <LatestComments bare />
-            </div>
-          </LazyMount>
-          <LazyMount rootMargin="600px 0px">
+        <LazyMount rootMargin="700px 0px">
+          <Container>
             <div id="schedule" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
               <HomeSchedulePanel />
             </div>
-          </LazyMount>
-        </Container>
-
-        <LazyMount rootMargin="700px 0px">
-          <HomeFeaturePromos />
+          </Container>
         </LazyMount>
       </div>
     </div>

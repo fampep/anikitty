@@ -17,7 +17,7 @@ export default function HomeWelcomeBar() {
 
   return (
     <Container className="pt-0 pb-0">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 sm:py-3 site-panel">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-3 py-2 site-panel">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-foreground/90 dark:text-white/80 truncate">
             {t("home.welcomeBack")} <span className="text-violet-200">{auth.username}</span>

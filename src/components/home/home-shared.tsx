@@ -12,29 +12,48 @@ export function HomeSectionLink({
   className,
   icon,
   subtitle,
+  compact = false,
 }: {
   href?: string;
   title: string;
   className?: string;
   icon?: ReactNode;
   subtitle?: string;
+  compact?: boolean;
 }) {
   const t = useT();
 
   const heading = (
-    <div className={cn("flex items-center gap-3 min-w-0 flex-1", className)}>
-      <div className="w-1 h-8 rounded-full bg-gradient-to-b from-violet-300 via-violet-500 to-violet-700/30 shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.35)]" />
-      {icon ? <span className="text-violet-300/80 flex items-center shrink-0">{icon}</span> : null}
+    <div className={cn("flex items-center gap-2.5 min-w-0 flex-1", className)}>
+      <div
+        className={cn(
+          "w-0.5 rounded-full bg-gradient-to-b from-violet-300 via-violet-500 to-violet-700/30 shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.35)]",
+          compact ? "h-5" : "h-8",
+        )}
+      />
+      {icon ? (
+        <span className={cn("text-violet-300/80 flex items-center shrink-0", compact && "scale-90")}>{icon}</span>
+      ) : null}
       <div className="min-w-0 flex-1">
-        <span className="text-xl xl:text-2xl font-bold text-foreground dark:text-white tracking-tight leading-tight block">
+        <span
+          className={cn(
+            "font-bold text-foreground dark:text-white tracking-tight leading-tight block",
+            compact ? "text-base sm:text-lg" : "text-xl xl:text-2xl",
+          )}
+        >
           {title}
         </span>
-        {subtitle ? (
+        {subtitle && !compact ? (
           <p className="text-[11px] text-muted-foreground dark:text-white/40 font-medium mt-0.5">{subtitle}</p>
         ) : null}
       </div>
       {href ? (
-        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground dark:text-white/40 shrink-0 group px-3.5 py-2 rounded-xl border border-border dark:border-white/[0.08] bg-muted/50 dark:bg-white/[0.04] group-hover:border-violet-400/30 group-hover:bg-violet-500/[0.1] transition-all">
+        <span
+          className={cn(
+            "ml-auto flex items-center gap-1 text-[11px] font-semibold text-muted-foreground dark:text-white/40 shrink-0 group rounded-lg border border-border dark:border-white/[0.08] bg-muted/50 dark:bg-white/[0.04] group-hover:border-violet-400/30 group-hover:bg-violet-500/[0.1] transition-all",
+            compact ? "px-2.5 py-1.5" : "px-3.5 py-2 rounded-xl",
+          )}
+        >
           {t("common.viewAll")}
           <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
         </span>
@@ -106,7 +125,7 @@ export function HomeScrollRail({
       ) : null}
       <div
         ref={ref}
-        className="flex w-full overflow-x-auto scrollbar-hide scroll-momentum gap-4 sm:gap-x-6 xl:gap-x-8 cursor-grab active:cursor-grabbing select-none"
+        className="flex w-full overflow-x-auto scrollbar-hide scroll-momentum gap-3 sm:gap-4 cursor-grab active:cursor-grabbing select-none"
       >
         {children}
       </div>

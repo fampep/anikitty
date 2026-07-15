@@ -1,31 +1,40 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Flame, Star, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Compass, Flame, Star, TrendingUp } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 import HomeClassicCard from "./home-classic-card";
+import { HomeSectionLink } from "./home-shared";
 
-type TabId = "season" | "popular" | "rated";
+type TabId = "season" | "popular" | "rated" | "upcoming";
 
 type Props = {
   seasonAnimes: IAnime[];
   popularAnimes: IAnime[];
   ratedAnimes: IAnime[];
+  upcomingAnimes?: IAnime[];
   loading?: boolean;
 };
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 8;
 
-const TABS: { id: TabId; icon: typeof TrendingUp; labelKey: "thisSeason" | "allTimePopular" | "topRated" }[] = [
+const TABS: { id: TabId; icon: typeof TrendingUp; labelKey: "thisSeason" | "allTimePopular" | "topRated" | "topUpcoming" }[] = [
   { id: "season", icon: TrendingUp, labelKey: "thisSeason" },
   { id: "popular", icon: Flame, labelKey: "allTimePopular" },
   { id: "rated", icon: Star, labelKey: "topRated" },
+  { id: "upcoming", icon: Clock, labelKey: "topUpcoming" },
 ];
 
-export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAnimes, loading }: Props) {
+export default function HomeSeasonBrowser({
+  seasonAnimes,
+  popularAnimes,
+  ratedAnimes,
+  upcomingAnimes = [],
+  loading,
+}: Props) {
   const t = useT();
   const [tab, setTab] = useState<TabId>("season");
   const [page, setPage] = useState(1);
@@ -35,12 +44,23 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
       season: seasonAnimes,
       popular: popularAnimes,
       rated: ratedAnimes,
+      upcoming: upcomingAnimes,
     }),
-    [seasonAnimes, popularAnimes, ratedAnimes],
+    [seasonAnimes, popularAnimes, ratedAnimes, upcomingAnimes],
   );
 
   const activeList = lists[tab];
   const totalPages = Math.max(1, Math.ceil(activeList.length / PAGE_SIZE));
+  const visibleTabs = useMemo(
+    () => TABS.filter(({ id }) => lists[id].length > 0 || loading),
+    [lists, loading],
+  );
+
+  useEffect(() => {
+    if (visibleTabs.length && !visibleTabs.some(({ id }) => id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [tab, visibleTabs]);
 
   useEffect(() => {
     setPage(1);
@@ -61,7 +81,7 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
           ))}
         </div>
         <div className="home-classic-grid">
-          {Array.from({ length: 12 }).map((_, i) => (
+          {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="aspect-[2/3] rounded-lg bg-muted/30 dark:bg-white/6 animate-pulse" />
           ))}
         </div>
@@ -70,10 +90,17 @@ export default function HomeSeasonBrowser({ seasonAnimes, popularAnimes, ratedAn
   }
 
   return (
-    <div id="discover" className="flex flex-col gap-4 w-full scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+    <div id="discover" className="flex flex-col gap-3 w-full scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+      <HomeSectionLink
+        href={ROUTES.SEARCH}
+        title={t("home.discover")}
+        icon={<Compass className="w-4 h-4" />}
+        compact
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide scroll-momentum flex-1 min-w-0">
-          {TABS.map(({ id, icon: Icon, labelKey }) => {
+          {visibleTabs.map(({ id, icon: Icon, labelKey }) => {
             const active = tab === id;
             return (
               <button

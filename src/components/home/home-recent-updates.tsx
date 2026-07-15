@@ -30,12 +30,12 @@ export default function HomeRecentUpdates({ animes, loading }: Props) {
   }
 
   return (
-    <Container id="new-episodes" className="flex flex-col gap-4 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+    <Container id="new-episodes" className="flex flex-col gap-3 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       <HomeSectionLink
         href={ROUTES.NEW}
         title={t("home.recentlyUpdated")}
-        subtitle={t("home.newEpisodes")}
         icon={<Tv2 className="w-4 h-4" />}
+        compact
       />
       {animes.length ? (
         <HomeScrollRail>
