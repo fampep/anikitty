@@ -11,6 +11,14 @@ import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { Eye, EyeOff, Grid2x2, LayoutGrid, LayoutList, Search, SkipForward } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Props = {
   animeId: string;
@@ -299,35 +307,45 @@ const EpisodePlaylist = ({
               </div>
             </div>
 
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/80 dark:text-white/25 pointer-events-none" />
-              <input
-                placeholder={t("watch.playlist.searchPlaceholder")}
-                value={search}
-                onChange={handleSearch}
-                className="w-full h-8 pl-7 pr-3 rounded-md bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-[12px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
-              />
-            </div>
-
-            {hasMultipleGroups && !search && (
-              <div className="flex gap-1 flex-wrap">
-                {ranges.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => handleGroupChange(r.value)}
-                    className={cn(
-                      "px-2.5 py-0.5 rounded-full text-[10px] font-mono border transition-colors",
-                      currentGroup === r.value
-                        ? "bg-muted dark:bg-white/15 border-border dark:border-white/30 text-foreground dark:text-white"
-                        : "bg-transparent border-border dark:border-white/10 text-muted-foreground dark:text-white/35 hover:border-border dark:border-white/20 hover:text-muted-foreground dark:text-white/55",
-                    )}
+            <div className="flex items-center gap-2">
+              {hasMultipleGroups && (
+                <Select
+                  value={currentGroup}
+                  onValueChange={handleGroupChange}
+                  disabled={Boolean(search.trim())}
+                >
+                  <SelectTrigger
+                    aria-label={t("anime.episodes.range")}
+                    className="h-8 w-[7.25rem] shrink-0 rounded-md bg-muted/50 dark:bg-white/5 border-border dark:border-white/10 px-2.5 text-[11px] font-mono text-muted-foreground dark:text-white/70 hover:bg-muted/70 dark:hover:bg-white/[0.07] disabled:opacity-40"
                   >
-                    {r.label}
-                  </button>
-                ))}
+                    <SelectValue placeholder={t("anime.episodes.range")} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0e0e0e] border-border dark:border-white/10 max-h-[min(16rem,50vh)]">
+                    <SelectGroup>
+                      {ranges.map((r) => (
+                        <SelectItem
+                          key={r.value}
+                          value={r.value}
+                          className="text-[11px] font-mono text-muted-foreground dark:text-white/70"
+                        >
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/80 dark:text-white/25 pointer-events-none" />
+                <input
+                  placeholder={t("watch.playlist.searchPlaceholder")}
+                  value={search}
+                  onChange={handleSearch}
+                  className="w-full h-8 pl-7 pr-3 rounded-md bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-[12px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+                />
               </div>
-            )}
+            </div>
           </>
         )}
       </div>
