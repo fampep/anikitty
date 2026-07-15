@@ -3,7 +3,6 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitles/subtitle-cache-store";
 import {
-  DEFAULT_ALLANIME_MIRROR,
   DEFAULT_MKISSA_MIRROR,
   fetchAllanimeVideoStream,
   isAllanimeMirrorId,
@@ -77,9 +76,9 @@ const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
-/** Active providers that use generic KittyAPI stream-direct only (not AllAnime/MKissa mirrors or Miruro pipe). */
+/** Active providers that use generic KittyAPI stream-direct only (not MKissa mirrors or Miruro pipe). */
 const STREAM_DIRECT_PROVIDERS = new Set<string>(
-  KITTY_PROVIDERS.filter((p) => p !== "AllAnime" && p !== "MKissa" && p !== "Miruro"),
+  KITTY_PROVIDERS.filter((p) => p !== "MKissa" && p !== "Miruro"),
 );
 
 type StreamPayload = {
@@ -111,7 +110,6 @@ export async function GET(req: Request) {
   const animexServerParam = searchParams.get("animexServer");
   const anisnatchServerParam = searchParams.get("anisnatchServer");
   const lunarServerParam = searchParams.get("lunarServer");
-  const allanimeMirrorParam = searchParams.get("allanimeMirror");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const animoServerParam = searchParams.get("animoServer");
   const linkIdParam = searchParams.get("linkId")?.trim() || undefined;
@@ -167,15 +165,6 @@ export async function GET(req: Request) {
       ? lunarServerParam
       : provider === "Lunar"
         ? DEFAULT_LUNAR_SERVER
-        : null;
-
-  const allanimeMirror =
-    allanimeMirrorParam &&
-    SAFE_ALLANIME_MIRROR.test(allanimeMirrorParam) &&
-    isAllanimeMirrorId(allanimeMirrorParam)
-      ? allanimeMirrorParam
-      : provider === "AllAnime"
-        ? DEFAULT_ALLANIME_MIRROR
         : null;
 
   const mkissaMirror =
@@ -500,46 +489,6 @@ export async function GET(req: Request) {
       if (lunarResponse) return lunarResponse;
     } catch (e) {
       console.error("[kitty/stream] Lunar server failed:", e);
-    }
-  }
-
-  if (provider === "AllAnime") {
-    try {
-      const allanimeAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          const allanime = await fetchAllanimeVideoStream({
-            provider: "AllAnime",
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            mirror: allanimeMirror as AllanimeMirrorId,
-            title: titleParam,
-          });
-
-          if (!allanime?.file) return null;
-
-          return {
-            file: allanime.file,
-            headers: allanime.headers,
-            tracks: allanime.tracks,
-            allServers: allanime.allServers,
-            skipTimes: allanime.skipTimes,
-            server: allanime.server,
-            download: allanime.download,
-          };
-        },
-      );
-
-      const allanimeResponse = await respondWithStream(
-        allanimeAttempt.result,
-        "AllAnime",
-        allanimeAttempt.servedAudio,
-        allanimeAttempt.audioFallback,
-      );
-      if (allanimeResponse) return allanimeResponse;
-    } catch (e) {
-      console.error("[kitty/stream] AllAnime mirror failed:", e);
     }
   }
 

@@ -76,7 +76,7 @@ export default function WatchEpisodeBar({
 
   return (
     <div className="rounded-xl border border-border dark:border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-visible">
-      <div className="flex items-stretch min-h-[3.75rem] sm:min-h-[4.5rem]">
+      <div className="flex items-stretch min-h-[3.25rem] sm:min-h-[4.5rem]">
         <button
           type="button"
           onClick={onPrev}
@@ -92,14 +92,14 @@ export default function WatchEpisodeBar({
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3 flex-1 min-w-0 px-3 py-2.5">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0 px-2.5 sm:px-3 py-2 sm:py-2.5">
           <EpisodeThumbPreview
             title={title}
             episodeNumber={currentEpisode.number}
             fallbackImage={thumb}
             resolvePreviewImage={getLivePreview}
           >
-            <div className="relative w-16 sm:w-[4.5rem] aspect-video rounded-lg overflow-hidden bg-muted/50 dark:bg-white/[0.04] ring-1 ring-border dark:ring-white/10 cursor-default">
+            <div className="relative w-14 sm:w-[4.5rem] aspect-video rounded-lg overflow-hidden bg-muted/50 dark:bg-white/[0.04] ring-1 ring-border dark:ring-white/10 cursor-default">
               {thumb ? (
                 <Image
                   src={thumb}
@@ -125,8 +125,8 @@ export default function WatchEpisodeBar({
               <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground dark:text-white/35">
                 {t("watch.episode", { n: currentEpisode.number })}
               </p>
-              <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
-              <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
+              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
+              <p className="hidden sm:block text-[10px] font-mono text-muted-foreground dark:text-white/30">
                 {t("watch.episodeIndex", {
                   current: currentEpisode.number,
                   total,
@@ -151,13 +151,13 @@ export default function WatchEpisodeBar({
               )}
             </div>
 
-            <p className="text-sm sm:text-[15px] font-semibold text-foreground dark:text-white leading-snug line-clamp-2">
+            <p className="text-sm sm:text-[15px] font-semibold text-foreground dark:text-white leading-snug line-clamp-1 sm:line-clamp-2">
               {title}
             </p>
 
             {onJumpToEpisode && total > 1 && (
               <form
-                className="mt-2 flex items-center gap-1.5 max-w-[11rem]"
+                className="mt-2 hidden sm:flex items-center gap-1.5 max-w-[11rem]"
                 onSubmit={(e) => {
                   e.preventDefault();
                   const n = parseInt(jumpValue, 10);
@@ -185,7 +185,7 @@ export default function WatchEpisodeBar({
             )}
 
             {animeId && (
-              <div className="mt-2">
+              <div className="mt-2 hidden sm:block">
                 <WatchMarkEpisodeButton
                   animeId={animeId}
                   episodeId={currentEpisode.episodeId}
@@ -207,7 +207,7 @@ export default function WatchEpisodeBar({
               <button
                 type="button"
                 onClick={onNext}
-                className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/50 transition-colors truncate max-w-full"
+                className="mt-1.5 hidden sm:flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/50 transition-colors truncate max-w-full"
               >
                 <span className="shrink-0">{t("watch.nextEpisode")}:</span>
                 <span className="truncate text-muted-foreground dark:text-white/40">

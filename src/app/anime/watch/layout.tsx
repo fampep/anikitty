@@ -406,12 +406,15 @@ const Layout = (props: Props) => {
       )}
 
       {!theatreMode && (
-        <WatchQuickNav
-          activeTab={watchTab}
-          onTabChange={handleWatchTabChangeWithMobile}
-          animeId={info.id}
-          hasRelated={hasRelated}
-        />
+        <div className="sticky top-[calc(var(--nav-height)+0.25rem)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/85 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/60 dark:border-white/[0.06] pb-0 mb-2">
+          <WatchQuickNav
+            activeTab={watchTab}
+            onTabChange={handleWatchTabChangeWithMobile}
+            animeId={info.id}
+            hasRelated={hasRelated}
+            className="mb-0 pb-2"
+          />
+        </div>
       )}
 
       {/* Main grid: player + sidebar */}

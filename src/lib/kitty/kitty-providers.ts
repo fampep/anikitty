@@ -57,7 +57,6 @@ export const KITTY_PROVIDERS = [
   "Anikoto",
   "MegaPlay",
   "Miruro",
-  "AllAnime",
   "MKissa",
   "AniNeko",
   "AniBD",
@@ -138,18 +137,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "AniList ID · miruro.to pipe · Bonk/Kiwi/Ally · SUB · DUB · skip times",
   },
   {
-    id: "AllAnime",
-    label: "Delta",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "AniList ID · api.allanime.day · mirror servers (Default, Mp4, …) · SUB · DUB",
-  },
-  {
     id: "MKissa",
     label: "Echo",
     group: "featured",
@@ -159,7 +146,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: false,
     kittySubs: false,
-    hint: "AniList ID · MKissa mirror of AllAnime · SUB · DUB",
+    hint: "AniList ID · mkissa.to · mirror servers (Ok, Mp4, …) · SUB · DUB",
   },
   {
     id: "AniNeko",
@@ -193,7 +180,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anikoto",
   "MegaPlay",
   "Miruro",
-  "AllAnime",
   "MKissa",
   "AniNeko",
   "AniBD",
@@ -220,7 +206,6 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Anitaku",
   "Anikoto",
   "Miruro",
-  "AllAnime",
   "MKissa",
   "AniNeko",
   "AniBD",
@@ -238,6 +223,7 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   if (value === "AniZone") return "AniNeko";
+  if (value === "AllAnime") return "MKissa";
   if (value === "AniDB" || value === "AniKuro") {
     return DEFAULT_KITTY_PROVIDER;
   }

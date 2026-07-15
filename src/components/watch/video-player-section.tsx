@@ -19,7 +19,7 @@ import {
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import { ProviderQuickPick } from "@/components/player/provider-select";
@@ -38,10 +38,8 @@ import {
   Captions,
   Loader2,
   Cat,
-  Users,
-  Link2,
 } from "lucide-react";
-import WatchDownloadPanel from "@/components/watch/watch-download-panel";
+import WatchPlayerActions from "@/components/watch/watch-player-actions";
 import PlayerSettingsBar from "@/components/watch/player-settings-bar";
 import WatchPlayerToolbar from "@/components/watch/watch-player-toolbar";
 import SkipTimesSubmitDialog from "@/components/watch/skip-times-submit-dialog";
@@ -58,7 +56,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/watch-together/w2g-panel";
-import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
 import LoadingGirl from "@/components/common/loading-girl";
 import WatchErrorPanel from "@/components/watch/watch-error-panel";
@@ -1551,6 +1548,8 @@ const VideoPlayerSection = () => {
         provider={provider}
         providerLabel={getKittyProviderMeta(provider).label}
         streamAudio={streamAudio}
+        dubEnabled={providerSupportsDub(provider)}
+        onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
         showProviderControls={showPlayerControls}
         hasPrev={Boolean(prevEpisode)}
         hasNext={Boolean(nextEpisode)}
@@ -1570,14 +1569,16 @@ const VideoPlayerSection = () => {
         }
       />
 
-      <WatchStreamInfoBar
-        providerLabel={getKittyProviderMeta(provider).label}
-        streamAudio={streamAudio}
-        serverName={streamData?.server}
-        provider={provider}
-        qualityLabel={activeQualityLabel}
-        proxyNodeLabel={proxyNodeLabel}
-      />
+      {!showPlayerControls && (
+        <WatchStreamInfoBar
+          providerLabel={getKittyProviderMeta(provider).label}
+          streamAudio={streamAudio}
+          serverName={streamData?.server}
+          provider={provider}
+          qualityLabel={activeQualityLabel}
+          proxyNodeLabel={proxyNodeLabel}
+        />
+      )}
 
       {/* Controls bar */}
       <div className="px-3 py-2.5 sm:px-3 sm:py-3 bg-gradient-to-b from-[#0a0a0a] to-[#070707] border-t border-border dark:border-white/8 space-y-2 sm:space-y-2.5">
@@ -1594,27 +1595,43 @@ const VideoPlayerSection = () => {
             }}
           />
         )}
-        <PlayerSettingsBar watchingHardSub={watchingHardSub && streamAudio === "sub"} />
 
         {showPlayerControls && (
           <>
-        <div id="watch-provider-controls">
-        {providerControlsBlock}
-        </div>
+            <div id="watch-provider-controls">{providerControlsBlock}</div>
 
-        <WatchServerPicker
-          provider={provider}
+            <WatchServerPicker
+              provider={provider}
+              streamAudio={streamAudio}
+              qualities={displayQualities}
+              activeFile={displayFile}
+              dataIds={siteEpisodeDataIds}
+              onPickQuality={handlePickQuality}
+              onPickSiteServer={handlePickSiteServer}
+            />
+          </>
+        )}
+
+        <PlayerSettingsBar watchingHardSub={watchingHardSub && streamAudio === "sub"} />
+
+        <WatchPlayerActions
+          anilistId={anilistId}
+          episodeNo={episodeNo}
+          episodes={allEpisodes?.episodes}
           streamAudio={streamAudio}
-          qualities={displayQualities}
-          activeFile={displayFile}
-          dataIds={siteEpisodeDataIds}
-          onPickQuality={handlePickQuality}
-          onPickSiteServer={handlePickSiteServer}
+          provider={provider}
+          onCopyLink={copyShareLink}
+          w2gCode={w2gCode}
+          w2gIsMember={w2g.isMember}
+          auth={Boolean(auth)}
+          creatingW2g={creatingW2g}
+          onCreateW2g={handleCreateW2g}
         />
 
-        {/* Row 2 — badges + actions */}
-        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
-          <div className="flex flex-wrap items-center gap-1.5 sm:mr-auto min-w-0">
+        {showPlayerControls && (
+          <>
+        {/* Stream meta badges */}
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             {(communitySkipTimes?.intro || communitySkipTimes?.outro) && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 text-sky-300/90">
                 {t("watch.communitySkip")}
@@ -1662,62 +1679,6 @@ const VideoPlayerSection = () => {
               </div>
             )}
           </div>
-
-          <div className="flex flex-wrap items-center gap-1.5 shrink-0 w-full sm:w-auto sm:justify-end">
-            {anilistId && episodeNo && allEpisodes?.episodes && (
-              <WatchDownloadPanel
-                anilistId={anilistId}
-                currentEpisodeNumber={parseInt(episodeNo, 10)}
-                episodes={allEpisodes.episodes}
-                audio={streamAudio}
-                provider={provider}
-              />
-            )}
-
-            <button
-              type="button"
-              onClick={copyShareLink}
-              aria-label={t("watch.copyLink")}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/70 transition-colors"
-              title={t("watch.copyLink")}
-            >
-              <Link2 className="w-3 h-3" />
-              <span className="hidden sm:inline">{t("watch.copyLink")}</span>
-            </button>
-
-            {w2gCode && w2g.isMember ? (
-              <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
-                {t("watch.room", { code: w2gCode })}
-              </span>
-            ) : auth ? (
-              <button
-                type="button"
-                onClick={handleCreateW2g}
-                disabled={creatingW2g}
-                className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 transition-colors disabled:opacity-50"
-              >
-                {creatingW2g ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Users className="w-3 h-3" />
-                )}
-                <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
-              </button>
-            ) : (
-              <LoginPopoverButton
-                customTrigger={
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/70 transition-colors"
-                  >
-                    <Users className="w-3 h-3" />
-                    <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
-                  </button>
-                }
-              />
-            )}
-          </div>
-        </div>
           </>
         )}
       </div>

@@ -166,7 +166,6 @@ export function resolveActiveStreamCapabilities(
   if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
   if (provider === "AniSnatch" && anisnatchServer) return caps.anisnatchServers[anisnatchServer];
   if (provider === "Lunar" && lunarServer) return caps.lunarServers[lunarServer];
-  if (provider === "AllAnime" && allanimeMirror) return caps.allanimeServers[allanimeMirror];
   if (provider === "MKissa" && mkissaMirror) return caps.mkissaServers[mkissaMirror];
   if (provider === "Animo" && animoServer) return caps.animoServers[animoServer] ?? caps.providers[provider];
   return caps.providers[provider];

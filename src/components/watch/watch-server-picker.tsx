@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
@@ -24,6 +24,31 @@ type Props = {
   className?: string;
 };
 
+function QualityChip({
+  q,
+  active,
+  onPick,
+}: {
+  q: KittyStreamQuality;
+  active: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className={cn(
+        "px-2 py-1 rounded-md text-[10px] font-mono font-semibold border transition-colors touch-manipulation",
+        active
+          ? "border-teal-400/35 bg-teal-500/15 text-teal-100"
+          : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-400/25",
+      )}
+    >
+      {formatStreamQualityLabel(q.quality)}
+    </button>
+  );
+}
+
 export default function WatchServerPicker({
   provider,
   streamAudio,
@@ -39,12 +64,18 @@ export default function WatchServerPicker({
   const [siteServers, setSiteServers] = useState<AnilistSiteServer[]>([]);
   const [loadingSite, setLoadingSite] = useState(false);
 
-  const uniqueQualities = qualities.filter(
-    (q, i, arr) => arr.findIndex((x) => x.file === q.file) === i,
+  const uniqueQualities = useMemo(
+    () => qualities.filter((q, i, arr) => arr.findIndex((x) => x.file === q.file) === i),
+    [qualities],
   );
   const canFetchSite = isAnilistSiteProvider(provider) && Boolean(dataIds);
   const hasQualities = uniqueQualities.length > 1;
-  const hasSite = canFetchSite && siteServers.length > 1;
+  const activeQuality = uniqueQualities.find((q) => q.file === activeFile);
+
+  useEffect(() => {
+    setOpen(false);
+    setSiteServers([]);
+  }, [provider, streamAudio]);
 
   useEffect(() => {
     if (!open || !canFetchSite || !dataIds) return;
@@ -68,6 +99,42 @@ export default function WatchServerPicker({
 
   if (!hasQualities && !canFetchSite) return null;
 
+  const qualityChips = hasQualities && (
+    <div className="flex flex-wrap gap-1.5">
+      {uniqueQualities.map((q) => (
+        <QualityChip
+          key={q.file}
+          q={q}
+          active={activeFile === q.file}
+          onPick={() => onPickQuality(q)}
+        />
+      ))}
+    </div>
+  );
+
+  // Qualities only — show inline, no collapse.
+  if (hasQualities && !canFetchSite) {
+    return (
+      <div
+        className={cn(
+          "rounded-lg border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02] px-3 py-2",
+          className,
+        )}
+      >
+        <p className="mb-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35">
+          {t("watch.serverPickerTitle")}
+        </p>
+        {qualityChips}
+      </div>
+    );
+  }
+
+  const headerHint = activeQuality
+    ? formatStreamQualityLabel(activeQuality.quality)
+    : canFetchSite
+      ? t("watch.serverPickerTitle")
+      : null;
+
   return (
     <div className={cn("rounded-lg border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02]", className)}>
       <button
@@ -75,33 +142,19 @@ export default function WatchServerPicker({
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[11px] font-mono text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white/80"
       >
-        <span>{t("watch.serverPickerTitle")}</span>
-        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", open && "rotate-180")} />
+        <span className="flex items-center gap-2 min-w-0">
+          <span>{t("watch.serverPickerTitle")}</span>
+          {headerHint && (
+            <span className="truncate rounded-md border border-teal-400/25 bg-teal-500/10 px-1.5 py-px text-[9px] font-bold text-teal-200/90">
+              {headerHint}
+            </span>
+          )}
+        </span>
+        <ChevronDown className={cn("w-3.5 h-3.5 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
       {open && (
         <div className="border-t border-border dark:border-white/[0.06] px-2 py-2 space-y-2">
-          {hasQualities && (
-            <div className="flex flex-wrap gap-1.5">
-              {uniqueQualities.map((q) => {
-                const active = activeFile === q.file;
-                return (
-                  <button
-                    key={q.file}
-                    type="button"
-                    onClick={() => onPickQuality(q)}
-                    className={cn(
-                      "px-2 py-1 rounded-md text-[10px] font-mono font-semibold border transition-colors",
-                      active
-                        ? "border-teal-400/35 bg-teal-500/15 text-teal-100"
-                        : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-400/25",
-                    )}
-                  >
-                    {formatStreamQualityLabel(q.quality)}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {qualityChips}
           {canFetchSite && (
             <div className="space-y-1.5">
               {loadingSite && (
@@ -120,7 +173,7 @@ export default function WatchServerPicker({
                     key={s.id}
                     type="button"
                     onClick={() => onPickSiteServer(s)}
-                    className="px-2 py-1 rounded-md text-[10px] font-mono font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-400/25 hover:text-violet-100/90"
+                    className="px-2 py-1 rounded-md text-[10px] font-mono font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-400/25 hover:text-violet-100/90 touch-manipulation"
                   >
                     {s.name}
                   </button>

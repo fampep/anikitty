@@ -27,7 +27,9 @@ function writeJson(key: string, value: unknown) {
 export function getAnimeProviderPreference(anilistId: number): KittyProvider | null {
   const map = readJson<Record<string, KittyProvider>>(ANIME_PROVIDER_KEY, {});
   const saved = map[String(anilistId)];
-  return saved ?? null;
+  if (!saved) return null;
+  if (saved === "AllAnime") return "MKissa";
+  return saved;
 }
 
 export function saveAnimeProviderPreference(anilistId: number, provider: KittyProvider) {

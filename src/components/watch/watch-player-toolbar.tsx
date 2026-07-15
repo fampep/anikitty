@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  Captions,
   Check,
   ChevronLeft,
   ChevronRight,
   Command,
   Lightbulb,
   MessageSquare,
+  Mic,
   PictureInPicture,
   Play,
   Server,
@@ -14,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
-import { getProviderAccent, providerChipClass } from "@/lib/kitty/provider-ui-styles";
+import { AUDIO_SEGMENT, getProviderAccent, providerChipClass } from "@/lib/kitty/provider-ui-styles";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 
@@ -54,6 +56,8 @@ type Props = {
   provider: KittyProvider;
   providerLabel?: string;
   streamAudio?: "sub" | "dub";
+  dubEnabled?: boolean;
+  onAudioChange?: (audio: "sub" | "dub") => void;
   showProviderControls?: boolean;
   hasPrev: boolean;
   hasNext: boolean;
@@ -69,10 +73,61 @@ type Props = {
   onSubmitSkipTimes?: () => void;
 };
 
+function ToolbarAudioToggle({
+  value,
+  dubEnabled,
+  onChange,
+  subLabel,
+  dubLabel,
+}: {
+  value: "sub" | "dub";
+  dubEnabled: boolean;
+  onChange: (audio: "sub" | "dub") => void;
+  subLabel: string;
+  dubLabel: string;
+}) {
+  return (
+    <div
+      className="inline-flex shrink-0 rounded-lg border border-border dark:border-white/10 bg-muted/30 dark:bg-black/30 p-0.5"
+      role="group"
+      aria-label="Audio"
+    >
+      <button
+        type="button"
+        aria-pressed={value === "sub"}
+        onClick={() => onChange("sub")}
+        className={cn(
+          "inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
+          value === "sub" ? AUDIO_SEGMENT.subActive : AUDIO_SEGMENT.subIdle,
+        )}
+      >
+        <Captions className="w-3 h-3 shrink-0 opacity-80" />
+        <span className="hidden sm:inline">{subLabel}</span>
+      </button>
+      <button
+        type="button"
+        aria-pressed={value === "dub"}
+        disabled={!dubEnabled}
+        onClick={() => dubEnabled && onChange("dub")}
+        className={cn(
+          "inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
+          value === "dub" ? AUDIO_SEGMENT.dubActive : AUDIO_SEGMENT.dubIdle,
+          !dubEnabled && AUDIO_SEGMENT.dubDisabled,
+        )}
+      >
+        <Mic className="w-3 h-3 shrink-0 opacity-80" />
+        <span className="hidden sm:inline">{dubLabel}</span>
+      </button>
+    </div>
+  );
+}
+
 export default function WatchPlayerToolbar({
   provider,
   providerLabel,
   streamAudio,
+  dubEnabled = false,
+  onAudioChange,
   showProviderControls = true,
   hasPrev,
   hasNext,
@@ -118,7 +173,7 @@ export default function WatchPlayerToolbar({
           type="button"
           onClick={onShowShortcuts}
           aria-label={t("watch.toolbar.shortcuts")}
-          className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
+          className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
         >
           <Command className="w-3 h-3 shrink-0" />
           <span className="hidden sm:inline">{t("watch.toolbar.shortcuts")}</span>
@@ -144,7 +199,7 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onSubmitSkipTimes}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-violet-400/25 transition-colors shrink-0"
+            className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-violet-400/25 transition-colors shrink-0"
           >
             <SkipForward className="w-3 h-3 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.submitSkip")}</span>
@@ -179,7 +234,7 @@ export default function WatchPlayerToolbar({
               </>
             )}
           </button>
-        ) : (
+        ) : showProviderControls ? null : (
           <span className={cn("hidden md:inline-flex h-8 items-center", providerChipClass(provider))}>
             <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent.dot)} />
             {displayProvider}
@@ -193,7 +248,16 @@ export default function WatchPlayerToolbar({
         )}
       </div>
 
-      <div className="flex items-center gap-1 shrink-0 ml-auto">
+      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+        {streamAudio && onAudioChange && (
+          <ToolbarAudioToggle
+            value={streamAudio}
+            dubEnabled={dubEnabled}
+            onChange={onAudioChange}
+            subLabel={t("card.sub")}
+            dubLabel={t("card.dub")}
+          />
+        )}
         <button
           type="button"
           onClick={onPrev}

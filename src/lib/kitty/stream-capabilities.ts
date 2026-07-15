@@ -204,12 +204,11 @@ async function probeMultiProviderEpisodeCapabilities(
   episode: number,
   title?: string | null,
 ) {
-  const [miruro, animex, anisnatch, lunar, allanime, mkissa, animo] = await Promise.all([
+  const [miruro, animex, anisnatch, lunar, mkissa, animo] = await Promise.all([
     probeMiruroEpisodeCapabilities(anilistId, episode),
     probeAnimexEpisodeCapabilities(anilistId, episode, title),
     probeAnisnatchEpisodeCapabilities(anilistId, episode, title),
     probeLunarEpisodeCapabilities(anilistId, episode, title),
-    probeAllanimeEpisodeCapabilities("AllAnime", anilistId, episode, title),
     probeAllanimeEpisodeCapabilities("MKissa", anilistId, episode, title),
     probeAnimoEpisodeCapabilities(anilistId, episode, title),
   ]);
@@ -220,7 +219,6 @@ async function probeMultiProviderEpisodeCapabilities(
       Animex: animex.provider,
       AniSnatch: anisnatch.provider,
       Lunar: lunar.provider,
-      AllAnime: allanime.provider,
       MKissa: mkissa.provider,
       Animo: animo.provider,
     } satisfies Partial<Record<KittyProvider, StreamCapabilities>>,
@@ -229,9 +227,9 @@ async function probeMultiProviderEpisodeCapabilities(
     animoServers: animo.servers,
     anisnatchServers: anisnatch.servers,
     lunarServers: lunar.servers,
-    allanimeServers: allanime.servers,
+    allanimeServers: {},
     mkissaServers: mkissa.servers,
-    allanimeServerRows: allanime.serverRows,
+    allanimeServerRows: [],
     mkissaServerRows: mkissa.serverRows,
   };
 }
@@ -363,27 +361,6 @@ export async function fetchActiveProviderStreamCapabilities(
     };
   }
 
-  if (provider === "AllAnime") {
-    const episodeCaps = await probeAllanimeEpisodeCapabilities(
-      "AllAnime",
-      anilistId,
-      episode,
-      title,
-    );
-    return {
-      providers: { AllAnime: episodeCaps.provider },
-      miruroPipes: {},
-      animexServers: {},
-      animoServers: {},
-      anisnatchServers: {},
-      lunarServers: {},
-      allanimeServers: episodeCaps.servers,
-      mkissaServers: {},
-      allanimeServerRows: episodeCaps.serverRows,
-      mkissaServerRows: [],
-    };
-  }
-
   if (provider === "MKissa") {
     const episodeCaps = await probeAllanimeEpisodeCapabilities(
       "MKissa",
@@ -460,11 +437,6 @@ export function parseStreamCapabilityTarget(searchParams: URLSearchParams): Stre
   const lunarServer = searchParams.get("lunarServer");
   if (lunarServer && isLunarServerId(lunarServer)) {
     target.lunarServer = lunarServer;
-  }
-
-  const allanimeMirror = searchParams.get("allanimeMirror");
-  if (allanimeMirror && isAllanimeMirrorId(allanimeMirror)) {
-    target.allanimeMirror = allanimeMirror;
   }
 
   const mkissaMirror = searchParams.get("mkissaMirror");
