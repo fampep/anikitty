@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
-import { CLICK_ADS_SCRIPT_SRC } from "@/lib/ads/ad-config";
+import { HILLTOP_ADS_SCRIPT_SRC, HILLTOP_ADS_ZONE_ID } from "@/lib/ads/ad-config";
 
 const GLOBAL_ADS_CACHE_MS = 120_000;
 let globalAdsEnabledCache: { at: number; enabled: boolean } | null = null;
@@ -11,21 +11,21 @@ let globalAdsInflight: Promise<boolean> | null = null;
 
 function removeClickAdsScript(): void {
   document
-    .querySelectorAll(`script[src="${CLICK_ADS_SCRIPT_SRC}"]`)
+    .querySelectorAll(`script[src="${HILLTOP_ADS_SCRIPT_SRC}"]`)
     .forEach((node) => node.remove());
 }
 
 function ensureClickAdsScript(): void {
-  if (document.querySelector(`script[src="${CLICK_ADS_SCRIPT_SRC}"]`)) return;
+  if (document.querySelector(`script[src="${HILLTOP_ADS_SCRIPT_SRC}"]`)) return;
 
   const script = document.createElement("script");
-  script.src = CLICK_ADS_SCRIPT_SRC;
+  script.src = HILLTOP_ADS_SCRIPT_SRC;
+  script.dataset.zone = HILLTOP_ADS_ZONE_ID;
   script.async = true;
-  script.type = "text/javascript";
+  script.setAttribute("data-cfasync", "false");
+  script.referrerPolicy = "no-referrer-when-downgrade";
   script.onerror = () => script.remove();
-
-  // Panel: place just under the opening body tag.
-  document.body.insertBefore(script, document.body.firstChild);
+  document.head.appendChild(script);
 }
 
 async function fetchGlobalClickAdsEnabled(): Promise<boolean> {
@@ -51,7 +51,7 @@ async function fetchGlobalClickAdsEnabled(): Promise<boolean> {
   return globalAdsInflight;
 }
 
-/** Loads click-ads tag when globally enabled and the signed-in user has not opted out. */
+/** Loads HilltopAds tag when globally enabled and the signed-in user has not opted out. */
 export default function ClickAdsScript() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 

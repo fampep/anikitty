@@ -1,2 +1,3 @@
-/** Click ads tag — Greate panel snippet for anikitty.moe (site #2832737). */
-export const CLICK_ADS_SCRIPT_SRC = "https://s0-greate.net/p/2910356";
+/** HilltopAds tag zone — publisher dashboard snippet. */
+export const HILLTOP_ADS_SCRIPT_SRC = "https://quge5.com/88/tag.min.js";
+export const HILLTOP_ADS_ZONE_ID = "258293";
