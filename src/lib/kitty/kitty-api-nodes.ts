@@ -45,15 +45,15 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "primary",
     index: 1,
-    label: "Switzerland",
+    label: "Germany",
     ip: "92.119.165.226",
     url: PRIMARY_URL,
     host: nodeHost(PRIMARY_URL),
-    location: "Switzerland",
-    timezone: "Europe/Zurich",
+    location: "Germany",
+    timezone: "Europe/Berlin",
     operator: "LAIN / AS211507 (Julian Achter)",
     note:
-      "RIPE WHOIS lists the operator in Ismaning, Germany, but the IP geolocates to Zug, CH (~47.17°N, 8.52°E).",
+      "Primary cluster node. Operator listed in Ismaning, Germany (LAIN / AS211507).",
   },
   {
     id: "fallback",

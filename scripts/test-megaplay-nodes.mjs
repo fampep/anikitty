@@ -4,7 +4,7 @@
  */
 
 const NODES = [
-  { label: "Switzerland", url: process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY ?? "https://kittyapi.92-119-165-226.sslip.io" },
+  { label: "Germany", url: process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY ?? "https://kittyapi.92-119-165-226.sslip.io" },
   { label: "Sweden", url: process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK ?? "https://kittyapi.176-125-240-251.sslip.io" },
   { label: "Bulgaria", url: process.env.NEXT_PUBLIC_KITTY_NODE_THIRD ?? "https://kittyapi.131-123-42-153.sslip.io" },
   { label: "Singapore", url: process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH ?? "https://kittyapi.23-111-15-143.sslip.io" },

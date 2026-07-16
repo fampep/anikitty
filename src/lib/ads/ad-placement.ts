@@ -7,6 +7,7 @@ export const AD_EXCLUDED_PATH_PREFIXES = [
   "/auth",
   "/messages",
   "/offline",
+  "/status",
 ] as const;
 
 export function isAdPlacementAllowed(pathname: string): boolean {

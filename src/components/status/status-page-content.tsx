@@ -63,14 +63,25 @@ const STATUS_META: Record<
   },
 };
 
-const NODE_FLAGS: Record<string, string> = {
-  primary: "🇨🇭",
-  fallback: "🇸🇪",
-  "third-choice": "🇧🇬",
-  "fourth-choice": "🇸🇬",
-  "fifth-choice": "🇳🇱",
-  "sixth-choice": "🇨🇦",
+/** Flags keyed by location label so node geo changes don’t leave stale country icons. */
+const LOCATION_FLAGS: Record<string, string> = {
+  Germany: "🇩🇪",
+  Sweden: "🇸🇪",
+  Bulgaria: "🇧🇬",
+  Singapore: "🇸🇬",
+  Netherlands: "🇳🇱",
+  Canada: "🇨🇦",
+  "Montreal, Canada": "🇨🇦",
 };
+
+function flagForLocation(location: string): string | null {
+  const exact = LOCATION_FLAGS[location];
+  if (exact) return exact;
+  const match = Object.entries(LOCATION_FLAGS).find(
+    ([key]) => key !== location && location.includes(key),
+  );
+  return match?.[1] ?? null;
+}
 
 function latencyClass(ms: number | null | undefined): string {
   if (ms == null) return "text-muted-foreground/60 dark:text-white/25";
@@ -238,7 +249,7 @@ export default function StatusPageContent() {
                     {fastestNode && fastestPing != null && (
                       <>
                         {" · "}
-                        {t("status.fastest")}: {NODE_FLAGS[fastestNode.id] ?? ""}{" "}
+                        {t("status.fastest")}: {flagForLocation(fastestNode.location) ?? ""}{" "}
                         {fastestNode.location} ({fastestPing}ms)
                       </>
                     )}
@@ -378,7 +389,7 @@ export default function StatusPageContent() {
 
           {!ready && loading ? (
             <div className="flex flex-col gap-3">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: KITTY_API_NODES.length }).map((_, i) => (
                 <div
                   key={i}
                   className="site-panel p-4 sm:p-5 h-[88px] animate-pulse bg-muted/40 dark:bg-white/[0.03]"
@@ -420,7 +431,7 @@ export default function StatusPageContent() {
                             : "bg-red-500/10 ring-red-500/20 grayscale opacity-70",
                         )}
                       >
-                        {NODE_FLAGS[node.id] ?? (
+                        {flagForLocation(node.location) ?? (
                           <Globe2 className="w-4 h-4 text-muted-foreground" />
                         )}
                       </div>

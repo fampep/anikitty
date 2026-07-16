@@ -1415,7 +1415,9 @@ const VideoPlayerSection = () => {
       streamData?.error ??
       (streamError instanceof Error ? streamError.message : null);
     const streamFailMessage = isEpisodeNotFound(rawMessage)
-      ? t("watch.episodeNotFoundOnProvider", { provider })
+      ? t("watch.episodeNotFoundOnProvider", {
+          provider: getKittyProviderMeta(provider).label,
+        })
       : (rawMessage ?? t("watch.streamNotFound"));
     const nextFallback = peekNextFallbackProvider();
     const nextFallbackLabel = nextFallback ? getKittyProviderMeta(nextFallback).label : undefined;

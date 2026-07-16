@@ -402,8 +402,7 @@ const Layout = (props: Props) => {
     )}
     {theatreMode && (
       <div
-        className="fixed top-[var(--nav-total-height)] inset-x-0 z-[45] flex items-center justify-between gap-3 px-3 sm:px-4 py-2 bg-black/85 border-b border-white/10 backdrop-blur-md"
-        style={{ minHeight: "var(--theatre-exit-bar-h)" }}
+        className="fixed top-[var(--nav-total-height)] inset-x-0 z-[45] flex h-[var(--theatre-exit-bar-h)] items-center justify-between gap-3 px-3 sm:px-4 bg-black/85 border-b border-white/10 backdrop-blur-md"
       >
         <div className="min-w-0 flex items-center gap-2.5">
           <Lightbulb className="w-4 h-4 text-amber-300/80 shrink-0" />
@@ -478,7 +477,8 @@ const Layout = (props: Props) => {
           )}
 
           {info.nextAiringEpisode?.airingAt &&
-            info.nextAiringEpisode.airingAt * 1000 > Date.now() && (
+            info.nextAiringEpisode.airingAt * 1000 > Date.now() &&
+            !theatreMode && (
               <NextEpisodeCountdown
                 airingAt={info.nextAiringEpisode.airingAt}
                 episode={info.nextAiringEpisode.episode}
@@ -501,7 +501,7 @@ const Layout = (props: Props) => {
             <button
               type="button"
               onClick={() => openComments("episode")}
-              className="fixed bottom-24 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-violet-400/30 bg-black/75 text-violet-200 shadow-lg shadow-black/40 backdrop-blur-sm hover:bg-violet-500/20 transition-all"
+              className="fixed bottom-6 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/80 text-white/90 shadow-lg shadow-black/40 backdrop-blur-sm hover:bg-white/10 hover:border-white/25 transition-all"
               aria-label={t("watch.toolbar.comments")}
             >
               <MessageSquare className="h-5 w-5" />

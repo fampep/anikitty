@@ -19,7 +19,7 @@ html {
   --banner-offset: 0px;
   --home-hero-max-h: 520px;
   --home-section-gap: 2.5rem;
-  --theatre-exit-bar-h: 3rem;
+  --theatre-exit-bar-h: 3.5rem;
   /* Prevent font scaling on orientation change in iOS */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

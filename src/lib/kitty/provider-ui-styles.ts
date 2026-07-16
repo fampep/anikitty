@@ -19,7 +19,7 @@ const DEFAULT_ACCENT: ProviderAccent = {
   pillActive: "border-border dark:border-white/20 bg-muted/50 dark:bg-white/[0.08] text-foreground dark:text-white",
   pillIdle: "border-transparent text-muted-foreground dark:text-white/40 hover:text-foreground/80 dark:hover:text-white/65 hover:bg-muted/30 dark:hover:bg-white/[0.04]",
   dot: "bg-muted-foreground/50 dark:bg-white/40",
-  glow: "from-violet-500/15",
+  glow: "from-slate-500/15",
 };
 
 const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
@@ -64,6 +64,20 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     pillIdle: "border-transparent text-indigo-300/45 hover:text-indigo-200/80 hover:bg-indigo-500/[0.06]",
     dot: "bg-indigo-400",
     glow: "from-indigo-500/20",
+  },
+  AniDB: {
+    chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
+    pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",
+    pillIdle: "border-transparent text-amber-300/45 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    dot: "bg-amber-400",
+    glow: "from-amber-500/20",
+  },
+  Miruro: {
+    chip: "border-orange-400/30 bg-orange-500/10 text-orange-100/90",
+    pillActive: "border-orange-400/45 bg-orange-500/20 text-orange-50 shadow-[0_0_12px_-4px_rgba(251,146,60,0.35)]",
+    pillIdle: "border-transparent text-orange-300/45 hover:text-orange-200/80 hover:bg-orange-500/[0.06]",
+    dot: "bg-orange-400",
+    glow: "from-orange-500/20",
   },
   AniBD: {
     chip: "border-slate-400/30 bg-slate-500/10 text-slate-200/90",
