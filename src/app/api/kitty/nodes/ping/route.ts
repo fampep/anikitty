@@ -4,6 +4,7 @@ import {
   KITTY_API_NODES,
   resolveKittyNodeIdFromOrigin,
   type KittyApiNodeMeta,
+  type KittyApiNodeId,
   type KittyNodePingResult,
 } from "@/lib/kitty/kitty-api-nodes";
 import {
@@ -32,18 +33,27 @@ function matchBenchmarkEntry(nodeUrl: string, entryOrigin: string | undefined): 
   return normalizeOrigin(entryOrigin) === normalizeOrigin(nodeUrl);
 }
 
+/** Prefer the default node, then walk the cluster if that origin is down. */
 async function fetchClusterBenchmark(): Promise<KittyBenchmarkResponse | null> {
-  const base = getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_ID);
-  try {
-    const res = await fetch(`${base}${buildKittyBenchmarkPath(true)}`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(PING_TIMEOUT_MS),
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as KittyBenchmarkResponse;
-  } catch {
-    return null;
+  const order = [
+    DEFAULT_KITTY_API_NODE_ID,
+    ...KITTY_API_NODES.map((n) => n.id).filter((id) => id !== DEFAULT_KITTY_API_NODE_ID),
+  ];
+
+  for (const nodeId of order) {
+    const base = getKittyApiNodeUrl(nodeId);
+    try {
+      const res = await fetch(`${base}${buildKittyBenchmarkPath(true)}`, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(PING_TIMEOUT_MS),
+      });
+      if (!res.ok) continue;
+      return (await res.json()) as KittyBenchmarkResponse;
+    } catch {
+      /* try next node */
+    }
   }
+  return null;
 }
 
 /**
@@ -95,7 +105,17 @@ export async function GET() {
     }),
   );
 
-  return Response.json({ nodes, recommended });
+  // Prefer a recommended origin that is actually online in our probe results.
+  const recommendedOnline =
+    recommended && nodes.some((n) => n.id === recommended && n.ok) ? recommended : null;
+  const fastestOnline = nodes
+    .filter((n) => n.ok && n.pingMs != null)
+    .sort((a, b) => (a.pingMs ?? Infinity) - (b.pingMs ?? Infinity))[0]?.id ?? null;
+
+  return Response.json({
+    nodes,
+    recommended: recommendedOnline ?? fastestOnline,
+  });
 }
 
 export const maxDuration = 30;

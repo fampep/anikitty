@@ -4,6 +4,7 @@ import {
   type SubtitleSettings,
 } from "@/lib/subtitles/subtitle-settings";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import { coerceKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
@@ -100,7 +101,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
     >;
   }
   if (typeof input.kittyProxyNode === "string") {
-    out.kittyProxyNode = input.kittyProxyNode as KittyApiNodeId;
+    out.kittyProxyNode = coerceKittyApiNodeId(input.kittyProxyNode);
   }
 
   return out;

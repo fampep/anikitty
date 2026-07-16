@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
-import { DEFAULT_KITTY_API_NODE_ID, isKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import { coerceKittyApiNodeId, DEFAULT_KITTY_API_NODE_ID, isKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   sanitizeSubtitleSettings,
@@ -361,7 +361,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 36,
+      version: 37,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -529,6 +529,18 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 36) {
           next.anime4kEnabled = next.anime4kEnabled ?? false;
           next.anime4kMode = sanitizeAnime4kMode(next.anime4kMode);
+        }
+        if (version < 37) {
+          // Switzerland removed; Netherlands is primary; Canada moved sixth → fifth.
+          const raw = typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : "";
+          if (raw === "sixth-choice") {
+            next.kittyProxyNode = "fifth-choice";
+          } else if (raw === "fifth-choice") {
+            // Former Netherlands slot is now primary.
+            next.kittyProxyNode = "primary";
+          } else {
+            next.kittyProxyNode = coerceKittyApiNodeId(raw);
+          }
         }
         return next as ISettingsStore;
       },

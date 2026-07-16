@@ -105,7 +105,22 @@ export function pickFastestKittyNode(
     reachable.sort((a, b) => (a.pingMs ?? Infinity) - (b.pingMs ?? Infinity));
     return reachable[0]!.id;
   }
-  return recommended ?? null;
+  // Recommended only if that node is still marked reachable (ok without ping).
+  if (recommended && nodes.some((n) => n.id === recommended && n.ok)) {
+    return recommended;
+  }
+  const anyOnline = nodes.find((n) => n.ok);
+  return anyOnline?.id ?? null;
+}
+
+/** True when ping data says this node is unreachable (skip for streaming). */
+export function isKittyNodeDead(
+  nodes: KittyNodePingResult[],
+  nodeId: KittyApiNodeId,
+): boolean {
+  if (!nodes.length) return false;
+  const row = nodes.find((n) => n.id === nodeId);
+  return row != null && !row.ok;
 }
 
 export function useKittyNodePing(options?: UseKittyNodePingOptions) {

@@ -11,6 +11,7 @@ export {
   getKittyApiNode,
   getKittyApiNodeUrl,
   isKittyApiNodeId,
+  coerceKittyApiNodeId,
   KITTY_API_NODES,
   parseKittyNodeParam,
   resolveKittyNodeIdFromOrigin,
@@ -158,6 +159,11 @@ export type KittyApiFetchOptions = {
   nodeId?: KittyApiNodeId;
   /** Skip API key headers even on protected routes. */
   skipAuth?: boolean;
+  /**
+   * When true (default), retry on another cluster node if the preferred node is
+   * unreachable (network / 5xx). Does not failover on 4xx application errors.
+   */
+  failover?: boolean;
 };
 
 /** KittyAPI key from `KITTY_API_KEY` env (e.g. `akitty_cd32a8c2…`). Never use query params. */
@@ -190,15 +196,48 @@ function mergeKittyFetchInit(path: string, init?: RequestInit, skipAuth?: boolea
   return { ...init, headers };
 }
 
-/** Fetch KittyAPI on a single node (no automatic failover). */
+function isTransientKittyFailure(res: Response | null, err: unknown): boolean {
+  if (err) return true;
+  if (!res) return true;
+  // Infra/gateway failures only — provider 500s should not fan out across the cluster.
+  return res.status === 502 || res.status === 503 || res.status === 504 || res.status === 408 || res.status === 429;
+}
+
+function kittyFailoverOrder(preferred: KittyApiNodeId): KittyApiNodeId[] {
+  const rest = KITTY_API_NODES.map((n) => n.id).filter((id) => id !== preferred);
+  return [preferred, ...rest];
+}
+
+/** Fetch KittyAPI — optionally failover across cluster nodes on transport/5xx errors. */
 export async function kittyApiFetch(
   path: string,
   init?: RequestInit,
   opts?: KittyApiFetchOptions,
 ): Promise<Response> {
-  const nodeId = opts?.nodeId ?? DEFAULT_KITTY_API_NODE_ID;
-  const base = getKittyApiBase(nodeId);
-  return fetch(kittyApiPath(path, base), mergeKittyFetchInit(path, init, opts?.skipAuth));
+  const preferred = opts?.nodeId ?? DEFAULT_KITTY_API_NODE_ID;
+  const failover = opts?.failover !== false;
+  const order = failover ? kittyFailoverOrder(preferred) : [preferred];
+  const merged = mergeKittyFetchInit(path, init, opts?.skipAuth);
+
+  let lastError: unknown = null;
+  let lastResponse: Response | null = null;
+
+  for (const nodeId of order) {
+    const base = getKittyApiBase(nodeId);
+    try {
+      const res = await fetch(kittyApiPath(path, base), merged);
+      if (!failover || !isTransientKittyFailure(res, null)) {
+        return res;
+      }
+      lastResponse = res;
+    } catch (err) {
+      lastError = err;
+      if (!failover) throw err;
+    }
+  }
+
+  if (lastResponse) return lastResponse;
+  throw lastError instanceof Error ? lastError : new Error("KittyAPI unreachable on all nodes");
 }
 
 /** API key headers for KittyAPI JSON routes (search, stream-direct, etc.) — not for signed `/proxy?token=…` playback URLs. */

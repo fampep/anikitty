@@ -119,20 +119,36 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
-  const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
-    enabled: !kittyProxyManual,
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
+  const { nodes: proxyNodes, fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
+    // Always probe so we can auto-skip a dead pinned node.
+    enabled: true,
     lightweight: true,
   });
 
   useEffect(() => {
-    if (!proxyPingReady || kittyProxyManual || !fastestProxyId) return;
-    if (kittyProxyNode === fastestProxyId) return;
+    if (!proxyPingReady || !fastestProxyId) return;
+    const selectedDead =
+      proxyNodes.length > 0 && proxyNodes.some((n) => n.id === kittyProxyNode && !n.ok);
+    // Dead pinned nodes always fail over; otherwise only auto mode follows fastest.
+    if (!selectedDead && (kittyProxyManual || kittyProxyNode === fastestProxyId)) return;
     // Switching proxy mid-playback refetches the stream and remounts the player.
     const video = playerRef.current?.video;
     if (video && !video.paused && !video.ended) return;
+    if (selectedDead) {
+      setKittyProxyNode(fastestProxyId);
+      return;
+    }
     applyAutoKittyProxyNode(fastestProxyId);
-  }, [proxyPingReady, kittyProxyManual, fastestProxyId, kittyProxyNode, applyAutoKittyProxyNode]);
+  }, [
+    proxyPingReady,
+    kittyProxyManual,
+    fastestProxyId,
+    kittyProxyNode,
+    proxyNodes,
+    applyAutoKittyProxyNode,
+    setKittyProxyNode,
+  ]);
   const compactProviderPicker = simpleProviderPicker;
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {

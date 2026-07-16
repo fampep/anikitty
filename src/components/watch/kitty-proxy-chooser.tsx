@@ -16,8 +16,10 @@ function formatPing(
   pingMs: number | null | undefined,
   bandwidthMbps: number | null | undefined,
   loading: boolean,
+  online: boolean | undefined,
   t: (key: string, vars?: Record<string, string | number>) => string,
 ) {
+  if (online === false) return t("watch.playerSettings.proxyPingOffline");
   if (loading && pingMs == null) return t("watch.playerSettings.proxyPingLoading");
   if (pingMs == null) return t("watch.playerSettings.proxyPingUnavailable");
   if (bandwidthMbps != null && bandwidthMbps > 0) {
@@ -34,15 +36,22 @@ export default function KittyProxyChooser() {
   const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const kittyProxyManual = useSettingsStore((s) => s.kittyProxyManual);
   const selectKittyProxyNode = useSettingsStore((s) => s.selectKittyProxyNode);
-  const { pingByNode, bandwidthByNode, fastestId, loading } = useKittyNodePing({
+  const { nodes, pingByNode, bandwidthByNode, fastestId, loading } = useKittyNodePing({
     lightweight: false,
   });
+
+  const onlineById = React.useMemo(() => {
+    const map: Partial<Record<string, boolean>> = {};
+    for (const row of nodes) map[row.id] = row.ok;
+    return map;
+  }, [nodes]);
 
   const fasterAvailable =
     kittyProxyManual &&
     fastestId != null &&
     fastestId !== kittyProxyNode &&
-    pingByNode[fastestId] != null;
+    pingByNode[fastestId] != null &&
+    onlineById[fastestId] !== false;
 
   return (
     <div className="rounded-xl border border-border dark:border-white/[0.08] bg-black/20 px-3 py-3 space-y-2.5">
@@ -82,15 +91,22 @@ export default function KittyProxyChooser() {
           const selected = kittyProxyNode === node.id;
           const pingMs = pingByNode[node.id];
           const bandwidthMbps = bandwidthByNode[node.id];
-          const isFastest = fastestId === node.id && pingMs != null;
+          const online = onlineById[node.id];
+          const isFastest = fastestId === node.id && pingMs != null && online !== false;
+          const dead = online === false;
 
           return (
             <button
               key={node.id}
               type="button"
-              onClick={() => selectKittyProxyNode(node.id)}
+              onClick={() => {
+                if (dead) return;
+                selectKittyProxyNode(node.id);
+              }}
+              disabled={dead}
               className={cn(
                 "rounded-xl border px-3 py-2.5 text-left transition-colors",
+                dead && "opacity-50 cursor-not-allowed",
                 selected
                   ? "border-sky-400/35 bg-sky-500/10 ring-1 ring-sky-400/20"
                   : "border-border dark:border-white/[0.08] bg-muted/40 dark:bg-white/[0.03] hover:border-border dark:border-white/14 hover:bg-muted/60 dark:bg-white/[0.05]",
@@ -100,7 +116,11 @@ export default function KittyProxyChooser() {
                 <p className={cn("text-[12px] font-medium min-w-0", selected ? "text-foreground dark:text-white/90" : "text-muted-foreground dark:text-white/65")}>
                   {node.location}
                 </p>
-                {isFastest ? (
+                {dead ? (
+                  <span className="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wide bg-rose-500/15 border border-rose-400/25 text-rose-300/85">
+                    {t("watch.playerSettings.proxyOffline")}
+                  </span>
+                ) : isFastest ? (
                   <span className="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wide bg-teal-500/15 border border-teal-400/25 text-teal-300/85">
                     {t("watch.playerSettings.proxyFastest")}
                   </span>
@@ -109,10 +129,14 @@ export default function KittyProxyChooser() {
               <p
                 className={cn(
                   "text-[10px] font-mono mt-1",
-                  pingMs != null ? "text-muted-foreground dark:text-white/40" : "text-muted-foreground/80 dark:text-white/25",
+                  dead
+                    ? "text-rose-300/70"
+                    : pingMs != null
+                      ? "text-muted-foreground dark:text-white/40"
+                      : "text-muted-foreground/80 dark:text-white/25",
                 )}
               >
-                {formatPing(pingMs, bandwidthMbps, loading, t)}
+                {formatPing(pingMs, bandwidthMbps, loading, online, t)}
               </p>
             </button>
           );

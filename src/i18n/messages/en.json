@@ -1874,6 +1874,8 @@
       "proxyPingStats": "{ms} ms · ~{mbps} Mbps",
       "proxyPingLoading": "Measuring…",
       "proxyPingUnavailable": "Unreachable",
+      "proxyPingOffline": "Offline",
+      "proxyOffline": "Offline",
       "tabPlayback": "Playback",
       "tabNetwork": "Network",
       "tabSubtitles": "Subtitles",

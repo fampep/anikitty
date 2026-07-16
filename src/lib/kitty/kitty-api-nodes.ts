@@ -3,12 +3,11 @@ export type KittyApiNodeId =
   | "fallback"
   | "third-choice"
   | "fourth-choice"
-  | "fifth-choice"
-  | "sixth-choice";
+  | "fifth-choice";
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
-  /** Display number in the proxy chooser (1 = Primary, 2 = Fallback, 3 = Third, 4 = Fourth). */
+  /** Display number in the proxy chooser (1 = Primary, 2 = Fallback, …). */
   index: number;
   label: string;
   ip: string;
@@ -34,26 +33,24 @@ function nodeHost(url: string): string {
 // Proxy/cluster node origins are configurable via env so domains aren't
 // hardcoded. Each falls back to the current default when its var is unset.
 // NEXT_PUBLIC_* is inlined at build time, so set them as build args in Coolify.
-const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://kittyapi.92-119-165-226.sslip.io");
+const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://kittyapi.94-75-223-124.sslip.io");
 const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, "https://kittyapi.176-125-240-251.sslip.io");
 const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "https://kittyapi.131-123-42-153.sslip.io");
 const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "https://kittyapi.23-111-15-143.sslip.io");
-const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "https://kittyapi.94-75-223-124.sslip.io");
-const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, "https://kittyapi.184-107-88-54.sslip.io");
+const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "https://kittyapi.184-107-88-54.sslip.io");
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "primary",
     index: 1,
-    label: "Germany",
-    ip: "92.119.165.226",
+    label: "Netherlands",
+    ip: "94.75.223.124",
     url: PRIMARY_URL,
     host: nodeHost(PRIMARY_URL),
-    location: "Germany",
-    timezone: "Europe/Berlin",
-    operator: "LAIN / AS211507 (Julian Achter)",
-    note:
-      "Primary cluster node. Operator listed in Ismaning, Germany (LAIN / AS211507).",
+    location: "Netherlands",
+    timezone: "Europe/Amsterdam",
+    operator: "Primary cluster node",
+    note: "Default preferred proxy after Switzerland was removed from the cluster.",
   },
   {
     id: "fallback",
@@ -93,28 +90,28 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "fifth-choice",
     index: 5,
-    label: "Netherlands",
-    ip: "94.75.223.124",
-    url: FIFTH_URL,
-    host: nodeHost(FIFTH_URL),
-    location: "Netherlands",
-    timezone: "Europe/Amsterdam",
-    operator: "Fifth cluster node",
-  },
-  {
-    id: "sixth-choice",
-    index: 6,
     label: "Canada",
     ip: "184.107.88.54",
-    url: SIXTH_URL,
-    host: nodeHost(SIXTH_URL),
+    url: FIFTH_URL,
+    host: nodeHost(FIFTH_URL),
     location: "Montreal, Canada",
     timezone: "America/Toronto",
-    operator: "Sixth cluster node",
+    operator: "Fifth cluster node",
   },
 ];
 
+/** Default preferred node when the user has not picked one (Netherlands). */
 export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
+
+/** Legacy node ids that may still be stored in local settings / prefs. */
+const LEGACY_KITTY_NODE_ALIASES: Record<string, KittyApiNodeId> = {
+  // Old Netherlands id before it became primary
+  // (previous fifth-choice IP is now primary — remapped in settings migrate)
+  // Old Canada id
+  "sixth-choice": "fifth-choice",
+  secondary: "fallback",
+  main: "primary",
+};
 
 export function getKittyApiNode(id: KittyApiNodeId): KittyApiNodeMeta {
   return KITTY_API_NODES.find((node) => node.id === id) ?? KITTY_API_NODES[0]!;
@@ -145,10 +142,12 @@ export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined):
 
 export function parseKittyNodeParam(value: string | null | undefined): KittyApiNodeId {
   const normalized = value?.trim().toLowerCase();
-  if (normalized === "sixth-choice" || normalized === "sixthchoice" || normalized === "6") {
-    return "sixth-choice";
-  }
-  if (normalized === "fifth-choice" || normalized === "fifthchoice" || normalized === "5") {
+  if (!normalized) return DEFAULT_KITTY_API_NODE_ID;
+
+  const aliased = LEGACY_KITTY_NODE_ALIASES[normalized];
+  if (aliased) return aliased;
+
+  if (normalized === "fifth-choice" || normalized === "fifthchoice" || normalized === "5" || normalized === "6") {
     return "fifth-choice";
   }
   if (normalized === "fourth-choice" || normalized === "fourthchoice" || normalized === "4") {
@@ -168,6 +167,13 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
 
 export function isKittyApiNodeId(value: string): value is KittyApiNodeId {
   return KITTY_API_NODES.some((node) => node.id === value);
+}
+
+/** Coerce a stored preference (including legacy ids) to a live node id. */
+export function coerceKittyApiNodeId(value: string | null | undefined): KittyApiNodeId {
+  if (!value?.trim()) return DEFAULT_KITTY_API_NODE_ID;
+  if (isKittyApiNodeId(value)) return value;
+  return parseKittyNodeParam(value);
 }
 
 export type KittyNodePingResult = {

@@ -6,6 +6,7 @@ export {
   buildKittySpeedtestPath,
   buildKittyStreamDirectPath,
   buildKittyStreamDirectUrl,
+  coerceKittyApiNodeId,
   DEFAULT_KITTY_API_BASE,
   DEFAULT_KITTY_API_NODE_ID,
   getKittyApiBase,
