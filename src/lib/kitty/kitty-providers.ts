@@ -217,12 +217,12 @@ export {
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   MEGAPLAY_PROVIDER_ID,
   "Anitaku",
+  "AniDB",
   "Anikoto",
   "Miruro",
   "MKissa",
   "AniNeko",
   "AniBD",
-  "AniDB",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
