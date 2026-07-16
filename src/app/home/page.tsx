@@ -107,7 +107,7 @@ export default function Home() {
       <div className="home-cinema-body relative z-[5] flex flex-col gap-[var(--home-section-gap)] p-2 pt-0.5 sm:pt-1 pb-8">
         <HomeWelcomeBar />
 
-        <div id="continue" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+            <div id="continue" className="scroll-mt-[calc(var(--nav-total-height)+4.5rem)]">
           <LazyMount rootMargin="300px 0px">
             <ContinueWatching />
           </LazyMount>
@@ -139,7 +139,7 @@ export default function Home() {
 
         <LazyMount rootMargin="700px 0px">
           <Container>
-            <div id="schedule" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">
+            <div id="schedule" className="scroll-mt-[calc(var(--nav-total-height)+4.5rem)]">
               <HomeSchedulePanel />
             </div>
           </Container>

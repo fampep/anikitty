@@ -193,7 +193,7 @@ const HeroCarouselItem = ({
   };
 
   return (
-    <div className="relative w-full max-h-[45lvh] sm:max-h-[70lvh] min-h-[40lvh] aspect-video overflow-hidden bg-black">
+    <div className="relative w-full max-h-[var(--home-hero-max-h)] min-h-[42lvh] sm:min-h-[40lvh] aspect-video overflow-hidden bg-black">
       <div className="absolute inset-0 overflow-hidden">
         {isNearActive && anime?.poster ? (
           <Image

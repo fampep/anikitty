@@ -14,7 +14,7 @@ export default function HomeAmbientBackdrop({ imageUrl, className }: Props) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 top-0 -z-10 h-[min(72lvh,720px)] overflow-hidden",
+        "pointer-events-none absolute inset-x-0 top-0 -z-10 h-[min(var(--home-hero-max-h),720px)] overflow-hidden",
         className,
       )}
       aria-hidden

@@ -40,7 +40,7 @@ function ToolbarToggle({
       aria-pressed={active}
       aria-label={label}
       className={cn(
-        "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-150 shrink-0",
+        "site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-150 shrink-0",
         active
           ? "border-violet-400/35 bg-violet-500/15 text-violet-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
           : "border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-border dark:hover:border-white/18",
@@ -98,7 +98,7 @@ function ToolbarAudioToggle({
         aria-pressed={value === "sub"}
         onClick={() => onChange("sub")}
         className={cn(
-          "inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
+          "site-focus inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
           value === "sub" ? AUDIO_SEGMENT.subActive : AUDIO_SEGMENT.subIdle,
         )}
       >
@@ -111,7 +111,7 @@ function ToolbarAudioToggle({
         disabled={!dubEnabled}
         onClick={() => dubEnabled && onChange("dub")}
         className={cn(
-          "inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
+          "site-focus inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
           value === "dub" ? AUDIO_SEGMENT.dubActive : AUDIO_SEGMENT.dubIdle,
           !dubEnabled && AUDIO_SEGMENT.dubDisabled,
         )}
@@ -156,7 +156,7 @@ export default function WatchPlayerToolbar({
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 sm:px-3 border-b border-border dark:border-white/8 bg-gradient-to-b from-[#0c0c0c] to-[#0a0a0a] overflow-x-auto scrollbar-hide">
+    <div className="watch-chrome flex items-center gap-2 px-3 py-2 sm:px-3 border-b overflow-x-auto scrollbar-hide">
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <ToolbarToggle
           active={autoPlay}
@@ -174,7 +174,7 @@ export default function WatchPlayerToolbar({
           type="button"
           onClick={onShowShortcuts}
           aria-label={t("watch.toolbar.shortcuts")}
-          className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
+          className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
         >
           <Command className="w-3 h-3 shrink-0" />
           <span className="hidden sm:inline">{t("watch.toolbar.shortcuts")}</span>
@@ -191,7 +191,7 @@ export default function WatchPlayerToolbar({
             type="button"
             onClick={onTogglePip}
             aria-label={t("watch.toolbar.pip")}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0 lg:hidden"
+            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0 lg:hidden"
           >
             <PictureInPicture className="w-3 h-3 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.pip")}</span>
@@ -201,7 +201,7 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onSubmitSkipTimes}
-            className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-violet-400/25 transition-colors shrink-0"
+            className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-violet-400/25 transition-colors shrink-0"
           >
             <SkipForward className="w-3 h-3 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.submitSkip")}</span>
@@ -211,7 +211,7 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onOpenComments}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-400/25 bg-violet-500/10 text-violet-200/90 hover:bg-violet-500/18 transition-colors shrink-0"
+            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-400/25 bg-violet-500/10 text-violet-200/90 hover:bg-violet-500/18 transition-colors shrink-0"
           >
             <MessageSquare className="w-3 h-3 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.comments")}</span>
@@ -223,7 +223,7 @@ export default function WatchPlayerToolbar({
             onClick={onShowProviders}
             className={cn(
               providerChipClass(provider),
-              "h-8 px-2.5 hover:brightness-110 transition-all touch-manipulation",
+              "site-focus h-8 px-2.5 hover:brightness-110 transition-all touch-manipulation",
             )}
             title={t("watch.playerSettings.showProviders")}
           >
@@ -270,7 +270,7 @@ export default function WatchPlayerToolbar({
               : t("watch.prevEpisode")
           }
           className={cn(
-            "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
+            "site-focus inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
             hasPrev
               ? "border-border dark:border-white/12 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-muted/40 dark:hover:bg-white/[0.04]"
               : "border-transparent text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",
@@ -291,7 +291,7 @@ export default function WatchPlayerToolbar({
               : t("watch.nextEpisode")
           }
           className={cn(
-            "inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
+            "site-focus inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
             hasNext
               ? "border-border dark:border-white/12 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-muted/40 dark:hover:bg-white/[0.04]"
               : "border-transparent text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",

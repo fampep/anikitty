@@ -24,7 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { SectionHeading } from "@/components/home/section-heading";
+import { HomeSectionLink } from "@/components/home/home-shared";
 
 interface ContinueItem {
   id: string;
@@ -482,18 +482,19 @@ const ContinueWatching = ({ loading = false }: Props) => {
       <div className="site-panel w-full p-3 sm:p-4 flex flex-col gap-4">
       <div className="flex items-center gap-2 w-full min-w-0">
         <div className="min-w-0 flex-1">
-          <SectionHeading
+          <HomeSectionLink
             icon={<History className="w-4 h-4" />}
             title={t("home.continueWatching")}
             href={ROUTES.HISTORY}
+            compact
           />
         </div>
-        <div className="flex items-center gap-1 shrink-0 -mt-1">
+        <div className="flex items-center gap-1 shrink-0">
           {!bulk.editMode && (
             <button
               type="button"
               onClick={bulk.enterEdit}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border dark:border-white/12 text-muted-foreground dark:text-white/45 text-xs font-semibold hover:text-foreground/90 dark:hover:text-white/75 hover:border-border dark:hover:border-white/25 transition-all mr-1"
+              className="site-ghost-btn site-focus !px-2.5 !py-1.5 text-[11px]"
             >
               <Pencil className="h-3.5 w-3.5" />
               {t("bulkSelect.edit")}
@@ -503,7 +504,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
             aria-label={t("common.scrollLeft")}
-            className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+            className="site-focus h-7 w-7 rounded-lg border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/80 hover:border-border dark:hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -511,7 +512,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
             aria-label={t("common.scrollRight")}
-            className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:border-border dark:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
+            className="site-focus h-7 w-7 rounded-lg border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/80 hover:border-border dark:hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

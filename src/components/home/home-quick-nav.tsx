@@ -60,8 +60,8 @@ export default function HomeQuickNav() {
   }, []);
 
   return (
-    <Container className="sticky top-[calc(var(--nav-height))] z-20 py-1 pb-1.5">
-      <div className="site-panel flex flex-col gap-2 p-2 sm:p-2.5">
+    <Container className="sticky top-[var(--nav-total-height)] z-20 py-1.5 pb-2">
+      <div className="site-panel flex flex-col gap-2 p-2 sm:p-2.5 shadow-[0_8px_28px_rgba(15,10,30,0.08)] dark:shadow-[0_10px_32px_rgba(0,0,0,0.35)]">
         <div className="flex items-center gap-2 min-w-0">
           <Link
             href={ROUTES.SEARCH}
@@ -100,9 +100,12 @@ export default function HomeQuickNav() {
                 key={key}
                 href={href}
                 aria-current={active ? "true" : undefined}
-                className={cn("site-chip snap-start shrink-0 py-1.5 text-xs", active && "site-chip-active")}
+                className={cn(
+                  "site-chip site-focus snap-start shrink-0 py-1.5 text-xs transition-[color,background-color,border-color,box-shadow] duration-200",
+                  active && "site-chip-active shadow-[inset_0_-2px_0_0_rgba(167,139,250,0.55)]",
+                )}
               >
-                <Icon className="w-3 h-3 text-violet-300/70" />
+                <Icon className={cn("w-3 h-3 transition-colors duration-200", active ? "text-violet-300" : "text-violet-300/70")} />
                 {t(`home.quickNav.${key}`)}
               </Link>
             );

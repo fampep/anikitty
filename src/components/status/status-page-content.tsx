@@ -207,7 +207,7 @@ export default function StatusPageContent() {
     Boolean(pingByNode[fastestNodeId] != null || nodes.find((n) => n.id === fastestNodeId)?.ok);
 
   return (
-    <Container className="py-10 sm:py-14 pb-20">
+    <Container className="py-10 sm:py-14 pb-[calc(var(--mobile-nav-total)+1.25rem)]">
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2 text-sky-400/80">
@@ -268,7 +268,7 @@ export default function StatusPageContent() {
               type="button"
               onClick={handleRefresh}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/12 text-sm font-medium text-muted-foreground dark:text-white/60 hover:bg-accent dark:hover:bg-white/8 transition-colors disabled:opacity-40 shrink-0"
+              className="site-ghost-btn site-focus disabled:opacity-40 shrink-0"
             >
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
               {t("status.refresh")}

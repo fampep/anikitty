@@ -27,7 +27,7 @@ export function HomeSectionLink({
     <div className={cn("flex items-center gap-2.5 min-w-0 flex-1", className)}>
       <div
         className={cn(
-          "w-0.5 rounded-full bg-gradient-to-b from-violet-300 via-violet-500 to-violet-700/30 shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.35)]",
+          "w-0.5 rounded-full bg-gradient-to-b from-violet-300 via-violet-500 to-violet-700/30 shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.35)] transition-shadow duration-300 group-hover:shadow-[0_0_16px_rgba(124,58,237,0.5)]",
           compact ? "h-5" : "h-8",
         )}
       />

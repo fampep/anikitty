@@ -136,8 +136,27 @@ body {
   }
 
   .home-cinema {
-    --home-hero-max-h: 70lvh;
+    --home-hero-max-h: 56lvh;
     @apply relative isolate;
+  }
+
+  @media (min-width: 640px) {
+    .home-cinema {
+      --home-hero-max-h: 70lvh;
+    }
+  }
+
+  .watch-chrome {
+    @apply border-border bg-gradient-to-b from-muted/90 to-background;
+  }
+
+  .dark .watch-chrome {
+    @apply border-white/[0.08];
+    background-image: linear-gradient(to bottom, #0c0c0e, #09090b);
+  }
+
+  .site-focus {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background;
   }
 
   .home-cinema-body {

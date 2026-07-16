@@ -86,9 +86,9 @@ export default function WatchEpisodeBar({
           disabled={!prevEpisode}
           title={prevEpisode ? t("watch.episodeShort", { n: prevEpisode.number }) : undefined}
           className={cn(
-            "flex items-center justify-center w-10 sm:w-11 shrink-0 border-r border-border dark:border-white/8 transition-colors",
+            "site-focus flex items-center justify-center w-10 sm:w-11 shrink-0 border-r border-border dark:border-white/8 transition-colors",
             prevEpisode
-              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:text-white hover:bg-muted/50 dark:bg-white/[0.04]"
+              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.04]"
               : "text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >
@@ -229,7 +229,7 @@ export default function WatchEpisodeBar({
           <button
             type="button"
             onClick={onTogglePlaylist}
-            className="lg:hidden flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border dark:border-white/8 text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/40 dark:bg-white/[0.03] transition-colors shrink-0"
+            className="lg:hidden site-focus flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border dark:border-white/8 text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-colors shrink-0"
           >
             <span className="text-[9px] font-mono uppercase tracking-wide leading-none">
               {t("anime.episodes.title")}
@@ -246,9 +246,9 @@ export default function WatchEpisodeBar({
           disabled={!nextEpisode}
           title={nextEpisode ? t("watch.episodeShort", { n: nextEpisode.number }) : undefined}
           className={cn(
-            "flex items-center justify-center w-10 sm:w-11 shrink-0 border-l border-border dark:border-white/8 transition-colors",
+            "site-focus flex items-center justify-center w-10 sm:w-11 shrink-0 border-l border-border dark:border-white/8 transition-colors",
             nextEpisode
-              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:text-white hover:bg-muted/50 dark:bg-white/[0.04]"
+              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.04]"
               : "text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >

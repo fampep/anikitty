@@ -351,7 +351,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   return (
     <div className="w-full min-h-screen">
       {/* ── Banner ── */}
-      <div className="h-[35vh] sm:h-[42vh] md:h-[58vh] w-full relative">
+      <div className="h-[40vh] sm:h-[44vh] md:h-[58vh] w-full relative">
         <Image
           src={bannerSrc}
           alt={info.name}
@@ -369,9 +369,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <Container className="pb-28">
+      <Container className="pb-[calc(var(--mobile-nav-total)+1.5rem)] sm:pb-28">
         {/* ── Hero ── */}
-        <div className="flex md:mt-[-14rem] mt-[-3rem] sm:mt-[-4rem] md:flex-row flex-col md:items-end gap-4 sm:gap-6 md:gap-8">
+        <div className="flex md:mt-[-14rem] mt-[-2rem] sm:mt-[-3.5rem] md:flex-row flex-col md:items-end gap-5 sm:gap-6 md:gap-8">
           {/* Poster: smaller on mobile, full-size on md+ */}
           <div className="shrink-0 relative self-center md:self-auto">
             <div className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-transparent blur-xl pointer-events-none" />
@@ -381,17 +381,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
               displayDetails={false}
               variant="lg"
-              className="shadow-[0_32px_80px_rgba(0,0,0,0.9)] ring-1 ring-white/8 w-[130px] sm:w-[160px] md:w-auto"
+              className="shadow-[0_24px_64px_rgba(0,0,0,0.75)] ring-1 ring-white/8 w-[130px] sm:w-[160px] md:w-auto"
             />
             {isAiring && (
-              <div className="absolute -top-2 -right-2 flex items-center gap-1 bg-emerald-500 text-black text-[9px] font-black px-2 py-1 rounded-full shadow-lg shadow-emerald-500/30">
+              <div className="absolute -top-2 -right-2 flex items-center gap-1 bg-emerald-500 text-black text-[9px] font-black px-2 py-1 rounded-lg shadow-lg shadow-emerald-500/30">
                 <Radio className="w-2.5 h-2.5" />
                 {t("anime.airing")}
               </div>
             )}
           </div>
 
-          <div className="flex flex-col gap-2.5 sm:gap-3 pb-4 md:pb-10 min-w-0 flex-1">
+          <div className="flex flex-col gap-3 sm:gap-3.5 pb-4 md:pb-10 min-w-0 flex-1">
             <div>
               <AnimeClearLogo
                 name={info.name}
@@ -476,7 +476,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 {(moreInfo.genres as string[]).map((g) => {
                   const slug = genreSearchSlug(g);
                   const className =
-                    "px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-full border border-violet-500/15 text-violet-200/55 bg-violet-500/[0.06] hover:bg-violet-500/10 hover:text-violet-100/80 transition-colors";
+                    "px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-lg border border-violet-500/15 text-violet-200/55 bg-violet-500/[0.06] hover:bg-violet-500/10 hover:text-violet-100/80 transition-colors";
                   return slug ? (
                     <Link key={g} href={`${ROUTES.SEARCH}?genres=${slug}`} className={className}>
                       {g}
@@ -492,13 +492,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             {info.description && (
               <div className="max-w-2xl">
-                <p className="text-[12px] sm:text-[13px] text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 md:line-clamp-4">
+                <p className="text-sm text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 md:line-clamp-4">
                   {cleanAniListText(info.description as string)}
                 </p>
                 <button
                   type="button"
                   onClick={() => handleTabChange("overview")}
-                  className="mt-1.5 text-[11px] font-semibold text-violet-300/80 hover:text-violet-200 transition-colors"
+                  className="site-focus mt-1.5 text-[11px] font-semibold text-violet-300/80 hover:text-violet-200 transition-colors rounded-md"
                 >
                   {t("anime.readMore")}
                 </button>
@@ -506,7 +506,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   <button
                     type="button"
                     onClick={() => handleTabChange("episodes")}
-                    className="mt-1.5 ml-3 text-[11px] font-semibold text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors"
+                    className="site-focus mt-1.5 ml-3 text-[11px] font-semibold text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors rounded-md"
                   >
                     {t("anime.browseEpisodes")}
                   </button>
@@ -556,7 +556,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <SiteBannerAd className="py-3 sm:py-4" />
 
         {/* ── Tabs ── */}
-        <div id="anime-tabs-panel" className="scroll-mt-24 mt-6 sm:mt-10">
+        <div id="anime-tabs-panel" className="scroll-mt-[calc(var(--nav-total-height)+0.75rem)] mt-6 sm:mt-10">
           <div className="sticky top-[var(--nav-total-height)] z-30 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur-md border-b border-border/80 dark:border-white/8 sm:static sm:mx-0 sm:px-0 sm:py-0 sm:mb-4 sm:bg-transparent sm:backdrop-blur-none sm:border-b-0">
             <AnimeQuickNav
               tabs={tabItems}
@@ -1160,7 +1160,7 @@ const StatPill = ({
   purple?: boolean;
 }) => (
   <span className={cn(
-    "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono border font-medium",
+    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono border font-medium",
     gold ? "bg-amber-500/10 border-amber-500/20 text-amber-400/80"
       : teal ? "bg-teal-500/10 border-teal-500/20 text-teal-400/80"
       : purple ? "bg-purple-500/10 border-purple-500/20 text-purple-400/80"
