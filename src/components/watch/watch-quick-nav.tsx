@@ -59,7 +59,7 @@ export default function WatchQuickNav({
               mobileOnly && "lg:hidden",
             )}
           >
-            <Icon className={cn("w-3.5 h-3.5", active ? "text-violet-300" : "text-violet-300/70")} />
+            <Icon className={cn("w-3.5 h-3.5", active ? "text-teal-300/90" : "text-muted-foreground/70 dark:text-white/40")} />
             {t(`watch.quickNav.${key}`)}
           </button>
         );

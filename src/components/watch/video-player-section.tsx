@@ -1439,8 +1439,7 @@ const VideoPlayerSection = () => {
     const nextFallbackLabel = nextFallback ? getKittyProviderMeta(nextFallback).label : undefined;
 
     return (
-      <div className="flex flex-col gap-3">
-        {episodeBar}
+      <div className="flex flex-col gap-2 sm:gap-2.5">
         <WatchErrorPanel
           error={new Error(streamFailMessage)}
           onRetry={() => void retryStream()}
@@ -1453,14 +1452,14 @@ const VideoPlayerSection = () => {
         />
 
         {streamProviderControls}
+        {episodeBar}
       </div>
     );
   }
 
   if (showStreamLoading && !useHeldPlayerShell) {
     return (
-      <div className="flex flex-col gap-3">
-        {episodeBar}
+      <div className="flex flex-col gap-2 sm:gap-2.5">
         <PlayerSkeleton
           provider={provider}
           label={
@@ -1487,6 +1486,7 @@ const VideoPlayerSection = () => {
           )}
           {streamProviderControls}
         </div>
+        {episodeBar}
       </div>
     );
   }
@@ -1535,7 +1535,7 @@ const VideoPlayerSection = () => {
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:gap-3">
+    <div className="flex flex-col gap-2 sm:gap-2.5">
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} seekStepSeconds={seekStepSeconds} />
     {anilistId && episodeNumberParsed != null && (
       <SkipTimesSubmitDialog
@@ -1548,9 +1548,7 @@ const VideoPlayerSection = () => {
       />
     )}
 
-    {episodeBar}
-
-    <div className="flex flex-col rounded-none sm:rounded-xl overflow-hidden ring-0 sm:ring-1 ring-border dark:ring-white/10 shadow-none sm:shadow-2xl sm:shadow-black/60 bg-black">
+    <div className="watch-player-stage flex flex-col rounded-none sm:rounded-xl overflow-hidden ring-0 sm:ring-1 ring-border dark:ring-white/10 shadow-none sm:shadow-[0_28px_80px_-20px_rgba(0,0,0,0.75)] bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold
           native fullscreen across episode transitions without dropping out. */}
       <div ref={playerWrapperRef} className="relative w-full bg-black">
@@ -1649,7 +1647,7 @@ const VideoPlayerSection = () => {
       )}
 
       {/* Controls bar */}
-      <div className="watch-chrome px-3 py-2.5 sm:px-3 sm:py-3 border-t space-y-2 sm:space-y-2.5">
+      <div className="watch-chrome px-2.5 py-2 sm:px-3 sm:py-2.5 border-t space-y-2">
         {showFallbackHint && !providerAutoFallback && (
           <WatchAutoFallbackHint
             onEnable={() => {
@@ -1752,6 +1750,7 @@ const VideoPlayerSection = () => {
       </div>
     </div>
 
+    {episodeBar}
 
     {w2gCode && w2g.isMember && (
       <W2gPanel

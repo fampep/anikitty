@@ -186,13 +186,13 @@ const EpisodePlaylist = ({
     <div
       className={cn(
         "col-span-1 flex flex-col w-full site-panel overflow-hidden",
-        isWatch ? "min-h-0" : "min-h-[200px] max-h-[60vh] lg:max-h-[720px]",
+        isWatch ? "min-h-0" : "min-h-[240px] max-h-[65vh] lg:max-h-[min(78vh,760px)]",
       )}
     >
       <div
         className={cn(
           "shrink-0 border-b border-border dark:border-white/8",
-          isWatch ? "px-3 py-3 space-y-2.5" : "px-4 pt-3.5 pb-3 space-y-2.5",
+          isWatch ? "px-3 py-3 space-y-2.5" : "px-3.5 pt-3 pb-2.5 space-y-2.5",
         )}
       >
         {isWatch ? (

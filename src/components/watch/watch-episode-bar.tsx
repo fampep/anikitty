@@ -78,31 +78,35 @@ export default function WatchEpisodeBar({
   const total = episodes.episodes.length || episodes.totalEpisodes || 0;
 
   return (
-    <div className="rounded-xl border border-border dark:border-white/8 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-visible">
-      <div className="flex items-stretch min-h-[3.25rem] sm:min-h-[4.5rem]">
+    <div className="watch-episode-strip overflow-visible animate-in fade-in duration-300">
+      <div className="flex items-stretch min-h-[3rem] sm:min-h-[4.25rem]">
         <button
           type="button"
           onClick={onPrev}
           disabled={!prevEpisode}
           title={prevEpisode ? t("watch.episodeShort", { n: prevEpisode.number }) : undefined}
+          aria-label={t("watch.prevEpisode")}
           className={cn(
-            "site-focus flex items-center justify-center w-10 sm:w-11 shrink-0 border-r border-border dark:border-white/8 transition-colors",
+            "site-focus flex flex-col items-center justify-center gap-0.5 w-11 sm:w-14 shrink-0 border-r border-border/80 dark:border-white/[0.07] transition-colors",
             prevEpisode
-              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.04]"
+              ? "text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.04]"
               : "text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >
           <ChevronLeft className="w-5 h-5" />
+          <span className="hidden sm:block text-[9px] font-mono uppercase tracking-wider leading-none opacity-70">
+            {t("watch.prevEpisode")}
+          </span>
         </button>
 
-        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0 px-2.5 sm:px-3 py-2 sm:py-2.5">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0 px-2.5 sm:px-3.5 py-2 sm:py-2.5">
           <EpisodeThumbPreview
             title={title}
             episodeNumber={currentEpisode.number}
             fallbackImage={thumb}
             resolvePreviewImage={getLivePreview}
           >
-            <div className="relative w-14 sm:w-[4.5rem] aspect-video rounded-lg overflow-hidden bg-muted/50 dark:bg-white/[0.04] ring-1 ring-border dark:ring-white/10 cursor-default">
+            <div className="relative w-14 sm:w-[4.75rem] aspect-video rounded-md overflow-hidden bg-muted/50 dark:bg-white/[0.04] ring-1 ring-border dark:ring-white/10 cursor-default">
               {thumb ? (
                 <Image
                   src={thumb}
@@ -110,7 +114,7 @@ export default function WatchEpisodeBar({
                   fill
                   className="object-cover"
                   unoptimized
-                  sizes="72px"
+                  sizes="76px"
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-muted/50 dark:bg-white/[0.04]">
@@ -125,11 +129,11 @@ export default function WatchEpisodeBar({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-0.5">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground dark:text-white/35">
+              <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground dark:text-white/40">
                 {t("watch.episode", { n: currentEpisode.number })}
               </p>
-              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
-              <p className="hidden sm:block text-[10px] font-mono text-muted-foreground dark:text-white/30">
+              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground/50 dark:text-white/20">·</span>
+              <p className="hidden sm:block text-[10px] font-mono tabular-nums text-muted-foreground dark:text-white/35">
                 {t("watch.episodeIndex", {
                   current: currentEpisode.number,
                   total,
@@ -137,16 +141,16 @@ export default function WatchEpisodeBar({
               </p>
               {currentEpisode.isFiller && (
                 <>
-                  <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
-                  <span className="px-1.5 py-px text-[9px] rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/70 uppercase tracking-wide">
+                  <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/20">·</span>
+                  <span className="px-1.5 py-px text-[9px] rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/70 uppercase tracking-wide">
                     {t("watch.filler")}
                   </span>
                 </>
               )}
               {completed && (
                 <>
-                  <span className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/20">·</span>
-                  <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-teal-400/70 uppercase">
+                  <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/20">·</span>
+                  <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-teal-400/75 uppercase">
                     <Check className="w-2.5 h-2.5" />
                     {t("watch.episodeWatched")}
                   </span>
@@ -154,7 +158,7 @@ export default function WatchEpisodeBar({
               )}
             </div>
 
-            <p className="text-sm sm:text-[15px] font-semibold text-foreground dark:text-white leading-snug line-clamp-1 sm:line-clamp-2">
+            <p className="text-[13px] sm:text-[15px] font-semibold tracking-tight text-foreground dark:text-white leading-snug line-clamp-1 sm:line-clamp-2">
               {title}
             </p>
 
@@ -181,7 +185,7 @@ export default function WatchEpisodeBar({
                   value={jumpValue}
                   onChange={(e) => setJumpValue(e.target.value)}
                   placeholder={t("watch.episodeJumpPlaceholder")}
-                  className="h-7 w-14 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.04] px-2 text-[11px] font-mono text-foreground dark:text-white/80 focus:outline-none focus:border-violet-400/35"
+                  className="h-7 w-14 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.04] px-2 text-[11px] font-mono text-foreground dark:text-white/80 focus:outline-none focus:border-teal-400/35"
                   aria-label={t("watch.episodeJumpLabel")}
                 />
                 <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
@@ -203,7 +207,7 @@ export default function WatchEpisodeBar({
             {inProgress && (
               <div className="mt-2 h-1 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden max-w-xs">
                 <div
-                  className="h-full rounded-full bg-teal-500/70 transition-all"
+                  className="h-full rounded-full bg-teal-500/75 transition-all duration-300"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -213,10 +217,10 @@ export default function WatchEpisodeBar({
               <button
                 type="button"
                 onClick={onNext}
-                className="mt-1.5 hidden sm:flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/50 transition-colors truncate max-w-full"
+                className="mt-1.5 hidden sm:flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/30 hover:text-foreground dark:hover:text-white/60 transition-colors truncate max-w-full"
               >
                 <span className="shrink-0">{t("watch.nextEpisode")}:</span>
-                <span className="truncate text-muted-foreground dark:text-white/40">
+                <span className="truncate text-muted-foreground dark:text-white/45">
                   {episodeTitle(nextEpisode, animeName, t)}
                 </span>
                 <ChevronRight className="w-3 h-3 shrink-0 opacity-60" />
@@ -229,13 +233,13 @@ export default function WatchEpisodeBar({
           <button
             type="button"
             onClick={onTogglePlaylist}
-            className="lg:hidden site-focus flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border dark:border-white/8 text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-colors shrink-0"
+            className="lg:hidden site-focus flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border/80 dark:border-white/[0.07] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-colors shrink-0"
           >
             <span className="text-[9px] font-mono uppercase tracking-wide leading-none">
               {t("anime.episodes.title")}
             </span>
             <ChevronDown
-              className={cn("w-4 h-4 transition-transform", playlistOpen && "rotate-180")}
+              className={cn("w-4 h-4 transition-transform duration-200", playlistOpen && "rotate-180")}
             />
           </button>
         )}
@@ -245,14 +249,18 @@ export default function WatchEpisodeBar({
           onClick={onNext}
           disabled={!nextEpisode}
           title={nextEpisode ? t("watch.episodeShort", { n: nextEpisode.number }) : undefined}
+          aria-label={t("watch.nextEpisode")}
           className={cn(
-            "site-focus flex items-center justify-center w-10 sm:w-11 shrink-0 border-l border-border dark:border-white/8 transition-colors",
+            "site-focus flex flex-col items-center justify-center gap-0.5 w-11 sm:w-14 shrink-0 border-l border-border/80 dark:border-white/[0.07] transition-colors",
             nextEpisode
-              ? "text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.04]"
+              ? "text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.04]"
               : "text-muted-foreground/30 dark:text-white/12 cursor-not-allowed",
           )}
         >
           <ChevronRight className="w-5 h-5" />
+          <span className="hidden sm:block text-[9px] font-mono uppercase tracking-wider leading-none opacity-70">
+            {t("watch.nextEpisode")}
+          </span>
         </button>
       </div>
     </div>

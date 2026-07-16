@@ -424,11 +424,11 @@ const Layout = (props: Props) => {
       </div>
     )}
     <Container className={cn(
-      "pb-16 pb-safe mt-[calc(var(--nav-total-height)+0.75rem)] sm:mt-[calc(var(--nav-total-height)+1.25rem)]",
+      "pb-16 pb-safe mt-[calc(var(--nav-total-height)+0.5rem)] sm:mt-[calc(var(--nav-total-height)+0.85rem)]",
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[calc(var(--nav-total-height)+var(--theatre-exit-bar-h)+0.5rem)]",
     )}>
       {!theatreMode && (
-        <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
+        <div className="flex items-end justify-between gap-3 mb-2.5 sm:mb-3 min-w-0">
           <AnimeClearLogo
             name={info.name}
             logoUrl={pickAnimeClearLogo(mappingData?.images)}
@@ -443,12 +443,12 @@ const Layout = (props: Props) => {
       {/* Main grid: player + sidebar */}
       <div
         className={cn(
-          "grid grid-cols-1 gap-4",
-          !theatreMode && "lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_340px]",
+          "grid grid-cols-1 gap-3 sm:gap-4",
+          !theatreMode && "lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px] lg:gap-5",
         )}
       >
         {/* Left: player + episode info + tabs */}
-        <div className="flex flex-col gap-3 min-w-0">
+        <div className="flex flex-col gap-2.5 sm:gap-3 min-w-0">
           <div
             id="watch-player-root"
             className={cn(
@@ -459,19 +459,19 @@ const Layout = (props: Props) => {
             {props.children}
           </div>
 
-          {!theatreMode ? <SiteBannerAd className="py-1" /> : null}
+          {!theatreMode ? <SiteBannerAd className="py-0.5" /> : null}
 
           {!theatreMode && (
             <div
               id="watch-quick-nav"
-              className="sticky top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/95 dark:bg-[#050505]/95 backdrop-blur-md border-y border-border/60 dark:border-white/[0.06] py-1"
+              className="sticky top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/95 dark:bg-[#050505]/95 backdrop-blur-md border-y border-border/50 dark:border-white/[0.05] py-1.5"
             >
               <WatchQuickNav
                 activeTab={watchTab}
                 onTabChange={handleWatchTabChangeWithMobile}
                 animeId={info.id}
                 hasRelated={hasRelated}
-                className="mb-0 pb-1"
+                className="mb-0 pb-0.5"
               />
             </div>
           )}
@@ -665,11 +665,11 @@ const Layout = (props: Props) => {
 
         </div>
 
-        {/* Right sidebar: now-watching card + episodes list (desktop) */}
+        {/* Right sidebar: now-watching + episodes (desktop) */}
         {!theatreMode && (
-          <div className="hidden lg:flex flex-col gap-4 lg:sticky lg:top-[calc(var(--nav-total-height)+0.75rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1.5rem)] lg:overflow-y-auto scrollbar-hide">
+          <div className="hidden lg:flex flex-col gap-3 lg:sticky lg:top-[calc(var(--nav-total-height)+0.5rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1.25rem)] lg:overflow-y-auto scrollbar-hide">
             {currentEpisode && (
-              <div className="site-panel p-4 space-y-3.5">
+              <div className="rounded-xl border border-border/70 dark:border-white/[0.08] bg-card/60 dark:bg-white/[0.025] p-3.5 space-y-3">
                 {/* Series header */}
                 <div className="flex gap-3">
                   {info.poster && (
@@ -677,18 +677,18 @@ const Layout = (props: Props) => {
                     <img
                       src={info.poster}
                       alt={info.name}
-                      className="w-12 h-16 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
+                      className="w-11 h-[3.75rem] shrink-0 rounded-md object-cover ring-1 ring-border dark:ring-white/10"
                     />
                   )}
                   <div className="min-w-0">
-                    <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/25">
+                    <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 dark:text-white/30">
                       {t("watch.nowWatching")}
                     </p>
                     <p className="mt-0.5 text-sm font-bold leading-tight text-foreground/90 dark:text-white/90 line-clamp-2">
                       {info.name}
                     </p>
                     <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-violet-500/15 border border-violet-500/25 text-violet-300">
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-teal-500/12 border border-teal-500/25 text-teal-200/90">
                         EP {currentEpisode.number}
                       </span>
                       <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-foreground/[0.06] border border-border dark:bg-white/[0.06] dark:border-white/10 text-muted-foreground dark:text-white/60">
@@ -700,13 +700,13 @@ const Layout = (props: Props) => {
 
                 {/* Series progress */}
                 <div>
-                  <div className="mb-1.5 flex items-center justify-between text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/25">
+                  <div className="mb-1.5 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70 dark:text-white/30">
                     <span>{t("watch.seriesProgress")}</span>
                     <span className="tabular-nums">{currentEpisode.number}/{totalEps}</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-accent dark:bg-white/10">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-accent dark:bg-white/10">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                      className="h-full rounded-full bg-gradient-to-r from-teal-500/80 to-amber-400/70 transition-[width] duration-500 ease-out"
                       style={{ width: `${Math.min(100, (currentEpisode.number / Math.max(totalEps, 1)) * 100)}%` }}
                     />
                   </div>
@@ -714,7 +714,7 @@ const Layout = (props: Props) => {
 
                 {/* Current episode title */}
                 {currentEpisode.title && (
-                  <p className="text-[13px] leading-snug text-foreground/80 dark:text-white/65">
+                  <p className="text-[12px] leading-snug text-foreground/75 dark:text-white/60">
                     <span className="mr-1 font-mono text-muted-foreground/60 dark:text-white/30">{currentEpisode.number}.</span>
                     {currentEpisode.title}
                   </p>
@@ -744,7 +744,7 @@ const Layout = (props: Props) => {
 
       {/* ── Full-width sections below the player ── */}
       {!theatreMode && (
-      <div className="mt-8 space-y-10">
+      <div className="mt-7 sm:mt-9 space-y-10">
         {hasRelated && (
           <section id="watch-tab-related" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-8">
             <AnimeCarousel title={t("common.alsoWatch")} anime={(anime?.relatedAnimes ?? []) as IAnime[]} />
@@ -787,7 +787,7 @@ function EpisodeNavThumb({
   const t = useT();
   const img = ep?.image || fallbackPoster || undefined;
   const content = (
-    <div className="relative h-16 w-full overflow-hidden rounded-lg ring-1 ring-white/10">
+    <div className="relative h-14 w-full overflow-hidden rounded-md ring-1 ring-border dark:ring-white/10">
       {img && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -823,13 +823,14 @@ function EpisodeNavThumb({
 function WatchLayoutSkeleton() {
   return (
     <Container className="mt-16 sm:mt-20 pb-16 pb-safe animate-pulse">
-      <div className="flex items-end justify-between gap-3 mb-3">
+      <div className="flex items-end justify-between gap-3 mb-2.5">
         <div className="h-8 w-48 max-w-[60%] rounded-lg bg-muted/50 dark:bg-white/[0.05]" />
         <div className="h-9 w-28 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
-        <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-4 lg:gap-5">
+        <div className="flex flex-col gap-2.5">
           <div className="aspect-video rounded-xl bg-muted/50 dark:bg-white/[0.05]" />
+          <div className="h-16 rounded-xl bg-muted/40 dark:bg-white/[0.04]" />
           <div className="flex gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-8 w-20 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />

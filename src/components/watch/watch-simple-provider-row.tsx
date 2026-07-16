@@ -84,8 +84,8 @@ export default function WatchSimpleProviderRow({
     <div
       className={cn(
         "relative overflow-hidden rounded-xl border border-border dark:border-white/[0.08]",
-        "bg-gradient-to-b from-muted/40 to-muted/20 dark:from-white/[0.04] dark:to-white/[0.015]",
-        "p-2.5 sm:p-3 shadow-sm",
+        "bg-muted/30 dark:bg-white/[0.03]",
+        "p-2.5 sm:p-3",
         className,
       )}
     >

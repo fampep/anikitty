@@ -42,7 +42,7 @@ function ToolbarToggle({
       className={cn(
         "site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-150 shrink-0",
         active
-          ? "border-violet-400/35 bg-violet-500/15 text-violet-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+          ? "border-teal-400/30 bg-teal-500/12 text-teal-50/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
           : "border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-border dark:hover:border-white/18",
         className,
       )}
@@ -156,7 +156,7 @@ export default function WatchPlayerToolbar({
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
 
   return (
-    <div className="watch-chrome flex items-center gap-2 px-3 py-2 sm:px-3 border-b overflow-x-auto scrollbar-hide">
+    <div className="watch-chrome flex items-center gap-2 px-2.5 py-2 sm:px-3 border-b overflow-x-auto scrollbar-hide">
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <ToolbarToggle
           active={autoPlay}
@@ -201,7 +201,7 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onSubmitSkipTimes}
-            className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-violet-400/25 transition-colors shrink-0"
+            className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-teal-400/25 transition-colors shrink-0"
           >
             <SkipForward className="w-3 h-3 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.submitSkip")}</span>
@@ -211,7 +211,7 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onOpenComments}
-            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-400/25 bg-violet-500/10 text-violet-200/90 hover:bg-violet-500/18 transition-colors shrink-0"
+            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.05] text-muted-foreground dark:text-white/70 hover:text-foreground dark:hover:text-white hover:bg-muted/60 dark:hover:bg-white/[0.08] transition-colors shrink-0"
           >
             <MessageSquare className="w-3 h-3 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.comments")}</span>
@@ -250,7 +250,7 @@ export default function WatchPlayerToolbar({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+      <div className="flex items-center gap-1 shrink-0 ml-auto pl-1 border-l border-border/60 dark:border-white/[0.06]">
         {streamAudio && onAudioChange && (
           <ToolbarAudioToggle
             value={streamAudio}
@@ -260,48 +260,50 @@ export default function WatchPlayerToolbar({
             dubLabel={t("card.dub")}
           />
         )}
-        <button
-          type="button"
-          onClick={onPrev}
-          disabled={!hasPrev}
-          aria-label={
-            prevEpisodeNumber != null
-              ? t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })
-              : t("watch.prevEpisode")
-          }
-          className={cn(
-            "site-focus inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
-            hasPrev
-              ? "border-border dark:border-white/12 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-muted/40 dark:hover:bg-white/[0.04]"
-              : "border-transparent text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",
-          )}
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-          {prevEpisodeNumber != null && (
-            <span>{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!hasNext}
-          aria-label={
-            nextEpisodeNumber != null
-              ? t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })
-              : t("watch.nextEpisode")
-          }
-          className={cn(
-            "site-focus inline-flex items-center gap-1 h-8 px-2 rounded-lg text-[11px] font-semibold border transition-colors touch-manipulation",
-            hasNext
-              ? "border-border dark:border-white/12 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white hover:bg-muted/40 dark:hover:bg-white/[0.04]"
-              : "border-transparent text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",
-          )}
-        >
-          {nextEpisodeNumber != null && (
-            <span>{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
-          )}
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center rounded-lg border border-border dark:border-white/12 overflow-hidden bg-muted/25 dark:bg-white/[0.03]">
+          <button
+            type="button"
+            onClick={onPrev}
+            disabled={!hasPrev}
+            aria-label={
+              prevEpisodeNumber != null
+                ? t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })
+                : t("watch.prevEpisode")
+            }
+            className={cn(
+              "site-focus inline-flex items-center gap-1 h-8 px-2 sm:px-2.5 text-[11px] font-semibold transition-colors touch-manipulation border-r border-border/70 dark:border-white/[0.08]",
+              hasPrev
+                ? "text-muted-foreground dark:text-white/60 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.05]"
+                : "text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",
+            )}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            {prevEpisodeNumber != null && (
+              <span className="hidden xs:inline sm:inline">{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!hasNext}
+            aria-label={
+              nextEpisodeNumber != null
+                ? t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })
+                : t("watch.nextEpisode")
+            }
+            className={cn(
+              "site-focus inline-flex items-center gap-1 h-8 px-2 sm:px-2.5 text-[11px] font-semibold transition-colors touch-manipulation",
+              hasNext
+                ? "text-muted-foreground dark:text-white/60 hover:text-foreground dark:hover:text-white hover:bg-muted/50 dark:hover:bg-white/[0.05]"
+                : "text-muted-foreground/30 dark:text-white/15 cursor-not-allowed",
+            )}
+          >
+            {nextEpisodeNumber != null && (
+              <span className="hidden xs:inline sm:inline">{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
+            )}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );
