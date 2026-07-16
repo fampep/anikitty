@@ -100,8 +100,10 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 1. Set **Build Pack** to **Dockerfile**
 2. Expose port **3000**
 3. Add production env vars (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.) as **runtime** variables
-4. Only these need to be available at **build** time: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PROXY_URL`, `NEXT_PUBLIC_DONATION_RAISED_EUR`, `DISCORD_CLIENT_ID`
+4. Only these need to be available at **build** time: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PROXY_URL`, `NEXT_PUBLIC_DONATION_RAISED_EUR`, `DISCORD_CLIENT_ID`, and (for Adcash banners) `NEXT_PUBLIC_ADCASH_BANNER_ZONE`
 5. Do **not** pass `ADMIN_PASSWORD`, `DATABASE_URL`, or JWT secrets as build arguments — Coolify injects them into the Dockerfile and values with `#` break parsing
+
+**Adcash banners:** set `NEXT_PUBLIC_ADCASH_BANNER_ZONE` to your Adcash display/banner zone ID (from the publisher dashboard `aclib.runBanner({ zoneId: '…' })` snippet). Without it, banner slots stay empty and no Adcash ads render. Prefer build-time so the value is inlined; runtime via `PublicEnvScript` also works.
 
 **Railpack** (faster builds when the host is configured):
 1. Set **Build Pack** to **Railpack**

@@ -143,7 +143,7 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** User preference for site click ads (signed-in users can disable). */
+  /** User preference for site banner ads (signed-in users can disable). */
   showBannerAds: boolean;
   setShowBannerAds: (val: boolean) => void;
 

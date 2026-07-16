@@ -46,6 +46,7 @@ import {
 } from "@/lib/anime/episode-availability";
 import Link from "next/link";
 import { cn } from "@/lib/core/utils";
+import SiteBannerAd from "@/components/ads/site-banner-ad";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
@@ -458,6 +459,8 @@ const Layout = (props: Props) => {
           >
             {props.children}
           </div>
+
+          {!theatreMode ? <SiteBannerAd className="py-1" /> : null}
 
           {!theatreMode && (
             <div

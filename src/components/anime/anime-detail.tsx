@@ -50,6 +50,7 @@ import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { capEpisodeCount } from "@/lib/anime/episode-availability";
+import SiteBannerAd from "@/components/ads/site-banner-ad";
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
 });
@@ -551,6 +552,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             </div>
           </div>
         </div>
+
+        <SiteBannerAd className="py-3 sm:py-4" />
 
         {/* ── Tabs ── */}
         <div id="anime-tabs-panel" className="scroll-mt-24 mt-6 sm:mt-10">

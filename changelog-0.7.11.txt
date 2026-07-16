@@ -23,7 +23,7 @@ IMPROVED
 - Theatre: mobile episode jump, clearer exit-bar offset, toolbar labels on mobile
 - Reply spoilers + hide-spoilers filters replies; spoiler toggle a11y
 - Comments preview fetches countOnly (no full list load)
-- Ads settings/FAQ clarify click ads and that guests always see them
+- Replaced HilltopAds click ads with Adcash banner/display slots (env zone ID)
 - HLS rate limit raised for heavy seeking; kill-switch cache faster when ads off
 - Fullscreen / rotation-lock player controls pad notch safe-areas
 - Resume prompt Escape resumes (primary CTA)
@@ -37,3 +37,4 @@ REMOVED
 NOTES
 - Theatre mode remains local-only
 - Legacy MegaPlay / subtitle provider ID mappings kept for old prefs and cache rows
+- Coolify: set NEXT_PUBLIC_ADCASH_BANNER_ZONE to the Adcash runBanner zone ID or banners stay empty

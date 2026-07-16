@@ -8,6 +8,7 @@ import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
 import { IAnime, LatestCompletedAnime } from "@/types/anime";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
+import SiteBannerAd from "@/components/ads/site-banner-ad";
 const LatestEpisodesAnime = dynamic(() => import("@/components/home/latest-episodes-section"));
 const AnimeSections = dynamic(() => import("@/components/home/anime-sections"), { ssr: false });
 
@@ -29,6 +30,8 @@ export default function NewReleasesPage() {
           {t("new.subtitle")}
         </p>
       </Container>
+
+      <SiteBannerAd className="pb-4" />
 
       {isError && !data ? (
         <QueryRetryPanel

@@ -620,9 +620,9 @@
     "playbackDesc": "Default behaviour when watching anime — synced across devices when signed in",
     "ads": {
       "title": "Site ads",
-      "desc": "We're sorry, but click ads outside the player help us afford running AniKitty (~€100/month). The player and profile pages stay ad-free. Signed-in users can turn ads off here.",
+      "desc": "We're sorry, but banner ads outside the player help us afford running AniKitty (~€100/month). The player and profile pages stay ad-free. Signed-in users can turn ads off here.",
       "showAds": "Show site ads",
-      "showAdsDesc": "Click ads around the site (never inside the player). Off syncs to every device while you are signed in.",
+      "showAdsDesc": "Banner ads around the site (never inside the player). Off syncs to every device while you are signed in.",
       "signInHint": "Sign in to disable ads. Guests always see site ads — they help keep AniKitty online. The player and profiles stay ad-free for everyone.",
       "saveFailed": "Could not save your ad preference. Try again.",
       "donatorActive": "You have the donator role on your profile. Thank you for supporting AniKitty!",
@@ -632,7 +632,7 @@
       "disableTitle": "Turn off site ads?",
       "disableIntro": "We're sorry about the ads — they help afford running AniKitty (~€100/month for servers and streaming). The choice is always yours.",
       "disableEmbedTitle": "Why ads exist",
-      "disableEmbedBody": "AniKitty is free for everyone. Site click ads are how we cover hosting, streaming, and the database without charging a subscription. They never run inside the video player or on profile pages. Guests always see them; signed-in users can disable them.",
+      "disableEmbedBody": "AniKitty is free for everyone. Site banner ads are how we cover hosting, streaming, and the database without charging a subscription. They never run inside the video player or on profile pages. Guests always see them; signed-in users can disable them.",
       "disableNote": "You can turn ads off anytime — no donation required. We believe everyone should be able to choose. Optional Ko-fi tips still help if you want to support the site directly.",
       "keepAds": "Keep ads on",
       "disableConfirm": "Turn off anyway"
@@ -1222,11 +1222,11 @@
     },
     "basics": {
       "whatIsQ": "What is AniKitty?",
-      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. Browse the catalog, watch episodes in sub or dub where available, rate and review titles, and join community features when signed in. We're sorry, but site click ads help afford running costs (~€100/month for servers and streaming). They never run inside the video player or on profile pages. Guests always see them; signed-in users can turn them off in Settings → General. AniKitty does not host video files — streams are resolved through third-party sources via KittyAPI.",
+      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. Browse the catalog, watch episodes in sub or dub where available, rate and review titles, and join community features when signed in. We're sorry, but site banner ads help afford running costs (~€100/month for servers and streaming). They never run inside the video player or on profile pages. Guests always see them; signed-in users can turn them off in Settings → General. AniKitty does not host video files — streams are resolved through third-party sources via KittyAPI.",
       "accountQ": "Do I need an account?",
       "accountA": "No — you can browse and watch without signing in. An account unlocks your watchlist, synced progress across devices, watch history, episode comments, forum posts, live chat, friends, public profiles, levels and achievements, Kittycoins, optional AniList import, reviews, and security options like 2FA and passkeys. Sign up from the Log in button in the navbar.",
       "freeQ": "Is AniKitty really free?",
-      "freeA": "Yes. There is no paid tier. The video player and profile pages stay ad-free for everyone. Site click ads elsewhere help afford the ~€100/month running cost. Guests always see them; signed-in users can disable them in Settings → General. Optional Ko-fi tips grant the donator role as a thank-you."
+      "freeA": "Yes. There is no paid tier. The video player and profile pages stay ad-free for everyone. Site banner ads elsewhere help afford the ~€100/month running cost. Guests always see them; signed-in users can disable them in Settings → General. Optional Ko-fi tips grant the donator role as a thank-you."
     },
     "watching": {
       "streamingQ": "How does streaming work?",
@@ -1310,7 +1310,7 @@
       "adsQ": "Why are there ads?",
       "adsA": "We're sorry, but running AniKitty costs about €100 per month — servers, streaming, and the database. Site ads are how we afford to keep everything free. They never run inside the video player or on profile pages.",
       "disableQ": "Can I turn ads off?",
-      "disableA": "Yes. Sign in and go to Settings → General to disable site click ads — synced on every device. Guests cannot disable ads. No donation required.",
+      "disableA": "Yes. Sign in and go to Settings → General to disable site banner ads — synced on every device. Guests cannot disable ads. No donation required.",
       "kofiQ": "Is Ko-fi support required?",
       "kofiA": "No. The site is free for everyone whether you donate or not. Ko-fi tips are optional, grant the donator badge as a thank-you, and help cover costs — but they are not required to use AniKitty or to hide ads."
     },

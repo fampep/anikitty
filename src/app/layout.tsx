@@ -16,7 +16,6 @@ import { PublicEnvScript } from "next-runtime-env";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import SiteDisplaySync from "@/components/layout/site-display-sync";
-import ClickAdsScript from "@/components/ads/click-ads-script";
 import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
 import LiteModeSync from "@/components/layout/lite-mode-sync";
@@ -142,6 +141,8 @@ export default async function RootLayout({
           </>
         )}
         <PublicEnvScript />
+        {/* Adcash lib — high in <head> per publisher install guide; banners call runBanner in-slot. */}
+        <script id="aclib" type="text/javascript" src="https://acscdn.com/script/aclib.js" async />
         <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
         {/* Poster/artwork CDNs — warm the connection so images load a round-trip sooner. */}
@@ -156,7 +157,6 @@ export default async function RootLayout({
       >
         <PwaRegister />
         <DisableDevtoolGuard />
-        <ClickAdsScript />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider
             attribute="class"

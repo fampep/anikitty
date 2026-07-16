@@ -19,7 +19,7 @@ async function fetchGlobalAdsEnabled(): Promise<boolean> {
   }
   try {
     const res = await fetch("/api/ads/enabled", { cache: "no-store" });
-    // Fail closed — match ClickAdsScript kill-switch behavior.
+    // Fail closed — match SiteBannerAd kill-switch behavior.
     if (!res.ok) {
       globalAdsEnabledCache = { at: Date.now(), enabled: false };
       return false;
