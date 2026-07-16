@@ -16,8 +16,8 @@ export default function HomeExploreBar() {
   const catalogLabel = CATALOG_ANIME_COUNT.toLocaleString();
 
   return (
-    <Container className="pb-1 pt-1">
-      <div className="site-panel flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-3.5">
+    <Container className="pb-0.5 pt-0.5">
+      <div className="site-panel flex flex-col sm:flex-row sm:items-center gap-2.5 p-2.5 sm:p-3">
         <Link
           href={ROUTES.SEARCH}
           className="site-input group flex flex-1 items-center gap-3 min-w-0 px-3 py-2.5 rounded-xl transition-all"
