@@ -60,6 +60,7 @@ export const KITTY_PROVIDERS = [
   "MKissa",
   "AniNeko",
   "AniBD",
+  "AniDB",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -109,7 +110,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "AniList ID · anikototv scrape · SUB · DUB · soft subs",
+    hint: "AniList ID · anichi.to scrape · SUB · DUB · soft subs",
   },
   {
     id: "MegaPlay",
@@ -171,6 +172,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB only · AniList ID · stream-direct",
   },
+  {
+    id: "AniDB",
+    label: "India",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "Japanese / English · anidb.app · SUB · DUB",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -183,6 +195,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "MKissa",
   "AniNeko",
   "AniBD",
+  "AniDB",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -209,6 +222,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "MKissa",
   "AniNeko",
   "AniBD",
+  "AniDB",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -224,7 +238,7 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
-  if (value === "AniDB" || value === "AniKuro") {
+  if (value === "AniKuro") {
     return DEFAULT_KITTY_PROVIDER;
   }
   if (value && isActiveKittyProvider(value)) return value;

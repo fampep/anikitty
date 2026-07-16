@@ -1,4 +1,4 @@
-/** KittyAPI providers that resolve catalog via AniList ID + anikototv.to scrape. */
+/** KittyAPI providers that resolve catalog via AniList ID + anichi.to scrape. */
 export const ANILIST_SITE_PROVIDER_IDS = ["MegaPlay", "Anikoto"] as const;
 
 export type AnilistSiteProviderId = (typeof ANILIST_SITE_PROVIDER_IDS)[number];
@@ -26,7 +26,7 @@ export type MegaplayProviderConfig = {
 export const MEGAPLAY_PROVIDER_CONFIG: MegaplayProviderConfig = {
   id: "MegaPlay",
   slug: "megaplay",
-  hint: "AniList ID · anikototv scrape · SUB · DUB · HS: hard-sub",
+  hint: "AniList ID · anichi.to scrape · SUB · DUB · HS: hard-sub",
 };
 
 const LEGACY_MEGAPLAY_SET = new Set<string>(LEGACY_MEGAPLAY_PROVIDER_IDS);
@@ -53,7 +53,7 @@ export function anilistSiteSeriesUrl(anilistId: number): `anilist:${number}` {
   return `anilist:${anilistId}`;
 }
 
-/** Hard-sub server lines from anikototv scrape (`HS: VidPlay-1`, etc.). */
+/** Hard-sub server lines from anichi.to scrape (`HS: VidPlay-1`, etc.). */
 export function isHardSubServerName(name: string): boolean {
   return /^HS:\s*/i.test(name.trim());
 }

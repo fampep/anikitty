@@ -1,11 +1,11 @@
 # MegaPlay & Anikoto (KittyAPI)
 
-Both providers stream through [KittyAPI](https://github.com/fampep/kittyapi) using **AniList IDs** and an [anikototv.to](https://anikototv.to) site scrape. MAL IDs are not used.
+Both providers stream through [KittyAPI](https://github.com/fampep/kittyapi) using **AniList IDs** and an [anichi.to](https://anichi.to) site scrape. MAL IDs are not used.
 
 | Provider | AniKitty label | Input | Backend |
 |----------|----------------|-------|---------|
 | **MegaPlay** | Alpha | AniList ID only | Delegates to Anikoto scrape |
-| **Anikoto** | Kilo | AniList ID, slug, or watch URL | Direct anikototv scrape |
+| **Anikoto** | Kilo | AniList ID, slug, or watch URL | Direct anichi.to scrape |
 
 Functionally the same streams when both are called with `anilist:{id}`.
 
@@ -58,11 +58,11 @@ Legacy saved provider names (`AnimeSogo`, `Anix`, `HiAnime`, `Animepahe`) map to
 
 1. **Search** — AniList title search; results return `anilist:{id}` URLs.
 2. **Episodes** — episode list from AniList (`number`, `title`, `hasSub`, `hasDub`).
-3. **Site match** — provider searches anikototv.to and picks the catalog entry matching AniList title and **episode count** (e.g. Hunter × Hunter 2011 → AniList `11061`, 148 eps).
+3. **Site match** — provider searches anichi.to and picks the catalog entry matching AniList title and **episode count** (e.g. Hunter × Hunter 2011 → AniList `11061`, 148 eps).
 4. **Servers** — scraped from site AJAX (`/ajax/episode/list/…`, `/ajax/server/list`).
 5. **Stream** — `/ajax/server?get={linkId}` → m3u8 + optional subtitle tracks.
 
-Anikoto mirrors (in order): `anikototv.to`, `anikoto.cz`, `anikoto.me`, `anikoto.net`, `anikototv.se`.
+Anikoto mirrors (in order): `anichi.to`, `anikototv.to`, `anikoto.cz`, `anikoto.me`, `anikoto.net`, `anikototv.se`.
 
 ### Servers (typical)
 
@@ -100,7 +100,7 @@ Pass `dataIds` and `linkId` unchanged — URL-encoded JSON from the previous ste
 
 - Don't use MAL IDs for MegaPlay or Anikoto — **AniList only** for MegaPlay.
 - Don't parse or rewrite `dataIds` / `linkId` JSON.
-- Don't build anikototv URLs yourself — KittyAPI handles site scrape and mirrors.
+- Don't build anichi.to URLs yourself — KittyAPI handles site scrape and mirrors.
 - Don't map **Anikoto** to MegaPlay — they are separate providers in AniKitty.
 
 ---
