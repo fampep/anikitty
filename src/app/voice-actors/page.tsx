@@ -7,6 +7,7 @@ import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import useDebounce from "@/hooks/use-debounce";
 import { Mic, Search, Loader2 } from "lucide-react";
+import { useT } from "@/providers/i18n-provider";
 
 type VaResult = {
   id: number;
@@ -16,9 +17,19 @@ type VaResult = {
   language: string | null;
 };
 
-const LANGUAGES = ["", "Japanese", "English", "Korean", "Chinese", "Spanish", "French", "German"];
+const LANGUAGE_KEYS = [
+  { value: "", labelKey: "voiceActorsPage.allLanguages" },
+  { value: "Japanese", labelKey: "voiceActorsPage.langJapanese" },
+  { value: "English", labelKey: "voiceActorsPage.langEnglish" },
+  { value: "Korean", labelKey: "voiceActorsPage.langKorean" },
+  { value: "Chinese", labelKey: "voiceActorsPage.langChinese" },
+  { value: "Spanish", labelKey: "voiceActorsPage.langSpanish" },
+  { value: "French", labelKey: "voiceActorsPage.langFrench" },
+  { value: "German", labelKey: "voiceActorsPage.langGerman" },
+] as const;
 
 export default function VoiceActorsPage() {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [language, setLanguage] = useState("");
   const [results, setResults] = useState<VaResult[]>([]);
@@ -60,13 +71,14 @@ export default function VoiceActorsPage() {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
           <Mic className="w-5 h-5" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground dark:text-white tracking-tight">Voice Actors</h1>
+        <h1 className="text-2xl font-bold text-foreground dark:text-white tracking-tight">
+          {t("voiceActorsPage.title")}
+        </h1>
       </div>
       <p className="text-sm text-muted-foreground dark:text-white/45 mb-6">
-        Search voice actors and explore every anime they&apos;ve appeared in.
+        {t("voiceActorsPage.subtitle")}
       </p>
 
-      {/* Search + filter */}
       <div className="flex flex-col sm:flex-row gap-2 mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white/35 pointer-events-none" />
@@ -75,18 +87,19 @@ export default function VoiceActorsPage() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name…"
+            placeholder={t("voiceActorsPage.searchPlaceholder")}
             className="w-full rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] pl-10 pr-3 py-2.5 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/25 focus:outline-none focus:border-violet-500/40"
           />
         </div>
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
+          aria-label={t("voiceActorsPage.languageFilter")}
           className="rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] px-3 py-2.5 text-sm text-foreground dark:text-white/85 focus:outline-none focus:border-violet-500/40"
         >
-          {LANGUAGES.map((l) => (
-            <option key={l} value={l}>
-              {l || "All languages"}
+          {LANGUAGE_KEYS.map((l) => (
+            <option key={l.value || "all"} value={l.value}>
+              {t(l.labelKey)}
             </option>
           ))}
         </select>
@@ -100,19 +113,19 @@ export default function VoiceActorsPage() {
 
       {error && !loading && (
         <p className="py-10 text-center text-sm text-muted-foreground dark:text-white/40 font-mono">
-          Search is unavailable right now. Please try again later.
+          {t("voiceActorsPage.searchUnavailable")}
         </p>
       )}
 
       {showEmpty && !error && (
         <p className="py-10 text-center text-sm text-muted-foreground dark:text-white/35 font-mono">
-          No voice actors found for “{debounced}”.
+          {t("voiceActorsPage.noResults", { query: debounced })}
         </p>
       )}
 
       {!loading && debounced.trim().length < 2 && (
         <p className="py-10 text-center text-sm text-muted-foreground/70 dark:text-white/25 font-mono">
-          Type at least 2 characters to search.
+          {t("voiceActorsPage.minChars")}
         </p>
       )}
 

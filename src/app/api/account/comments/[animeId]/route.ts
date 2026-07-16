@@ -103,6 +103,10 @@ export async function GET(
     .where(topLevelWhere);
   const total = countRow?.count ?? 0;
 
+  if (url.searchParams.get("countOnly") === "1") {
+    return Response.json({ total });
+  }
+
   // Pinned comments always sort above the rest.
   const pinnedFirst = desc(sql<boolean>`(${comments.pinnedAt} is not null)`);
 

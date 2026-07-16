@@ -319,6 +319,7 @@ const VideoPlayerSection = () => {
   const [skipSubmitOpen, setSkipSubmitOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const fallbackBusyRef = useRef(false);
+  const remintAttemptedRef = useRef(false);
   const [playbackToken, setPlaybackToken] = useState(0);
   const [streamLinkId, setStreamLinkId] = useState<string | null>(null);
   const [manualStreamFile, setManualStreamFile] = useState<string | null>(null);
@@ -518,6 +519,7 @@ const VideoPlayerSection = () => {
         getLivePreview={getLivePreview}
         animeId={animeSlug ?? undefined}
         episodeDuration={liveDurationRef.current || undefined}
+        theatreMode={theatreMode}
       />
     ) : null;
 
@@ -535,6 +537,7 @@ const VideoPlayerSection = () => {
     playerRef.current?.pause?.();
     triedProvidersRef.current.clear();
     fallbackBusyRef.current = false;
+    remintAttemptedRef.current = false;
     setMobilePlaylistOpen(false);
     setHeldStreamSnapshot(null);
     setManualStreamFile(null);
@@ -645,6 +648,7 @@ const VideoPlayerSection = () => {
           : savedResumeTime;
 
   const handleStart = useCallback(async () => {
+    remintAttemptedRef.current = false;
     if (!auth || !anime?.anime?.info) return;
     const { id: slug, name, poster } = anime.anime.info;
     // Add to watchlist silently — doesn't gate progress saving
@@ -998,8 +1002,11 @@ const VideoPlayerSection = () => {
     }
   }, [streamFailed, provider, providerAutoFallback]);
 
+  const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
+
   useWatchSwipeNav({
-    enabled: streamReady && !needsResumePrompt,
+    enabled: streamReady && !needsResumePrompt && !playerTouchSeekEnabled,
+    targetRef: playerWrapperRef,
     onPrev: prevEpisode ? handlePrevEpisode : undefined,
     onNext: nextEpisode ? handleNextEpisode : undefined,
   });
@@ -1122,33 +1129,35 @@ const VideoPlayerSection = () => {
   const displaySkipTimes = useLiveStream ? skipTimes : heldStreamSnapshot?.skipTimes;
 
   // Change provider but resume from current position, not original start
-  const handleProviderGridSelect = (
-    p: KittyProvider,
-    mode: ProviderAudioMode,
-    fromFallback = false,
-  ) => {
-    preservePlaybackPosition();
-    if (!fromFallback) {
-      triedProvidersRef.current.clear();
-      fallbackBusyRef.current = false;
-    }
-    setProvider(p);
-    const resolvedMode = resolveProviderAudioMode(p, mode);
-    setAudioMode(resolvedMode);
-    localStorage.setItem("kittyProvider", p);
-    localStorage.setItem("kittyAudioMode", resolvedMode);
-    if (anilistId) saveAnimeProviderPreference(anilistId, p);
-    if (mode === "dub") {
-      applyStreamAudio("dub");
-    } else {
-      applyStreamAudio("sub");
-    }
-  };
+  const handleProviderGridSelect = useCallback(
+    (p: KittyProvider, mode: ProviderAudioMode, fromFallback = false) => {
+      preservePlaybackPosition();
+      if (!fromFallback) {
+        triedProvidersRef.current.clear();
+        fallbackBusyRef.current = false;
+      }
+      setProvider(p);
+      const resolvedMode = resolveProviderAudioMode(p, mode);
+      setAudioMode(resolvedMode);
+      localStorage.setItem("kittyProvider", p);
+      localStorage.setItem("kittyAudioMode", resolvedMode);
+      if (anilistId) saveAnimeProviderPreference(anilistId, p);
+      if (mode === "dub") {
+        applyStreamAudio("dub");
+      } else {
+        applyStreamAudio("sub");
+      }
+    },
+    [preservePlaybackPosition, anilistId, applyStreamAudio],
+  );
 
-  const handleSimpleProviderChange = (p: KittyProvider) => {
-    const mode = normalizeProviderAudioMode(audioMode, streamAudio);
-    handleProviderGridSelect(p, mode);
-  };
+  const handleSimpleProviderChange = useCallback(
+    (p: KittyProvider) => {
+      const mode = normalizeProviderAudioMode(audioMode, streamAudio);
+      handleProviderGridSelect(p, mode);
+    },
+    [audioMode, streamAudio, handleProviderGridSelect],
+  );
 
   const copyShareLink = useCallback(() => {
     const params = new URLSearchParams(searchParamsKey);
@@ -1199,8 +1208,7 @@ const VideoPlayerSection = () => {
       fallbackBusyRef.current = false;
     }, 1200);
     return true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleProviderGridSelect is stable enough for fallback
-  }, [providerAutoFallback, provider, audioMode, t]);
+  }, [providerAutoFallback, provider, audioMode, t, handleProviderGridSelect]);
 
   const handleTryAnotherServer = useCallback(() => {
     if (!triedProvidersRef.current.has(provider)) {
@@ -1214,8 +1222,7 @@ const VideoPlayerSection = () => {
     toast.info(t("watch.providerFallback", { from: provider, to: next }));
     const mode = normalizeProviderAudioMode(audioMode, streamAudio);
     handleProviderGridSelect(next, mode, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleProviderGridSelect is stable enough
-  }, [provider, audioMode, streamAudio, t]);
+  }, [provider, audioMode, streamAudio, t, handleProviderGridSelect]);
 
   const revealProviderControls = useCallback(() => {
     setShowPlayerControls(true);
@@ -1252,13 +1259,34 @@ const VideoPlayerSection = () => {
   ]);
 
   // The stream loaded but HLS playback died mid-load (e.g. a 404 manifest).
-  // Fail over to the next provider, resuming from the current position.
-  const handleFatalPlayerError = useCallback(() => {
-    if (!providerAutoFallback) return;
-    // attemptProviderFallback already toasts "Switching from X to Y…".
-    const switched = attemptProviderFallback();
-    if (!switched) toast.error(t("watch.playbackFailed"));
-  }, [providerAutoFallback, attemptProviderFallback, t]);
+  // Prefer soft reminting expired proxy tokens before switching providers.
+  const handleFatalPlayerError = useCallback(
+    (info?: { type?: string; details?: string; status?: number }) => {
+      const isAuth =
+        info?.type === "hls-auth" ||
+        info?.status === 401 ||
+        info?.status === 403;
+
+      if (isAuth && !remintAttemptedRef.current) {
+        remintAttemptedRef.current = true;
+        preservePlaybackPosition();
+        setManualStreamFile(null);
+        setManualStreamHeaders(null);
+        toast.message(t("watch.refreshingPlayback"));
+        void retryStream();
+        return;
+      }
+
+      if (!providerAutoFallback) {
+        toast.error(t("watch.playbackFailed"));
+        return;
+      }
+      // attemptProviderFallback already toasts "Switching from X to Y…".
+      const switched = attemptProviderFallback();
+      if (!switched) toast.error(t("watch.playbackFailed"));
+    },
+    [providerAutoFallback, attemptProviderFallback, preservePlaybackPosition, retryStream, t],
+  );
 
   // Anime just changed in the URL but the loaded anime hasn't caught up yet —
   // show the loading state rather than the previous anime's episode.

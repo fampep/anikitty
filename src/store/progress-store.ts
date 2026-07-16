@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { invalidateUserLevel } from "@/hooks/use-user-level";
 
 const LS_KEY = "kitty:progress";
 const SAVE_DEBOUNCE_MS = 3000;
@@ -85,9 +86,7 @@ export const useProgressStore = create<ProgressStore>((set) => ({
   localVersion: 0,
   notify: () => {
     set({ lastSaved: Date.now() });
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("anikitty:level-invalidate"));
-    }
+    invalidateUserLevel();
   },
 
   setProgress: (animeId, episodeId, current, duration) => {

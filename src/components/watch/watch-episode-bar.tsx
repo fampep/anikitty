@@ -32,6 +32,8 @@ type Props = {
   getLivePreview?: () => string | null;
   animeId?: string;
   episodeDuration?: number;
+  /** Theatre hides the mobile playlist — show jump + hide playlist toggle. */
+  theatreMode?: boolean;
 };
 
 function episodeTitle(ep: Episode, animeName: string | undefined, t: (key: string, vars?: Record<string, string | number>) => string) {
@@ -58,6 +60,7 @@ export default function WatchEpisodeBar({
   getLivePreview,
   animeId,
   episodeDuration,
+  theatreMode = false,
 }: Props) {
   const t = useT();
   const [jumpValue, setJumpValue] = useState("");
@@ -157,7 +160,10 @@ export default function WatchEpisodeBar({
 
             {onJumpToEpisode && total > 1 && (
               <form
-                className="mt-2 hidden sm:flex items-center gap-1.5 max-w-[11rem]"
+                className={cn(
+                  "mt-2 items-center gap-1.5 max-w-[11rem]",
+                  theatreMode ? "flex" : "hidden sm:flex",
+                )}
                 onSubmit={(e) => {
                   e.preventDefault();
                   const n = parseInt(jumpValue, 10);
@@ -219,18 +225,20 @@ export default function WatchEpisodeBar({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onTogglePlaylist}
-          className="lg:hidden flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border dark:border-white/8 text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/40 dark:bg-white/[0.03] transition-colors shrink-0"
-        >
-          <span className="text-[9px] font-mono uppercase tracking-wide leading-none">
-            {t("anime.episodes.title")}
-          </span>
-          <ChevronDown
-            className={cn("w-4 h-4 transition-transform", playlistOpen && "rotate-180")}
-          />
-        </button>
+        {!theatreMode && (
+          <button
+            type="button"
+            onClick={onTogglePlaylist}
+            className="lg:hidden flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border dark:border-white/8 text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/40 dark:bg-white/[0.03] transition-colors shrink-0"
+          >
+            <span className="text-[9px] font-mono uppercase tracking-wide leading-none">
+              {t("anime.episodes.title")}
+            </span>
+            <ChevronDown
+              className={cn("w-4 h-4 transition-transform", playlistOpen && "rotate-180")}
+            />
+          </button>
+        )}
 
         <button
           type="button"

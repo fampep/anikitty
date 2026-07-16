@@ -46,6 +46,27 @@
   }
 }
 
+/* Fullscreen / rotation-lock: keep controls clear of notches / home indicators */
+.kitty-vidstack-player media-player[data-fullscreen],
+.kitty-vidstack-player.kitty-orient-landscape media-player,
+.kitty-vidstack-player.kitty-orient-landscape-reverse media-player {
+  --media-controls-padding:
+    max(10px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
+}
+
+.kitty-vidstack-player media-player[data-fullscreen] .kitty-player-overlays,
+.kitty-vidstack-player.kitty-orient-landscape .kitty-player-overlays,
+.kitty-vidstack-player.kitty-orient-landscape-reverse .kitty-player-overlays {
+  padding:
+    max(0px, env(safe-area-inset-top, 0px))
+    max(0px, env(safe-area-inset-right, 0px))
+    max(0px, env(safe-area-inset-bottom, 0px))
+    max(0px, env(safe-area-inset-left, 0px));
+}
+
 .kitty-vidstack-player media-player[data-view-type="video"] {
   border-radius: inherit;
   overflow: hidden;

@@ -29,6 +29,17 @@ export function playerSrcUsesHls(src: PlayerSrc): boolean {
   return false;
 }
 
+function hlsResponseStatus(data: ErrorData): number | undefined {
+  return (data.response as { code?: number } | undefined)?.code;
+}
+
+/** 401/403 from our opaque HLS proxy — usually an expired playback token. */
+export function isHlsPlaybackAuthError(data: ErrorData): boolean {
+  if (!data.fatal || data.type !== ErrorTypes.NETWORK_ERROR) return false;
+  const status = hlsResponseStatus(data);
+  return status === 401 || status === 403;
+}
+
 /** Mirror legacy Artplayer HLS fatal detection — ignore recoverable media errors. */
 export function isFatalHlsError(data: ErrorData, networkRecoveries: number): boolean {
   if (!data.fatal) return false;
@@ -38,7 +49,8 @@ export function isFatalHlsError(data: ErrorData, networkRecoveries: number): boo
   }
 
   if (data.type === ErrorTypes.NETWORK_ERROR) {
-    const status = (data.response as { code?: number } | undefined)?.code;
+    if (isHlsPlaybackAuthError(data)) return true;
+    const status = hlsResponseStatus(data);
     const isManifestOr404 =
       status === 404 ||
       data.details === ErrorDetails.MANIFEST_LOAD_ERROR ||

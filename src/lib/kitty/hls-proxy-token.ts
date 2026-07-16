@@ -21,14 +21,23 @@ type HlsProxyPayload = {
   e: number;
 };
 
+function requireJwtSecret(): string {
+  const secret = process.env.JWT_SECRET?.trim();
+  if (!secret || secret.length < 32) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET must be set (32+ chars) for HLS playback tokens");
+    }
+    return "dev-secret-change-in-production-please";
+  }
+  return secret;
+}
+
 function proxyKey(): Buffer {
-  const secret = process.env.JWT_SECRET ?? "dev-secret-change-in-production-please";
-  return createHash("sha256").update(`anikitty-hls-proxy:v2:${secret}`).digest();
+  return createHash("sha256").update(`anikitty-hls-proxy:v2:${requireJwtSecret()}`).digest();
 }
 
 function sessionHmacKey(): Buffer {
-  const secret = process.env.JWT_SECRET ?? "dev-secret-change-in-production-please";
-  return createHash("sha256").update(`anikitty-hls-session:v1:${secret}`).digest();
+  return createHash("sha256").update(`anikitty-hls-session:v1:${requireJwtSecret()}`).digest();
 }
 
 function encryptPayload(payload: HlsProxyPayload): string {
@@ -172,6 +181,21 @@ function hostFromUrl(value: string): string | null {
 
 const SITE_HOST = hostFromUrl(APP_URL) ?? "anikitty.moe";
 
+function allowedSiteHosts(): Set<string> {
+  const hosts = new Set<string>([SITE_HOST, `www.${SITE_HOST.replace(/^www\./, "")}`]);
+  const extra = process.env.HLS_ALLOWED_HOSTS?.split(",") ?? [];
+  for (const raw of extra) {
+    const h = raw.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/:\d+$/, "");
+    if (h) hosts.add(h);
+  }
+  return hosts;
+}
+
+function isSiteHost(hostname: string | null): boolean {
+  if (!hostname) return false;
+  return allowedSiteHosts().has(hostname.toLowerCase());
+}
+
 /**
  * Reject cross-site hotlinking / curl scrapers that omit browser fetch metadata.
  * Allows same-origin Referer or Sec-Fetch-Site: same-origin|none (direct nav).
@@ -189,7 +213,7 @@ export function isAllowedHlsClientRequest(req: Request): boolean {
   const refererHost = hostFromUrl(referer);
   const originHost = hostFromUrl(origin);
 
-  if (refererHost === SITE_HOST || originHost === SITE_HOST) return true;
+  if (isSiteHost(refererHost) || isSiteHost(originHost)) return true;
 
   // Some browsers omit Sec-Fetch-* on media; accept if Host matches site and no foreign Origin.
   const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
@@ -197,7 +221,7 @@ export function isAllowedHlsClientRequest(req: Request): boolean {
     .trim()
     .toLowerCase()
     .replace(/:\d+$/, "");
-  if (host === SITE_HOST && !originHost) return true;
+  if (isSiteHost(host) && !originHost) return true;
 
   return false;
 }

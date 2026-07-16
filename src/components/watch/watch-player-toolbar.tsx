@@ -38,6 +38,7 @@ function ToolbarToggle({
       type="button"
       onClick={onClick}
       aria-pressed={active}
+      aria-label={label}
       className={cn(
         "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-150 shrink-0",
         active
@@ -47,7 +48,7 @@ function ToolbarToggle({
       )}
     >
       {active ? <Check className="w-3 h-3 shrink-0" /> : icon}
-      <span className="hidden sm:inline">{label}</span>
+      <span className="inline max-w-[4.75rem] truncate sm:max-w-none">{label}</span>
     </button>
   );
 }
@@ -276,7 +277,7 @@ export default function WatchPlayerToolbar({
         >
           <ChevronLeft className="w-3.5 h-3.5" />
           {prevEpisodeNumber != null && (
-            <span className="hidden sm:inline">{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
+            <span>{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
           )}
         </button>
         <button
@@ -296,7 +297,7 @@ export default function WatchPlayerToolbar({
           )}
         >
           {nextEpisodeNumber != null && (
-            <span className="hidden sm:inline">{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
+            <span>{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
           )}
           <ChevronRight className="w-3.5 h-3.5" />
         </button>

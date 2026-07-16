@@ -13,18 +13,24 @@ const GLOBAL_ADS_CACHE_MS = 120_000;
 let globalAdsEnabledCache: { at: number; enabled: boolean } | null = null;
 
 async function fetchGlobalAdsEnabled(): Promise<boolean> {
-  if (globalAdsEnabledCache && Date.now() - globalAdsEnabledCache.at < GLOBAL_ADS_CACHE_MS) {
+  const cacheTtl = globalAdsEnabledCache?.enabled === false ? 15_000 : GLOBAL_ADS_CACHE_MS;
+  if (globalAdsEnabledCache && Date.now() - globalAdsEnabledCache.at < cacheTtl) {
     return globalAdsEnabledCache.enabled;
   }
   try {
     const res = await fetch("/api/ads/enabled", { cache: "no-store" });
-    if (!res.ok) return true;
+    // Fail closed — match ClickAdsScript kill-switch behavior.
+    if (!res.ok) {
+      globalAdsEnabledCache = { at: Date.now(), enabled: false };
+      return false;
+    }
     const data = (await res.json()) as { enabled?: boolean };
     const enabled = data.enabled !== false;
     globalAdsEnabledCache = { at: Date.now(), enabled };
     return enabled;
   } catch {
-    return true;
+    globalAdsEnabledCache = { at: Date.now(), enabled: false };
+    return false;
   }
 }
 

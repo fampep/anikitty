@@ -122,7 +122,7 @@ export async function GET(req: Request) {
   }
 
   const ip = getClientIp(req);
-  const limited = rateLimit(`hls:${ip}`, 240, 60_000);
+  const limited = rateLimit(`hls:${ip}`, 480, 60_000);
   if (!limited.ok) {
     return new Response("too many requests", {
       status: 429,

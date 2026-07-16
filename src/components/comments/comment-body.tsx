@@ -25,6 +25,8 @@ function TimestampChip({ label, seconds }: { label: string; seconds: number }) {
       type="button"
       onClick={() => {
         seek(seconds);
+        // Theatre locks body scroll — skip scrollIntoView so seeking doesn't fight the lock.
+        if (document.documentElement.classList.contains("watch-theatre-active")) return;
         document
           .querySelector(".kitty-vidstack-player")
           ?.scrollIntoView({ behavior: "smooth", block: "center" });

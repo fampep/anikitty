@@ -620,10 +620,10 @@
     "playbackDesc": "Default behaviour when watching anime — synced across devices when signed in",
     "ads": {
       "title": "Site ads",
-      "desc": "We're sorry, but ads help us afford running AniKitty (~€100/month for servers and streaming). Signed-in users can turn them off here.",
+      "desc": "We're sorry, but click ads outside the player help us afford running AniKitty (~€100/month). The player and profile pages stay ad-free. Signed-in users can turn ads off here.",
       "showAds": "Show site ads",
-      "showAdsDesc": "When off, ads are disabled on every device while you are signed in",
-      "signInHint": "Sign in to disable ads in Settings. Guests still see ads — they help keep the site online.",
+      "showAdsDesc": "Click ads around the site (never inside the player). Off syncs to every device while you are signed in.",
+      "signInHint": "Sign in to disable ads. Guests always see site ads — they help keep AniKitty online. The player and profiles stay ad-free for everyone.",
       "saveFailed": "Could not save your ad preference. Try again.",
       "donatorActive": "You have the donator role on your profile. Thank you for supporting AniKitty!",
       "donatorActiveUntil": "Your donator role is active until {date}. Thank you for supporting AniKitty!",
@@ -632,7 +632,7 @@
       "disableTitle": "Turn off site ads?",
       "disableIntro": "We're sorry about the ads — they help afford running AniKitty (~€100/month for servers and streaming). The choice is always yours.",
       "disableEmbedTitle": "Why ads exist",
-      "disableEmbedBody": "AniKitty is free for everyone. Site ads are how we cover hosting, streaming, and the database without charging a subscription. They never run inside the video player or on profile pages.",
+      "disableEmbedBody": "AniKitty is free for everyone. Site click ads are how we cover hosting, streaming, and the database without charging a subscription. They never run inside the video player or on profile pages. Guests always see them; signed-in users can disable them.",
       "disableNote": "You can turn ads off anytime — no donation required. We believe everyone should be able to choose. Optional Ko-fi tips still help if you want to support the site directly.",
       "keepAds": "Keep ads on",
       "disableConfirm": "Turn off anyway"
@@ -648,7 +648,7 @@
     "autoSkipIntro": "Auto-skip intro",
     "autoSkipIntroDesc": "Skip opening sequences when outro markers are available",
     "theatreMode": "Theatre mode",
-    "theatreModeDesc": "Expand the player and hide the episode list by default",
+    "theatreModeDesc": "Expand the player, dim the page, and hide the episode sidebar. Toggle with T; exit with Esc.",
     "playerTouchSeekEnabled": "Touch seek on video",
     "playerTouchSeekEnabledDesc": "Swipe left or right on the video to skip or rewind. The progress bar is not affected.",
     "playThemeSong": "Play theme on anime pages",
@@ -838,6 +838,21 @@
     "following": "Following",
     "followers": "Followers",
     "userLevel": "User Level",
+    "levelCard": {
+      "levelLine": "Level {level}",
+      "xpToNext": "{xp} XP to Lv.{level}",
+      "xpBadge": "{xp} XP",
+      "levelProgress": "Level progress",
+      "tierLine": "Tier · {name}",
+      "epsDone": "{count} eps done",
+      "epsStarted": "{count} eps started",
+      "commentsXp": "{count} comments (+{xp} XP)",
+      "xpSplit": "{watch}% watch · {comments}% comments",
+      "nextRank": "Next rank: {name} (Lv.{level})",
+      "maxLevel": "MAX LEVEL",
+      "watchXpTitle": "Watch XP: {xp}",
+      "commentXpTitle": "Comment XP: {xp}"
+    },
     "episodesWatched": "Episodes Watched",
     "aboutMe": "About Me",
     "noBio": "No bio yet.",
@@ -1191,7 +1206,7 @@
   },
   "faq": {
     "title": "FAQ",
-    "subtitle": "How AniKitty works, what features need an account, and what data the site collects. Last reviewed for v0.7.10 — streaming section updated July 2026.",
+    "subtitle": "How AniKitty works, what features need an account, and what data the site collects. Last reviewed for v0.7.11 — streaming section updated July 2026.",
     "lastUpdated": "Last updated {date}",
     "stillQuestions": "Still have questions?",
     "contactDesc": "Join the Discord community or open an issue on GitHub. For account-specific requests (deletion, privacy), contact moderators there.",
@@ -1207,11 +1222,11 @@
     },
     "basics": {
       "whatIsQ": "What is AniKitty?",
-      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. Browse the catalog, watch episodes in sub or dub where available, rate and review titles, and join community features when signed in. We're sorry, but site ads help afford running costs (~€100/month for servers and streaming). They never run inside the video player or on profile pages. Signed-in users can turn them off in Settings → General. AniKitty does not host video files — streams are resolved through third-party sources via KittyAPI.",
+      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. Browse the catalog, watch episodes in sub or dub where available, rate and review titles, and join community features when signed in. We're sorry, but site click ads help afford running costs (~€100/month for servers and streaming). They never run inside the video player or on profile pages. Guests always see them; signed-in users can turn them off in Settings → General. AniKitty does not host video files — streams are resolved through third-party sources via KittyAPI.",
       "accountQ": "Do I need an account?",
       "accountA": "No — you can browse and watch without signing in. An account unlocks your watchlist, synced progress across devices, watch history, episode comments, forum posts, live chat, friends, public profiles, levels and achievements, Kittycoins, optional AniList import, reviews, and security options like 2FA and passkeys. Sign up from the Log in button in the navbar.",
       "freeQ": "Is AniKitty really free?",
-      "freeA": "Yes. There is no paid tier. The video player and profile pages stay ad-free. We're sorry about site ads elsewhere — they help afford the ~€100/month running cost. Signed-in users can disable them in Settings → General. Optional Ko-fi tips grant the donator role as a thank-you."
+      "freeA": "Yes. There is no paid tier. The video player and profile pages stay ad-free for everyone. Site click ads elsewhere help afford the ~€100/month running cost. Guests always see them; signed-in users can disable them in Settings → General. Optional Ko-fi tips grant the donator role as a thank-you."
     },
     "watching": {
       "streamingQ": "How does streaming work?",
@@ -1295,7 +1310,7 @@
       "adsQ": "Why are there ads?",
       "adsA": "We're sorry, but running AniKitty costs about €100 per month — servers, streaming, and the database. Site ads are how we afford to keep everything free. They never run inside the video player or on profile pages.",
       "disableQ": "Can I turn ads off?",
-      "disableA": "Yes. Sign in and go to Settings → General to disable site ads — synced on every device. No donation required.",
+      "disableA": "Yes. Sign in and go to Settings → General to disable site click ads — synced on every device. Guests cannot disable ads. No donation required.",
       "kofiQ": "Is Ko-fi support required?",
       "kofiA": "No. The site is free for everyone whether you donate or not. Ko-fi tips are optional, grant the donator badge as a thank-you, and help cover costs — but they are not required to use AniKitty or to hide ads."
     },
@@ -1884,6 +1899,7 @@
     "providerFallback": "Switching from {from} to {to}…",
     "dubUnavailableSub": "No dub for this episode — playing SUB on the same server.",
     "playbackFailed": "Playback failed and no other server worked. Try a different provider below.",
+    "refreshingPlayback": "Refreshing stream…",
     "copyLink": "Copy link",
     "linkCopied": "Watch link copied!",
     "linkCopyFailed": "Could not copy link",
@@ -2012,6 +2028,13 @@
     "showSpoilers": "Show spoilers",
     "hiddenSpoilers": "{count} spoiler comments hidden",
     "jumpToLatest": "Jump to latest",
+    "endOfList": "You’re all caught up",
+    "loadFailed": "Failed to load comments",
+    "postFailed": "Failed to post comment",
+    "replyFailed": "Failed to post reply",
+    "deleteFailed": "Failed to delete comment",
+    "editFailed": "Failed to save edit",
+    "markReplySpoiler": "Spoiler",
     "scopeAnime": "Anime",
     "addComment": "Add a comment",
     "loadingCount": "Loading comments…",
@@ -2136,5 +2159,42 @@
     "noResults": "No GIFs found for \"{query}\".",
     "tryDifferent": "Try a different search.",
     "poweredBy": "Powered by GIPHY"
+  },
+  "voiceActorsPage": {
+    "title": "Voice Actors",
+    "subtitle": "Search voice actors and explore every anime they’ve appeared in.",
+    "searchPlaceholder": "Search by name…",
+    "languageFilter": "Filter by language",
+    "allLanguages": "All languages",
+    "langJapanese": "Japanese",
+    "langEnglish": "English",
+    "langKorean": "Korean",
+    "langChinese": "Chinese",
+    "langSpanish": "Spanish",
+    "langFrench": "French",
+    "langGerman": "German",
+    "searchUnavailable": "Search is unavailable right now. Please try again later.",
+    "noResults": "No voice actors found for “{query}”.",
+    "minChars": "Type at least 2 characters to search."
+  },
+  "roles": {
+    "levelShort": "Lv.{level}",
+    "levelBadgeTitle": "Level {level} · {name}",
+    "admin": {
+      "name": "Admin",
+      "description": "Full site administration access"
+    },
+    "moderator": {
+      "name": "Moderator",
+      "description": "Community moderation and comment tools"
+    },
+    "donator": {
+      "name": "Donator",
+      "description": "Supports AniKitty through Ko-fi"
+    },
+    "timestamp_helper": {
+      "name": "Timestamp Helper",
+      "description": "Helps curate community skip timestamps"
+    }
   }
 }

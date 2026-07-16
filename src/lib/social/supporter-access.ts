@@ -69,15 +69,6 @@ export function hasActiveDonatorStatus(
   return until.getTime() > Date.now();
 }
 
-/** @deprecated Use settings `showBannerAds` — kept for legacy permission checks only. */
-export function hasAdFreePerk(
-  role?: string | null,
-  _permissions?: string[] | null,
-  _supporterUntil?: Date | string | null,
-): boolean {
-  return role === "admin";
-}
-
 export function extendSupporterUntilByDays(
   current: Date | null | undefined,
   days: number,

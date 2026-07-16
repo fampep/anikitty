@@ -281,7 +281,22 @@ export default function CommentSection({
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<"new" | "best" | "top" | "old">("new");
-  const [hideSpoilers, setHideSpoilers] = useState(false);
+  const [hideSpoilers, setHideSpoilers] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("anikitty-hide-comment-spoilers") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("anikitty-hide-comment-spoilers", hideSpoilers ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [hideSpoilers]);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -304,6 +319,7 @@ export default function CommentSection({
 
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
+  const [replyIsSpoiler, setReplyIsSpoiler] = useState(false);
   const [submittingReply, setSubmittingReply] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
@@ -373,7 +389,7 @@ export default function CommentSection({
           withAuth(),
         );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.error ?? "Failed to load comments");
+        if (!res.ok) throw new Error(data?.error ?? t("comments.loadFailed"));
         if (append) {
           setComments((prev) => [...prev, ...(data.comments ?? [])]);
         } else {
@@ -383,7 +399,7 @@ export default function CommentSection({
         setHasMore(data.hasMore ?? false);
         setPage(p);
       } catch (e) {
-        setLoadError(e instanceof Error ? e.message : "Failed to load comments");
+        setLoadError(e instanceof Error ? e.message : t("comments.loadFailed"));
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -400,6 +416,23 @@ export default function CommentSection({
   }, [sort, animeId, activeEpisodeQuery, fetchComments]);
 
   const loadMore = () => fetchComments(page + 1, sort, true);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = loadMoreSentinelRef.current;
+    if (!el || !hasMore || loading || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          void fetchComments(page + 1, sort, true);
+        }
+      },
+      { rootMargin: "240px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, page, sort, fetchComments]);
 
   // ── Mutations ───────────────────────────────────────────────────────────────
 
@@ -436,9 +469,8 @@ export default function CommentSection({
       setIsSpoiler(false);
       setFocused(false);
       invalidateUserLevel();
-      window.dispatchEvent(new Event("anikitty:level-invalidate"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to post comment");
+      toast.error(e instanceof Error ? e.message : t("comments.postFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -457,12 +489,12 @@ export default function CommentSection({
         withAuth({
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body, parentId, isSpoiler: false }),
+          body: JSON.stringify({ body, parentId, isSpoiler: replyIsSpoiler }),
         }),
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed");
+        throw new Error(err.error ?? t("comments.replyFailed"));
       }
       const newReply: Comment = await res.json();
       setComments((prev) =>
@@ -471,12 +503,12 @@ export default function CommentSection({
         ),
       );
       setReplyDraft("");
+      setReplyIsSpoiler(false);
       setReplyingTo(null);
       setExpandedReplies((prev) => new Set([...prev, parentId]));
       invalidateUserLevel();
-      window.dispatchEvent(new Event("anikitty:level-invalidate"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to post reply");
+      toast.error(e instanceof Error ? e.message : t("comments.replyFailed"));
     } finally {
       setSubmittingReply(false);
     }
@@ -493,7 +525,7 @@ export default function CommentSection({
       setComments((prev) => removeById(prev, commentId));
       if (isTopLevel) setTotal((t) => Math.max(0, t - 1));
     } catch {
-      toast.error("Failed to delete comment");
+      toast.error(t("comments.deleteFailed"));
     }
   };
 
@@ -567,7 +599,7 @@ export default function CommentSection({
       setEditingId(null);
       setEditDraft("");
     } catch {
-      toast.error("Failed to save edit");
+      toast.error(t("comments.editFailed"));
     } finally {
       setSavingEdit(false);
     }
@@ -671,7 +703,7 @@ export default function CommentSection({
 
   const jumpToNewest = () => {
     if (sort !== "new") setSort("new");
-    void fetchComments(1, "new", false);
+    else void fetchComments(1, "new", false);
     requestAnimationFrame(() => {
       document.getElementById("watch-comments-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -933,7 +965,7 @@ export default function CommentSection({
             >
               {hideSpoilers ? t("comments.showSpoilers") : t("comments.hideSpoilers")}
             </button>
-            {sort === "new" && comments.length > 0 && (
+            {comments.length > 0 && (
               <button
                 type="button"
                 onClick={jumpToNewest}
@@ -947,6 +979,7 @@ export default function CommentSection({
               <button
                 key={s}
                 onClick={() => setSort(s)}
+                aria-pressed={sort === s}
                 className={cn(
                   "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all",
                   sort === s
@@ -1084,6 +1117,9 @@ export default function CommentSection({
 
                     <button
                       onClick={() => setIsSpoiler((v) => !v)}
+                      type="button"
+                      aria-pressed={isSpoiler}
+                      aria-label={t("comments.markSpoiler")}
                       title={t("comments.markSpoiler")}
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
@@ -1093,7 +1129,7 @@ export default function CommentSection({
                       )}
                     >
                       <EyeOff className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">{t("comments.spoiler")}</span>
+                      <span>{t("comments.spoiler")}</span>
                     </button>
                   </div>
 
@@ -1366,9 +1402,25 @@ export default function CommentSection({
                           maxLength={1000}
                           className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-none focus:outline-none focus:border-violet-500/25 transition-colors leading-relaxed"
                         />
-                        <div className="flex items-center justify-end gap-2 mt-1.5">
+                        <div className="flex items-center justify-between gap-2 mt-1.5">
                           <button
-                            onClick={() => { setReplyingTo(null); setReplyDraft(""); }}
+                            type="button"
+                            onClick={() => setReplyIsSpoiler((v) => !v)}
+                            aria-pressed={replyIsSpoiler}
+                            aria-label={t("comments.markReplySpoiler")}
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                              replyIsSpoiler
+                                ? "bg-amber-500/12 text-amber-200 border-amber-500/25"
+                                : "border-border dark:border-white/10 text-muted-foreground dark:text-white/30",
+                            )}
+                          >
+                            <EyeOff className="w-3 h-3" />
+                            {t("comments.markReplySpoiler")}
+                          </button>
+                          <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => { setReplyingTo(null); setReplyDraft(""); setReplyIsSpoiler(false); }}
                             className="text-xs text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55 transition-colors px-2 py-1"
                           >
                             {t("comments.cancel")}
@@ -1385,6 +1437,7 @@ export default function CommentSection({
                             )}
                             {t("comments.reply")}
                           </button>
+                          </div>
                         </div>
                       </div>
                       </div>
@@ -1408,7 +1461,9 @@ export default function CommentSection({
                         </button>
                       ) : (
                         <>
-                          {c.replies.map((reply) => {
+                          {c.replies
+                            .filter((reply) => !hideSpoilers || !reply.isSpoiler)
+                            .map((reply) => {
                             const replyOwn = auth?.id === reply.userId;
                             const replyEditing = editingId === reply.id;
 
@@ -1437,6 +1492,11 @@ export default function CommentSection({
                                       levelTierIcon={reply.levelTierIcon}
                                       size="xs"
                                     />
+                                    {reply.isSpoiler && (
+                                      <span className="px-1.5 py-px rounded text-[9px] font-semibold uppercase tracking-wide bg-amber-500/12 text-amber-200/90 border border-amber-500/20">
+                                        {t("comments.spoiler")}
+                                      </span>
+                                    )}
                                     <span className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/18 leading-none">
                                       {relativeTime(reply.createdAt, t)}
                                       {reply.updatedAt && (
@@ -1508,9 +1568,16 @@ export default function CommentSection({
                                       </div>
                                     </div>
                                   ) : (
-                                    <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap break-words mt-0.5">
-                                      <CommentBody body={reply.body} />
-                                    </p>
+                                    <CommentFeedBody
+                                      id={reply.id}
+                                      body={reply.body}
+                                      gifUrl={reply.gifUrl}
+                                      isSpoiler={reply.isSpoiler}
+                                      revealedIds={revealed}
+                                      onReveal={(id) => setRevealed((prev) => new Set([...prev, id]))}
+                                      textClassName="text-sm text-muted-foreground dark:text-white/55 mt-0.5"
+                                      gifClassName="max-h-40"
+                                    />
                                   )}
 
                                   {!replyEditing && (
@@ -1548,9 +1615,9 @@ export default function CommentSection({
         </div>
       )}
 
-      {/* Load more */}
+      {/* Load more / infinite scroll sentinel */}
       {hasMore && (
-        <div className="flex justify-center pt-1 pb-2">
+        <div ref={loadMoreSentinelRef} className="flex justify-center pt-1 pb-2">
           <button
             onClick={loadMore}
             disabled={loadingMore}
@@ -1560,6 +1627,11 @@ export default function CommentSection({
             {t("comments.loadMore")}
           </button>
         </div>
+      )}
+      {!hasMore && comments.length > 0 && (
+        <p className="text-center text-[11px] font-mono text-muted-foreground/70 dark:text-white/20 py-2">
+          {t("comments.endOfList")}
+        </p>
       )}
     </div>
   );

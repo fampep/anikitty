@@ -400,7 +400,10 @@ const Layout = (props: Props) => {
       <div className="fixed inset-0 z-[35] bg-black/92 pointer-events-none" aria-hidden />
     )}
     {theatreMode && (
-      <div className="fixed top-[var(--nav-total-height)] inset-x-0 z-[45] flex items-center justify-between gap-3 px-3 sm:px-4 py-2 bg-black/85 border-b border-white/10 backdrop-blur-md">
+      <div
+        className="fixed top-[var(--nav-total-height)] inset-x-0 z-[45] flex items-center justify-between gap-3 px-3 sm:px-4 py-2 bg-black/85 border-b border-white/10 backdrop-blur-md"
+        style={{ minHeight: "var(--theatre-exit-bar-h)" }}
+      >
         <div className="min-w-0 flex items-center gap-2.5">
           <Lightbulb className="w-4 h-4 text-amber-300/80 shrink-0" />
           <div className="min-w-0">
@@ -420,7 +423,10 @@ const Layout = (props: Props) => {
         </button>
       </div>
     )}
-    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[calc(var(--nav-total-height)+2.75rem)] sm:mt-[calc(var(--nav-total-height)+3rem)]")}>
+    <Container className={cn(
+      "pb-16 pb-safe mt-[calc(var(--nav-total-height)+0.75rem)] sm:mt-[calc(var(--nav-total-height)+1.25rem)]",
+      theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[calc(var(--nav-total-height)+var(--theatre-exit-bar-h)+0.5rem)]",
+    )}>
       {!theatreMode && (
         <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
           <AnimeClearLogo

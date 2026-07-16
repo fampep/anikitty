@@ -26,7 +26,7 @@ export interface VideoPlayerProps {
   onOutroStart?: (duration: number) => void;
   onEnded?: () => void;
   /** Fired when HLS playback fatally fails and can't recover (e.g. the stream 404s mid-load). */
-  onFatalError?: (info: { type: string; details?: string }) => void;
+  onFatalError?: (info: { type: string; details?: string; status?: number }) => void;
   onPlayerReady?: (player: PlayerController) => void;
   w2g?: {
     isHost: boolean;

@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 const ROOT_CLASS = "watch-theatre-active";
 
 /** Applies document-level theatre mode styling (dim chrome, lock scroll). */
 export function useTheatreModeEffects(enabled: boolean) {
+  const pathname = usePathname();
+
   useEffect(() => {
     const root = document.documentElement;
-    if (!enabled) {
+    const onWatch = pathname.startsWith("/anime/watch");
+    if (!enabled || !onWatch) {
       root.classList.remove(ROOT_CLASS);
+      document.body.style.overflow = "";
       return;
     }
 
@@ -21,5 +26,5 @@ export function useTheatreModeEffects(enabled: boolean) {
       root.classList.remove(ROOT_CLASS);
       document.body.style.overflow = prevOverflow;
     };
-  }, [enabled]);
+  }, [enabled, pathname]);
 }

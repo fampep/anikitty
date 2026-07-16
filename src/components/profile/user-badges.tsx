@@ -3,6 +3,8 @@
 import { Star } from "lucide-react";
 import { RoleBadge } from "./role-badge";
 import { LEVEL_TIER_ICONS as TIER_ICONS } from "@/lib/user/level-tier-icons";
+import { parseCssHexColor } from "@/lib/ui/parse-css-hex-color";
+import { useT } from "@/providers/i18n-provider";
 
 type Props = {
   role?: string | null;
@@ -27,28 +29,30 @@ function LevelRoleBadge({
   levelTierIcon?: string | null;
   size?: "xs" | "sm";
 }) {
+  const t = useT();
   if (!levelRole) return null;
 
-  const hex = levelRoleColor ?? "#94a3b8";
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  const parsed = parseCssHexColor(levelRoleColor ?? "#94a3b8");
   const textSize = size === "sm" ? "text-[11px]" : "text-[10px]";
   const Icon = TIER_ICONS[levelTierIcon ?? ""] ?? Star;
   const iconSize = size === "sm" ? "w-3 h-3" : "w-2.5 h-2.5";
+  const title =
+    level != null
+      ? t("roles.levelBadgeTitle", { level, name: levelRole })
+      : levelRole;
 
   return (
     <span
       className={`inline-flex items-center gap-1 px-1.5 py-px rounded font-bold ${textSize} leading-none`}
       style={{
-        color: hex,
-        backgroundColor: `rgba(${r},${g},${b},0.12)`,
-        border: `1px solid rgba(${r},${g},${b},0.25)`,
+        color: parsed.hex,
+        backgroundColor: `rgba(${parsed.r},${parsed.g},${parsed.b},0.12)`,
+        border: `1px solid rgba(${parsed.r},${parsed.g},${parsed.b},0.25)`,
       }}
-      title={`Level ${level ?? "?"} · ${levelRole}`}
+      title={title}
     >
-      <Icon className={iconSize} style={{ color: hex }} />
-      {level != null && <span className="opacity-80">Lv.{level}</span>}
+      <Icon className={iconSize} style={{ color: parsed.hex }} />
+      {level != null && <span className="opacity-80">{t("roles.levelShort", { level })}</span>}
       <span>{levelRole}</span>
     </span>
   );

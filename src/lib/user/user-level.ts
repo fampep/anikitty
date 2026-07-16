@@ -30,7 +30,7 @@ export const LEVEL_TIERS: LevelTier[] = [
 
 /** Higher levels need cubically more XP — early levels stay approachable, 100 is a grind. */
 const XP_CURVE_DIVISOR = 12;
-const MAX_LEVEL = 200;
+export const MAX_LEVEL = 200;
 
 export function levelToXpRequired(level: number): number {
   if (level <= 1) return 0;
@@ -127,6 +127,7 @@ export function getLevelProgress(xp: number): {
   xpInLevel: number;
   xpNeededInLevel: number;
   xpToNext: number;
+  /** @deprecated Prefer xpToNext — same value, kept for older clients. */
   episodesToNext: number;
 } {
   const level = xpToLevel(xp);

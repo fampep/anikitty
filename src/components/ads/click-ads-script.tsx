@@ -5,7 +5,10 @@ import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import { HILLTOP_ADS_SCRIPT_SRC, HILLTOP_ADS_ZONE_ID } from "@/lib/ads/ad-config";
 
-const GLOBAL_ADS_CACHE_MS = 120_000;
+/** Cache longer when ads are on; keep kill-switch responsive when off. */
+const ADS_ENABLED_CACHE_MS = 120_000;
+const ADS_DISABLED_CACHE_MS = 15_000;
+
 let globalAdsEnabledCache: { at: number; enabled: boolean } | null = null;
 let globalAdsInflight: Promise<boolean> | null = null;
 
@@ -29,20 +32,31 @@ function ensureClickAdsScript(): void {
 }
 
 async function fetchGlobalClickAdsEnabled(): Promise<boolean> {
-  if (globalAdsEnabledCache && Date.now() - globalAdsEnabledCache.at < GLOBAL_ADS_CACHE_MS) {
+  const cacheTtl = globalAdsEnabledCache?.enabled
+    ? ADS_ENABLED_CACHE_MS
+    : ADS_DISABLED_CACHE_MS;
+
+  if (globalAdsEnabledCache && Date.now() - globalAdsEnabledCache.at < cacheTtl) {
     return globalAdsEnabledCache.enabled;
   }
 
   if (!globalAdsInflight) {
     globalAdsInflight = fetch("/api/ads/enabled", { cache: "no-store" })
       .then(async (res) => {
-        if (!res.ok) return true;
+        // Fail closed: if the kill-switch endpoint is unreachable/broken, do not inject ads.
+        if (!res.ok) {
+          globalAdsEnabledCache = { at: Date.now(), enabled: false };
+          return false;
+        }
         const data = (await res.json()) as { enabled?: boolean };
         const enabled = data.enabled !== false;
         globalAdsEnabledCache = { at: Date.now(), enabled };
         return enabled;
       })
-      .catch(() => true)
+      .catch(() => {
+        globalAdsEnabledCache = { at: Date.now(), enabled: false };
+        return false;
+      })
       .finally(() => {
         globalAdsInflight = null;
       });

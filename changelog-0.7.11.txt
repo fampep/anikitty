@@ -1,0 +1,39 @@
+AniKitty 0.7.11 - Player remint, theatre polish, and community UX
+Date: 2026-07-16
+
+FIXED
+- False "MAX LEVEL" at 100 — level UI now uses the real cap (200)
+- HLS weak JWT fallback removed in production; www / preview hosts allowed
+- disable-devtool properly suspends on /admin after visiting other pages
+- Theatre prefs no longer synced from account settings; scroll unlocks off watch
+- Episode swipe-nav scoped to the player (no longer breaks comments/sheets)
+- Click-ads fail closed when the kill-switch API errors
+- Comment timestamp seeks no longer fight theatre scroll lock
+
+ADDED
+- Soft remint when an HLS playback token expires mid-watch
+- Comments infinite scroll + end-of-list cue
+- Jump-to-latest from any sort (switches to New)
+- Role name/description i18n keys and safer #rgb/#rrggbb color parsing
+- Voice actors page strings localized
+- Keyboard-aware mobile comments sheet (visualViewport)
+
+IMPROVED
+- Touch seek setting wired into the player; swipe-to-change-episode disabled when on
+- Theatre: mobile episode jump, clearer exit-bar offset, toolbar labels on mobile
+- Reply spoilers + hide-spoilers filters replies; spoiler toggle a11y
+- Comments preview fetches countOnly (no full list load)
+- Ads settings/FAQ clarify click ads and that guests always see them
+- HLS rate limit raised for heavy seeking; kill-switch cache faster when ads off
+- Fullscreen / rotation-lock player controls pad notch safe-areas
+- Resume prompt Escape resumes (primary CTA)
+- Home rail spacing uses --home-section-gap
+- Level cache invalidates properly after XP grants
+
+REMOVED
+- Dead Artplayer / kitsune-player stack and related npm packages
+- Unused hasAdFreePerk helper
+
+NOTES
+- Theatre mode remains local-only
+- Legacy MegaPlay / subtitle provider ID mappings kept for old prefs and cache rows

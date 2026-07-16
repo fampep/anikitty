@@ -1,6 +1,6 @@
 {
   "name": "anikitty",
-  "version": "0.7.10",
+  "version": "0.7.11",
   "private": true,
   "engines": {
     "node": ">=24"
@@ -38,10 +38,6 @@
     "@tanstack/react-query": "^5.90.2",
     "@vidstack/react": "^1.15.6",
     "anime4k-webgpu": "^1.0.0",
-    "artplayer": "^5.4.0",
-    "artplayer-plugin-ambilight": "^1.0.0",
-    "artplayer-plugin-chromecast": "^1.1.0",
-    "artplayer-plugin-hls-control": "^1.0.1",
     "axios": "^1.7.7",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.0",

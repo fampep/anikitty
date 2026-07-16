@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
 import { X } from "lucide-react";
@@ -39,6 +40,39 @@ type Props = {
   onScopeChange: (scope: Scope) => void;
 };
 
+/** Shrink the sheet when the mobile keyboard covers the layout viewport. */
+function useKeyboardAwareSheetHeight(enabled: boolean) {
+  const [style, setStyle] = useState<CSSProperties | undefined>();
+
+  useEffect(() => {
+    if (!enabled || typeof window === "undefined" || !window.visualViewport) {
+      setStyle(undefined);
+      return;
+    }
+
+    const vv = window.visualViewport;
+    const sync = () => {
+      const keyboardInset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+      const maxH = Math.min(vv.height * 0.92, 820);
+      setStyle({
+        bottom: keyboardInset > 0 ? keyboardInset : undefined,
+        maxHeight: `${maxH}px`,
+        height: `${maxH}px`,
+      });
+    };
+
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+    };
+  }, [enabled]);
+
+  return style;
+}
+
 export default function WatchCommentsSheet({
   open,
   onOpenChange,
@@ -49,12 +83,14 @@ export default function WatchCommentsSheet({
   onScopeChange,
 }: Props) {
   const t = useT();
+  const keyboardStyle = useKeyboardAwareSheetHeight(open);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
         hideCloseButton
+        style={keyboardStyle}
         className={cn(
           "flex flex-col gap-0 p-0 border-border dark:border-white/10 bg-[#0a0a0a]",
           "h-[min(92dvh,820px)] max-h-[92dvh] rounded-t-2xl",

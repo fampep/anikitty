@@ -102,7 +102,7 @@ export default function Home() {
 
       <HomeQuickNav />
 
-      <div className="home-cinema-body relative z-[5] flex flex-col gap-3 sm:gap-5 p-2 pt-0.5 sm:pt-1 pb-8">
+      <div className="home-cinema-body relative z-[5] flex flex-col gap-[var(--home-section-gap)] p-2 pt-0.5 sm:pt-1 pb-8">
         <HomeWelcomeBar />
 
         <div id="continue" className="scroll-mt-[calc(var(--nav-height)+4.5rem)]">

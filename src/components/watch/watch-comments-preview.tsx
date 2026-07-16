@@ -34,7 +34,7 @@ export default function WatchCommentsPreview({
     (async () => {
       try {
         const res = await fetch(
-          `/api/account/comments/${encodeURIComponent(animeId)}?page=1&episodeId=${encodeURIComponent(episodeId)}`,
+          `/api/account/comments/${encodeURIComponent(animeId)}?countOnly=1&episodeId=${encodeURIComponent(episodeId)}`,
           withAuth(),
         );
         const data = await res.json();

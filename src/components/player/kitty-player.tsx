@@ -24,6 +24,7 @@ import {
   configureVidstackHlsProvider,
   isFatalHlsError,
   isFatalNativeMediaError,
+  isHlsPlaybackAuthError,
 } from "@/lib/player/vidstack-hls";
 import {
   isElementFullscreen,
@@ -465,6 +466,7 @@ export default function KittyPlayer(props: VideoPlayerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
+  const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
   const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
   const liteMode = useSettingsStore((s) => s.liteMode);
@@ -506,10 +508,10 @@ export default function KittyPlayer(props: VideoPlayerProps) {
   }, [srcKey]);
 
   const fireFatalError = useCallback(
-    (type: string, details?: string) => {
+    (type: string, details?: string, status?: number) => {
       if (fatalErrorFiredRef.current) return;
       fatalErrorFiredRef.current = true;
-      onFatalError?.({ type, details });
+      onFatalError?.({ type, details, status });
     },
     [onFatalError],
   );
@@ -555,6 +557,53 @@ export default function KittyPlayer(props: VideoPlayerProps) {
     return () => window.clearTimeout(timer);
   }, [countdown, props.onNextEpisode]);
 
+  // Horizontal swipe on the video surface seeks (setting: playerTouchSeekEnabled).
+  useEffect(() => {
+    if (!playerTouchSeekEnabled) return;
+    const root = wrapperRef.current;
+    if (!root) return;
+
+    let start: { x: number; y: number; t: number } | null = null;
+
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const el = e.target;
+      if (
+        el instanceof Element &&
+        el.closest('button, a, input, [role="slider"], .vds-controls, [data-no-touch-seek]')
+      ) {
+        start = null;
+        return;
+      }
+      start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: currentTime };
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (!start || e.changedTouches.length !== 1) {
+        start = null;
+        return;
+      }
+      const dx = e.changedTouches[0].clientX - start.x;
+      const dy = e.changedTouches[0].clientY - start.y;
+      start = null;
+      if (Math.abs(dx) < 48) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.4) return;
+
+      const media = root.querySelector("video");
+      if (!media || !Number.isFinite(media.currentTime)) return;
+      const delta = dx > 0 ? seekStepSeconds : -seekStepSeconds;
+      const next = Math.max(0, Math.min(media.duration || Number.MAX_SAFE_INTEGER, media.currentTime + delta));
+      media.currentTime = next;
+    };
+
+    root.addEventListener("touchstart", onStart, { passive: true });
+    root.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      root.removeEventListener("touchstart", onStart);
+      root.removeEventListener("touchend", onEnd);
+    };
+  }, [playerTouchSeekEnabled, seekStepSeconds, currentTime, srcKey]);
+
   if (!src) return null;
 
   const showLoading = buffering && !ready;
@@ -586,11 +635,16 @@ export default function KittyPlayer(props: VideoPlayerProps) {
         }}
         onHlsError={(detail) => {
           if (!detail.fatal) return;
+          if (isHlsPlaybackAuthError(detail)) {
+            const status = (detail.response as { code?: number } | undefined)?.code;
+            fireFatalError("hls-auth", detail.details, status);
+            return;
+          }
           if (detail.type === "networkError") {
             hlsNetworkRecoveriesRef.current += 1;
           }
           if (isFatalHlsError(detail, hlsNetworkRecoveriesRef.current)) {
-            fireFatalError(String(detail.type), detail.details);
+            fireFatalError(String(detail.type), detail.details, (detail.response as { code?: number } | undefined)?.code);
           }
         }}
         onError={(detail: MediaErrorDetail) => {

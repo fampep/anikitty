@@ -1,6 +1,13 @@
 "use client";
 
-import { roleDisplayName, roleDescription, roleIconFor, ROLE_BUILTIN_COLORS } from "@/lib/user/role-icons";
+import {
+  roleDescription,
+  roleDisplayName,
+  roleIconFor,
+  ROLE_BUILTIN_COLORS,
+} from "@/lib/user/role-icons";
+import { parseCssHexColor } from "@/lib/ui/parse-css-hex-color";
+import { useT } from "@/providers/i18n-provider";
 
 interface RoleBadgeProps {
   role: string;
@@ -9,16 +16,20 @@ interface RoleBadgeProps {
 }
 
 export function RoleBadge({ role, color, size = "xs" }: RoleBadgeProps) {
+  const t = useT();
   if (!role || role === "user") return null;
 
-  const hex = color || ROLE_BUILTIN_COLORS[role] || "#ffffff";
+  const parsed = parseCssHexColor(color || ROLE_BUILTIN_COLORS[role] || "#ffffff");
   const Icon = roleIconFor(role);
-  const label = roleDisplayName(role);
-  const description = roleDescription(role);
 
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  const nameKey = `roles.${role}.name`;
+  const translatedName = t(nameKey);
+  const label = translatedName !== nameKey ? translatedName : roleDisplayName(role);
+
+  const descKey = `roles.${role}.description`;
+  const translatedDesc = t(descKey);
+  const description =
+    translatedDesc !== descKey ? translatedDesc : roleDescription(role);
 
   const textSize = size === "sm" ? "text-[11px]" : "text-[10px]";
   const iconSize = size === "sm" ? "w-3 h-3" : "w-2.5 h-2.5";
@@ -27,13 +38,13 @@ export function RoleBadge({ role, color, size = "xs" }: RoleBadgeProps) {
     <span
       className={`inline-flex items-center gap-1 px-1.5 py-px rounded font-bold ${textSize} leading-none`}
       style={{
-        color: hex,
-        backgroundColor: `rgba(${r},${g},${b},0.12)`,
-        border: `1px solid rgba(${r},${g},${b},0.25)`,
+        color: parsed.hex,
+        backgroundColor: `rgba(${parsed.r},${parsed.g},${parsed.b},0.12)`,
+        border: `1px solid rgba(${parsed.r},${parsed.g},${parsed.b},0.25)`,
       }}
       title={description ? `${label} — ${description}` : label}
     >
-      {Icon && <Icon className={iconSize} style={{ color: hex }} />}
+      {Icon && <Icon className={iconSize} style={{ color: parsed.hex }} />}
       {label}
     </span>
   );

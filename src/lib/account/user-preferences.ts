@@ -18,7 +18,6 @@ export type SyncedUserPreferences = {
   subtitleSettings?: SubtitleSettings;
   showPlayerControls?: boolean;
   playerSettingsOpen?: boolean;
-  theatreMode?: boolean;
   providerAutoFallback?: boolean;
   simpleProviderPicker?: boolean;
   providerSectionHidden?: Partial<Record<ProviderAudioMode, boolean>>;
@@ -58,7 +57,6 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.autoPlay === "boolean") out.autoPlay = input.autoPlay;
   if (typeof input.showPlayerControls === "boolean") out.showPlayerControls = input.showPlayerControls;
   if (typeof input.playerSettingsOpen === "boolean") out.playerSettingsOpen = input.playerSettingsOpen;
-  if (typeof input.theatreMode === "boolean") out.theatreMode = input.theatreMode;
   if (typeof input.providerAutoFallback === "boolean") out.providerAutoFallback = input.providerAutoFallback;
   if (typeof input.simpleProviderPicker === "boolean") out.simpleProviderPicker = input.simpleProviderPicker;
   if (typeof input.kittyProxyManual === "boolean") out.kittyProxyManual = input.kittyProxyManual;

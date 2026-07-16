@@ -32,11 +32,12 @@ export function invalidateUserLevel(userId?: string) {
   if (typeof window === "undefined") return;
   if (userId) {
     sessionStorage.removeItem(`level:${userId}`);
-    return;
+  } else {
+    Object.keys(sessionStorage)
+      .filter((k) => k.startsWith("level:"))
+      .forEach((k) => sessionStorage.removeItem(k));
   }
-  Object.keys(sessionStorage)
-    .filter((k) => k.startsWith("level:"))
-    .forEach((k) => sessionStorage.removeItem(k));
+  window.dispatchEvent(new Event("anikitty:level-invalidate"));
 }
 
 async function fetchLevelData(userId: string): Promise<UserLevelData | null> {

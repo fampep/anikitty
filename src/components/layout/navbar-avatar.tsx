@@ -14,6 +14,7 @@ import { anisurgeAuth, clearAnisurgeToken } from "@/lib/oauth/anisurge";
 import { useUserLevel } from "@/hooks/use-user-level";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 import type { LevelTier } from "@/lib/user/user-level";
+import { MAX_LEVEL } from "@/lib/user/user-level";
 import { LEVEL_TIER_ICONS } from "@/lib/user/level-tier-icons";
 import { useT } from "@/providers/i18n-provider";
 
@@ -140,7 +141,7 @@ function NavbarAvatar({ auth }: Props) {
                   {t("navAvatar.xpSummary", { xp: level.xp, count: level.completedEpisodes })}
                 </span>
                 <span className="text-[9px] font-mono text-muted-foreground/70 dark:text-white/20">
-                  {level.level < 100 && (level.xpToNext ?? level.episodesToNext) > 0
+                  {level.level < MAX_LEVEL && (level.xpToNext ?? level.episodesToNext) > 0
                     ? t("navAvatar.xpToNext", { xp: level.xpToNext ?? level.episodesToNext, level: level.level + 1 })
                     : t("navAvatar.max")}
                 </span>

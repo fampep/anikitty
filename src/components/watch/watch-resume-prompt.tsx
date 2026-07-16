@@ -29,7 +29,8 @@ export default function WatchResumePrompt({ resumeAt, onResume, onStartOver }: P
   const resumeRef = useRef<HTMLButtonElement>(null);
 
   useDialogFocusTrap(true, panelRef, {
-    onEscape: onStartOver,
+    // Escape matches the primary CTA (Resume) — Start Over stays an explicit click.
+    onEscape: onResume,
     initialFocusRef: resumeRef,
     lockScroll: false,
   });
