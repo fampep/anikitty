@@ -54,13 +54,13 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "Anitaku",
+  "AniDB",
   "Anikoto",
   "MegaPlay",
   "Miruro",
   "MKissa",
   "AniNeko",
   "AniBD",
-  "AniDB",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -99,6 +99,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft subs · multi-server",
+  },
+  {
+    id: "AniDB",
+    label: "India",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "Japanese / English · anidb.app · SUB · DUB",
   },
   {
     id: "Anikoto",
@@ -172,30 +183,19 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB only · AniList ID · stream-direct",
   },
-  {
-    id: "AniDB",
-    label: "India",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "Japanese / English · anidb.app · SUB · DUB",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anitaku",
+  "AniDB",
   "Anikoto",
   "MegaPlay",
   "Miruro",
   "MKissa",
   "AniNeko",
   "AniBD",
-  "AniDB",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
