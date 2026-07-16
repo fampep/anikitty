@@ -1,35 +1,27 @@
-AniKitty 0.7.10 - Streaming, watch UI, and watch parties
+AniKitty 0.7.10 - Theatre mode, stream hardening, and community polish
+Date: 2026-07-16
 
-STREAMING & PROVIDERS
-- Active sources only: Anitaku (Beta), Anikoto (Kilo), MegaPlay (Alpha), AllAnime (Delta), MKissa (Echo), AniNeko (Gamma), AniBD (Hotel).
-- All providers use KittyAPI stream-direct with audio=sub or audio=dub (no per-provider server carousel for active sources).
-- Fixed wrong anime playing (removed risky auto/stream fallbacks for named providers).
-- Dub works when the provider supports it — no longer blocked by incomplete AniList dub counts.
-- AniBD stays sub-only; dub missing on an episode retries sub on the same source.
-- MegaPlay and Anikoto updated for AniList-first site scrape API (shared anilist-site modules).
-- Auto-switch to the next source when playback fails (optional in player settings).
+FIXED
+- Theatre mode works again — no longer reset by account settings sync
+- Theatre mode is local-only (not overwritten from server prefs)
+- Dark overlay, exit bar, Esc to exit, T to toggle
+- Mobile episode list hidden while theatre mode is on
 
-WATCH PAGE UI
-- Shared provider accent colors (pills, toolbar chip, info bar, loading skeleton).
-- Compact source picker: segmented SUB/DUB toggle and provider dropdown.
-- Full provider grid: colored pills and gradient section cards.
-- Provider-tinted loading overlay and stream info chips.
-- FAQ updated for stream-direct sources, sub/dub behavior, and player settings.
+ADDED
+- Opaque session-bound HLS stream tokens (/api/kitty/hls?t=…)
+- HttpOnly playback session cookie (tokens alone are not enough to scrape)
+- Production disable-devtool guard (F12 / right-click / common shortcuts)
+- Comment spoiler hide toggle and jump-to-latest
+- Level card watch vs comment XP split and next-rank preview
+- Role badge hover descriptions
 
-HOMEPAGE
-- Fixed Continue Watching overlapping the welcome bar.
-- Quick nav and explore bar use unified site-panel / site-chip styling.
-- Continue Watching wrapped in site-panel card.
-- Discover anchor points at the season browser; feature promos moved to #features.
-- Live watch parties rail on home (join open rooms in one tap).
+IMPROVED
+- Stream proxy: 45-minute token TTL, same-origin checks, rate limiting
+- Plaintext ?url= HLS fallback removed; client no longer builds upstream URLs
+- Level tier icons on comments and replies
+- Restored HilltopAds click ads
+- Tighter home explore bar spacing
 
-WATCH TOGETHER
-- Public room list on /watch-together — browse and join without a code.
-- Rooms have names (auto from anime + episode when created from the player).
-- Hosts delete rooms for everyone; guests leave without closing the room.
-- GET /api/w2g/rooms lists open parties (last 12 hours).
-- DB migration: w2g_rooms.name column (0033_w2g_room_name.sql).
-
-OTHER
-- Removed in-app changelog page and nav links (changelog kept as plain text files).
-- Deploy: skip typecheck on CI for faster builds.
+NOTES
+- disable-devtool is off in development and on /admin
+- Optional bypass: set NEXT_PUBLIC_DISABLE_DEVTOOL_MD5 and open ?ddtk=<secret>
