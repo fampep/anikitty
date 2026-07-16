@@ -184,6 +184,7 @@ export default function WatchPlayerToolbar({
           icon={<Lightbulb className="w-3 h-3 shrink-0" />}
           label={t("watch.toolbar.lightsOff")}
           onClick={toggleTheatreMode}
+          className="min-w-0"
         />
         {pipSupported && onTogglePip && (
           <button

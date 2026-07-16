@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Captions,
   Mic,
+  Monitor,
   MoveHorizontal,
   Play,
   RefreshCw,
@@ -91,6 +92,8 @@ export default function PlayerSettingsBar({
     setShowPlayerControls,
     playerSettingsOpen,
     setPlayerSettingsOpen,
+    theatreMode,
+    toggleTheatreMode,
     providerAutoFallback,
     setProviderAutoFallback,
     simpleProviderPicker,
@@ -149,6 +152,22 @@ export default function PlayerSettingsBar({
               playerSettingsOpen && "rotate-180",
             )}
           />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleTheatreMode}
+          aria-pressed={theatreMode}
+          className={cn(
+            "inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors touch-manipulation",
+            theatreMode
+              ? "border-violet-400/30 bg-violet-500/15 text-violet-200/90"
+              : "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:hover:text-white/75",
+          )}
+          title={t("watch.playerSettings.theatre")}
+        >
+          <Monitor className="w-3 h-3" />
+          <span>{t("watch.playerSettings.theatreShort")}</span>
         </button>
 
         <button
