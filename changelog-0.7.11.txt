@@ -37,4 +37,4 @@ REMOVED
 NOTES
 - Theatre mode remains local-only
 - Legacy MegaPlay / subtitle provider ID mappings kept for old prefs and cache rows
-- Coolify: set NEXT_PUBLIC_ADCASH_BANNER_ZONE to the Adcash runBanner zone ID or banners stay empty
+- Coolify: set NEXT_PUBLIC_ADCASH_BANNER_ZONE=11731546 (optional; app defaults to that zone)
