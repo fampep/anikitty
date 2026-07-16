@@ -22,6 +22,7 @@ import LiteModeSync from "@/components/layout/lite-mode-sync";
 import SettingsSync from "@/components/layout/settings-sync";
 import OnlinePresence from "@/components/common/online-presence";
 import DisableDevtoolGuard from "@/components/security/disable-devtool-guard";
+import SitePopunderAd from "@/components/ads/site-popunder-ad";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -141,7 +142,7 @@ export default async function RootLayout({
           </>
         )}
         <PublicEnvScript />
-        {/* Adcash lib — high in <head> per publisher install guide; banners call runBanner in-slot. */}
+        {/* Adcash lib — high in <head> per publisher install guide; banners/pop call run* after load. */}
         <script id="aclib" type="text/javascript" src="https://acscdn.com/script/aclib.js" async />
         <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
@@ -157,6 +158,7 @@ export default async function RootLayout({
       >
         <PwaRegister />
         <DisableDevtoolGuard />
+        <SitePopunderAd />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider
             attribute="class"

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
-import { getAdcashBannerZoneId } from "@/lib/ads/ad-config";
+import { getAdcashBannerZoneId, getAdcashPopZoneId } from "@/lib/ads/ad-config";
 import { isAdPlacementAllowed } from "@/lib/ads/ad-placement";
 
 /** Cache longer when ads are on; keep kill-switch responsive when off. */
@@ -82,7 +82,8 @@ export function useSiteAdsVisible(): boolean {
 
   if (!hydrated) return false;
   if (!isAdPlacementAllowed(pathname)) return false;
-  if (!getAdcashBannerZoneId()) return false;
+  // Ads need at least one configured product (banner and/or popunder).
+  if (!getAdcashBannerZoneId() && !getAdcashPopZoneId()) return false;
   if (globalEnabled !== true) return false;
   // Only signed-in users can disable ads in Settings; guests always see them.
   if (auth && !showBannerAds) return false;

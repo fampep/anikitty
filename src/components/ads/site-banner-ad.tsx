@@ -15,6 +15,7 @@ declare global {
   interface Window {
     aclib?: {
       runBanner?: (opts: { zoneId: string }) => void;
+      runPop?: (opts: { zoneId: string }) => void;
     };
   }
 }

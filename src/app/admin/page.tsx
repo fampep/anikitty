@@ -710,7 +710,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         return;
       }
       setGlobalClickAdsEnabled(enabled);
-      toast.success(enabled ? "Banner ads enabled site-wide" : "Banner ads disabled site-wide");
+      toast.success(enabled ? "Site ads enabled site-wide" : "Site ads disabled site-wide");
     } catch {
       toast.error("Failed to update click ads setting");
     } finally {
@@ -1487,7 +1487,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground dark:text-white/85">Global site ads</p>
                   <p className="text-[11px] text-muted-foreground dark:text-white/35 mt-1 leading-relaxed max-w-xl">
-                    Turn banner ads on or off for everyone. Saved in the database — survives redeploys. Signed-in users can also disable ads in Settings.
+                    Turn site ads (banners + popunders) on or off for everyone. Saved in the database — survives redeploys. Signed-in users can also disable ads in Settings.
                   </p>
                   <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
                     Status:{" "}
