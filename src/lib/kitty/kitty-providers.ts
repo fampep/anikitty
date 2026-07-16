@@ -54,11 +54,11 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "Anitaku",
+  "AniWatch",
   "AniDB",
   "Anikoto",
   "MegaPlay",
   "Miruro",
-  "AniWatch",
   "MKissa",
   "AniNeko",
   "AniBD",
@@ -100,6 +100,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft subs · multi-server",
+  },
+  {
+    id: "AniWatch",
+    label: "Juliet",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "aniwatch.one scrape · DGHG/MGCLD · SUB · DUB · soft subs",
   },
   {
     id: "AniDB",
@@ -150,17 +161,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "AniList ID · miruro.to pipe · Bonk/Kiwi/Ally · SUB · DUB · skip times",
   },
   {
-    id: "AniWatch",
-    label: "Juliet",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "aniwatch.one scrape · DGHG/MGCLD · SUB · DUB · soft subs",
-  },
-  {
     id: "MKissa",
     label: "Echo",
     group: "featured",
@@ -201,11 +201,11 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anitaku",
+  "AniWatch",
   "AniDB",
   "Anikoto",
   "MegaPlay",
   "Miruro",
-  "AniWatch",
   "MKissa",
   "AniNeko",
   "AniBD",
