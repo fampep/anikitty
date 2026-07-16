@@ -27,6 +27,17 @@ export const ROLE_BUILTIN_COLORS: Record<string, string> = {
   [TIMESTAMP_HELPER_ROLE]: TIMESTAMP_HELPER_COLOR,
 };
 
+export const ROLE_DESCRIPTIONS: Record<string, string> = {
+  admin: "Full site administration access",
+  moderator: "Community moderation and comment tools",
+  donator: "Supports AniKitty through Ko-fi",
+  [TIMESTAMP_HELPER_ROLE]: "Helps curate community skip timestamps",
+};
+
+export function roleDescription(role: string): string | null {
+  return ROLE_DESCRIPTIONS[role] ?? null;
+}
+
 export function roleDisplayName(role: string): string {
   return ROLE_DISPLAY_NAMES[role] ?? role.replace(/_/g, " ");
 }

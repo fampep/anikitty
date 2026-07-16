@@ -24,7 +24,6 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     subtitleSettings: s.subtitleSettings,
     showPlayerControls: s.showPlayerControls,
     playerSettingsOpen: s.playerSettingsOpen,
-    theatreMode: s.theatreMode,
     providerAutoFallback: s.providerAutoFallback,
     simpleProviderPicker: s.simpleProviderPicker,
     providerSectionHidden: s.providerSectionHidden,
@@ -61,7 +60,6 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.subtitleSettings !== undefined) patch.subtitleSettings = prefs.subtitleSettings;
   if (prefs.showPlayerControls !== undefined) patch.showPlayerControls = prefs.showPlayerControls;
   if (prefs.playerSettingsOpen !== undefined) patch.playerSettingsOpen = prefs.playerSettingsOpen;
-  if (prefs.theatreMode !== undefined) patch.theatreMode = prefs.theatreMode;
   if (prefs.providerAutoFallback !== undefined) patch.providerAutoFallback = prefs.providerAutoFallback;
   if (prefs.simpleProviderPicker !== undefined) patch.simpleProviderPicker = prefs.simpleProviderPicker;
   if (prefs.providerSectionHidden !== undefined) patch.providerSectionHidden = prefs.providerSectionHidden;

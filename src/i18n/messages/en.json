@@ -1756,6 +1756,10 @@
       "episodeNav": "Episode {n}",
       "pip": "PiP"
     },
+    "theatre": {
+      "active": "Theatre mode",
+      "exit": "Exit theatre"
+    },
     "selectEpisodeHint": "Pick an episode from the list below",
     "fullAnimePage": "Full anime page",
     "databaseIds": "Database IDs",
@@ -1896,6 +1900,7 @@
       "nextEpisode": "Next episode",
       "prevEpisode": "Previous episode",
       "theatre": "Toggle theatre mode",
+      "exitTheatre": "Exit theatre mode",
       "copyLink": "Copy link with timestamp",
       "help": "Show this help"
     },
@@ -2003,6 +2008,10 @@
     "sortBest": "Best",
     "sortTop": "Top",
     "sortOld": "Old",
+    "hideSpoilers": "Hide spoilers",
+    "showSpoilers": "Show spoilers",
+    "hiddenSpoilers": "{count} spoiler comments hidden",
+    "jumpToLatest": "Jump to latest",
     "scopeAnime": "Anime",
     "addComment": "Add a comment",
     "loadingCount": "Loading comments…",

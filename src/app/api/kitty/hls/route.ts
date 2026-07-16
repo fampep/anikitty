@@ -1,4 +1,13 @@
 import { isAllowedMediaProxyUrl } from "@/lib/security/security";
+import { getClientIp, rateLimit } from "@/lib/security/rate-limit";
+import {
+  HLS_SESSION_COOKIE,
+  isAllowedHlsClientRequest,
+  mintKittyHlsProxyUrl,
+  readCookie,
+  resolveKittyHlsProxyToken,
+  verifyHlsSessionCookieValue,
+} from "@/lib/kitty/hls-proxy-token";
 
 function isM3u8ByUrl(url: string): boolean {
   return url.endsWith(".m3u8") || url.includes(".m3u8?") || url.includes(".m3u8&");
@@ -8,21 +17,33 @@ function isM3u8ByContentType(ct: string): boolean {
   return ct.includes("mpegurl") || ct.includes("m3u8");
 }
 
-function buildProxyUrl(abs: string, referer: string, origin: string): string {
-  const params = new URLSearchParams({ url: abs });
-  if (referer) params.set("referer", referer);
-  if (origin) params.set("origin", origin);
-  return `/api/kitty/hls?${params.toString()}`;
+function buildProxyUrl(
+  abs: string,
+  referer: string,
+  origin: string,
+  sessionId: string,
+): string {
+  return mintKittyHlsProxyUrl(
+    abs,
+    { Referer: referer, Origin: origin },
+    { sessionId },
+  );
 }
 
-function rewriteUriInTag(line: string, manifestUrl: string, referer: string, origin: string): string {
+function rewriteUriInTag(
+  line: string,
+  manifestUrl: string,
+  referer: string,
+  origin: string,
+  sessionId: string,
+): string {
   const base = new URL(manifestUrl);
 
   return line
     .replace(/URI="([^"]+)"/gi, (_, uri) => {
       try {
         const abs = new URL(uri, base).toString();
-        return `URI="${buildProxyUrl(abs, referer, origin)}"`;
+        return `URI="${buildProxyUrl(abs, referer, origin, sessionId)}"`;
       } catch {
         return `URI="${uri}"`;
       }
@@ -30,14 +51,20 @@ function rewriteUriInTag(line: string, manifestUrl: string, referer: string, ori
     .replace(/URI='([^']+)'/gi, (_, uri) => {
       try {
         const abs = new URL(uri, base).toString();
-        return `URI='${buildProxyUrl(abs, referer, origin)}'`;
+        return `URI='${buildProxyUrl(abs, referer, origin, sessionId)}'`;
       } catch {
         return `URI='${uri}'`;
       }
     });
 }
 
-function rewriteManifest(body: string, manifestUrl: string, referer: string, origin: string): string {
+function rewriteManifest(
+  body: string,
+  manifestUrl: string,
+  referer: string,
+  origin: string,
+  sessionId: string,
+): string {
   const base = new URL(manifestUrl);
 
   return body
@@ -48,12 +75,12 @@ function rewriteManifest(body: string, manifestUrl: string, referer: string, ori
       if (!trimmed) return line;
 
       if (trimmed.startsWith("#")) {
-        return rewriteUriInTag(line, manifestUrl, referer, origin);
+        return rewriteUriInTag(line, manifestUrl, referer, origin, sessionId);
       }
 
       try {
         const abs = new URL(trimmed, base).toString();
-        return buildProxyUrl(abs, referer, origin);
+        return buildProxyUrl(abs, referer, origin, sessionId);
       } catch {
         return line;
       }
@@ -81,9 +108,8 @@ function corsHeaders(contentType: string): HeadersInit {
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
     "Access-Control-Allow-Headers": "Range, Content-Type",
     "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
-    "Cache-Control": "no-store",
+    "Cache-Control": "private, no-store, no-cache",
   };
-  // Same-origin playback does not need CORS; omit wildcard in production.
   if (process.env.NODE_ENV !== "production") {
     headers["Access-Control-Allow-Origin"] = "*";
   }
@@ -91,31 +117,49 @@ function corsHeaders(contentType: string): HeadersInit {
 }
 
 export async function GET(req: Request) {
+  if (!isAllowedHlsClientRequest(req)) {
+    return new Response("forbidden", { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const limited = rateLimit(`hls:${ip}`, 240, 60_000);
+  if (!limited.ok) {
+    return new Response("too many requests", {
+      status: 429,
+      headers: { "Retry-After": String(limited.retryAfterSec) },
+    });
+  }
+
+  const sessionId = verifyHlsSessionCookieValue(readCookie(req, HLS_SESSION_COOKIE));
+  if (!sessionId) {
+    return new Response("playback session required", { status: 403 });
+  }
+
   const { searchParams } = new URL(req.url);
-  const url = searchParams.get("url");
+  const token = searchParams.get("t");
 
-  if (!url) {
-    return new Response("url parameter required", { status: 400 });
+  // Plaintext ?url= fallback is disabled — only opaque tokens are accepted.
+  if (!token) {
+    return new Response("playback token required", { status: 400 });
   }
 
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(url);
-  } catch {
-    return new Response("invalid url encoding", { status: 400 });
+  const resolved = resolveKittyHlsProxyToken(token, sessionId);
+  if (!resolved) {
+    return new Response("invalid or expired playback token", { status: 403 });
   }
+
+  const decoded = resolved.url;
+  const referer = resolved.referer;
+  const origin = resolved.origin;
 
   if (!isAllowedMediaProxyUrl(decoded)) {
     return new Response("url not allowed", { status: 403 });
   }
 
-  const referer = searchParams.get("referer") ?? "";
-  const origin = searchParams.get("origin") ?? "";
   const range = req.headers.get("range");
 
   let upstream: Response;
   try {
-    // Signed KittyAPI `/proxy?token=…` links authenticate via the token — no API key header.
     upstream = await fetch(decoded, {
       cache: "no-store",
       headers: upstreamHeaders(referer, origin, range),
@@ -133,7 +177,7 @@ export async function GET(req: Request) {
 
   if (isM3u8ByUrl(decoded) || isM3u8ByContentType(contentType)) {
     const text = await upstream.text();
-    const rewritten = rewriteManifest(text, decoded, referer, origin);
+    const rewritten = rewriteManifest(text, decoded, referer, origin, sessionId);
     return new Response(rewritten, {
       status: 200,
       headers: corsHeaders("application/vnd.apple.mpegurl"),
@@ -171,7 +215,7 @@ export async function GET(req: Request) {
   const peek = new TextDecoder("utf-8", { fatal: false }).decode(buffer.slice(0, 16)).trimStart();
   if (peek.startsWith("#EXTM3U")) {
     const text = new TextDecoder().decode(buffer);
-    const rewritten = rewriteManifest(text, decoded, referer, origin);
+    const rewritten = rewriteManifest(text, decoded, referer, origin, sessionId);
     return new Response(rewritten, {
       status: 200,
       headers: corsHeaders("application/vnd.apple.mpegurl"),

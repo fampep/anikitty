@@ -112,8 +112,33 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
           {(level.commentCount ?? 0) > 0 && (
             <span>{level.commentCount} comments (+{level.commentXp ?? 0} XP)</span>
           )}
+          {typeof level.watchXp === "number" && typeof level.commentXp === "number" && level.xp > 0 && (
+            <span>
+              {Math.round((level.watchXp / level.xp) * 100)}% watch · {Math.round((level.commentXp / level.xp) * 100)}% comments
+            </span>
+          )}
+          {level.nextTier && level.level < 100 && (
+            <span style={{ color: level.nextTier.color }}>
+              Next rank: {level.nextTier.name} (Lv.{level.nextTier.minLevel})
+            </span>
+          )}
           {level.level >= 100 && <span className="text-amber-400/80">MAX LEVEL</span>}
         </div>
+
+        {typeof level.watchXp === "number" && typeof level.commentXp === "number" && level.xp > 0 && (
+          <div className="mt-2 h-1.5 w-full rounded-full bg-accent dark:bg-white/10 overflow-hidden flex">
+            <div
+              className="h-full bg-violet-500/80"
+              style={{ width: `${Math.max(0, Math.min(100, (level.watchXp / level.xp) * 100))}%` }}
+              title={`Watch XP: ${level.watchXp}`}
+            />
+            <div
+              className="h-full bg-sky-500/70"
+              style={{ width: `${Math.max(0, Math.min(100, (level.commentXp / level.xp) * 100))}%` }}
+              title={`Comment XP: ${level.commentXp}`}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

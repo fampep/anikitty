@@ -15,7 +15,7 @@ export function configureVidstackHlsProvider(provider: MediaProviderAdapter | nu
 
 export function playerSrcUsesHls(src: PlayerSrc): boolean {
   if (typeof src === "string") {
-    return /\.m3u8(?:\?|$)/i.test(src);
+    return /\.m3u8(?:\?|$)/i.test(src) || src.includes("/api/kitty/hls");
   }
   if (Array.isArray(src)) {
     return src.some((entry) => playerSrcUsesHls(entry));
@@ -23,7 +23,8 @@ export function playerSrcUsesHls(src: PlayerSrc): boolean {
   if (src && typeof src === "object" && "src" in src) {
     const type = "type" in src ? String(src.type ?? "") : "";
     if (type.includes("mpegurl") || type.includes("m3u8")) return true;
-    return /\.m3u8(?:\?|$)/i.test(String(src.src));
+    const value = String(src.src);
+    return /\.m3u8(?:\?|$)/i.test(value) || value.includes("/api/kitty/hls");
   }
   return false;
 }

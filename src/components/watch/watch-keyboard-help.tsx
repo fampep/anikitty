@@ -29,6 +29,7 @@ export default function WatchKeyboardHelp({ open, onClose, seekStepSeconds }: Pr
         { keys: "N / ]", labelKey: "watch.shortcuts.nextEpisode" as const },
         { keys: "P / [", labelKey: "watch.shortcuts.prevEpisode" as const },
         { keys: "T", labelKey: "watch.shortcuts.theatre" as const },
+        { keys: "Esc", labelKey: "watch.shortcuts.exitTheatre" as const },
         { keys: "C", labelKey: "watch.shortcuts.copyLink" as const },
         { keys: "?", labelKey: "watch.shortcuts.help" as const },
       ] as const,

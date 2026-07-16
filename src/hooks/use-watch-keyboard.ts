@@ -10,6 +10,8 @@ type Options = {
   onPrevEpisode?: () => void;
   onNextEpisode?: () => void;
   onToggleTheatre?: () => void;
+  theatreMode?: boolean;
+  onExitTheatre?: () => void;
   onCopyShareLink?: () => void;
   onShowShortcuts?: () => void;
   hasPrev?: boolean;
@@ -52,6 +54,8 @@ export function useWatchKeyboard({
   onPrevEpisode,
   onNextEpisode,
   onToggleTheatre,
+  theatreMode,
+  onExitTheatre,
   onCopyShareLink,
   onShowShortcuts,
   hasPrev,
@@ -69,6 +73,12 @@ export function useWatchKeyboard({
       if (key === "?" || (key === "h" && e.shiftKey)) {
         e.preventDefault();
         onShowShortcuts?.();
+        return;
+      }
+
+      if (key === "escape" && theatreMode) {
+        e.preventDefault();
+        onExitTheatre?.();
         return;
       }
 
@@ -154,6 +164,8 @@ export function useWatchKeyboard({
     onPrevEpisode,
     onNextEpisode,
     onToggleTheatre,
+    theatreMode,
+    onExitTheatre,
     onCopyShareLink,
     onShowShortcuts,
     hasPrev,

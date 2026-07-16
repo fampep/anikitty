@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+html.watch-theatre-active {
+  background: #000;
+}
+
+html.watch-theatre-active body {
+  background: #000;
+}
+
 html {
   scroll-behavior: smooth;
   --nav-height: 4rem;

@@ -4,6 +4,9 @@ function stripProxiedUpstream(url: string): string {
   const trimmed = url.trim();
   if (!trimmed.includes("/api/kitty/hls")) return trimmed;
 
+  // Opaque token URLs hide the upstream target — type is inferred from proxy path.
+  if (trimmed.includes("t=")) return trimmed;
+
   try {
     const parsed = trimmed.startsWith("http")
       ? new URL(trimmed)
@@ -21,6 +24,8 @@ function stripProxiedUpstream(url: string): string {
 }
 
 export function isHlsStreamUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  if (lower.includes("/api/kitty/hls")) return true;
   const u = stripProxiedUpstream(url).toLowerCase();
   return (
     u.includes(".m3u8") ||

@@ -26,6 +26,8 @@ import {
   MessageSquare,
   ExternalLink,
   Info,
+  Lightbulb,
+  X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
@@ -48,6 +50,7 @@ import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import { useSettingsStore } from "@/store/settings-store";
+import { useTheatreModeEffects } from "@/hooks/use-theatre-mode-effects";
 
 const CommentSection = dynamic(() => import("@/components/comments/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
@@ -76,6 +79,8 @@ const Layout = (props: Props) => {
   const auth = useAuthStore((s) => s.auth);
   const router = useRouter();
   const theatreMode = useSettingsStore((s) => s.theatreMode);
+  const setTheatreMode = useSettingsStore((s) => s.setTheatreMode);
+  useTheatreModeEffects(theatreMode);
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
   const episodeId = searchParams.get("episode");
@@ -392,9 +397,30 @@ const Layout = (props: Props) => {
   return (
     <WatchPageProvider openComments={openComments}>
     {theatreMode && (
-      <div className="fixed inset-0 z-[-1] bg-black/85 pointer-events-none" aria-hidden />
+      <div className="fixed inset-0 z-[35] bg-black/92 pointer-events-none" aria-hidden />
     )}
-    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[1]")}>
+    {theatreMode && (
+      <div className="fixed top-[var(--nav-total-height)] inset-x-0 z-[45] flex items-center justify-between gap-3 px-3 sm:px-4 py-2 bg-black/85 border-b border-white/10 backdrop-blur-md">
+        <div className="min-w-0 flex items-center gap-2.5">
+          <Lightbulb className="w-4 h-4 text-amber-300/80 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-white/35 leading-none">
+              {t("watch.theatre.active")}
+            </p>
+            <p className="text-sm font-semibold text-white/90 truncate mt-0.5">{info.name}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setTheatreMode(false)}
+          className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/15 transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+          <span>{t("watch.theatre.exit")}</span>
+        </button>
+      </div>
+    )}
+    <Container className={cn("mt-16 sm:mt-20 pb-16 pb-safe", theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[calc(var(--nav-total-height)+2.75rem)] sm:mt-[calc(var(--nav-total-height)+3rem)]")}>
       {!theatreMode && (
         <div className="flex items-end justify-between gap-3 mb-3 min-w-0">
           <AnimeClearLogo
@@ -474,7 +500,7 @@ const Layout = (props: Props) => {
           )}
 
           {/* Mobile: episode grid + comments */}
-          <div id="watch-mobile-playlist" className="flex flex-col gap-3 lg:hidden scroll-mt-[calc(var(--nav-total-height)+3.5rem)]">
+          <div id="watch-mobile-playlist" className={cn("flex flex-col gap-3 lg:hidden scroll-mt-[calc(var(--nav-total-height)+3.5rem)]", theatreMode && "hidden")}>
             {currentEpisode && currentAnimeId && !theatreMode && (
               <WatchCommentsPreview
                 animeId={currentAnimeId}

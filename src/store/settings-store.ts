@@ -56,6 +56,7 @@ interface ISettingsStore {
   /** Hide sidebar and expand player on watch page. */
   theatreMode: boolean;
   setTheatreMode: (val: boolean) => void;
+  toggleTheatreMode: () => void;
 
   /** Auto-switch to next provider when stream fails. */
   providerAutoFallback: boolean;
@@ -202,6 +203,7 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       theatreMode: false,
       setTheatreMode: (theatreMode) => set({ theatreMode }),
+      toggleTheatreMode: () => set((state) => ({ theatreMode: !state.theatreMode })),
 
       providerAutoFallback: false,
       setProviderAutoFallback: (providerAutoFallback) => set({ providerAutoFallback }),

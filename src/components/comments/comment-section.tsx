@@ -124,6 +124,7 @@ interface Comment {
   level?: number;
   levelRole?: string;
   levelRoleColor?: string;
+  levelTierIcon?: string;
   equippedFrame?: string | null;
   equippedIcon?: string | null;
   likes: number;
@@ -280,6 +281,7 @@ export default function CommentSection({
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<"new" | "best" | "top" | "old">("new");
+  const [hideSpoilers, setHideSpoilers] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -664,6 +666,16 @@ export default function CommentSection({
   const canSubmit = (draft.trim().length > 0 || !!selectedGif) && !submitting;
   const showToolbar = focused || !!draft || !!selectedGif || isSpoiler;
   const charNearLimit = draft.length > 850;
+  const visibleComments = hideSpoilers ? comments.filter((c) => !c.isSpoiler) : comments;
+  const hiddenSpoilerCount = hideSpoilers ? comments.length - visibleComments.length : 0;
+
+  const jumpToNewest = () => {
+    if (sort !== "new") setSort("new");
+    void fetchComments(1, "new", false);
+    requestAnimationFrame(() => {
+      document.getElementById("watch-comments-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const {
     suggestions: mentionSuggestions,
@@ -908,7 +920,29 @@ export default function CommentSection({
           </div>
         )}
         {!loading && (
-          <div className="flex items-center gap-0.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-0.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setHideSpoilers((v) => !v)}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                hideSpoilers
+                  ? "bg-amber-500/12 text-amber-200 border-amber-500/25"
+                  : "border-border dark:border-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
+              )}
+            >
+              {hideSpoilers ? t("comments.showSpoilers") : t("comments.hideSpoilers")}
+            </button>
+            {sort === "new" && comments.length > 0 && (
+              <button
+                type="button"
+                onClick={jumpToNewest}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-border dark:border-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55 transition-all"
+              >
+                {t("comments.jumpToLatest")}
+              </button>
+            )}
+            <div className="flex items-center gap-0.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-0.5">
             {(["new", "best", "top", "old"] as const).map((s) => (
               <button
                 key={s}
@@ -929,6 +963,7 @@ export default function CommentSection({
                       : t("comments.sortOld")}
               </button>
             ))}
+            </div>
           </div>
         )}
       </div>
@@ -1147,7 +1182,12 @@ export default function CommentSection({
         </div>
       ) : (
         <div className="flex flex-col">
-          {comments.map((c, index) => {
+          {hiddenSpoilerCount > 0 && (
+            <p className="text-[11px] font-mono text-amber-300/70 mb-2">
+              {t("comments.hiddenSpoilers", { count: hiddenSpoilerCount })}
+            </p>
+          )}
+          {visibleComments.map((c, index) => {
             const isOwn = auth?.id === c.userId;
             const isEditing = editingId === c.id;
             const isHighlighted = isOwn || netScore(c) >= 5;
@@ -1178,6 +1218,7 @@ export default function CommentSection({
                       level={c.level}
                       levelRole={c.levelRole}
                       levelRoleColor={c.levelRoleColor}
+                      levelTierIcon={c.levelTierIcon}
                     />
                     {c.pinnedAt && (
                       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
@@ -1393,6 +1434,7 @@ export default function CommentSection({
                                       level={reply.level}
                                       levelRole={reply.levelRole}
                                       levelRoleColor={reply.levelRoleColor}
+                                      levelTierIcon={reply.levelTierIcon}
                                       size="xs"
                                     />
                                     <span className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/18 leading-none">

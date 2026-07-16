@@ -29,5 +29,9 @@ export function createHlsConfig(opts?: { enableWebVTT?: boolean }): Partial<HlsC
     levelLoadingRetryDelay: 500,
     fragLoadingMaxRetry: 6,
     fragLoadingRetryDelay: 500,
+    // Ensure HttpOnly playback session cookie is sent on segment requests.
+    xhrSetup: (xhr) => {
+      xhr.withCredentials = true;
+    },
   };
 }

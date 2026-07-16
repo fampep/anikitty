@@ -147,8 +147,8 @@ export default function WatchPlayerToolbar({
   const setAutoPlay = useSettingsStore((s) => s.setAutoPlay);
   const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
   const setAutoSkipIntro = useSettingsStore((s) => s.setAutoSkipIntro);
+  const toggleTheatreMode = useSettingsStore((s) => s.toggleTheatreMode);
   const theatreMode = useSettingsStore((s) => s.theatreMode);
-  const setTheatreMode = useSettingsStore((s) => s.setTheatreMode);
 
   const displayProvider = providerLabel ?? provider;
   const accent = getProviderAccent(provider);
@@ -182,7 +182,7 @@ export default function WatchPlayerToolbar({
           active={theatreMode}
           icon={<Lightbulb className="w-3 h-3 shrink-0" />}
           label={t("watch.toolbar.lightsOff")}
-          onClick={() => setTheatreMode(!theatreMode)}
+          onClick={toggleTheatreMode}
         />
         {pipSupported && onTogglePip && (
           <button

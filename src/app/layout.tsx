@@ -22,6 +22,7 @@ import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
 import LiteModeSync from "@/components/layout/lite-mode-sync";
 import SettingsSync from "@/components/layout/settings-sync";
 import OnlinePresence from "@/components/common/online-presence";
+import DisableDevtoolGuard from "@/components/security/disable-devtool-guard";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -154,6 +155,7 @@ export default async function RootLayout({
         className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
       >
         <PwaRegister />
+        <DisableDevtoolGuard />
         <ClickAdsScript />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider

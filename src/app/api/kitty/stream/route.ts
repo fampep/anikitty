@@ -34,6 +34,14 @@ import {
 } from "@/lib/providers/lunar-api";
 import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
 import { isKittyProxiedUrl, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
+import {
+  createHlsPlaybackSessionId,
+  HLS_SESSION_COOKIE,
+  hlsSessionCookieHeader,
+  mintKittyHlsProxyUrl,
+  readCookie,
+  verifyHlsSessionCookieValue,
+} from "@/lib/kitty/hls-proxy-token";
 import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import { fetchWithSubAudioFallback } from "@/lib/kitty/stream-audio-fallback";
 import {
@@ -192,22 +200,30 @@ export async function GET(req: Request) {
     audioFallback = servedAudio !== subtitleCtx.audio,
   ) {
     const nodeId = getKittyRequestNodeId();
+    const streamHeaders = data.headers ?? {};
+    const existingSid = verifyHlsSessionCookieValue(readCookie(req, HLS_SESSION_COOKIE));
+    const sessionId = existingSid ?? createHlsPlaybackSessionId();
+    const mintOpts = { sessionId };
+
     if (data.file) {
-      data.file = resolveKittyStreamUrl(data.file, nodeId);
+      const resolved = resolveKittyStreamUrl(data.file, nodeId);
+      data.file = resolved ? mintKittyHlsProxyUrl(resolved, streamHeaders, mintOpts) : "";
     }
 
     if (Array.isArray(data.allServers)) {
       data.allServers = data.allServers
         .map((entry) => ({
           quality: entry.quality,
-          file: resolveKittyStreamUrl(entry.file, nodeId),
+          resolved: resolveKittyStreamUrl(entry.file, nodeId),
         }))
-        .filter((entry) => entry.file.trim())
-        // AniDB's alternate-quality URLs are raw `hls.anidb.app` links that
-        // bypass the signed KittyAPI proxy (no token + upstream Referer) and
-        // won't play. Only keep proxied URLs so the player relies on the
-        // proxied master `file` for quality switching instead.
-        .filter((entry) => providerName !== "AniDB" || isKittyProxiedUrl(entry.file));
+        .filter((entry) => entry.resolved.trim())
+        .filter(
+          (entry) => providerName !== "AniDB" || isKittyProxiedUrl(entry.resolved),
+        )
+        .map((entry) => ({
+          quality: entry.quality,
+          file: mintKittyHlsProxyUrl(entry.resolved, streamHeaders, mintOpts),
+        }));
     }
 
     if (Array.isArray(data.tracks)) {
@@ -256,7 +272,12 @@ export async function GET(req: Request) {
     data.servedAudio = servedAudio;
     data.audioFallback = audioFallback;
 
-    return Response.json(data);
+    return Response.json(data, {
+      headers: {
+        "Set-Cookie": hlsSessionCookieHeader(sessionId),
+        "Cache-Control": "private, no-store",
+      },
+    });
   }
 
   async function respondWithStream(

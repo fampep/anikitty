@@ -119,7 +119,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
   const { fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
     enabled: !kittyProxyManual,
     lightweight: true,
@@ -1168,7 +1168,9 @@ const VideoPlayerSection = () => {
     seekStepSeconds,
     onPrevEpisode: handlePrevEpisode,
     onNextEpisode: handleNextEpisode,
-    onToggleTheatre: () => setTheatreMode(!theatreMode),
+    onToggleTheatre: toggleTheatreMode,
+    theatreMode,
+    onExitTheatre: () => setTheatreMode(false),
     onCopyShareLink: copyShareLink,
     onShowShortcuts: () => setShortcutsOpen(true),
     hasPrev: Boolean(prevEpisode),
