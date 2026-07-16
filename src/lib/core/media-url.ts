@@ -12,7 +12,7 @@ export function isLikelyAnimatedMediaUrl(url: string): boolean {
 }
 
 export const MEDIA_URL_HINT =
-  "Direct HTTPS image or GIF URL (Giphy, Tenor, Imgur, etc.)";
+  "Direct HTTPS image or GIF URL (KLIPY, Giphy, Tenor, Imgur, etc.)";
 
 export const BANNER_EXAMPLE_HINT =
   "Wide banner works best — anime scenery or looping GIFs look great";

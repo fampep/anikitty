@@ -1,6 +1,6 @@
 const MAX_GIF_LEN = 2000;
 
-/** Normalize common share links (Giphy, Imgur, etc.) to direct media URLs. */
+/** Normalize common share links (KLIPY, Giphy, Imgur, etc.) to direct media URLs. */
 export function normalizeGifUrl(input: string): string | null {
   const trimmed = input.trim().slice(0, MAX_GIF_LEN);
   if (!trimmed) return null;
@@ -93,7 +93,7 @@ export function looksLikeDirectMediaUrl(url: string): boolean {
   }
 }
 
-/** Resolve Tenor/Giphy page links to direct media via oEmbed when needed. */
+/** Resolve Tenor/Giphy/KLIPY page links to direct media via oEmbed when needed. */
 export async function resolveGifUrlAsync(url: string): Promise<string> {
   const normalized = normalizeGifUrl(url) ?? url;
   if (looksLikeDirectMediaUrl(normalized)) return normalized;

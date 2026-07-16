@@ -21,7 +21,7 @@ export function sanitizeGifUrl(input: unknown): string | null {
   return normalized;
 }
 
-/** Resolve share links (Tenor/Giphy pages) to direct media before storing. */
+/** Resolve share links (Tenor/Giphy/KLIPY pages) to direct media before storing. */
 export async function sanitizeAndResolveGifUrl(input: unknown): Promise<string | null> {
   const sync = sanitizeGifUrl(input);
   if (!sync) return null;
