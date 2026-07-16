@@ -12,6 +12,7 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Anitaku",
   "Anikoto",
   "MegaPlay",
+  "AniWatch",
   "AniNeko",
   "AniBD",
   "AniWaves",

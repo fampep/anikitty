@@ -79,6 +79,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-orange-400",
     glow: "from-orange-500/20",
   },
+  AniWatch: {
+    chip: "border-rose-400/30 bg-rose-500/10 text-rose-100/90",
+    pillActive: "border-rose-400/45 bg-rose-500/20 text-rose-50 shadow-[0_0_12px_-4px_rgba(251,113,133,0.35)]",
+    pillIdle: "border-transparent text-rose-300/45 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",
+    dot: "bg-rose-400",
+    glow: "from-rose-500/20",
+  },
   AniBD: {
     chip: "border-slate-400/30 bg-slate-500/10 text-slate-200/90",
     pillActive: "border-slate-400/40 bg-slate-500/15 text-slate-100 shadow-[0_0_12px_-4px_rgba(148,163,184,0.25)]",
