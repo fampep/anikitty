@@ -19,6 +19,7 @@ import {
   isKittyNodeFailoverError,
   type KittyProvider,
   type KittyTrack,
+  type KittyStreamNodeParam,
 } from "@/query/stream/get-kitty-stream";
 import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
@@ -132,6 +133,8 @@ const VideoPlayerSection = () => {
     lightweight: true,
   });
   const [excludeKittyNodes, setExcludeKittyNodes] = useState<KittyApiNodeId[]>([]);
+  /** `auto` races; pin to a node for HLS remints / quality stickiness on the same episode. */
+  const [streamKittyNode, setStreamKittyNode] = useState<KittyStreamNodeParam>("auto");
   const compactProviderPicker = simpleProviderPicker;
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
@@ -752,7 +755,7 @@ const VideoPlayerSection = () => {
         streamQueryAudio,
         provider,
         animeTitle,
-        "auto",
+        streamKittyNode,
         false,
         streamLinkId,
         excludeKittyNodes,
@@ -769,6 +772,7 @@ const VideoPlayerSection = () => {
     provider,
     animeTitle,
     streamLinkId,
+    streamKittyNode,
     excludeKittyNodes,
   ]);
 
@@ -880,13 +884,13 @@ const VideoPlayerSection = () => {
     streamQueryAudio,
     provider,
     animeTitle,
-    "auto",
+    streamKittyNode,
     false,
     streamLinkId,
     excludeKittyNodes,
   );
 
-  // Stick to the node that won the stream race (for labels / remints), not geo/ping.
+  // Remember the race winner for labels / remints — not geo/ping routing.
   useEffect(() => {
     const won = streamData?.kittyNode;
     if (!won || !isKittyApiNodeId(won)) return;
@@ -930,6 +934,7 @@ const VideoPlayerSection = () => {
     setPlaybackToken((n) => n + 1);
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
+    setStreamKittyNode("auto");
   }, [streamQueryAudio, provider, urlAnimeId, anilistId, episodeId]);
 
   // Proxy node switch from mid-play failover remount: keep resume time.
@@ -1229,6 +1234,7 @@ const VideoPlayerSection = () => {
     fallbackBusyRef.current = true;
     const fromLabel = getKittyApiNode(failed).location;
     toast.info(t("watch.nodeFailover", { from: fromLabel, to: "another proxy" }));
+    setStreamKittyNode("auto");
     setExcludeKittyNodes(Array.from(tried));
     commitResumeForSourceSwitch();
     setHeldStreamSnapshot(null);
@@ -1326,11 +1332,20 @@ const VideoPlayerSection = () => {
 
       if (isAuth && !remintAttemptedRef.current) {
         remintAttemptedRef.current = true;
+        // Keep the race winner for remints so quality/token refresh stays sticky.
+        const sticky =
+          (streamData?.kittyNode && isKittyApiNodeId(streamData.kittyNode)
+            ? streamData.kittyNode
+            : null) ?? kittyProxyNode;
         preservePlaybackPosition();
         setManualStreamFile(null);
         setManualStreamHeaders(null);
         toast.message(t("watch.refreshingPlayback"));
-        void retryStream();
+        if (streamKittyNode !== sticky) {
+          setStreamKittyNode(sticky);
+        } else {
+          void retryStream();
+        }
         return;
       }
 
@@ -1356,6 +1371,9 @@ const VideoPlayerSection = () => {
       attemptProviderFallback,
       preservePlaybackPosition,
       retryStream,
+      streamData?.kittyNode,
+      kittyProxyNode,
+      streamKittyNode,
       t,
     ],
   );
@@ -1459,6 +1477,7 @@ const VideoPlayerSection = () => {
   const stuckNextLabel = stuckNextFallback ? getKittyProviderMeta(stuckNextFallback).label : null;
   const proxyNodeLabel = getKittyApiNode(kittyProxyNode).label;
   const activeQualityLabel = displayQualities.find((q) => q.file === displayFile)?.quality ?? null;
+  const raceMs = streamData?.raceMs ?? null;
 
   const streamProviderControls = providerControlsBlock;
 
@@ -1700,6 +1719,7 @@ const VideoPlayerSection = () => {
           provider={provider}
           qualityLabel={activeQualityLabel}
           proxyNodeLabel={proxyNodeLabel}
+          raceMs={raceMs}
         />
       )}
 

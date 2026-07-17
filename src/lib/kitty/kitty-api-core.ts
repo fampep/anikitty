@@ -213,8 +213,8 @@ function kittyFailoverOrder(preferred: KittyApiNodeId): KittyApiNodeId[] {
 }
 
 /** Per-node budget so a hung peer cannot consume the caller's entire AbortSignal.
- * AniWaves/MegaPlay stream-direct often needs 8–16s; keep headroom under that. */
-const KITTY_FETCH_ATTEMPT_TIMEOUT_MS = 18_000;
+ * AniWaves/MegaPlay stream-direct often needs 8–14s; keep headroom under that. */
+const KITTY_FETCH_ATTEMPT_TIMEOUT_MS = 14_000;
 
 function attemptSignal(parent: AbortSignal | null | undefined): AbortSignal {
   const timeout = AbortSignal.timeout(KITTY_FETCH_ATTEMPT_TIMEOUT_MS);

@@ -118,6 +118,8 @@ type StreamPayload = {
   error?: string;
   /** Cluster node that won the stream race (or the pinned kittyNode). */
   kittyNode?: KittyApiNodeId;
+  /** Wall-clock ms for the CDN race (health + first valid stream-direct). */
+  raceMs?: number;
 };
 
 function parseExcludeKittyNodes(raw: string | null): KittyApiNodeId[] {
@@ -224,6 +226,7 @@ export async function GET(req: Request) {
     providerName: KittyProvider,
     servedAudio: "sub" | "dub" = subtitleCtx.audio,
     audioFallback = servedAudio !== subtitleCtx.audio,
+    raceMeta?: { raceMs?: number },
   ) {
     const nodeId = getKittyRequestNodeId();
     const streamHeaders = data.headers ?? {};
@@ -298,6 +301,9 @@ export async function GET(req: Request) {
     data.servedAudio = servedAudio;
     data.audioFallback = audioFallback;
     data.kittyNode = nodeId ?? getKittyRequestNodeId();
+    if (typeof raceMeta?.raceMs === "number" && Number.isFinite(raceMeta.raceMs)) {
+      data.raceMs = Math.max(0, Math.round(raceMeta.raceMs));
+    }
 
     return Response.json(data, {
       headers: {
@@ -313,15 +319,17 @@ export async function GET(req: Request) {
     servedAudio: "sub" | "dub",
     audioFallback: boolean,
     wonNode?: KittyApiNodeId,
+    raceMs?: number,
   ) {
     if (!payload?.file) return null;
     const nodeId = wonNode ?? getKittyRequestNodeId();
+    const raceMeta = raceMs != null ? { raceMs } : undefined;
     if (nodeId && nodeId !== getKittyRequestNodeId()) {
       return withKittyApiNodeAsync(nodeId, () =>
-        finalizeStreamResponse(payload, providerName, servedAudio, audioFallback),
+        finalizeStreamResponse(payload, providerName, servedAudio, audioFallback, raceMeta),
       );
     }
-    return finalizeStreamResponse(payload, providerName, servedAudio, audioFallback);
+    return finalizeStreamResponse(payload, providerName, servedAudio, audioFallback, raceMeta);
   }
 
   async function fetchStreamDirectPlayback(providerName: KittyProvider): Promise<{
@@ -329,8 +337,10 @@ export async function GET(req: Request) {
     servedAudio: "sub" | "dub";
     audioFallback: boolean;
     nodeId?: KittyApiNodeId;
+    raceMs?: number;
   }> {
     let wonNode: KittyApiNodeId | undefined;
+    let raceMs: number | undefined;
     const attempt = await fetchWithSubAudioFallback(subtitleCtx.audio, async (streamAudio) => {
       if (raceMode) {
         const raced = await raceKittyProviderStream(
@@ -347,6 +357,7 @@ export async function GET(req: Request) {
         );
         if (!raced?.stream?.file) return null;
         wonNode = raced.nodeId;
+        raceMs = raced.raceMs;
         const payload = raced.stream as StreamPayload;
         const serverLabel = payload.server;
         if (typeof serverLabel === "string") {
@@ -376,7 +387,7 @@ export async function GET(req: Request) {
       }
       return payload;
     });
-    return { ...attempt, nodeId: wonNode };
+    return { ...attempt, nodeId: wonNode, raceMs };
   }
 
   if (STREAM_DIRECT_PROVIDERS.has(provider)) {
@@ -396,6 +407,7 @@ export async function GET(req: Request) {
       directAttempt.servedAudio,
       directAttempt.audioFallback,
       directAttempt.nodeId,
+      directAttempt.raceMs,
     );
     if (directResponse) return directResponse;
 
@@ -411,6 +423,7 @@ export async function GET(req: Request) {
   if (provider === "Miruro") {
     try {
       let miruroWonNode: KittyApiNodeId | undefined;
+      let miruroRaceMs: number | undefined;
       const miruroAttempt = await fetchWithSubAudioFallback(
         subtitleCtx.audio,
         async (streamAudio) => {
@@ -428,6 +441,7 @@ export async function GET(req: Request) {
             );
             if (raced?.stream?.file) {
               miruroWonNode = raced.nodeId;
+              miruroRaceMs = raced.raceMs;
               return {
                 file: raced.stream.file,
                 headers: raced.stream.headers,
@@ -485,6 +499,7 @@ export async function GET(req: Request) {
         miruroAttempt.servedAudio,
         miruroAttempt.audioFallback,
         miruroWonNode,
+        miruroRaceMs,
       );
       if (miruroResponse) return miruroResponse;
     } catch (e) {
@@ -692,6 +707,7 @@ export async function GET(req: Request) {
     genericAttempt.servedAudio,
     genericAttempt.audioFallback,
     genericAttempt.nodeId,
+    genericAttempt.raceMs,
   );
   if (genericResponse) return genericResponse;
 

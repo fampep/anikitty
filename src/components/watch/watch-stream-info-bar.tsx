@@ -15,6 +15,8 @@ type Props = {
   provider: KittyProvider;
   qualityLabel?: string | null;
   proxyNodeLabel?: string | null;
+  /** Optional race timing for debug hover (ms). */
+  raceMs?: number | null;
   className?: string;
 };
 
@@ -47,6 +49,7 @@ export default function WatchStreamInfoBar({
   provider,
   qualityLabel,
   proxyNodeLabel,
+  raceMs,
   className,
 }: Props) {
   const t = useT();
@@ -54,6 +57,10 @@ export default function WatchStreamInfoBar({
   const server = resolveServerCodename(provider, serverName) ?? serverName?.trim();
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
   const quality = qualityLabel ? formatStreamQualityLabel(qualityLabel) : null;
+  const proxyTitle =
+    raceMs != null && Number.isFinite(raceMs)
+      ? `CDN race ${Math.round(raceMs)}ms`
+      : undefined;
 
   return (
     <div
@@ -82,9 +89,10 @@ export default function WatchStreamInfoBar({
       {quality && <MetaChip>{quality}</MetaChip>}
 
       {proxyNodeLabel && (
-        <MetaChip>
+        <MetaChip title={proxyTitle}>
           <Globe2 className="w-2.5 h-2.5 opacity-70 shrink-0" />
           {proxyNodeLabel}
+          {raceMs != null && Number.isFinite(raceMs) ? ` · ${Math.round(raceMs)}ms` : ""}
         </MetaChip>
       )}
     </div>

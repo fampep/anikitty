@@ -45,6 +45,8 @@ export interface KittyStreamResponse {
   error?: string;
   /** Node that won the stream race (or the pinned node). */
   kittyNode?: KittyApiNodeId;
+  /** Wall-clock ms for the CDN race when kittyNode=auto. */
+  raceMs?: number;
 }
 
 export const getKittyStream = async (
