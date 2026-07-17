@@ -32,7 +32,7 @@ export function buildVidstackPlayerSrc(
   const primaryType = resolveKittyStreamType(src, deduped);
 
   // Only expand multi-src when entries are real heights. Locale-named
-  // allServers (e.g. AnimeStream audio) must not replace the primary file.
+  // allServers quality ladders must not replace the primary file.
   if (deduped.length > 1 && isResolutionQualityLadder(deduped)) {
     return deduped.map((entry) => {
       const entryType = resolveKittyStreamType(entry.file, [entry]);

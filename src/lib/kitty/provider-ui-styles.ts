@@ -93,7 +93,7 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-sky-400",
     glow: "from-sky-500/20",
   },
-  AnimeStream: {
+  KickAssAnime: {
     chip: "border-red-400/30 bg-red-500/10 text-red-100/90",
     pillActive: "border-red-400/45 bg-red-500/20 text-red-50 shadow-[0_0_12px_-4px_rgba(248,113,113,0.35)]",
     pillIdle: "border-transparent text-red-300/45 hover:text-red-200/80 hover:bg-red-500/[0.06]",

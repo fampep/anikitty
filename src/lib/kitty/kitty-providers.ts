@@ -45,6 +45,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniWaves",
   "AnimaxAnime",
   "AnimeStream",
+  "KickAssAnime",
 ] as const;
 
 export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
@@ -58,7 +59,7 @@ export const KITTY_PROVIDERS = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
-  "AnimeStream",
+  "KickAssAnime",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -134,16 +135,15 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "AnimeStream",
+    id: "KickAssAnime",
     label: "Uniform",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
-    hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "anime.uniquestream.net · HLS · SUB · DUB · multi-audio",
+    hint: "KickAssAnime · kaa.lt · VidStreaming/CatStream HLS · SUB · DUB",
   },
 ];
 
@@ -154,7 +154,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
-  "AnimeStream",
+  "KickAssAnime",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -178,7 +178,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Anikoto",
   "AniWatch",
   "AniNeko",
-  "AnimeStream",
+  "KickAssAnime",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -194,6 +194,7 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
+  if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
   if (value === "AniKuro") {
     return DEFAULT_KITTY_PROVIDER;
   }
