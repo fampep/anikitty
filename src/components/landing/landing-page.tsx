@@ -11,7 +11,8 @@ import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { ROUTES } from "@/constants/routes";
-import { DISCORD_INVITE_URL } from "@/constants/site-meta";
+import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
+import TelegramIcon from "@/icons/telegram";
 import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
 import { trackEvent } from "@/lib/analytics";
 import LandingTrendingRow from "@/components/landing/landing-trending-row";
@@ -108,7 +109,7 @@ export default function LandingPage() {
 
         <div
           className={cn(
-            "flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto max-w-xs sm:max-w-none",
+            "flex flex-col items-center gap-4 w-full max-w-md sm:max-w-none",
             !reducedMotion && "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:delay-300",
           )}
         >
@@ -121,16 +122,31 @@ export default function LandingPage() {
             {t("landing.browse")}
             <ArrowRight className="w-4 h-4" />
           </Link>
-          <a
-            href={DISCORD_INVITE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackEvent("landing_discord")}
-            className="flex items-center gap-2 px-7 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
-          >
-            <DiscordLogoIcon width="16" height="16" />
-            {t("footer.discord")}
-          </a>
+          <p className="text-[12px] sm:text-[13px] text-white/40 leading-relaxed max-w-sm">
+            {t("landing.socialHint")}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto max-w-xs sm:max-w-none">
+            <a
+              href={TELEGRAM_CHANNEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent("landing_telegram")}
+              className="flex items-center gap-2 px-7 sm:px-8 py-3.5 bg-sky-500/15 text-sky-100/90 border border-sky-400/25 font-semibold rounded-2xl hover:bg-sky-500/20 hover:text-white hover:border-sky-400/40 transition-all text-sm w-full sm:w-auto justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/35"
+            >
+              <TelegramIcon className="h-4 w-4" />
+              {t("landing.telegramCta")}
+            </a>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent("landing_discord")}
+              className="flex items-center gap-2 px-7 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
+            >
+              <DiscordLogoIcon width="16" height="16" />
+              {t("footer.discord")}
+            </a>
+          </div>
         </div>
       </section>
 

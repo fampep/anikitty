@@ -27,14 +27,6 @@ export default function LandingFooter() {
             <Link href={ROUTES.FORUM} className={FOOTER_LINK}>{t("nav.forum")}</Link>
             <Link href={ROUTES.STATUS} className={FOOTER_LINK}>{t("nav.status")}</Link>
             <a
-              href={DISCORD_INVITE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={FOOTER_LINK}
-            >
-              {t("footer.discord")}
-            </a>
-            <a
               href={TELEGRAM_CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
@@ -42,9 +34,27 @@ export default function LandingFooter() {
             >
               {t("footer.telegram")}
             </a>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={FOOTER_LINK}
+            >
+              {t("footer.discord")}
+            </a>
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <a
+            href={TELEGRAM_CHANNEL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground/70 dark:text-white/20 hover:text-foreground dark:hover:text-white/55 transition-colors"
+            aria-label={t("footer.telegram")}
+            title={t("landing.socialHint")}
+          >
+            <TelegramIcon className="h-4 w-4" />
+          </a>
           <a
             href={DISCORD_INVITE_URL}
             target="_blank"
@@ -53,15 +63,6 @@ export default function LandingFooter() {
             aria-label={t("footer.discord")}
           >
             <DiscordLogoIcon width="16" height="16" />
-          </a>
-          <a
-            href={TELEGRAM_CHANNEL_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground/70 dark:text-white/20 hover:text-foreground dark:hover:text-white/55 transition-colors"
-            aria-label={t("footer.telegram")}
-          >
-            <TelegramIcon className="h-4 w-4" />
           </a>
           <a
             href="https://github.com/fampep/anikitty"
