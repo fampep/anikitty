@@ -57,10 +57,6 @@ export const KITTY_PROVIDERS = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
-  "Anitaku",
-  "MegaPlay",
-  "Miruro",
-  "MKissa",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -135,54 +131,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB · DUB · soft subs",
   },
-  {
-    id: "Anitaku",
-    label: "Beta",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft subs · multi-server",
-  },
-  {
-    id: "MegaPlay",
-    label: "Alpha",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "AniList ID only · same streams as Anikoto · SUB · DUB",
-  },
-  {
-    id: "Miruro",
-    label: "Fox",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    supportsMulti: true,
-    kittySubs: false,
-    hint: "AniList ID · miruro.to pipe · Bonk/Kiwi/Ally · SUB · DUB · skip times",
-  },
-  {
-    id: "MKissa",
-    label: "Echo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "AniList ID · mkissa.to · mirror servers (Ok, Mp4, …) · SUB · DUB",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -192,10 +140,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
-  "Anitaku",
-  "MegaPlay",
-  "Miruro",
-  "MKissa",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -215,13 +159,9 @@ export {
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
-  MEGAPLAY_PROVIDER_ID,
-  "Anitaku",
-  "Anikoto",
-  "Miruro",
-  "AniWatch",
   "AniWaves",
-  "MKissa",
+  "Anikoto",
+  "AniWatch",
   "AniNeko",
 ]);
 
