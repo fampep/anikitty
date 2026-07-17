@@ -6,6 +6,8 @@ import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity, Mic, Scale, History, Timer } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useOnlineCount } from "@/hooks/use-online-count";
+import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
@@ -16,6 +18,9 @@ import TelegramIcon from "@/icons/telegram";
 const Footer = () => {
   const t = useT();
   const pathname = usePathname();
+  const showOnlineCountPref = useSettingsStore((s) => s.showOnlineCount);
+  // Display-only subscription — heartbeat already runs from root OnlinePresence.
+  const count = useOnlineCount(showOnlineCountPref);
 
   if (pathname === "/") return null;
 
@@ -37,6 +42,21 @@ const Footer = () => {
             <p className="text-[11px] text-muted-foreground font-mono leading-relaxed max-w-[180px]">
               {t("footer.tagline")}
             </p>
+
+            {showOnlineCountPref && count !== null && (
+              <div
+                className="inline-flex items-center gap-2 mt-0.5 w-fit rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-2.5 py-1"
+                title={t("footer.online", { count: count.toLocaleString() })}
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
+                <span className="text-[11px] font-mono tabular-nums text-emerald-700/90 dark:text-emerald-300/90">
+                  {t("footer.online", { count: count.toLocaleString() })}
+                </span>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 mt-1">
               <a

@@ -110,6 +110,8 @@ export default function SiteDisplaySettings() {
     setSiteAccentColor,
     showBetaBadge,
     setShowBetaBadge,
+    showOnlineCount,
+    setShowOnlineCount,
     showAnnouncementBanner,
     setShowAnnouncementBanner,
   } = useSettingsStore();
@@ -240,6 +242,12 @@ export default function SiteDisplaySettings() {
           description={t("settings.showBetaBadgeDesc")}
           value={showBetaBadge}
           onChange={setShowBetaBadge}
+        />
+        <ToggleChip
+          label={t("settings.showOnlineCount")}
+          description={t("settings.showOnlineCountDesc")}
+          value={showOnlineCount}
+          onChange={setShowOnlineCount}
         />
         <ToggleChip
           label={t("settings.showAnnouncements")}

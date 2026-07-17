@@ -9,6 +9,8 @@ import {
   Loader2,
   LogIn,
   Trash2,
+  Users,
+  Wifi,
   ImagePlay,
   X,
   ChevronDown,
@@ -27,6 +29,8 @@ import LoginPopoverButton from "@/components/auth/login-popover-button";
 import CommunityHero from "@/components/community/community-hero";
 import { ROUTES } from "@/constants/routes";
 import { useLiveChat } from "@/hooks/use-live-chat";
+import { useOnlineCount } from "@/hooks/use-online-count";
+import { useSettingsStore } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useT } from "@/providers/i18n-provider";
@@ -283,6 +287,8 @@ export default function ChatPage() {
   const t = useT();
   const { auth } = useAuthStore();
   const { canModerateChat } = usePermissions();
+  const showOnlineCount = useSettingsStore((s) => s.showOnlineCount);
+  const onlineCount = useOnlineCount(showOnlineCount);
   const { messages, messageTtlMs, loading, sending, error, sendMessage, editMessage, deleteMessage, refresh } =
     useLiveChat();
   const [draft, setDraft] = useState("");
@@ -442,6 +448,18 @@ export default function ChatPage() {
           subtitle={t("chat.subtitle", { ttl: formatChatTtlLabel(messageTtlMs) })}
           className="mb-5"
         >
+          {showOnlineCount && (
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/8 text-xs text-muted-foreground dark:text-white/50"
+              title={t("chat.onlineHint")}
+            >
+              <Wifi className="h-3 w-3 text-emerald-400" />
+              <Users className="h-3 w-3" />
+              <span className="tabular-nums">
+                {onlineCount != null ? t("chat.usersOnline", { count: onlineCount }) : "…"}
+              </span>
+            </div>
+          )}
           <Link
             href={ROUTES.FORUM}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-muted-foreground dark:text-white/60 bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8 transition-colors"

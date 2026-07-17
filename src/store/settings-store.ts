@@ -130,6 +130,9 @@ interface ISettingsStore {
   showPillNavOnDesktop: boolean;
   setShowPillNavOnDesktop: (val: boolean) => void;
 
+  showOnlineCount: boolean;
+  setShowOnlineCount: (val: boolean) => void;
+
   showAnnouncementBanner: boolean;
   setShowAnnouncementBanner: (val: boolean) => void;
 
@@ -323,6 +326,9 @@ export const useSettingsStore = create<ISettingsStore>()(
       showPillNavOnDesktop: false,
       setShowPillNavOnDesktop: (showPillNavOnDesktop) => set({ showPillNavOnDesktop }),
 
+      showOnlineCount: true,
+      setShowOnlineCount: (showOnlineCount) => set({ showOnlineCount }),
+
       showAnnouncementBanner: true,
       setShowAnnouncementBanner: (showAnnouncementBanner) => set({ showAnnouncementBanner }),
 
@@ -379,6 +385,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         interfaceDensity: state.interfaceDensity,
         showBetaBadge: state.showBetaBadge,
         showPillNavOnDesktop: state.showPillNavOnDesktop,
+        showOnlineCount: state.showOnlineCount,
         showAnnouncementBanner: state.showAnnouncementBanner,
         notifyMentions: state.notifyMentions,
         notifyReplies: state.notifyReplies,
@@ -464,6 +471,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.uiFontScale = next.uiFontScale ?? "default";
           next.interfaceDensity = next.interfaceDensity ?? "compact";
           next.showBetaBadge = next.showBetaBadge ?? true;
+          next.showOnlineCount = next.showOnlineCount ?? true;
           next.showAnnouncementBanner = next.showAnnouncementBanner ?? true;
           next.notifyMentions = next.notifyMentions ?? true;
           next.notifyReplies = next.notifyReplies ?? true;

@@ -645,6 +645,12 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS activity_status VARCHAR(12) NOT NULL DEFAULT 'online'`,
       `ALTER TABLE w2g_rooms ADD COLUMN IF NOT EXISTS name VARCHAR(80)`,
       `CREATE INDEX IF NOT EXISTS w2g_rooms_updated_at_idx ON w2g_rooms (updated_at DESC)`,
+      `CREATE TABLE IF NOT EXISTS online_visitors (
+        visitor_key VARCHAR(80) PRIMARY KEY,
+        last_seen_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        user_id UUID
+      )`,
+      `CREATE INDEX IF NOT EXISTS online_visitors_last_seen_at_idx ON online_visitors (last_seen_at)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

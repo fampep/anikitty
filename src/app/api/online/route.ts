@@ -1,64 +1,80 @@
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
+import {
+  getOnlineCount,
+  leaveOnlinePresence,
+  touchOnlinePresence,
+} from "@/lib/online/presence-store";
 import { eq } from "drizzle-orm";
 
-const sessions = new Map<string, number>();
 const userPingAt = new Map<string, number>();
-const TTL_MS = 90_000;
 const USER_PING_THROTTLE_MS = 45_000;
 
-function prune() {
-  const now = Date.now();
-  for (const [id, ts] of sessions) {
-    if (now - ts > TTL_MS) sessions.delete(id);
-  }
+function isValidVisitorId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= 64;
 }
 
 async function touchUserPresence(userId: string) {
+  if (!process.env.DATABASE_URL) return;
+
   const now = Date.now();
   const last = userPingAt.get(userId) ?? 0;
   if (now - last < USER_PING_THROTTLE_MS) return;
   userPingAt.set(userId, now);
 
-  const db = getDb();
-  await db
-    .update(users)
-    .set({ lastOnlineAt: new Date() })
-    .where(eq(users.id, userId))
-    .catch(() => {});
+  try {
+    const db = getDb();
+    await db
+      .update(users)
+      .set({ lastOnlineAt: new Date() })
+      .where(eq(users.id, userId));
+  } catch {
+    /* ignore */
+  }
+}
+
+async function resolveUserId(req: Request): Promise<string | null> {
+  const token = extractToken(req);
+  if (!token) return null;
+  const payload = await verifyToken(token);
+  return payload?.userId ?? null;
 }
 
 export async function GET() {
-  prune();
-  return Response.json({ count: sessions.size });
+  const count = await getOnlineCount();
+  return Response.json({ count });
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { sessionId, action } = body ?? {};
+    const body = await req.json().catch(() => ({}));
+    const { sessionId, action } = (body ?? {}) as {
+      sessionId?: unknown;
+      action?: unknown;
+    };
 
-    if (typeof sessionId === "string" && sessionId.length <= 64) {
-      if (action === "leave") {
-        sessions.delete(sessionId);
-      } else {
-        sessions.set(sessionId, Date.now());
-      }
+    const visitorId = isValidVisitorId(sessionId) ? sessionId : null;
+    const userId = await resolveUserId(req);
+
+    if (action === "leave") {
+      const count = visitorId
+        ? await leaveOnlinePresence(visitorId, userId)
+        : await getOnlineCount();
+      return Response.json({ count });
     }
 
-    const token = extractToken(req);
-    if (token && action !== "leave") {
-      const payload = await verifyToken(token);
-      if (payload?.userId) {
-        await touchUserPresence(payload.userId);
-      }
+    if (!visitorId) {
+      return Response.json({ count: await getOnlineCount() });
     }
 
-    prune();
-    return Response.json({ count: sessions.size });
+    if (userId) {
+      await touchUserPresence(userId);
+    }
+
+    const count = await touchOnlinePresence(visitorId, userId);
+    return Response.json({ count });
   } catch {
-    prune();
-    return Response.json({ count: sessions.size });
+    return Response.json({ count: await getOnlineCount() });
   }
 }

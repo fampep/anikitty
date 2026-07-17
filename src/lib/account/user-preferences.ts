@@ -32,6 +32,7 @@ export type SyncedUserPreferences = {
   interfaceDensity?: InterfaceDensity;
   showBetaBadge?: boolean;
   showPillNavOnDesktop?: boolean;
+  showOnlineCount?: boolean;
   showAnnouncementBanner?: boolean;
   notifyMentions?: boolean;
   notifyReplies?: boolean;
@@ -71,6 +72,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   }
   if (typeof input.showBetaBadge === "boolean") out.showBetaBadge = input.showBetaBadge;
   if (typeof input.showPillNavOnDesktop === "boolean") out.showPillNavOnDesktop = input.showPillNavOnDesktop;
+  if (typeof input.showOnlineCount === "boolean") out.showOnlineCount = input.showOnlineCount;
   if (typeof input.showAnnouncementBanner === "boolean") {
     out.showAnnouncementBanner = input.showAnnouncementBanner;
   }

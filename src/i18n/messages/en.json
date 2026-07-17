@@ -90,6 +90,7 @@
   },
   "footer": {
     "tagline": "Free anime streaming. Sub & dub. Player stays ad-free.",
+    "online": "{count} online",
     "browse": "Browse",
     "account": "Account",
     "project": "Project",
@@ -552,6 +553,8 @@
     "showPillNavOnDesktopDesc": "Reserved for a future layout option — bottom navigation is always visible",
     "presenceTitle": "Activity status",
     "presenceDesc": "Choose how others see you on your profile — online, away, do not disturb, or invisible.",
+    "showOnlineCount": "Online count",
+    "showOnlineCountDesc": "Show live visitor count in the footer and home bar",
     "showAnnouncements": "Announcements",
     "showAnnouncementsDesc": "Show site-wide announcement banners",
     "subtitleExport": "Copy settings",
@@ -1098,6 +1101,9 @@
   "chat": {
     "title": "Live Chat",
     "subtitle": "Chat with other AniKitty users in real time · messages disappear after {ttl}",
+    "online": "{count} online",
+    "usersOnline": "{count} on site",
+    "onlineHint": "People currently browsing AniKitty",
     "today": "Today",
     "yesterday": "Yesterday",
     "edit": "Edit",
@@ -1288,7 +1294,9 @@
       "reportQ": "How do I report a comment?",
       "reportA": "Tap the flag icon on any comment to send it to moderators. Reports go into a moderation queue where staff can resolve or dismiss them.",
       "w2gQ": "Watch Together",
-      "w2gA": "Open a room from any episode with Watch Together — it appears on the Watch Together page for anyone to join. Hosts can delete their room when done; guests leave without closing it. Playback stays synced and you can chat in the room panel."
+      "w2gA": "Open a room from any episode with Watch Together — it appears on the Watch Together page for anyone to join. Hosts can delete their room when done; guests leave without closing it. Playback stays synced and you can chat in the room panel.",
+      "onlineQ": "What does the online counter mean?",
+      "onlineA": "The online badge counts unique browsers currently on the site — guests and signed-in users — based on a short heartbeat from every page. It is not a list of usernames."
     },
     "privacy": {
       "dataQ": "What data does AniKitty store about me?",

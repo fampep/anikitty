@@ -924,3 +924,19 @@ export const episodeSkipTimes = pgTable(
     pk: primaryKey({ columns: [t.anilistId, t.episode] }),
   }),
 );
+
+/**
+ * Site-wide online presence (guests + signed-in).
+ * Keys are `g:{visitorId}` or `u:{userId}` with a short heartbeat TTL.
+ */
+export const onlineVisitors = pgTable(
+  "online_visitors",
+  {
+    visitorKey: varchar("visitor_key", { length: 80 }).primaryKey(),
+    lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+    userId: uuid("user_id"),
+  },
+  (t) => ({
+    lastSeenIdx: index("online_visitors_last_seen_at_idx").on(t.lastSeenAt),
+  }),
+);

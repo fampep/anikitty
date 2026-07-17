@@ -37,6 +37,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     interfaceDensity: s.interfaceDensity,
     showBetaBadge: s.showBetaBadge,
     showPillNavOnDesktop: s.showPillNavOnDesktop,
+    showOnlineCount: s.showOnlineCount,
     showAnnouncementBanner: s.showAnnouncementBanner,
     notifyMentions: s.notifyMentions,
     notifyReplies: s.notifyReplies,
@@ -72,6 +73,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.interfaceDensity !== undefined) patch.interfaceDensity = prefs.interfaceDensity;
   if (prefs.showBetaBadge !== undefined) patch.showBetaBadge = prefs.showBetaBadge;
   if (prefs.showPillNavOnDesktop !== undefined) patch.showPillNavOnDesktop = prefs.showPillNavOnDesktop;
+  if (prefs.showOnlineCount !== undefined) patch.showOnlineCount = prefs.showOnlineCount;
   if (prefs.showAnnouncementBanner !== undefined) patch.showAnnouncementBanner = prefs.showAnnouncementBanner;
   if (prefs.notifyMentions !== undefined) patch.notifyMentions = prefs.notifyMentions;
   if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;

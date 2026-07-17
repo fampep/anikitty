@@ -97,6 +97,7 @@ export default function FaqContent() {
         { q: t("faq.community.blockQ"), a: t("faq.community.blockA") },
         { q: t("faq.community.reportQ"), a: t("faq.community.reportA") },
         { q: t("faq.community.w2gQ"), a: t("faq.community.w2gA") },
+        { q: t("faq.community.onlineQ"), a: t("faq.community.onlineA") },
       ],
     },
     {
