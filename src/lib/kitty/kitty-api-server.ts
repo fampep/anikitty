@@ -51,7 +51,7 @@ export async function kittyApiFetch(
   opts?: KittyApiFetchOptions,
 ): Promise<Response> {
   const nodeId = opts?.nodeId ?? getKittyRequestNodeId() ?? DEFAULT_KITTY_API_NODE_ID;
-  return kittyApiFetchCore(path, init, { nodeId });
+  return kittyApiFetchCore(path, init, { ...opts, nodeId });
 }
 
 export async function handleKittyApiRequest(

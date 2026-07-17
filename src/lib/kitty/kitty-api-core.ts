@@ -1,6 +1,7 @@
 import {
   DEFAULT_KITTY_API_NODE_ID,
   getKittyApiNodeUrl,
+  isRemovedKittyApiHost,
   KITTY_API_NODES,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";
@@ -11,6 +12,7 @@ export {
   getKittyApiNode,
   getKittyApiNodeUrl,
   isKittyApiNodeId,
+  isRemovedKittyApiHost,
   coerceKittyApiNodeId,
   KITTY_API_NODES,
   parseKittyNodeParam,
@@ -100,14 +102,14 @@ function normalizeBase(base: string): string {
 
 export function getKittyApiBases(): string[] {
   const envBase = process.env.KITTY_API_BASE?.trim();
-  if (envBase) return [normalizeBase(envBase)];
+  if (envBase && !isRemovedKittyApiHost(envBase)) return [normalizeBase(envBase)];
   return KITTY_API_NODES.map((node) => getKittyApiNodeUrl(node.id));
 }
 
 export function getKittyApiBase(nodeId?: KittyApiNodeId): string {
   if (nodeId) return getKittyApiNodeUrl(nodeId);
   const envBase = process.env.KITTY_API_BASE?.trim();
-  if (envBase) return normalizeBase(envBase);
+  if (envBase && !isRemovedKittyApiHost(envBase)) return normalizeBase(envBase);
   return getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_ID);
 }
 
@@ -208,6 +210,27 @@ function kittyFailoverOrder(preferred: KittyApiNodeId): KittyApiNodeId[] {
   return [preferred, ...rest];
 }
 
+/** Per-node budget so a hung peer cannot consume the caller's entire AbortSignal.
+ * AniWaves/MegaPlay stream-direct often needs 8–16s; keep headroom under that. */
+const KITTY_FETCH_ATTEMPT_TIMEOUT_MS = 18_000;
+
+function attemptSignal(parent: AbortSignal | null | undefined): AbortSignal {
+  const timeout = AbortSignal.timeout(KITTY_FETCH_ATTEMPT_TIMEOUT_MS);
+  if (!parent) return timeout;
+  if (typeof AbortSignal.any === "function") {
+    return AbortSignal.any([parent, timeout]);
+  }
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (parent.aborted || timeout.aborted) {
+    abort();
+    return controller.signal;
+  }
+  parent.addEventListener("abort", abort, { once: true });
+  timeout.addEventListener("abort", abort, { once: true });
+  return controller.signal;
+}
+
 /** Fetch KittyAPI — optionally failover across cluster nodes on transport/5xx errors. */
 export async function kittyApiFetch(
   path: string,
@@ -218,14 +241,26 @@ export async function kittyApiFetch(
   const failover = opts?.failover !== false;
   const order = failover ? kittyFailoverOrder(preferred) : [preferred];
   const merged = mergeKittyFetchInit(path, init, opts?.skipAuth);
+  const parentSignal = init?.signal ?? undefined;
 
   let lastError: unknown = null;
   let lastResponse: Response | null = null;
 
   for (const nodeId of order) {
+    if (parentSignal?.aborted) {
+      throw parentSignal.reason instanceof Error
+        ? parentSignal.reason
+        : new Error("KittyAPI request aborted");
+    }
+
     const base = getKittyApiBase(nodeId);
+    if (isRemovedKittyApiHost(base)) continue;
+
     try {
-      const res = await fetch(kittyApiPath(path, base), merged);
+      const res = await fetch(kittyApiPath(path, base), {
+        ...merged,
+        signal: attemptSignal(parentSignal),
+      });
       if (!failover || !isTransientKittyFailure(res, null)) {
         return res;
       }
@@ -233,6 +268,8 @@ export async function kittyApiFetch(
     } catch (err) {
       lastError = err;
       if (!failover) throw err;
+      // Parent deadline — stop failover immediately.
+      if (parentSignal?.aborted) throw err;
     }
   }
 

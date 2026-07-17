@@ -65,7 +65,7 @@ export const getKittyStream = async (
       ...(linkId ? { linkId } : {}),
     },
     signal,
-    timeout: 22_000,
+    timeout: 45_000,
   });
   return res.data;
 };

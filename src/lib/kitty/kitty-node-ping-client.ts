@@ -6,7 +6,7 @@ import {
 import { buildKittySpeedtestPath } from "@/lib/kitty/kitty-api-core";
 
 const SPEEDTEST_BYTES = 65_536;
-const PING_TIMEOUT_MS = 8_000;
+const PING_TIMEOUT_MS = 5_000;
 
 export async function measureKittyNodeFromClient(
   nodeUrl: string,

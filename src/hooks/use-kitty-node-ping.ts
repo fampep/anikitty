@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { KittyApiNodeId, KittyNodePingResult } from "@/lib/kitty/kitty-api-nodes";
+import { KITTY_API_NODES } from "@/lib/kitty/kitty-api-nodes";
 import { measureAllKittyNodesFromClient } from "@/lib/kitty/kitty-node-ping-client";
 
 const PING_CACHE_TTL_MS = 60_000;
@@ -145,7 +146,11 @@ export function pickNextKittyFailoverNode(
   current: KittyApiNodeId,
   tried: ReadonlySet<KittyApiNodeId>,
 ): KittyApiNodeId | null {
-  const order = orderedHealthyKittyNodes(nodes, current);
+  // Without ping data, still walk the static cluster so a hung preferred node
+  // can fail over instead of stalling the player forever.
+  const order = nodes.length
+    ? orderedHealthyKittyNodes(nodes, current)
+    : KITTY_API_NODES.map((n) => n.id);
   for (const id of order) {
     if (id === current) continue;
     if (tried.has(id)) continue;

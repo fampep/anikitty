@@ -51,7 +51,7 @@ export async function fetchKittyStreamDirect(
   const provider = opts.provider?.trim();
   if (!provider) return null;
 
-  const timeoutMs = opts.timeoutMs ?? 20_000;
+  const timeoutMs = opts.timeoutMs ?? 40_000;
 
   if (
     opts.preferHardSub &&
@@ -103,7 +103,7 @@ export async function fetchKittyAutoStream(
     dub: false,
   });
 
-  return fetchKittyStreamPath(path, opts.timeoutMs ?? 25_000);
+  return fetchKittyStreamPath(path, opts.timeoutMs ?? 45_000);
 }
 
 /**

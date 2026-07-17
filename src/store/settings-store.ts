@@ -351,7 +351,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 39,
+      version: 40,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -547,6 +547,13 @@ export const useSettingsStore = create<ISettingsStore>()(
           } else {
             next.kittyProxyNode = coerceKittyApiNodeId(raw);
           }
+        }
+        if (version < 40) {
+          // Drop any sticky id that no longer exists (NL/fallback leftovers) and
+          // re-home CDN auto-routing on the live Stockholm primary.
+          next.kittyProxyNode = coerceKittyApiNodeId(
+            typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
+          );
         }
         return next as ISettingsStore;
       },

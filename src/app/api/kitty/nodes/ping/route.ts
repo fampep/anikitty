@@ -16,8 +16,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const PING_TIMEOUT_MS = 20_000;
-const PROBE_TIMEOUT_MS = 6_000;
+const PING_TIMEOUT_MS = 8_000;
+const PROBE_TIMEOUT_MS = 4_000;
 
 /** Compare origins ignoring protocol, case and trailing slashes. */
 function normalizeOrigin(value: string): string {

@@ -18,11 +18,37 @@ export type KittyApiNodeMeta = {
   note?: string;
 };
 
+/**
+ * Decommissioned cluster hosts that must never be used for minting/playback,
+ * even if a stale Coolify `NEXT_PUBLIC_KITTY_NODE_*` build arg still points at them.
+ */
+const REMOVED_KITTY_HOST_MARKERS = [
+  "94-75-223-124", // Netherlands
+  "94.75.223.124",
+  "92-119-165-226", // Switzerland
+  "92.119.165.226",
+  "45-150-111-153", // retired cluster IP
+  "45.150.111.153",
+] as const;
+
+/** True when a URL/host belongs to a removed KittyAPI node. */
+export function isRemovedKittyApiHost(value: string | null | undefined): boolean {
+  if (!value?.trim()) return false;
+  const lower = value.trim().toLowerCase();
+  return REMOVED_KITTY_HOST_MARKERS.some((marker) => lower.includes(marker));
+}
+
 /** Normalize an env-provided node origin into a clean `https://host` URL. */
 function nodeUrl(envValue: string | undefined, fallback: string): string {
   const raw = (envValue && envValue.trim()) || fallback;
   const trimmed = raw.trim().replace(/\/+$/, "");
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  // Stale Coolify args often still point primary at Netherlands after the cutover.
+  if (isRemovedKittyApiHost(withProto)) {
+    const safe = fallback.trim().replace(/\/+$/, "");
+    return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
+  }
+  return withProto;
 }
 
 function nodeHost(url: string): string {
