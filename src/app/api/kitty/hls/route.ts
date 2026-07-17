@@ -17,6 +17,53 @@ function isM3u8ByContentType(ct: string): boolean {
   return ct.includes("mpegurl") || ct.includes("m3u8");
 }
 
+function isSpoofedMediaContentType(ct: string): boolean {
+  const lower = ct.toLowerCase();
+  return lower.startsWith("image/") || lower.includes("text/html") || lower.includes("text/plain");
+}
+
+/**
+ * When upstream is an Anikoto `/proxy?url=…` URL, resolve relative playlist
+ * paths against the real CDN URL — not the proxy host.
+ */
+function resolveRewriteBase(decoded: string): string {
+  try {
+    const u = new URL(decoded);
+    const path = u.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/proxy" || path.endsWith("/proxy")) {
+      const inner = u.searchParams.get("url");
+      if (inner) {
+        try {
+          return decodeURIComponent(inner);
+        } catch {
+          return inner;
+        }
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+  return decoded;
+}
+
+function fixSegmentContentType(url: string, contentType: string): string {
+  const ct = contentType.toLowerCase();
+  if (!isSpoofedMediaContentType(ct)) {
+    if (ct && !ct.includes("text")) return contentType;
+    if (url.includes(".mp4")) return "video/mp4";
+    return "video/MP2T";
+  }
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(path)) return contentType;
+    if (path.endsWith(".mp4")) return "video/mp4";
+    if (path.endsWith(".m4s")) return "video/iso.segment";
+  } catch {
+    /* fall through */
+  }
+  return "video/MP2T";
+}
+
 function buildProxyUrl(
   abs: string,
   referer: string,
@@ -174,22 +221,18 @@ export async function GET(req: Request) {
   }
 
   const contentType = upstream.headers.get("content-type") ?? "";
+  const rewriteBase = resolveRewriteBase(decoded);
 
   if (isM3u8ByUrl(decoded) || isM3u8ByContentType(contentType)) {
     const text = await upstream.text();
-    const rewritten = rewriteManifest(text, decoded, referer, origin, sessionId);
+    const rewritten = rewriteManifest(text, rewriteBase, referer, origin, sessionId);
     return new Response(rewritten, {
       status: 200,
       headers: corsHeaders("application/vnd.apple.mpegurl"),
     });
   }
 
-  const segmentType =
-    contentType && !contentType.includes("text")
-      ? contentType
-      : decoded.includes(".mp4")
-        ? "video/mp4"
-        : "video/MP2T";
+  const segmentType = fixSegmentContentType(rewriteBase, contentType);
 
   const segmentHeaders = corsHeaders(segmentType);
   const contentLength = upstream.headers.get("content-length");
@@ -201,21 +244,78 @@ export async function GET(req: Request) {
 
   const status = upstream.status === 206 ? 206 : 200;
   const likelyMediaSegment =
-    decoded.includes(".ts") ||
-    decoded.includes(".mp4") ||
-    decoded.includes(".m4s") ||
-    contentType.includes("video") ||
-    contentType.includes("octet-stream");
+    !isSpoofedMediaContentType(contentType) &&
+    (decoded.includes(".ts") ||
+      decoded.includes(".mp4") ||
+      decoded.includes(".m4s") ||
+      contentType.includes("video") ||
+      contentType.includes("octet-stream"));
 
   if (likelyMediaSegment && upstream.body) {
     return new Response(upstream.body, { status, headers: segmentHeaders });
+  }
+
+  // Spoofed image/* (EchoVideo): peek for disguised playlists without buffering whole TS segments.
+  if (upstream.body && isSpoofedMediaContentType(contentType)) {
+    const reader = upstream.body.getReader();
+    const first = await reader.read();
+    const head = first.value ?? new Uint8Array();
+    const peek = new TextDecoder("utf-8", { fatal: false }).decode(head.slice(0, 16)).trimStart();
+
+    if (peek.startsWith("#EXTM3U")) {
+      const chunks: Uint8Array[] = [head];
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+      const text = new TextDecoder().decode(
+        chunks.length === 1 ? chunks[0] : (() => {
+          const total = chunks.reduce((n, c) => n + c.length, 0);
+          const out = new Uint8Array(total);
+          let off = 0;
+          for (const c of chunks) {
+            out.set(c, off);
+            off += c.length;
+          }
+          return out;
+        })(),
+      );
+      const rewritten = rewriteManifest(text, rewriteBase, referer, origin, sessionId);
+      return new Response(rewritten, {
+        status: 200,
+        headers: corsHeaders("application/vnd.apple.mpegurl"),
+      });
+    }
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        if (head.length) controller.enqueue(head);
+        return (async () => {
+          try {
+            for (;;) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (value) controller.enqueue(value);
+            }
+            controller.close();
+          } catch (err) {
+            controller.error(err);
+          }
+        })();
+      },
+      cancel() {
+        void reader.cancel();
+      },
+    });
+    return new Response(stream, { status, headers: segmentHeaders });
   }
 
   const buffer = await upstream.arrayBuffer();
   const peek = new TextDecoder("utf-8", { fatal: false }).decode(buffer.slice(0, 16)).trimStart();
   if (peek.startsWith("#EXTM3U")) {
     const text = new TextDecoder().decode(buffer);
-    const rewritten = rewriteManifest(text, decoded, referer, origin, sessionId);
+    const rewritten = rewriteManifest(text, rewriteBase, referer, origin, sessionId);
     return new Response(rewritten, {
       status: 200,
       headers: corsHeaders("application/vnd.apple.mpegurl"),
