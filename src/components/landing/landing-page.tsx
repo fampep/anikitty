@@ -2,137 +2,36 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowRight,
-  ChevronDown,
-  LogIn,
-  Search,
-  Shield,
-  Tv2,
-  Zap,
-  MessageSquare,
-  Users,
-  Library,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
+import { DiscordLogoIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/core/utils";
 import { nightTokyo } from "@/utils/fonts";
-import { useOnlineCount } from "@/hooks/use-online-count";
-import { useSettingsStore } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { ROUTES } from "@/constants/routes";
-import { CATALOG_ANIME_COUNT } from "@/constants/site-meta";
+import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
-import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import { trackEvent } from "@/lib/analytics";
-import LandingPosterWall from "@/components/landing/landing-poster-wall";
 import LandingTrendingRow from "@/components/landing/landing-trending-row";
-import LandingProductPreview from "@/components/landing/landing-product-preview";
-import LandingFeaturesGrid from "@/components/landing/landing-features-grid";
+import LandingWatchYourWay from "@/components/landing/landing-watch-your-way";
+import LandingCompactFeatures from "@/components/landing/landing-compact-features";
 import LandingFooter from "@/components/landing/landing-footer";
-import LandingCommunitySnippets from "@/components/landing/landing-community-snippets";
-import LandingSpotlightCard from "@/components/landing/landing-spotlight-card";
-import LandingHowItWorks from "@/components/landing/landing-how-it-works";
 import LandingFinalCta from "@/components/landing/landing-final-cta";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
-type Props = {
-  initialPosters?: string[];
-};
-
-function FeaturePill({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 text-muted-foreground dark:text-white/45 text-[12px] font-medium backdrop-blur-sm transition-colors hover:border-violet-400/20 hover:bg-violet-500/[0.04]">
-      <span className="text-violet-300/70">{icon}</span>
-      {label}
-    </div>
-  );
-}
-
-function HeroStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="site-panel px-3 py-2.5 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-violet-300/80 mb-0.5">{icon}</div>
-      <p className="text-sm font-bold text-white/90 tabular-nums">{value}</p>
-      <p className="text-[10px] font-medium text-white/35 mt-0.5">{label}</p>
-    </div>
-  );
-}
-
-export default function LandingPage({ initialPosters = [] }: Props) {
+export default function LandingPage() {
   const t = useT();
-  const showOnlineCount = useSettingsStore((s) => s.showOnlineCount);
-  const count = useOnlineCount(showOnlineCount);
   const auth = useAuthStore();
   const isLoggedIn = !!auth.auth;
   const { data: homeData, isLoading: homeLoading } = useGetHomeCriticalData();
   const reducedMotion = usePrefersReducedMotion();
-  const router = useRouter();
-
-  const [heroQuery, setHeroQuery] = useState("");
-
-  const submitHeroSearch = () => {
-    const q = heroQuery.trim();
-    trackEvent("landing_search_hero", { hasQuery: q.length > 0 });
-    router.push(q ? `${ROUTES.SEARCH}?q=${encodeURIComponent(q)}` : ROUTES.SEARCH);
-  };
-
-  const [posters, setPosters] = useState<string[]>(initialPosters);
-  const [postersLoaded, setPostersLoaded] = useState(initialPosters.length > 0);
-  const [continueHref, setContinueHref] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (initialPosters.length > 0) return;
-    fetch("/api/home/posters")
-      .then((r) => r.json())
-      .then((data) => {
-        setPosters((data.posters ?? []).slice(0, 12));
-        setPostersLoaded(true);
-      })
-      .catch(() => setPostersLoaded(true));
-  }, [initialPosters.length]);
-
-  useEffect(() => {
-    if (!isLoggedIn || !auth.auth) {
-      setContinueHref(null);
-      return;
-    }
-    let cancelled = false;
-    anisurgeContinue
-      .get(true, 1)
-      .then((res: { data?: Array<{ animeId: string; episodeId: string; currentTime?: number }> }) => {
-        const item = res?.data?.[0];
-        if (cancelled || !item?.animeId || !item?.episodeId) return;
-        const tParam =
-          item.currentTime && item.currentTime > 10 ? `&t=${Math.floor(item.currentTime)}` : "";
-        setContinueHref(`${ROUTES.WATCH}?anime=${item.animeId}&episode=${item.episodeId}${tParam}`);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn, auth.auth]);
-
-  const catalogStat = `${CATALOG_ANIME_COUNT.toLocaleString()}+`;
-  const primaryHref = continueHref ?? ROUTES.HOME;
-  const primaryLabel = continueHref ? t("landing.continueWatching") : t("landing.startWatching");
   const spotlight = homeData?.spotlightAnimes?.[0] ?? null;
-
-  const statsLine = useMemo(() => {
-    return [
-      t("landing.recentCount", { count: CATALOG_ANIME_COUNT.toLocaleString() }),
-      t("landing.noSubscriptions"),
-    ];
-  }, [t]);
 
   return (
     <div className="relative min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden flex flex-col">
-      {/* Ambient spotlight backdrop — mirrors the home page's blurred-poster glow. */}
+      {/* Ambient backdrop — mirrors the home page blurred-poster glow. */}
       {spotlight?.poster && (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[min(78lvh,760px)] overflow-hidden" aria-hidden>
           <div className="relative size-full blur-3xl brightness-[0.18] saturate-125 scale-110">
@@ -142,14 +41,11 @@ export default function LandingPage({ initialPosters = [] }: Props) {
         </div>
       )}
 
-      <LandingPosterWall posters={posters} loaded={postersLoaded} />
-
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/92 via-[#0a0a0f]/80 to-[#0a0a0f]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f]/85 via-transparent to-[#0a0a0f]/85" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_36%,rgba(124,58,237,0.13),transparent)]" />
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/70 via-[#0a0a0f]/88 to-[#0a0a0f]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_28%,rgba(124,58,237,0.14),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:72px_72px]" />
       </div>
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
 
       <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5">
         <Link href="/" className="flex items-center group">
@@ -168,19 +64,11 @@ export default function LandingPage({ initialPosters = [] }: Props) {
             href={ROUTES.SEARCH}
             prefetch
             onClick={() => trackEvent("landing_search")}
-            className="inline-flex sm:hidden h-9 w-9 items-center justify-center rounded-xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white/80 hover:border-border dark:hover:border-white/20 transition-colors"
+            className="inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.04] text-white/50 text-xs font-semibold hover:text-white/80 hover:border-white/20 transition-colors"
             aria-label={t("nav.search")}
           >
-            <Search className="w-4 h-4" />
-          </Link>
-          <Link
-            href={ROUTES.SEARCH}
-            prefetch
-            onClick={() => trackEvent("landing_search")}
-            className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 text-xs font-semibold hover:text-foreground dark:hover:text-white/80 hover:border-border dark:hover:border-white/20 transition-colors"
-          >
             <Search className="w-3.5 h-3.5" />
-            {t("nav.search")}
+            <span className="hidden sm:inline">{t("nav.search")}</span>
           </Link>
           {!isLoggedIn && <LoginPopoverButton />}
           <Link
@@ -195,154 +83,60 @@ export default function LandingPage({ initialPosters = [] }: Props) {
         </div>
       </nav>
 
-      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-6 sm:pt-10 pb-8 sm:pb-12">
-        <div
-          className={cn(
-            "inline-flex items-center gap-2 px-3.5 py-1.5 mb-5 sm:mb-7 rounded-full border text-[11px] font-mono transition-all duration-500 min-h-[30px]",
-            count !== null && showOnlineCount
-              ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300/80 opacity-100"
-              : "opacity-0 pointer-events-none border-transparent",
-          )}
-          aria-hidden={count === null || !showOnlineCount}
-        >
-          <span
-            className={cn(
-              "w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0",
-              !reducedMotion && "animate-pulse",
-            )}
-          />
-          {count !== null && showOnlineCount && (
-            <>{t("landing.watchingNow", { count: count.toLocaleString(), people: count === 1 ? t("landing.person") : t("landing.people") })}</>
-          )}
-        </div>
-
+      <section className="relative z-10 flex flex-1 flex-col items-center justify-center text-center px-4 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-24 min-h-[min(78lvh,720px)]">
         <h1
           className={cn(
             nightTokyo.className,
-            "text-[3rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[7.5rem] font-black tracking-widest leading-none mb-4 sm:mb-5 select-none drop-shadow-2xl",
+            "text-[3.25rem] sm:text-[5.5rem] md:text-[7rem] lg:text-[8rem] font-black tracking-widest leading-none mb-5 sm:mb-6 select-none",
+            !reducedMotion && "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700",
           )}
         >
-          <span className="text-foreground dark:text-white">Ani</span>
+          <span className="text-white drop-shadow-2xl">Ani</span>
           <span className="bg-gradient-to-br from-violet-300 via-fuchsia-200/80 to-white/30 bg-clip-text text-transparent">
             Kitty
           </span>
         </h1>
 
-        <p className="text-muted-foreground dark:text-white/70 text-base sm:text-lg md:text-xl font-light mb-2 leading-relaxed tracking-wide max-w-xl">
+        <p
+          className={cn(
+            "text-white/55 text-base sm:text-lg md:text-xl font-light mb-8 sm:mb-10 leading-relaxed tracking-wide max-w-md",
+            !reducedMotion && "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:delay-150",
+          )}
+        >
           {t("landing.tagline")}
         </p>
-        <p className="text-muted-foreground/70 dark:text-white/28 text-xs sm:text-sm font-mono mb-7 sm:mb-8 flex items-center gap-2 flex-wrap justify-center">
-          {statsLine.map((part, i) => (
-            <span key={part} className="inline-flex items-center gap-2">
-              {i > 0 && <span className="w-1 h-1 rounded-full bg-muted dark:bg-white/15" />}
-              {part}
-            </span>
-          ))}
-        </p>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitHeroSearch();
-          }}
-          role="search"
-          className="group w-full max-w-md mb-6 flex items-center gap-2 pl-4 pr-2 py-2 rounded-2xl border border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] focus-within:border-violet-400/40 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all"
-        >
-          <Search className="w-4 h-4 text-muted-foreground dark:text-white/35 group-focus-within:text-violet-300/80 shrink-0 transition-colors" />
-          <input
-            type="search"
-            value={heroQuery}
-            onChange={(e) => setHeroQuery(e.target.value)}
-            placeholder={t("landing.searchPlaceholder")}
-            aria-label={t("nav.search")}
-            className="flex-1 min-w-0 bg-transparent py-1.5 text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground dark:placeholder:text-white/35 focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-95 transition-all shrink-0"
-          >
-            {t("nav.search")}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </form>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto max-w-sm sm:max-w-none">
-          <Link
-            href={primaryHref}
-            prefetch={!continueHref}
-            onClick={() =>
-              trackEvent(continueHref ? "landing_continue" : "landing_start", {
-                destination: continueHref ? "watch" : "home",
-              })
-            }
-            className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 w-full sm:w-auto sm:min-w-[190px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-          >
-            <Tv2 className="w-4 h-4" />
-            {primaryLabel}
-          </Link>
-          {!isLoggedIn ? (
-            <LoginPopoverButton
-              customTrigger={
-                <button className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 font-semibold rounded-2xl hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white hover:border-border dark:hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30">
-                  <LogIn className="w-4 h-4" />
-                  {t("landing.signIn")}
-                </button>
-              }
-            />
-          ) : (
-            <Link
-              href={ROUTES.HOME}
-              prefetch
-              onClick={() => trackEvent("landing_home_signed_in")}
-              className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-muted/50 dark:bg-white/5 text-muted-foreground dark:text-white/70 border border-border dark:border-white/12 font-semibold rounded-2xl hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white hover:border-border dark:hover:border-white/20 transition-all text-sm w-full sm:w-auto sm:min-w-[170px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
-            >
-              {t("landing.continueAs", { username: auth.auth?.username ?? "" })}
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+        <div
+          className={cn(
+            "flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto max-w-xs sm:max-w-none",
+            !reducedMotion && "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:delay-300",
           )}
-        </div>
-
-        <div className="mt-8 sm:mt-10 grid grid-cols-3 gap-2 w-full max-w-md">
-          <HeroStat
-            icon={<Library className="w-3.5 h-3.5" />}
-            label={t("landing.statCatalog")}
-            value={catalogStat}
-          />
-          <HeroStat
-            icon={<Users className="w-3.5 h-3.5" />}
-            label={t("landing.statOnline")}
-            value={showOnlineCount && count !== null ? count.toLocaleString() : showOnlineCount ? "…" : "—"}
-          />
-          <HeroStat
-            icon={<Sparkles className="w-3.5 h-3.5" />}
-            label={t("landing.statFree")}
-            value={t("landing.statFreeValue")}
-          />
-        </div>
-
-        <div className="mt-8 sm:mt-10 flex flex-wrap justify-center gap-2">
-          <FeaturePill icon={<Shield className="w-3.5 h-3.5" />} label={t("landing.adFreePlayer")} />
-          <FeaturePill icon={<Zap className="w-3.5 h-3.5" />} label={t("landing.fastStreams")} />
-          <FeaturePill icon={<MessageSquare className="w-3.5 h-3.5" />} label={t("landing.comments")} />
-          <FeaturePill icon={<Users className="w-3.5 h-3.5" />} label={t("landing.community")} />
-        </div>
-
-        <a
-          href="#trending"
-          className="mt-10 sm:mt-12 inline-flex flex-col items-center gap-1 text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/45 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30 rounded-lg px-2 py-1"
-          aria-label={t("landing.scrollHint")}
         >
-          <span className="text-[10px] font-mono uppercase tracking-widest">{t("landing.scrollHint")}</span>
-          <ChevronDown className={cn("w-4 h-4", !reducedMotion && "animate-bounce")} />
-        </a>
-      </div>
+          <Link
+            href={ROUTES.HOME}
+            prefetch
+            onClick={() => trackEvent("landing_start", { destination: "home" })}
+            className="flex items-center gap-2 px-7 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 w-full sm:w-auto justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          >
+            {t("landing.browse")}
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <a
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackEvent("landing_discord")}
+            className="flex items-center gap-2 px-7 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
+          >
+            <DiscordLogoIcon width="16" height="16" />
+            {t("footer.discord")}
+          </a>
+        </div>
+      </section>
 
-      <LandingSpotlightCard anime={spotlight} loading={homeLoading && !spotlight} />
-      <LandingTrendingRow id="trending" anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
-      <LandingHowItWorks />
-      <LandingProductPreview />
-      <LandingFeaturesGrid />
-      <LandingCommunitySnippets />
+      <LandingWatchYourWay />
+      <LandingTrendingRow anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
+      <LandingCompactFeatures />
       <LandingFinalCta />
       <LandingFooter />
     </div>
