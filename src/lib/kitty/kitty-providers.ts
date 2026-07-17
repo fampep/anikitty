@@ -117,7 +117,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "aniwatch.one scrape · DGHG/MGCLD · SUB · DUB · soft subs",
+    hint: "aniwatch.one scrape · MGCLD/BYFMS · SUB · DUB · soft subs",
   },
   {
     id: "AniNeko",
