@@ -17,6 +17,11 @@ function mimeForStream(type: "m3u8" | "mp4") {
   return type === "m3u8" ? "application/x-mpegurl" : "video/mp4";
 }
 
+/** True when labels look like a resolution ladder (1080p/720p), not audio locales. */
+function isResolutionQualityLadder(qualities: KittyStreamQuality[]): boolean {
+  return qualities.some((entry) => Boolean(parseHeight(entry.quality)));
+}
+
 export function buildVidstackPlayerSrc(
   src: string,
   qualities: KittyStreamQuality[],
@@ -26,7 +31,9 @@ export function buildVidstackPlayerSrc(
   const deduped = dedupeStreamQualities(qualities);
   const primaryType = resolveKittyStreamType(src, deduped);
 
-  if (deduped.length > 1) {
+  // Only expand multi-src when entries are real heights. Locale-named
+  // allServers (e.g. AnimeStream audio) must not replace the primary file.
+  if (deduped.length > 1 && isResolutionQualityLadder(deduped)) {
     return deduped.map((entry) => {
       const entryType = resolveKittyStreamType(entry.file, [entry]);
       const height = parseHeight(entry.quality);
