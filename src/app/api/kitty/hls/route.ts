@@ -1,5 +1,4 @@
 import { isAllowedMediaProxyUrl } from "@/lib/security/security";
-import { getClientIp, rateLimit } from "@/lib/security/rate-limit";
 import {
   HLS_SESSION_COOKIE,
   isAllowedHlsClientRequest,
@@ -168,14 +167,7 @@ export async function GET(req: Request) {
     return new Response("forbidden", { status: 403 });
   }
 
-  const ip = getClientIp(req);
-  const limited = rateLimit(`hls:${ip}`, 480, 60_000);
-  if (!limited.ok) {
-    return new Response("too many requests", {
-      status: 429,
-      headers: { "Retry-After": String(limited.retryAfterSec) },
-    });
-  }
+  // No per-IP rate limit — HLS segment traffic must not 429 mid-watch.
 
   const sessionId = verifyHlsSessionCookieValue(readCookie(req, HLS_SESSION_COOKIE));
   if (!sessionId) {
