@@ -17,6 +17,8 @@ export {
   KITTY_API_NODES,
   parseKittyNodeParam,
   resolveKittyNodeIdFromOrigin,
+  isKittyNodeRaceParam,
+  kittyNodeRaceOrder,
 } from "@/lib/kitty/kitty-api-nodes";
 
 /** @deprecated Use getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_ID) */

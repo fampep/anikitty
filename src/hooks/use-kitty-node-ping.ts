@@ -124,20 +124,22 @@ export function isKittyNodeDead(
   return row != null && !row.ok;
 }
 
-/** Healthy nodes sorted by lowest ping (CDN failover order). */
+/**
+ * Healthy nodes in static cluster order for failover (not ping/geo sorted).
+ * `preferred` is listed first when still healthy so mid-play failover skips it next.
+ */
 export function orderedHealthyKittyNodes(
   nodes: KittyNodePingResult[],
   preferred?: KittyApiNodeId | null,
 ): KittyApiNodeId[] {
-  const healthy = nodes.filter((n) => n.ok);
-  healthy.sort((a, b) => {
-    if (preferred) {
-      if (a.id === preferred) return -1;
-      if (b.id === preferred) return 1;
-    }
-    return (a.pingMs ?? Infinity) - (b.pingMs ?? Infinity);
-  });
-  return healthy.map((n) => n.id);
+  const healthyIds = nodes.length
+    ? new Set(nodes.filter((n) => n.ok).map((n) => n.id))
+    : new Set(KITTY_API_NODES.map((n) => n.id));
+  const order = KITTY_API_NODES.map((n) => n.id).filter((id) => healthyIds.has(id));
+  if (preferred && order.includes(preferred)) {
+    return [preferred, ...order.filter((id) => id !== preferred)];
+  }
+  return order;
 }
 
 /** Next healthy node after `current`, skipping already-tried ids. */

@@ -32,7 +32,11 @@ import {
   isLunarServerId,
   type LunarServerId,
 } from "@/lib/providers/lunar-api";
-import { handleKittyApiRequest, getKittyRequestNodeId } from "@/lib/kitty/kitty-api-server";
+import {
+  handleKittyApiRequest,
+  getKittyRequestNodeId,
+  withKittyApiNodeAsync,
+} from "@/lib/kitty/kitty-api-server";
 import { isKittyProxiedUrl, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import {
   createHlsPlaybackSessionId,
@@ -42,8 +46,17 @@ import {
   readCookie,
   verifyHlsSessionCookieValue,
 } from "@/lib/kitty/hls-proxy-token";
-import { fetchKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
+import {
+  fetchKittyProviderStream,
+  raceKittyProviderStream,
+} from "@/lib/kitty/kitty-stream-api";
 import { fetchWithSubAudioFallback } from "@/lib/kitty/stream-audio-fallback";
+import {
+  isKittyApiNodeId,
+  isKittyNodeRaceParam,
+  kittyNodeRaceOrder,
+  type KittyApiNodeId,
+} from "@/lib/kitty/kitty-api-nodes";
 import {
   DEFAULT_KITTY_PROVIDER,
   KITTY_PROVIDERS,
@@ -85,8 +98,9 @@ const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
 /** Active providers that use generic KittyAPI stream-direct only (not MKissa mirrors or Miruro pipe). */
+const STREAM_DIRECT_EXCLUDE = new Set<string>(["MKissa", "Miruro"]);
 const STREAM_DIRECT_PROVIDERS = new Set<string>(
-  KITTY_PROVIDERS.filter((p) => p !== "MKissa" && p !== "Miruro"),
+  KITTY_PROVIDERS.filter((p) => !STREAM_DIRECT_EXCLUDE.has(p)),
 );
 
 type StreamPayload = {
@@ -102,10 +116,21 @@ type StreamPayload = {
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
   error?: string;
+  /** Cluster node that won the stream race (or the pinned kittyNode). */
+  kittyNode?: KittyApiNodeId;
 };
 
+function parseExcludeKittyNodes(raw: string | null): KittyApiNodeId[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(isKittyApiNodeId);
+}
+
 export async function GET(req: Request) {
-  return handleKittyApiRequest(req, async () => {
+  const raceMode = isKittyNodeRaceParam(new URL(req.url).searchParams.get("kittyNode"));
+  const run = async () => {
   const { searchParams } = new URL(req.url);
   const anilistId = searchParams.get("anilistId");
   const episode = searchParams.get("episode");
@@ -122,6 +147,7 @@ export async function GET(req: Request) {
   const animoServerParam = searchParams.get("animoServer");
   const linkIdParam = searchParams.get("linkId")?.trim() || undefined;
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
+  const raceCandidates = kittyNodeRaceOrder(parseExcludeKittyNodes(searchParams.get("excludeKittyNodes")));
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
     return Response.json({ error: "anilistId and episode are required" }, { status: 400 });
@@ -271,6 +297,7 @@ export async function GET(req: Request) {
 
     data.servedAudio = servedAudio;
     data.audioFallback = audioFallback;
+    data.kittyNode = nodeId ?? getKittyRequestNodeId();
 
     return Response.json(data, {
       headers: {
@@ -285,13 +312,50 @@ export async function GET(req: Request) {
     providerName: KittyProvider,
     servedAudio: "sub" | "dub",
     audioFallback: boolean,
+    wonNode?: KittyApiNodeId,
   ) {
     if (!payload?.file) return null;
+    const nodeId = wonNode ?? getKittyRequestNodeId();
+    if (nodeId && nodeId !== getKittyRequestNodeId()) {
+      return withKittyApiNodeAsync(nodeId, () =>
+        finalizeStreamResponse(payload, providerName, servedAudio, audioFallback),
+      );
+    }
     return finalizeStreamResponse(payload, providerName, servedAudio, audioFallback);
   }
 
-  async function fetchStreamDirectPlayback(providerName: KittyProvider) {
-    return fetchWithSubAudioFallback(subtitleCtx.audio, async (streamAudio) => {
+  async function fetchStreamDirectPlayback(providerName: KittyProvider): Promise<{
+    result: StreamPayload | null;
+    servedAudio: "sub" | "dub";
+    audioFallback: boolean;
+    nodeId?: KittyApiNodeId;
+  }> {
+    let wonNode: KittyApiNodeId | undefined;
+    const attempt = await fetchWithSubAudioFallback(subtitleCtx.audio, async (streamAudio) => {
+      if (raceMode) {
+        const raced = await raceKittyProviderStream(
+          {
+            provider: providerName,
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+            directOnly: true,
+            preferHardSub,
+          },
+          raceCandidates,
+        );
+        if (!raced?.stream?.file) return null;
+        wonNode = raced.nodeId;
+        const payload = raced.stream as StreamPayload;
+        const serverLabel = payload.server;
+        if (typeof serverLabel === "string") {
+          const trimmed = serverLabel.trim();
+          payload.server = trimmed || undefined;
+        }
+        return payload;
+      }
+
       const streamResult = await fetchKittyProviderStream({
         provider: providerName,
         anilistId: subtitleCtx.anilistId,
@@ -312,6 +376,7 @@ export async function GET(req: Request) {
       }
       return payload;
     });
+    return { ...attempt, nodeId: wonNode };
   }
 
   if (STREAM_DIRECT_PROVIDERS.has(provider)) {
@@ -330,6 +395,7 @@ export async function GET(req: Request) {
       provider,
       directAttempt.servedAudio,
       directAttempt.audioFallback,
+      directAttempt.nodeId,
     );
     if (directResponse) return directResponse;
 
@@ -344,27 +410,53 @@ export async function GET(req: Request) {
 
   if (provider === "Miruro") {
     try {
+      let miruroWonNode: KittyApiNodeId | undefined;
       const miruroAttempt = await fetchWithSubAudioFallback(
         subtitleCtx.audio,
         async (streamAudio) => {
-          const direct = await fetchKittyProviderStream({
-            provider: "Miruro",
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            title: titleParam,
-            directOnly: true,
-          });
+          if (raceMode) {
+            const raced = await raceKittyProviderStream(
+              {
+                provider: "Miruro",
+                anilistId: subtitleCtx.anilistId,
+                episode: subtitleCtx.episode,
+                audio: streamAudio,
+                title: titleParam,
+                directOnly: true,
+              },
+              raceCandidates,
+            );
+            if (raced?.stream?.file) {
+              miruroWonNode = raced.nodeId;
+              return {
+                file: raced.stream.file,
+                headers: raced.stream.headers,
+                tracks: raced.stream.tracks,
+                allServers: raced.stream.allServers,
+                download: raced.stream.download,
+                server: raced.stream.server,
+              };
+            }
+          } else {
+            const direct = await fetchKittyProviderStream({
+              provider: "Miruro",
+              anilistId: subtitleCtx.anilistId,
+              episode: subtitleCtx.episode,
+              audio: streamAudio,
+              title: titleParam,
+              directOnly: true,
+            });
 
-          if (direct?.file) {
-            return {
-              file: direct.file,
-              headers: direct.headers,
-              tracks: direct.tracks,
-              allServers: direct.allServers,
-              download: direct.download,
-              server: direct.server,
-            };
+            if (direct?.file) {
+              return {
+                file: direct.file,
+                headers: direct.headers,
+                tracks: direct.tracks,
+                allServers: direct.allServers,
+                download: direct.download,
+                server: direct.server,
+              };
+            }
           }
 
           const miruro = await fetchMiruroVideoStream({
@@ -392,6 +484,7 @@ export async function GET(req: Request) {
         "Miruro",
         miruroAttempt.servedAudio,
         miruroAttempt.audioFallback,
+        miruroWonNode,
       );
       if (miruroResponse) return miruroResponse;
     } catch (e) {
@@ -598,6 +691,7 @@ export async function GET(req: Request) {
     provider,
     genericAttempt.servedAudio,
     genericAttempt.audioFallback,
+    genericAttempt.nodeId,
   );
   if (genericResponse) return genericResponse;
 
@@ -608,10 +702,16 @@ export async function GET(req: Request) {
     },
     { status: 200 },
   );
-  });
+  };
+
+  if (raceMode) {
+    // Race picks the winning node; don't pin ALS to a geo/ping "preferred" peer first.
+    return withKittyApiNodeAsync(undefined, run);
+  }
+  return handleKittyApiRequest(req, run);
 }
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 function proxyInlineSubtitle(
   track: StreamTrack,

@@ -15,6 +15,9 @@ import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 
 export type { KittyStreamQuality };
 
+/** Pin to a cluster node, or `auto` to race all healthy proxies for the first working stream. */
+export type KittyStreamNodeParam = KittyApiNodeId | "auto";
+
 export interface KittyTrack {
   file: string;
   kind: string;
@@ -40,6 +43,8 @@ export interface KittyStreamResponse {
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
   error?: string;
+  /** Node that won the stream race (or the pinned node). */
+  kittyNode?: KittyApiNodeId;
 }
 
 export const getKittyStream = async (
@@ -48,10 +53,11 @@ export const getKittyStream = async (
   audio: "sub" | "dub",
   provider: KittyProvider,
   title?: string | null,
-  kittyNode?: KittyApiNodeId,
+  kittyNode: KittyStreamNodeParam = "auto",
   signal?: AbortSignal,
   preferHardSub?: boolean,
   linkId?: string | null,
+  excludeKittyNodes?: readonly KittyApiNodeId[],
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -59,10 +65,13 @@ export const getKittyStream = async (
       episode,
       audio,
       provider,
-      kittyNode: kittyNode ?? "primary",
+      kittyNode,
       ...(title ? { title } : {}),
       ...(preferHardSub ? { preferHardSub: "true" } : {}),
       ...(linkId ? { linkId } : {}),
+      ...(excludeKittyNodes?.length
+        ? { excludeKittyNodes: excludeKittyNodes.join(",") }
+        : {}),
     },
     signal,
     timeout: 45_000,
@@ -78,9 +87,10 @@ export function buildKittyStreamQueryKey(
   audio: "sub" | "dub",
   provider: KittyProvider,
   title?: string | null,
-  kittyNode?: KittyApiNodeId,
+  kittyNode?: KittyStreamNodeParam,
   preferHardSub?: boolean,
   linkId?: string | null,
+  excludeKittyNodes?: readonly KittyApiNodeId[],
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -89,9 +99,10 @@ export function buildKittyStreamQueryKey(
     audio,
     provider,
     title ?? "",
-    kittyNode ?? "primary",
+    kittyNode ?? "auto",
     preferHardSub === true,
     linkId ?? "",
+    excludeKittyNodes?.length ? excludeKittyNodes.slice().sort().join(",") : "",
   ];
 }
 
@@ -146,9 +157,10 @@ export const useGetKittyStream = (
   audio: "sub" | "dub" = "sub",
   provider: KittyProvider = DEFAULT_KITTY_PROVIDER,
   title?: string | null,
-  kittyNode?: KittyApiNodeId,
+  kittyNode: KittyStreamNodeParam = "auto",
   preferHardSub = false,
   linkId?: string | null,
+  excludeKittyNodes?: readonly KittyApiNodeId[],
 ) => {
   const abortRef = useRef<AbortController | null>(null);
 
@@ -169,6 +181,7 @@ export const useGetKittyStream = (
       kittyNode,
       preferHardSub,
       linkId,
+      excludeKittyNodes,
     ),
     queryFn: async () => {
       abortRef.current?.abort();
@@ -185,6 +198,7 @@ export const useGetKittyStream = (
           controller.signal,
           preferHardSub,
           linkId,
+          excludeKittyNodes,
         );
       } finally {
         if (abortRef.current === controller) {

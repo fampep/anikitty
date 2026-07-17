@@ -178,6 +178,20 @@ export function isKittyApiNodeId(value: string): value is KittyApiNodeId {
   return KITTY_API_NODES.some((node) => node.id === value);
 }
 
+/** `auto` / `race` — parallel probe across cluster nodes for the first working stream. */
+export function isKittyNodeRaceParam(value: string | null | undefined): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "auto" || normalized === "race";
+}
+
+/** Cluster order for stream races / failover (not geo or ping sorted). */
+export function kittyNodeRaceOrder(
+  exclude: ReadonlySet<KittyApiNodeId> | readonly KittyApiNodeId[] = [],
+): KittyApiNodeId[] {
+  const skip = exclude instanceof Set ? exclude : new Set(exclude);
+  return KITTY_API_NODES.map((n) => n.id).filter((id) => !skip.has(id));
+}
+
 /** Coerce a stored preference (including legacy ids) to a live node id. */
 export function coerceKittyApiNodeId(value: string | null | undefined): KittyApiNodeId {
   if (!value?.trim()) return DEFAULT_KITTY_API_NODE_ID;

@@ -71,12 +71,12 @@ interface ISettingsStore {
   toggleProviderSectionHidden: (mode: ProviderAudioMode) => void;
 
   /**
-   * Active KittyAPI proxy node (CDN auto-routing). Updated from client/server
-   * health probes — users no longer pick a node manually.
+   * Active KittyAPI proxy node (last stream-race winner). Updated when a
+   * provider stream race completes — not by geo / lowest-ping preference.
    */
   kittyProxyNode: KittyApiNodeId;
   setKittyProxyNode: (node: KittyApiNodeId) => void;
-  /** Pin streaming to the lowest-ping healthy proxy (no-op if already set). */
+  /** Soft-set sticky proxy after a successful stream race (no-op if already set). */
   applyAutoKittyProxyNode: (node: KittyApiNodeId) => void;
 
   subtitleSettings: SubtitleSettings;

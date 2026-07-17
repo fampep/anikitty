@@ -18,6 +18,8 @@ export {
   isKittyPublicPath,
   isKittySignedProxyPath,
   isRemovedKittyApiHost,
+  isKittyNodeRaceParam,
+  kittyNodeRaceOrder,
   KITTY_API_NODES,
   kittyApiFetch,
   kittyApiHeaders,
