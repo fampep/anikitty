@@ -16,6 +16,7 @@ import {
   buildKittyStreamQueryKey,
   getKittyStream,
   isKittyStreamAbortError,
+  isKittyNodeFailoverError,
   type KittyProvider,
   type KittyTrack,
 } from "@/query/stream/get-kitty-stream";
@@ -26,7 +27,7 @@ import { ProviderQuickPick } from "@/components/player/provider-select";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
 
 import { useSkipTimes, useCommunitySkipTimes, mergeSkipTimesPriority } from "@/hooks/use-aniskip";
-import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
+import { useKittyNodePing, pickNextKittyFailoverNode } from "@/hooks/use-kitty-node-ping";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import {
   findPlayableEpisode,
@@ -74,7 +75,7 @@ import {
 } from "@/lib/kitty/provider-prefs";
 import { fetchAnilistSiteEpisodes } from "@/lib/kitty/anilist-site-client";
 import { isAnilistSiteProvider } from "@/lib/kitty/anilist-site-providers";
-import { getKittyApiNode } from "@/lib/kitty/kitty-api-nodes";
+import { getKittyApiNode, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import WatchStreamInfoBar from "@/components/watch/watch-stream-info-bar";
 import WatchStuckLoadingBanner from "@/components/watch/watch-stuck-loading-banner";
@@ -119,9 +120,9 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, applyAutoKittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
   const { nodes: proxyNodes, fastestId: fastestProxyId, ready: proxyPingReady } = useKittyNodePing({
-    // Always probe so we can auto-skip a dead pinned node.
+    // Always probe so CDN auto-routing can skip dead nodes.
     enabled: true,
     lightweight: true,
   });
@@ -130,11 +131,10 @@ const VideoPlayerSection = () => {
     if (!proxyPingReady || !fastestProxyId) return;
     const selectedDead =
       proxyNodes.length > 0 && proxyNodes.some((n) => n.id === kittyProxyNode && !n.ok);
-    // Dead pinned nodes always fail over; otherwise only auto mode follows fastest.
-    if (!selectedDead && (kittyProxyManual || kittyProxyNode === fastestProxyId)) return;
+    if (!selectedDead && kittyProxyNode === fastestProxyId) return;
     // Switching proxy mid-playback refetches the stream and remounts the player.
     const video = playerRef.current?.video;
-    if (video && !video.paused && !video.ended) return;
+    if (video && !video.paused && !video.ended && !selectedDead) return;
     if (selectedDead) {
       setKittyProxyNode(fastestProxyId);
       return;
@@ -142,7 +142,6 @@ const VideoPlayerSection = () => {
     applyAutoKittyProxyNode(fastestProxyId);
   }, [
     proxyPingReady,
-    kittyProxyManual,
     fastestProxyId,
     kittyProxyNode,
     proxyNodes,
@@ -334,6 +333,7 @@ const VideoPlayerSection = () => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [skipSubmitOpen, setSkipSubmitOpen] = useState(false);
   const triedProvidersRef = useRef(new Set<KittyProvider>());
+  const triedKittyNodesRef = useRef(new Set<KittyApiNodeId>());
   const fallbackBusyRef = useRef(false);
   const remintAttemptedRef = useRef(false);
   const [playbackToken, setPlaybackToken] = useState(0);
@@ -552,6 +552,7 @@ const VideoPlayerSection = () => {
     setResumeReady(false);
     playerRef.current?.pause?.();
     triedProvidersRef.current.clear();
+    triedKittyNodesRef.current.clear();
     fallbackBusyRef.current = false;
     remintAttemptedRef.current = false;
     setMobilePlaylistOpen(false);
@@ -1150,6 +1151,7 @@ const VideoPlayerSection = () => {
       preservePlaybackPosition();
       if (!fromFallback) {
         triedProvidersRef.current.clear();
+        triedKittyNodesRef.current.clear();
         fallbackBusyRef.current = false;
       }
       setProvider(p);
@@ -1201,6 +1203,29 @@ const VideoPlayerSection = () => {
     hasPrev: Boolean(prevEpisode),
     hasNext: Boolean(nextEpisode),
   });
+
+  // Fail over to the next healthy CDN node before switching providers.
+  const attemptNodeFailover = useCallback((): boolean => {
+    if (fallbackBusyRef.current) return false;
+
+    const tried = triedKittyNodesRef.current;
+    if (!tried.has(kittyProxyNode)) tried.add(kittyProxyNode);
+
+    const next = pickNextKittyFailoverNode(proxyNodes, kittyProxyNode, tried);
+    if (!next) return false;
+
+    tried.add(next);
+    fallbackBusyRef.current = true;
+    const fromLabel = getKittyApiNode(kittyProxyNode).location;
+    const toLabel = getKittyApiNode(next).location;
+    toast.info(t("watch.nodeFailover", { from: fromLabel, to: toLabel }));
+    setKittyProxyNode(next);
+
+    window.setTimeout(() => {
+      fallbackBusyRef.current = false;
+    }, 1200);
+    return true;
+  }, [kittyProxyNode, proxyNodes, setKittyProxyNode, t]);
 
   // Switch to the next fallback provider (shared by fetch-failure and playback
   // failure). Returns true if it kicked off a switch, false if none is left.
@@ -1257,12 +1282,14 @@ const VideoPlayerSection = () => {
     return getNextFallbackProvider(provider, tried);
   }, [provider]);
 
-  // Stream fetch failed (provider API returned an error / 404) → fail over.
+  // Stream fetch failed → try another healthy node on infra errors, then providers.
   useEffect(() => {
-    if (!providerAutoFallback || !streamQueryEnabled) return;
+    if (!streamQueryEnabled) return;
     if (streamPending || streamReady) return;
     if (!streamFailed) return;
     if (streamError && isKittyStreamAbortError(streamError)) return;
+    if (isKittyNodeFailoverError(streamError) && attemptNodeFailover()) return;
+    if (!providerAutoFallback) return;
     attemptProviderFallback();
   }, [
     providerAutoFallback,
@@ -1271,6 +1298,7 @@ const VideoPlayerSection = () => {
     streamReady,
     streamFailed,
     streamError,
+    attemptNodeFailover,
     attemptProviderFallback,
   ]);
 
@@ -1293,6 +1321,14 @@ const VideoPlayerSection = () => {
         return;
       }
 
+      const gatewayStatus =
+        info?.status === 502 ||
+        info?.status === 503 ||
+        info?.status === 504 ||
+        info?.status === 408 ||
+        info?.status === 429;
+      if (gatewayStatus && attemptNodeFailover()) return;
+
       if (!providerAutoFallback) {
         toast.error(t("watch.playbackFailed"));
         return;
@@ -1301,7 +1337,14 @@ const VideoPlayerSection = () => {
       const switched = attemptProviderFallback();
       if (!switched) toast.error(t("watch.playbackFailed"));
     },
-    [providerAutoFallback, attemptProviderFallback, preservePlaybackPosition, retryStream, t],
+    [
+      providerAutoFallback,
+      attemptNodeFailover,
+      attemptProviderFallback,
+      preservePlaybackPosition,
+      retryStream,
+      t,
+    ],
   );
 
   // Anime just changed in the URL but the loaded anime hasn't caught up yet —

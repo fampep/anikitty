@@ -23,7 +23,6 @@ export type SyncedUserPreferences = {
   simpleProviderPicker?: boolean;
   providerSectionHidden?: Partial<Record<ProviderAudioMode, boolean>>;
   kittyProxyNode?: KittyApiNodeId;
-  kittyProxyManual?: boolean;
   liteMode?: boolean;
   autoSkipIntro?: boolean;
   playThemeSong?: boolean;
@@ -60,7 +59,6 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.playerSettingsOpen === "boolean") out.playerSettingsOpen = input.playerSettingsOpen;
   if (typeof input.providerAutoFallback === "boolean") out.providerAutoFallback = input.providerAutoFallback;
   if (typeof input.simpleProviderPicker === "boolean") out.simpleProviderPicker = input.simpleProviderPicker;
-  if (typeof input.kittyProxyManual === "boolean") out.kittyProxyManual = input.kittyProxyManual;
   if (typeof input.liteMode === "boolean") out.liteMode = input.liteMode;
   if (typeof input.autoSkipIntro === "boolean") out.autoSkipIntro = input.autoSkipIntro;
   if (typeof input.playThemeSong === "boolean") out.playThemeSong = input.playThemeSong;

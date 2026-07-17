@@ -123,6 +123,37 @@ export function isKittyNodeDead(
   return row != null && !row.ok;
 }
 
+/** Healthy nodes sorted by lowest ping (CDN failover order). */
+export function orderedHealthyKittyNodes(
+  nodes: KittyNodePingResult[],
+  preferred?: KittyApiNodeId | null,
+): KittyApiNodeId[] {
+  const healthy = nodes.filter((n) => n.ok);
+  healthy.sort((a, b) => {
+    if (preferred) {
+      if (a.id === preferred) return -1;
+      if (b.id === preferred) return 1;
+    }
+    return (a.pingMs ?? Infinity) - (b.pingMs ?? Infinity);
+  });
+  return healthy.map((n) => n.id);
+}
+
+/** Next healthy node after `current`, skipping already-tried ids. */
+export function pickNextKittyFailoverNode(
+  nodes: KittyNodePingResult[],
+  current: KittyApiNodeId,
+  tried: ReadonlySet<KittyApiNodeId>,
+): KittyApiNodeId | null {
+  const order = orderedHealthyKittyNodes(nodes, current);
+  for (const id of order) {
+    if (id === current) continue;
+    if (tried.has(id)) continue;
+    return id;
+  }
+  return null;
+}
+
 export function useKittyNodePing(options?: UseKittyNodePingOptions) {
   const enabled = options?.enabled ?? true;
   const lightweight = options?.lightweight ?? false;

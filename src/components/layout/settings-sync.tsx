@@ -28,7 +28,6 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     simpleProviderPicker: s.simpleProviderPicker,
     providerSectionHidden: s.providerSectionHidden,
     kittyProxyNode: s.kittyProxyNode,
-    kittyProxyManual: s.kittyProxyManual,
     liteMode: s.liteMode,
     autoSkipIntro: s.autoSkipIntro,
     playThemeSong: s.playThemeSong,
@@ -64,7 +63,6 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.simpleProviderPicker !== undefined) patch.simpleProviderPicker = prefs.simpleProviderPicker;
   if (prefs.providerSectionHidden !== undefined) patch.providerSectionHidden = prefs.providerSectionHidden;
   if (prefs.kittyProxyNode !== undefined) patch.kittyProxyNode = prefs.kittyProxyNode;
-  if (prefs.kittyProxyManual !== undefined) patch.kittyProxyManual = prefs.kittyProxyManual;
   if (prefs.liteMode !== undefined) patch.liteMode = prefs.liteMode;
   if (prefs.autoSkipIntro !== undefined) patch.autoSkipIntro = prefs.autoSkipIntro;
   if (prefs.playThemeSong !== undefined) patch.playThemeSong = prefs.playThemeSong;

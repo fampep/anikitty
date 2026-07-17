@@ -70,17 +70,14 @@ interface ISettingsStore {
   providerSectionHidden: Partial<Record<ProviderAudioMode, boolean>>;
   toggleProviderSectionHidden: (mode: ProviderAudioMode) => void;
 
-  /** KittyAPI proxy node for streaming (Primary / Fallback). */
+  /**
+   * Active KittyAPI proxy node (CDN auto-routing). Updated from client/server
+   * health probes — users no longer pick a node manually.
+   */
   kittyProxyNode: KittyApiNodeId;
-  /** When true, skip auto-selecting the lowest-ping proxy. */
-  kittyProxyManual: boolean;
   setKittyProxyNode: (node: KittyApiNodeId) => void;
-  /** User picked a proxy in the chooser — do not override with auto ping. */
-  selectKittyProxyNode: (node: KittyApiNodeId) => void;
-  /** Apply lowest-ping proxy only when the user has not chosen manually. */
+  /** Pin streaming to the lowest-ping healthy proxy (no-op if already set). */
   applyAutoKittyProxyNode: (node: KittyApiNodeId) => void;
-  /** Resume auto-picking the lowest-ping proxy (optionally pin to a node first). */
-  enableAutoKittyProxyNode: (node?: KittyApiNodeId) => void;
 
   subtitleSettings: SubtitleSettings;
   setSubtitleFontSize: (fontSize: number) => void;
@@ -221,16 +218,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         })),
 
       kittyProxyNode: DEFAULT_KITTY_API_NODE_ID,
-      kittyProxyManual: false,
       setKittyProxyNode: (kittyProxyNode) => set({ kittyProxyNode }),
-      selectKittyProxyNode: (kittyProxyNode) => set({ kittyProxyNode, kittyProxyManual: true }),
       applyAutoKittyProxyNode: (kittyProxyNode) =>
-        set((s) => (s.kittyProxyManual ? s : { kittyProxyNode })),
-      enableAutoKittyProxyNode: (node) =>
-        set({
-          kittyProxyManual: false,
-          ...(node ? { kittyProxyNode: node } : {}),
-        }),
+        set((s) => (s.kittyProxyNode === kittyProxyNode ? s : { kittyProxyNode })),
 
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
@@ -361,7 +351,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 37,
+      version: 38,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -376,7 +366,6 @@ export const useSettingsStore = create<ISettingsStore>()(
         simpleProviderPicker: state.simpleProviderPicker,
         providerSectionHidden: state.providerSectionHidden,
         kittyProxyNode: state.kittyProxyNode,
-        kittyProxyManual: state.kittyProxyManual,
         liteMode: state.liteMode,
         autoSkipIntro: state.autoSkipIntro,
         playThemeSong: state.playThemeSong,
@@ -404,8 +393,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           videoPlayer?: string;
           anime4kEnabled?: boolean;
           anime4kMode?: string;
+          kittyProxyManual?: boolean;
         };
-        let next = { ...state } as Partial<ISettingsStore>;
+        let next = { ...state } as Partial<ISettingsStore> & { kittyProxyManual?: boolean };
         if (version < 2 || !next.subtitleSettings) {
           next = { ...next, subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } };
         }
@@ -532,7 +522,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 37) {
           // Switzerland removed; Netherlands is primary; Canada moved sixth → fifth.
-          const raw = typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : "";
+          const raw = typeof next.kittyProxyNode === "string" ? String(next.kittyProxyNode) : "";
           if (raw === "sixth-choice") {
             next.kittyProxyNode = "fifth-choice";
           } else if (raw === "fifth-choice") {
@@ -541,6 +531,13 @@ export const useSettingsStore = create<ISettingsStore>()(
           } else {
             next.kittyProxyNode = coerceKittyApiNodeId(raw);
           }
+        }
+        if (version < 38) {
+          // Manual VPS node picker removed — CDN auto-routing only.
+          delete next.kittyProxyManual;
+          next.kittyProxyNode = coerceKittyApiNodeId(
+            typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
+          );
         }
         return next as ISettingsStore;
       },

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import Container from "@/components/layout/container";
 import { KITTY_API_NODES, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
@@ -102,10 +101,7 @@ function latencyBarWidth(ms: number | null, maxMs: number): number {
 export default function StatusPageContent() {
   const t = useT();
   const liteMode = useSettingsStore((s) => s.liteMode);
-  const selectedNode = useSettingsStore((s) => s.kittyProxyNode);
-  const manualNode = useSettingsStore((s) => s.kittyProxyManual);
-  const selectKittyProxyNode = useSettingsStore((s) => s.selectKittyProxyNode);
-  const enableAutoKittyProxyNode = useSettingsStore((s) => s.enableAutoKittyProxyNode);
+  const activeNode = useSettingsStore((s) => s.kittyProxyNode);
   const statusPollMs = usePollingIntervalMs("status");
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
     useKittyNodePing();
@@ -131,7 +127,7 @@ export default function StatusPageContent() {
   const fastestNodeId = (recommended ?? fastestId) as KittyApiNodeId | null;
   const fastestNode = KITTY_API_NODES.find((n) => n.id === fastestNodeId);
   const fastestPing = fastestNode ? pingByNode[fastestNode.id] : null;
-  const selectedMeta = KITTY_API_NODES.find((n) => n.id === selectedNode);
+  const activeMeta = KITTY_API_NODES.find((n) => n.id === activeNode);
 
   const sortedNodes = useMemo(() => {
     return [...KITTY_API_NODES].sort((a, b) => {
@@ -178,33 +174,6 @@ export default function StatusPageContent() {
     overall === "checking"
       ? Loader2
       : STATUS_META[overall].icon;
-
-  const handleSelectNode = useCallback(
-    (nodeId: KittyApiNodeId, location: string) => {
-      if (selectedNode === nodeId && manualNode) return;
-      selectKittyProxyNode(nodeId);
-      toast.success(t("status.nodeSelected", { location }));
-    },
-    [selectedNode, manualNode, selectKittyProxyNode, t],
-  );
-
-  const handleUseFastest = useCallback(() => {
-    if (!fastestNodeId || !fastestNode) return;
-    selectKittyProxyNode(fastestNodeId);
-    toast.success(t("status.nodeSelected", { location: fastestNode.location }));
-  }, [fastestNodeId, fastestNode, selectKittyProxyNode, t]);
-
-  const handleEnableAuto = useCallback(() => {
-    enableAutoKittyProxyNode(fastestNodeId ?? undefined);
-    toast.success(t("status.autoEnabled"));
-  }, [enableAutoKittyProxyNode, fastestNodeId, t]);
-
-  const showFastestCta =
-    ready &&
-    fastestNodeId != null &&
-    fastestNode != null &&
-    selectedNode !== fastestNodeId &&
-    Boolean(pingByNode[fastestNodeId] != null || nodes.find((n) => n.id === fastestNodeId)?.ok);
 
   return (
     <Container className="py-10 sm:py-14 pb-[calc(var(--mobile-nav-total)+1.25rem)]">
@@ -315,58 +284,21 @@ export default function StatusPageContent() {
           )}
         </div>
 
-        <div
-          className={cn(
-            "site-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3",
-            manualNode
-              ? "border-violet-400/20 bg-violet-500/[0.06]"
-              : "border-teal-400/20 bg-teal-500/[0.06]",
-          )}
-        >
+        <div className="site-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 border-teal-400/20 bg-teal-500/[0.06]">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div
-              className={cn(
-                "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
-                manualNode
-                  ? "bg-violet-500/15 ring-violet-400/25 text-violet-300"
-                  : "bg-teal-500/15 ring-teal-400/25 text-teal-300",
-              )}
-            >
-              {manualNode ? <Globe2 className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 bg-teal-500/15 ring-teal-400/25 text-teal-300">
+              <Zap className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground dark:text-white/90">
-                {manualNode ? t("status.modeManual") : t("status.modeAuto")}
+                {t("status.modeAuto")}
               </p>
               <p className="text-[12px] text-muted-foreground dark:text-white/45 mt-0.5 leading-relaxed">
-                {manualNode
-                  ? t("status.modeManualDesc", {
-                      location: selectedMeta?.location ?? selectedNode,
-                    })
-                  : t("status.modeAutoDesc")}
+                {t("status.modeAutoDesc", {
+                  location: activeMeta?.location ?? activeNode,
+                })}
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {showFastestCta && (
-              <button
-                type="button"
-                onClick={handleUseFastest}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-teal-400/25 bg-teal-500/10 text-[12px] font-semibold text-teal-100 hover:bg-teal-500/15 transition-colors"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                {t("status.switchFastest")}
-              </button>
-            )}
-            {manualNode && (
-              <button
-                type="button"
-                onClick={handleEnableAuto}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-border dark:border-white/12 text-[12px] font-semibold text-muted-foreground dark:text-white/65 hover:bg-accent dark:hover:bg-white/8 transition-colors"
-              >
-                {t("status.enableAuto")}
-              </button>
-            )}
           </div>
         </div>
 
@@ -402,23 +334,17 @@ export default function StatusPageContent() {
               const bandwidth = bandwidthByNode[node.id];
               const online = nodes.find((n) => n.id === node.id)?.ok ?? false;
               const isRecommended = fastestNodeId === node.id && online;
-              const isSelected = selectedNode === node.id;
+              const isActive = activeNode === node.id;
               const barWidth = latencyBarWidth(ping ?? null, maxPing);
 
               return (
-                <button
+                <div
                   key={node.id}
-                  type="button"
-                  onClick={() => handleSelectNode(node.id, node.location)}
-                  disabled={!online && !isSelected}
                   className={cn(
-                    "site-panel p-4 sm:p-5 flex flex-col gap-3 text-left transition-all",
-                    "hover:border-border dark:hover:border-white/18 hover:bg-accent/40 dark:hover:bg-white/[0.04]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40",
+                    "site-panel p-4 sm:p-5 flex flex-col gap-3",
                     !online && "opacity-70",
-                    isSelected &&
-                      "border-sky-400/35 bg-sky-500/10 ring-1 ring-sky-400/20",
-                    isRecommended && !isSelected && "border-teal-400/20",
+                    isActive && "border-sky-400/35 bg-sky-500/10 ring-1 ring-sky-400/20",
+                    isRecommended && !isActive && "border-teal-400/20",
                   )}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -445,9 +371,9 @@ export default function StatusPageContent() {
                               {t("status.recommended")}
                             </span>
                           )}
-                          {isSelected && (
+                          {isActive && (
                             <span className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-400/25 text-sky-300/90">
-                              {manualNode ? t("status.yourNode") : t("status.activeNode")}
+                              {t("status.activeNode")}
                             </span>
                           )}
                         </div>
@@ -492,16 +418,6 @@ export default function StatusPageContent() {
                         />
                         {online ? t("status.up") : t("status.down")}
                       </span>
-                      <span
-                        className={cn(
-                          "hidden sm:inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-semibold border",
-                          isSelected
-                            ? "border-sky-400/30 bg-sky-500/15 text-sky-200"
-                            : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45",
-                        )}
-                      >
-                        {isSelected ? t("status.usingNode") : t("status.useNode")}
-                      </span>
                     </div>
                   </div>
 
@@ -522,7 +438,7 @@ export default function StatusPageContent() {
                       </div>
                     </div>
                   )}
-                </button>
+                </div>
               );
             })
           )}

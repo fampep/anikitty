@@ -5,7 +5,6 @@ import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
-import KittyProxyChooser from "@/components/watch/kitty-proxy-chooser";
 import SeekStepSetting from "@/components/settings/seek-step-setting";
 import {
   ChevronDown,
@@ -20,7 +19,6 @@ import {
   SlidersHorizontal,
   Server,
   List,
-  Globe2,
   Sparkles,
 } from "lucide-react";
 import {
@@ -28,7 +26,7 @@ import {
   isWebGpuSupported,
 } from "@/lib/player/anime4k";
 
-type PlayerSettingsTab = "playback" | "network" | "subtitles";
+type PlayerSettingsTab = "playback" | "subtitles";
 function ToggleRow({
   icon,
   label,
@@ -117,7 +115,6 @@ export default function PlayerSettingsBar({
 
   const settingsTabs: { id: PlayerSettingsTab; icon: typeof Play; label: string }[] = [
     { id: "playback", icon: Play, label: t("watch.playerSettings.tabPlayback") },
-    { id: "network", icon: Globe2, label: t("watch.playerSettings.tabNetwork") },
     { id: "subtitles", icon: Captions, label: t("watch.playerSettings.tabSubtitles") },
   ];
 
@@ -306,8 +303,6 @@ export default function PlayerSettingsBar({
               )}
             </div>
           )}
-
-          {settingsTab === "network" && <KittyProxyChooser />}
 
           {settingsTab === "subtitles" && (
             preferDub ? (

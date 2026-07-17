@@ -105,6 +105,41 @@ export function isKittyStreamAbortError(error: unknown): boolean {
   );
 }
 
+/** Infra/gateway failures worth trying another CDN node before switching providers. */
+export function isKittyNodeFailoverError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  if (isKittyStreamAbortError(error)) return false;
+
+  const err = error as {
+    code?: string;
+    message?: string;
+    response?: { status?: number };
+  };
+
+  const status = err.response?.status;
+  if (status === 502 || status === 503 || status === 504 || status === 408 || status === 429) {
+    return true;
+  }
+  // No HTTP response — timeout / network / DNS.
+  if (!err.response) {
+    const code = err.code ?? "";
+    if (
+      code === "ECONNABORTED" ||
+      code === "ERR_NETWORK" ||
+      code === "ETIMEDOUT" ||
+      code === "ECONNRESET" ||
+      code === "ENOTFOUND"
+    ) {
+      return true;
+    }
+    const msg = (err.message ?? "").toLowerCase();
+    if (msg.includes("timeout") || msg.includes("network") || msg.includes("fetch")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export const useGetKittyStream = (
   anilistId: number | undefined,
   episode: string | undefined,
