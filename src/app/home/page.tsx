@@ -7,6 +7,7 @@ import HomeSchedulePanel from "@/components/home/home-schedule-panel";
 import HomeSeasonBrowser from "@/components/home/home-season-browser";
 import HomeTrendingRail from "@/components/home/home-trending-rail";
 import HomeAdsNotice from "@/components/home/home-ads-notice";
+import HomeSocialBanner from "@/components/home/home-social-banner";
 import SiteBannerAd from "@/components/ads/site-banner-ad";
 import Container from "@/components/layout/container";
 import LazyMount from "@/components/shared/lazy-mount";
@@ -101,6 +102,7 @@ export default function Home() {
 
       <SiteBannerAd className="relative z-[5] py-3 sm:py-4" />
       <HomeAdsNotice className="py-1 sm:py-1.5" />
+      <HomeSocialBanner />
 
       <HomeQuickNav />
 

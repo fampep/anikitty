@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { ROUTES } from "@/constants/routes";
-import { DISCORD_INVITE_URL } from "@/constants/site-meta";
+import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
+import TelegramIcon from "@/icons/telegram";
 import { useT } from "@/providers/i18n-provider";
 
 const FOOTER_LINK =
@@ -33,6 +34,14 @@ export default function LandingFooter() {
             >
               {t("footer.discord")}
             </a>
+            <a
+              href={TELEGRAM_CHANNEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={FOOTER_LINK}
+            >
+              {t("footer.telegram")}
+            </a>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -44,6 +53,15 @@ export default function LandingFooter() {
             aria-label={t("footer.discord")}
           >
             <DiscordLogoIcon width="16" height="16" />
+          </a>
+          <a
+            href={TELEGRAM_CHANNEL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground/70 dark:text-white/20 hover:text-foreground dark:hover:text-white/55 transition-colors"
+            aria-label={t("footer.telegram")}
+          >
+            <TelegramIcon className="h-4 w-4" />
           </a>
           <a
             href="https://github.com/fampep/anikitty"

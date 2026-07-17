@@ -10,5 +10,8 @@ export const CATALOG_ANIME_COUNT = 6500;
 
 export const DISCORD_INVITE_URL = "https://discord.gg/qn55BfU5Ur";
 
+/** Public Telegram channel for AniKitty announcements. */
+export const TELEGRAM_CHANNEL_URL = "https://t.me/Anikittymoe";
+
 /** ISO date for the FAQ & privacy page — update when content changes. */
 export const FAQ_LAST_UPDATED = "2026-07-14";

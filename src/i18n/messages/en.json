@@ -103,6 +103,7 @@
     "disclaimer": "AniKitty does not store any files on its servers. All content is provided by third-party services.",
     "github": "GitHub",
     "discord": "Discord",
+    "telegram": "Telegram",
     "donate": "Support us",
     "kittyApi": "KittyAPI ↗",
     "anisurgeExternal": "Anisurge ↗"
@@ -330,6 +331,8 @@
     "donationGoalCta": "Donate on Ko-fi",
     "donationGoalLearn": "Learn more",
     "donationSlim": "Sorry about the ads — they help afford the ~€100/month running cost. Optional Ko-fi tips help too.",
+    "socialBannerTitle": "Join the community",
+    "socialBannerBody": "Discord for chat & status alerts · Telegram for channel updates.",
     "todayPanel": "Today on AniKitty",
     "todayPanelDesc": "Airing schedule and quick genre picks",
     "discover": "Discover",

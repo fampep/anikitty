@@ -10,9 +10,10 @@ import { useOnlineCount } from "@/hooks/use-online-count";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
-import { DISCORD_INVITE_URL } from "@/constants/site-meta";
+import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
 import { ROUTES } from "@/constants/routes";
 import SiteVersionLabel from "@/components/layout/site-version-label";
+import TelegramIcon from "@/icons/telegram";
 
 const Footer = () => {
   const t = useT();
@@ -93,6 +94,15 @@ const Footer = () => {
               >
                 <DiscordLogoIcon width="14" height="14" />
               </a>
+              <a
+                href={TELEGRAM_CHANNEL_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("footer.telegram")}
+                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all dark:border-white/10 dark:text-white/30 dark:hover:text-white/70 dark:hover:border-white/25"
+              >
+                <TelegramIcon className="h-3.5 w-3.5" />
+              </a>
             </div>
           </div>
 
@@ -146,6 +156,15 @@ const Footer = () => {
             >
               <DiscordLogoIcon width="13" height="13" />
               {t("footer.discord")}
+            </a>
+            <a
+              href={TELEGRAM_CHANNEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-white/65"
+            >
+              <TelegramIcon className="h-3.5 w-3.5" />
+              {t("footer.telegram")}
             </a>
           </div>
         </div>
