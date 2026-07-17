@@ -19,7 +19,10 @@ html {
   --banner-offset: 0px;
   --home-hero-max-h: 520px;
   --home-section-gap: 2.5rem;
-  --theatre-exit-bar-h: 3.5rem;
+  /* Nav + small gap. Player toolbar under the video is accounted for separately. */
+  --theatre-chrome-h: calc(var(--nav-total-height) + 0.75rem);
+  /* Approx height of watch-chrome toolbar strip under the video in theatre. */
+  --theatre-player-chrome-h: 3.25rem;
   /* Prevent font scaling on orientation change in iOS */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

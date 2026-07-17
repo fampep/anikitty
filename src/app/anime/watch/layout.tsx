@@ -26,8 +26,6 @@ import {
   MessageSquare,
   ExternalLink,
   Info,
-  Lightbulb,
-  X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
@@ -80,7 +78,6 @@ const Layout = (props: Props) => {
   const auth = useAuthStore((s) => s.auth);
   const router = useRouter();
   const theatreMode = useSettingsStore((s) => s.theatreMode);
-  const setTheatreMode = useSettingsStore((s) => s.setTheatreMode);
   useTheatreModeEffects(theatreMode);
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
@@ -263,11 +260,10 @@ const Layout = (props: Props) => {
 
   useEffect(() => {
     if (!theatreMode) return;
+    // Keep the page pinned at the top so the fixed nav never covers the player.
+    // scrollIntoView(block:"start") was sliding the stage under the nav chrome.
     requestAnimationFrame(() => {
-      document.getElementById("watch-player-root")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     });
   }, [theatreMode]);
 
@@ -398,34 +394,12 @@ const Layout = (props: Props) => {
   return (
     <WatchPageProvider openComments={openComments}>
     {theatreMode && (
-      <div className="fixed inset-0 z-[35] bg-black/92 pointer-events-none" aria-hidden />
-    )}
-    {theatreMode && (
-      <div
-        className="fixed top-[var(--nav-total-height)] inset-x-0 z-[45] flex h-[var(--theatre-exit-bar-h)] items-center justify-between gap-3 px-3 sm:px-4 bg-black/85 border-b border-white/10 backdrop-blur-md"
-      >
-        <div className="min-w-0 flex items-center gap-2.5">
-          <Lightbulb className="w-4 h-4 text-amber-300/80 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-white/35 leading-none">
-              {t("watch.theatre.active")}
-            </p>
-            <p className="text-sm font-semibold text-white/90 truncate mt-0.5">{info.name}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setTheatreMode(false)}
-          className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/15 transition-colors"
-        >
-          <X className="w-3.5 h-3.5" />
-          <span>{t("watch.theatre.exit")}</span>
-        </button>
-      </div>
+      <div className="fixed inset-0 z-[35] bg-black pointer-events-none" aria-hidden />
     )}
     <Container className={cn(
       "pb-16 pb-safe mt-[calc(var(--nav-total-height)+0.5rem)] sm:mt-[calc(var(--nav-total-height)+0.85rem)]",
-      theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[calc(var(--nav-total-height)+var(--theatre-exit-bar-h)+0.5rem)]",
+      // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
+      theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
     )}>
       {!theatreMode && (
         <div className="flex items-end justify-between gap-3 mb-2.5 sm:mb-3 min-w-0">
@@ -453,7 +427,9 @@ const Layout = (props: Props) => {
             id="watch-player-root"
             className={cn(
               "-mx-4 sm:mx-0",
-              theatreMode && "lg:mx-auto lg:w-full lg:max-w-[calc((100dvh-7rem)*16/9)]",
+              // Size the 16:9 video so video + under-player chrome fit below the nav.
+              theatreMode &&
+                "mx-auto w-full max-w-[min(100%,calc((100dvh-var(--theatre-chrome-h)-var(--theatre-player-chrome-h))*16/9))]",
             )}
           >
             {props.children}
