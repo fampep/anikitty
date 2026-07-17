@@ -103,6 +103,7 @@ export async function GET(
     const airedUpToFromAnilist = resolveAiredEpisodeCount(airingCtx);
 
     const [sources, anikotoSchedule] = await Promise.all([
+      // Thumbs: AniZip (`api.ani.zip/mappings?anilist_id=…`). Titles may still use AniList.
       fetchAllEpisodeImageSources(numId, streamingEpisodes).catch(() => EMPTY_SOURCES),
       getAnikotoSeriesSchedule({ anilistId: numId, malId: m.idMal }).catch(() => null),
     ]);
