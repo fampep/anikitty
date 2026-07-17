@@ -34,4 +34,9 @@ export interface VideoPlayerProps {
     onPlaybackSync?: (state: { isPlaying: boolean; currentTime: number }) => void;
   };
   preferSubtitles?: boolean;
+  /**
+   * When the HLS master exposes multiple `#EXT-X-MEDIA` audio tracks (e.g. KickAssAnime
+   * Japanese + English on one playlist), select dub vs Japanese accordingly.
+   */
+  preferDubAudio?: boolean;
 }

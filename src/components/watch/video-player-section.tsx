@@ -1569,6 +1569,7 @@ const VideoPlayerSection = () => {
         headers={displayHeaders}
         qualities={displayQualities}
         preferSubtitles={subtitlesEnabled}
+        preferDubAudio={streamAudio === "dub"}
         skipTimes={displaySkipTimes}
         startTime={
           w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState

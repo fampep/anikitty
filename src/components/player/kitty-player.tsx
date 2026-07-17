@@ -26,6 +26,7 @@ import {
   isFatalNativeMediaError,
   isHlsPlaybackAuthError,
 } from "@/lib/player/vidstack-hls";
+import { resolvePreferredAudioTrackIndex } from "@/lib/kitty/hls-audio";
 import {
   isElementFullscreen,
   onFullscreenChange,
@@ -103,6 +104,7 @@ function PlayerBridge({
   srcKey,
   startTime = 0,
   preferSubtitles = true,
+  preferDubAudio = false,
   skipTimes,
   nextEpisode,
   w2g,
@@ -138,6 +140,8 @@ function PlayerBridge({
   const waiting = useMediaState("waiting");
   const canPlay = useMediaState("canPlay");
   const ended = useMediaState("ended");
+  const audioTracks = useMediaState("audioTracks");
+  const audioTrack = useMediaState("audioTrack");
 
   const autoNextRef = useRef(useSettingsStore.getState().autoPlay);
   const autoSkipRef = useRef(useSettingsStore.getState().autoSkipIntro);
@@ -288,6 +292,26 @@ function PlayerBridge({
     if (preferSubtitles) remote.showCaptions();
     else remote.disableCaptions();
   }, [player, preferSubtitles, remote]);
+
+  // KickAssAnime (and similar) often put Japanese + English on one HLS master.
+  // SUB/DUB must switch the in-playlist audio track — not only refetch stream-direct.
+  useEffect(() => {
+    if (!player || !remote) return;
+    const list = audioTracks as unknown;
+    const tracks = Array.isArray(list)
+      ? list
+      : list && typeof list === "object" && Symbol.iterator in (list as object)
+        ? [...(list as Iterable<{ id?: string; label?: string; language?: string }>)]
+        : [];
+    const index = resolvePreferredAudioTrackIndex(tracks, preferDubAudio);
+    if (index == null || tracks.length < 2) return;
+    const selected = tracks[index];
+    if (audioTrack && selected && "id" in selected && audioTrack.id === selected.id) return;
+    if (typeof player.audioTracks?.selectedIndex === "number" && player.audioTracks.selectedIndex === index) {
+      return;
+    }
+    remote.changeAudioTrack(index);
+  }, [player, remote, preferDubAudio, audioTracks, audioTrack, srcKey]);
 
   useEffect(() => {
     setBuffering(waiting && !canPlay);
@@ -460,6 +484,7 @@ export default function KittyPlayer(props: VideoPlayerProps) {
     nextEpisode,
     onFatalError,
     preferSubtitles = true,
+    preferDubAudio = false,
   } = props;
 
   const t = useT();
@@ -664,6 +689,7 @@ export default function KittyPlayer(props: VideoPlayerProps) {
           startTime={startTime}
           autoFullscreen={autoFullscreen}
           preferSubtitles={preferSubtitles}
+          preferDubAudio={preferDubAudio}
           wrapperRef={wrapperRef}
           anime4kEnabled={anime4kEnabled}
           anime4kMode={anime4kMode}
