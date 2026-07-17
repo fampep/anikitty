@@ -93,6 +93,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-sky-400",
     glow: "from-sky-500/20",
   },
+  AnimeStream: {
+    chip: "border-red-400/30 bg-red-500/10 text-red-100/90",
+    pillActive: "border-red-400/45 bg-red-500/20 text-red-50 shadow-[0_0_12px_-4px_rgba(248,113,113,0.35)]",
+    pillIdle: "border-transparent text-red-300/45 hover:text-red-200/80 hover:bg-red-500/[0.06]",
+    dot: "bg-red-400",
+    glow: "from-red-500/20",
+  },
   AniBD: {
     chip: "border-slate-400/30 bg-slate-500/10 text-slate-200/90",
     pillActive: "border-slate-400/40 bg-slate-500/15 text-slate-100 shadow-[0_0_12px_-4px_rgba(148,163,184,0.25)]",

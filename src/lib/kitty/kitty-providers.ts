@@ -44,6 +44,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Anizen",
   "AniWaves",
   "AnimaxAnime",
+  "AnimeStream",
 ] as const;
 
 export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
@@ -57,6 +58,7 @@ export const KITTY_PROVIDERS = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
+  "AnimeStream",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -131,6 +133,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB · DUB · soft subs",
   },
+  {
+    id: "AnimeStream",
+    label: "Uniform",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "anime.uniquestream.net · HLS · SUB · DUB · multi-audio",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -140,6 +154,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
+  "AnimeStream",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -163,6 +178,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Anikoto",
   "AniWatch",
   "AniNeko",
+  "AnimeStream",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
