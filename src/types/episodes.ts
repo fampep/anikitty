@@ -15,11 +15,12 @@ export interface Episode {
   image?: string | null;
   overview?: string | null;
   airDate?: string | null;
-  /** TMDB episode runtime in minutes. */
+  /** Episode runtime in minutes when available. */
   runtime?: number | null;
-  /** TMDB vote average (0–10). */
+  /** Episode vote average (0–10) when available. */
   rating?: number | null;
   seasonNumber?: number | null;
+  /** @deprecated Unused — episode UI no longer sources TMDB episode numbers. */
   tmdbEpisodeNumber?: number | null;
   aired?: boolean;
 }

@@ -1,6 +1,5 @@
 import { fetchTvdbEpisodeImages } from "@/lib/anime/tvdb-api";
 
-const TMDB_IMAGE = "https://image.tmdb.org/t/p/w342";
 const ANI_ZIP = "https://api.ani.zip/mappings";
 
 export type EpisodeMeta = {
@@ -9,9 +8,9 @@ export type EpisodeMeta = {
   tvdbId?: number;
   overview?: string;
   airDate?: string;
-  /** TMDB episode runtime in minutes. */
+  /** Episode runtime in minutes when available. */
   runtime?: number;
-  /** TMDB vote average (0–10). */
+  /** Vote average (0–10) when available. */
   voteAverage?: number;
   seasonNumber?: number;
   episodeNumber?: number;
@@ -23,9 +22,11 @@ export type EpisodeImageSources = {
   anizip: Record<number, EpisodeMeta>;
   tvdbById: Record<number, string>;
   tvdbByOrder: Record<number, string>;
+  /** @deprecated Kept empty — episode UI uses AniList / AniZip, not TMDB stills. */
   tmdb: Record<number, string>;
+  /** @deprecated Kept empty — episode UI uses AniList / AniZip, not TMDB meta. */
   tmdbMeta: Record<number, EpisodeMeta>;
-  /** TMDB show-level `number_of_episodes` when mapped. */
+  /** TMDB show-level `number_of_episodes` when mapped (availability capping only). */
   tmdbTotalEpisodes?: number | null;
   mappings: {
     thetvdb_id?: number;
@@ -146,18 +147,12 @@ export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
   }
 }
 
-async function fetchTmdbEpisodeData(
+/** Show-level episode count only — used to cap lists, not for UI metadata. */
+async function fetchTmdbEpisodeCount(
   tmdbId: number | string,
-): Promise<{
-  images: Record<number, string>;
-  meta: Record<number, EpisodeMeta>;
-  totalEpisodes: number | null;
-}> {
+): Promise<number | null> {
   const apiKey = process.env.TMDB_API_KEY?.trim();
-  const images: Record<number, string> = {};
-  const meta: Record<number, EpisodeMeta> = {};
-  let totalEpisodes: number | null = null;
-  if (!apiKey || !tmdbId) return { images, meta, totalEpisodes };
+  if (!apiKey || !tmdbId) return null;
 
   const id = encodeURIComponent(String(tmdbId));
   const baseUrl = process.env.TMDB_API_URL ?? "https://api.themoviedb.org/3";
@@ -167,83 +162,16 @@ async function fetchTmdbEpisodeData(
       `${baseUrl}/tv/${id}?api_key=${encodeURIComponent(apiKey)}`,
       { signal: AbortSignal.timeout(6000), next: { revalidate: 3600 } },
     );
-    if (!showRes.ok) return { images, meta, totalEpisodes };
+    if (!showRes.ok) return null;
 
     const show = await showRes.json();
-    totalEpisodes =
-      typeof show?.number_of_episodes === "number" && show.number_of_episodes > 0
-        ? show.number_of_episodes
-        : null;
-    const seasons: Array<{ season_number: number }> = show?.seasons ?? [];
-
-    const seasonNums = seasons
-      .map((s) => s.season_number)
-      .filter((n) => n > 0)
-      .sort((a, b) => a - b);
-    const singleSeason = seasonNums.length === 1;
-
-    let absolute = 0;
-    for (const seasonNum of seasonNums) {
-      try {
-        const res = await fetch(
-          `${baseUrl}/tv/${id}/season/${seasonNum}?api_key=${encodeURIComponent(apiKey)}`,
-          { signal: AbortSignal.timeout(6000), next: { revalidate: 3600 } },
-        );
-        if (!res.ok) continue;
-        const data = await res.json();
-        const eps: Array<{
-          episode_number?: number;
-          still_path?: string;
-          name?: string;
-          overview?: string;
-          air_date?: string;
-          runtime?: number;
-          vote_average?: number;
-        }> = data?.episodes ?? [];
-
-        for (const ep of eps) {
-          absolute += 1;
-          const still = ep.still_path;
-          const image = still ? `${TMDB_IMAGE}${still}` : undefined;
-          const title = ep.name?.trim() || undefined;
-          const overview = ep.overview?.trim() || undefined;
-          const airDate = ep.air_date?.trim() || undefined;
-          const runtime =
-            typeof ep.runtime === "number" && ep.runtime > 0 ? ep.runtime : undefined;
-          const voteAverage =
-            typeof ep.vote_average === "number" && ep.vote_average > 0
-              ? ep.vote_average
-              : undefined;
-          const episodeMeta: EpisodeMeta = {
-            image,
-            title,
-            overview,
-            airDate,
-            runtime,
-            voteAverage,
-            seasonNumber: seasonNum,
-            episodeNumber: ep.episode_number,
-          };
-
-          const keys = new Set<number>([absolute]);
-          if (typeof ep.episode_number === "number" && ep.episode_number > 0) {
-            if (seasonNum === 1 || singleSeason) keys.add(ep.episode_number);
-          }
-
-          for (const num of keys) {
-            if (image && !images[num]) images[num] = image;
-            meta[num] = mergeEpisodeMeta(meta[num], episodeMeta);
-          }
-        }
-      } catch {
-        /* skip season */
-      }
-    }
+    return typeof show?.number_of_episodes === "number" && show.number_of_episodes > 0
+      ? show.number_of_episodes
+      : null;
   } catch (err) {
-    console.error("[tmdb] episode data failed:", err);
+    console.error("[tmdb] episode count failed:", err);
+    return null;
   }
-
-  return { images, meta, totalEpisodes };
 }
 
 export async function fetchAllEpisodeImageSources(
@@ -256,10 +184,8 @@ export async function fetchAllEpisodeImageSources(
   const tvdbId = aniZip.mappings?.thetvdb_id;
   const tmdbId = aniZip.mappings?.themoviedb_id;
 
-  const [tmdbData, tvdb] = await Promise.all([
-    tmdbId
-      ? fetchTmdbEpisodeData(tmdbId)
-      : Promise.resolve({ images: {}, meta: {}, totalEpisodes: null }),
+  const [tmdbTotalEpisodes, tvdb] = await Promise.all([
+    tmdbId ? fetchTmdbEpisodeCount(tmdbId) : Promise.resolve(null),
     tvdbId
       ? fetchTvdbEpisodeImages(tvdbId)
       : Promise.resolve({ byId: {}, byAiredOrder: {} } as const),
@@ -271,90 +197,77 @@ export async function fetchAllEpisodeImageSources(
     anizip: aniZip.episodes,
     tvdbById: tvdb.byId,
     tvdbByOrder: tvdb.byAiredOrder,
-    tmdb: tmdbData.images,
-    tmdbMeta: tmdbData.meta,
-    tmdbTotalEpisodes: tmdbData.totalEpisodes,
+    tmdb: {},
+    tmdbMeta: {},
+    tmdbTotalEpisodes,
     mappings: aniZip.mappings,
   };
 }
 
+/** Prefer AniList CDN thumbs, then AniZip, then TVDB — never TMDB stills. */
 export function resolveEpisodeImage(
   num: number,
   sources: EpisodeImageSources,
 ): string | null {
   const zip = sources.anizip[num];
-  const tmdb = sources.tmdbMeta[num];
   return firstDefined(
     sources.anilist[num],
     zip?.image,
-    tmdb?.image,
-    sources.tmdb[num],
     zip?.tvdbId ? sources.tvdbById[zip.tvdbId] : undefined,
     sources.tvdbByOrder[num],
   );
 }
 
+/** Prefer AniList streaming titles, then AniZip — never TMDB names. */
 export function resolveEpisodeTitle(
   num: number,
   sources: EpisodeImageSources,
 ): string | undefined {
-  const zip = sources.anizip[num];
-  const tmdb = sources.tmdbMeta[num];
-  const zipTitle = zip?.title ?? tmdb?.title;
+  const anilistTitle = sources.anilistTitles[num];
+  if (anilistTitle && anilistTitle !== `Episode ${num}`) return anilistTitle;
+
+  const zipTitle = sources.anizip[num]?.title;
   if (zipTitle && zipTitle !== `Episode ${num}`) return zipTitle;
-  return sources.anilistTitles[num];
+
+  return anilistTitle;
 }
 
+/** Prefer AniZip overviews (AniList-adjacent); TMDB descriptions are unused. */
 export function resolveEpisodeOverview(
   num: number,
   sources: EpisodeImageSources,
 ): string | null {
-  const tmdb = sources.tmdbMeta[num]?.overview;
-  const zip = sources.anizip[num]?.overview;
-  return tmdb?.trim() || zip?.trim() || null;
+  return sources.anizip[num]?.overview?.trim() || null;
 }
 
+/** Prefer AniZip calendar dates for unaired filtering. */
 export function resolveEpisodeAirDate(
   num: number,
   sources: EpisodeImageSources,
 ): string | null {
-  return sources.tmdbMeta[num]?.airDate ?? sources.anizip[num]?.airDate ?? null;
+  return sources.anizip[num]?.airDate ?? null;
 }
 
 export function resolveEpisodeRuntime(
-  num: number,
-  sources: EpisodeImageSources,
+  _num: number,
+  _sources: EpisodeImageSources,
 ): number | null {
-  const runtime = sources.tmdbMeta[num]?.runtime;
-  return runtime != null && runtime > 0 ? runtime : null;
+  return null;
 }
 
 export function resolveEpisodeRating(
-  num: number,
-  sources: EpisodeImageSources,
+  _num: number,
+  _sources: EpisodeImageSources,
 ): number | null {
-  const rating = sources.tmdbMeta[num]?.voteAverage;
-  return rating != null && rating > 0 ? rating : null;
-}
-
-export function resolveEpisodeTmdbMeta(
-  num: number,
-  sources: EpisodeImageSources,
-): Pick<EpisodeMeta, "seasonNumber" | "episodeNumber"> {
-  const meta = sources.tmdbMeta[num];
-  return {
-    seasonNumber: meta?.seasonNumber,
-    episodeNumber: meta?.episodeNumber,
-  };
+  return null;
 }
 
 export function maxEpisodeNumberInSources(sources: EpisodeImageSources): number {
   let max = 0;
   for (const key of [
     ...Object.keys(sources.anizip),
-    ...Object.keys(sources.tmdbMeta),
-    ...Object.keys(sources.tmdb),
     ...Object.keys(sources.anilist),
+    ...Object.keys(sources.anilistTitles),
   ]) {
     const num = parseInt(key, 10);
     if (num > max) max = num;

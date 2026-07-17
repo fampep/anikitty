@@ -8,7 +8,6 @@ import {
   resolveEpisodeRating,
   resolveEpisodeRuntime,
   resolveEpisodeTitle,
-  resolveEpisodeTmdbMeta,
   type EpisodeImageSources,
 } from "@/lib/anime/episode-thumbnails";
 import {
@@ -159,7 +158,7 @@ export async function GET(
       const num = i + 1;
       const airDate = resolveEpisodeAirDate(num, sources);
       const anikotoEp = anikotoSchedule?.episodesByNumber.get(num);
-      const tmdbMeta = resolveEpisodeTmdbMeta(num, sources);
+      // AniList streamingEpisodes → AniZip; Anikoto only fills gaps.
       const metaTitle = resolveEpisodeTitle(num, sources);
       const anikotoTitle = anikotoEp?.title?.trim();
       const genericAnikotoTitle =
@@ -167,8 +166,8 @@ export async function GET(
 
       return {
         title:
-          (!genericAnikotoTitle ? anikotoTitle : null) ??
           metaTitle ??
+          (!genericAnikotoTitle ? anikotoTitle : null) ??
           anikotoTitle ??
           `Episode ${num}`,
         episodeId: `ep-${num}`,
@@ -179,8 +178,8 @@ export async function GET(
         airDate,
         runtime: resolveEpisodeRuntime(num, sources),
         rating: resolveEpisodeRating(num, sources),
-        seasonNumber: tmdbMeta.seasonNumber ?? null,
-        tmdbEpisodeNumber: tmdbMeta.episodeNumber ?? null,
+        seasonNumber: null,
+        tmdbEpisodeNumber: null,
         aired: resolveEpisodeAiredStatus(num, airDate, airedUpTo),
       };
     }).filter((ep) => ep.aired);
