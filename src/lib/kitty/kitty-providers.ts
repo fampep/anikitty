@@ -60,6 +60,7 @@ export const KITTY_PROVIDERS = [
   "AniWatch",
   "AniNeko",
   "KickAssAnime",
+  "ReAnime",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -145,6 +146,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "KickAssAnime · kaa.lt · VidStreaming/CatStream HLS · SUB · DUB",
   },
+  {
+    id: "ReAnime",
+    label: "Romeo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "reanime.to · FlixCloud HLS · SUB · DUB",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -155,6 +167,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniWatch",
   "AniNeko",
   "KickAssAnime",
+  "ReAnime",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -179,6 +192,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniWatch",
   "AniNeko",
   "KickAssAnime",
+  "ReAnime",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */

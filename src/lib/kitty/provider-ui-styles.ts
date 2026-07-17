@@ -100,6 +100,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-red-400",
     glow: "from-red-500/20",
   },
+  ReAnime: {
+    chip: "border-lime-400/30 bg-lime-500/10 text-lime-100/90",
+    pillActive: "border-lime-400/45 bg-lime-500/20 text-lime-50 shadow-[0_0_12px_-4px_rgba(163,230,53,0.35)]",
+    pillIdle: "border-transparent text-lime-300/45 hover:text-lime-200/80 hover:bg-lime-500/[0.06]",
+    dot: "bg-lime-400",
+    glow: "from-lime-500/20",
+  },
   AniBD: {
     chip: "border-slate-400/30 bg-slate-500/10 text-slate-200/90",
     pillActive: "border-slate-400/40 bg-slate-500/15 text-slate-100 shadow-[0_0_12px_-4px_rgba(148,163,184,0.25)]",
