@@ -17,7 +17,9 @@ export type EpisodeMeta = {
 };
 
 export type EpisodeImageSources = {
+  /** @deprecated Kept empty — episode thumbs use AniZip (`api.ani.zip`), not AniList CDN. */
   anilist: Record<number, string>;
+  /** Episode titles from AniList `streamingEpisodes` when available. */
   anilistTitles: Record<number, string>;
   anizip: Record<number, EpisodeMeta>;
   tvdbById: Record<number, string>;
@@ -83,11 +85,10 @@ function episodeIndexKeys(e: Record<string, unknown>, key: string): number[] {
   return [...keys];
 }
 
+/** Titles only from AniList streamingEpisodes — thumbnails are ignored (AniZip is primary). */
 export function buildAnilistEpisodeMaps(
-  streamingEps: Array<{ title: string; thumbnail?: string }>,
+  streamingEps: Array<{ title: string }>,
 ): { imageMap: Record<number, string>; titleMap: Record<number, string> } {
-  // AniList streaming thumbnails are intentionally unused — episode UI prefers AniZip.
-  const imageMap: Record<number, string> = {};
   const titleMap: Record<number, string> = {};
 
   for (let i = 0; i < streamingEps.length; i++) {
@@ -101,7 +102,7 @@ export function buildAnilistEpisodeMaps(
     if (clean && !EP_NUM_RE.test(clean) && !titleMap[num]) titleMap[num] = clean;
   }
 
-  return { imageMap, titleMap };
+  return { imageMap: {}, titleMap };
 }
 
 export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
@@ -175,7 +176,7 @@ async function fetchTmdbEpisodeCount(
 
 export async function fetchAllEpisodeImageSources(
   anilistId: number,
-  streamingEpisodes: Array<{ title: string; thumbnail?: string }>,
+  streamingEpisodes: Array<{ title: string }>,
 ): Promise<EpisodeImageSources> {
   const { imageMap, titleMap } = buildAnilistEpisodeMaps(streamingEpisodes);
 
@@ -264,7 +265,6 @@ export function maxEpisodeNumberInSources(sources: EpisodeImageSources): number 
   let max = 0;
   for (const key of [
     ...Object.keys(sources.anizip),
-    ...Object.keys(sources.anilist),
     ...Object.keys(sources.anilistTitles),
   ]) {
     const num = parseInt(key, 10);
