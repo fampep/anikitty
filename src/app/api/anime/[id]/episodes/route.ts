@@ -116,7 +116,16 @@ export async function GET(
       m.episodes,
     );
 
-    let airedUpTo = Math.max(airedUpToFromAnilist, anikotoAiredSub);
+    // Anikoto can catch AniList lag after a drop, but must not invent a large
+    // unaired block when schedule metadata is present.
+    let airedUpTo = airedUpToFromAnilist;
+    if (anikotoAiredSub > airedUpTo) {
+      const hasSchedule =
+        m.nextAiringEpisode?.episode != null && m.nextAiringEpisode.episode > 0;
+      airedUpTo = hasSchedule
+        ? Math.min(anikotoAiredSub, airedUpToFromAnilist + 1)
+        : anikotoAiredSub;
+    }
     airedUpTo = capEpisodeCount(airedUpTo, tmdbTotal, m.episodes);
 
     const plannedTotal = resolveTotalEpisodeCount({
@@ -150,16 +159,17 @@ export async function GET(
       const num = i + 1;
       const airDate = resolveEpisodeAirDate(num, sources);
       const anikotoEp = anikotoSchedule?.episodesByNumber.get(num);
-      const anikotoAvailable =
-        (!tmdbTotal || num <= tmdbTotal) &&
-        (!!anikotoEp ||
-          (anikotoSchedule != null && num <= anikotoAiredSub));
       const tmdbMeta = resolveEpisodeTmdbMeta(num, sources);
+      const metaTitle = resolveEpisodeTitle(num, sources);
+      const anikotoTitle = anikotoEp?.title?.trim();
+      const genericAnikotoTitle =
+        !anikotoTitle || /^episode\s*\d+$/i.test(anikotoTitle);
 
       return {
         title:
-          anikotoEp?.title ??
-          resolveEpisodeTitle(num, sources) ??
+          (!genericAnikotoTitle ? anikotoTitle : null) ??
+          metaTitle ??
+          anikotoTitle ??
           `Episode ${num}`,
         episodeId: `ep-${num}`,
         number: num,
@@ -171,9 +181,7 @@ export async function GET(
         rating: resolveEpisodeRating(num, sources),
         seasonNumber: tmdbMeta.seasonNumber ?? null,
         tmdbEpisodeNumber: tmdbMeta.episodeNumber ?? null,
-        aired: resolveEpisodeAiredStatus(num, airDate, airedUpTo, {
-          anikotoAvailable,
-        }),
+        aired: resolveEpisodeAiredStatus(num, airDate, airedUpTo),
       };
     }).filter((ep) => ep.aired);
 

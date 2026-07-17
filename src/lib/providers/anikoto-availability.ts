@@ -215,13 +215,13 @@ async function lookupCatalogByIds(
 
   for (const url of urls) {
     const hits = await fetchRecentAnimeList(url);
+    // Unmatched queries often return the generic "recent" feed — never take hits[0].
     const match = hits.find(
       (hit) =>
         hit.anilistId === anilistId ||
         (malId != null && malId > 0 && hit.malId === malId),
     );
     if (match) return match;
-    if (hits[0]) return hits[0];
   }
   return null;
 }
@@ -294,17 +294,26 @@ async function fetchFromAnikotoApi(opts: AudioAvailabilityOpts): Promise<FetchRe
   if (byIds) {
     try {
       const series = await fetchSeriesAnime(byIds.catalogId);
-      if (series && idsMatch(series, anilistId, malId)) {
-        return countsFromSeries(series, fallbackSub || byIds.sub);
+      if (series) {
+        if (idsMatch(series, anilistId, malId)) {
+          return countsFromSeries(series, fallbackSub || byIds.sub);
+        }
+        // Search hit IDs matched, but series payload disagrees — skip it.
+      } else {
+        // Series fetch empty; search hit already matched ani/mal id.
+        return {
+          ...toCounts(byIds.sub || fallbackSub, byIds.dub),
+          catalogId: byIds.catalogId,
+          totalEpisodes: byIds.totalEpisodes,
+        };
       }
     } catch {
-      /* fall through to list hit */
+      return {
+        ...toCounts(byIds.sub || fallbackSub, byIds.dub),
+        catalogId: byIds.catalogId,
+        totalEpisodes: byIds.totalEpisodes,
+      };
     }
-    return {
-      ...toCounts(byIds.sub || fallbackSub, byIds.dub),
-      catalogId: byIds.catalogId,
-      totalEpisodes: byIds.totalEpisodes,
-    };
   }
 
   const queries = [...new Set(opts.titles.map((t) => t?.trim()).filter(Boolean) as string[])];
@@ -470,6 +479,8 @@ export async function getAnikotoSeriesSchedule(opts: {
     const episodeRows: Array<{ number?: number; title?: string; jp_title?: string }> =
       json?.data?.episodes ?? json?.episodes ?? [];
     if (!anime) return null;
+    // Reject catalog rows that don't actually belong to this AniList/MAL id.
+    if (!idsMatch(anime, opts.anilistId, opts.malId)) return null;
 
     const episodesByNumber = new Map<number, AnikotoCatalogEpisode>();
     for (const ep of episodeRows) {
@@ -481,11 +492,8 @@ export async function getAnikotoSeriesSchedule(opts: {
       });
     }
 
-    const airedSub = Math.max(
-      Number(anime.is_sub) || 0,
-      hit.sub || 0,
-      episodesByNumber.size,
-    );
+    // Prefer explicit sub counts — episode row count can include placeholders.
+    const airedSub = Math.max(Number(anime.is_sub) || 0, hit.sub || 0);
     const airedDub = Number(anime.is_dub) || hit.dub || 0;
     const catalogTotalEpisodes = Math.max(
       parseAnikotoEpisodeTotal(anime.episodes),

@@ -175,9 +175,9 @@ export function resolveEpisodeAiredStatus(
   episodeNumber: number,
   airDate: string | null | undefined,
   airedUpTo: number,
-  opts?: { anikotoAvailable?: boolean },
 ): boolean {
-  if (opts?.anikotoAvailable) return true;
+  // Explicit calendar dates win — never treat a future air date as aired
+  // just because a provider catalog lists the slot.
   if (airDate?.trim()) {
     return isEpisodeAiredByDate(airDate);
   }
