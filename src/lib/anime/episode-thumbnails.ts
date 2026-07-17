@@ -22,9 +22,9 @@ export type EpisodeImageSources = {
   anizip: Record<number, EpisodeMeta>;
   tvdbById: Record<number, string>;
   tvdbByOrder: Record<number, string>;
-  /** @deprecated Kept empty — episode UI uses AniList / AniZip, not TMDB stills. */
+  /** @deprecated Kept empty — episode UI uses AniZip images, not TMDB stills. */
   tmdb: Record<number, string>;
-  /** @deprecated Kept empty — episode UI uses AniList / AniZip, not TMDB meta. */
+  /** @deprecated Kept empty — episode UI uses AniZip meta, not TMDB meta. */
   tmdbMeta: Record<number, EpisodeMeta>;
   /** TMDB show-level `number_of_episodes` when mapped (availability capping only). */
   tmdbTotalEpisodes?: number | null;
@@ -86,6 +86,7 @@ function episodeIndexKeys(e: Record<string, unknown>, key: string): number[] {
 export function buildAnilistEpisodeMaps(
   streamingEps: Array<{ title: string; thumbnail?: string }>,
 ): { imageMap: Record<number, string>; titleMap: Record<number, string> } {
+  // AniList streaming thumbnails are intentionally unused — episode UI prefers AniZip.
   const imageMap: Record<number, string> = {};
   const titleMap: Record<number, string> = {};
 
@@ -95,8 +96,6 @@ export function buildAnilistEpisodeMaps(
     const match = EP_NUM_RE.exec(raw);
     const num = match ? parseInt(match[1], 10) : i + 1;
     if (num <= 0) continue;
-
-    if (ep.thumbnail && !imageMap[num]) imageMap[num] = ep.thumbnail;
 
     const clean = raw.replace(EP_PREFIX_RE, "").trim();
     if (clean && !EP_NUM_RE.test(clean) && !titleMap[num]) titleMap[num] = clean;
@@ -204,14 +203,13 @@ export async function fetchAllEpisodeImageSources(
   };
 }
 
-/** Prefer AniList CDN thumbs, then AniZip, then TVDB — never TMDB stills. */
+/** Prefer AniZip episode images, then TVDB — never AniList CDN or TMDB stills. */
 export function resolveEpisodeImage(
   num: number,
   sources: EpisodeImageSources,
 ): string | null {
   const zip = sources.anizip[num];
   return firstDefined(
-    sources.anilist[num],
     zip?.image,
     zip?.tvdbId ? sources.tvdbById[zip.tvdbId] : undefined,
     sources.tvdbByOrder[num],

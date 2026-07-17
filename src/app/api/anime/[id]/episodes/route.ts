@@ -34,7 +34,6 @@ const QUERY = `
       nextAiringEpisode { episode airingAt }
       streamingEpisodes {
         title
-        thumbnail
       }
     }
   }
@@ -80,7 +79,7 @@ export async function GET(
       status?: string | null;
       idMal?: number | null;
       nextAiringEpisode?: { episode?: number | null; airingAt?: number | null } | null;
-      streamingEpisodes?: Array<{ title: string; thumbnail?: string }>;
+      streamingEpisodes?: Array<{ title: string }>;
     } };
     try {
       raw = await queryAniList(QUERY, { id: numId });
@@ -158,7 +157,7 @@ export async function GET(
       const num = i + 1;
       const airDate = resolveEpisodeAirDate(num, sources);
       const anikotoEp = anikotoSchedule?.episodesByNumber.get(num);
-      // AniList streamingEpisodes → AniZip; Anikoto only fills gaps.
+      // AniList titles → AniZip; Anikoto only fills gaps. Images come from AniZip.
       const metaTitle = resolveEpisodeTitle(num, sources);
       const anikotoTitle = anikotoEp?.title?.trim();
       const genericAnikotoTitle =
