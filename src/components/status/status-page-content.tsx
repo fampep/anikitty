@@ -68,7 +68,6 @@ const LOCATION_FLAGS: Record<string, string> = {
   Sweden: "🇸🇪",
   Bulgaria: "🇧🇬",
   Singapore: "🇸🇬",
-  Netherlands: "🇳🇱",
   Canada: "🇨🇦",
   "Montreal, Canada": "🇨🇦",
 };

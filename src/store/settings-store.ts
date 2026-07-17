@@ -351,7 +351,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 38,
+      version: 39,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -538,6 +538,15 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.kittyProxyNode = coerceKittyApiNodeId(
             typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
           );
+        }
+        if (version < 39) {
+          // Netherlands removed; Stockholm (former fallback/secondary) is primary.
+          const raw = typeof next.kittyProxyNode === "string" ? String(next.kittyProxyNode) : "";
+          if (raw === "fallback" || raw === "secondary") {
+            next.kittyProxyNode = "primary";
+          } else {
+            next.kittyProxyNode = coerceKittyApiNodeId(raw);
+          }
         }
         return next as ISettingsStore;
       },
