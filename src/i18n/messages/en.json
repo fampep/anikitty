@@ -90,7 +90,6 @@
   },
   "footer": {
     "tagline": "Free anime streaming. Sub & dub. Player stays ad-free.",
-    "online": "{count} online",
     "browse": "Browse",
     "account": "Account",
     "project": "Project",
@@ -203,7 +202,6 @@
     "scrollHint": "Explore",
     "searchPlaceholder": "Search anime titles…",
     "statCatalog": "In catalog",
-    "statOnline": "Online now",
     "statFree": "Always",
     "statFreeValue": "Free",
     "spotlightLabel": "Featured pick",
@@ -221,8 +219,6 @@
     "finalCtaTitle": "Ready when you are",
     "finalCtaDesc": "Jump into the catalog — no signup wall.",
     "finalCtaButton": "Open catalog",
-    "onlineStrip": "people watching anime right now",
-    "joinThem": "Join them",
     "communityLabel": "Live from the community",
     "communityTitle": "Fans are talking right now",
     "continueWatching": "Continue watching",
@@ -556,8 +552,6 @@
     "showPillNavOnDesktopDesc": "Reserved for a future layout option — bottom navigation is always visible",
     "presenceTitle": "Activity status",
     "presenceDesc": "Choose how others see you on your profile — online, away, do not disturb, or invisible.",
-    "showOnlineCount": "Online count",
-    "showOnlineCountDesc": "Show live viewer count in the footer and home bar",
     "showAnnouncements": "Announcements",
     "showAnnouncementsDesc": "Show site-wide announcement banners",
     "subtitleExport": "Copy settings",
@@ -1104,9 +1098,6 @@
   "chat": {
     "title": "Live Chat",
     "subtitle": "Chat with other AniKitty users in real time · messages disappear after {ttl}",
-    "online": "{count} online",
-    "usersOnline": "{count} on site",
-    "onlineHint": "Users currently browsing AniKitty",
     "today": "Today",
     "yesterday": "Yesterday",
     "edit": "Edit",
@@ -1297,9 +1288,7 @@
       "reportQ": "How do I report a comment?",
       "reportA": "Tap the flag icon on any comment to send it to moderators. Reports go into a moderation queue where staff can resolve or dismiss them.",
       "w2gQ": "Watch Together",
-      "w2gA": "Open a room from any episode with Watch Together — it appears on the Watch Together page for anyone to join. Hosts can delete their room when done; guests leave without closing it. Playback stays synced and you can chat in the room panel.",
-      "onlineQ": "What does the online counter mean?",
-      "onlineA": "The online badge counts browser sessions that sent a heartbeat recently — everyone browsing or watching, not a list of logged-in usernames."
+      "w2gA": "Open a room from any episode with Watch Together — it appears on the Watch Together page for anyone to join. Hosts can delete their room when done; guests leave without closing it. Playback stays synced and you can chat in the room panel."
     },
     "privacy": {
       "dataQ": "What data does AniKitty store about me?",

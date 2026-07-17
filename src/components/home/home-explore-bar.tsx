@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Library, Search, Users } from "lucide-react";
+import { Library, Search } from "lucide-react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import { CATALOG_ANIME_COUNT } from "@/constants/site-meta";
-import { useSettingsStore } from "@/store/settings-store";
-import { useOnlineCount } from "@/hooks/use-online-count";
 import { useT } from "@/providers/i18n-provider";
 
 export default function HomeExploreBar() {
   const t = useT();
-  const showOnlineCount = useSettingsStore((s) => s.showOnlineCount);
-  const online = useOnlineCount(showOnlineCount);
   const catalogLabel = CATALOG_ANIME_COUNT.toLocaleString();
 
   return (
@@ -46,12 +42,6 @@ export default function HomeExploreBar() {
             <Library className="w-3.5 h-3.5" />
             <span className="tabular-nums">{t("home.catalogTitles", { count: catalogLabel })}</span>
           </div>
-          {showOnlineCount && online !== null && (
-            <div className="site-chip text-emerald-300/80">
-              <Users className="w-3.5 h-3.5" />
-              <span className="tabular-nums">{online.toLocaleString()}</span>
-            </div>
-          )}
         </div>
       </div>
     </Container>

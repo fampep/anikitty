@@ -11,14 +11,11 @@ import {
   Search,
   Sparkles,
   Tv2,
-  Users,
 } from "lucide-react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import { CATALOG_ANIME_COUNT } from "@/constants/site-meta";
 import { cn } from "@/lib/core/utils";
-import { useOnlineCount } from "@/hooks/use-online-count";
-import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 
 const SCROLL_OFFSET = 150;
@@ -33,8 +30,6 @@ const LINKS = [
 
 export default function HomeQuickNav() {
   const t = useT();
-  const showOnlineCount = useSettingsStore((s) => s.showOnlineCount);
-  const online = useOnlineCount(showOnlineCount);
   const catalogLabel = CATALOG_ANIME_COUNT.toLocaleString();
   const [activeId, setActiveId] = useState<string>(LINKS[0].id);
 
@@ -80,12 +75,6 @@ export default function HomeQuickNav() {
               <Library className="w-3 h-3" />
               <span className="tabular-nums text-[11px]">{catalogLabel}</span>
             </div>
-            {showOnlineCount && online !== null ? (
-              <div className="site-chip text-emerald-300/80 py-1.5">
-                <Users className="w-3 h-3" />
-                <span className="tabular-nums text-[11px]">{online.toLocaleString()}</span>
-              </div>
-            ) : null}
           </div>
         </div>
 
