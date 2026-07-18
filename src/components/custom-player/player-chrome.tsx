@@ -12,6 +12,10 @@ import type { StoryboardCue } from "@/lib/player/storyboard-vtt";
 
 import { formatPlayerTime } from "./utils";
 
+/** Shared menu / tip surface — hairline border, soft blur, no heavy shadow. */
+export const PLAYER_POPOVER_CLASS =
+  "rounded-lg border border-white/[0.12] bg-zinc-950/92 text-xs text-white backdrop-blur-xl supports-[backdrop-filter]:bg-zinc-950/80";
+
 export function MenuSection({
   title,
   children,
@@ -22,8 +26,8 @@ export function MenuSection({
   className?: string;
 }) {
   return (
-    <div className={cn("border-b border-white/10 py-1 last:border-b-0", className)}>
-      <p className="px-3 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-white/40">
+    <div className={cn("border-b border-white/[0.08] py-1 last:border-b-0", className)}>
+      <p className="px-3 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
         {title}
       </p>
       {children}
@@ -46,11 +50,17 @@ export function MenuItem({
       role="menuitemradio"
       aria-checked={active}
       className={cn(
-        "block w-full px-3 py-2.5 text-left hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none sm:py-2",
-        active && "bg-white/10 font-medium",
+        "relative block w-full px-3 py-2.5 text-left text-white/75 transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none sm:py-2",
+        active && "bg-white/[0.09] font-medium text-white",
       )}
       onClick={onClick}
     >
+      {active ? (
+        <span
+          className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-white/80"
+          aria-hidden
+        />
+      ) : null}
       {children}
     </button>
   );
@@ -76,7 +86,12 @@ export function VerticalSliderPopover({
   footer?: string;
 }) {
   return (
-    <div className="absolute bottom-full left-1/2 z-40 mb-2 flex -translate-x-1/2 flex-col items-center gap-2 rounded-md border border-white/10 bg-zinc-950 px-3 py-3">
+    <div
+      className={cn(
+        "absolute bottom-full left-1/2 z-40 mb-2.5 flex -translate-x-1/2 flex-col items-center gap-2.5 px-3.5 py-3",
+        PLAYER_POPOVER_CLASS,
+      )}
+    >
       <input
         type="range"
         min={min}
@@ -89,16 +104,16 @@ export function VerticalSliderPopover({
         aria-valuemax={max}
         aria-valuenow={Number(value.toFixed(2))}
         aria-valuetext={display}
-        className="h-24 w-2 cursor-pointer appearance-none rounded-full bg-white/25 accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:h-20 sm:w-1.5"
+        className="h-24 w-1.5 cursor-pointer appearance-none rounded-full bg-white/20 accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 sm:h-20 sm:w-1"
         style={{ writingMode: "vertical-lr", direction: "rtl" }}
         onChange={(e) => onChange(Number(e.target.value))}
         onPointerDown={(e) => e.stopPropagation()}
       />
-      <span className="text-[10px] tabular-nums text-white/70" aria-hidden>
+      <span className="text-[10px] font-medium tabular-nums tracking-wide text-white/80" aria-hidden>
         {display}
       </span>
       {footer ? (
-        <span className="max-w-[5.5rem] text-center text-[9px] leading-tight text-white/45">
+        <span className="max-w-[5.5rem] text-center text-[9px] leading-tight text-white/40">
           {footer}
         </span>
       ) : null}
@@ -151,9 +166,12 @@ export function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-white/90 transition-opacity hover:text-white hover:opacity-100 active:opacity-70",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
-        "disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:opacity-35",
+        "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-white/70 transition-[color,opacity,background-color] duration-150",
+        "hover:bg-white/[0.06] hover:text-white",
+        "active:bg-white/[0.1] active:opacity-90",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+        "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/70",
+        "aria-pressed:text-white aria-expanded:text-white",
         "sm:h-9 sm:w-9",
         className,
       )}
@@ -205,10 +223,10 @@ export function SeekPreviewCard({
         transform: "translateX(-50%)",
       }}
     >
-      <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-col items-center gap-1.5">
         {cue ? (
           <div
-            className="relative overflow-hidden rounded-md border border-white/15 bg-zinc-950 shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+            className="relative overflow-hidden rounded-md border border-white/[0.14] bg-zinc-950"
             style={{ width: previewW, height: previewH }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -230,15 +248,15 @@ export function SeekPreviewCard({
             />
           </div>
         ) : null}
-        <div className="rounded bg-black/90 px-1.5 py-0.5 text-[10px] tabular-nums text-white shadow-md">
+        <div className="rounded-md border border-white/[0.1] bg-zinc-950/92 px-2 py-0.5 text-[10px] font-medium tabular-nums tracking-wide text-white backdrop-blur-md">
           {formatPlayerTime(time)}
           {skipKind ? (
-            <span className="ml-1.5 text-white/70">
+            <span className="ml-1.5 text-white/55">
               {skipKind === "intro" ? "Intro" : "Outro"}
             </span>
           ) : null}
           {bufferAheadSecs != null ? (
-            <span className="ml-1.5 text-white/40">· {bufferAheadSecs}s buf</span>
+            <span className="ml-1.5 text-white/35">· {bufferAheadSecs}s</span>
           ) : null}
         </div>
       </div>
@@ -273,9 +291,10 @@ export function NextEpisodeChip({
       onClick={onClick}
       aria-label={`Next episode: ${title}`}
       className={cn(
-        "absolute z-40 flex max-w-[min(100%,280px)] items-center gap-2.5 rounded-md border border-white/20 bg-zinc-950/90 px-2.5 py-2 text-left shadow-lg backdrop-blur-sm",
-        "transition-[opacity,transform] duration-200 hover:border-white/35 hover:bg-zinc-950",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
+        "absolute z-40 flex max-w-[min(100%,280px)] items-center gap-2.5 px-2.5 py-2 text-left",
+        PLAYER_POPOVER_CLASS,
+        "transition-[opacity,border-color,background-color] duration-200 hover:border-white/25 hover:bg-zinc-950/95",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
         "right-[max(0.75rem,env(safe-area-inset-right))]",
         stacked
           ? "bottom-[7.25rem] sm:bottom-[6.75rem]"
@@ -283,7 +302,7 @@ export function NextEpisodeChip({
       )}
     >
       {imageUrl ? (
-        <div className="relative h-9 w-14 shrink-0 overflow-hidden rounded bg-white/10">
+        <div className="relative h-9 w-14 shrink-0 overflow-hidden rounded border border-white/[0.08] bg-white/[0.06]">
           <Image
             src={imageUrl}
             alt=""
@@ -295,21 +314,21 @@ export function NextEpisodeChip({
         </div>
       ) : (
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-white/10 text-[13px] font-semibold text-white/80"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.06] text-[13px] font-semibold text-white/75"
           aria-hidden
         >
           →
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-white/45">
+        <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-white/40">
           Next
         </p>
         <p className="truncate text-[12px] font-semibold leading-tight text-white">
           {title}
         </p>
         {detail ? (
-          <p className="mt-0.5 truncate text-[10px] tabular-nums text-white/45">
+          <p className="mt-0.5 truncate text-[10px] tabular-nums text-white/40">
             {detail}
           </p>
         ) : null}
@@ -346,15 +365,20 @@ export function UpNextCountdown({
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center bg-black/60 p-4"
+      className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
       style={{
         paddingTop: "max(1rem, env(safe-area-inset-top))",
         paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
       }}
     >
-      <div className="pointer-events-auto flex w-full max-w-sm flex-col gap-3 rounded-md border border-white/15 bg-zinc-950/95 p-4 sm:flex-row sm:items-center">
+      <div
+        className={cn(
+          "pointer-events-auto flex w-full max-w-sm flex-col gap-3.5 p-4 sm:flex-row sm:items-center",
+          PLAYER_POPOVER_CLASS,
+        )}
+      >
         {imageUrl ? (
-          <div className="relative mx-auto h-14 w-24 shrink-0 overflow-hidden rounded bg-white/10 sm:mx-0">
+          <div className="relative mx-auto h-14 w-24 shrink-0 overflow-hidden rounded border border-white/[0.08] bg-white/[0.06] sm:mx-0">
             <Image
               src={imageUrl}
               alt=""
@@ -372,36 +396,36 @@ export function UpNextCountdown({
                 cy="24"
                 r="18"
                 fill="none"
-                stroke="rgba(255,255,255,0.12)"
-                strokeWidth="3"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="2.5"
               />
               <circle
                 cx="24"
                 cy="24"
                 r="18"
                 fill="none"
-                stroke="rgba(255,255,255,0.9)"
-                strokeWidth="3"
+                stroke="rgba(250,250,250,0.95)"
+                strokeWidth="2.5"
                 strokeDasharray={circumference}
                 strokeDashoffset={dashOffset}
                 strokeLinecap="round"
                 className="transition-[stroke-dashoffset] duration-1000 ease-linear"
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-base font-semibold tabular-nums text-white">
+            <span className="absolute inset-0 flex items-center justify-center text-base font-semibold tabular-nums tracking-tight text-white">
               {countdown}
             </span>
           </div>
         )}
 
         <div className="min-w-0 flex-1 text-center sm:text-left">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-white/45">
+          <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-white/40">
             {casting ? "Up next · Cast" : "Up next"}
           </p>
-          <p className="mt-0.5 truncate text-[14px] font-semibold text-white">
+          <p className="mt-0.5 truncate text-[14px] font-semibold tracking-tight text-white">
             {title}
           </p>
-          <p className="mt-0.5 text-[11px] tabular-nums text-white/50">
+          <p className="mt-0.5 text-[11px] tabular-nums text-white/45">
             {casting
               ? `Casting in ${countdown}s`
               : imageUrl
@@ -410,18 +434,18 @@ export function UpNextCountdown({
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-1.5 sm:items-stretch">
+        <div className="flex shrink-0 flex-col gap-1 sm:items-stretch">
           <button
             type="button"
             onClick={onPlayNow}
-            className="rounded-md bg-white px-3.5 py-2 text-[12px] font-semibold text-zinc-950 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="rounded-md bg-white px-3.5 py-2 text-[12px] font-semibold tracking-wide text-zinc-950 transition-colors hover:bg-white/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             Play now
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md px-3.5 py-1.5 text-[12px] font-medium text-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="rounded-md px-3.5 py-1.5 text-[12px] font-medium text-white/50 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             Cancel
           </button>

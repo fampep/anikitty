@@ -1124,10 +1124,15 @@ html[data-user-theme] .dark ::selection {
   animation: fadeInUp 0.35s ease both;
 }
 
-/* AniKitty player — captions + reduced motion */
+/* AniKitty player — captions + chrome surfaces + reduced motion */
 .anikitty-player {
   --ak-cue-size: 1.05em;
   --ak-cue-bottom: 8%;
+  --ak-player-surface: rgba(9, 9, 11, 0.92);
+  --ak-player-border: rgba(255, 255, 255, 0.12);
+  --ak-player-track: rgba(255, 255, 255, 0.16);
+  --ak-player-buffer: rgba(255, 255, 255, 0.3);
+  --ak-player-played: #fafafa;
 }
 
 .anikitty-player:fullscreen,

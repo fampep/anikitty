@@ -5,7 +5,7 @@ type IconProps = SVGProps<SVGSVGElement>;
 const stroke = {
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.75,
+  strokeWidth: 1.6,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
@@ -31,7 +31,7 @@ export function PlayOutlineIcon(props: IconProps) {
 export function PauseIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} strokeWidth={2} d="M9 6.5v11M15 6.5v11" />
+      <path {...stroke} strokeWidth={1.85} d="M9 6.5v11M15 6.5v11" />
     </svg>
   );
 }
