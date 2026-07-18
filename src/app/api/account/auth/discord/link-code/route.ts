@@ -182,6 +182,11 @@ export async function POST(req: Request) {
       .set({ usedAt: new Date(), usedByUserId: current.id })
       .where(eq(discordLinkCodes.code, code));
 
+    const { bootstrapDiscordLevelAnnounce } = await import(
+      "@/lib/bot/notify-discord-levelup"
+    );
+    await bootstrapDiscordLevelAnnounce(db, current.id);
+
     notifyDiscordRoleSync("discord_link_code");
 
     return Response.json({

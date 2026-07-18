@@ -39,6 +39,8 @@ export const users = pgTable("users", {
   malUsername: varchar("mal_username", { length: 100 }),
   discordId: varchar("discord_id", { length: 32 }),
   discordUsername: varchar("discord_username", { length: 100 }),
+  /** Last Discord level-up announcement level — avoids spam / re-announce on bootstrap. */
+  lastAnnouncedDiscordLevel: integer("last_announced_discord_level"),
   totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   profilePrivate: boolean("profile_private").notNull().default(false),
@@ -959,6 +961,15 @@ export const discordRoleMap = pgTable(
     roleIdIdx: index("discord_role_map_discord_role_id_idx").on(t.discordRoleId),
   }),
 );
+
+/**
+ * Per-guild Discord bot settings (level-up channel, etc.).
+ */
+export const discordGuildSettings = pgTable("discord_guild_settings", {
+  guildId: varchar("guild_id", { length: 32 }).primaryKey(),
+  levelupChannelId: varchar("levelup_channel_id", { length: 32 }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 /**
  * One-time codes from Discord `/link` — user opens site URL while logged in to bind discord_id.

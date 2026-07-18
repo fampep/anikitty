@@ -676,6 +676,13 @@ export async function migrateDb() {
         ON discord_link_codes (discord_id)`,
       `CREATE INDEX IF NOT EXISTS discord_link_codes_expires_at_idx
         ON discord_link_codes (expires_at)`,
+      // Discord guild settings (level-up channel) + last announced level for announce idempotency.
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_announced_discord_level INTEGER`,
+      `CREATE TABLE IF NOT EXISTS discord_guild_settings (
+        guild_id VARCHAR(32) PRIMARY KEY,
+        levelup_channel_id VARCHAR(32),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

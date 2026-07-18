@@ -111,8 +111,9 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 |---|---|---|
 | `BOT_API_SECRET` | Recommended | Bearer secret for `GET /api/bot/*` — must match the bot’s `BOT_API_SECRET`. A hardcoded fallback exists so APIs work if unset; set this in Coolify (runtime) to override. |
 | `DISCORD_BOT_SYNC_URL` | Optional | e.g. `http://discord-bot:8787/sync` — ping the bot after role/supporter changes for immediate Discord role sync |
+| `DISCORD_BOT_LEVELUP_URL` | Optional | e.g. `http://discord-bot:8787/levelup` — level-up announcements. If unset, derived from `DISCORD_BOT_SYNC_URL` (`/sync` → `/levelup`). |
 
-Protected routes: `/api/bot/online`, `/api/bot/search?q=`, `/api/bot/discord-links`, `GET/POST /api/bot/discord-role-map` (role keys: `admin`, `moderator`, `donator`, `timestamp_helper`). The bot creates Discord roles at runtime and persists snowflakes in `discord_role_map` — do not invent role IDs in config. Redeploy after merging so Coolify serves the new routes (otherwise production returns 404). Migration for `discord_role_map` runs via `migrateDb()` on site startup (also `drizzle/0034_discord_role_map.sql`).
+Protected routes: `/api/bot/online`, `/api/bot/search?q=`, `/api/bot/discord-links`, `GET/POST /api/bot/discord-role-map` (role keys: `admin`, `moderator`, `donator`, `timestamp_helper`, `level_*`), `GET/PUT /api/bot/guild-settings` (level-up channel). The bot creates Discord roles at runtime and persists snowflakes in `discord_role_map` — do not invent role IDs in config. Redeploy after merging so Coolify serves the new routes (otherwise production returns 404). Migrations for `discord_role_map` / `discord_guild_settings` run via `migrateDb()` on site startup.
 
 **Adcash ads:** set `NEXT_PUBLIC_ADCASH_BANNER_ZONE` (banner, default `11731546`) and `NEXT_PUBLIC_ADCASH_POP_ZONE` (popunder, default `11731878`) from the publisher dashboard snippets (`aclib.runBanner` / `aclib.runPop`). If unset, the app falls back to those defaults so ads still work before Coolify rebuilds with the env set. Prefer build-time so the value is inlined; runtime via `PublicEnvScript` also works.
 

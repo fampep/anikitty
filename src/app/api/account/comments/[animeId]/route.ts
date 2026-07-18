@@ -327,6 +327,12 @@ export async function POST(
     });
 
   void grantCommentKittycoins(db, payload.userId, row.id);
+  void (async () => {
+    const { maybeAnnounceDiscordLevelUp } = await import(
+      "@/lib/bot/notify-discord-levelup"
+    );
+    await maybeAnnounceDiscordLevelUp(db, payload.userId);
+  })();
 
   const [user] = await db
     .select({

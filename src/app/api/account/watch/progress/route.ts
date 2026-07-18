@@ -74,6 +74,12 @@ export async function POST(req: Request) {
 
     if (watchedEnough) {
       void grantEpisodeKittycoins(db, payload.userId, animeId, episodeId);
+      void (async () => {
+        const { maybeAnnounceDiscordLevelUp } = await import(
+          "@/lib/bot/notify-discord-levelup"
+        );
+        await maybeAnnounceDiscordLevelUp(db, payload.userId);
+      })();
     }
 
     const episodeNum =

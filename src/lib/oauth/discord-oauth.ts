@@ -237,6 +237,11 @@ export async function completeDiscordLink(
       })
       .where(eq(users.id, current.id));
 
+    const { bootstrapDiscordLevelAnnounce } = await import(
+      "@/lib/bot/notify-discord-levelup"
+    );
+    await bootstrapDiscordLevelAnnounce(db, current.id);
+
     return "connected";
   } catch (e) {
     console.error("[discord oauth link]", e);
