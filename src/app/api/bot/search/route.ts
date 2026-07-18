@@ -9,6 +9,8 @@ import {
 import { APP_URL } from "@/lib/seo/site-seo";
 import { OFFICIAL_DOMAINS } from "@/constants/site-meta";
 
+export const dynamic = "force-dynamic";
+
 const QUERY = `
   query ($search: String, $isAdult: Boolean) {
     Page(page: 1, perPage: 8) {
@@ -50,6 +52,20 @@ function providerSummary(meta: KittyProviderMeta) {
   };
 }
 
+function listProviders() {
+  return KITTY_PROVIDER_META.map(providerSummary);
+}
+
+function emptySearchResponse(q: string) {
+  const providers = listProviders();
+  return Response.json({
+    query: q,
+    count: 0,
+    results: [],
+    providers,
+  });
+}
+
 export async function GET(req: Request) {
   if (!authorizeBot(req)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -61,13 +77,22 @@ export async function GET(req: Request) {
     return Response.json({ error: "q required" }, { status: 400 });
   }
 
+  const providers = listProviders();
+
+  let media: any[] = [];
   try {
     const raw = await queryAniList(QUERY, {
       search: q,
       isAdult: false,
     });
-    const media = raw.Page?.media ?? [];
+    media = raw?.Page?.media ?? [];
+  } catch (err) {
+    // Upstream (AniList) outages should not break Discord /search — empty results + log.
+    console.error("Bot search AniList error:", err);
+    return emptySearchResponse(q);
+  }
 
+  try {
     const base = media.map((m: any) => ({
       id: String(m.id),
       name: toTitle(m.title),
@@ -86,8 +111,12 @@ export async function GET(req: Request) {
       },
     }));
 
-    const enriched = await enrichAnimeListWithAudio(base);
-    const providers = KITTY_PROVIDER_META.map(providerSummary);
+    let enriched = base;
+    try {
+      enriched = await enrichAnimeListWithAudio(base);
+    } catch (err) {
+      console.error("Bot search audio enrich error:", err);
+    }
 
     const results = enriched.map((item) => {
       const links = animeLinks(item.id);
@@ -119,6 +148,6 @@ export async function GET(req: Request) {
     });
   } catch (err) {
     console.error("Bot search error:", err);
-    return Response.json({ error: "Search failed" }, { status: 500 });
+    return emptySearchResponse(q);
   }
 }
