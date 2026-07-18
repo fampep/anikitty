@@ -1,5 +1,9 @@
 import type { MediaPlayerInstance, MediaRemoteControl } from "@vidstack/react";
-import { isElementFullscreen } from "@/lib/kitty/fullscreen";
+import {
+  exitElementFullscreen,
+  isElementFullscreen,
+  requestElementFullscreen,
+} from "@/lib/kitty/fullscreen";
 
 /** Thin adapter so watch-page keyboard shortcuts and media session work without Artplayer. */
 export type PlayerController = {
@@ -112,9 +116,14 @@ export function createHtmlVideoPlayerController(
     toggleFullscreen: () => {
       const target = root ?? video;
       if (isElementFullscreen(target)) {
-        void document.exitFullscreen();
+        void exitElementFullscreen().catch(() => {});
       } else {
-        void target.requestFullscreen?.();
+        void requestElementFullscreen(target).catch(() => {
+          const wk = video as HTMLVideoElement & {
+            webkitEnterFullscreen?: () => void;
+          };
+          wk.webkitEnterFullscreen?.();
+        });
       }
     },
     get video() {

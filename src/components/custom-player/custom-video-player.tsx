@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
@@ -11,12 +12,31 @@ import {
 } from "react";
 import Hls from "hls.js";
 
-import { cn } from "@/lib/core/utils";
+import { pickHlsAudioTrack } from "@/lib/kitty/hls-audio";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
+import {
+  exitElementFullscreen,
+  getFullscreenElement,
+  isElementFullscreen,
+  onFullscreenChange,
+  requestElementFullscreen,
+} from "@/lib/kitty/fullscreen";
+import {
+  dedupeStreamQualities,
+  formatStreamQualityLabel,
+  type KittyStreamQuality,
+} from "@/lib/kitty/stream-quality";
+import { cn } from "@/lib/core/utils";
 import {
   createHtmlVideoPlayerController,
   type PlayerController,
 } from "@/lib/player/player-controller";
+import {
+  getTrackFile,
+  isSubtitleTrack,
+  labelToLanguage,
+  type StreamTrack,
+} from "@/lib/subtitles/subtitle-track-utils";
 
 import {
   BrightnessIcon,
@@ -41,6 +61,17 @@ const IDLE_MS = 2800;
 const CLICK_DELAY_MS = 280;
 const SEEK_FLASH_MS = 700;
 
+type WebkitVideo = HTMLVideoElement & {
+  webkitEnterFullscreen?: () => void;
+  webkitExitFullscreen?: () => void;
+  webkitDisplayingFullscreen?: boolean;
+  webkitSupportsFullscreen?: boolean;
+  webkitSetPresentationMode?: (
+    mode: "inline" | "picture-in-picture" | "fullscreen",
+  ) => void;
+  webkitPresentationMode?: string;
+};
+
 function looksLikeHls(url: string): boolean {
   return /\.m3u8(?:\?|$)/i.test(url) || url.includes("/api/kitty/hls");
 }
@@ -50,13 +81,61 @@ function prefersCoarsePointer(): boolean {
   return window.matchMedia("(hover: none), (pointer: coarse)").matches;
 }
 
+function resolveTrackSrc(file: string): string {
+  if (!file) return file;
+  if (/^https?:\/\//i.test(file)) return file;
+  if (typeof window !== "undefined" && file.startsWith("/")) {
+    return `${window.location.origin}${file}`;
+  }
+  return file;
+}
+
+function parseHeight(quality: string): number | undefined {
+  const n = parseInt(quality.replace(/\D/g, ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function isResolutionQualityLadder(qualities: KittyStreamQuality[]): boolean {
+  return qualities.some((entry) => Boolean(parseHeight(entry.quality)));
+}
+
+function exitPictureInPictureSafe(video: HTMLVideoElement | null) {
+  if (typeof document === "undefined" || !video) return;
+  try {
+    if (document.pictureInPictureElement === video) {
+      void document.exitPictureInPicture();
+      return;
+    }
+  } catch {
+    /* ignore */
+  }
+  const wk = video as WebkitVideo;
+  if (wk.webkitPresentationMode === "picture-in-picture") {
+    try {
+      wk.webkitSetPresentationMode?.("inline");
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export type CustomVideoPlayerProps = {
   src: string;
   poster?: string;
   title?: string;
   className?: string;
+  /** Soft subtitle / caption tracks (VTT preferred). */
+  tracks?: StreamTrack[];
+  /** MegaPlay-style `allServers` ladder when HLS has no useful levels. */
+  qualities?: KittyStreamQuality[];
   /** Resume / deep-link start position (seconds). */
   startTime?: number;
+  /** Auto-enable the first (or default) subtitle track. */
+  preferSubtitles?: boolean;
+  /** Prefer English/dub HLS audio when the master exposes multiple tracks. */
+  preferDubAudio?: boolean;
+  /** Called when the user picks an allServers quality (parent remounts src). */
+  onSelectQuality?: (entry: KittyStreamQuality) => void;
   /** Called when share is clicked (stub by default). */
   onShare?: () => void;
   onStart?: () => void;
@@ -72,12 +151,36 @@ export type CustomVideoPlayerProps = {
   useClassicLabel?: string;
 };
 
+type HlsLevelOption = {
+  index: number;
+  label: string;
+  height?: number;
+};
+
+type HlsAudioOption = {
+  index: number;
+  label: string;
+};
+
+type CaptionOption = {
+  id: string;
+  label: string;
+  src: string;
+  language: string;
+  isDefault?: boolean;
+};
+
 export function CustomVideoPlayer({
   src,
   poster,
   title,
   className,
+  tracks = [],
+  qualities = [],
   startTime = 0,
+  preferSubtitles = true,
+  preferDubAudio = false,
+  onSelectQuality,
   onShare,
   onStart,
   onProgress,
@@ -92,6 +195,7 @@ export function CustomVideoPlayer({
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -100,6 +204,8 @@ export function CustomVideoPlayer({
   const startedRef = useRef(false);
   const lastProgressTsRef = useRef(0);
   const volumeBeforeMuteRef = useRef(1);
+  const audioUserPickedRef = useRef(false);
+  const qualityResumeRef = useRef<number | null>(null);
   const onLiveTimeRef = useRef(onLiveTime);
   const onProgressRef = useRef(onProgress);
   const onEndedRef = useRef(onEnded);
@@ -107,6 +213,7 @@ export function CustomVideoPlayer({
   const onFatalErrorRef = useRef(onFatalError);
   const onPlayerReadyRef = useRef(onPlayerReady);
   const startTimeRef = useRef(startTime);
+  const preferDubAudioRef = useRef(preferDubAudio);
 
   onLiveTimeRef.current = onLiveTime;
   onProgressRef.current = onProgress;
@@ -115,6 +222,7 @@ export function CustomVideoPlayer({
   onFatalErrorRef.current = onFatalError;
   onPlayerReadyRef.current = onPlayerReady;
   startTimeRef.current = startTime;
+  preferDubAudioRef.current = preferDubAudio;
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -125,6 +233,7 @@ export function CustomVideoPlayer({
   const [brightness, setBrightness] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
   const [pipSupported, setPipSupported] = useState(false);
+  const [pipBlocked, setPipBlocked] = useState(false);
   const [inPip, setInPip] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [volumeOpen, setVolumeOpen] = useState(false);
@@ -141,6 +250,42 @@ export function CustomVideoPlayer({
   const [seekFlash, setSeekFlash] = useState<"left" | "right" | null>(null);
   const [playbackIssue, setPlaybackIssue] = useState<string | null>(null);
   const [playbackRate, setPlaybackRateState] = useState(1);
+  const [srcOverride, setSrcOverride] = useState<string | null>(null);
+  const [hlsLevels, setHlsLevels] = useState<HlsLevelOption[]>([]);
+  const [hlsLevelIndex, setHlsLevelIndex] = useState(-1);
+  const [hlsAudioOptions, setHlsAudioOptions] = useState<HlsAudioOption[]>([]);
+  const [hlsAudioIndex, setHlsAudioIndex] = useState(0);
+  const [selectedCaptionId, setSelectedCaptionId] = useState<string | null>(null);
+
+  const activeSrc = srcOverride ?? src;
+
+  const captionOptions = useMemo<CaptionOption[]>(() => {
+    return tracks
+      .filter(isSubtitleTrack)
+      .map((track, index) => {
+        const file = getTrackFile(track) ?? "";
+        const resolved = resolveTrackSrc(file);
+        const label = track.label?.trim() || `Subtitle ${index + 1}`;
+        return {
+          id: `${resolved}::${label}`,
+          label,
+          src: resolved,
+          language: labelToLanguage(label),
+          isDefault: Boolean(track.default),
+        };
+      })
+      .filter((track) => Boolean(track.src));
+  }, [tracks]);
+
+  const serverQualities = useMemo(() => {
+    const deduped = dedupeStreamQualities(qualities);
+    if (deduped.length > 1 && isResolutionQualityLadder(deduped)) return deduped;
+    return [];
+  }, [qualities]);
+
+  const showHlsQualityMenu = serverQualities.length === 0 && hlsLevels.length > 1;
+  const showAudioMenu = hlsAudioOptions.length > 1;
+  const showCaptionsMenu = captionOptions.length > 0;
 
   const displayTime = seekPreview ?? currentTime;
   const chromeVisible = controlsVisible || seeking || !playing;
@@ -178,16 +323,86 @@ export function CustomVideoPlayer({
     }, SEEK_FLASH_MS);
   }, []);
 
+  // Reset local quality override when parent src changes (episode / provider).
+  useEffect(() => {
+    setSrcOverride(null);
+    qualityResumeRef.current = null;
+    audioUserPickedRef.current = false;
+  }, [src]);
+
+  // Prefer-subtitles → pick default / first caption when tracks change.
+  useEffect(() => {
+    if (!preferSubtitles || captionOptions.length === 0) {
+      setSelectedCaptionId(null);
+      return;
+    }
+    const preferred =
+      captionOptions.find((c) => c.isDefault) ?? captionOptions[0] ?? null;
+    setSelectedCaptionId(preferred?.id ?? null);
+  }, [captionOptions, preferSubtitles]);
+
+  // Apply native textTrack modes.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    setPipSupported(
-      typeof document !== "undefined" &&
+    const apply = () => {
+      const list = video.textTracks;
+      for (let i = 0; i < list.length; i++) {
+        const tt = list[i];
+        if (tt.kind !== "subtitles" && tt.kind !== "captions") continue;
+        const match = captionOptions.find(
+          (c) => c.label === tt.label || c.language === tt.language,
+        );
+        const id = match?.id ?? null;
+        if (selectedCaptionId && id === selectedCaptionId) {
+          tt.mode = "showing";
+        } else {
+          tt.mode = "disabled";
+        }
+      }
+    };
+
+    apply();
+    video.textTracks.addEventListener("addtrack", apply);
+    video.textTracks.addEventListener("change", apply);
+    return () => {
+      video.textTracks.removeEventListener("addtrack", apply);
+      video.textTracks.removeEventListener("change", apply);
+    };
+  }, [captionOptions, selectedCaptionId, activeSrc]);
+
+  // Re-apply preferDub when the watch page toggles SUB/DUB.
+  useEffect(() => {
+    audioUserPickedRef.current = false;
+    const hls = hlsRef.current;
+    if (!hls) return;
+    pickHlsAudioTrack(hls, preferDubAudio);
+    setHlsAudioIndex(hls.audioTrack);
+  }, [preferDubAudio]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Older iOS Safari still looks for the webkit attribute.
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
+    video.setAttribute("x-webkit-airplay", "allow");
+
+    const refreshPipSupport = () => {
+      const docEnabled =
+        typeof document !== "undefined" &&
         "pictureInPictureEnabled" in document &&
-        Boolean(document.pictureInPictureEnabled) &&
-        typeof video.requestPictureInPicture === "function",
-    );
+        Boolean(document.pictureInPictureEnabled);
+      const canRequest = typeof video.requestPictureInPicture === "function";
+      const wk = video as WebkitVideo;
+      const webkitPip = typeof wk.webkitSetPresentationMode === "function";
+      const blocked = Boolean(video.disablePictureInPicture);
+      setPipBlocked(blocked);
+      setPipSupported((docEnabled && canRequest) || webkitPip);
+    };
+    refreshPipSupport();
 
     onPlayerReadyRef.current?.(
       createHtmlVideoPlayerController(video, rootRef.current),
@@ -195,10 +410,13 @@ export function CustomVideoPlayer({
 
     const applyStartTime = () => {
       if (startAppliedRef.current) return;
-      const t = startTimeRef.current;
+      const resume = qualityResumeRef.current;
+      const t =
+        resume != null && resume > 0 ? resume : startTimeRef.current;
       if (t > 10 && Number.isFinite(t)) {
         video.currentTime = t;
         startAppliedRef.current = true;
+        qualityResumeRef.current = null;
       }
     };
 
@@ -256,8 +474,8 @@ export function CustomVideoPlayer({
     };
     const onEnterPip = () => setInPip(true);
     const onLeavePip = () => setInPip(false);
-    const onFsChange = () => {
-      setFullscreen(Boolean(document.fullscreenElement));
+    const syncFs = () => {
+      setFullscreen(isElementFullscreen(rootRef.current));
     };
     const onVideoEnded = () => {
       onEndedRef.current?.();
@@ -265,7 +483,7 @@ export function CustomVideoPlayer({
     const onNativeError = () => {
       // HLS path reports via hls.js; ignore empty-src teardown noise.
       if (!video.src && !video.currentSrc) return;
-      if (looksLikeHls(src) && Hls.isSupported()) return;
+      if (looksLikeHls(activeSrc) && Hls.isSupported()) return;
       setPlaybackIssue(
         playbackIssueHint ??
           "This stream could not play in the custom player. Switch back to Classic for full HLS support.",
@@ -275,6 +493,13 @@ export function CustomVideoPlayer({
         details: video.error?.message ?? "media-error",
         status: video.error?.code,
       });
+    };
+    const onWebkitPresentation = () => {
+      const wk = video as WebkitVideo;
+      setInPip(wk.webkitPresentationMode === "picture-in-picture");
+      if (wk.webkitDisplayingFullscreen != null) {
+        setFullscreen(Boolean(wk.webkitDisplayingFullscreen));
+      }
     };
 
     video.addEventListener("play", onPlay);
@@ -293,9 +518,26 @@ export function CustomVideoPlayer({
     video.addEventListener("leavepictureinpicture", onLeavePip);
     video.addEventListener("ended", onVideoEnded);
     video.addEventListener("error", onNativeError);
-    document.addEventListener("fullscreenchange", onFsChange);
+    video.addEventListener(
+      "webkitpresentationmodechanged",
+      onWebkitPresentation as EventListener,
+    );
+    video.addEventListener(
+      "webkitbeginfullscreen",
+      onWebkitPresentation as EventListener,
+    );
+    video.addEventListener(
+      "webkitendfullscreen",
+      onWebkitPresentation as EventListener,
+    );
+    const offFs = onFullscreenChange(syncFs);
+    syncFs();
+
+    const onPageHide = () => exitPictureInPictureSafe(video);
+    window.addEventListener("pagehide", onPageHide);
 
     return () => {
+      exitPictureInPictureSafe(video);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("timeupdate", onTimeUpdate);
@@ -312,17 +554,30 @@ export function CustomVideoPlayer({
       video.removeEventListener("leavepictureinpicture", onLeavePip);
       video.removeEventListener("ended", onVideoEnded);
       video.removeEventListener("error", onNativeError);
-      document.removeEventListener("fullscreenchange", onFsChange);
+      video.removeEventListener(
+        "webkitpresentationmodechanged",
+        onWebkitPresentation as EventListener,
+      );
+      video.removeEventListener(
+        "webkitbeginfullscreen",
+        onWebkitPresentation as EventListener,
+      );
+      video.removeEventListener(
+        "webkitendfullscreen",
+        onWebkitPresentation as EventListener,
+      );
+      offFs();
+      window.removeEventListener("pagehide", onPageHide);
       clearIdleTimer();
       if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
       if (seekFlashTimerRef.current) clearTimeout(seekFlashTimerRef.current);
     };
-  }, [bumpControls, clearIdleTimer, src, playbackIssueHint]);
+  }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint]);
 
   // Attach progressive / HLS source (native Safari HLS, else hls.js when available).
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !src) return;
+    if (!video || !activeSrc) return;
 
     let hls: Hls | null = null;
     let cancelled = false;
@@ -336,6 +591,11 @@ export function CustomVideoPlayer({
     setBuffered(0);
     setHasStarted(false);
     setBuffering(true);
+    setHlsLevels([]);
+    setHlsLevelIndex(-1);
+    setHlsAudioOptions([]);
+    setHlsAudioIndex(0);
+    hlsRef.current = null;
 
     const fail = (type: string, details?: string, status?: number) => {
       if (cancelled) return;
@@ -346,7 +606,32 @@ export function CustomVideoPlayer({
       onFatalErrorRef.current?.({ type, details, status });
     };
 
-    const isHls = looksLikeHls(src);
+    const syncHlsMenus = (instance: Hls) => {
+      if (cancelled) return;
+      const levels: HlsLevelOption[] = instance.levels.map((level, index) => {
+        const height = level.height || undefined;
+        const label = height
+          ? formatStreamQualityLabel(`${height}p`)
+          : level.name || `Level ${index + 1}`;
+        return { index, label, height };
+      });
+      setHlsLevels(levels);
+      setHlsLevelIndex(instance.autoLevelEnabled ? -1 : instance.currentLevel);
+
+      const audioOpts: HlsAudioOption[] = instance.audioTracks.map(
+        (track, index) => ({
+          index,
+          label:
+            track.name ||
+            track.lang ||
+            `Audio ${index + 1}`,
+        }),
+      );
+      setHlsAudioOptions(audioOpts);
+      setHlsAudioIndex(instance.audioTrack);
+    };
+
+    const isHls = looksLikeHls(activeSrc);
     const canNativeHls = Boolean(
       video.canPlayType("application/vnd.apple.mpegurl") ||
         video.canPlayType("application/x-mpegURL"),
@@ -358,16 +643,41 @@ export function CustomVideoPlayer({
         return;
       }
       hls = new Hls(createHlsConfig());
-      hls.loadSource(src);
+      hlsRef.current = hls;
+      hls.loadSource(activeSrc);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (cancelled) return;
+        if (cancelled || !hls) return;
         setBuffering(false);
-        const t = startTimeRef.current;
+        syncHlsMenus(hls);
+        if (!audioUserPickedRef.current) {
+          pickHlsAudioTrack(hls, preferDubAudioRef.current);
+          setHlsAudioIndex(hls.audioTrack);
+        }
+        const resume = qualityResumeRef.current;
+        const t =
+          resume != null && resume > 0 ? resume : startTimeRef.current;
         if (t > 10) {
           video.currentTime = t;
           startAppliedRef.current = true;
+          qualityResumeRef.current = null;
         }
+      });
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+        if (cancelled || !hls) return;
+        setHlsLevelIndex(hls.autoLevelEnabled ? -1 : data.level);
+      });
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
+        if (cancelled || !hls) return;
+        syncHlsMenus(hls);
+        if (!audioUserPickedRef.current) {
+          pickHlsAudioTrack(hls, preferDubAudioRef.current);
+          setHlsAudioIndex(hls.audioTrack);
+        }
+      });
+      hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (_event, data) => {
+        if (cancelled) return;
+        setHlsAudioIndex(data.id);
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal || cancelled) return;
@@ -376,6 +686,7 @@ export function CustomVideoPlayer({
           fail("hls-auth", data.details, status);
           hls?.destroy();
           hls = null;
+          hlsRef.current = null;
           return;
         }
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveries < 3) {
@@ -391,21 +702,24 @@ export function CustomVideoPlayer({
         fail("hls", data.details, status);
         hls?.destroy();
         hls = null;
+        hlsRef.current = null;
       });
     } else {
-      video.src = src;
+      video.src = activeSrc;
       const onLoaded = () => setBuffering(false);
       video.addEventListener("loadeddata", onLoaded, { once: true });
     }
 
     return () => {
       cancelled = true;
+      exitPictureInPictureSafe(video);
       hls?.destroy();
       hls = null;
+      hlsRef.current = null;
       video.removeAttribute("src");
       video.load();
     };
-  }, [src, playbackIssueHint]);
+  }, [activeSrc, playbackIssueHint]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -471,12 +785,22 @@ export function CustomVideoPlayer({
 
   const toggleFullscreen = useCallback(async () => {
     const root = rootRef.current;
+    const video = videoRef.current as WebkitVideo | null;
     if (!root) return;
     try {
-      if (!document.fullscreenElement) {
-        await root.requestFullscreen();
+      if (isElementFullscreen(root) || getFullscreenElement()) {
+        await exitElementFullscreen();
       } else {
-        await document.exitFullscreen();
+        try {
+          await requestElementFullscreen(root);
+        } catch {
+          // iOS Safari often only fullscreens the <video> element.
+          if (video?.webkitSupportsFullscreen && video.webkitEnterFullscreen) {
+            video.webkitEnterFullscreen();
+          } else if (video?.webkitEnterFullscreen) {
+            video.webkitEnterFullscreen();
+          }
+        }
       }
     } catch {
       /* browser may deny fullscreen without gesture */
@@ -485,9 +809,13 @@ export function CustomVideoPlayer({
   }, [bumpControls]);
 
   const exitFullscreen = useCallback(async () => {
-    if (!document.fullscreenElement) return;
+    const video = videoRef.current as WebkitVideo | null;
     try {
-      await document.exitFullscreen();
+      if (getFullscreenElement()) {
+        await exitElementFullscreen();
+      } else if (video?.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
+        video.webkitExitFullscreen();
+      }
     } catch {
       /* ignore */
     }
@@ -495,19 +823,23 @@ export function CustomVideoPlayer({
   }, [bumpControls]);
 
   const togglePip = useCallback(async () => {
-    const video = videoRef.current;
-    if (!video || !pipSupported) return;
+    const video = videoRef.current as WebkitVideo | null;
+    if (!video || !pipSupported || pipBlocked) return;
     try {
-      if (document.pictureInPictureElement) {
+      if (document.pictureInPictureElement === video) {
         await document.exitPictureInPicture();
-      } else {
+      } else if (video.webkitPresentationMode === "picture-in-picture") {
+        video.webkitSetPresentationMode?.("inline");
+      } else if (typeof video.requestPictureInPicture === "function") {
         await video.requestPictureInPicture();
+      } else {
+        video.webkitSetPresentationMode?.("picture-in-picture");
       }
     } catch {
-      /* unsupported or denied */
+      setPipBlocked(true);
     }
     bumpControls();
-  }, [bumpControls, pipSupported]);
+  }, [bumpControls, pipSupported, pipBlocked]);
 
   const handleShare = useCallback(() => {
     bumpControls();
@@ -525,6 +857,56 @@ export function CustomVideoPlayer({
       const video = videoRef.current;
       if (video) video.playbackRate = rate;
       setPlaybackRateState(rate);
+      bumpControls();
+    },
+    [bumpControls],
+  );
+
+  const selectServerQuality = useCallback(
+    (entry: KittyStreamQuality) => {
+      const video = videoRef.current;
+      if (video && video.currentTime > 1) {
+        qualityResumeRef.current = video.currentTime;
+      }
+      if (onSelectQuality) {
+        onSelectQuality(entry);
+      } else {
+        setSrcOverride(entry.file);
+      }
+      setMoreOpen(false);
+      bumpControls();
+    },
+    [bumpControls, onSelectQuality],
+  );
+
+  const selectHlsLevel = useCallback(
+    (index: number) => {
+      const hls = hlsRef.current;
+      if (!hls) return;
+      hls.currentLevel = index;
+      setHlsLevelIndex(index);
+      setMoreOpen(false);
+      bumpControls();
+    },
+    [bumpControls],
+  );
+
+  const selectHlsAudio = useCallback(
+    (index: number) => {
+      const hls = hlsRef.current;
+      if (!hls) return;
+      audioUserPickedRef.current = true;
+      hls.audioTrack = index;
+      setHlsAudioIndex(index);
+      setMoreOpen(false);
+      bumpControls();
+    },
+    [bumpControls],
+  );
+
+  const selectCaption = useCallback(
+    (id: string | null) => {
+      setSelectedCaptionId(id);
       setMoreOpen(false);
       bumpControls();
     },
@@ -583,7 +965,7 @@ export function CustomVideoPlayer({
       const active = document.activeElement;
       const focusedInPlayer = root.contains(active) || active === root;
       const hovered = root.matches(":hover");
-      const isFs = document.fullscreenElement === root;
+      const isFs = isElementFullscreen(root);
       if (!focusedInPlayer && !hovered && !isFs && active !== document.body) {
         return;
       }
@@ -625,12 +1007,26 @@ export function CustomVideoPlayer({
           e.preventDefault();
           toggleMute();
           break;
+        case "c":
+        case "C":
+          if (captionOptions.length > 0) {
+            e.preventDefault();
+            selectCaption(selectedCaptionId ? null : captionOptions[0]!.id);
+          }
+          break;
+        case "p":
+        case "P":
+          if (pipSupported && !pipBlocked) {
+            e.preventDefault();
+            void togglePip();
+          }
+          break;
         case "Escape":
           if (volumeOpen || brightnessOpen || moreOpen) {
             e.preventDefault();
             closePopovers();
             bumpControls();
-          } else if (document.fullscreenElement === root) {
+          } else if (isElementFullscreen(root)) {
             e.preventDefault();
             void exitFullscreen();
           }
@@ -656,12 +1052,20 @@ export function CustomVideoPlayer({
     bumpControls,
     exitFullscreen,
     showSeekFlash,
+    captionOptions,
+    selectedCaptionId,
+    selectCaption,
+    pipSupported,
+    pipBlocked,
+    togglePip,
   ]);
 
   const progressRatio = duration > 0 ? displayTime / duration : 0;
   const bufferedRatio = duration > 0 ? buffered / duration : 0;
   const showSpinner = buffering && (playing || hasStarted) && !playbackIssue;
   const showCenterPlay = !playing && !buffering;
+  const activeServerQuality =
+    serverQualities.find((q) => q.file === activeSrc) ?? null;
 
   const timeFromPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = progressRef.current ?? e.currentTarget;
@@ -716,16 +1120,34 @@ export function CustomVideoPlayer({
       }}
       onTouchStart={bumpControls}
     >
+      <div className="sr-only" aria-live="polite">
+        {playing ? "Playing" : "Paused"}
+        {selectedCaptionId
+          ? `, captions ${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "on"}`
+          : ", captions off"}
+      </div>
+
       <video
         ref={videoRef}
         poster={poster}
         playsInline
         preload="metadata"
-        className="h-full w-full object-contain"
+        className="h-full w-full object-contain [&::cue]:bg-black/55 [&::cue]:px-1 [&::cue]:text-white"
         style={{ filter: `brightness(${brightness})` }}
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}
-      />
+      >
+        {captionOptions.map((track) => (
+          <track
+            key={track.id}
+            kind="subtitles"
+            src={track.src}
+            srcLang={track.language}
+            label={track.label}
+            default={preferSubtitles && track.id === selectedCaptionId}
+          />
+        ))}
+      </video>
 
       {playbackIssue ? (
         <div className="absolute inset-x-3 top-3 z-40 flex flex-col gap-2 rounded-lg border border-amber-400/30 bg-black/85 px-3 py-2.5 text-left shadow-lg backdrop-blur-md sm:inset-x-auto sm:right-3 sm:max-w-sm">
@@ -734,7 +1156,7 @@ export function CustomVideoPlayer({
             <button
               type="button"
               onClick={onUseClassicPlayer}
-              className="self-start rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-white/15"
+              className="self-start rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               {useClassicLabel}
             </button>
@@ -788,6 +1210,7 @@ export function CustomVideoPlayer({
           "absolute left-1/2 top-1/2 z-20 flex h-[4.75rem] w-[4.75rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.15rem] border border-white/35 bg-black/50 text-white backdrop-blur-[2px]",
           "transition-[opacity,transform] duration-300 ease-out",
           "hover:bg-black/60 hover:border-white/45",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
           "sm:h-[4.5rem] sm:w-[4.5rem]",
           showCenterPlay
             ? "pointer-events-auto scale-100 opacity-100"
@@ -804,6 +1227,7 @@ export function CustomVideoPlayer({
         onClick={handleShare}
         className={cn(
           "absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center text-white/85 transition-[opacity,transform] duration-300 hover:text-white sm:right-3.5 sm:top-3.5 sm:h-8 sm:w-8",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md",
           chromeVisible
             ? "opacity-100"
             : "pointer-events-none opacity-0",
@@ -834,8 +1258,9 @@ export function CustomVideoPlayer({
               aria-valuemin={0}
               aria-valuemax={Math.floor(duration) || 0}
               aria-valuenow={Math.floor(displayTime)}
+              aria-valuetext={`${formatPlayerTime(displayTime)} of ${formatPlayerTime(duration)}`}
               tabIndex={0}
-              className="group/seek relative h-5 cursor-pointer touch-none sm:h-3.5"
+              className="group/seek relative h-5 cursor-pointer touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3.5"
               onPointerDown={(e) => {
                 e.currentTarget.setPointerCapture(e.pointerId);
                 seekingRef.current = true;
@@ -951,9 +1376,12 @@ export function CustomVideoPlayer({
                   <Forward10Icon className="h-[22px] w-[22px]" />
                 </IconButton>
 
-                <span className="ml-1 select-none whitespace-nowrap text-[12px] tabular-nums tracking-wide text-white/90 sm:ml-2.5 sm:text-[13px]">
+                <span
+                  className="ml-1 select-none whitespace-nowrap text-[12px] tabular-nums tracking-wide text-white/90 sm:ml-2.5 sm:text-[13px]"
+                  aria-hidden
+                >
                   {formatPlayerTime(displayTime)}
-                  <span className="inline-block w-2.5 sm:w-3.5" aria-hidden />
+                  <span className="inline-block w-2.5 sm:w-3.5" />
                   {formatPlayerTime(duration)}
                 </span>
               </div>
@@ -964,7 +1392,9 @@ export function CustomVideoPlayer({
               <div className="flex items-center gap-0 sm:gap-1.5">
                 <div className="relative">
                   <IconButton
-                    label="More"
+                    label="More options"
+                    ariaExpanded={moreOpen}
+                    ariaHasPopup="menu"
                     onClick={() => {
                       setMoreOpen((v) => !v);
                       setVolumeOpen(false);
@@ -975,33 +1405,126 @@ export function CustomVideoPlayer({
                     <MoreIcon className="h-[18px] w-[18px]" />
                   </IconButton>
                   {moreOpen && (
-                    <div className="absolute bottom-full right-0 mb-2 min-w-[148px] rounded-md border border-white/10 bg-black/90 py-1 text-xs text-white shadow-lg backdrop-blur-md">
-                      {[1, 1.25, 1.5, 2].map((rate) => (
-                        <button
-                          key={rate}
-                          type="button"
-                          className={cn(
-                            "block w-full px-3 py-2.5 text-left hover:bg-white/10 sm:py-2",
-                            playbackRate === rate && "bg-white/10 font-medium",
-                          )}
-                          onClick={() => applyPlaybackRate(rate)}
-                        >
-                          Speed {rate === 1 ? "1×" : `${rate}×`}
-                        </button>
-                      ))}
+                    <div
+                      role="menu"
+                      aria-label="Player options"
+                      className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(70vh,420px)] min-w-[176px] overflow-y-auto rounded-md border border-white/10 bg-black/92 py-1 text-xs text-white shadow-lg backdrop-blur-md"
+                    >
+                      <MenuSection title="Speed">
+                        {[1, 1.25, 1.5, 2].map((rate) => (
+                          <MenuItem
+                            key={rate}
+                            active={playbackRate === rate}
+                            onClick={() => applyPlaybackRate(rate)}
+                          >
+                            {rate === 1 ? "Normal" : `${rate}×`}
+                          </MenuItem>
+                        ))}
+                      </MenuSection>
+
+                      {serverQualities.length > 1 ? (
+                        <MenuSection title="Quality">
+                          {serverQualities.map((entry) => (
+                            <MenuItem
+                              key={entry.file}
+                              active={activeSrc === entry.file}
+                              onClick={() => selectServerQuality(entry)}
+                            >
+                              {formatStreamQualityLabel(entry.quality)}
+                            </MenuItem>
+                          ))}
+                        </MenuSection>
+                      ) : null}
+
+                      {showHlsQualityMenu ? (
+                        <MenuSection title="Quality">
+                          <MenuItem
+                            active={hlsLevelIndex < 0}
+                            onClick={() => selectHlsLevel(-1)}
+                          >
+                            Auto
+                          </MenuItem>
+                          {[...hlsLevels]
+                            .sort(
+                              (a, b) => (b.height ?? 0) - (a.height ?? 0),
+                            )
+                            .map((level) => (
+                              <MenuItem
+                                key={level.index}
+                                active={hlsLevelIndex === level.index}
+                                onClick={() => selectHlsLevel(level.index)}
+                              >
+                                {level.label}
+                              </MenuItem>
+                            ))}
+                        </MenuSection>
+                      ) : null}
+
+                      {showCaptionsMenu ? (
+                        <MenuSection title="Captions">
+                          <MenuItem
+                            active={selectedCaptionId == null}
+                            onClick={() => selectCaption(null)}
+                          >
+                            Off
+                          </MenuItem>
+                          {captionOptions.map((track) => (
+                            <MenuItem
+                              key={track.id}
+                              active={selectedCaptionId === track.id}
+                              onClick={() => selectCaption(track.id)}
+                            >
+                              {track.label}
+                            </MenuItem>
+                          ))}
+                        </MenuSection>
+                      ) : null}
+
+                      {showAudioMenu ? (
+                        <MenuSection title="Audio">
+                          {hlsAudioOptions.map((track) => (
+                            <MenuItem
+                              key={track.index}
+                              active={hlsAudioIndex === track.index}
+                              onClick={() => selectHlsAudio(track.index)}
+                            >
+                              {track.label}
+                            </MenuItem>
+                          ))}
+                        </MenuSection>
+                      ) : null}
+
+                      {activeServerQuality ||
+                      (showHlsQualityMenu && hlsLevelIndex >= 0) ? (
+                        <p className="border-t border-white/10 px-3 py-2 text-[10px] text-white/45">
+                          {activeServerQuality
+                            ? formatStreamQualityLabel(
+                                activeServerQuality.quality,
+                              )
+                            : hlsLevels.find((l) => l.index === hlsLevelIndex)
+                                ?.label}
+                        </p>
+                      ) : null}
                     </div>
                   )}
                 </div>
 
-                {pipSupported && (
-                  <IconButton
-                    label={inPip ? "Exit picture-in-picture" : "Picture-in-picture"}
-                    onClick={() => void togglePip()}
-                    className="hidden sm:inline-flex"
-                  >
-                    <PipIcon className="h-[18px] w-[18px]" />
-                  </IconButton>
-                )}
+                <IconButton
+                  label={
+                    pipBlocked
+                      ? "Picture-in-picture unavailable"
+                      : !pipSupported
+                        ? "Picture-in-picture not supported"
+                        : inPip
+                          ? "Exit picture-in-picture"
+                          : "Picture-in-picture"
+                  }
+                  onClick={() => void togglePip()}
+                  disabled={!pipSupported || pipBlocked}
+                  className="hidden sm:inline-flex"
+                >
+                  <PipIcon className="h-[18px] w-[18px]" />
+                </IconButton>
 
                 <div
                   className="relative"
@@ -1082,6 +1605,48 @@ export function CustomVideoPlayer({
   );
 }
 
+function MenuSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-b border-white/10 py-1 last:border-b-0">
+      <p className="px-3 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-white/40">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function MenuItem({
+  children,
+  active,
+  onClick,
+}: {
+  children: ReactNode;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitemradio"
+      aria-checked={active}
+      className={cn(
+        "block w-full px-3 py-2.5 text-left hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none sm:py-2",
+        active && "bg-white/10 font-medium",
+      )}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
 function VerticalSliderPopover({
   label,
   min,
@@ -1107,13 +1672,20 @@ function VerticalSliderPopover({
         max={max}
         step={step}
         value={value}
+        role="slider"
         aria-label={label}
-        className="h-24 w-2 cursor-pointer appearance-none rounded-full bg-white/25 accent-white sm:h-20 sm:w-1.5"
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={Number(value.toFixed(2))}
+        aria-valuetext={display}
+        className="h-24 w-2 cursor-pointer appearance-none rounded-full bg-white/25 accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:h-20 sm:w-1.5"
         style={{ writingMode: "vertical-lr", direction: "rtl" }}
         onChange={(e) => onChange(Number(e.target.value))}
         onPointerDown={(e) => e.stopPropagation()}
       />
-      <span className="text-[10px] tabular-nums text-white/70">{display}</span>
+      <span className="text-[10px] tabular-nums text-white/70" aria-hidden>
+        {display}
+      </span>
     </div>
   );
 }
@@ -1123,20 +1695,32 @@ function IconButton({
   onClick,
   children,
   className,
+  disabled,
+  ariaExpanded,
+  ariaHasPopup,
 }: {
   label: string;
   onClick: () => void;
   children: ReactNode;
   className?: string;
+  disabled?: boolean;
+  ariaExpanded?: boolean;
+  ariaHasPopup?: "menu" | boolean;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
+      disabled={disabled}
+      aria-expanded={ariaExpanded}
+      aria-haspopup={ariaHasPopup}
       onClick={onClick}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center text-white/90 transition-opacity hover:text-white hover:opacity-100 active:opacity-70 sm:h-9 sm:w-9",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-white/90 transition-opacity hover:text-white hover:opacity-100 active:opacity-70",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
+        "disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:opacity-35",
+        "sm:h-9 sm:w-9",
         className,
       )}
     >

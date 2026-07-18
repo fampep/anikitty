@@ -1658,6 +1658,11 @@ const VideoPlayerSection = () => {
         <CustomVideoPlayer
           key={`custom-${displayPlayerKey}`}
           src={displayFile}
+          tracks={tracksForPlayer}
+          qualities={displayQualities}
+          preferSubtitles={subtitlesEnabled}
+          preferDubAudio={streamAudio === "dub"}
+          onSelectQuality={handlePickQuality}
           title={
             currentEpisodeInfo
               ? t("watch.episode", { n: currentEpisodeInfo.number })

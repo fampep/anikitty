@@ -22,7 +22,7 @@ export default function CustomPlayerDemoPage() {
           <strong className="font-medium text-foreground">Player → Custom</strong>{" "}
           in settings (Classic / Vidstack remains the default). Demo source is
           progressive MP4. Watch streams use the same component with hls.js /
-          native HLS when available.
+          native HLS, plus captions / quality / audio in the ⋮ menu.
         </p>
       </header>
 
@@ -87,6 +87,16 @@ export default function CustomPlayerDemoPage() {
               Shift
             </kbd>{" "}
             + arrows — fine seek ±5s
+          </li>
+          <li>
+            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-xs">
+              C
+            </kbd>{" "}
+            — captions ·{" "}
+            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-xs">
+              P
+            </kbd>{" "}
+            — picture-in-picture
           </li>
         </ul>
       </section>
