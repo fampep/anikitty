@@ -253,11 +253,14 @@ export function NextEpisodeChip({
   episode,
   imageUrl,
   stacked,
+  detail,
   onClick,
 }: {
   episode: { number: number; title: string };
   imageUrl?: string | null;
   stacked?: boolean;
+  /** Optional secondary line (e.g. “42s left” / “Casting”). */
+  detail?: string | null;
   onClick: () => void;
 }) {
   const title =
@@ -307,6 +310,11 @@ export function NextEpisodeChip({
         <p className="truncate text-[12px] font-semibold leading-tight text-white">
           {title}
         </p>
+        {detail ? (
+          <p className="mt-0.5 truncate text-[10px] tabular-nums text-white/45">
+            {detail}
+          </p>
+        ) : null}
       </div>
     </button>
   );
@@ -317,12 +325,15 @@ export function UpNextCountdown({
   episode,
   imageUrl,
   countdown,
+  casting,
   onPlayNow,
   onCancel,
 }: {
   episode: { number: number; title: string };
   imageUrl?: string | null;
   countdown: number;
+  /** When true, clarify that the next episode continues on the Cast device. */
+  casting?: boolean;
   onPlayNow: () => void;
   onCancel: () => void;
 }) {
@@ -387,16 +398,18 @@ export function UpNextCountdown({
 
         <div className="min-w-0 flex-1 text-center sm:text-left">
           <p className="text-[10px] font-medium uppercase tracking-wider text-white/45">
-            Up next
+            {casting ? "Up next · Cast" : "Up next"}
           </p>
           <p className="mt-0.5 truncate text-[14px] font-semibold text-white">
             {title}
           </p>
-          {imageUrl ? (
-            <p className="mt-0.5 text-[11px] tabular-nums text-white/50">
-              Playing in {countdown}s
-            </p>
-          ) : null}
+          <p className="mt-0.5 text-[11px] tabular-nums text-white/50">
+            {casting
+              ? `Casting in ${countdown}s`
+              : imageUrl
+                ? `Playing in ${countdown}s`
+                : `Starts in ${countdown}s`}
+          </p>
         </div>
 
         <div className="flex shrink-0 flex-col gap-1.5 sm:items-stretch">

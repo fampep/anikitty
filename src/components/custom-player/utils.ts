@@ -21,6 +21,21 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+/** True when buffered range lists are identical (avoids useless progress re-renders). */
+export function bufferedRangesEqual(
+  a: readonly { start: number; end: number }[],
+  b: readonly { start: number; end: number }[],
+): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) return false;
+    if (left.start !== right.start || left.end !== right.end) return false;
+  }
+  return true;
+}
+
 /** Playback rates offered in the custom player speed control / play long-press. */
 export const CUSTOM_PLAYER_SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
