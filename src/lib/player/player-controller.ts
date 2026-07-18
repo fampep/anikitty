@@ -68,3 +68,57 @@ export function createPlayerController(
     },
   };
 }
+
+/** Adapter for the experimental custom HTML5 player. */
+export function createHtmlVideoPlayerController(
+  video: HTMLVideoElement,
+  root?: HTMLElement | null,
+): PlayerController {
+  return {
+    play: () => {
+      void video.play();
+    },
+    pause: () => {
+      video.pause();
+    },
+    toggle: () => {
+      if (video.paused) void video.play();
+      else video.pause();
+    },
+    seek: (seconds: number) => {
+      video.currentTime = seconds;
+    },
+    get currentTime() {
+      return video.currentTime;
+    },
+    get duration() {
+      return Number.isFinite(video.duration) ? video.duration : 0;
+    },
+    get paused() {
+      return video.paused;
+    },
+    get volume() {
+      return video.volume;
+    },
+    setVolume(value: number) {
+      video.volume = Math.min(1, Math.max(0, value));
+    },
+    get muted() {
+      return video.muted;
+    },
+    setMuted(value: boolean) {
+      video.muted = value;
+    },
+    toggleFullscreen: () => {
+      const target = root ?? video;
+      if (isElementFullscreen(target)) {
+        void document.exitFullscreen();
+      } else {
+        void target.requestFullscreen?.();
+      }
+    },
+    get video() {
+      return video;
+    },
+  };
+}

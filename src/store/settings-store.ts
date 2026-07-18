@@ -27,9 +27,16 @@ import {
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
+/** Classic = Vidstack (production default). Custom = experimental HTML5 player. */
+export type WatchPlayerEngine = "classic" | "custom";
+
 interface ISettingsStore {
   episodeLayout: EpisodeLayout;
   setEpisodeLayout: (layout: EpisodeLayout) => void;
+
+  /** Watch-page player shell: Vidstack (classic) or experimental custom. */
+  watchPlayerEngine: WatchPlayerEngine;
+  setWatchPlayerEngine: (engine: WatchPlayerEngine) => void;
 
   preferDub: boolean;
   setPreferDub: (val: boolean) => void;
@@ -172,6 +179,9 @@ export const useSettingsStore = create<ISettingsStore>()(
     (set) => ({
       episodeLayout: "list",
       setEpisodeLayout: (episodeLayout) => set({ episodeLayout }),
+
+      watchPlayerEngine: "classic",
+      setWatchPlayerEngine: (watchPlayerEngine) => set({ watchPlayerEngine }),
 
       preferDub: false,
       setPreferDub: (preferDub) => {
@@ -351,9 +361,10 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 40,
+      version: 41,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
+        watchPlayerEngine: state.watchPlayerEngine,
         preferDub: state.preferDub,
         autoPlay: state.autoPlay,
         hideFillers: state.hideFillers,
@@ -554,6 +565,10 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.kittyProxyNode = coerceKittyApiNodeId(
             typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
           );
+        }
+        if (version < 41) {
+          const raw = (next as { watchPlayerEngine?: string }).watchPlayerEngine;
+          next.watchPlayerEngine = raw === "custom" ? "custom" : "classic";
         }
         return next as ISettingsStore;
       },

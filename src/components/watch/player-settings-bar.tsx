@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/core/utils";
-import { useSettingsStore } from "@/store/settings-store";
+import { useSettingsStore, type WatchPlayerEngine } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import SeekStepSetting from "@/components/settings/seek-step-setting";
@@ -20,6 +20,7 @@ import {
   Server,
   List,
   Sparkles,
+  Clapperboard,
 } from "lucide-react";
 import {
   ANIME4K_MODES,
@@ -73,6 +74,44 @@ function ToggleRow({
   );
 }
 
+function PlayerEngineToggle({
+  value,
+  onChange,
+}: {
+  value: WatchPlayerEngine;
+  onChange: (engine: WatchPlayerEngine) => void;
+}) {
+  const t = useT();
+  const options: { id: WatchPlayerEngine; label: string }[] = [
+    { id: "classic", label: t("watch.playerSettings.playerClassic") },
+    { id: "custom", label: t("watch.playerSettings.playerCustom") },
+  ];
+  return (
+    <div
+      className="inline-flex shrink-0 rounded-lg border border-border dark:border-white/12 bg-muted/40 dark:bg-black/30 p-0.5"
+      role="group"
+      aria-label={t("watch.playerSettings.playerEngine")}
+    >
+      {options.map(({ id, label }) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={value === id}
+          onClick={() => onChange(id)}
+          className={cn(
+            "h-7 px-2.5 rounded-md text-[10px] font-bold transition-colors touch-manipulation",
+            value === id
+              ? "bg-violet-500/20 text-violet-100 border border-violet-400/25"
+              : "text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 border border-transparent",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function PlayerSettingsBar({
   watchingHardSub = false,
 }: {
@@ -109,6 +148,8 @@ export default function PlayerSettingsBar({
     anime4kMode,
     setAnime4kMode,
     liteMode,
+    watchPlayerEngine,
+    setWatchPlayerEngine,
   } = useSettingsStore();
 
   const [settingsTab, setSettingsTab] = useState<PlayerSettingsTab>("playback");
@@ -150,6 +191,8 @@ export default function PlayerSettingsBar({
             )}
           />
         </button>
+
+        <PlayerEngineToggle value={watchPlayerEngine} onChange={setWatchPlayerEngine} />
 
         <button
           type="button"
@@ -216,6 +259,42 @@ export default function PlayerSettingsBar({
 
           {settingsTab === "playback" && (
             <div className="space-y-3">
+              <div className="rounded-xl border border-border dark:border-white/[0.08] bg-muted/40 dark:bg-white/[0.03] px-3 py-2.5 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Clapperboard className="w-3.5 h-3.5 text-muted-foreground dark:text-white/35 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-foreground/90 dark:text-white/80">
+                        {t("watch.playerSettings.playerEngine")}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground dark:text-white/30 font-mono mt-0.5 leading-snug">
+                        {watchPlayerEngine === "custom"
+                          ? t("watch.playerSettings.playerCustomHint")
+                          : t("watch.playerSettings.playerClassicHint")}
+                      </p>
+                    </div>
+                  </div>
+                  <PlayerEngineToggle value={watchPlayerEngine} onChange={setWatchPlayerEngine} />
+                </div>
+                {watchPlayerEngine === "classic" ? (
+                  <button
+                    type="button"
+                    onClick={() => setWatchPlayerEngine("custom")}
+                    className="text-[11px] font-semibold text-violet-300/90 hover:text-violet-200 underline-offset-2 hover:underline"
+                  >
+                    {t("watch.playerSettings.tryCustomPlayer")}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setWatchPlayerEngine("classic")}
+                    className="text-[11px] font-semibold text-teal-300/90 hover:text-teal-200 underline-offset-2 hover:underline"
+                  >
+                    {t("watch.playerSettings.useClassicPlayer")}
+                  </button>
+                )}
+              </div>
+
               <ToggleRow
                 icon={<Play className="w-3.5 h-3.5" />}
                 label={t("settings.autoPlay")}
