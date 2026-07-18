@@ -191,3 +191,35 @@ export function CastConnectedIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Apple AirPlay mark — screen + uplink triangle. */
+export function AirPlayIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <path {...stroke} d="M5 4.75h14A1.25 1.25 0 0 1 20.25 6v8.25A1.25 1.25 0 0 1 19 15.5h-2.75" />
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M12 13.5 7 20.25h10L12 13.5z"
+      />
+    </svg>
+  );
+}
+
+/** Filled AirPlay mark for active wireless routing. */
+export function AirPlayConnectedIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M5 3.5h14A2 2 0 0 1 21 5.5v8.25a2 2 0 0 1-2 2h-2.35a.75.75 0 0 1 0-1.5H19a.5.5 0 0 0 .5-.5V5.5a.5.5 0 0 0-.5-.5H5a.5.5 0 0 0-.5.5v8.25a.5.5 0 0 0 .5.5h2.35a.75.75 0 0 1 0 1.5H5a2 2 0 0 1-2-2V5.5A2 2 0 0 1 5 3.5z"
+      />
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M12 13.5 7 20.25h10L12 13.5z"
+      />
+    </svg>
+  );
+}

@@ -54,6 +54,8 @@ import {
 } from "@/lib/player/storyboard-vtt";
 
 import {
+  AirPlayConnectedIcon,
+  AirPlayIcon,
   CaptionsIcon,
   CastConnectedIcon,
   CastIcon,
@@ -88,6 +90,7 @@ import {
   SeekPreviewCard,
   VerticalSliderPopover,
 } from "./player-chrome";
+import { useAirPlay } from "./use-airplay";
 import {
   buildCastMediaRequest,
   useGoogleCast,
@@ -730,6 +733,15 @@ export function AniKittyPlayer({
     setVolumeLevel: castSetVolume,
     syncMedia: castSyncMedia,
   } = cast;
+
+  const {
+    available: airPlayAvailable,
+    connected: airPlayConnected,
+    showPicker: showAirPlayPicker,
+  } = useAirPlay({
+    videoRef,
+    enabled: Boolean(activeSrc),
+  });
 
   const effectivePlaying = casting ? castRemotePlaying : playing;
   const effectiveDuration =
@@ -2883,7 +2895,7 @@ export function AniKittyPlayer({
 
               <div className="min-w-2 flex-1 sm:min-w-3" />
 
-              {/* Right cluster â€” CC Â· Cast Â· volume (sm+) Â· more Â· fullscreen */}
+              {/* Right cluster — CC · AirPlay · Cast · volume (sm+) · more · fullscreen */}
               <div className="flex shrink-0 items-center gap-0 sm:gap-1">
                 {showCaptionsMenu ? (
                   <div className="relative">
@@ -2936,6 +2948,26 @@ export function AniKittyPlayer({
                       </div>
                     ) : null}
                   </div>
+                ) : null}
+
+                {airPlayAvailable ? (
+                  <IconButton
+                    label={
+                      airPlayConnected ? "AirPlay connected" : "AirPlay"
+                    }
+                    ariaPressed={airPlayConnected}
+                    onClick={() => {
+                      showAirPlayPicker();
+                      bumpControls();
+                    }}
+                    className={cn(airPlayConnected && "text-white")}
+                  >
+                    {airPlayConnected ? (
+                      <AirPlayConnectedIcon className="h-[18px] w-[18px]" />
+                    ) : (
+                      <AirPlayIcon className="h-[18px] w-[18px]" />
+                    )}
+                  </IconButton>
                 ) : null}
 
                 {castAvailable ? (
