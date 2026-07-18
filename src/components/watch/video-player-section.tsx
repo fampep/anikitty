@@ -1649,6 +1649,7 @@ const VideoPlayerSection = () => {
       <AniKittyPlayer
         key={displayPlayerKey}
         src={displayFile}
+        poster={currentEpisodeInfo?.image || animePoster || undefined}
         tracks={tracksForPlayer}
         qualities={displayQualities}
         headers={displayHeaders}

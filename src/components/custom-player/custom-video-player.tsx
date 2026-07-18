@@ -533,6 +533,8 @@ export function AniKittyPlayer({
 
   const castingRef = useRef(false);
   const castRemotePlayingRef = useRef(false);
+  /** True while Chromecast session is connecting or connected (not AirPlay). */
+  const castOwnsSurfaceRef = useRef(false);
   const bumpControlsRef = useRef<() => void>(() => {});
   const showGestureHintRef = useRef<(hint: GestureHint) => void>(() => {});
 
@@ -836,6 +838,7 @@ export function AniKittyPlayer({
   });
   castingRef.current = cast.casting;
   castRemotePlayingRef.current = cast.remotePlaying;
+  castOwnsSurfaceRef.current = cast.casting || cast.connecting;
 
   const {
     available: castAvailable,
@@ -879,9 +882,9 @@ export function AniKittyPlayer({
       : volume;
   const chromeVisible = controlsVisible || seeking || !effectivePlaying;
 
-  // Keep local <video> quiet while Chromecast owns playback (incl. remount).
+  // Keep local <video> quiet + frozen while Chromecast owns playback (incl. remount).
   useEffect(() => {
-    if (!casting) return;
+    if (!casting && !castConnecting) return;
     const video = videoRef.current;
     if (!video) return;
     if (!video.paused) video.pause();
@@ -891,7 +894,19 @@ export function AniKittyPlayer({
       /* ignore */
     }
     exitPictureInPictureSafe(video);
-  }, [casting, activeSrc]);
+    // Soft-stop decode so frames don't paint under the poster between pauses.
+    const onPlayWhileCasting = () => {
+      if (!castOwnsSurfaceRef.current) return;
+      video.pause();
+      try {
+        video.muted = true;
+      } catch {
+        /* ignore */
+      }
+    };
+    video.addEventListener("play", onPlayWhileCasting);
+    return () => video.removeEventListener("play", onPlayWhileCasting);
+  }, [casting, castConnecting, activeSrc]);
 
   // Reload Cast media when the stream URL changes mid-session (quality switch),
   // or when this player remounts into an already-open Cast session (next episode).
@@ -1506,6 +1521,18 @@ export function AniKittyPlayer({
     };
 
     const tryAutoplay = () => {
+      // Chromecast owns A/V — never start local silent playback.
+      if (castOwnsSurfaceRef.current) {
+        if (!video.paused) video.pause();
+        try {
+          video.muted = true;
+        } catch {
+          /* ignore */
+        }
+        setBuffering(false);
+        setSourceLoading(false);
+        return;
+      }
       void video.play().catch(() => {
         // Autoplay blocked — user must tap play (expected on mobile).
       });
@@ -2743,9 +2770,16 @@ export function AniKittyPlayer({
         controlsList="nodownload"
         className={cn(
           "h-full w-full object-contain anikitty-player-video",
-          casting && "opacity-40",
+          // Hide local frames while Chromecast is active (AirPlay keeps the video).
+          (casting || castConnecting) && "opacity-0",
         )}
-        style={{ filter: `brightness(${brightness})` }}
+        style={{
+          filter:
+            casting || castConnecting
+              ? undefined
+              : `brightness(${brightness})`,
+        }}
+        aria-hidden={casting || castConnecting || undefined}
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}
         onPointerDown={surfaceGestures.onPointerDown}
@@ -2765,19 +2799,41 @@ export function AniKittyPlayer({
         ))}
       </video>
 
-      {/* Casting handoff surface — sparse status, not a card stack */}
+      {/* Chromecast surface — poster + status; local video stays mounted but invisible */}
       {casting || castConnecting ? (
         <div
-          className="pointer-events-none absolute inset-0 z-[15] flex flex-col items-center justify-center gap-2 bg-black/35"
+          className="pointer-events-none absolute inset-0 z-[15] overflow-hidden bg-black"
           aria-hidden
         >
-          <CastConnectedIcon className="h-10 w-10 text-white/90" />
-          <p className="text-[13px] font-medium tracking-wide text-white">
-            {castConnecting ? "Connecting…" : "Casting…"}
-          </p>
-          {castDeviceName ? (
-            <p className="text-[11px] text-white/55">{castDeviceName}</p>
-          ) : null}
+          {poster ? (
+            // eslint-disable-next-line @next/next/no-img-element -- cast overlay; arbitrary CDN URLs
+            <img
+              key={poster}
+              src={poster}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-zinc-950" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/35" />
+          <div className="relative flex h-full flex-col items-center justify-center gap-2 px-4">
+            <CastConnectedIcon className="h-10 w-10 text-white/90 drop-shadow" />
+            <p className="text-[13px] font-medium tracking-wide text-white drop-shadow">
+              {castConnecting ? "Connecting…" : "Casting…"}
+            </p>
+            {castDeviceName ? (
+              <p className="text-[11px] text-white/70 drop-shadow">
+                {castDeviceName}
+              </p>
+            ) : null}
+            {title ? (
+              <p className="mt-1 max-w-md truncate text-center text-[12px] text-white/55">
+                {title}
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : castLastError ? (
         <div

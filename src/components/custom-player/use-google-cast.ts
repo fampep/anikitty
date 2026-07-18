@@ -7,9 +7,12 @@ import {
   ensureCastContext,
   getCastDeviceName,
   isCastLikelyUnsupported,
+  isCastSessionActiveHint,
   loadCastSdk,
   loadMediaOnSession,
   mapCastState,
+  noteCastSessionActive,
+  peekCastConnectionState,
   resolveCastContentType,
   type CastConnectionState,
   type CastLoadResult,
@@ -89,7 +92,10 @@ export function useGoogleCast(
     player: cast.framework.RemotePlayer;
     controller: cast.framework.RemotePlayerController;
   } | null>(null);
-  const wasConnectedRef = useRef(false);
+  const wasConnectedRef = useRef(
+    typeof window !== "undefined" &&
+      (peekCastConnectionState() === "connected" || isCastSessionActiveHint()),
+  );
   const lastRemoteTimeRef = useRef(0);
   const lastRemotePlayingRef = useRef(false);
   const endingLocallyRef = useRef(false);
@@ -103,8 +109,13 @@ export function useGoogleCast(
 
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [connection, setConnection] =
-    useState<CastConnectionState>("not_connected");
+  // Remount into an open session: peek SDK / hint so UI never flashes local video.
+  const [connection, setConnection] = useState<CastConnectionState>(() => {
+    if (typeof window === "undefined") return "not_connected";
+    const peeked = peekCastConnectionState();
+    if (peeked === "connected" || peeked === "connecting") return peeked;
+    return isCastSessionActiveHint() ? "connected" : "not_connected";
+  });
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [remotePlaying, setRemotePlaying] = useState(false);
   const [remoteTime, setRemoteTime] = useState(0);
@@ -115,6 +126,10 @@ export function useGoogleCast(
 
   const casting = connection === "connected";
   const connecting = connection === "connecting";
+
+  useEffect(() => {
+    noteCastSessionActive(casting || connecting);
+  }, [casting, connecting]);
 
   const refreshRemoteSnapshot = useCallback(() => {
     const player = remoteRef.current?.player;
@@ -200,6 +215,7 @@ export function useGoogleCast(
     mediaArmedRef.current = false;
     mediaEndedFiredRef.current = false;
     sawPlayingNearEndRef.current = false;
+    noteCastSessionActive(false);
     const resumeAt = lastRemoteTimeRef.current;
     const wasPlaying = lastRemotePlayingRef.current;
     setConnection("not_connected");

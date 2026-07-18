@@ -31,6 +31,31 @@ export type CastConnectionState =
   | "connecting"
   | "connected";
 
+/**
+ * Survives player remounts (next episode) so the local surface can keep
+ * showing the cast poster before the Sender SDK re-reports CONNECTED.
+ */
+let castSessionActiveHint = false;
+
+export function noteCastSessionActive(active: boolean): void {
+  castSessionActiveHint = active;
+}
+
+export function isCastSessionActiveHint(): boolean {
+  return castSessionActiveHint;
+}
+
+/** Synchronous peek when the Cast SDK is already loaded (e.g. remount). */
+export function peekCastConnectionState(): CastConnectionState {
+  if (!hasCastApis()) return "not_connected";
+  try {
+    const ctx = cast.framework.CastContext.getInstance();
+    return mapCastState(ctx.getCastState());
+  } catch {
+    return "not_connected";
+  }
+}
+
 export type CastMediaRequest = {
   url: string;
   contentType: string;
