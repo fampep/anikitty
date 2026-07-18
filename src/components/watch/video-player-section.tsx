@@ -1660,6 +1660,8 @@ const VideoPlayerSection = () => {
           src={displayFile}
           tracks={tracksForPlayer}
           qualities={displayQualities}
+          headers={displayHeaders}
+          kittyNodeId={kittyProxyNode}
           preferSubtitles={subtitlesEnabled}
           preferDubAudio={streamAudio === "dub"}
           onSelectQuality={handlePickQuality}

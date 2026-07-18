@@ -21,11 +21,21 @@ import {
   onFullscreenChange,
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
+import {
+  onPlayerOrientationChange,
+  resolvePlayerOrientClass,
+  tryLockLandscapeOrientation,
+  tryUnlockScreenOrientation,
+  type PlayerOrientClass,
+} from "@/lib/kitty/player-orientation";
 import {
   dedupeStreamQualities,
   formatStreamQualityLabel,
   type KittyStreamQuality,
 } from "@/lib/kitty/stream-quality";
+import { isHlsStreamUrl, isMp4StreamUrl } from "@/lib/kitty/stream-format";
 import { cn } from "@/lib/core/utils";
 import {
   createHtmlVideoPlayerController,
@@ -53,13 +63,22 @@ import {
   VolumeIcon,
   VolumeMuteIcon,
 } from "./icons";
-import { clamp, formatPlayerTime } from "./utils";
+import {
+  clamp,
+  formatPlayerTime,
+  isAppleTouchDevice,
+  prefersCoarsePointer,
+  resolveStreamAttachMode,
+  sniffIsHlsPlaylist,
+} from "./utils";
 
 const SEEK_STEP = 10;
 const SEEK_STEP_FINE = 5;
 const IDLE_MS = 2800;
 const CLICK_DELAY_MS = 280;
 const SEEK_FLASH_MS = 700;
+const TOUCH_DOUBLE_TAP_MS = 280;
+const TOUCH_DOUBLE_TAP_PX = 36;
 
 type WebkitVideo = HTMLVideoElement & {
   webkitEnterFullscreen?: () => void;
@@ -71,15 +90,6 @@ type WebkitVideo = HTMLVideoElement & {
   ) => void;
   webkitPresentationMode?: string;
 };
-
-function looksLikeHls(url: string): boolean {
-  return /\.m3u8(?:\?|$)/i.test(url) || url.includes("/api/kitty/hls");
-}
-
-function prefersCoarsePointer(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(hover: none), (pointer: coarse)").matches;
-}
 
 function resolveTrackSrc(file: string): string {
   if (!file) return file;
@@ -128,6 +138,10 @@ export type CustomVideoPlayerProps = {
   tracks?: StreamTrack[];
   /** MegaPlay-style `allServers` ladder when HLS has no useful levels. */
   qualities?: KittyStreamQuality[];
+  /** Same headers Classic uses when minting / resolving Kitty HLS. */
+  headers?: Record<string, string>;
+  /** Preferred Kitty CDN node for URL resolution (passthrough). */
+  kittyNodeId?: KittyApiNodeId;
   /** Resume / deep-link start position (seconds). */
   startTime?: number;
   /** Auto-enable the first (or default) subtitle track. */
@@ -177,6 +191,8 @@ export function CustomVideoPlayer({
   className,
   tracks = [],
   qualities = [],
+  headers = {},
+  kittyNodeId,
   startTime = 0,
   preferSubtitles = true,
   preferDubAudio = false,
@@ -206,6 +222,12 @@ export function CustomVideoPlayer({
   const volumeBeforeMuteRef = useRef(1);
   const audioUserPickedRef = useRef(false);
   const qualityResumeRef = useRef<number | null>(null);
+  const mediaRetryRef = useRef(false);
+  const wasPlayingBeforeHideRef = useRef(false);
+  const lastTouchTapRef = useRef<{ t: number; x: number; y: number } | null>(
+    null,
+  );
+  const playbackRateRef = useRef(1);
   const onLiveTimeRef = useRef(onLiveTime);
   const onProgressRef = useRef(onProgress);
   const onEndedRef = useRef(onEnded);
@@ -246,6 +268,7 @@ export function CustomVideoPlayer({
     ratio: number;
   } | null>(null);
   const [buffering, setBuffering] = useState(false);
+  const [sourceLoading, setSourceLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [seekFlash, setSeekFlash] = useState<"left" | "right" | null>(null);
   const [playbackIssue, setPlaybackIssue] = useState<string | null>(null);
@@ -256,8 +279,18 @@ export function CustomVideoPlayer({
   const [hlsAudioOptions, setHlsAudioOptions] = useState<HlsAudioOption[]>([]);
   const [hlsAudioIndex, setHlsAudioIndex] = useState(0);
   const [selectedCaptionId, setSelectedCaptionId] = useState<string | null>(null);
+  const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
+  const [iosVolumeLocked] = useState(() => isAppleTouchDevice());
+  const [attachNonce, setAttachNonce] = useState(0);
 
-  const activeSrc = srcOverride ?? src;
+  const resolvedSrc = useMemo(() => {
+    const raw = (srcOverride ?? src).trim();
+    if (!raw) return "";
+    // Prefer same-origin Kitty proxy when the parent still has an upstream URL.
+    return buildKittyHlsUrl(raw, headers, kittyNodeId) || raw;
+  }, [src, srcOverride, headers, kittyNodeId]);
+
+  const activeSrc = resolvedSrc;
 
   const captionOptions = useMemo<CaptionOption[]>(() => {
     return tracks
@@ -324,10 +357,11 @@ export function CustomVideoPlayer({
   }, []);
 
   // Reset local quality override when parent src changes (episode / provider).
+  // Keep qualityResumeRef so in-player quality switches can restore time.
   useEffect(() => {
     setSrcOverride(null);
-    qualityResumeRef.current = null;
     audioUserPickedRef.current = false;
+    mediaRetryRef.current = false;
   }, [src]);
 
   // Prefer-subtitles → pick default / first caption when tracks change.
@@ -381,6 +415,48 @@ export function CustomVideoPlayer({
     setHlsAudioIndex(hls.audioTrack);
   }, [preferDubAudio]);
 
+  // Rotation-lock landscape CSS (same helpers as Classic).
+  useEffect(() => {
+    const syncOrient = () => {
+      setOrientClass(
+        resolvePlayerOrientClass({
+          isFullscreen: fullscreen || isElementFullscreen(rootRef.current),
+        }),
+      );
+    };
+    syncOrient();
+    return onPlayerOrientationChange(syncOrient);
+  }, [fullscreen]);
+
+  useEffect(() => {
+    if (fullscreen) {
+      void tryLockLandscapeOrientation();
+      return () => {
+        void tryUnlockScreenOrientation();
+      };
+    }
+    void tryUnlockScreenOrientation();
+  }, [fullscreen]);
+
+  // Pause when the tab is hidden; resume if we were playing.
+  useEffect(() => {
+    const onVisibility = () => {
+      const video = videoRef.current;
+      if (!video) return;
+      if (document.hidden) {
+        wasPlayingBeforeHideRef.current = !video.paused;
+        if (!video.paused) video.pause();
+        return;
+      }
+      if (wasPlayingBeforeHideRef.current) {
+        wasPlayingBeforeHideRef.current = false;
+        void video.play().catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -389,6 +465,7 @@ export function CustomVideoPlayer({
     video.setAttribute("playsinline", "true");
     video.setAttribute("webkit-playsinline", "true");
     video.setAttribute("x-webkit-airplay", "allow");
+    video.playsInline = true;
 
     const refreshPipSupport = () => {
       const docEnabled =
@@ -413,7 +490,7 @@ export function CustomVideoPlayer({
       const resume = qualityResumeRef.current;
       const t =
         resume != null && resume > 0 ? resume : startTimeRef.current;
-      if (t > 10 && Number.isFinite(t)) {
+      if (t > 0.5 && Number.isFinite(t)) {
         video.currentTime = t;
         startAppliedRef.current = true;
         qualityResumeRef.current = null;
@@ -424,6 +501,7 @@ export function CustomVideoPlayer({
       setPlaying(true);
       setHasStarted(true);
       setBuffering(false);
+      setSourceLoading(false);
       bumpControls();
       if (!startedRef.current) {
         startedRef.current = true;
@@ -466,8 +544,14 @@ export function CustomVideoPlayer({
       }
     };
     const onWaiting = () => setBuffering(true);
-    const onPlaying = () => setBuffering(false);
-    const onCanPlay = () => setBuffering(false);
+    const onPlaying = () => {
+      setBuffering(false);
+      setSourceLoading(false);
+    };
+    const onCanPlay = () => {
+      setBuffering(false);
+      setSourceLoading(false);
+    };
     const onSeeking = () => setBuffering(true);
     const onSeeked = () => {
       if (!video.paused && video.readyState >= 3) setBuffering(false);
@@ -475,7 +559,9 @@ export function CustomVideoPlayer({
     const onEnterPip = () => setInPip(true);
     const onLeavePip = () => setInPip(false);
     const syncFs = () => {
-      setFullscreen(isElementFullscreen(rootRef.current));
+      const rootFs = isElementFullscreen(rootRef.current);
+      const wk = video as WebkitVideo;
+      setFullscreen(rootFs || Boolean(wk.webkitDisplayingFullscreen));
     };
     const onVideoEnded = () => {
       onEndedRef.current?.();
@@ -483,11 +569,26 @@ export function CustomVideoPlayer({
     const onNativeError = () => {
       // HLS path reports via hls.js; ignore empty-src teardown noise.
       if (!video.src && !video.currentSrc) return;
-      if (looksLikeHls(activeSrc) && Hls.isSupported()) return;
+      if (hlsRef.current) return;
+      if (isHlsStreamUrl(activeSrc) && Hls.isSupported()) return;
+
+      if (!mediaRetryRef.current) {
+        mediaRetryRef.current = true;
+        setBuffering(true);
+        setSourceLoading(true);
+        const t = video.currentTime;
+        if (t > 1) qualityResumeRef.current = t;
+        video.load();
+        void video.play().catch(() => {});
+        return;
+      }
+
       setPlaybackIssue(
         playbackIssueHint ??
-          "This stream could not play in the custom player. Switch back to Classic for full HLS support.",
+          "This stream could not play in the custom player. Switch back to Classic for full provider support.",
       );
+      setSourceLoading(false);
+      setBuffering(false);
       onFatalErrorRef.current?.({
         type: "media",
         details: video.error?.message ?? "media-error",
@@ -574,7 +675,7 @@ export function CustomVideoPlayer({
     };
   }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint]);
 
-  // Attach progressive / HLS source (native Safari HLS, else hls.js when available).
+  // Attach progressive / HLS source (prefer hls.js like Classic when MSE works).
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeSrc) return;
@@ -583,6 +684,12 @@ export function CustomVideoPlayer({
     let cancelled = false;
     let networkRecoveries = 0;
     let mediaRecoveries = 0;
+    let progressiveFallbackTried = false;
+    const abortSniff = new AbortController();
+    const savedRate = playbackRateRef.current || video.playbackRate || 1;
+    const savedVolume = video.volume;
+    const savedMuted = video.muted;
+
     startAppliedRef.current = false;
     startedRef.current = false;
     setPlaybackIssue(null);
@@ -591,6 +698,7 @@ export function CustomVideoPlayer({
     setBuffered(0);
     setHasStarted(false);
     setBuffering(true);
+    setSourceLoading(true);
     setHlsLevels([]);
     setHlsLevelIndex(-1);
     setHlsAudioOptions([]);
@@ -601,9 +709,54 @@ export function CustomVideoPlayer({
       if (cancelled) return;
       setPlaybackIssue(
         playbackIssueHint ??
-          "This stream could not play in the custom player. Switch back to Classic for full HLS support.",
+          "This stream could not play in the custom player. Switch back to Classic for full provider support.",
       );
+      setSourceLoading(false);
+      setBuffering(false);
       onFatalErrorRef.current?.({ type, details, status });
+    };
+
+    const restorePlaybackPrefs = () => {
+      video.playbackRate = savedRate;
+      video.volume = savedVolume;
+      video.muted = savedMuted;
+      setPlaybackRateState(savedRate);
+    };
+
+    const applyResumeTime = () => {
+      const resume = qualityResumeRef.current;
+      const t =
+        resume != null && resume > 0 ? resume : startTimeRef.current;
+      if (t > 0.5) {
+        video.currentTime = t;
+        startAppliedRef.current = true;
+        qualityResumeRef.current = null;
+      }
+    };
+
+    const tryAutoplay = () => {
+      void video.play().catch(() => {
+        // Autoplay blocked — user must tap play (expected on mobile).
+      });
+    };
+
+    const attachProgressive = () => {
+      if (cancelled) return;
+      hls?.destroy();
+      hls = null;
+      hlsRef.current = null;
+      setHlsLevels([]);
+      setHlsAudioOptions([]);
+      video.src = activeSrc;
+      restorePlaybackPrefs();
+      const onLoaded = () => {
+        if (cancelled) return;
+        setBuffering(false);
+        setSourceLoading(false);
+        applyResumeTime();
+        tryAutoplay();
+      };
+      video.addEventListener("loadeddata", onLoaded, { once: true });
     };
 
     const syncHlsMenus = (instance: Hls) => {
@@ -621,23 +774,15 @@ export function CustomVideoPlayer({
       const audioOpts: HlsAudioOption[] = instance.audioTracks.map(
         (track, index) => ({
           index,
-          label:
-            track.name ||
-            track.lang ||
-            `Audio ${index + 1}`,
+          label: track.name || track.lang || `Audio ${index + 1}`,
         }),
       );
       setHlsAudioOptions(audioOpts);
       setHlsAudioIndex(instance.audioTrack);
     };
 
-    const isHls = looksLikeHls(activeSrc);
-    const canNativeHls = Boolean(
-      video.canPlayType("application/vnd.apple.mpegurl") ||
-        video.canPlayType("application/x-mpegURL"),
-    );
-
-    if (isHls && !canNativeHls) {
+    const attachHlsJs = () => {
+      if (cancelled) return;
       if (!Hls.isSupported()) {
         fail("hls-unsupported", "Browser cannot play HLS");
         return;
@@ -646,22 +791,18 @@ export function CustomVideoPlayer({
       hlsRef.current = hls;
       hls.loadSource(activeSrc);
       hls.attachMedia(video);
+      restorePlaybackPrefs();
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (cancelled || !hls) return;
         setBuffering(false);
+        setSourceLoading(false);
         syncHlsMenus(hls);
         if (!audioUserPickedRef.current) {
           pickHlsAudioTrack(hls, preferDubAudioRef.current);
           setHlsAudioIndex(hls.audioTrack);
         }
-        const resume = qualityResumeRef.current;
-        const t =
-          resume != null && resume > 0 ? resume : startTimeRef.current;
-        if (t > 10) {
-          video.currentTime = t;
-          startAppliedRef.current = true;
-          qualityResumeRef.current = null;
-        }
+        applyResumeTime();
+        tryAutoplay();
       });
       hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
         if (cancelled || !hls) return;
@@ -689,6 +830,25 @@ export function CustomVideoPlayer({
           hlsRef.current = null;
           return;
         }
+
+        // Extensionless / mis-detected URL: soft-fall back to progressive once.
+        const looksManifestFail =
+          data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
+          data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR;
+        if (
+          looksManifestFail &&
+          !progressiveFallbackTried &&
+          !isHlsStreamUrl(activeSrc) &&
+          !activeSrc.includes("/api/kitty/hls")
+        ) {
+          progressiveFallbackTried = true;
+          hls?.destroy();
+          hls = null;
+          hlsRef.current = null;
+          attachProgressive();
+          return;
+        }
+
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveries < 3) {
           networkRecoveries += 1;
           hls?.startLoad();
@@ -699,19 +859,84 @@ export function CustomVideoPlayer({
           hls?.recoverMediaError();
           return;
         }
+
+        // One full reload retry before soft-fail banner.
+        if (!mediaRetryRef.current) {
+          mediaRetryRef.current = true;
+          networkRecoveries = 0;
+          mediaRecoveries = 0;
+          const t = video.currentTime;
+          if (t > 1) qualityResumeRef.current = t;
+          hls?.destroy();
+          hls = null;
+          hlsRef.current = null;
+          attachHlsJs();
+          return;
+        }
+
         fail("hls", data.details, status);
         hls?.destroy();
         hls = null;
         hlsRef.current = null;
       });
-    } else {
+    };
+
+    const attachNativeHls = () => {
+      if (cancelled) return;
       video.src = activeSrc;
-      const onLoaded = () => setBuffering(false);
+      restorePlaybackPrefs();
+      const onLoaded = () => {
+        if (cancelled) return;
+        setBuffering(false);
+        setSourceLoading(false);
+        applyResumeTime();
+        tryAutoplay();
+      };
       video.addEventListener("loadeddata", onLoaded, { once: true });
-    }
+    };
+
+    const run = async () => {
+      const clearlyTyped =
+        isHlsStreamUrl(activeSrc) ||
+        isMp4StreamUrl(activeSrc) ||
+        activeSrc.includes("/api/kitty/hls");
+
+      let sniffed: boolean | null = null;
+      if (!clearlyTyped) {
+        sniffed = await sniffIsHlsPlaylist(activeSrc, abortSniff.signal);
+        if (cancelled) return;
+      }
+
+      const mode = resolveStreamAttachMode({
+        url: activeSrc,
+        video,
+        hlsJsSupported: Hls.isSupported(),
+        qualities,
+        sniffedHls: sniffed,
+      });
+
+      if (cancelled) return;
+
+      if (mode === "hls-js") {
+        attachHlsJs();
+        return;
+      }
+      if (mode === "native-hls") {
+        attachNativeHls();
+        return;
+      }
+      if (mode === "progressive") {
+        attachProgressive();
+        return;
+      }
+      fail("unsupported", "No compatible playback engine for this stream");
+    };
+
+    void run();
 
     return () => {
       cancelled = true;
+      abortSniff.abort();
       exitPictureInPictureSafe(video);
       hls?.destroy();
       hls = null;
@@ -719,7 +944,7 @@ export function CustomVideoPlayer({
       video.removeAttribute("src");
       video.load();
     };
-  }, [activeSrc, playbackIssueHint]);
+  }, [activeSrc, playbackIssueHint, qualities, attachNonce]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -788,17 +1013,31 @@ export function CustomVideoPlayer({
     const video = videoRef.current as WebkitVideo | null;
     if (!root) return;
     try {
-      if (isElementFullscreen(root) || getFullscreenElement()) {
-        await exitElementFullscreen();
+      if (
+        isElementFullscreen(root) ||
+        getFullscreenElement() ||
+        video?.webkitDisplayingFullscreen
+      ) {
+        if (video?.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
+          video.webkitExitFullscreen();
+        } else {
+          await exitElementFullscreen();
+        }
       } else {
-        try {
-          await requestElementFullscreen(root);
-        } catch {
-          // iOS Safari often only fullscreens the <video> element.
-          if (video?.webkitSupportsFullscreen && video.webkitEnterFullscreen) {
-            video.webkitEnterFullscreen();
-          } else if (video?.webkitEnterFullscreen) {
-            video.webkitEnterFullscreen();
+        const canElementFs =
+          typeof root.requestFullscreen === "function" ||
+          typeof (
+            root as HTMLElement & { webkitRequestFullscreen?: () => void }
+          ).webkitRequestFullscreen === "function";
+
+        if (!canElementFs && video?.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+        } else {
+          try {
+            await requestElementFullscreen(root);
+          } catch {
+            // iOS Safari often only fullscreens the <video> element.
+            video?.webkitEnterFullscreen?.();
           }
         }
       }
@@ -856,6 +1095,7 @@ export function CustomVideoPlayer({
     (rate: number) => {
       const video = videoRef.current;
       if (video) video.playbackRate = rate;
+      playbackRateRef.current = rate;
       setPlaybackRateState(rate);
       bumpControls();
     },
@@ -865,9 +1105,10 @@ export function CustomVideoPlayer({
   const selectServerQuality = useCallback(
     (entry: KittyStreamQuality) => {
       const video = videoRef.current;
-      if (video && video.currentTime > 1) {
+      if (video && video.currentTime > 0.5) {
         qualityResumeRef.current = video.currentTime;
       }
+      mediaRetryRef.current = false;
       if (onSelectQuality) {
         onSelectQuality(entry);
       } else {
@@ -882,8 +1123,14 @@ export function CustomVideoPlayer({
   const selectHlsLevel = useCallback(
     (index: number) => {
       const hls = hlsRef.current;
+      const video = videoRef.current;
       if (!hls) return;
+      // Keep playhead across ABR ladder switches.
+      const t = video?.currentTime ?? 0;
       hls.currentLevel = index;
+      if (video && t > 0.5 && Math.abs(video.currentTime - t) > 0.75) {
+        video.currentTime = t;
+      }
       setHlsLevelIndex(index);
       setMoreOpen(false);
       bumpControls();
@@ -914,6 +1161,8 @@ export function CustomVideoPlayer({
   );
 
   const handleVideoClick = useCallback(() => {
+    // Coarse pointers use touch double-tap handler instead.
+    if (prefersCoarsePointer()) return;
     if (clickTimerRef.current) {
       clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;
@@ -928,6 +1177,7 @@ export function CustomVideoPlayer({
   const handleVideoDoubleClick = useCallback(
     (e: ReactMouseEvent<HTMLVideoElement>) => {
       e.preventDefault();
+      if (prefersCoarsePointer()) return;
       if (clickTimerRef.current) {
         clearTimeout(clickTimerRef.current);
         clickTimerRef.current = null;
@@ -946,6 +1196,63 @@ export function CustomVideoPlayer({
       }
     },
     [seekBy, showSeekFlash, toggleFullscreen],
+  );
+
+  const handleVideoPointerUp = useCallback(
+    (e: ReactPointerEvent<HTMLVideoElement>) => {
+      if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      if (seekingRef.current) return;
+
+      const now = Date.now();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const prev = lastTouchTapRef.current;
+
+      if (
+        prev &&
+        now - prev.t <= TOUCH_DOUBLE_TAP_MS &&
+        Math.hypot(x - prev.x, y - prev.y) <= TOUCH_DOUBLE_TAP_PX
+      ) {
+        lastTouchTapRef.current = null;
+        if (clickTimerRef.current) {
+          clearTimeout(clickTimerRef.current);
+          clickTimerRef.current = null;
+        }
+        const third = rect.width / 3;
+        if (x < third) {
+          seekBy(-SEEK_STEP);
+          showSeekFlash("left");
+        } else if (x > third * 2) {
+          seekBy(SEEK_STEP);
+          showSeekFlash("right");
+        } else {
+          void toggleFullscreen();
+        }
+        return;
+      }
+
+      lastTouchTapRef.current = { t: now, x, y };
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = setTimeout(() => {
+        clickTimerRef.current = null;
+        // Single tap: show chrome when hidden, otherwise toggle play.
+        if (!controlsVisible && playing) {
+          bumpControls();
+          return;
+        }
+        togglePlay();
+      }, TOUCH_DOUBLE_TAP_MS);
+    },
+    [
+      bumpControls,
+      controlsVisible,
+      playing,
+      seekBy,
+      showSeekFlash,
+      toggleFullscreen,
+      togglePlay,
+    ],
   );
 
   useEffect(() => {
@@ -1062,10 +1369,13 @@ export function CustomVideoPlayer({
 
   const progressRatio = duration > 0 ? displayTime / duration : 0;
   const bufferedRatio = duration > 0 ? buffered / duration : 0;
-  const showSpinner = buffering && (playing || hasStarted) && !playbackIssue;
-  const showCenterPlay = !playing && !buffering;
+  const showSpinner =
+    (sourceLoading || buffering) &&
+    (playing || hasStarted || sourceLoading) &&
+    !playbackIssue;
+  const showCenterPlay = !playing && !buffering && !sourceLoading && !playbackIssue;
   const activeServerQuality =
-    serverQualities.find((q) => q.file === activeSrc) ?? null;
+    serverQualities.find((q) => q.file === activeSrc || q.file === src) ?? null;
 
   const timeFromPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = progressRef.current ?? e.currentTarget;
@@ -1099,9 +1409,11 @@ export function CustomVideoPlayer({
       role="region"
       aria-label={title ? `Video player: ${title}` : "Video player"}
       className={cn(
-        "group/player relative aspect-video w-full overflow-hidden rounded-lg bg-black outline-none",
+        "custom-kitty-player group/player relative aspect-video w-full overflow-hidden rounded-lg bg-black outline-none",
         "focus-visible:ring-2 focus-visible:ring-white/40",
         chromeVisible ? "cursor-auto" : "cursor-none",
+        seeking && "touch-none overscroll-none",
+        orientClass,
         className,
       )}
       onMouseMove={bumpControls}
@@ -1132,10 +1444,12 @@ export function CustomVideoPlayer({
         poster={poster}
         playsInline
         preload="metadata"
+        controlsList="nodownload"
         className="h-full w-full object-contain [&::cue]:bg-black/55 [&::cue]:px-1 [&::cue]:text-white"
         style={{ filter: `brightness(${brightness})` }}
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}
+        onPointerUp={handleVideoPointerUp}
       >
         {captionOptions.map((track) => (
           <track
@@ -1150,17 +1464,33 @@ export function CustomVideoPlayer({
       </video>
 
       {playbackIssue ? (
-        <div className="absolute inset-x-3 top-3 z-40 flex flex-col gap-2 rounded-lg border border-amber-400/30 bg-black/85 px-3 py-2.5 text-left shadow-lg backdrop-blur-md sm:inset-x-auto sm:right-3 sm:max-w-sm">
+        <div className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex flex-col gap-2 rounded-lg border border-amber-400/30 bg-black/85 px-3 py-2.5 text-left shadow-lg backdrop-blur-md sm:inset-x-auto sm:right-3 sm:max-w-sm">
           <p className="text-[11px] leading-snug text-amber-100/90">{playbackIssue}</p>
-          {onUseClassicPlayer ? (
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={onUseClassicPlayer}
+              onClick={() => {
+                const video = videoRef.current;
+                const t = video?.currentTime ?? 0;
+                if (t > 1) qualityResumeRef.current = t;
+                mediaRetryRef.current = false;
+                setPlaybackIssue(null);
+                setAttachNonce((n) => n + 1);
+              }}
               className="self-start rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              {useClassicLabel}
+              Retry
             </button>
-          ) : null}
+            {onUseClassicPlayer ? (
+              <button
+                type="button"
+                onClick={onUseClassicPlayer}
+                className="self-start rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
+                {useClassicLabel}
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -1188,7 +1518,7 @@ export function CustomVideoPlayer({
         <Forward10Icon className="h-8 w-8" />
       </div>
 
-      {/* Buffering spinner */}
+      {/* Buffering / source-loading spinner */}
       <div
         className={cn(
           "pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200",
@@ -1196,9 +1526,22 @@ export function CustomVideoPlayer({
         )}
         aria-hidden={!showSpinner}
         role={showSpinner ? "status" : undefined}
-        aria-label={showSpinner ? "Loading" : undefined}
+        aria-label={
+          showSpinner
+            ? sourceLoading && !hasStarted
+              ? "Loading stream"
+              : "Buffering"
+            : undefined
+        }
       >
-        <div className="h-11 w-11 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-11 w-11 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+          {sourceLoading && !hasStarted && !playbackIssue ? (
+            <span className="text-[11px] font-medium tracking-wide text-white/70">
+              Loading stream…
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {/* Center play overlay — smooth scale-in when paused */}
@@ -1226,7 +1569,8 @@ export function CustomVideoPlayer({
         aria-label="Share"
         onClick={handleShare}
         className={cn(
-          "absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center text-white/85 transition-[opacity,transform] duration-300 hover:text-white sm:right-3.5 sm:top-3.5 sm:h-8 sm:w-8",
+          "absolute z-30 flex h-10 w-10 items-center justify-center text-white/85 transition-[opacity,transform] duration-300 hover:text-white sm:h-8 sm:w-8",
+          "right-[max(0.75rem,env(safe-area-inset-right))] top-[max(0.75rem,env(safe-area-inset-top))]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md",
           chromeVisible
             ? "opacity-100"
@@ -1249,7 +1593,12 @@ export function CustomVideoPlayer({
             !chromeVisible && "pointer-events-none",
           )}
         >
-          <div className="bg-black/35 backdrop-blur-md">
+          <div
+            className={cn(
+              "bg-black/35 backdrop-blur-md",
+              "pb-[max(0.35rem,env(safe-area-inset-bottom))] pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))]",
+            )}
+          >
             {/* Progress — tall touch target, thin visual line + hover tooltip */}
             <div
               ref={progressRef}
@@ -1260,8 +1609,9 @@ export function CustomVideoPlayer({
               aria-valuenow={Math.floor(displayTime)}
               aria-valuetext={`${formatPlayerTime(displayTime)} of ${formatPlayerTime(duration)}`}
               tabIndex={0}
-              className="group/seek relative h-5 cursor-pointer touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3.5"
+              className="group/seek relative h-6 cursor-pointer touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3.5"
               onPointerDown={(e) => {
+                e.preventDefault();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 seekingRef.current = true;
                 setSeeking(true);
@@ -1272,6 +1622,7 @@ export function CustomVideoPlayer({
                 seekTo(time);
               }}
               onPointerMove={(e) => {
+                if (seekingRef.current) e.preventDefault();
                 const { time, ratio } = timeFromPointer(e);
                 if (seekingRef.current) {
                   setSeekPreview(time);
@@ -1582,6 +1933,11 @@ export function CustomVideoPlayer({
                       value={muted ? 0 : volume}
                       display={`${Math.round((muted ? 0 : volume) * 100)}%`}
                       onChange={setVolumeLevel}
+                      footer={
+                        iosVolumeLocked
+                          ? "iOS uses system volume"
+                          : undefined
+                      }
                     />
                   )}
                 </div>
@@ -1655,6 +2011,7 @@ function VerticalSliderPopover({
   value,
   display,
   onChange,
+  footer,
 }: {
   label: string;
   min: number;
@@ -1663,6 +2020,7 @@ function VerticalSliderPopover({
   value: number;
   display: string;
   onChange: (value: number) => void;
+  footer?: string;
 }) {
   return (
     <div className="absolute bottom-full left-1/2 z-40 mb-2 flex -translate-x-1/2 flex-col items-center gap-2 rounded-md border border-white/10 bg-zinc-950 px-3 py-3">
@@ -1686,6 +2044,11 @@ function VerticalSliderPopover({
       <span className="text-[10px] tabular-nums text-white/70" aria-hidden>
         {display}
       </span>
+      {footer ? (
+        <span className="max-w-[5.5rem] text-center text-[9px] leading-tight text-white/45">
+          {footer}
+        </span>
+      ) : null}
     </div>
   );
 }

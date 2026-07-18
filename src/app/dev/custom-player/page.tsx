@@ -22,7 +22,8 @@ export default function CustomPlayerDemoPage() {
           <strong className="font-medium text-foreground">Player → Custom</strong>{" "}
           in settings (Classic / Vidstack remains the default). Demo source is
           progressive MP4. Watch streams use the same component with hls.js /
-          native HLS, plus captions / quality / audio in the ⋮ menu.
+          native HLS (Safari), stream sniffing for extensionless playlists,
+          plus captions / quality / audio in the ⋮ menu.
         </p>
       </header>
 
