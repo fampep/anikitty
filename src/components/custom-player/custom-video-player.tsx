@@ -1408,7 +1408,7 @@ export function CustomVideoPlayer({
                     <div
                       role="menu"
                       aria-label="Player options"
-                      className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(70vh,420px)] min-w-[176px] overflow-y-auto rounded-md border border-white/10 bg-black/92 py-1 text-xs text-white shadow-lg backdrop-blur-md"
+                      className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(70vh,420px)] min-w-[176px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
                     >
                       <MenuSection title="Speed">
                         {[1, 1.25, 1.5, 2].map((rate) => (
@@ -1665,7 +1665,7 @@ function VerticalSliderPopover({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="absolute bottom-full left-1/2 z-40 mb-2 flex -translate-x-1/2 flex-col items-center gap-2 rounded-md border border-white/10 bg-black/90 px-3 py-3 backdrop-blur-md">
+    <div className="absolute bottom-full left-1/2 z-40 mb-2 flex -translate-x-1/2 flex-col items-center gap-2 rounded-md border border-white/10 bg-zinc-950 px-3 py-3">
       <input
         type="range"
         min={min}
