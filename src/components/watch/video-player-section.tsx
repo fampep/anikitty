@@ -1665,6 +1665,7 @@ const VideoPlayerSection = () => {
           preferSubtitles={subtitlesEnabled}
           preferDubAudio={streamAudio === "dub"}
           onSelectQuality={handlePickQuality}
+          skipTimes={displaySkipTimes}
           title={
             currentEpisodeInfo
               ? t("watch.episode", { n: currentEpisodeInfo.number })
@@ -1680,6 +1681,7 @@ const VideoPlayerSection = () => {
           onStart={handleStart}
           onProgress={handleProgress}
           onLiveTime={handleLiveTime}
+          onOutroStart={handleOutroStart}
           onEnded={handleEnded}
           onPlayerReady={handlePlayerReady}
           playbackIssueHint={t("watch.playerSettings.customPlayerHlsHint")}

@@ -63,6 +63,9 @@ import {
   VolumeIcon,
   VolumeMuteIcon,
 } from "./icons";
+import type { SkipTimes } from "@/hooks/use-aniskip";
+import { useSettingsStore } from "@/store/settings-store";
+
 import {
   clamp,
   formatPlayerTime,
@@ -71,6 +74,43 @@ import {
   resolveStreamAttachMode,
   sniffIsHlsPlaylist,
 } from "./utils";
+
+type SkipSegmentKind = "intro" | "outro";
+
+type SkipSegment = {
+  kind: SkipSegmentKind;
+  start: number;
+  end: number;
+};
+
+function buildSkipSegments(skipTimes?: SkipTimes | null): SkipSegment[] {
+  if (!skipTimes) return [];
+  const out: SkipSegment[] = [];
+  if (
+    skipTimes.intro &&
+    Number.isFinite(skipTimes.intro.start) &&
+    Number.isFinite(skipTimes.intro.end) &&
+    skipTimes.intro.end > skipTimes.intro.start
+  ) {
+    out.push({ kind: "intro", start: skipTimes.intro.start, end: skipTimes.intro.end });
+  }
+  if (
+    skipTimes.outro &&
+    Number.isFinite(skipTimes.outro.start) &&
+    Number.isFinite(skipTimes.outro.end) &&
+    skipTimes.outro.end > skipTimes.outro.start
+  ) {
+    out.push({ kind: "outro", start: skipTimes.outro.start, end: skipTimes.outro.end });
+  }
+  return out;
+}
+
+function segmentAtTime(
+  segments: SkipSegment[],
+  time: number,
+): SkipSegment | undefined {
+  return segments.find((seg) => time >= seg.start && time < seg.end);
+}
 
 const SEEK_STEP = 10;
 const SEEK_STEP_FINE = 5;
@@ -144,6 +184,8 @@ export type CustomVideoPlayerProps = {
   kittyNodeId?: KittyApiNodeId;
   /** Resume / deep-link start position (seconds). */
   startTime?: number;
+  /** Intro/outro ranges from AniSkip / community / provider (seconds). */
+  skipTimes?: SkipTimes;
   /** Auto-enable the first (or default) subtitle track. */
   preferSubtitles?: boolean;
   /** Prefer English/dub HLS audio when the master exposes multiple tracks. */
@@ -155,6 +197,8 @@ export type CustomVideoPlayerProps = {
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;
+  /** Fired once when playback enters the outro skip range. */
+  onOutroStart?: (duration: number) => void;
   onEnded?: () => void;
   onFatalError?: (info: { type: string; details?: string; status?: number }) => void;
   onPlayerReady?: (player: PlayerController) => void;
@@ -194,6 +238,7 @@ export function CustomVideoPlayer({
   headers = {},
   kittyNodeId,
   startTime = 0,
+  skipTimes,
   preferSubtitles = true,
   preferDubAudio = false,
   onSelectQuality,
@@ -201,6 +246,7 @@ export function CustomVideoPlayer({
   onStart,
   onProgress,
   onLiveTime,
+  onOutroStart,
   onEnded,
   onFatalError,
   onPlayerReady,
@@ -231,20 +277,30 @@ export function CustomVideoPlayer({
   const onLiveTimeRef = useRef(onLiveTime);
   const onProgressRef = useRef(onProgress);
   const onEndedRef = useRef(onEnded);
+  const onOutroStartRef = useRef(onOutroStart);
   const onStartRef = useRef(onStart);
   const onFatalErrorRef = useRef(onFatalError);
   const onPlayerReadyRef = useRef(onPlayerReady);
   const startTimeRef = useRef(startTime);
   const preferDubAudioRef = useRef(preferDubAudio);
+  const skipTimesRef = useRef(skipTimes);
+  const introAutoSkippedRef = useRef(false);
+  const outroAutoSkippedRef = useRef(false);
+  const outroFiredRef = useRef(false);
+  const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
+  const autoSkipRef = useRef(autoSkipIntro);
 
   onLiveTimeRef.current = onLiveTime;
   onProgressRef.current = onProgress;
   onEndedRef.current = onEnded;
+  onOutroStartRef.current = onOutroStart;
   onStartRef.current = onStart;
   onFatalErrorRef.current = onFatalError;
   onPlayerReadyRef.current = onPlayerReady;
   startTimeRef.current = startTime;
   preferDubAudioRef.current = preferDubAudio;
+  skipTimesRef.current = skipTimes;
+  autoSkipRef.current = autoSkipIntro;
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -282,6 +338,16 @@ export function CustomVideoPlayer({
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
   const [iosVolumeLocked] = useState(() => isAppleTouchDevice());
   const [attachNonce, setAttachNonce] = useState(0);
+  const [activeSkip, setActiveSkip] = useState<SkipSegmentKind | null>(null);
+
+  const skipSegments = useMemo(() => buildSkipSegments(skipTimes), [skipTimes]);
+
+  useEffect(() => {
+    introAutoSkippedRef.current = false;
+    outroAutoSkippedRef.current = false;
+    outroFiredRef.current = false;
+    setActiveSkip(null);
+  }, [src, skipTimes?.intro?.start, skipTimes?.intro?.end, skipTimes?.outro?.start, skipTimes?.outro?.end]);
 
   const resolvedSrc = useMemo(() => {
     const raw = (srcOverride ?? src).trim();
@@ -526,6 +592,39 @@ export function CustomVideoPlayer({
         lastProgressTsRef.current = now;
         onProgressRef.current?.(video.currentTime, dur);
       }
+
+      const st = skipTimesRef.current;
+      let nextSkip: SkipSegmentKind | null = null;
+      if (
+        st?.intro &&
+        video.currentTime >= st.intro.start &&
+        video.currentTime < st.intro.end
+      ) {
+        nextSkip = "intro";
+        if (autoSkipRef.current && !introAutoSkippedRef.current) {
+          introAutoSkippedRef.current = true;
+          video.currentTime = st.intro.end;
+          setCurrentTime(st.intro.end);
+          nextSkip = null;
+        }
+      } else if (
+        st?.outro &&
+        video.currentTime >= st.outro.start &&
+        video.currentTime < st.outro.end
+      ) {
+        nextSkip = "outro";
+        if (autoSkipRef.current && !outroAutoSkippedRef.current) {
+          outroAutoSkippedRef.current = true;
+          video.currentTime = st.outro.end;
+          setCurrentTime(st.outro.end);
+          nextSkip = null;
+        }
+        if (!outroFiredRef.current && dur > 0) {
+          outroFiredRef.current = true;
+          onOutroStartRef.current?.(dur);
+        }
+      }
+      setActiveSkip(nextSkip);
     };
     const onDuration = () => {
       if (Number.isFinite(video.duration)) setDuration(video.duration);
@@ -1368,7 +1467,16 @@ export function CustomVideoPlayer({
   ]);
 
   const progressRatio = duration > 0 ? displayTime / duration : 0;
-  const bufferedRatio = duration > 0 ? buffered / duration : 0;
+  const bufferedRatio = duration > 0 ? Math.min(1, buffered / duration) : 0;
+  const hoverSkip = hoverPreview
+    ? segmentAtTime(skipSegments, hoverPreview.time)
+    : undefined;
+  const activeSkipInterval =
+    activeSkip === "intro"
+      ? skipTimes?.intro
+      : activeSkip === "outro"
+        ? skipTimes?.outro
+        : undefined;
   const showSpinner =
     (sourceLoading || buffering) &&
     (playing || hasStarted || sourceLoading) &&
@@ -1580,6 +1688,26 @@ export function CustomVideoPlayer({
         <ShareIcon className="h-[18px] w-[18px]" />
       </button>
 
+      {/* Skip intro/outro — light Classic mirror */}
+      {activeSkip && activeSkipInterval ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            seekTo(activeSkipInterval.end);
+            setActiveSkip(null);
+          }}
+          className={cn(
+            "absolute right-3 z-40 rounded-md border border-violet-400/30 bg-black/70 px-3 py-1.5",
+            "text-[11px] font-medium tracking-wide text-violet-100/90 backdrop-blur-sm",
+            "transition hover:border-violet-300/45 hover:bg-black/80 hover:text-white",
+            "bottom-[4.75rem] sm:bottom-[4.25rem]",
+          )}
+        >
+          {activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}
+        </button>
+      ) : null}
+
       {/* Bottom chrome — sparse ArtPlayer-like bar */}
       <div
         className={cn(
@@ -1674,6 +1802,11 @@ export function CustomVideoPlayer({
                   }}
                 >
                   {formatPlayerTime(hoverPreview?.time ?? displayTime)}
+                  {hoverSkip ? (
+                    <span className="ml-1.5 text-violet-300/85">
+                      {hoverSkip.kind === "intro" ? "Intro" : "Outro"}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
               <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-white/28 transition-[height] group-hover/seek:h-[4px] sm:h-[2px]">
@@ -1682,13 +1815,36 @@ export function CustomVideoPlayer({
                   style={{ width: `${bufferedRatio * 100}%` }}
                 />
                 <div
-                  className="absolute inset-y-0 left-0 bg-white"
+                  className="absolute inset-y-0 left-0 z-[1] bg-white"
                   style={{ width: `${progressRatio * 100}%` }}
                 />
+                {/* Skip segment markers — soft violet accent on the track */}
+                {duration > 0
+                  ? skipSegments.map((seg) => {
+                      const left = (seg.start / duration) * 100;
+                      const width = ((seg.end - seg.start) / duration) * 100;
+                      return (
+                        <div
+                          key={seg.kind}
+                          title={seg.kind === "intro" ? "Intro" : "Outro"}
+                          aria-hidden
+                          className={cn(
+                            "pointer-events-none absolute top-1/2 z-[2] h-[5px] -translate-y-1/2 rounded-[1px]",
+                            "bg-violet-400/55 ring-1 ring-violet-300/25",
+                            "group-hover/seek:h-[6px]",
+                          )}
+                          style={{
+                            left: `${left}%`,
+                            width: `${Math.max(width, 0.4)}%`,
+                          }}
+                        />
+                      );
+                    })
+                  : null}
                 {/* Scrub knob — visible while dragging / hovering */}
                 <div
                   className={cn(
-                    "absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-opacity",
+                    "absolute top-1/2 z-[3] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-opacity",
                     seeking || hoverPreview
                       ? "opacity-100"
                       : "opacity-0 group-hover/seek:opacity-100",

@@ -31,6 +31,11 @@ export default function CustomPlayerDemoPage() {
         src={DEMO_MP4}
         title="Big Buck Bunny (demo)"
         className="shadow-lg shadow-black/40 ring-1 ring-white/10"
+        // Sample intro/outro so timeline skip markers are visible in the playground.
+        skipTimes={{
+          intro: { start: 12, end: 45 },
+          outro: { start: 540, end: 580 },
+        }}
       />
 
       <section className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
