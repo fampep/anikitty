@@ -11,8 +11,6 @@ import { cn } from "@/lib/core/utils";
 import type { StoryboardCue } from "@/lib/player/storyboard-vtt";
 
 import { formatPlayerTime } from "./utils";
-import type { StoryboardCue } from "@/lib/player/storyboard-vtt";
-import { formatPlayerTime } from "./utils";
 
 export function MenuSection({
   title,
