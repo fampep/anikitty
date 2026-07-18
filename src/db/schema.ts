@@ -992,3 +992,17 @@ export const discordLinkCodes = pgTable(
     expiresAtIdx: index("discord_link_codes_expires_at_idx").on(t.expiresAt),
   }),
 );
+
+/**
+ * Discord chat XP for linked users — cumulative XP + per-user award cooldown.
+ */
+export const discordChatXp = pgTable("discord_chat_xp", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  xp: integer("xp").notNull().default(0),
+  lastAwardedAt: timestamp("last_awarded_at").notNull(),
+  lastMessageId: varchar("last_message_id", { length: 32 }),
+  lastGuildId: varchar("last_guild_id", { length: 32 }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

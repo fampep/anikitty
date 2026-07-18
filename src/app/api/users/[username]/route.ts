@@ -54,6 +54,7 @@ export async function GET(
       xp: stats.xp,
       watchXp: stats.watchXp,
       commentXp: stats.commentXp,
+      discordXp: stats.discordXp,
       level: stats.level,
       tier: stats.tier,
       levelRole: stats.levelRole,

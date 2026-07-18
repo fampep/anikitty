@@ -87,6 +87,12 @@ export function getTierProgress(level: number): number {
 /** XP per comment (top-level and replies). */
 export const COMMENT_XP = 3;
 
+/** XP per eligible Discord chat message (linked accounts; site enforces cooldown). */
+export const DISCORD_CHAT_XP = 2;
+
+/** Minimum gap between Discord chat XP awards for the same user. */
+export const DISCORD_CHAT_XP_COOLDOWN_MS = 60_000;
+
 /** XP rewards completion more than partial watches. */
 export function computeWatchXp(started: number, completed: number): number {
   const partial = Math.max(0, started - completed);
@@ -101,8 +107,13 @@ export function computeTotalXp(
   started: number,
   completed: number,
   commentCount: number,
+  bonusXp = 0,
 ): number {
-  return computeWatchXp(started, completed) + computeCommentXp(commentCount);
+  return (
+    computeWatchXp(started, completed) +
+    computeCommentXp(commentCount) +
+    Math.max(0, Math.floor(bonusXp))
+  );
 }
 
 export function xpToNextLevel(xp: number): number {
