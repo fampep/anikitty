@@ -101,6 +101,7 @@ import {
   bufferedRangesEqual,
   CAPTION_OFFSET_OPTIONS,
   captionPositionCss,
+  captionPositionLine,
   captionSizeCss,
   clamp,
   CUSTOM_PLAYER_SPEEDS,
@@ -1124,6 +1125,22 @@ export function AniKittyPlayer({
       offsets.set(tt, targetOffset);
     };
 
+    const layoutCues = (tt: TextTrack) => {
+      const cues = tt.cues;
+      if (!cues || cues.length === 0) return;
+      const line = captionPositionLine(captionPosition);
+      for (let i = 0; i < cues.length; i++) {
+        const cue = cues[i];
+        if (!(cue instanceof VTTCue)) continue;
+        try {
+          cue.snapToLines = true;
+          cue.line = line;
+        } catch {
+          /* some browsers freeze cue layout */
+        }
+      }
+    };
+
     const apply = () => {
       const list = video.textTracks;
       for (let i = 0; i < list.length; i++) {
@@ -1135,6 +1152,7 @@ export function AniKittyPlayer({
         const id = match?.id ?? null;
         if (selectedCaptionId && id === selectedCaptionId) {
           tt.mode = "showing";
+          layoutCues(tt);
           shiftCues(tt, captionOffset);
         } else {
           tt.mode = "disabled";
@@ -1145,11 +1163,14 @@ export function AniKittyPlayer({
     apply();
     video.textTracks.addEventListener("addtrack", apply);
     video.textTracks.addEventListener("change", apply);
+    const trackEls = video.querySelectorAll("track");
+    trackEls.forEach((el) => el.addEventListener("load", apply));
     return () => {
       video.textTracks.removeEventListener("addtrack", apply);
       video.textTracks.removeEventListener("change", apply);
+      trackEls.forEach((el) => el.removeEventListener("load", apply));
     };
-  }, [captionOptions, selectedCaptionId, activeSrc, captionOffset]);
+  }, [captionOptions, selectedCaptionId, activeSrc, captionOffset, captionPosition]);
 
   // Re-apply preferDub when the watch page toggles SUB/DUB.
   useEffect(() => {
@@ -3771,7 +3792,7 @@ export function AniKittyPlayer({
                         <MenuSection title="Position">
                           {(
                             [
-                              { label: "Low", value: "low" },
+                              { label: "Bottom", value: "low" },
                               { label: "Mid", value: "mid" },
                               { label: "High", value: "high" },
                             ] as const

@@ -116,6 +116,17 @@ export function captionPositionCss(position: CaptionPositionPref): string {
   return "8%";
 }
 
+/**
+ * VTTCue `line` from the bottom (`snapToLines: true`). Negative values
+ * count upward from the bottom of the video — keeps dialogue bottom-anchored
+ * even when the VTT file used `line:0` (top).
+ */
+export function captionPositionLine(position: CaptionPositionPref): number {
+  if (position === "high") return -8;
+  if (position === "mid") return -5;
+  return -2;
+}
+
 function sanitizePlaybackRate(rate: unknown): number {
   const n = typeof rate === "number" ? rate : Number(rate);
   if (!Number.isFinite(n)) return 1;
