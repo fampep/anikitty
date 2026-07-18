@@ -59,6 +59,7 @@ export const KITTY_PROVIDERS = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
+  "MKissa",
   "KickAssAnime",
   "ReAnime",
 ] as const;
@@ -136,6 +137,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
+    id: "MKissa",
+    label: "Echo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "AniList ID · mkissa.to · mirror servers (Ok, Mp4, …) · SUB · DUB",
+  },
+  {
     id: "KickAssAnime",
     label: "Uniform",
     group: "featured",
@@ -166,6 +179,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anikoto",
   "AniWatch",
   "AniNeko",
+  "MKissa",
   "KickAssAnime",
   "ReAnime",
 ];
