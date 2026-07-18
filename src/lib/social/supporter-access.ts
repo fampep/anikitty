@@ -109,6 +109,9 @@ export async function expireSupporterIfNeeded(
     .set({ role: "user", supporterUntil: null })
     .where(eq(users.id, user.id));
 
+  const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
+  notifyDiscordRoleSync("supporter_expired");
+
   return "user";
 }
 
@@ -222,6 +225,8 @@ async function grantKofiPaymentToUser(
     "kofi",
     payment.id,
   );
+  const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
+  notifyDiscordRoleSync("supporter_granted");
   return {
     granted: true,
     daysAdded,
@@ -440,6 +445,8 @@ export async function adminGrantSupporterDays(
   if (!user) throw new Error("User not found");
 
   const until = await grantSupporterAccess(db, user, Math.floor(days));
+  const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
+  notifyDiscordRoleSync("admin_supporter_grant");
   return { supporterUntil: until.toISOString(), daysAdded: Math.floor(days) };
 }
 
@@ -461,4 +468,7 @@ export async function adminRevokeSupporter(db: Db, userId: string): Promise<void
       ...(user.role === DONATOR_ROLE ? { role: "user" } : {}),
     })
     .where(eq(users.id, userId));
+
+  const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
+  notifyDiscordRoleSync("admin_supporter_revoke");
 }

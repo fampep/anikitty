@@ -1,3 +1,5 @@
+import { getBotApiSecret } from "@/lib/bot/authorize-bot";
+
 /**
  * Optional fire-and-forget ping so the Discord bot can sync roles immediately
  * after a site role change. Configure `DISCORD_BOT_SYNC_URL` on the site
@@ -5,7 +7,7 @@
  */
 export function notifyDiscordRoleSync(reason?: string): void {
   const url = process.env.DISCORD_BOT_SYNC_URL?.trim();
-  const secret = process.env.BOT_API_SECRET;
+  const secret = getBotApiSecret();
   if (!url || !secret) return;
 
   void fetch(url, {

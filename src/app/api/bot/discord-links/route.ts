@@ -3,11 +3,46 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { isNotNull } from "drizzle-orm";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";
+import { DONATOR_ROLE, STAFF_ROLES } from "@/lib/social/donation-config";
 
 /**
  * Linked Discord accounts + effective site roles for Discord role sync.
+ * Role keys match bot `ROLE_MAP_JSON`: admin, moderator, donator.
  * Only returns discordId / site role flags — no emails or secrets.
  */
+function hasActiveSupporterWindow(
+  supporterUntil: Date | string | null,
+): boolean {
+  if (supporterUntil == null) return false;
+  const t = new Date(supporterUntil).getTime();
+  return Number.isFinite(t) && t > Date.now();
+}
+
+function effectiveDiscordRoles(
+  role: string,
+  supporterUntil: Date | string | null,
+): string[] {
+  const roles = new Set<string>();
+
+  if (role === DONATOR_ROLE) {
+    if (hasActiveDonatorStatus(role, supporterUntil)) {
+      roles.add(DONATOR_ROLE);
+    }
+    return [...roles];
+  }
+
+  if (role && role !== "user") {
+    roles.add(role);
+  }
+
+  // Staff keep admin/moderator on site but may still have an active supporter window.
+  if (STAFF_ROLES.has(role) && hasActiveSupporterWindow(supporterUntil)) {
+    roles.add(DONATOR_ROLE);
+  }
+
+  return [...roles];
+}
+
 export async function GET(req: Request) {
   if (!authorizeBot(req)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -34,17 +69,13 @@ export async function GET(req: Request) {
     const linked = rows
       .filter((r) => r.discordId && !r.bannedAt)
       .map((r) => {
-        const roles = new Set<string>();
-        if (r.role) roles.add(r.role);
-        if (hasActiveDonatorStatus(r.role, r.supporterUntil)) {
-          roles.add("donator");
-        }
+        const roles = effectiveDiscordRoles(r.role, r.supporterUntil);
         return {
           discordId: r.discordId as string,
           discordUsername: r.discordUsername ?? null,
           siteUsername: r.siteUsername,
           role: r.role,
-          roles: [...roles],
+          roles,
         };
       });
 

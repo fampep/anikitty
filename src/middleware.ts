@@ -5,7 +5,13 @@ import { isProtectedContentApi } from "@/lib/security/anti-scrape";
 const BLOCKED_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 const isProd = process.env.NODE_ENV === "production";
 
-const PRIVATE_API_PREFIXES = ["/api/account", "/api/admin", "/api/chat", "/api/anilist"];
+const PRIVATE_API_PREFIXES = [
+  "/api/account",
+  "/api/admin",
+  "/api/bot",
+  "/api/chat",
+  "/api/anilist",
+];
 
 export function middleware(req: NextRequest) {
   if (BLOCKED_METHODS.has(req.method)) {

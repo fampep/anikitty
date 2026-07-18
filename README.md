@@ -105,6 +105,15 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 4. Only these need to be available at **build** time: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PROXY_URL`, `NEXT_PUBLIC_DONATION_RAISED_EUR`, `DISCORD_CLIENT_ID`, and (for Adcash) `NEXT_PUBLIC_ADCASH_BANNER_ZONE` / `NEXT_PUBLIC_ADCASH_POP_ZONE`
 5. Do **not** pass `ADMIN_PASSWORD`, `DATABASE_URL`, or JWT secrets as build arguments — Coolify injects them into the Dockerfile and values with `#` break parsing
 
+**Discord bot APIs** (standalone bot repo talks to these):
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `BOT_API_SECRET` | Recommended | Bearer secret for `GET /api/bot/*` — must match the bot’s `BOT_API_SECRET`. A hardcoded fallback exists so APIs work if unset; set this in Coolify (runtime) to override. |
+| `DISCORD_BOT_SYNC_URL` | Optional | e.g. `http://discord-bot:8787/sync` — ping the bot after role/supporter changes for immediate Discord role sync |
+
+Protected routes: `/api/bot/online`, `/api/bot/search?q=`, `/api/bot/discord-links` (role keys: `admin`, `moderator`, `donator`). Redeploy after merging so Coolify serves the new routes (otherwise production returns 404).
+
 **Adcash ads:** set `NEXT_PUBLIC_ADCASH_BANNER_ZONE` (banner, default `11731546`) and `NEXT_PUBLIC_ADCASH_POP_ZONE` (popunder, default `11731878`) from the publisher dashboard snippets (`aclib.runBanner` / `aclib.runPop`). If unset, the app falls back to those defaults so ads still work before Coolify rebuilds with the env set. Prefer build-time so the value is inlined; runtime via `PublicEnvScript` also works.
 
 **Railpack** (faster builds when the host is configured):
