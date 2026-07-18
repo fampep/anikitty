@@ -2118,7 +2118,7 @@ export function CustomVideoPlayer({
                 >
                   {formatPlayerTime(hoverPreview?.time ?? displayTime)}
                   {hoverSkip ? (
-                    <span className="ml-1.5 text-violet-300/85">
+                    <span className="ml-1.5 text-white/70">
                       {hoverSkip.kind === "intro" ? "Intro" : "Outro"}
                     </span>
                   ) : null}
@@ -2130,29 +2130,6 @@ export function CustomVideoPlayer({
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
               <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] bg-white/22 sm:h-[2px] sm:-mt-px group-hover/seek:h-[4px] group-hover/seek:-mt-0.5">
-                {/* Skip segment markers — under fills so played always reads */}
-                {duration > 0
-                  ? skipSegments.map((seg) => {
-                      const left = (seg.start / duration) * 100;
-                      const width = ((seg.end - seg.start) / duration) * 100;
-                      return (
-                        <div
-                          key={seg.kind}
-                          title={seg.kind === "intro" ? "Intro" : "Outro"}
-                          aria-hidden
-                          className={cn(
-                            "absolute top-1/2 z-0 h-[5px] -translate-y-1/2 rounded-[1px]",
-                            "bg-violet-400/55 ring-1 ring-violet-300/25",
-                            "group-hover/seek:h-[6px]",
-                          )}
-                          style={{
-                            left: `${left}%`,
-                            width: `${Math.max(width, 0.4)}%`,
-                          }}
-                        />
-                      );
-                    })
-                  : null}
                 {/* Buffered ranges — subtle ahead-of-playhead fill */}
                 {duration > 0
                   ? bufferedRanges.map((range, i) => {
@@ -2176,6 +2153,29 @@ export function CustomVideoPlayer({
                   className="absolute inset-y-0 left-0 z-[2] w-full origin-left bg-white"
                   style={{ transform: `scaleX(${progressRatio})` }}
                 />
+                {/* Skip boundary ticks — thin notches at intro/outro start & end */}
+                {duration > 0
+                  ? skipSegments.flatMap((seg) =>
+                      (
+                        [
+                          { key: `${seg.kind}-start`, at: seg.start },
+                          { key: `${seg.kind}-end`, at: seg.end },
+                        ] as const
+                      ).map(({ key, at }) => (
+                        <div
+                          key={key}
+                          title={seg.kind === "intro" ? "Intro" : "Outro"}
+                          aria-hidden
+                          className={cn(
+                            "absolute top-1/2 z-[3] w-px -translate-x-1/2 -translate-y-1/2",
+                            "h-[7px] bg-white/90 shadow-[0_0_0_0.5px_rgba(0,0,0,0.35)]",
+                            "group-hover/seek:h-[9px]",
+                          )}
+                          style={{ left: `${(at / duration) * 100}%` }}
+                        />
+                      )),
+                    )
+                  : null}
               </div>
               {/* Scrub knob — outside overflow:hidden track so it stays visible */}
               <div
