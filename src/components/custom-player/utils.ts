@@ -178,6 +178,16 @@ export function prefersCoarsePointer(): boolean {
   return window.matchMedia("(hover: none), (pointer: coarse)").matches;
 }
 
+/** Short vibration for seek / hold-speed feedback (no-ops when unsupported). */
+export function pulsePlayerHaptic(pattern: number | number[] = 10): void {
+  if (typeof navigator === "undefined") return;
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** iPhone / iPad / iPod — HTML5 volume APIs are ignored; system volume applies. */
 export function isAppleTouchDevice(): boolean {
   if (typeof navigator === "undefined") return false;

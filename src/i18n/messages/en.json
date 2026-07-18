@@ -1924,6 +1924,8 @@
       "theatre": "Toggle theatre mode",
       "exitTheatre": "Exit theatre mode",
       "copyLink": "Copy link with timestamp",
+      "fineScrub": "Fine scrub on the progress bar",
+      "holdSpeed": "Hold on video for 2× speed (touch)",
       "help": "Show this help"
     },
     "anime4k": "Anime4K",

@@ -104,6 +104,7 @@ import {
   loadCustomPlayerPrefs,
   nextCustomPlayerSpeed,
   prefersCoarsePointer,
+  pulsePlayerHaptic,
   resolveStreamAttachMode,
   saveCustomPlayerPrefs,
   sniffIsHlsPlaylist,
@@ -479,8 +480,10 @@ export function AniKittyPlayer({
   const [hlsAudioIndex, setHlsAudioIndex] = useState(0);
   const [selectedCaptionId, setSelectedCaptionId] = useState<string | null>(null);
   const lastCaptionIdRef = useRef<string | null>(null);
-  const captionsLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const captionsLongPressFiredRef = useRef(false);
+  const volumeLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const volumeLongPressFiredRef = useRef(false);
+  const [holdSpeedActive, setHoldSpeedActive] = useState(false);
+  const [castPosterReady, setCastPosterReady] = useState(false);
   const playLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playLongPressFiredRef = useRef(false);
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
@@ -982,6 +985,11 @@ export function AniKittyPlayer({
     audioUserPickedRef.current = false;
     mediaRetryRef.current = false;
   }, [src]);
+
+  // Avoid cast-poster flash when the episode image URL changes mid-session.
+  useEffect(() => {
+    setCastPosterReady(false);
+  }, [poster]);
 
   // Prefer-subtitles + remembered caption on/off + last track label.
   useEffect(() => {
@@ -2135,22 +2143,29 @@ export function AniKittyPlayer({
     holdSpeedActiveRef.current = true;
     rateBeforeHoldRef.current = playbackRateRef.current || 1;
     video.playbackRate = HOLD_SPEED_RATE;
-    showGestureHint({ label: `${HOLD_SPEED_RATE}×`, detail: "Hold" });
-  }, [showGestureHint]);
+    setHoldSpeedActive(true);
+    // Keep a sticky chip while held — don't use the timed gesture hint.
+    if (gestureHintTimerRef.current) {
+      clearTimeout(gestureHintTimerRef.current);
+      gestureHintTimerRef.current = null;
+    }
+    setGestureHint(null);
+    setLiveRegionAnnouncement(`${HOLD_SPEED_RATE}× hold`);
+  }, []);
 
   const endHoldSpeed = useCallback(() => {
     if (!holdSpeedActiveRef.current) return;
     holdSpeedActiveRef.current = false;
+    setHoldSpeedActive(false);
     const restore = rateBeforeHoldRef.current || 1;
     const video = videoRef.current;
     if (video) video.playbackRate = restore;
     playbackRateRef.current = restore;
     setPlaybackRateState(restore);
-    showGestureHint({
-      label: restore === 1 ? "Normal" : `${restore}×`,
-      detail: "Speed",
-    });
-  }, [showGestureHint]);
+    setLiveRegionAnnouncement(
+      restore === 1 ? "Normal speed" : `${restore}× speed`,
+    );
+  }, []);
 
   const selectServerQuality = useCallback(
     (entry: KittyStreamQuality) => {
@@ -2241,7 +2256,7 @@ export function AniKittyPlayer({
   }, [captionOptions, selectCaption, selectedCaptionId, showGestureHint]);
 
   const openCaptionsPicker = useCallback(() => {
-    if (captionOptions.length <= 1) return;
+    if (captionOptions.length === 0) return;
     setCaptionsOpen(true);
     setMoreOpen(false);
     setVolumeOpen(false);
@@ -2251,40 +2266,54 @@ export function AniKittyPlayer({
     bumpControls();
   }, [bumpControls, captionOptions.length]);
 
-  const clearCaptionsLongPress = useCallback(() => {
-    if (captionsLongPressRef.current) {
-      clearTimeout(captionsLongPressRef.current);
-      captionsLongPressRef.current = null;
-    }
-  }, []);
-
-  const onCaptionsPointerDown = useCallback(() => {
-    if (captionOptions.length <= 1) return;
-    captionsLongPressFiredRef.current = false;
-    clearCaptionsLongPress();
-    captionsLongPressRef.current = setTimeout(() => {
-      captionsLongPressFiredRef.current = true;
-      captionsLongPressRef.current = null;
-      openCaptionsPicker();
-    }, LONG_PRESS_MS);
-  }, [captionOptions.length, clearCaptionsLongPress, openCaptionsPicker]);
-
-  const onCaptionsPointerUp = useCallback(() => {
-    clearCaptionsLongPress();
-  }, [clearCaptionsLongPress]);
-
   const onCaptionsClick = useCallback(() => {
-    if (captionsLongPressFiredRef.current) {
-      captionsLongPressFiredRef.current = false;
-      return;
-    }
     if (captionsOpen) {
       setCaptionsOpen(false);
       bumpControls();
       return;
     }
+    // Multiple tracks → open picker (Off + tracks + style). Single track → toggle.
+    if (captionOptions.length > 1) {
+      openCaptionsPicker();
+      return;
+    }
     toggleCaptions();
-  }, [bumpControls, captionsOpen, toggleCaptions]);
+  }, [
+    bumpControls,
+    captionOptions.length,
+    captionsOpen,
+    openCaptionsPicker,
+    toggleCaptions,
+  ]);
+
+  const clearVolumeLongPress = useCallback(() => {
+    if (volumeLongPressRef.current) {
+      clearTimeout(volumeLongPressRef.current);
+      volumeLongPressRef.current = null;
+    }
+  }, []);
+
+  const onVolumePointerDown = useCallback(() => {
+    if (!prefersCoarsePointer()) return;
+    volumeLongPressFiredRef.current = false;
+    clearVolumeLongPress();
+    volumeLongPressRef.current = setTimeout(() => {
+      volumeLongPressFiredRef.current = true;
+      volumeLongPressRef.current = null;
+      setVolumeOpen(true);
+      setMoreOpen(false);
+      setCaptionsOpen(false);
+      setQualityOpen(false);
+      setSpeedOpen(false);
+      setAudioOpen(false);
+      bumpControls();
+      pulsePlayerHaptic(8);
+    }, LONG_PRESS_MS);
+  }, [bumpControls, clearVolumeLongPress]);
+
+  const onVolumePointerUp = useCallback(() => {
+    clearVolumeLongPress();
+  }, [clearVolumeLongPress]);
 
   const clearPlayLongPress = useCallback(() => {
     if (playLongPressRef.current) {
@@ -2430,6 +2459,9 @@ export function AniKittyPlayer({
     },
     onHoldSpeedStart: startHoldSpeed,
     onHoldSpeedEnd: endHoldSpeed,
+    onHaptic: (kind) => {
+      pulsePlayerHaptic(kind === "hold" ? 12 : kind === "seek" ? 10 : 6);
+    },
     seekingActive: () => seekingRef.current,
     seekStep: seekStepSeconds || SEEK_STEP,
     doubleTapMs: TOUCH_DOUBLE_TAP_MS,
@@ -2619,6 +2651,10 @@ export function AniKittyPlayer({
       : activeSkip === "outro"
         ? skipTimes?.outro
         : undefined;
+  const skipRemainingSecs =
+    activeSkipInterval && Number.isFinite(activeSkipInterval.end)
+      ? Math.max(0, Math.ceil(activeSkipInterval.end - displayTime))
+      : 0;
   const nearEnd =
     effectiveDuration > 60 && currentTime >= effectiveDuration - 90;
   const showNextEpisode =
@@ -2631,7 +2667,9 @@ export function AniKittyPlayer({
     spinnerArmed &&
     (playing || hasStarted || sourceLoading) &&
     !playbackIssue &&
-    !seeking;
+    !seeking &&
+    // Poster covers cold start — avoid spinner-on-poster race before first play.
+    !(Boolean(poster) && !hasStarted && !playing && sourceLoading);
   const showCenterPlay =
     !casting &&
     !effectivePlaying &&
@@ -2686,10 +2724,15 @@ export function AniKittyPlayer({
     setQualityOpen(false);
     setSpeedOpen(false);
     setAudioOpen(false);
-    if (prefersCoarsePointer()) {
-      setVolumeOpen((v) => !v);
+    if (volumeLongPressFiredRef.current) {
+      volumeLongPressFiredRef.current = false;
       return;
     }
+    if (volumeOpen) {
+      setVolumeOpen(false);
+      return;
+    }
+    // Coarse: tap mutes; long-press opens the slider (surface swipe also adjusts).
     toggleMute();
   };
 
@@ -2802,7 +2845,7 @@ export function AniKittyPlayer({
       {/* Chromecast surface — poster + status; local video stays mounted but invisible */}
       {casting || castConnecting ? (
         <div
-          className="pointer-events-none absolute inset-0 z-[15] overflow-hidden bg-black"
+          className="pointer-events-none absolute inset-0 z-[15] overflow-hidden bg-zinc-950"
           aria-hidden
         >
           {poster ? (
@@ -2811,12 +2854,15 @@ export function AniKittyPlayer({
               key={poster}
               src={poster}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              className={cn(
+                "absolute inset-0 h-full w-full object-cover transition-opacity duration-300",
+                castPosterReady ? "opacity-100" : "opacity-0",
+              )}
               draggable={false}
+              onLoad={() => setCastPosterReady(true)}
+              onError={() => setCastPosterReady(false)}
             />
-          ) : (
-            <div className="absolute inset-0 bg-zinc-950" />
-          )}
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/35" />
           <div className="relative flex h-full flex-col items-center justify-center gap-2 px-4">
             <CastConnectedIcon className="h-10 w-10 text-white/90 drop-shadow" />
@@ -2935,7 +2981,7 @@ export function AniKittyPlayer({
       <div
         className={cn(
           "pointer-events-none absolute left-1/2 top-[42%] z-30 -translate-x-1/2 -translate-y-1/2 transition-all duration-200",
-          gestureHint
+          holdSpeedActive || gestureHint
             ? "scale-100 opacity-100"
             : "scale-95 opacity-0",
         )}
@@ -2943,14 +2989,18 @@ export function AniKittyPlayer({
       >
         <div className="min-w-[4.5rem] rounded-md border border-white/10 bg-zinc-950/95 px-3.5 py-2 text-center shadow-lg">
           <p className="text-[13px] font-semibold tabular-nums tracking-wide text-white">
-            {gestureHint?.label}
+            {holdSpeedActive ? `${HOLD_SPEED_RATE}×` : gestureHint?.label}
           </p>
-          {gestureHint?.detail ? (
+          {holdSpeedActive ? (
+            <p className="mt-0.5 text-[10px] uppercase tracking-wider text-white/45">
+              Hold
+            </p>
+          ) : gestureHint?.detail ? (
             <p className="mt-0.5 text-[10px] uppercase tracking-wider text-white/45">
               {gestureHint.detail}
             </p>
           ) : null}
-          {gestureHint?.meter != null ? (
+          {!holdSpeedActive && gestureHint?.meter != null ? (
             <div
               className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-white/20"
               aria-hidden
@@ -2965,6 +3015,27 @@ export function AniKittyPlayer({
           ) : null}
         </div>
       </div>
+
+      {/* Episode title chip — sparse top chrome */}
+      {title && chromeVisible && !playbackIssue ? (
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 z-30 transition-[opacity,transform] duration-300 ease-out",
+            chromeVisible
+              ? "translate-y-0 opacity-100"
+              : "-translate-y-1 opacity-0",
+            reduceMotion && "transition-none",
+          )}
+        >
+          <div
+            className="bg-gradient-to-b from-black/65 via-black/35 to-transparent pt-[max(0.55rem,env(safe-area-inset-top))] pb-8"
+          >
+            <p className="truncate px-3 text-[12px] font-medium tracking-wide text-white/90 sm:px-4 sm:text-[13px]">
+              {title}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {/* Buffering / source-loading spinner */}
       <div
@@ -3034,11 +3105,15 @@ export function AniKittyPlayer({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
+            pulsePlayerHaptic(10);
             seekTo(activeSkipInterval.end);
             setActiveSkip(null);
+            showGestureHint({
+              label: activeSkip === "intro" ? "Intro skipped" : "Credits skipped",
+            });
           }}
           className={cn(
-            "absolute z-40 rounded-md border border-white/35 bg-white px-3.5 py-2",
+            "absolute z-40 inline-flex items-center gap-2 rounded-md border border-white/35 bg-white px-3.5 py-2",
             "text-[12px] font-semibold tracking-wide text-zinc-950 shadow-lg",
             "transition-[transform,opacity,background-color] duration-200",
             "hover:bg-white/95 active:scale-[0.98]",
@@ -3050,7 +3125,12 @@ export function AniKittyPlayer({
             "animate-in fade-in zoom-in-95",
           )}
         >
-          {activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}
+          <span>{activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}</span>
+          {skipRemainingSecs > 0 ? (
+            <span className="tabular-nums text-zinc-950/55">
+              {formatPlayerTime(skipRemainingSecs)}
+            </span>
+          ) : null}
         </button>
       ) : null}
       {countdown !== null && nextEpisode ? (
@@ -3333,7 +3413,7 @@ export function AniKittyPlayer({
 
               <div className="min-w-2 flex-1 sm:min-w-3" />
 
-              {/* Right cluster — CC · AirPlay · Cast · Quality · Speed · Audio · volume (sm+) · more · fullscreen */}
+              {/* Right cluster — CC · AirPlay · Cast · Quality · Speed · Audio · volume · more · fullscreen */}
               <div className="flex shrink-0 items-center gap-0 sm:gap-1">
                 {showCaptionsMenu ? (
                   <div className="relative">
@@ -3341,48 +3421,81 @@ export function AniKittyPlayer({
                       buttonRef={captionsTriggerRef}
                       label={
                         selectedCaptionId
-                          ? `Subtitles on (${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "on"}). Long-press to choose track`
-                          : "Subtitles off"
+                          ? captionOptions.length > 1
+                            ? `Subtitles on (${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "on"}). Tap to choose track`
+                            : `Subtitles on (${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "on"})`
+                          : captionOptions.length > 1
+                            ? "Subtitles off. Tap to choose track"
+                            : "Subtitles off"
                       }
                       ariaExpanded={captionsOpen}
                       ariaHasPopup="menu"
                       ariaPressed={Boolean(selectedCaptionId)}
                       onClick={onCaptionsClick}
-                      onPointerDown={onCaptionsPointerDown}
-                      onPointerUp={onCaptionsPointerUp}
-                      onPointerCancel={onCaptionsPointerUp}
-                      onDoubleClick={(e) => {
-                        e.preventDefault();
-                        if (captionOptions.length > 1) openCaptionsPicker();
-                      }}
                       className={cn(
                         !selectedCaptionId && "text-white/45 hover:text-white/80",
                       )}
                     >
                       <CaptionsIcon className="h-[18px] w-[18px]" />
                     </IconButton>
-                    {captionsOpen && captionOptions.length > 1 ? (
+                    {captionsOpen ? (
                       <div
                         ref={captionsMenuRef}
                         role="menu"
                         aria-label="Caption tracks"
-                        className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(50vh,280px)] min-w-[148px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
+                        className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(55vh,340px)] min-w-[168px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
                       >
-                        <MenuItem
-                          active={selectedCaptionId == null}
-                          onClick={() => selectCaption(null)}
-                        >
-                          Off
-                        </MenuItem>
-                        {captionOptions.map((track) => (
+                        <MenuSection title="Track">
                           <MenuItem
-                            key={track.id}
-                            active={selectedCaptionId === track.id}
-                            onClick={() => selectCaption(track.id)}
+                            active={selectedCaptionId == null}
+                            onClick={() => selectCaption(null)}
                           >
-                            {track.label}
+                            Off
                           </MenuItem>
-                        ))}
+                          {captionOptions.map((track) => (
+                            <MenuItem
+                              key={track.id}
+                              active={selectedCaptionId === track.id}
+                              onClick={() => selectCaption(track.id)}
+                            >
+                              {track.label}
+                            </MenuItem>
+                          ))}
+                        </MenuSection>
+                        <MenuSection title="Size">
+                          {(
+                            [
+                              { label: "Small", value: "sm" },
+                              { label: "Medium", value: "md" },
+                              { label: "Large", value: "lg" },
+                            ] as const
+                          ).map((opt) => (
+                            <MenuItem
+                              key={opt.value}
+                              active={captionSize === opt.value}
+                              onClick={() => applyCaptionSize(opt.value)}
+                            >
+                              {opt.label}
+                            </MenuItem>
+                          ))}
+                        </MenuSection>
+                        <MenuSection title="Position">
+                          {(
+                            [
+                              { label: "Low", value: "low" },
+                              { label: "Mid", value: "mid" },
+                              { label: "High", value: "high" },
+                            ] as const
+                          ).map((opt) => (
+                            <MenuItem
+                              key={opt.value}
+                              active={captionPosition === opt.value}
+                              onClick={() => applyCaptionPosition(opt.value)}
+                            >
+                              {opt.label}
+                            </MenuItem>
+                          ))}
+                        </MenuSection>
                       </div>
                     ) : null}
                   </div>
@@ -3597,7 +3710,7 @@ export function AniKittyPlayer({
                 ) : null}
 
                 <div
-                  className="relative hidden sm:block"
+                  className="relative"
                   onMouseEnter={() => {
                     if (!prefersCoarsePointer()) setVolumeOpen(true);
                   }}
@@ -3606,8 +3719,19 @@ export function AniKittyPlayer({
                   }}
                 >
                   <IconButton
-                    label={effectiveMuted ? "Unmute" : "Mute"}
+                    label={
+                      prefersCoarsePointer()
+                        ? effectiveMuted
+                          ? "Unmute. Long-press for volume"
+                          : "Mute. Long-press for volume"
+                        : effectiveMuted
+                          ? "Unmute"
+                          : "Mute"
+                    }
                     onClick={onVolumeButtonClick}
+                    onPointerDown={onVolumePointerDown}
+                    onPointerUp={onVolumePointerUp}
+                    onPointerCancel={onVolumePointerUp}
                   >
                     {effectiveMuted ? (
                       <VolumeMuteIcon className="h-[18px] w-[18px]" />
@@ -3671,6 +3795,15 @@ export function AniKittyPlayer({
                           }}
                         >
                           {effectiveMuted ? "Unmute" : "Mute"}
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            setMoreOpen(false);
+                            setVolumeOpen(true);
+                            bumpControls();
+                          }}
+                        >
+                          Volume slider
                         </MenuItem>
                       </MenuSection>
 

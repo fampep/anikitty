@@ -8,9 +8,13 @@ import {
 
 import { clamp } from "./utils";
 
-const VERTICAL_LOCK_PX = 12;
-const HORIZONTAL_ABORT_PX = 18;
-const LONG_PRESS_HOLD_MS = 380;
+const VERTICAL_LOCK_PX = 14;
+const HORIZONTAL_ABORT_PX = 22;
+const LONG_PRESS_HOLD_MS = 360;
+/** Max drift before a pending long-press is cancelled (avoids accidental 2×). */
+const LONG_PRESS_MOVE_CANCEL_PX = 10;
+/** While holding 2×, cancel if finger slides too far (accidental scrub). */
+const HOLD_SPEED_CANCEL_PX = 48;
 
 export type SurfaceGestureHandlers = {
   onSeekFlash: (side: "left" | "right") => void;
@@ -21,6 +25,8 @@ export type SurfaceGestureHandlers = {
   onBrightnessDelta: (delta: number) => void;
   onHoldSpeedStart: () => void;
   onHoldSpeedEnd: () => void;
+  /** Optional tactile pulse (seek lock-in, hold-speed start). */
+  onHaptic?: (kind: "seek" | "hold" | "volume") => void;
   seekingActive: () => boolean;
   seekStep: number;
   doubleTapMs?: number;
@@ -92,6 +98,7 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
           if (!p || p.mode !== "none" || p.moved) return;
           p.mode = "hold-speed";
           suppressClickRef.current = true;
+          handlersRef.current.onHaptic?.("hold");
           handlersRef.current.onHoldSpeedStart();
         }, LONG_PRESS_HOLD_MS),
       };
@@ -110,13 +117,24 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
       const y = e.clientY - rect.top;
       const dx = x - p.startX;
       const dy = y - p.startY;
+      const dist = Math.hypot(dx, dy);
 
       if (p.mode === "hold-speed") {
-        // Slight movement is fine while holding speed.
+        // Large slide while holding cancels 2× (avoids fighting scrub intent).
+        if (dist > HOLD_SPEED_CANCEL_PX) {
+          clearLongPress();
+          handlersRef.current.onHoldSpeedEnd();
+          pointerRef.current = null;
+          suppressClickRef.current = true;
+        }
         return;
       }
 
       if (p.mode === "none") {
+        // Cancel pending long-press as soon as the finger clearly moves.
+        if (p.longPressTimer && dist > LONG_PRESS_MOVE_CANCEL_PX) {
+          clearLongPress();
+        }
         if (Math.abs(dx) > HORIZONTAL_ABORT_PX && Math.abs(dx) > Math.abs(dy)) {
           clearLongPress();
           pointerRef.current = null;
@@ -131,6 +149,7 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
         suppressClickRef.current = true;
         lastTapRef.current = null;
         clearSingleTap();
+        handlersRef.current.onHaptic?.("volume");
       }
 
       const deltaY = y - p.lastY;
@@ -187,9 +206,11 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
         suppressClickRef.current = true;
         const third = rect.width / 3;
         if (x < third) {
+          handlersRef.current.onHaptic?.("seek");
           handlersRef.current.onSeekBy(-step);
           handlersRef.current.onSeekFlash("left");
         } else if (x > third * 2) {
+          handlersRef.current.onHaptic?.("seek");
           handlersRef.current.onSeekBy(step);
           handlersRef.current.onSeekFlash("right");
         } else {
