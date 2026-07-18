@@ -71,7 +71,6 @@ function LangBadges({ id }: { id: KittyProvider }) {
 
 export default function WatchSimpleProviderRow({
   provider,
-  streamAudio,
   onProviderChange,
   streamCaps,
   preferredProvider,
@@ -81,73 +80,57 @@ export default function WatchSimpleProviderRow({
   const serverCount = KITTY_PROVIDER_META.length;
 
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-xl border border-border dark:border-white/[0.08]",
-        "bg-muted/30 dark:bg-white/[0.03]",
-        "p-2.5 sm:p-3",
-        className,
-      )}
-    >
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-current to-transparent opacity-40",
-          streamAudio === "dub" ? "text-amber-400" : "text-teal-400",
-        )}
-      />
-
-      <div className="min-w-0">
-        <FieldLabel icon={<Server className="w-3 h-3" />}>
-          {t("watch.providerSelect")}
-          <span className="text-muted-foreground/60 dark:text-white/20">({serverCount})</span>
-        </FieldLabel>
-        <Select value={provider} onValueChange={(v) => onProviderChange(v as KittyProvider)}>
-          <SelectTrigger className={TRIGGER_CLASS}>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Zap className="w-3.5 h-3.5 shrink-0 opacity-60" />
-              <SelectValue />
-            </div>
-          </SelectTrigger>
-          <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
-            {(["featured", "other"] as const).map((group) => {
-              const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
-                preferredId: preferredProvider,
-              });
-              if (items.length === 0) return null;
-              return (
-                <SelectGroup key={group}>
-                  <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30 px-2 py-1.5">
-                    {group === "featured"
-                      ? t("watch.providerGroupFeatured")
-                      : t("watch.providerGroupOther")}
-                  </SelectLabel>
-                  {items.map((p) => {
-                    const badges = providerCapabilityBadges(streamCaps?.providers?.[p.id] ?? null);
-                    return (
-                      <SelectItem
-                        key={p.id}
-                        value={p.id}
-                        textValue={p.label}
-                        className="text-xs text-foreground/90 dark:text-white/80"
-                      >
-                        <span className="flex w-full items-center gap-2 min-w-0">
-                          <span className="font-semibold truncate">{p.label}</span>
-                          <ProviderDefaultBadge id={p.id} />
-                          {streamCaps ? (
-                            <ProviderCapabilityBadge caps={badges} />
-                          ) : (
-                            <LangBadges id={p.id} />
-                          )}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectGroup>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className={cn("min-w-0", className)}>
+      <FieldLabel icon={<Server className="w-3 h-3" />}>
+        {t("watch.providerSelect")}
+        <span className="text-muted-foreground/60 dark:text-white/20">({serverCount})</span>
+      </FieldLabel>
+      <Select value={provider} onValueChange={(v) => onProviderChange(v as KittyProvider)}>
+        <SelectTrigger className={TRIGGER_CLASS}>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Zap className="w-3.5 h-3.5 shrink-0 opacity-60" />
+            <SelectValue />
+          </div>
+        </SelectTrigger>
+        <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
+          {(["featured", "other"] as const).map((group) => {
+            const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
+              preferredId: preferredProvider,
+            });
+            if (items.length === 0) return null;
+            return (
+              <SelectGroup key={group}>
+                <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30 px-2 py-1.5">
+                  {group === "featured"
+                    ? t("watch.providerGroupFeatured")
+                    : t("watch.providerGroupOther")}
+                </SelectLabel>
+                {items.map((p) => {
+                  const badges = providerCapabilityBadges(streamCaps?.providers?.[p.id] ?? null);
+                  return (
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                      textValue={p.label}
+                      className="text-xs text-foreground/90 dark:text-white/80"
+                    >
+                      <span className="flex w-full items-center gap-2 min-w-0">
+                        <span className="font-semibold truncate">{p.label}</span>
+                        <ProviderDefaultBadge id={p.id} />
+                        {streamCaps ? (
+                          <ProviderCapabilityBadge caps={badges} />
+                        ) : (
+                          <LangBadges id={p.id} />
+                        )}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectGroup>
+            );
+          })}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

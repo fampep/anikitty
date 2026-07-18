@@ -141,8 +141,8 @@ export const AUDIO_SEGMENT = {
 
 export const PROVIDER_PANEL = {
   shell:
-    "rounded-xl border border-border dark:border-white/[0.08] bg-gradient-to-b from-muted/35 to-muted/15 dark:from-white/[0.04] dark:to-white/[0.01] shadow-sm",
-  inner: "px-2.5 sm:px-3 py-3 space-y-2.5",
+    "rounded-lg border border-border/70 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.025]",
+  inner: "px-2.5 sm:px-3 py-2.5 space-y-2",
 } as const;
 
 export function providerChipClass(id: KittyProvider): string {

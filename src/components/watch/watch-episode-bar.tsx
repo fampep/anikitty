@@ -128,37 +128,29 @@ export default function WatchEpisodeBar({
           </EpisodeThumbPreview>
 
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-0.5">
-              <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground dark:text-white/40">
-                {t("watch.episode", { n: currentEpisode.number })}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+              <p className="text-[11px] sm:text-[12px] font-mono font-bold tabular-nums tracking-tight text-zinc-200/95">
+                EP {currentEpisode.number}
               </p>
-              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground/50 dark:text-white/20">·</span>
-              <p className="hidden sm:block text-[10px] font-mono tabular-nums text-muted-foreground dark:text-white/35">
-                {t("watch.episodeIndex", {
-                  current: currentEpisode.number,
-                  total,
-                })}
-              </p>
+              {total > 1 && (
+                <p className="text-[10px] font-mono tabular-nums text-muted-foreground/70 dark:text-white/28">
+                  / {total}
+                </p>
+              )}
               {currentEpisode.isFiller && (
-                <>
-                  <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/20">·</span>
-                  <span className="px-1.5 py-px text-[9px] rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/70 uppercase tracking-wide">
-                    {t("watch.filler")}
-                  </span>
-                </>
+                <span className="px-1.5 py-px text-[9px] rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/70 uppercase tracking-wide">
+                  {t("watch.filler")}
+                </span>
               )}
               {completed && (
-                <>
-                  <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/20">·</span>
-                  <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-zinc-300/80 uppercase">
-                    <Check className="w-2.5 h-2.5" />
-                    {t("watch.episodeWatched")}
-                  </span>
-                </>
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-zinc-400/80 uppercase">
+                  <Check className="w-2.5 h-2.5" />
+                  {t("watch.episodeWatched")}
+                </span>
               )}
             </div>
 
-            <p className="text-[13px] sm:text-[15px] font-semibold tracking-tight text-foreground dark:text-white leading-snug line-clamp-1 sm:line-clamp-2">
+            <p className="text-[13px] sm:text-[14px] font-medium tracking-tight text-foreground/90 dark:text-white/80 leading-snug line-clamp-1 sm:line-clamp-2">
               {title}
             </p>
 

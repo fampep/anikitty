@@ -245,7 +245,6 @@ const VideoPlayerSection = () => {
   // Episode list for next-episode navigation (also resolves episode number for stream API)
   const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(episodesAnimeId);
   const watchedEpisodes = useEpisodeProgress(episodesAnimeId);
-  const [mobilePlaylistOpen, setMobilePlaylistOpen] = useState(false);
   type HeldStreamSnapshot = {
     key: string;
     file: string;
@@ -469,19 +468,8 @@ const VideoPlayerSection = () => {
   }, [nextEpisode, navigateToEpisode]);
 
   const toggleMobilePlaylist = useCallback(() => {
-    setMobilePlaylistOpen((open) => {
-      const next = !open;
-      if (next) {
-        requestAnimationFrame(() => {
-          document.getElementById("watch-mobile-playlist")?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        });
-      }
-      return next;
-    });
-  }, []);
+    watchPage?.toggleMobilePlaylist();
+  }, [watchPage]);
 
   const getLivePreview = useCallback(() => {
     const video = playerRef.current?.video;
@@ -518,7 +506,7 @@ const VideoPlayerSection = () => {
         animeName={animeName ?? undefined}
         prevEpisode={prevEpisode ?? null}
         nextEpisode={nextEpisode ?? null}
-        playlistOpen={mobilePlaylistOpen}
+        playlistOpen={watchPage?.mobilePlaylistOpen ?? false}
         onTogglePlaylist={toggleMobilePlaylist}
         onPrev={handlePrevEpisode}
         onNext={handleNextEpisode}
@@ -547,7 +535,6 @@ const VideoPlayerSection = () => {
     triedKittyNodesRef.current.clear();
     fallbackBusyRef.current = false;
     remintAttemptedRef.current = false;
-    setMobilePlaylistOpen(false);
     setHeldStreamSnapshot(null);
     setManualStreamFile(null);
     setManualStreamHeaders(null);

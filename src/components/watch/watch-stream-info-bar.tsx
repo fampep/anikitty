@@ -65,7 +65,7 @@ export default function WatchStreamInfoBar({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-1.5 px-3 py-2 text-[10px] font-mono border-t border-border dark:border-white/[0.06] bg-gradient-to-r from-[#080808] via-[#0a0a0a] to-[#080808]",
+        "flex flex-wrap items-center gap-1 px-2.5 sm:px-3 py-1.5 text-[10px] font-mono border-t border-border/80 dark:border-white/[0.06] bg-[#09090b]",
         className,
       )}
     >

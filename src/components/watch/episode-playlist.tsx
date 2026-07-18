@@ -142,16 +142,22 @@ const EpisodePlaylist = ({
   }, [episodes, currentGroup, debouncedSearch, hideWatched, hideFillers, watchedEpisodes]);
 
   useEffect(() => {
-    const idx = episodes?.episodes.findIndex((ep) => ep.episodeId === episodeId);
-    if (idx !== undefined && idx >= 0 && episodeRefs.current[idx]) {
-      const el = episodeRefs.current[idx];
-      const container = scrollContainerRef.current;
-      if (el && container) {
-        container.scrollTop = el.offsetTop - container.offsetHeight / 2 + el.offsetHeight / 2 + 80;
-      }
-    }
-    // eslint-disable-next-line
-  }, [animeId, episodes, episodeId, filteredEpisodes.length]);
+    if (!episodeId || !episodes?.episodes.length) return;
+    const idx = episodes.episodes.findIndex((ep) => ep.episodeId === episodeId);
+    if (idx < 0) return;
+    const el = episodeRefs.current[idx];
+    const container = scrollContainerRef.current;
+    if (!el || !container) return;
+
+    requestAnimationFrame(() => {
+      const elRect = el.getBoundingClientRect();
+      const boxRect = container.getBoundingClientRect();
+      const fullyVisible =
+        elRect.top >= boxRect.top + 4 && elRect.bottom <= boxRect.bottom - 4;
+      if (fullyVisible) return;
+      el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    });
+  }, [animeId, episodes, episodeId, filteredEpisodes.length, episodeLayout, isWatch]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -195,7 +201,7 @@ const EpisodePlaylist = ({
       <div
         className={cn(
           "shrink-0 border-b border-border dark:border-white/[0.07]",
-          isWatch ? "px-3 py-3 space-y-2.5" : "px-3.5 pt-3 pb-2.5 space-y-2",
+          isWatch ? "px-3 py-2.5 space-y-2" : "px-3 pt-2.5 pb-2 space-y-1.5",
         )}
       >
         {isWatch ? (
@@ -356,18 +362,25 @@ const EpisodePlaylist = ({
       <div
         ref={scrollContainerRef}
         className={cn(
-          "flex-1 overflow-y-auto py-1.5 scroll-momentum scrollbar-hide",
-          isWatch ? "max-h-[min(52vh,28rem)]" : "min-h-0",
+          "flex-1 overflow-y-auto scroll-momentum scrollbar-hide",
+          isWatch ? "max-h-[min(48vh,26rem)] py-1.5" : "min-h-0 py-1",
         )}
       >
         {isLoading ? (
-          <PlaylistSkeleton />
+          <PlaylistSkeleton dense={!isWatch} />
         ) : filteredEpisodes.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground/80 dark:text-white/25 text-xs font-mono">
-            {t("watch.playlist.noEpisodes")}
+          <div className="flex flex-col items-center justify-center gap-1.5 py-10 px-4 text-center">
+            <p className="text-[12px] font-medium text-muted-foreground/80 dark:text-white/40">
+              {t("watch.playlist.noEpisodes")}
+            </p>
+            {(hideWatched || hideFillers || debouncedSearch.trim()) && (
+              <p className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/25">
+                {t("watch.playlist.filterPlaceholder")}
+              </p>
+            )}
           </div>
         ) : layout === "compact" ? (
-          <div className={cn("grid gap-1.5 px-2 pb-2", gridCols)}>
+          <div className={cn("grid gap-1 px-2 pb-2", gridCols)}>
             {filteredEpisodes.map((episode) => (
               <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
                 <EpisodeCard
@@ -380,7 +393,7 @@ const EpisodePlaylist = ({
             ))}
           </div>
         ) : layout === "thumbnail" ? (
-          <div className="grid grid-cols-2 gap-2 px-2 pb-2 pt-1">
+          <div className="grid grid-cols-2 gap-1.5 px-2 pb-2 pt-0.5">
             {filteredEpisodes.map((episode) => (
               <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
                 <EpisodeCard
@@ -403,10 +416,16 @@ const EpisodePlaylist = ({
   );
 };
 
-const PlaylistSkeleton = () => (
-  <div className="space-y-0.5 px-1">
-    {Array.from({ length: 7 }).map((_, i) => (
-      <div key={i} className="h-[61px] rounded-xl animate-pulse bg-muted/50 dark:bg-white/5" />
+const PlaylistSkeleton = ({ dense = false }: { dense?: boolean }) => (
+  <div className={cn("space-y-0.5", dense ? "px-1.5" : "px-1")}>
+    {Array.from({ length: dense ? 8 : 6 }).map((_, i) => (
+      <div
+        key={i}
+        className={cn(
+          "rounded-lg animate-pulse bg-muted/40 dark:bg-white/[0.04]",
+          dense ? "h-[52px]" : "h-[58px]",
+        )}
+      />
     ))}
   </div>
 );

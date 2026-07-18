@@ -40,8 +40,8 @@ function QualityChip({
       className={cn(
         "px-2 py-1 rounded-md text-[10px] font-mono font-semibold border transition-colors touch-manipulation",
         active
-          ? "border-teal-400/35 bg-teal-500/15 text-teal-100"
-          : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-400/25",
+          ? "border-zinc-400/35 bg-zinc-500/15 text-zinc-100"
+          : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-zinc-400/25",
       )}
     >
       {formatStreamQualityLabel(q.quality)}
