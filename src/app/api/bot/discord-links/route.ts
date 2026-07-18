@@ -7,7 +7,8 @@ import { DONATOR_ROLE, STAFF_ROLES } from "@/lib/social/donation-config";
 
 /**
  * Linked Discord accounts + effective site roles for Discord role sync.
- * Role keys match bot `ROLE_MAP_JSON`: admin, moderator, donator.
+ * Role keys match `discord_role_map` / bot sync: admin, moderator, donator,
+ * timestamp_helper (any non-`user` site role plus active donator window).
  * Only returns discordId / site role flags — no emails or secrets.
  */
 function hasActiveSupporterWindow(

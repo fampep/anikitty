@@ -940,3 +940,22 @@ export const onlineVisitors = pgTable(
     lastSeenIdx: index("online_visitors_last_seen_at_idx").on(t.lastSeenAt),
   }),
 );
+
+/**
+ * Discord guild role snowflakes for site role keys (admin, moderator, …).
+ * Owned by the site; the Discord bot creates roles and upserts this map.
+ */
+export const discordRoleMap = pgTable(
+  "discord_role_map",
+  {
+    guildId: varchar("guild_id", { length: 32 }).notNull(),
+    siteRoleKey: varchar("site_role_key", { length: 50 }).notNull(),
+    discordRoleId: varchar("discord_role_id", { length: 32 }).notNull(),
+    discordRoleName: varchar("discord_role_name", { length: 100 }),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.guildId, t.siteRoleKey] }),
+    roleIdIdx: index("discord_role_map_discord_role_id_idx").on(t.discordRoleId),
+  }),
+);
