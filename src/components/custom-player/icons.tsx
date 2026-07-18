@@ -184,3 +184,44 @@ export function CaptionsIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Google Cast / Chromecast sender mark — sparse arcs matching chrome icons. */
+export function CastIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <path {...stroke} d="M3.5 6.25h17A1.25 1.25 0 0 1 21.75 7.5v9a1.25 1.25 0 0 1-1.25 1.25H14" />
+      <path {...stroke} d="M3.5 15.25a3.25 3.25 0 0 1 3.25 3.25" />
+      <path {...stroke} d="M3.5 12.1a6.4 6.4 0 0 1 6.4 6.4" />
+      <path {...stroke} d="M3.5 8.95a9.55 9.55 0 0 1 9.55 9.55" />
+      <circle cx="3.85" cy="19.15" r="0.95" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Filled Cast mark for active “Casting…” state. */
+export function CastConnectedIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M3.5 5.5h17A1.75 1.75 0 0 1 22.25 7.25v9a1.75 1.75 0 0 1-1.75 1.75H13.6a.75.75 0 0 1 0-1.5h6.9a.25.25 0 0 0 .25-.25v-9a.25.25 0 0 0-.25-.25h-17a.25.25 0 0 0-.25.25V9.4a.75.75 0 0 1-1.5 0V7.25A1.75 1.75 0 0 1 3.5 5.5z"
+      />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        d="M3.5 15.1a3.4 3.4 0 0 1 3.4 3.4"
+      />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        d="M3.5 11.85a6.65 6.65 0 0 1 6.65 6.65"
+      />
+      <circle cx="3.85" cy="19.15" r="1.05" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

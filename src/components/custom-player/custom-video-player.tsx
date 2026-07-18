@@ -52,6 +52,8 @@ import {
 import {
   BrightnessIcon,
   CaptionsIcon,
+  CastConnectedIcon,
+  CastIcon,
   Forward10Icon,
   FullscreenExitIcon,
   FullscreenIcon,
@@ -68,6 +70,10 @@ import {
 import type { SkipTimes } from "@/hooks/use-aniskip";
 import { useSettingsStore } from "@/store/settings-store";
 
+import {
+  buildCastMediaRequest,
+  useGoogleCast,
+} from "./use-google-cast";
 import {
   clamp,
   CUSTOM_PLAYER_SPEEDS,
@@ -390,6 +396,11 @@ export function CustomVideoPlayer({
 
   const activeSrc = resolvedSrc;
 
+  const castingRef = useRef(false);
+  const castRemotePlayingRef = useRef(false);
+  const bumpControlsRef = useRef<() => void>(() => {});
+  const showGestureHintRef = useRef<(hint: GestureHint) => void>(() => {});
+
   const captionOptions = useMemo<CaptionOption[]>(() => {
     return tracks
       .filter(isSubtitleTrack)
@@ -419,7 +430,6 @@ export function CustomVideoPlayer({
   const showCaptionsMenu = captionOptions.length > 0;
 
   const displayTime = seekPreview ?? currentTime;
-  const chromeVisible = controlsVisible || seeking || !playing;
 
   const clearIdleTimer = useCallback(() => {
     if (idleTimerRef.current) {
@@ -438,8 +448,17 @@ export function CustomVideoPlayer({
   const bumpControls = useCallback(() => {
     setControlsVisible(true);
     clearIdleTimer();
+    if (seekingRef.current) return;
+    if (castingRef.current) {
+      if (!castRemotePlayingRef.current) return;
+      idleTimerRef.current = setTimeout(() => {
+        setControlsVisible(false);
+        closePopovers();
+      }, IDLE_MS);
+      return;
+    }
     const video = videoRef.current;
-    if (!video || video.paused || seekingRef.current) return;
+    if (!video || video.paused) return;
     idleTimerRef.current = setTimeout(() => {
       setControlsVisible(false);
       closePopovers();
@@ -463,6 +482,138 @@ export function CustomVideoPlayer({
       gestureHintTimerRef.current = null;
     }, GESTURE_HINT_MS);
   }, []);
+
+  bumpControlsRef.current = bumpControls;
+  showGestureHintRef.current = showGestureHint;
+
+  const getCastMedia = useCallback(() => {
+    const video = videoRef.current;
+    return buildCastMediaRequest({
+      url: activeSrc,
+      qualities,
+      title,
+      currentTime: castingRef.current
+        ? currentTime
+        : (video?.currentTime ?? currentTime),
+      autoplay: true,
+      volume: muted ? 0 : volume,
+      muted,
+    });
+  }, [activeSrc, qualities, title, currentTime, volume, muted]);
+
+  const onCastSessionEnd = useCallback(
+    (info: { resumeAt: number | null; wasPlaying: boolean }) => {
+      const video = videoRef.current;
+      castingRef.current = false;
+      if (!video) return;
+      if (info.resumeAt != null && Number.isFinite(info.resumeAt)) {
+        try {
+          video.currentTime = info.resumeAt;
+          setCurrentTime(info.resumeAt);
+        } catch {
+          /* ignore seek failures during handoff */
+        }
+      }
+      try {
+        video.muted = muted;
+        video.volume = volume;
+      } catch {
+        /* ignore */
+      }
+      if (info.wasPlaying) {
+        void video.play().catch(() => {});
+      }
+      bumpControlsRef.current();
+      showGestureHintRef.current({
+        label: "Cast ended",
+        detail: "Resumed here",
+      });
+    },
+    [muted, volume],
+  );
+
+  const onCastStarted = useCallback(() => {
+    const video = videoRef.current;
+    if (video && !video.paused) video.pause();
+    try {
+      if (video) video.muted = true;
+    } catch {
+      /* ignore */
+    }
+    exitPictureInPictureSafe(video);
+    bumpControlsRef.current();
+    showGestureHintRef.current({ label: "Casting…", detail: "Chromecast" });
+  }, []);
+
+  const cast = useGoogleCast({
+    enabled: Boolean(activeSrc),
+    getMedia: getCastMedia,
+    onSessionEnd: onCastSessionEnd,
+    onCastStarted,
+  });
+  castingRef.current = cast.casting;
+  castRemotePlayingRef.current = cast.remotePlaying;
+
+  const {
+    available: castAvailable,
+    casting,
+    connecting: castConnecting,
+    deviceName: castDeviceName,
+    remotePlaying: castRemotePlaying,
+    remoteTime: castRemoteTime,
+    remoteDuration: castRemoteDuration,
+    remoteVolume: castRemoteVolume,
+    remoteMuted: castRemoteMuted,
+    toggleCast,
+    playOrPause: castPlayOrPause,
+    seekTo: castSeekTo,
+    setVolumeLevel: castSetVolume,
+    syncMedia: castSyncMedia,
+  } = cast;
+
+  const effectivePlaying = casting ? castRemotePlaying : playing;
+  const effectiveDuration =
+    casting && castRemoteDuration > 0 ? castRemoteDuration : duration;
+  const effectiveMuted = casting
+    ? castRemoteMuted || castRemoteVolume === 0
+    : muted || volume === 0;
+  const effectiveVolume = casting
+    ? castRemoteMuted
+      ? 0
+      : castRemoteVolume
+    : muted
+      ? 0
+      : volume;
+  const chromeVisible = controlsVisible || seeking || !effectivePlaying;
+
+  // Reload Cast media when the stream URL changes mid-session (quality switch).
+  const wasCastingForSyncRef = useRef(false);
+  useEffect(() => {
+    if (!casting || !activeSrc) {
+      wasCastingForSyncRef.current = casting;
+      return;
+    }
+    if (!wasCastingForSyncRef.current) {
+      wasCastingForSyncRef.current = true;
+      return;
+    }
+    void castSyncMedia();
+  }, [activeSrc, casting, castSyncMedia]);
+
+  // Mirror remote progress into watch progress callbacks while casting.
+  useEffect(() => {
+    if (!casting) return;
+    const t = castRemoteTime;
+    const d = castRemoteDuration || duration;
+    setCurrentTime(t);
+    if (d > 0) setDuration((prev) => (prev > 0 ? prev : d));
+    onLiveTimeRef.current?.(t, d);
+    const now = Date.now();
+    if (d > 0 && now - lastProgressTsRef.current >= 10_000) {
+      lastProgressTsRef.current = now;
+      onProgressRef.current?.(t, d);
+    }
+  }, [casting, castRemoteTime, castRemoteDuration, duration]);
 
   // Reset local quality override when parent src changes (episode / provider).
   // Keep qualityResumeRef so in-player quality switches can restore time.
@@ -573,6 +724,7 @@ export function CustomVideoPlayer({
   // Pause when the tab is hidden; resume if we were playing.
   useEffect(() => {
     const onVisibility = () => {
+      if (castingRef.current) return;
       const video = videoRef.current;
       if (!video) return;
       if (document.hidden) {
@@ -1123,15 +1275,35 @@ export function CustomVideoPlayer({
   }, [activeSrc, playbackIssueHint, qualities, attachNonce]);
 
   const togglePlay = useCallback(() => {
+    if (castingRef.current) {
+      castPlayOrPause();
+      bumpControls();
+      return;
+    }
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) void video.play();
     else video.pause();
     bumpControls();
-  }, [bumpControls]);
+  }, [bumpControls, castPlayOrPause]);
 
   const seekBy = useCallback(
     (delta: number, opts?: { hint?: boolean }) => {
+      if (castingRef.current) {
+        const base = currentTime;
+        const max = effectiveDuration || base + Math.abs(delta);
+        const next = clamp(base + delta, 0, max);
+        castSeekTo(next);
+        setCurrentTime(next);
+        if (opts?.hint !== false) {
+          const abs = Math.abs(Math.round(delta));
+          showGestureHint({
+            label: delta >= 0 ? `+${abs}s` : `−${abs}s`,
+          });
+        }
+        bumpControls();
+        return;
+      }
       const video = videoRef.current;
       if (!video) return;
       const next = clamp(
@@ -1149,11 +1321,18 @@ export function CustomVideoPlayer({
       }
       bumpControls();
     },
-    [bumpControls, showGestureHint],
+    [bumpControls, castSeekTo, currentTime, effectiveDuration, showGestureHint],
   );
 
   const seekTo = useCallback(
     (time: number) => {
+      if (castingRef.current) {
+        const next = clamp(time, 0, effectiveDuration || 0);
+        castSeekTo(next);
+        setCurrentTime(next);
+        bumpControls();
+        return;
+      }
       const video = videoRef.current;
       if (!video) return;
       const next = clamp(time, 0, duration || video.duration || 0);
@@ -1161,10 +1340,17 @@ export function CustomVideoPlayer({
       setCurrentTime(next);
       bumpControls();
     },
-    [bumpControls, duration],
+    [bumpControls, castSeekTo, duration, effectiveDuration],
   );
 
   const toggleMute = useCallback(() => {
+    if (castingRef.current) {
+      const next = effectiveMuted ? volumeBeforeMuteRef.current || 0.8 : 0;
+      if (!effectiveMuted) volumeBeforeMuteRef.current = castRemoteVolume || 1;
+      castSetVolume(next);
+      bumpControls();
+      return;
+    }
     const video = videoRef.current;
     if (!video) return;
     if (video.muted || video.volume === 0) {
@@ -1175,13 +1361,25 @@ export function CustomVideoPlayer({
       video.muted = true;
     }
     bumpControls();
-  }, [bumpControls]);
+  }, [bumpControls, castRemoteVolume, castSetVolume, effectiveMuted]);
 
   const setVolumeLevel = useCallback(
     (level: number, opts?: { hint?: boolean }) => {
+      const next = clamp(level, 0, 1);
+      if (castingRef.current) {
+        castSetVolume(next);
+        if (next > 0) volumeBeforeMuteRef.current = next;
+        if (opts?.hint) {
+          showGestureHint({
+            label: "Volume",
+            detail: `${Math.round(next * 100)}%`,
+          });
+        }
+        bumpControls();
+        return;
+      }
       const video = videoRef.current;
       if (!video) return;
-      const next = clamp(level, 0, 1);
       video.volume = next;
       video.muted = next === 0;
       if (next > 0) volumeBeforeMuteRef.current = next;
@@ -1193,7 +1391,7 @@ export function CustomVideoPlayer({
       }
       bumpControls();
     },
-    [bumpControls, showGestureHint],
+    [bumpControls, castSetVolume, showGestureHint],
   );
 
   const setBrightnessLevel = useCallback(
@@ -1746,7 +1944,8 @@ export function CustomVideoPlayer({
     togglePip,
   ]);
 
-  const progressRatio = duration > 0 ? clamp(displayTime / duration, 0, 1) : 0;
+  const progressRatio =
+    effectiveDuration > 0 ? clamp(displayTime / effectiveDuration, 0, 1) : 0;
   const hoverSkip = hoverPreview
     ? segmentAtTime(skipSegments, hoverPreview.time)
     : undefined;
@@ -1757,10 +1956,16 @@ export function CustomVideoPlayer({
         ? skipTimes?.outro
         : undefined;
   const showSpinner =
+    !casting &&
     (sourceLoading || buffering) &&
     (playing || hasStarted || sourceLoading) &&
     !playbackIssue;
-  const showCenterPlay = !playing && !buffering && !sourceLoading && !playbackIssue;
+  const showCenterPlay =
+    !casting &&
+    !effectivePlaying &&
+    !buffering &&
+    !sourceLoading &&
+    !playbackIssue;
   const activeServerQuality =
     serverQualities.find((q) => q.file === activeSrc || q.file === src) ?? null;
 
@@ -1768,7 +1973,7 @@ export function CustomVideoPlayer({
     const el = progressRef.current ?? e.currentTarget;
     const rect = el.getBoundingClientRect();
     const ratio = clamp((e.clientX - rect.left) / Math.max(rect.width, 1), 0, 1);
-    return { time: ratio * duration, ratio };
+    return { time: ratio * effectiveDuration, ratio };
   };
 
   const onVolumeButtonClick = () => {
@@ -1811,7 +2016,7 @@ export function CustomVideoPlayer({
       }}
       onMouseLeave={() => {
         if (!seekingRef.current) setHoverPreview(null);
-        if (playing && !seekingRef.current) {
+        if (effectivePlaying && !seekingRef.current) {
           clearIdleTimer();
           idleTimerRef.current = setTimeout(() => {
             setControlsVisible(false);
@@ -1822,7 +2027,11 @@ export function CustomVideoPlayer({
       onTouchStart={bumpControls}
     >
       <div className="sr-only" aria-live="polite">
-        {playing ? "Playing" : "Paused"}
+        {casting
+          ? `Casting${castDeviceName ? ` to ${castDeviceName}` : ""}`
+          : effectivePlaying
+            ? "Playing"
+            : "Paused"}
         {selectedCaptionId
           ? `, captions ${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "on"}`
           : ", captions off"}
@@ -1834,7 +2043,10 @@ export function CustomVideoPlayer({
         playsInline
         preload="metadata"
         controlsList="nodownload"
-        className="h-full w-full object-contain [&::cue]:bg-black/55 [&::cue]:px-1 [&::cue]:text-white"
+        className={cn(
+          "h-full w-full object-contain [&::cue]:bg-black/55 [&::cue]:px-1 [&::cue]:text-white",
+          casting && "opacity-40",
+        )}
         style={{ filter: `brightness(${brightness})` }}
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}
@@ -1851,6 +2063,22 @@ export function CustomVideoPlayer({
           />
         ))}
       </video>
+
+      {/* Casting handoff surface — sparse status, not a card stack */}
+      {casting || castConnecting ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-[15] flex flex-col items-center justify-center gap-2 bg-black/35"
+          aria-hidden
+        >
+          <CastConnectedIcon className="h-10 w-10 text-white/90" />
+          <p className="text-[13px] font-medium tracking-wide text-white">
+            {castConnecting ? "Connecting…" : "Casting…"}
+          </p>
+          {castDeviceName ? (
+            <p className="text-[11px] text-white/55">{castDeviceName}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {playbackIssue ? (
         <div
@@ -2048,9 +2276,9 @@ export function CustomVideoPlayer({
               role="slider"
               aria-label="Seek"
               aria-valuemin={0}
-              aria-valuemax={Math.floor(duration) || 0}
+              aria-valuemax={Math.floor(effectiveDuration) || 0}
               aria-valuenow={Math.floor(displayTime)}
-              aria-valuetext={`${formatPlayerTime(displayTime)} of ${formatPlayerTime(duration)}`}
+              aria-valuetext={`${formatPlayerTime(displayTime)} of ${formatPlayerTime(effectiveDuration)}`}
               tabIndex={0}
               className="group/seek relative h-6 w-full min-w-0 cursor-pointer touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3.5"
               onPointerDown={(e) => {
@@ -2074,7 +2302,7 @@ export function CustomVideoPlayer({
                   return;
                 }
                 // Desktop hover scrub preview
-                if (e.pointerType === "mouse" && duration > 0) {
+                if (e.pointerType === "mouse" && effectiveDuration > 0) {
                   setHoverPreview({ time, ratio });
                 }
               }}
@@ -2109,7 +2337,7 @@ export function CustomVideoPlayer({
                 }
               }}
             >
-              {(hoverPreview || seeking) && duration > 0 ? (
+              {(hoverPreview || seeking) && effectiveDuration > 0 ? (
                 <div
                   className="pointer-events-none absolute bottom-full z-10 mb-1.5 -translate-x-1/2 rounded bg-black/90 px-1.5 py-0.5 text-[10px] tabular-nums text-white shadow-md"
                   style={{
@@ -2131,11 +2359,11 @@ export function CustomVideoPlayer({
               */}
               <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] bg-white/22 sm:h-[2px] sm:-mt-px group-hover/seek:h-[4px] group-hover/seek:-mt-0.5">
                 {/* Buffered ranges — subtle ahead-of-playhead fill */}
-                {duration > 0
+                {effectiveDuration > 0 && !casting
                   ? bufferedRanges.map((range, i) => {
-                      const left = (range.start / duration) * 100;
+                      const left = (range.start / effectiveDuration) * 100;
                       const width =
-                        ((range.end - range.start) / duration) * 100;
+                        ((range.end - range.start) / effectiveDuration) * 100;
                       return (
                         <div
                           key={`${range.start}-${range.end}-${i}`}
@@ -2154,7 +2382,7 @@ export function CustomVideoPlayer({
                   style={{ transform: `scaleX(${progressRatio})` }}
                 />
                 {/* Skip boundary ticks — thin notches at intro/outro start & end */}
-                {duration > 0
+                {effectiveDuration > 0
                   ? skipSegments.flatMap((seg) =>
                       (
                         [
@@ -2171,7 +2399,7 @@ export function CustomVideoPlayer({
                             "h-[7px] bg-white/90 shadow-[0_0_0_0.5px_rgba(0,0,0,0.35)]",
                             "group-hover/seek:h-[9px]",
                           )}
-                          style={{ left: `${(at / duration) * 100}%` }}
+                          style={{ left: `${(at / effectiveDuration) * 100}%` }}
                         />
                       )),
                     )
@@ -2194,7 +2422,7 @@ export function CustomVideoPlayer({
               <div className="flex min-w-0 shrink items-center gap-0 sm:gap-1.5">
                 <IconButton
                   label={
-                    playing
+                    effectivePlaying
                       ? "Pause. Long-press to change speed"
                       : "Play. Long-press to change speed"
                   }
@@ -2203,7 +2431,7 @@ export function CustomVideoPlayer({
                   onPointerUp={onPlayPointerUp}
                   onPointerCancel={onPlayPointerUp}
                 >
-                  {playing ? (
+                  {effectivePlaying ? (
                     <PauseIcon className="h-[18px] w-[18px]" />
                   ) : (
                     <PlayIcon className="h-[17px] w-[17px] translate-x-px" />
@@ -2236,7 +2464,7 @@ export function CustomVideoPlayer({
                 >
                   {formatPlayerTime(displayTime)}
                   <span className="inline-block w-2 sm:w-3.5" />
-                  {formatPlayerTime(duration)}
+                  {formatPlayerTime(effectiveDuration)}
                 </span>
               </div>
 
@@ -2454,6 +2682,34 @@ export function CustomVideoPlayer({
 
                 <IconButton
                   label={
+                    casting
+                      ? castDeviceName
+                        ? `Stop casting to ${castDeviceName}`
+                        : "Stop casting"
+                      : castConnecting
+                        ? "Connecting to Cast device"
+                        : "Cast to device"
+                  }
+                  ariaPressed={casting}
+                  disabled={!castAvailable || castConnecting}
+                  onClick={() => {
+                    void toggleCast();
+                    bumpControls();
+                  }}
+                  className={cn(
+                    casting && "text-white",
+                    !castAvailable && "hidden",
+                  )}
+                >
+                  {casting ? (
+                    <CastConnectedIcon className="h-[18px] w-[18px]" />
+                  ) : (
+                    <CastIcon className="h-[18px] w-[18px]" />
+                  )}
+                </IconButton>
+
+                <IconButton
+                  label={
                     pipBlocked
                       ? "Picture-in-picture unavailable"
                       : !pipSupported
@@ -2463,7 +2719,7 @@ export function CustomVideoPlayer({
                           : "Picture-in-picture"
                   }
                   onClick={() => void togglePip()}
-                  disabled={!pipSupported || pipBlocked}
+                  disabled={!pipSupported || pipBlocked || casting}
                   className="hidden sm:inline-flex"
                 >
                   <PipIcon className="h-[18px] w-[18px]" />
@@ -2504,10 +2760,10 @@ export function CustomVideoPlayer({
                   }}
                 >
                   <IconButton
-                    label={muted || volume === 0 ? "Unmute" : "Mute"}
+                    label={effectiveMuted ? "Unmute" : "Mute"}
                     onClick={onVolumeButtonClick}
                   >
-                    {muted || volume === 0 ? (
+                    {effectiveMuted ? (
                       <VolumeMuteIcon className="h-[18px] w-[18px]" />
                     ) : (
                       <VolumeIcon className="h-[18px] w-[18px]" />
@@ -2519,13 +2775,15 @@ export function CustomVideoPlayer({
                       min={0}
                       max={1}
                       step={0.01}
-                      value={muted ? 0 : volume}
-                      display={`${Math.round((muted ? 0 : volume) * 100)}%`}
+                      value={effectiveVolume}
+                      display={`${Math.round(effectiveVolume * 100)}%`}
                       onChange={(v) => setVolumeLevel(v, { hint: true })}
                       footer={
-                        iosVolumeLocked
+                        iosVolumeLocked && !casting
                           ? "iOS uses system volume"
-                          : undefined
+                          : casting
+                            ? "Cast volume"
+                            : undefined
                       }
                     />
                   )}
