@@ -21,7 +21,7 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/** Playback rates offered in the custom player ⋮ menu / play long-press. */
+/** Playback rates offered in the custom player speed control / play long-press. */
 export const CUSTOM_PLAYER_SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
 export type CustomPlayerSpeed = (typeof CUSTOM_PLAYER_SPEEDS)[number];

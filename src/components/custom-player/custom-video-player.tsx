@@ -80,15 +80,12 @@ import {
 } from "@/lib/player/anime4k";
 import { useSettingsStore } from "@/store/settings-store";
 import {
-  CountdownOverlay,
-  NextEpisodeButton,
-} from "@/components/player/player-overlays";
-
-import {
   IconButton,
   MenuItem,
   MenuSection,
+  NextEpisodeChip,
   SeekPreviewCard,
+  UpNextCountdown,
   VerticalSliderPopover,
 } from "./player-chrome";
 import { useAirPlay } from "./use-airplay";
@@ -334,9 +331,14 @@ export function AniKittyPlayer({
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const captionsMenuRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
+  const audioMenuRef = useRef<HTMLDivElement>(null);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const captionsTriggerRef = useRef<HTMLButtonElement>(null);
   const qualityTriggerRef = useRef<HTMLButtonElement>(null);
+  const speedTriggerRef = useRef<HTMLButtonElement>(null);
+  const audioTriggerRef = useRef<HTMLButtonElement>(null);
+  const popoverOpenRef = useRef(false);
   const hlsRef = useRef<Hls | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -448,6 +450,8 @@ export function AniKittyPlayer({
   const [moreOpen, setMoreOpen] = useState(false);
   const [captionsOpen, setCaptionsOpen] = useState(false);
   const [qualityOpen, setQualityOpen] = useState(false);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const [audioOpen, setAudioOpen] = useState(false);
   const [seeking, setSeeking] = useState(false);
   const [seekPreview, setSeekPreview] = useState<number | null>(null);
   const [hoverPreview, setHoverPreview] = useState<{
@@ -574,6 +578,8 @@ export function AniKittyPlayer({
     setMoreOpen(false);
     setCaptionsOpen(false);
     setQualityOpen(false);
+    setSpeedOpen(false);
+    setAudioOpen(false);
   }, []);
 
   const bumpControls = useCallback(() => {
@@ -583,6 +589,8 @@ export function AniKittyPlayer({
     if (castingRef.current) {
       if (!castRemotePlayingRef.current) return;
       idleTimerRef.current = setTimeout(() => {
+        // Keep chrome up while a menu / slider is open.
+        if (popoverOpenRef.current) return;
         setControlsVisible(false);
         closePopovers();
       }, IDLE_MS);
@@ -591,6 +599,7 @@ export function AniKittyPlayer({
     const video = videoRef.current;
     if (!video || video.paused) return;
     idleTimerRef.current = setTimeout(() => {
+      if (popoverOpenRef.current) return;
       setControlsVisible(false);
       closePopovers();
     }, IDLE_MS);
@@ -655,6 +664,13 @@ export function AniKittyPlayer({
 
   bumpControlsRef.current = bumpControls;
   showGestureHintRef.current = showGestureHint;
+  popoverOpenRef.current =
+    volumeOpen ||
+    moreOpen ||
+    captionsOpen ||
+    qualityOpen ||
+    speedOpen ||
+    audioOpen;
 
   const schedulePrefsSave = useCallback((patch: Parameters<typeof saveCustomPlayerPrefs>[0]) => {
     if (prefsSaveTimerRef.current) clearTimeout(prefsSaveTimerRef.current);
@@ -2051,6 +2067,7 @@ export function AniKittyPlayer({
       hls.audioTrack = index;
       setHlsAudioIndex(index);
       setMoreOpen(false);
+      setAudioOpen(false);
       bumpControls();
     },
     [bumpControls],
@@ -2100,6 +2117,8 @@ export function AniKittyPlayer({
     setMoreOpen(false);
     setVolumeOpen(false);
     setQualityOpen(false);
+    setSpeedOpen(false);
+    setAudioOpen(false);
     bumpControls();
   }, [bumpControls, captionOptions.length]);
 
@@ -2170,12 +2189,18 @@ export function AniKittyPlayer({
 
   // Focus trap for opaque menus (Tab cycles; Escape closes via keyboard handler).
   useEffect(() => {
-    if (!moreOpen && !captionsOpen && !qualityOpen) return;
+    if (!moreOpen && !captionsOpen && !qualityOpen && !speedOpen && !audioOpen) {
+      return;
+    }
     const menu = moreOpen
       ? moreMenuRef.current
       : qualityOpen
         ? qualityMenuRef.current
-        : captionsMenuRef.current;
+        : speedOpen
+          ? speedMenuRef.current
+          : audioOpen
+            ? audioMenuRef.current
+            : captionsMenuRef.current;
     if (!menu) return;
     const focusables = Array.from(
       menu.querySelectorAll<HTMLElement>(
@@ -2205,10 +2230,14 @@ export function AniKittyPlayer({
         ? moreTriggerRef.current
         : qualityOpen
           ? qualityTriggerRef.current
-          : captionsTriggerRef.current;
+          : speedOpen
+            ? speedTriggerRef.current
+            : audioOpen
+              ? audioTriggerRef.current
+              : captionsTriggerRef.current;
       (restore ?? previouslyFocused)?.focus?.({ preventScroll: true });
     };
-  }, [moreOpen, captionsOpen, qualityOpen]);
+  }, [moreOpen, captionsOpen, qualityOpen, speedOpen, audioOpen]);
 
   const handleVideoClick = useCallback(() => {
     // Coarse pointers use touch double-tap handler instead.
@@ -2393,7 +2422,7 @@ export function AniKittyPlayer({
           break;
         }
         case "Escape":
-          if (volumeOpen || moreOpen || captionsOpen || qualityOpen) {
+          if (volumeOpen || moreOpen || captionsOpen || qualityOpen || speedOpen || audioOpen) {
             e.preventDefault();
             closePopovers();
             bumpControls();
@@ -2420,6 +2449,8 @@ export function AniKittyPlayer({
     moreOpen,
     captionsOpen,
     qualityOpen,
+    speedOpen,
+    audioOpen,
     closePopovers,
     bumpControls,
     exitFullscreen,
@@ -2523,12 +2554,34 @@ export function AniKittyPlayer({
     setMoreOpen(false);
     setCaptionsOpen(false);
     setQualityOpen(false);
+    setSpeedOpen(false);
+    setAudioOpen(false);
     if (prefersCoarsePointer()) {
       setVolumeOpen((v) => !v);
       return;
     }
     toggleMute();
   };
+
+  const retryPlayback = useCallback(() => {
+    const video = videoRef.current;
+    const t = video?.currentTime ?? 0;
+    if (t > 1) qualityResumeRef.current = t;
+    mediaRetryRef.current = false;
+    setPlaybackIssue(null);
+    setAttachNonce((n) => n + 1);
+    bumpControls();
+  }, [bumpControls]);
+
+  const speedButtonLabel =
+    Math.abs(playbackRate - 1) < 0.001 ? "1×" : `${playbackRate}×`;
+
+  const activeAudioLabel =
+    hlsAudioOptions.find((t) => t.index === hlsAudioIndex)?.label ?? "Audio";
+  const audioButtonLabel =
+    activeAudioLabel.length > 8
+      ? `${activeAudioLabel.slice(0, 7)}…`
+      : activeAudioLabel;
 
   return (
     <div
@@ -2553,9 +2606,11 @@ export function AniKittyPlayer({
       }}
       onMouseLeave={() => {
         if (!seekingRef.current) setHoverPreview(null);
+        if (popoverOpenRef.current) return;
         if (effectivePlaying && !seekingRef.current) {
           clearIdleTimer();
           idleTimerRef.current = setTimeout(() => {
+            if (popoverOpenRef.current) return;
             setControlsVisible(false);
             closePopovers();
           }, 700);
@@ -2649,36 +2704,46 @@ export function AniKittyPlayer({
       {playbackIssue ? (
         <div
           role="alert"
-          className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex flex-col gap-2.5 rounded-lg border border-white/15 bg-zinc-950/95 px-3.5 py-3 text-left shadow-xl sm:inset-x-auto sm:right-3 sm:max-w-sm"
+          className={cn(
+            "absolute z-40 flex flex-col gap-2.5 border border-white/15 bg-zinc-950/95 px-3.5 py-3 text-left shadow-xl",
+            hasStarted
+              ? "inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] rounded-lg sm:inset-x-auto sm:right-3 sm:max-w-sm"
+              : "inset-0 items-center justify-center rounded-lg border-0 bg-black/75 px-6",
+          )}
         >
-          <div className="space-y-1">
+          <div
+            className={cn(
+              "space-y-1",
+              !hasStarted && "max-w-sm text-center",
+            )}
+          >
             <p className="text-[12px] font-semibold tracking-wide text-white">
               Can&apos;t play this stream
             </p>
             <p className="text-[11px] leading-snug text-white/65">{playbackIssue}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-2",
+              !hasStarted && "justify-center",
+            )}
+          >
             <button
               type="button"
-              onClick={() => {
-                const video = videoRef.current;
-                const t = video?.currentTime ?? 0;
-                if (t > 1) qualityResumeRef.current = t;
-                mediaRetryRef.current = false;
-                setPlaybackIssue(null);
-                setAttachNonce((n) => n + 1);
-              }}
+              onClick={retryPlayback}
               className="rounded-md border border-white/25 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-950 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               Retry
             </button>
-            <button
-              type="button"
-              onClick={() => setPlaybackIssue(null)}
-              className="rounded-md px-2.5 py-1.5 text-[11px] font-medium text-white/55 hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-            >
-              Dismiss
-            </button>
+            {hasStarted ? (
+              <button
+                type="button"
+                onClick={() => setPlaybackIssue(null)}
+                className="rounded-md px-2.5 py-1.5 text-[11px] font-medium text-white/55 hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
+                Dismiss
+              </button>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -2798,10 +2863,10 @@ export function AniKittyPlayer({
 
       {/* Next episode + skip intro/outro overlays */}
       {showNextEpisode && nextEpisode ? (
-        <NextEpisodeButton
+        <NextEpisodeChip
           episode={nextEpisode}
           imageUrl={nextEpisode.image}
-          stackClass="kitty-overlay--base"
+          stacked={false}
           onClick={() => onNextEpisodeRef.current?.()}
         />
       ) : null}
@@ -2830,11 +2895,11 @@ export function AniKittyPlayer({
         </button>
       ) : null}
       {countdown !== null && nextEpisode ? (
-        <CountdownOverlay
+        <UpNextCountdown
           episode={nextEpisode}
           imageUrl={nextEpisode.image}
           countdown={countdown}
-          onSkip={() => onNextEpisodeRef.current?.()}
+          onPlayNow={() => onNextEpisodeRef.current?.()}
           onCancel={() => setCountdown(null)}
         />
       ) : null}
@@ -2855,9 +2920,13 @@ export function AniKittyPlayer({
       {/* Bottom chrome — sparse ArtPlayer-like bar */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-opacity duration-300 ease-out",
-          chromeVisible ? "opacity-100" : "opacity-0",
+          "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-[opacity,transform] duration-300 ease-out",
+          chromeVisible
+            ? "translate-y-0 opacity-100"
+            : "translate-y-1 opacity-0",
+          reduceMotion && "transition-none",
         )}
+        aria-hidden={!chromeVisible}
       >
         <div
           className={cn(
@@ -3072,6 +3141,7 @@ export function AniKittyPlayer({
                     seekBy(-(seekStepSeconds || SEEK_STEP));
                     showSeekFlash("left");
                   }}
+                  className="hidden min-[400px]:inline-flex"
                 >
                   <SeekBackIcon className="h-5 w-5" />
                 </IconButton>
@@ -3081,6 +3151,7 @@ export function AniKittyPlayer({
                     seekBy(seekStepSeconds || SEEK_STEP);
                     showSeekFlash("right");
                   }}
+                  className="hidden min-[400px]:inline-flex"
                 >
                   <SeekForwardIcon className="h-5 w-5" />
                 </IconButton>
@@ -3090,14 +3161,16 @@ export function AniKittyPlayer({
                   aria-hidden
                 >
                   {formatPlayerTime(displayTime)}
-                  <span className="inline-block w-2 sm:w-3.5" />
-                  {formatPlayerTime(effectiveDuration)}
+                  <span className="hidden sm:inline">
+                    <span className="inline-block w-2 sm:w-3.5" />
+                    {formatPlayerTime(effectiveDuration)}
+                  </span>
                 </span>
               </div>
 
               <div className="min-w-2 flex-1 sm:min-w-3" />
 
-              {/* Right cluster — CC · AirPlay · Cast · Quality · volume (sm+) · more · fullscreen */}
+              {/* Right cluster — CC · AirPlay · Cast · Quality · Speed · Audio · volume (sm+) · more · fullscreen */}
               <div className="flex shrink-0 items-center gap-0 sm:gap-1">
                 {showCaptionsMenu ? (
                   <div className="relative">
@@ -3214,6 +3287,8 @@ export function AniKittyPlayer({
                         setMoreOpen(false);
                         setVolumeOpen(false);
                         setCaptionsOpen(false);
+                        setSpeedOpen(false);
+                        setAudioOpen(false);
                         bumpControls();
                       }}
                       className="w-auto min-w-10 px-1.5 sm:min-w-9"
@@ -3263,6 +3338,96 @@ export function AniKittyPlayer({
                               ))}
                           </>
                         ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="relative">
+                  <IconButton
+                    buttonRef={speedTriggerRef}
+                    label={`Speed: ${speedButtonLabel}`}
+                    ariaExpanded={speedOpen}
+                    ariaHasPopup="menu"
+                    onClick={() => {
+                      setSpeedOpen((v) => !v);
+                      setMoreOpen(false);
+                      setVolumeOpen(false);
+                      setCaptionsOpen(false);
+                      setQualityOpen(false);
+                      setAudioOpen(false);
+                      bumpControls();
+                    }}
+                    className={cn(
+                      "w-auto min-w-10 px-1.5 sm:min-w-9",
+                      Math.abs(playbackRate - 1) > 0.001 && "text-white",
+                    )}
+                  >
+                    <span className="select-none text-[11px] font-medium tabular-nums tracking-wide text-white/90 sm:text-[12px]">
+                      {speedButtonLabel}
+                    </span>
+                  </IconButton>
+                  {speedOpen ? (
+                    <div
+                      ref={speedMenuRef}
+                      role="menu"
+                      aria-label="Playback speed"
+                      className="absolute bottom-full right-0 z-50 mb-2 min-w-[112px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
+                    >
+                      {CUSTOM_PLAYER_SPEEDS.map((rate) => (
+                        <MenuItem
+                          key={rate}
+                          active={playbackRate === rate}
+                          onClick={() => {
+                            applyPlaybackRate(rate, { hint: true });
+                            setSpeedOpen(false);
+                          }}
+                        >
+                          {rate === 1 ? "Normal" : `${rate}×`}
+                        </MenuItem>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {showAudioMenu ? (
+                  <div className="relative">
+                    <IconButton
+                      buttonRef={audioTriggerRef}
+                      label={`Audio: ${activeAudioLabel}`}
+                      ariaExpanded={audioOpen}
+                      ariaHasPopup="menu"
+                      onClick={() => {
+                        setAudioOpen((v) => !v);
+                        setMoreOpen(false);
+                        setVolumeOpen(false);
+                        setCaptionsOpen(false);
+                        setQualityOpen(false);
+                        setSpeedOpen(false);
+                        bumpControls();
+                      }}
+                      className="w-auto max-w-[4.5rem] min-w-10 px-1.5 sm:max-w-[5.5rem] sm:min-w-9"
+                    >
+                      <span className="truncate select-none text-[11px] font-medium tracking-wide text-white/90 sm:text-[12px]">
+                        {audioButtonLabel}
+                      </span>
+                    </IconButton>
+                    {audioOpen ? (
+                      <div
+                        ref={audioMenuRef}
+                        role="menu"
+                        aria-label="Audio tracks"
+                        className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(50vh,280px)] min-w-[148px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
+                      >
+                        {hlsAudioOptions.map((track) => (
+                          <MenuItem
+                            key={track.index}
+                            active={hlsAudioIndex === track.index}
+                            onClick={() => selectHlsAudio(track.index)}
+                          >
+                            {track.label}
+                          </MenuItem>
+                        ))}
                       </div>
                     ) : null}
                   </div>
@@ -3320,6 +3485,8 @@ export function AniKittyPlayer({
                       setVolumeOpen(false);
                       setCaptionsOpen(false);
                       setQualityOpen(false);
+                      setSpeedOpen(false);
+                      setAudioOpen(false);
                       bumpControls();
                     }}
                   >
@@ -3332,18 +3499,6 @@ export function AniKittyPlayer({
                       aria-label="Player options"
                       className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(70vh,420px)] min-w-[176px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
                     >
-                      <MenuSection title="Speed">
-                        {CUSTOM_PLAYER_SPEEDS.map((rate) => (
-                          <MenuItem
-                            key={rate}
-                            active={playbackRate === rate}
-                            onClick={() => applyPlaybackRate(rate, { hint: true })}
-                          >
-                            {rate === 1 ? "Normal" : `${rate}×`}
-                          </MenuItem>
-                        ))}
-                      </MenuSection>
-
                       <MenuSection title="Volume" className="sm:hidden">
                         <MenuItem
                           active={!effectiveMuted}
@@ -3450,20 +3605,6 @@ export function AniKittyPlayer({
                               }}
                             >
                               {opt.label}
-                            </MenuItem>
-                          ))}
-                        </MenuSection>
-                      ) : null}
-
-                      {showAudioMenu ? (
-                        <MenuSection title="Audio">
-                          {hlsAudioOptions.map((track) => (
-                            <MenuItem
-                              key={track.index}
-                              active={hlsAudioIndex === track.index}
-                              onClick={() => selectHlsAudio(track.index)}
-                            >
-                              {track.label}
                             </MenuItem>
                           ))}
                         </MenuSection>

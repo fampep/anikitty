@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type Ref,
-  type RefObject,
 } from "react";
 
 import { cn } from "@/lib/core/utils";
@@ -195,10 +195,17 @@ export function SeekPreviewCard({
   const previewW = Math.round(tileW * scale);
   const previewH = Math.round(tileH * scale);
 
+  // Keep the card inside the progress bar at the edges (avoid clipping).
+  const edgeShift =
+    ratio <= 0.08 ? "0%" : ratio >= 0.92 ? "-100%" : "-50%";
+
   return (
     <div
-      className="pointer-events-none absolute bottom-full z-10 mb-2 -translate-x-1/2"
-      style={{ left: `${leftPct.toFixed(2)}%` }}
+      className="pointer-events-none absolute bottom-full z-10 mb-2"
+      style={{
+        left: `${leftPct.toFixed(2)}%`,
+        transform: `translateX(${edgeShift})`,
+      }}
     >
       <div className="flex flex-col items-center gap-1">
         {cue ? (
@@ -211,6 +218,7 @@ export function SeekPreviewCard({
               src={cue.src}
               alt=""
               draggable={false}
+              decoding="async"
               referrerPolicy="no-referrer"
               className={hasSprite ? "absolute left-0 top-0 max-w-none" : "h-full w-full object-cover"}
               style={
@@ -234,6 +242,178 @@ export function SeekPreviewCard({
           {bufferAheadSecs != null ? (
             <span className="ml-1.5 text-white/40">· {bufferAheadSecs}s buf</span>
           ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Sparse near-end “Next episode” chip — no purple / card chrome. */
+export function NextEpisodeChip({
+  episode,
+  imageUrl,
+  stacked,
+  onClick,
+}: {
+  episode: { number: number; title: string };
+  imageUrl?: string | null;
+  stacked?: boolean;
+  onClick: () => void;
+}) {
+  const title =
+    episode.title &&
+    episode.title.toLowerCase() !== `episode ${episode.number}`
+      ? episode.title
+      : `Episode ${episode.number}`;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Next episode: ${title}`}
+      className={cn(
+        "absolute z-40 flex max-w-[min(100%,280px)] items-center gap-2.5 rounded-md border border-white/20 bg-zinc-950/90 px-2.5 py-2 text-left shadow-lg backdrop-blur-sm",
+        "transition-[opacity,transform] duration-200 hover:border-white/35 hover:bg-zinc-950",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
+        "right-[max(0.75rem,env(safe-area-inset-right))]",
+        stacked
+          ? "bottom-[7.25rem] sm:bottom-[6.75rem]"
+          : "bottom-[4.85rem] sm:bottom-[4.35rem]",
+      )}
+    >
+      {imageUrl ? (
+        <div className="relative h-9 w-14 shrink-0 overflow-hidden rounded bg-white/10">
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            className="object-cover"
+            unoptimized
+            sizes="56px"
+          />
+        </div>
+      ) : (
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-white/10 text-[13px] font-semibold text-white/80"
+          aria-hidden
+        >
+          →
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-white/45">
+          Next
+        </p>
+        <p className="truncate text-[12px] font-semibold leading-tight text-white">
+          {title}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+/** End-of-episode autoplay countdown — lean zinc overlay. */
+export function UpNextCountdown({
+  episode,
+  imageUrl,
+  countdown,
+  onPlayNow,
+  onCancel,
+}: {
+  episode: { number: number; title: string };
+  imageUrl?: string | null;
+  countdown: number;
+  onPlayNow: () => void;
+  onCancel: () => void;
+}) {
+  const title =
+    episode.title &&
+    episode.title.toLowerCase() !== `episode ${episode.number}`
+      ? episode.title
+      : `Episode ${episode.number}`;
+
+  const circumference = 2 * Math.PI * 18;
+  const dashOffset = circumference * (1 - Math.min(5, Math.max(0, countdown)) / 5);
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center bg-black/60 p-4"
+      style={{
+        paddingTop: "max(1rem, env(safe-area-inset-top))",
+        paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+      }}
+    >
+      <div className="pointer-events-auto flex w-full max-w-sm flex-col gap-3 rounded-md border border-white/15 bg-zinc-950/95 p-4 sm:flex-row sm:items-center">
+        {imageUrl ? (
+          <div className="relative mx-auto h-14 w-24 shrink-0 overflow-hidden rounded bg-white/10 sm:mx-0">
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              unoptimized
+              sizes="96px"
+            />
+          </div>
+        ) : (
+          <div className="relative mx-auto h-14 w-14 shrink-0 sm:mx-0">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 48 48" aria-hidden>
+              <circle
+                cx="24"
+                cy="24"
+                r="18"
+                fill="none"
+                stroke="rgba(255,255,255,0.12)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="24"
+                cy="24"
+                r="18"
+                fill="none"
+                stroke="rgba(255,255,255,0.9)"
+                strokeWidth="3"
+                strokeDasharray={circumference}
+                strokeDashoffset={dashOffset}
+                strokeLinecap="round"
+                className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-base font-semibold tabular-nums text-white">
+              {countdown}
+            </span>
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1 text-center sm:text-left">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-white/45">
+            Up next
+          </p>
+          <p className="mt-0.5 truncate text-[14px] font-semibold text-white">
+            {title}
+          </p>
+          {imageUrl ? (
+            <p className="mt-0.5 text-[11px] tabular-nums text-white/50">
+              Playing in {countdown}s
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-1.5 sm:items-stretch">
+          <button
+            type="button"
+            onClick={onPlayNow}
+            className="rounded-md bg-white px-3.5 py-2 text-[12px] font-semibold text-zinc-950 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Play now
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md px-3.5 py-1.5 text-[12px] font-medium text-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>

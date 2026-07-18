@@ -1133,6 +1133,14 @@ html[data-user-theme] .dark ::selection {
   --ak-cue-bottom: 8%;
 }
 
+.anikitty-player:fullscreen,
+.anikitty-player:-webkit-full-screen {
+  border-radius: 0;
+  aspect-ratio: auto;
+  width: 100%;
+  height: 100%;
+}
+
 .anikitty-player .anikitty-player-video::cue {
   font-size: var(--ak-cue-size);
   background-color: rgba(0, 0, 0, 0.55);

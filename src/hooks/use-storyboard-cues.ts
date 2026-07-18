@@ -50,6 +50,21 @@ export function useStoryboardCues(vttUrl: string | null | undefined): {
     };
   }, [vttUrl]);
 
+  // Warm a few unique sprite sheets so scrub previews paint immediately.
+  useEffect(() => {
+    if (!cues.length || typeof window === "undefined") return;
+    const seen = new Set<string>();
+    for (const cue of cues) {
+      if (!cue.src || seen.has(cue.src)) continue;
+      seen.add(cue.src);
+      if (seen.size > 10) break;
+      const img = new window.Image();
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
+      img.src = cue.src;
+    }
+  }, [cues]);
+
   return { cues, ready };
 }
 
