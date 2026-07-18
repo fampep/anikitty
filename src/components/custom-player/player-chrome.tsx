@@ -8,6 +8,11 @@ import {
 } from "react";
 
 import { cn } from "@/lib/core/utils";
+import type { StoryboardCue } from "@/lib/player/storyboard-vtt";
+
+import { formatPlayerTime } from "./utils";
+import type { StoryboardCue } from "@/lib/player/storyboard-vtt";
+import { formatPlayerTime } from "./utils";
 
 export function MenuSection({
   title,
@@ -157,5 +162,82 @@ export function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+const SEEK_PREVIEW_MAX_W = 168;
+
+/** Floating seek hover/scrub preview — storyboard sprite when available, else time tip. */
+export function SeekPreviewCard({
+  ratio,
+  time,
+  cue,
+  skipKind,
+  bufferAheadSecs,
+}: {
+  ratio: number;
+  time: number;
+  cue: StoryboardCue | null;
+  skipKind: "intro" | "outro" | null;
+  bufferAheadSecs: number | null;
+}) {
+  const leftPct = Math.min(100, Math.max(0, ratio * 100));
+  const hasSprite =
+    cue != null &&
+    cue.w != null &&
+    cue.h != null &&
+    cue.x != null &&
+    cue.y != null &&
+    cue.w > 0 &&
+    cue.h > 0;
+
+  const tileW = hasSprite ? cue!.w! : 160;
+  const tileH = hasSprite ? cue!.h! : 90;
+  const scale = Math.min(1, SEEK_PREVIEW_MAX_W / tileW);
+  const previewW = Math.round(tileW * scale);
+  const previewH = Math.round(tileH * scale);
+
+  return (
+    <div
+      className="pointer-events-none absolute bottom-full z-10 mb-2 -translate-x-1/2"
+      style={{ left: `${leftPct.toFixed(2)}%` }}
+    >
+      <div className="flex flex-col items-center gap-1">
+        {cue ? (
+          <div
+            className="relative overflow-hidden rounded-md border border-white/15 bg-zinc-950 shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+            style={{ width: previewW, height: previewH }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cue.src}
+              alt=""
+              draggable={false}
+              referrerPolicy="no-referrer"
+              className={hasSprite ? "absolute left-0 top-0 max-w-none" : "h-full w-full object-cover"}
+              style={
+                hasSprite
+                  ? {
+                      transform: `scale(${scale}) translate(${-cue!.x!}px, ${-cue!.y!}px)`,
+                      transformOrigin: "0 0",
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        ) : null}
+        <div className="rounded bg-black/90 px-1.5 py-0.5 text-[10px] tabular-nums text-white shadow-md">
+          {formatPlayerTime(time)}
+          {skipKind ? (
+            <span className="ml-1.5 text-white/70">
+              {skipKind === "intro" ? "Intro" : "Outro"}
+            </span>
+          ) : null}
+          {bufferAheadSecs != null ? (
+            <span className="ml-1.5 text-white/40">· {bufferAheadSecs}s buf</span>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -257,6 +257,7 @@ const VideoPlayerSection = () => {
     audio: "sub" | "dub";
     qualities?: import("@/lib/kitty/stream-quality").KittyStreamQuality[];
     skipTimes?: { intro?: { start: number; end: number }; outro?: { start: number; end: number } };
+    thumbnails?: string | null;
   };
   const [heldStreamSnapshot, setHeldStreamSnapshot] = useState<HeldStreamSnapshot | null>(null);
   const playerRef = useRef<PlayerController | null>(null);
@@ -1120,8 +1121,9 @@ const VideoPlayerSection = () => {
       audio: streamQueryAudio,
       qualities: streamData.allServers,
       skipTimes,
+      thumbnails: streamData.thumbnails ?? null,
     });
-  }, [streamReady, streamData?.file, streamData?.allServers, episodeId, anilistId, provider, playerKey, playerTracks, playerHeaders, skipTimes, streamQueryAudio]);
+  }, [streamReady, streamData?.file, streamData?.allServers, streamData?.thumbnails, episodeId, anilistId, provider, playerKey, playerTracks, playerHeaders, skipTimes, streamQueryAudio]);
 
   const heldSnapshotSameEpisode = Boolean(
     heldStreamSnapshot &&
@@ -1158,6 +1160,9 @@ const VideoPlayerSection = () => {
     ? (streamData?.allServers ?? [])
     : (heldStreamSnapshot?.qualities ?? []);
   const displaySkipTimes = useLiveStream ? skipTimes : heldStreamSnapshot?.skipTimes;
+  const displayThumbnails = useLiveStream
+    ? (streamData?.thumbnails ?? null)
+    : (heldStreamSnapshot?.thumbnails ?? null);
 
   // Change provider but resume from current position, not original start
   const handleProviderGridSelect = useCallback(
@@ -1652,6 +1657,7 @@ const VideoPlayerSection = () => {
         preferDubAudio={streamAudio === "dub"}
         onSelectQuality={handlePickQuality}
         skipTimes={displaySkipTimes}
+        thumbnails={displayThumbnails}
         title={
           currentEpisodeInfo
             ? t("watch.episode", { n: currentEpisodeInfo.number })

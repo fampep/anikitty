@@ -46,6 +46,12 @@ import {
   labelToLanguage,
   type StreamTrack,
 } from "@/lib/subtitles/subtitle-track-utils";
+import { useStoryboardCues } from "@/hooks/use-storyboard-cues";
+import {
+  findStoryboardCue,
+  pickStoryboardUrl,
+  type StoryboardCue,
+} from "@/lib/player/storyboard-vtt";
 
 import {
   CaptionsIcon,
@@ -79,6 +85,7 @@ import {
   IconButton,
   MenuItem,
   MenuSection,
+  SeekPreviewCard,
   VerticalSliderPopover,
 } from "./player-chrome";
 import {
@@ -225,6 +232,11 @@ export type AniKittyPlayerProps = {
   startTime?: number;
   /** Intro/outro ranges from AniSkip / community / provider (seconds). */
   skipTimes?: SkipTimes;
+  /**
+   * Storyboard WebVTT URL for seek hover previews (ReAnime/FlixCloud
+   * `thumbnails` / `thumbnails_vtt`, or a `kind: thumbnails` track).
+   */
+  thumbnails?: string | null;
   /** Auto-enable the first (or default) subtitle track. */
   preferSubtitles?: boolean;
   /** Prefer English/dub HLS audio when the master exposes multiple tracks. */
@@ -289,6 +301,7 @@ export function AniKittyPlayer({
   kittyNodeId,
   startTime = 0,
   skipTimes,
+  thumbnails,
   preferSubtitles = true,
   preferDubAudio = false,
   autoFullscreen = false,
@@ -450,6 +463,21 @@ export function AniKittyPlayer({
   const [anime4kActive, setAnime4kActive] = useState(false);
 
   const skipSegments = useMemo(() => buildSkipSegments(skipTimes), [skipTimes]);
+
+  const storyboardUrl = useMemo(
+    () =>
+      pickStoryboardUrl({
+        thumbnails,
+        tracks,
+      }),
+    [thumbnails, tracks],
+  );
+  const { cues: storyboardCues } = useStoryboardCues(storyboardUrl);
+  const hoverStoryboardCue = useMemo(() => {
+    const t = hoverPreview?.time;
+    if (t == null || !storyboardCues.length) return null;
+    return findStoryboardCue(storyboardCues, t);
+  }, [hoverPreview?.time, storyboardCues]);
 
   useEffect(() => {
     if (autoFullscreen) autoFsRef.current = true;
@@ -2719,32 +2747,25 @@ export function AniKittyPlayer({
               }}
             >
               {(hoverPreview || seeking) && effectiveDuration > 0 ? (
-                <div
-                  className="pointer-events-none absolute bottom-full z-10 mb-1.5 -translate-x-1/2 rounded bg-black/90 px-1.5 py-0.5 text-[10px] tabular-nums text-white shadow-md"
-                  style={{
-                    left: `${((hoverPreview?.ratio ?? progressRatio) * 100).toFixed(2)}%`,
-                  }}
-                >
-                  {formatPlayerTime(hoverPreview?.time ?? displayTime)}
-                  {hoverSkip ? (
-                    <span className="ml-1.5 text-white/70">
-                      {hoverSkip.kind === "intro" ? "Intro" : "Outro"}
-                    </span>
-                  ) : null}
-                  {!casting && bufferedRanges.length > 0 ? (
-                    <span className="ml-1.5 text-white/40">
-                      {(() => {
-                        const t = hoverPreview?.time ?? displayTime;
-                        const ahead = bufferedRanges.find(
-                          (r) => t >= r.start && t <= r.end,
-                        );
-                        if (!ahead) return null;
-                        const secs = Math.max(0, Math.floor(ahead.end - t));
-                        return secs > 0 ? `Â· ${secs}s buf` : null;
-                      })()}
-                    </span>
-                  ) : null}
-                </div>
+                <SeekPreviewCard
+                  ratio={hoverPreview?.ratio ?? progressRatio}
+                  time={hoverPreview?.time ?? displayTime}
+                  cue={hoverStoryboardCue}
+                  skipKind={hoverSkip?.kind ?? null}
+                  bufferAheadSecs={
+                    !casting && bufferedRanges.length > 0
+                      ? (() => {
+                          const t = hoverPreview?.time ?? displayTime;
+                          const ahead = bufferedRanges.find(
+                            (r) => t >= r.start && t <= r.end,
+                          );
+                          if (!ahead) return null;
+                          const secs = Math.max(0, Math.floor(ahead.end - t));
+                          return secs > 0 ? secs : null;
+                        })()
+                      : null
+                  }
+                />
               ) : null}
               {/*
                 Avoid translateY on the track itself â€” % widths / scaleX fills

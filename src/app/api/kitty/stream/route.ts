@@ -112,6 +112,8 @@ type StreamPayload = {
   miruroPipe?: string;
   server?: string | null;
   download?: string | null;
+  /** Storyboard WebVTT URL (ReAnime `thumbnails` / FlixCloud `thumbnails_vtt`). */
+  thumbnails?: string | null;
   subtitleSource?: string;
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
@@ -258,6 +260,38 @@ export async function GET(req: Request) {
     if (Array.isArray(data.tracks)) {
       for (const t of data.tracks as { file?: string; url?: string }[]) {
         if (!t.file && t.url) t.file = t.url;
+      }
+    }
+
+    // Storyboard VTT — top-level field (ReAnime) or a thumbnails track.
+    {
+      const fromField =
+        typeof data.thumbnails === "string" ? data.thumbnails.trim() : "";
+      let storyboard = fromField;
+      if (!storyboard && Array.isArray(data.tracks)) {
+        for (const t of data.tracks) {
+          const kind = (t.kind ?? "").toLowerCase();
+          const label = (t.label ?? "").toLowerCase();
+          if (
+            kind === "thumbnails" ||
+            kind === "thumbnail" ||
+            label.includes("thumbnail") ||
+            label.includes("storyboard")
+          ) {
+            const file = getTrackFile(t);
+            if (file) {
+              storyboard = file;
+              break;
+            }
+          }
+        }
+      }
+      if (storyboard && !isOurSubtitleUrl(storyboard)) {
+        data.thumbnails = subtitleProxyUrl(storyboard, data.headers);
+      } else if (storyboard) {
+        data.thumbnails = storyboard;
+      } else {
+        data.thumbnails = null;
       }
     }
 

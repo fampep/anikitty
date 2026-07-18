@@ -85,6 +85,11 @@ export type KittyStreamPayload = {
   tracks?: Array<{ file?: string; url?: string; kind?: string; label?: string; default?: boolean }>;
   allServers?: KittyStreamQuality[];
   server?: string | null;
+  /**
+   * Seek-preview storyboard WebVTT URL (ReAnime/FlixCloud `thumbnails_vtt`,
+   * or KittyAPI `thumbnails`).
+   */
+  thumbnails?: string | null;
   /** Actual audio on the stream when KittyAPI reports it (may differ from the request). */
   audio?: "sub" | "dub";
   error?: string;
@@ -367,12 +372,18 @@ export function parseKittyStreamJson(
   if (!file) return null;
   if (!ok && typeof row.error === "string" && row.error.trim()) return null;
 
+  const thumbnailsRaw =
+    (typeof row.thumbnails === "string" && row.thumbnails.trim()) ||
+    (typeof row.thumbnails_vtt === "string" && row.thumbnails_vtt.trim()) ||
+    null;
+
   return {
     file,
     headers: (row.headers ?? {}) as Record<string, string>,
     download: typeof row.download === "string" ? row.download : null,
     tracks: Array.isArray(row.tracks) ? row.tracks : undefined,
     allServers: parseKittyStreamQualities(row.allServers),
+    thumbnails: thumbnailsRaw,
     audio: parseKittyStreamAudio(row),
     server:
       typeof row.server === "string"

@@ -39,6 +39,8 @@ export interface KittyStreamResponse {
   miruroPipe?: string;
   server?: string | null;
   download?: string | null;
+  /** Storyboard WebVTT for seek hover previews (when the provider supplies one). */
+  thumbnails?: string | null;
   subtitleSource?: string;
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
