@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useT } from "@/providers/i18n-provider";
 
 const HeroSection = dynamic(() => import("@/components/home/hero-section"));
+const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
 const HomeQuickNav = dynamic(() => import("@/components/home/home-quick-nav"));
 const HomeWelcomeBar = dynamic(() => import("@/components/home/home-welcome-bar"));
 const HomeRecommendations = dynamic(() => import("@/components/home/home-recommendations"));
@@ -137,13 +138,18 @@ export default function Home() {
           </Container>
         </LazyMount>
 
-        <LazyMount rootMargin="700px 0px">
-          <Container>
+        <Container className="grid w-full gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <LazyMount rootMargin="500px 0px">
+            <div id="community" className="scroll-mt-[calc(var(--nav-total-height)+4.5rem)]">
+              <LatestComments bare />
+            </div>
+          </LazyMount>
+          <LazyMount rootMargin="600px 0px">
             <div id="schedule" className="scroll-mt-[calc(var(--nav-total-height)+4.5rem)]">
               <HomeSchedulePanel />
             </div>
-          </Container>
-        </LazyMount>
+          </LazyMount>
+        </Container>
       </div>
     </div>
   );
