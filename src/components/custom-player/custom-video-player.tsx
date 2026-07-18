@@ -65,6 +65,7 @@ import {
   Rewind10Icon,
   ShareIcon,
   VolumeIcon,
+  VolumeLowIcon,
   VolumeMuteIcon,
 } from "./icons";
 import type { SkipTimes } from "@/hooks/use-aniskip";
@@ -2445,7 +2446,7 @@ export function CustomVideoPlayer({
                     showSeekFlash("left");
                   }}
                 >
-                  <Rewind10Icon className="h-[22px] w-[22px]" />
+                  <Rewind10Icon className="h-6 w-6" />
                 </IconButton>
                 <IconButton
                   label="Forward 10 seconds"
@@ -2455,7 +2456,7 @@ export function CustomVideoPlayer({
                     showSeekFlash("right");
                   }}
                 >
-                  <Forward10Icon className="h-[22px] w-[22px]" />
+                  <Forward10Icon className="h-6 w-6" />
                 </IconButton>
 
                 <span
@@ -2765,6 +2766,8 @@ export function CustomVideoPlayer({
                   >
                     {effectiveMuted ? (
                       <VolumeMuteIcon className="h-[18px] w-[18px]" />
+                    ) : effectiveVolume < 0.5 ? (
+                      <VolumeLowIcon className="h-[18px] w-[18px]" />
                     ) : (
                       <VolumeIcon className="h-[18px] w-[18px]" />
                     )}
