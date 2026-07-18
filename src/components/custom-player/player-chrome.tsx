@@ -194,17 +194,15 @@ export function SeekPreviewCard({
   const scale = Math.min(1, SEEK_PREVIEW_MAX_W / tileW);
   const previewW = Math.round(tileW * scale);
   const previewH = Math.round(tileH * scale);
-
-  // Keep the card inside the progress bar at the edges (avoid clipping).
-  const edgeShift =
-    ratio <= 0.08 ? "0%" : ratio >= 0.92 ? "-100%" : "-50%";
+  // Half-width clamp keeps the card inside the bar at both edges.
+  const halfW = Math.max(24, Math.round(previewW / 2));
 
   return (
     <div
       className="pointer-events-none absolute bottom-full z-10 mb-2"
       style={{
-        left: `${leftPct.toFixed(2)}%`,
-        transform: `translateX(${edgeShift})`,
+        left: `clamp(${halfW}px, ${leftPct.toFixed(2)}%, calc(100% - ${halfW}px))`,
+        transform: "translateX(-50%)",
       }}
     >
       <div className="flex flex-col items-center gap-1">

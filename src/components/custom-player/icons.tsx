@@ -56,6 +56,26 @@ export function SeekForwardIcon(props: IconProps) {
   );
 }
 
+/** Skip to previous episode (bar + triangle). */
+export function EpisodePrevIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <path fill="currentColor" d="M6.25 6.5v11h1.5V6.5H6.25z" />
+      <path fill="currentColor" d="M17.75 6.75v10.5L8.9 12l8.85-5.25z" />
+    </svg>
+  );
+}
+
+/** Skip to next episode (triangle + bar). */
+export function EpisodeNextIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <path fill="currentColor" d="M16.25 6.5v11h1.5V6.5h-1.5z" />
+      <path fill="currentColor" d="M6.25 6.75v10.5L15.1 12 6.25 6.75z" />
+    </svg>
+  );
+}
+
 export function VolumeIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>

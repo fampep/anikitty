@@ -1072,6 +1072,17 @@ const VideoPlayerSection = () => {
         : undefined,
     [nextEpisode, animePoster],
   );
+  const playerPrevEpisode = useMemo(
+    () =>
+      prevEpisode
+        ? {
+            id: prevEpisode.episodeId,
+            number: prevEpisode.number,
+            title: prevEpisode.title,
+          }
+        : null,
+    [prevEpisode],
+  );
   const playerW2g = useMemo(
     () =>
       w2gCode && w2g.isMember
@@ -1672,11 +1683,13 @@ const VideoPlayerSection = () => {
         }
         autoFullscreen={autoFullscreen}
         nextEpisode={playerNextEpisode}
+        prevEpisode={playerPrevEpisode}
         onShare={copyShareLink}
         onStart={handleStart}
         onProgress={handleProgress}
         onLiveTime={handleLiveTime}
         onNextEpisode={handleNextEpisode}
+        onPrevEpisode={handlePrevEpisode}
         onOutroStart={handleOutroStart}
         onEnded={handleEnded}
         onPlayerReady={handlePlayerReady}

@@ -57,6 +57,8 @@ export type CustomPlayerPrefs = {
   brightness: number;
   captionSize: CaptionSizePref;
   captionPosition: CaptionPositionPref;
+  /** Caption timing shift in seconds (−5…+5). Positive = later. */
+  captionOffset: number;
 };
 
 const DEFAULT_CUSTOM_PLAYER_PREFS: CustomPlayerPrefs = {
@@ -68,7 +70,11 @@ const DEFAULT_CUSTOM_PLAYER_PREFS: CustomPlayerPrefs = {
   brightness: 1,
   captionSize: "md",
   captionPosition: "low",
+  captionOffset: 0,
 };
+
+/** Offered caption timing offsets (seconds). */
+export const CAPTION_OFFSET_OPTIONS = [-2, -1, -0.5, 0, 0.5, 1, 2] as const;
 
 const CAPTION_SIZES: readonly CaptionSizePref[] = ["sm", "md", "lg"];
 const CAPTION_POSITIONS: readonly CaptionPositionPref[] = ["low", "mid", "high"];
@@ -119,6 +125,12 @@ function sanitizePlaybackRate(rate: unknown): number {
   return nearest;
 }
 
+function sanitizeCaptionOffset(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return clamp(Math.round(n * 2) / 2, -5, 5);
+}
+
 export function loadCustomPlayerPrefs(): CustomPlayerPrefs {
   if (typeof window === "undefined") return { ...DEFAULT_CUSTOM_PLAYER_PREFS };
   try {
@@ -140,6 +152,7 @@ export function loadCustomPlayerPrefs(): CustomPlayerPrefs {
       brightness: sanitizeBrightness(parsed.brightness),
       captionSize: sanitizeCaptionSize(parsed.captionSize),
       captionPosition: sanitizeCaptionPosition(parsed.captionPosition),
+      captionOffset: sanitizeCaptionOffset(parsed.captionOffset),
     };
   } catch {
     return { ...DEFAULT_CUSTOM_PLAYER_PREFS };
@@ -167,6 +180,9 @@ export function saveCustomPlayerPrefs(
   }
   if (patch.captionPosition != null) {
     next.captionPosition = sanitizeCaptionPosition(patch.captionPosition);
+  }
+  if (patch.captionOffset != null) {
+    next.captionOffset = sanitizeCaptionOffset(patch.captionOffset);
   }
   if (typeof window !== "undefined") {
     try {

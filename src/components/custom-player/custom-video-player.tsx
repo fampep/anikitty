@@ -59,6 +59,8 @@ import {
   CaptionsIcon,
   CastConnectedIcon,
   CastIcon,
+  EpisodeNextIcon,
+  EpisodePrevIcon,
   FullscreenExitIcon,
   FullscreenIcon,
   MoreIcon,
@@ -96,6 +98,7 @@ import {
 import { useSurfaceGestures } from "./use-surface-gestures";
 import {
   bufferedRangesEqual,
+  CAPTION_OFFSET_OPTIONS,
   captionPositionCss,
   captionSizeCss,
   clamp,
@@ -253,6 +256,8 @@ export type AniKittyPlayerProps = {
   autoFullscreen?: boolean;
   /** Next-episode card / autoplay countdown target. */
   nextEpisode?: { id: string; number: number; title: string; image?: string | null };
+  /** Previous episode for chrome skip controls. */
+  prevEpisode?: { id: string; number: number; title: string } | null;
   /** Called when the user picks an allServers quality (parent remounts src). */
   onSelectQuality?: (entry: KittyStreamQuality) => void;
   /** Called when share is clicked (stub by default). */
@@ -261,6 +266,7 @@ export type AniKittyPlayerProps = {
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;
   onNextEpisode?: () => void;
+  onPrevEpisode?: () => void;
   /** Fired once when playback enters the outro skip range. */
   onOutroStart?: (duration: number) => void;
   onEnded?: () => void;
@@ -314,12 +320,14 @@ export function AniKittyPlayer({
   preferDubAudio = false,
   autoFullscreen = false,
   nextEpisode,
+  prevEpisode,
   onSelectQuality,
   onShare,
   onStart,
   onProgress,
   onLiveTime,
   onNextEpisode,
+  onPrevEpisode,
   onOutroStart,
   onEnded,
   onFatalError,
@@ -370,6 +378,7 @@ export function AniKittyPlayer({
     resetAt: number;
   } | null>(null);
   const prefsSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPrefsPatchRef = useRef<Parameters<typeof saveCustomPlayerPrefs>[0] | null>(null);
   const holdSpeedActiveRef = useRef(false);
   const rateBeforeHoldRef = useRef(1);
   const initialPrefsRef = useRef(
@@ -384,11 +393,13 @@ export function AniKittyPlayer({
   const onFatalErrorRef = useRef(onFatalError);
   const onPlayerReadyRef = useRef(onPlayerReady);
   const onNextEpisodeRef = useRef(onNextEpisode);
+  const onPrevEpisodeRef = useRef(onPrevEpisode);
   const startTimeRef = useRef(startTime);
   const preferDubAudioRef = useRef(preferDubAudio);
   const skipTimesRef = useRef(skipTimes);
   const w2gRef = useRef(w2g);
   const nextEpisodeRef = useRef(nextEpisode);
+  const prevEpisodeRef = useRef(prevEpisode);
   const introAutoSkippedRef = useRef(false);
   const outroAutoSkippedRef = useRef(false);
   const outroFiredRef = useRef(false);
@@ -417,11 +428,13 @@ export function AniKittyPlayer({
   onFatalErrorRef.current = onFatalError;
   onPlayerReadyRef.current = onPlayerReady;
   onNextEpisodeRef.current = onNextEpisode;
+  onPrevEpisodeRef.current = onPrevEpisode;
   startTimeRef.current = startTime;
   preferDubAudioRef.current = preferDubAudio;
   skipTimesRef.current = skipTimes;
   w2gRef.current = w2g;
   nextEpisodeRef.current = nextEpisode;
+  prevEpisodeRef.current = prevEpisode;
   autoSkipRef.current = autoSkipIntro;
   autoNextRef.current = autoPlay;
   seekStepRef.current = seekStepSeconds;
@@ -446,6 +459,11 @@ export function AniKittyPlayer({
   const [captionPosition, setCaptionPosition] = useState<CaptionPositionPref>(
     () => initialPrefsRef.current?.captionPosition ?? "low",
   );
+  const [captionOffset, setCaptionOffset] = useState(
+    () => initialPrefsRef.current?.captionOffset ?? 0,
+  );
+  const captionTrackOffsetsRef = useRef(new WeakMap<TextTrack, number>());
+  const captionOffsetSrcRef = useRef<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [pipSupported, setPipSupported] = useState(false);
   const [pipBlocked, setPipBlocked] = useState(false);
@@ -458,6 +476,7 @@ export function AniKittyPlayer({
   const [speedOpen, setSpeedOpen] = useState(false);
   const [audioOpen, setAudioOpen] = useState(false);
   const [seeking, setSeeking] = useState(false);
+  const [mediaSeeking, setMediaSeeking] = useState(false);
   const [seekPreview, setSeekPreview] = useState<number | null>(null);
   const [hoverPreview, setHoverPreview] = useState<{
     time: number;
@@ -655,13 +674,17 @@ export function AniKittyPlayer({
       setSpinnerArmed(true);
       return;
     }
+    if (mediaSeeking && !seeking) {
+      setSpinnerArmed(true);
+      return;
+    }
     if (!buffering || seeking) {
       setSpinnerArmed(false);
       return;
     }
     const timer = setTimeout(() => setSpinnerArmed(true), BUFFER_SPINNER_MS);
     return () => clearTimeout(timer);
-  }, [buffering, sourceLoading, seeking]);
+  }, [buffering, sourceLoading, seeking, mediaSeeking]);
 
   // Soft-retry the stream when connectivity returns after a fatal error.
   useEffect(() => {
@@ -696,11 +719,30 @@ export function AniKittyPlayer({
     audioOpen;
 
   const schedulePrefsSave = useCallback((patch: Parameters<typeof saveCustomPlayerPrefs>[0]) => {
+    pendingPrefsPatchRef.current = {
+      ...(pendingPrefsPatchRef.current ?? {}),
+      ...patch,
+    };
     if (prefsSaveTimerRef.current) clearTimeout(prefsSaveTimerRef.current);
     prefsSaveTimerRef.current = setTimeout(() => {
       prefsSaveTimerRef.current = null;
-      saveCustomPlayerPrefs(patch);
+      const pending = pendingPrefsPatchRef.current;
+      pendingPrefsPatchRef.current = null;
+      if (pending) saveCustomPlayerPrefs(pending);
     }, PREFS_SAVE_MS);
+  }, []);
+
+  // Flush volume/mute (and any pending prefs) before unmount so episode swaps keep them.
+  useEffect(() => {
+    return () => {
+      if (prefsSaveTimerRef.current) {
+        clearTimeout(prefsSaveTimerRef.current);
+        prefsSaveTimerRef.current = null;
+      }
+      const pending = pendingPrefsPatchRef.current;
+      pendingPrefsPatchRef.current = null;
+      if (pending) saveCustomPlayerPrefs(pending);
+    };
   }, []);
 
   useEffect(() => {
@@ -752,6 +794,16 @@ export function AniKittyPlayer({
   }, []);
   const goToNextEpisodeRef = useRef(goToNextEpisode);
   goToNextEpisodeRef.current = goToNextEpisode;
+
+  const goToPrevEpisode = useCallback(() => {
+    if (!prevEpisodeRef.current) return;
+    if (nextNavLockRef.current) return;
+    nextNavLockRef.current = true;
+    setCountdown(null);
+    onPrevEpisodeRef.current?.();
+  }, []);
+  const goToPrevEpisodeRef = useRef(goToPrevEpisode);
+  goToPrevEpisodeRef.current = goToPrevEpisode;
 
   const getCastMedia = useCallback(() => {
     const video = videoRef.current;
@@ -1042,22 +1094,47 @@ export function AniKittyPlayer({
     if (selectedCaptionId) lastCaptionIdRef.current = selectedCaptionId;
   }, [selectedCaptionId]);
 
-  // Apply native textTrack modes.
+  // Apply native textTrack modes + timing offset.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (captionOffsetSrcRef.current !== activeSrc) {
+      captionTrackOffsetsRef.current = new WeakMap();
+      captionOffsetSrcRef.current = activeSrc;
+    }
+    const offsets = captionTrackOffsetsRef.current;
+
+    const shiftCues = (tt: TextTrack, targetOffset: number) => {
+      const cues = tt.cues;
+      if (!cues || cues.length === 0) return;
+      const current = offsets.get(tt) ?? 0;
+      const delta = targetOffset - current;
+      if (Math.abs(delta) < 0.001) return;
+      for (let i = 0; i < cues.length; i++) {
+        const cue = cues[i];
+        if (!cue) continue;
+        try {
+          cue.startTime = Math.max(0, cue.startTime + delta);
+          cue.endTime = Math.max(cue.startTime + 0.05, cue.endTime + delta);
+        } catch {
+          /* some browsers freeze cue times */
+        }
+      }
+      offsets.set(tt, targetOffset);
+    };
 
     const apply = () => {
       const list = video.textTracks;
       for (let i = 0; i < list.length; i++) {
         const tt = list[i];
-        if (tt.kind !== "subtitles" && tt.kind !== "captions") continue;
+        if (!tt || (tt.kind !== "subtitles" && tt.kind !== "captions")) continue;
         const match = captionOptions.find(
           (c) => c.label === tt.label || c.language === tt.language,
         );
         const id = match?.id ?? null;
         if (selectedCaptionId && id === selectedCaptionId) {
           tt.mode = "showing";
+          shiftCues(tt, captionOffset);
         } else {
           tt.mode = "disabled";
         }
@@ -1071,7 +1148,7 @@ export function AniKittyPlayer({
       video.textTracks.removeEventListener("addtrack", apply);
       video.textTracks.removeEventListener("change", apply);
     };
-  }, [captionOptions, selectedCaptionId, activeSrc]);
+  }, [captionOptions, selectedCaptionId, activeSrc, captionOffset]);
 
   // Re-apply preferDub when the watch page toggles SUB/DUB.
   useEffect(() => {
@@ -1350,12 +1427,20 @@ export function AniKittyPlayer({
       if (autoFsRef.current) {
         autoFsRef.current = false;
         const target = rootRef.current;
+        const wk = video as WebkitVideo;
         if (target) {
           void requestElementFullscreen(target)
             .then(() => {
               void tryLockLandscapeOrientation();
             })
-            .catch(() => {});
+            .catch(() => {
+              // iOS Safari often only fullscreens the <video> element.
+              try {
+                wk.webkitEnterFullscreen?.();
+              } catch {
+                /* ignore */
+              }
+            });
         }
       }
     };
@@ -1363,8 +1448,10 @@ export function AniKittyPlayer({
       // Intentional scrub already shows preview — avoid spinner flash.
       if (seekingRef.current) return;
       setBuffering(true);
+      setMediaSeeking(true);
     };
     const onSeeked = () => {
+      setMediaSeeking(false);
       if (!video.paused && video.readyState >= 3) setBuffering(false);
     };
     const onEnterPip = () => setInPip(true);
@@ -1396,7 +1483,9 @@ export function AniKittyPlayer({
 
       setPlaybackIssue(
         playbackIssueHint ??
-          "This stream could not play in the AniKitty player. Try another source or refresh.",
+          (typeof navigator !== "undefined" && navigator.onLine === false
+            ? "You're offline. Reconnect, then retry."
+            : "Can't play this stream. Retry, or pick another source."),
       );
       setSourceLoading(false);
       setBuffering(false);
@@ -1412,6 +1501,15 @@ export function AniKittyPlayer({
       if (wk.webkitDisplayingFullscreen != null) {
         setFullscreen(Boolean(wk.webkitDisplayingFullscreen));
       }
+    };
+    const onWebkitBeginFs = () => {
+      setFullscreen(true);
+    };
+    const onWebkitEndFs = () => {
+      setFullscreen(false);
+      // Native iOS video FS hides our chrome — restore it on exit.
+      setControlsVisible(true);
+      bumpControlsRef.current();
     };
 
     video.addEventListener("play", onPlay);
@@ -1436,11 +1534,11 @@ export function AniKittyPlayer({
     );
     video.addEventListener(
       "webkitbeginfullscreen",
-      onWebkitPresentation as EventListener,
+      onWebkitBeginFs as EventListener,
     );
     video.addEventListener(
       "webkitendfullscreen",
-      onWebkitPresentation as EventListener,
+      onWebkitEndFs as EventListener,
     );
     const offFs = onFullscreenChange(syncFs);
     syncFs();
@@ -1472,11 +1570,11 @@ export function AniKittyPlayer({
       );
       video.removeEventListener(
         "webkitbeginfullscreen",
-        onWebkitPresentation as EventListener,
+        onWebkitBeginFs as EventListener,
       );
       video.removeEventListener(
         "webkitendfullscreen",
-        onWebkitPresentation as EventListener,
+        onWebkitEndFs as EventListener,
       );
       offFs();
       window.removeEventListener("pagehide", onPageHide);
@@ -1519,9 +1617,15 @@ export function AniKittyPlayer({
 
     const fail = (type: string, details?: string, status?: number) => {
       if (cancelled) return;
+      const offline =
+        typeof navigator !== "undefined" && navigator.onLine === false;
       setPlaybackIssue(
         playbackIssueHint ??
-          "This stream could not play in the AniKitty player. Try another source or refresh.",
+          (offline
+            ? "You're offline. Reconnect, then retry."
+            : type === "network" || status === 0
+              ? "Network error loading this stream. Retry, or try another source."
+              : "Can't play this stream. Retry, or pick another source."),
       );
       setSourceLoading(false);
       setBuffering(false);
@@ -1882,6 +1986,7 @@ export function AniKittyPlayer({
         const next = effectiveMuted ? volumeBeforeMuteRef.current || 0.8 : 0;
         if (!effectiveMuted) volumeBeforeMuteRef.current = castRemoteVolume || 1;
         castSetVolume(next);
+        schedulePrefsSave({ muted: next === 0, volume: next === 0 ? volumeBeforeMuteRef.current : next });
         if (opts?.hint) {
           showGestureHint({
             label: next === 0 ? "Muted" : "Unmuted",
@@ -1929,6 +2034,7 @@ export function AniKittyPlayer({
       if (castingRef.current) {
         castSetVolume(next);
         if (next > 0) volumeBeforeMuteRef.current = next;
+        schedulePrefsSave({ volume: next, muted: next === 0 });
         if (opts?.hint) {
           showGestureHint({
             label: "Volume",
@@ -2156,6 +2262,25 @@ export function AniKittyPlayer({
       bumpControls();
     },
     [bumpControls],
+  );
+
+  const applyCaptionOffset = useCallback(
+    (offset: number) => {
+      const next = clamp(Math.round(offset * 2) / 2, -5, 5);
+      setCaptionOffset(next);
+      saveCustomPlayerPrefs({ captionOffset: next });
+      showGestureHint({
+        label: "Caption timing",
+        detail:
+          next === 0
+            ? "On time"
+            : next > 0
+              ? `+${next}s`
+              : `${next}s`,
+      });
+      bumpControls();
+    },
+    [bumpControls, showGestureHint],
   );
 
   const startHoldSpeed = useCallback(() => {
@@ -2715,7 +2840,7 @@ export function AniKittyPlayer({
   const showSpinner =
     !casting &&
     spinnerArmed &&
-    (playing || hasStarted || sourceLoading) &&
+    (playing || hasStarted || sourceLoading || mediaSeeking) &&
     !playbackIssue &&
     !seeking &&
     // Poster covers cold start — avoid spinner-on-poster race before first play.
@@ -2988,7 +3113,7 @@ export function AniKittyPlayer({
               onClick={retryPlayback}
               className="rounded-md border border-white/25 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-950 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              Retry
+              Retry stream
             </button>
             {hasStarted ? (
               <button
@@ -3125,7 +3250,9 @@ export function AniKittyPlayer({
           showSpinner
             ? sourceLoading && !hasStarted
               ? "Loading stream"
-              : "Buffering"
+              : mediaSeeking
+                ? "Seeking"
+                : "Buffering"
             : undefined
         }
       >
@@ -3139,6 +3266,10 @@ export function AniKittyPlayer({
           {sourceLoading && !hasStarted && !playbackIssue ? (
             <span className="text-[11px] font-medium tracking-wide text-white/70">
               Loading stream…
+            </span>
+          ) : mediaSeeking && hasStarted ? (
+            <span className="text-[11px] font-medium tracking-wide text-white/55">
+              Seeking…
             </span>
           ) : buffering && hasStarted ? (
             <span className="text-[11px] font-medium tracking-wide text-white/55">
@@ -3305,6 +3436,7 @@ export function AniKittyPlayer({
                 e.currentTarget.setPointerCapture(e.pointerId);
                 seekingRef.current = true;
                 setSeeking(true);
+                setMediaSeeking(false);
                 bumpControls();
                 const fine = e.shiftKey;
                 const startTime =
@@ -3510,6 +3642,33 @@ export function AniKittyPlayer({
                 >
                   <SeekForwardIcon className="h-5 w-5" />
                 </IconButton>
+                {onPrevEpisode || onNextEpisode ? (
+                  <>
+                    <IconButton
+                      label={
+                        prevEpisode
+                          ? `Previous episode ${prevEpisode.number}`
+                          : "Previous episode unavailable"
+                      }
+                      disabled={!prevEpisode || !onPrevEpisode}
+                      onClick={() => goToPrevEpisode()}
+                      className="hidden min-[360px]:inline-flex"
+                    >
+                      <EpisodePrevIcon className="h-[18px] w-[18px]" />
+                    </IconButton>
+                    <IconButton
+                      label={
+                        nextEpisode
+                          ? `Next episode ${nextEpisode.number}`
+                          : "Next episode unavailable"
+                      }
+                      disabled={!nextEpisode || !onNextEpisode}
+                      onClick={() => goToNextEpisode()}
+                    >
+                      <EpisodeNextIcon className="h-[18px] w-[18px]" />
+                    </IconButton>
+                  </>
+                ) : null}
 
                 <span
                   className="ml-0.5 select-none whitespace-nowrap text-[11px] tabular-nums tracking-wide text-white/90 sm:ml-2.5 sm:text-[13px]"
@@ -3605,6 +3764,21 @@ export function AniKittyPlayer({
                               onClick={() => applyCaptionPosition(opt.value)}
                             >
                               {opt.label}
+                            </MenuItem>
+                          ))}
+                        </MenuSection>
+                        <MenuSection title="Timing">
+                          {CAPTION_OFFSET_OPTIONS.map((offset) => (
+                            <MenuItem
+                              key={offset}
+                              active={Math.abs(captionOffset - offset) < 0.001}
+                              onClick={() => applyCaptionOffset(offset)}
+                            >
+                              {offset === 0
+                                ? "On time"
+                                : offset > 0
+                                  ? `+${offset}s`
+                                  : `${offset}s`}
                             </MenuItem>
                           ))}
                         </MenuSection>
@@ -3824,7 +3998,13 @@ export function AniKittyPlayer({
                 <div
                   className="relative"
                   onMouseEnter={() => {
-                    if (!prefersCoarsePointer()) setVolumeOpen(true);
+                    if (prefersCoarsePointer()) return;
+                    setVolumeOpen(true);
+                    setMoreOpen(false);
+                    setCaptionsOpen(false);
+                    setQualityOpen(false);
+                    setSpeedOpen(false);
+                    setAudioOpen(false);
                   }}
                   onMouseLeave={() => {
                     if (!prefersCoarsePointer()) setVolumeOpen(false);
