@@ -7,4 +7,7 @@ export {
   loadCastSdk,
   resolveCastContentType,
   toAbsoluteCastUrl,
+  prepareCastMediaUrl,
+  buildCastLoadRequest,
+  describeCastLoadPayload,
 } from "./google-cast";

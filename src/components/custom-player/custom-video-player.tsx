@@ -540,11 +540,20 @@ export function CustomVideoPlayer({
     showGestureHintRef.current({ label: "Casting…", detail: "Chromecast" });
   }, []);
 
+  const onCastError = useCallback((message: string) => {
+    bumpControlsRef.current();
+    showGestureHintRef.current({
+      label: "Cast failed",
+      detail: message.length > 72 ? `${message.slice(0, 72)}…` : message,
+    });
+  }, []);
+
   const cast = useGoogleCast({
     enabled: Boolean(activeSrc),
     getMedia: getCastMedia,
     onSessionEnd: onCastSessionEnd,
     onCastStarted,
+    onCastError,
   });
   castingRef.current = cast.casting;
   castRemotePlayingRef.current = cast.remotePlaying;
@@ -559,6 +568,7 @@ export function CustomVideoPlayer({
     remoteDuration: castRemoteDuration,
     remoteVolume: castRemoteVolume,
     remoteMuted: castRemoteMuted,
+    lastError: castLastError,
     toggleCast,
     playOrPause: castPlayOrPause,
     seekTo: castSeekTo,
@@ -2061,6 +2071,15 @@ export function CustomVideoPlayer({
           {castDeviceName ? (
             <p className="text-[11px] text-white/55">{castDeviceName}</p>
           ) : null}
+        </div>
+      ) : castLastError ? (
+        <div
+          className="pointer-events-none absolute inset-x-4 bottom-[max(5.5rem,env(safe-area-inset-bottom))] z-[15] text-center"
+          role="status"
+        >
+          <p className="mx-auto max-w-md text-[11px] leading-snug text-white/70">
+            {castLastError}
+          </p>
         </div>
       ) : null}
 

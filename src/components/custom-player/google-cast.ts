@@ -2,8 +2,11 @@
  * Google Cast Web Sender helpers for the custom player.
  * Loads cast.framework dynamically; no-ops when Cast is unavailable.
  *
- * Uses ambient `cast` / `chrome.cast` types (available via the project’s
- * Cast typings). Runtime still loads Google’s official sender SDK.
+ * Uses ambient `cast` / `chrome.cast` types (via `@vidstack/react` typings).
+ * Runtime still loads Google’s official sender SDK.
+ *
+ * Kitty HLS proxy URLs are cookie-bound in the browser. Chromecast cannot send
+ * those cookies, so media is reminted via `/api/kitty/cast` before loadMedia.
  */
 
 import {
@@ -11,6 +14,11 @@ import {
   resolveKittyStreamType,
   type KittyStreamType,
 } from "@/lib/kitty/stream-format";
+
+/** Inline check — avoid importing Node `crypto` HLS token helpers into the client bundle. */
+function isKittyHlsProxyUrl(url: string): boolean {
+  return url.trim().includes("/api/kitty/hls");
+}
 
 const CAST_SDK_SRC =
   "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1";
@@ -33,8 +41,22 @@ export type CastMediaRequest = {
   volume?: number;
 };
 
+export type CastLoadResult = {
+  ok: boolean;
+  error?: string;
+  contentId?: string;
+  contentType?: string;
+};
+
 type CastApiWindow = Window & {
   __onGCastApiAvailable?: (isAvailable: boolean, reason?: unknown) => void;
+};
+
+/** Extra CAF MediaInfo fields not in older ambient typings. */
+type CastMediaInfoExtras = chrome.cast.media.MediaInfo & {
+  contentUrl?: string;
+  hlsSegmentFormat?: string;
+  hlsVideoSegmentFormat?: string;
 };
 
 let sdkPromise: Promise<boolean> | null = null;
@@ -90,6 +112,7 @@ export function loadCastSdk(): Promise<boolean> {
       resolve(ok);
     };
 
+    // Must be set before the script runs (or already set if script is present).
     const prev = w.__onGCastApiAvailable;
     w.__onGCastApiAvailable = (isAvailable) => {
       try {
@@ -177,6 +200,27 @@ export function toAbsoluteCastUrl(url: string): string {
   }
 }
 
+export function isCastUrlReachableFromDevice(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+      return false;
+    }
+    if (host.endsWith(".local")) return false;
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return false;
+    }
+    // Production Cast requires HTTPS; allow http only for private LAN testing.
+    if (parsed.protocol === "http:") {
+      return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function resolveCastContentType(
   url: string,
   qualities: readonly { file: string }[] = [],
@@ -195,23 +239,129 @@ export function createRemotePlayerPair(): {
   return { player, controller };
 }
 
-export async function loadMediaOnSession(
+function formatCastError(err: unknown): string {
+  if (!err) return "Cast failed";
+  if (typeof err === "string") return err;
+  if (typeof err === "number") return `Cast error ${err}`;
+  if (typeof err === "object") {
+    const e = err as {
+      code?: string | number;
+      description?: string;
+      message?: string;
+    };
+    const code = e.code != null ? String(e.code) : "";
+    const detail = e.description || e.message || "";
+    if (code && detail) return `${detail} (${code})`;
+    if (detail) return detail;
+    if (code) return `Cast error ${code}`;
+  }
+  return "Cast failed";
+}
+
+/**
+ * Remint Kitty HLS proxy URLs into Cast-friendly absolute HTTPS URLs.
+ * Non-proxy URLs are absolutized locally.
+ */
+export async function prepareCastMediaUrl(
+  playbackUrl: string,
+  contentTypeHint?: string,
+): Promise<CastLoadResult & { url?: string }> {
+  const trimmed = playbackUrl.trim();
+  if (!trimmed) {
+    return { ok: false, error: "No stream URL to cast" };
+  }
+
+  if (!isKittyHlsProxyUrl(trimmed)) {
+    const absolute = toAbsoluteCastUrl(trimmed);
+    if (!absolute) {
+      return { ok: false, error: "Invalid stream URL" };
+    }
+    if (!isCastUrlReachableFromDevice(absolute)) {
+      return {
+        ok: false,
+        error:
+          "Chromecast cannot reach this URL (localhost / non-HTTPS). Use a public HTTPS site.",
+        contentId: absolute,
+      };
+    }
+    return {
+      ok: true,
+      url: absolute,
+      contentId: absolute,
+      contentType:
+        contentTypeHint || resolveCastContentType(absolute),
+    };
+  }
+
+  try {
+    const res = await fetch("/api/kitty/cast", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: trimmed }),
+    });
+    const data = (await res.json().catch(() => null)) as {
+      url?: string;
+      contentType?: string;
+      error?: string;
+    } | null;
+    if (!res.ok || !data?.url) {
+      return {
+        ok: false,
+        error:
+          data?.error ||
+          `Could not prepare Cast stream (${res.status}). Reload and try again.`,
+      };
+    }
+    if (!isCastUrlReachableFromDevice(data.url)) {
+      return {
+        ok: false,
+        error:
+          "Chromecast cannot reach this URL (localhost / non-HTTPS). Use a public HTTPS site.",
+        contentId: data.url,
+      };
+    }
+    return {
+      ok: true,
+      url: data.url,
+      contentId: data.url,
+      contentType:
+        data.contentType ||
+        contentTypeHint ||
+        resolveCastContentType(data.url),
+    };
+  } catch {
+    return {
+      ok: false,
+      error: "Network error preparing Cast stream. Check your connection.",
+    };
+  }
+}
+
+/** Build the chrome.cast LoadRequest payload (exported for tests). */
+export function buildCastLoadRequest(
   media: CastMediaRequest,
-): Promise<boolean> {
-  const ctx = ensureCastContext();
-  if (!ctx || !hasCastApis()) return false;
+  contentId: string,
+): chrome.cast.media.LoadRequest | null {
+  if (!hasCastApis() || !contentId) return null;
 
-  const session = ctx.getCurrentSession();
-  if (!session) return false;
-
-  const contentId = toAbsoluteCastUrl(media.url);
-  if (!contentId) return false;
-
+  const contentType =
+    media.contentType || resolveCastContentType(contentId);
   const mediaInfo = new chrome.cast.media.MediaInfo(
     contentId,
-    media.contentType,
-  );
+    contentType,
+  ) as CastMediaInfoExtras;
+  mediaInfo.contentUrl = contentId;
   mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
+
+  // Anime Kitty HLS is typically MPEG-TS; CAF defaults to TS when unset, but
+  // setting content type explicitly helps Default Media Receiver pick HLS.
+  const isHls = /mpegurl|m3u8/i.test(contentType) || contentId.includes(".m3u8");
+  if (isHls) {
+    // Leave segment format unset → receiver assumes TS (most Kitty sources).
+    // fMP4 sources still work when the playlist signals CMAF clearly.
+  }
+
   const metadata = new chrome.cast.media.GenericMediaMetadata();
   metadata.metadataType = chrome.cast.media.MetadataType.GENERIC;
   if (media.title) metadata.title = media.title;
@@ -226,12 +376,56 @@ export async function loadMediaOnSession(
   ) {
     request.currentTime = media.currentTime;
   }
+  return request;
+}
+
+export async function loadMediaOnSession(
+  media: CastMediaRequest,
+): Promise<CastLoadResult> {
+  const ctx = ensureCastContext();
+  if (!ctx || !hasCastApis()) {
+    return { ok: false, error: "Cast SDK not ready" };
+  }
+
+  const session = ctx.getCurrentSession();
+  if (!session) {
+    return { ok: false, error: "No Cast session" };
+  }
+
+  const prepared = await prepareCastMediaUrl(media.url, media.contentType);
+  if (!prepared.ok || !prepared.url) {
+    return {
+      ok: false,
+      error: prepared.error || "Could not prepare Cast media URL",
+      contentId: prepared.contentId,
+    };
+  }
+
+  const contentId = prepared.url;
+  const contentType = prepared.contentType || media.contentType;
+  const request = buildCastLoadRequest(
+    { ...media, contentType },
+    contentId,
+  );
+  if (!request) {
+    return { ok: false, error: "Could not build Cast load request" };
+  }
 
   try {
     await session.loadMedia(request);
-    return true;
-  } catch {
-    return false;
+    return { ok: true, contentId, contentType };
+  } catch (err) {
+    const detail = formatCastError(err);
+    const unreachableHint =
+      /LOAD_MEDIA_FAILED|error_code|media.?failed|timeout/i.test(detail)
+        ? " The Chromecast must reach the stream URL on your network (CORS + HTTPS)."
+        : "";
+    return {
+      ok: false,
+      error: `${detail}.${unreachableHint}`.trim(),
+      contentId,
+      contentType,
+    };
   }
 }
 
@@ -244,4 +438,35 @@ export function getCastDeviceName(): string | null {
   } catch {
     return null;
   }
+}
+
+/** Snapshot of what loadMedia would send (no Cast device required). */
+export async function describeCastLoadPayload(
+  media: CastMediaRequest,
+): Promise<{
+  contentId: string;
+  contentType: string;
+  streamType: string;
+  autoplay: boolean;
+  currentTime: number;
+  error?: string;
+}> {
+  const prepared = await prepareCastMediaUrl(media.url, media.contentType);
+  if (!prepared.ok || !prepared.url) {
+    return {
+      contentId: "",
+      contentType: media.contentType,
+      streamType: "BUFFERED",
+      autoplay: media.autoplay !== false,
+      currentTime: media.currentTime ?? 0,
+      error: prepared.error,
+    };
+  }
+  return {
+    contentId: prepared.url,
+    contentType: prepared.contentType || media.contentType,
+    streamType: "BUFFERED",
+    autoplay: media.autoplay !== false,
+    currentTime: media.currentTime ?? 0,
+  };
 }

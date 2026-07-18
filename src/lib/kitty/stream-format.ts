@@ -63,5 +63,6 @@ export function resolveKittyStreamType(
 }
 
 export function kittyStreamChromecastMime(type: KittyStreamType): string {
-  return type === "mp4" ? "video/mp4" : "application/x-mpegURL";
+  // CAF / Default Media Receiver expect this MIME for HLS (case-insensitive, docs use lowercase).
+  return type === "mp4" ? "video/mp4" : "application/x-mpegurl";
 }

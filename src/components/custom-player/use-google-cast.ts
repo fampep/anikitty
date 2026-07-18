@@ -12,6 +12,7 @@ import {
   mapCastState,
   resolveCastContentType,
   type CastConnectionState,
+  type CastLoadResult,
   type CastMediaRequest,
 } from "./google-cast";
 
@@ -27,6 +28,8 @@ export type UseGoogleCastOptions = {
   }) => void;
   /** Fired when remote playback starts successfully. */
   onCastStarted?: (deviceName: string | null) => void;
+  /** Fired when session connects but media fails to load / remint. */
+  onCastError?: (message: string) => void;
 };
 
 export type UseGoogleCastResult = {
@@ -43,6 +46,8 @@ export type UseGoogleCastResult = {
   remoteDuration: number;
   remoteVolume: number;
   remoteMuted: boolean;
+  /** Last cast failure message (cleared on success / disconnect). */
+  lastError: string | null;
   /** Open picker / start cast, or stop if already casting. */
   toggleCast: () => Promise<void>;
   playOrPause: () => void;
@@ -55,14 +60,22 @@ export type UseGoogleCastResult = {
 export function useGoogleCast(
   options: UseGoogleCastOptions,
 ): UseGoogleCastResult {
-  const { enabled = true, getMedia, onSessionEnd, onCastStarted } = options;
+  const {
+    enabled = true,
+    getMedia,
+    onSessionEnd,
+    onCastStarted,
+    onCastError,
+  } = options;
 
   const getMediaRef = useRef(getMedia);
   const onSessionEndRef = useRef(onSessionEnd);
   const onCastStartedRef = useRef(onCastStarted);
+  const onCastErrorRef = useRef(onCastError);
   getMediaRef.current = getMedia;
   onSessionEndRef.current = onSessionEnd;
   onCastStartedRef.current = onCastStarted;
+  onCastErrorRef.current = onCastError;
 
   const remoteRef = useRef<{
     player: cast.framework.RemotePlayer;
@@ -83,6 +96,7 @@ export function useGoogleCast(
   const [remoteDuration, setRemoteDuration] = useState(0);
   const [remoteVolume, setRemoteVolume] = useState(1);
   const [remoteMuted, setRemoteMuted] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const casting = connection === "connected";
   const connecting = connection === "connecting";
@@ -116,6 +130,11 @@ export function useGoogleCast(
       resumeAt: Number.isFinite(resumeAt) && resumeAt > 0 ? resumeAt : null,
       wasPlaying,
     });
+  }, []);
+
+  const reportCastError = useCallback((message: string) => {
+    setLastError(message);
+    onCastErrorRef.current?.(message);
   }, []);
 
   useEffect(() => {
@@ -238,9 +257,18 @@ export function useGoogleCast(
 
   const syncMedia = useCallback(async () => {
     const media = getMediaRef.current();
-    if (!media?.url) return false;
-    return loadMediaOnSession(media);
-  }, []);
+    if (!media?.url) {
+      reportCastError("No stream URL to cast");
+      return false;
+    }
+    const result: CastLoadResult = await loadMediaOnSession(media);
+    if (!result.ok) {
+      reportCastError(result.error || "Failed to load media on Cast device");
+      return false;
+    }
+    setLastError(null);
+    return true;
+  }, [reportCastError]);
 
   const toggleCast = useCallback(async () => {
     if (!available) return;
@@ -258,6 +286,7 @@ export function useGoogleCast(
       return;
     }
 
+    setLastError(null);
     setConnection("connecting");
     try {
       await ctx.requestSession();
@@ -269,8 +298,29 @@ export function useGoogleCast(
       if (ok) {
         onCastStartedRef.current?.(name);
         refreshRemoteSnapshot();
+      } else {
+        // Connected but nothing playing — drop the session so UX isn't stuck.
+        endingLocallyRef.current = true;
+        try {
+          ctx.endCurrentSession(true);
+        } catch {
+          /* ignore */
+        }
+        handleSessionEnded();
       }
-    } catch {
+    } catch (err) {
+      const cancelled =
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        String((err as { code?: unknown }).code).toLowerCase() === "cancel";
+      if (!cancelled) {
+        reportCastError(
+          err instanceof Error
+            ? err.message
+            : "Could not connect to Cast device",
+        );
+      }
       setConnection(mapCastState(ctx.getCastState()));
     }
   }, [
@@ -278,6 +328,7 @@ export function useGoogleCast(
     connection,
     handleSessionEnded,
     refreshRemoteSnapshot,
+    reportCastError,
     syncMedia,
   ]);
 
@@ -324,6 +375,7 @@ export function useGoogleCast(
     remoteDuration,
     remoteVolume,
     remoteMuted,
+    lastError,
     toggleCast,
     playOrPause,
     seekTo,

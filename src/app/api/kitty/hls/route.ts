@@ -3,6 +3,7 @@ import {
   HLS_SESSION_COOKIE,
   isAllowedHlsClientRequest,
   mintKittyHlsProxyUrl,
+  peekKittyHlsProxyTokenCast,
   readCookie,
   resolveKittyHlsProxyToken,
   verifyHlsSessionCookieValue,
@@ -68,11 +69,12 @@ function buildProxyUrl(
   referer: string,
   origin: string,
   sessionId: string,
+  cast: boolean,
 ): string {
   return mintKittyHlsProxyUrl(
     abs,
     { Referer: referer, Origin: origin },
-    { sessionId },
+    { sessionId, cast },
   );
 }
 
@@ -82,6 +84,7 @@ function rewriteUriInTag(
   referer: string,
   origin: string,
   sessionId: string,
+  cast: boolean,
 ): string {
   const base = new URL(manifestUrl);
 
@@ -89,7 +92,7 @@ function rewriteUriInTag(
     .replace(/URI="([^"]+)"/gi, (_, uri) => {
       try {
         const abs = new URL(uri, base).toString();
-        return `URI="${buildProxyUrl(abs, referer, origin, sessionId)}"`;
+        return `URI="${buildProxyUrl(abs, referer, origin, sessionId, cast)}"`;
       } catch {
         return `URI="${uri}"`;
       }
@@ -97,7 +100,7 @@ function rewriteUriInTag(
     .replace(/URI='([^']+)'/gi, (_, uri) => {
       try {
         const abs = new URL(uri, base).toString();
-        return `URI='${buildProxyUrl(abs, referer, origin, sessionId)}'`;
+        return `URI='${buildProxyUrl(abs, referer, origin, sessionId, cast)}'`;
       } catch {
         return `URI='${uri}'`;
       }
@@ -110,6 +113,7 @@ function rewriteManifest(
   referer: string,
   origin: string,
   sessionId: string,
+  cast: boolean,
 ): string {
   const base = new URL(manifestUrl);
 
@@ -121,12 +125,12 @@ function rewriteManifest(
       if (!trimmed) return line;
 
       if (trimmed.startsWith("#")) {
-        return rewriteUriInTag(line, manifestUrl, referer, origin, sessionId);
+        return rewriteUriInTag(line, manifestUrl, referer, origin, sessionId, cast);
       }
 
       try {
         const abs = new URL(trimmed, base).toString();
-        return buildProxyUrl(abs, referer, origin, sessionId);
+        return buildProxyUrl(abs, referer, origin, sessionId, cast);
       } catch {
         return line;
       }
@@ -148,7 +152,7 @@ function upstreamHeaders(referer: string, origin: string, range?: string | null)
   return headers;
 }
 
-function corsHeaders(contentType: string): HeadersInit {
+function corsHeaders(contentType: string, castMode: boolean): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": contentType,
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
@@ -156,24 +160,14 @@ function corsHeaders(contentType: string): HeadersInit {
     "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
     "Cache-Control": "private, no-store, no-cache",
   };
-  if (process.env.NODE_ENV !== "production") {
+  // Chromecast (and CAF receivers) require CORS on media responses.
+  if (castMode || process.env.NODE_ENV !== "production") {
     headers["Access-Control-Allow-Origin"] = "*";
   }
   return headers;
 }
 
 export async function GET(req: Request) {
-  if (!isAllowedHlsClientRequest(req)) {
-    return new Response("forbidden", { status: 403 });
-  }
-
-  // No per-IP rate limit — HLS segment traffic must not 429 mid-watch.
-
-  const sessionId = verifyHlsSessionCookieValue(readCookie(req, HLS_SESSION_COOKIE));
-  if (!sessionId) {
-    return new Response("playback session required", { status: 403 });
-  }
-
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("t");
 
@@ -182,14 +176,38 @@ export async function GET(req: Request) {
     return new Response("playback token required", { status: 400 });
   }
 
-  const resolved = resolveKittyHlsProxyToken(token, sessionId);
+  const castPeek = peekKittyHlsProxyTokenCast(token);
+
+  // Cast tokens are fetched by the Chromecast device (no site cookies / Sec-Fetch).
+  if (!castPeek && !isAllowedHlsClientRequest(req)) {
+    return new Response("forbidden", { status: 403 });
+  }
+
+  // No per-IP rate limit — HLS segment traffic must not 429 mid-watch.
+
+  const cookieSessionId = verifyHlsSessionCookieValue(
+    readCookie(req, HLS_SESSION_COOKIE),
+  );
+
+  // Cast: token alone. Browser: token + matching session cookie.
+  const resolved = resolveKittyHlsProxyToken(
+    token,
+    castPeek ? null : cookieSessionId,
+  );
   if (!resolved) {
-    return new Response("invalid or expired playback token", { status: 403 });
+    return new Response(
+      !castPeek && !cookieSessionId
+        ? "playback session required"
+        : "invalid or expired playback token",
+      { status: 403 },
+    );
   }
 
   const decoded = resolved.url;
   const referer = resolved.referer;
   const origin = resolved.origin;
+  const sessionId = resolved.sessionId;
+  const cast = resolved.cast;
 
   if (!isAllowedMediaProxyUrl(decoded)) {
     return new Response("url not allowed", { status: 403 });
@@ -217,16 +235,23 @@ export async function GET(req: Request) {
 
   if (isM3u8ByUrl(decoded) || isM3u8ByContentType(contentType)) {
     const text = await upstream.text();
-    const rewritten = rewriteManifest(text, rewriteBase, referer, origin, sessionId);
+    const rewritten = rewriteManifest(
+      text,
+      rewriteBase,
+      referer,
+      origin,
+      sessionId,
+      cast,
+    );
     return new Response(rewritten, {
       status: 200,
-      headers: corsHeaders("application/vnd.apple.mpegurl"),
+      headers: corsHeaders("application/vnd.apple.mpegurl", cast),
     });
   }
 
   const segmentType = fixSegmentContentType(rewriteBase, contentType);
 
-  const segmentHeaders = corsHeaders(segmentType);
+  const segmentHeaders = corsHeaders(segmentType, cast);
   const contentLength = upstream.headers.get("content-length");
   const contentRange = upstream.headers.get("content-range");
   const acceptRanges = upstream.headers.get("accept-ranges");
@@ -273,10 +298,17 @@ export async function GET(req: Request) {
           return out;
         })(),
       );
-      const rewritten = rewriteManifest(text, rewriteBase, referer, origin, sessionId);
+      const rewritten = rewriteManifest(
+        text,
+        rewriteBase,
+        referer,
+        origin,
+        sessionId,
+        cast,
+      );
       return new Response(rewritten, {
         status: 200,
-        headers: corsHeaders("application/vnd.apple.mpegurl"),
+        headers: corsHeaders("application/vnd.apple.mpegurl", cast),
       });
     }
 
@@ -307,10 +339,17 @@ export async function GET(req: Request) {
   const peek = new TextDecoder("utf-8", { fatal: false }).decode(buffer.slice(0, 16)).trimStart();
   if (peek.startsWith("#EXTM3U")) {
     const text = new TextDecoder().decode(buffer);
-    const rewritten = rewriteManifest(text, rewriteBase, referer, origin, sessionId);
+    const rewritten = rewriteManifest(
+      text,
+      rewriteBase,
+      referer,
+      origin,
+      sessionId,
+      cast,
+    );
     return new Response(rewritten, {
       status: 200,
-      headers: corsHeaders("application/vnd.apple.mpegurl"),
+      headers: corsHeaders("application/vnd.apple.mpegurl", cast),
     });
   }
 
@@ -320,7 +359,7 @@ export async function GET(req: Request) {
 export async function OPTIONS() {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders("text/plain"),
+    headers: corsHeaders("text/plain", true),
   });
 }
 

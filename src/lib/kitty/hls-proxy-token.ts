@@ -10,6 +10,11 @@ const TAG_LEN = 16;
 export const HLS_TOKEN_TTL_SEC = 45 * 60;
 /** Playback session cookie lifetime (slightly longer than token TTL). */
 export const HLS_SESSION_TTL_SEC = 50 * 60;
+/**
+ * Cast tokens must outlive a typical episode and cannot rely on browser cookies
+ * (Chromecast fetches the URL itself with no `ak_pb` session cookie).
+ */
+export const HLS_CAST_TOKEN_TTL_SEC = 3 * 60 * 60;
 
 export const HLS_SESSION_COOKIE = "ak_pb";
 
@@ -19,6 +24,16 @@ type HlsProxyPayload = {
   o?: string;
   sid: string;
   e: number;
+  /** `1` = Cast-friendly: valid token alone is enough (no session cookie). */
+  c?: 1;
+};
+
+export type ResolvedHlsProxyToken = {
+  url: string;
+  referer: string;
+  origin: string;
+  sessionId: string;
+  cast: boolean;
 };
 
 function requireJwtSecret(): string {
@@ -119,7 +134,7 @@ export function readCookie(req: Request, name: string): string | null {
 export function mintKittyHlsProxyUrl(
   upstreamUrl: string,
   headers: Record<string, string> = {},
-  options?: { sessionId?: string; ttlSec?: number },
+  options?: { sessionId?: string; ttlSec?: number; cast?: boolean },
 ): string {
   const url = upstreamUrl.trim();
   if (!url) return "";
@@ -141,7 +156,9 @@ export function mintKittyHlsProxyUrl(
 
   const referer = sanitizeHeaderValue(headers.Referer ?? headers.referer);
   const origin = sanitizeHeaderValue(headers.Origin ?? headers.origin);
-  const ttl = options?.ttlSec ?? HLS_TOKEN_TTL_SEC;
+  const cast = Boolean(options?.cast);
+  const ttl =
+    options?.ttlSec ?? (cast ? HLS_CAST_TOKEN_TTL_SEC : HLS_TOKEN_TTL_SEC);
   const exp = Math.floor(Date.now() / 1000) + ttl;
   const token = encryptPayload({
     u: url,
@@ -149,26 +166,74 @@ export function mintKittyHlsProxyUrl(
     o: origin || undefined,
     sid: sessionId,
     e: exp,
+    c: cast ? 1 : undefined,
   });
   return `/api/kitty/hls?t=${token}`;
+}
+
+export function extractKittyHlsProxyToken(proxyUrl: string): string | null {
+  const trimmed = proxyUrl.trim();
+  if (!trimmed || !isKittyHlsProxyPath(trimmed)) return null;
+  try {
+    const parsed = trimmed.startsWith("http")
+      ? new URL(trimmed)
+      : new URL(trimmed, "http://local");
+    const token = parsed.searchParams.get("t");
+    return token?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remint a browser (cookie-bound) proxy URL as a Cast-friendly token URL.
+ * Requires a verified playback session matching the existing token.
+ */
+export function remintKittyHlsAsCastProxyUrl(
+  proxyUrl: string,
+  sessionId: string,
+): string | null {
+  const token = extractKittyHlsProxyToken(proxyUrl);
+  if (!token) return null;
+  const resolved = resolveKittyHlsProxyToken(token, sessionId);
+  if (!resolved) return null;
+  return mintKittyHlsProxyUrl(
+    resolved.url,
+    { Referer: resolved.referer, Origin: resolved.origin },
+    { sessionId: resolved.sessionId, cast: true },
+  );
 }
 
 export function resolveKittyHlsProxyToken(
   token: string,
   expectedSessionId?: string | null,
-): { url: string; referer: string; origin: string; sessionId: string } | null {
+): ResolvedHlsProxyToken | null {
   const payload = decryptPayload(token.trim());
   if (!payload?.u || typeof payload.e !== "number" || !payload.sid) return null;
   if (payload.e < Math.floor(Date.now() / 1000)) return null;
   if (!isAllowedMediaProxyUrl(payload.u)) return null;
-  if (expectedSessionId && payload.sid !== expectedSessionId) return null;
+  const cast = payload.c === 1;
+  // Browser tokens require a matching session cookie. Cast tokens rely on the
+  // encrypted payload alone (Chromecast cannot send HttpOnly cookies).
+  if (!cast && (!expectedSessionId || payload.sid !== expectedSessionId)) {
+    return null;
+  }
 
   return {
     url: payload.u,
     referer: payload.r ?? "",
     origin: payload.o ?? "",
     sessionId: payload.sid,
+    cast,
   };
+}
+
+/** Peek cast flag without enforcing session cookie binding. */
+export function peekKittyHlsProxyTokenCast(token: string): boolean {
+  const payload = decryptPayload(token.trim());
+  if (!payload?.u || typeof payload.e !== "number" || !payload.sid) return false;
+  if (payload.e < Math.floor(Date.now() / 1000)) return false;
+  return payload.c === 1;
 }
 
 function hostFromUrl(value: string): string | null {
