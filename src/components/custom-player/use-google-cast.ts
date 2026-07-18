@@ -30,6 +30,11 @@ export type UseGoogleCastOptions = {
   onCastStarted?: (deviceName: string | null) => void;
   /** Fired when session connects but media fails to load / remint. */
   onCastError?: (message: string) => void;
+  /**
+   * Fired once when the current Cast media finishes (episode end).
+   * Not fired for interrupted loads (quality / next-episode replace).
+   */
+  onMediaEnded?: () => void;
 };
 
 export type UseGoogleCastResult = {
@@ -66,16 +71,19 @@ export function useGoogleCast(
     onSessionEnd,
     onCastStarted,
     onCastError,
+    onMediaEnded,
   } = options;
 
   const getMediaRef = useRef(getMedia);
   const onSessionEndRef = useRef(onSessionEnd);
   const onCastStartedRef = useRef(onCastStarted);
   const onCastErrorRef = useRef(onCastError);
+  const onMediaEndedRef = useRef(onMediaEnded);
   getMediaRef.current = getMedia;
   onSessionEndRef.current = onSessionEnd;
   onCastStartedRef.current = onCastStarted;
   onCastErrorRef.current = onCastError;
+  onMediaEndedRef.current = onMediaEnded;
 
   const remoteRef = useRef<{
     player: cast.framework.RemotePlayer;
@@ -85,6 +93,13 @@ export function useGoogleCast(
   const lastRemoteTimeRef = useRef(0);
   const lastRemotePlayingRef = useRef(false);
   const endingLocallyRef = useRef(false);
+  /** Ignore IDLE/end while replacing media (quality / next episode). */
+  const replacingMediaRef = useRef(false);
+  const mediaEndedFiredRef = useRef(false);
+  /** True after we have observed loaded media this session (arms end detection). */
+  const mediaArmedRef = useRef(false);
+  /** True once playback reaches the natural end zone while still playing. */
+  const sawPlayingNearEndRef = useRef(false);
 
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -117,10 +132,74 @@ export function useGoogleCast(
     setDeviceName(player.displayName || getCastDeviceName());
   }, []);
 
+  const maybeFireMediaEnded = useCallback(() => {
+    if (replacingMediaRef.current || mediaEndedFiredRef.current) return;
+    const player = remoteRef.current?.player;
+    if (!player?.isConnected) return;
+
+    const t = Number(player.currentTime) || 0;
+    const d = Number(player.duration) || 0;
+    const state = String(player.playerState ?? "");
+    const idle = state === "IDLE";
+    const active =
+      state === "PLAYING" || state === "PAUSED" || state === "BUFFERING";
+
+    // Arm once media is meaningfully loaded / playing.
+    if (player.isMediaLoaded && d > 1 && active) {
+      mediaArmedRef.current = true;
+    }
+
+    if (!mediaArmedRef.current) return;
+
+    if (!player.isPaused && d > 1 && t >= d - 2.5) {
+      sawPlayingNearEndRef.current = true;
+    }
+
+    let finished = false;
+    try {
+      const ctx = ensureCastContext();
+      const media = ctx?.getCurrentSession()?.getMediaSession();
+      const reason = String(media?.idleReason ?? "");
+      if (reason === "FINISHED") {
+        finished = true;
+      }
+      // Interrupted / cancelled during loadMedia must not look like episode end.
+      if (
+        reason === "INTERRUPTED" ||
+        reason === "CANCELLED" ||
+        reason === "ERROR"
+      ) {
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // Fallback: idle at end, or paused after we saw playback in the end zone.
+    if (
+      !finished &&
+      d > 1 &&
+      t >= d - 1.25 &&
+      (idle || (player.isPaused && sawPlayingNearEndRef.current))
+    ) {
+      finished = true;
+    }
+
+    if (!finished) return;
+    mediaEndedFiredRef.current = true;
+    mediaArmedRef.current = false;
+    sawPlayingNearEndRef.current = false;
+    onMediaEndedRef.current?.();
+  }, []);
+
   const handleSessionEnded = useCallback(() => {
     if (!wasConnectedRef.current && !endingLocallyRef.current) return;
     wasConnectedRef.current = false;
     endingLocallyRef.current = false;
+    replacingMediaRef.current = false;
+    mediaArmedRef.current = false;
+    mediaEndedFiredRef.current = false;
+    sawPlayingNearEndRef.current = false;
     const resumeAt = lastRemoteTimeRef.current;
     const wasPlaying = lastRemotePlayingRef.current;
     setConnection("not_connected");
@@ -208,7 +287,9 @@ export function useGoogleCast(
         const player = remoteRef.current?.player;
         if (player && !player.isConnected && wasConnectedRef.current) {
           handleSessionEnded();
+          return;
         }
+        maybeFireMediaEnded();
       };
 
       ctx.addEventListener(
@@ -253,7 +334,7 @@ export function useGoogleCast(
       detach = null;
       remoteRef.current = null;
     };
-  }, [enabled, handleSessionEnded, refreshRemoteSnapshot]);
+  }, [enabled, handleSessionEnded, maybeFireMediaEnded, refreshRemoteSnapshot]);
 
   const syncMedia = useCallback(async () => {
     const media = getMediaRef.current();
@@ -261,14 +342,24 @@ export function useGoogleCast(
       reportCastError("No stream URL to cast");
       return false;
     }
+    replacingMediaRef.current = true;
+    mediaEndedFiredRef.current = false;
+    mediaArmedRef.current = false;
+    sawPlayingNearEndRef.current = false;
     const result: CastLoadResult = await loadMediaOnSession(media);
     if (!result.ok) {
+      replacingMediaRef.current = false;
       reportCastError(result.error || "Failed to load media on Cast device");
       return false;
     }
     setLastError(null);
+    // Allow end detection after the new item starts progressing.
+    window.setTimeout(() => {
+      replacingMediaRef.current = false;
+      refreshRemoteSnapshot();
+    }, 750);
     return true;
-  }, [reportCastError]);
+  }, [refreshRemoteSnapshot, reportCastError]);
 
   const toggleCast = useCallback(async () => {
     if (!available) return;

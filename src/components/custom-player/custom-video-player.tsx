@@ -390,6 +390,7 @@ export function AniKittyPlayer({
   const outroFiredRef = useRef(false);
   const endHandledRef = useRef(false);
   const autoNextStartedRef = useRef(false);
+  const nextNavLockRef = useRef(false);
   const applyingW2gRef = useRef(false);
   const lastW2gReportRef = useRef(0);
   const autoFsRef = useRef(false);
@@ -516,6 +517,7 @@ export function AniKittyPlayer({
     outroFiredRef.current = false;
     endHandledRef.current = false;
     autoNextStartedRef.current = false;
+    nextNavLockRef.current = false;
     setActiveSkip(null);
     setCountdown(null);
   }, [src, skipTimes?.intro?.start, skipTimes?.intro?.end, skipTimes?.outro?.start, skipTimes?.outro?.end]);
@@ -702,15 +704,63 @@ export function AniKittyPlayer({
     }
   }, []);
 
+  /** Shared local / Cast end → up-next countdown (guards double-fire). */
+  const beginEndedFlow = useCallback(() => {
+    if (endHandledRef.current) return;
+    endHandledRef.current = true;
+    onEndedRef.current?.();
+    if (
+      nextEpisodeRef.current &&
+      autoNextRef.current &&
+      !autoNextStartedRef.current
+    ) {
+      autoNextStartedRef.current = true;
+      setCountdown(5);
+    }
+  }, []);
+  const beginEndedFlowRef = useRef(beginEndedFlow);
+  beginEndedFlowRef.current = beginEndedFlow;
+
+  const goToNextEpisode = useCallback(() => {
+    if (!nextEpisodeRef.current) return;
+    if (nextNavLockRef.current) return;
+    nextNavLockRef.current = true;
+    autoNextStartedRef.current = true;
+    setCountdown(null);
+    onNextEpisodeRef.current?.();
+  }, []);
+  const goToNextEpisodeRef = useRef(goToNextEpisode);
+  goToNextEpisodeRef.current = goToNextEpisode;
+
   const getCastMedia = useCallback(() => {
     const video = videoRef.current;
+    const resume = qualityResumeRef.current;
+    let seek =
+      resume != null && resume > 0
+        ? resume
+        : castingRef.current
+          ? currentTime
+          : (video?.currentTime ?? currentTime);
+    // Fresh episode / remount: prefer startTime over a stale near-end clock.
+    if (
+      (resume == null || resume <= 0) &&
+      seek > 1 &&
+      currentTime < 1 &&
+      startTimeRef.current < 1
+    ) {
+      seek = startTimeRef.current > 0 ? startTimeRef.current : 0;
+    } else if (
+      (resume == null || resume <= 0) &&
+      seek < 1 &&
+      startTimeRef.current > 0
+    ) {
+      seek = startTimeRef.current;
+    }
     return buildCastMediaRequest({
       url: activeSrc,
       qualities,
       title,
-      currentTime: castingRef.current
-        ? currentTime
-        : (video?.currentTime ?? currentTime),
+      currentTime: seek,
       autoplay: true,
       volume: muted ? 0 : volume,
       muted,
@@ -748,7 +798,10 @@ export function AniKittyPlayer({
     [muted, volume],
   );
 
+  const castStartedThisMountRef = useRef(false);
+
   const onCastStarted = useCallback(() => {
+    castStartedThisMountRef.current = true;
     const video = videoRef.current;
     if (video && !video.paused) video.pause();
     try {
@@ -769,12 +822,17 @@ export function AniKittyPlayer({
     });
   }, []);
 
+  const onCastMediaEnded = useCallback(() => {
+    beginEndedFlowRef.current();
+  }, []);
+
   const cast = useGoogleCast({
     enabled: Boolean(activeSrc),
     getMedia: getCastMedia,
     onSessionEnd: onCastSessionEnd,
     onCastStarted,
     onCastError,
+    onMediaEnded: onCastMediaEnded,
   });
   castingRef.current = cast.casting;
   castRemotePlayingRef.current = cast.remotePlaying;
@@ -821,7 +879,22 @@ export function AniKittyPlayer({
       : volume;
   const chromeVisible = controlsVisible || seeking || !effectivePlaying;
 
-  // Reload Cast media when the stream URL changes mid-session (quality switch).
+  // Keep local <video> quiet while Chromecast owns playback (incl. remount).
+  useEffect(() => {
+    if (!casting) return;
+    const video = videoRef.current;
+    if (!video) return;
+    if (!video.paused) video.pause();
+    try {
+      video.muted = true;
+    } catch {
+      /* ignore */
+    }
+    exitPictureInPictureSafe(video);
+  }, [casting, activeSrc]);
+
+  // Reload Cast media when the stream URL changes mid-session (quality switch),
+  // or when this player remounts into an already-open Cast session (next episode).
   const wasCastingForSyncRef = useRef(false);
   useEffect(() => {
     if (!casting || !activeSrc) {
@@ -830,25 +903,62 @@ export function AniKittyPlayer({
     }
     if (!wasCastingForSyncRef.current) {
       wasCastingForSyncRef.current = true;
+      // Remount / session resume: toggleCast already loaded on fresh cast.
+      if (!castStartedThisMountRef.current) {
+        void castSyncMedia();
+      }
       return;
     }
     void castSyncMedia();
   }, [activeSrc, casting, castSyncMedia]);
 
-  // Mirror remote progress into watch progress callbacks while casting.
+  // Mirror remote progress + skip/outro while casting (local timeupdate is frozen).
   useEffect(() => {
     if (!casting) return;
     const t = castRemoteTime;
     const d = castRemoteDuration || duration;
     setCurrentTime(t);
-    if (d > 0) setDuration((prev) => (prev > 0 ? prev : d));
+    if (d > 0) {
+      setDuration(d);
+    }
     onLiveTimeRef.current?.(t, d);
     const now = Date.now();
     if (d > 0 && now - lastProgressTsRef.current >= 10_000) {
       lastProgressTsRef.current = now;
       onProgressRef.current?.(t, d);
     }
-  }, [casting, castRemoteTime, castRemoteDuration, duration]);
+
+    const st = skipTimesRef.current;
+    let nextSkip: SkipSegmentKind | null = null;
+    if (st?.intro && t >= st.intro.start && t < st.intro.end) {
+      nextSkip = "intro";
+      if (autoSkipRef.current && !introAutoSkippedRef.current) {
+        introAutoSkippedRef.current = true;
+        castSeekTo(st.intro.end);
+        setCurrentTime(st.intro.end);
+        nextSkip = null;
+      }
+    } else if (st?.outro && t >= st.outro.start && t < st.outro.end) {
+      nextSkip = "outro";
+      if (autoSkipRef.current && !outroAutoSkippedRef.current) {
+        outroAutoSkippedRef.current = true;
+        castSeekTo(st.outro.end);
+        setCurrentTime(st.outro.end);
+        nextSkip = null;
+      }
+      if (!outroFiredRef.current && d > 0) {
+        outroFiredRef.current = true;
+        onOutroStartRef.current?.(d);
+      }
+    }
+    setActiveSkip(nextSkip);
+  }, [
+    casting,
+    castRemoteTime,
+    castRemoteDuration,
+    duration,
+    castSeekTo,
+  ]);
 
   // Reset local quality override when parent src changes (episode / provider).
   // Keep qualityResumeRef so in-player quality switches can restore time.
@@ -969,13 +1079,11 @@ export function AniKittyPlayer({
   useEffect(() => {
     if (countdown === null || countdown <= 0) return;
     const timer = window.setTimeout(() => {
-      setCountdown((value) => {
-        if (value === null || value <= 1) {
-          onNextEpisodeRef.current?.();
-          return null;
-        }
-        return value - 1;
-      });
+      if (countdown <= 1) {
+        goToNextEpisodeRef.current();
+        return;
+      }
+      setCountdown(countdown - 1);
     }, 1000);
     return () => window.clearTimeout(timer);
   }, [countdown]);
@@ -1226,13 +1334,7 @@ export function AniKittyPlayer({
       setFullscreen(rootFs || Boolean(wk.webkitDisplayingFullscreen));
     };
     const onVideoEnded = () => {
-      if (endHandledRef.current) return;
-      endHandledRef.current = true;
-      onEndedRef.current?.();
-      if (nextEpisodeRef.current && autoNextRef.current && !autoNextStartedRef.current) {
-        autoNextStartedRef.current = true;
-        setCountdown(5);
-      }
+      beginEndedFlowRef.current();
     };
     const onNativeError = () => {
       // HLS path reports via hls.js; ignore empty-src teardown noise.
@@ -2490,7 +2592,8 @@ export function AniKittyPlayer({
       : activeSkip === "outro"
         ? skipTimes?.outro
         : undefined;
-  const nearEnd = duration > 60 && currentTime >= duration - 90;
+  const nearEnd =
+    effectiveDuration > 60 && currentTime >= effectiveDuration - 90;
   const showNextEpisode =
     !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
   const skipStackClass = showNextEpisode
@@ -2867,7 +2970,7 @@ export function AniKittyPlayer({
           episode={nextEpisode}
           imageUrl={nextEpisode.image}
           stacked={false}
-          onClick={() => onNextEpisodeRef.current?.()}
+          onClick={() => goToNextEpisode()}
         />
       ) : null}
       {activeSkip && activeSkipInterval && countdown === null ? (
@@ -2899,8 +3002,12 @@ export function AniKittyPlayer({
           episode={nextEpisode}
           imageUrl={nextEpisode.image}
           countdown={countdown}
-          onPlayNow={() => onNextEpisodeRef.current?.()}
-          onCancel={() => setCountdown(null)}
+          onPlayNow={() => goToNextEpisode()}
+          onCancel={() => {
+            autoNextStartedRef.current = false;
+            nextNavLockRef.current = false;
+            setCountdown(null);
+          }}
         />
       ) : null}
 
