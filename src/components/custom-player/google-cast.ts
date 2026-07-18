@@ -1,8 +1,8 @@
 /**
- * Google Cast Web Sender helpers for the custom player.
+ * Google Cast Web Sender helpers for the AniKitty player.
  * Loads cast.framework dynamically; no-ops when Cast is unavailable.
  *
- * Uses ambient `cast` / `chrome.cast` types (via `@vidstack/react` typings).
+ * Uses ambient `cast` / `chrome.cast` types from `src/types/google-cast.d.ts`.
  * Runtime still loads Google’s official sender SDK.
  *
  * Kitty HLS proxy URLs are cookie-bound in the browser. Chromecast cannot send

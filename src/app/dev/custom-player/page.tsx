@@ -1,12 +1,12 @@
 "use client";
 
-import { CustomVideoPlayer } from "@/components/custom-player";
+import { AniKittyPlayer } from "@/components/custom-player";
 
 /** Public sample MP4 for UI work (progressive). Native HLS works in Safari only. */
 const DEMO_MP4 =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-export default function CustomPlayerDemoPage() {
+export default function AniKittyPlayerDemoPage() {
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="space-y-2">
@@ -14,20 +14,17 @@ export default function CustomPlayerDemoPage() {
           Dev playground
         </p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Custom video player
+          AniKitty player
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Standalone HTML5 player scaffold — also available on the production
-          watch page via{" "}
-          <strong className="font-medium text-foreground">Player → Custom</strong>{" "}
-          in settings (Classic / Vidstack remains the default). Demo source is
+          Standalone HTML5 player used on the production watch page. Demo source is
           progressive MP4. Watch streams use the same component with hls.js /
           native HLS (Safari), stream sniffing for extensionless playlists,
-          plus captions / quality / audio in the ⋮ menu.
+          plus captions / quality / audio in the ⋮ menu, Cast, and skip ticks.
         </p>
       </header>
 
-      <CustomVideoPlayer
+      <AniKittyPlayer
         src={DEMO_MP4}
         title="Big Buck Bunny (demo)"
         className="shadow-lg shadow-black/40 ring-1 ring-white/10"

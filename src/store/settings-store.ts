@@ -27,16 +27,9 @@ import {
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
-/** Classic = Vidstack (production default). Custom = experimental HTML5 player. */
-export type WatchPlayerEngine = "classic" | "custom";
-
 interface ISettingsStore {
   episodeLayout: EpisodeLayout;
   setEpisodeLayout: (layout: EpisodeLayout) => void;
-
-  /** Watch-page player shell: Vidstack (classic) or experimental custom. */
-  watchPlayerEngine: WatchPlayerEngine;
-  setWatchPlayerEngine: (engine: WatchPlayerEngine) => void;
 
   preferDub: boolean;
   setPreferDub: (val: boolean) => void;
@@ -179,9 +172,6 @@ export const useSettingsStore = create<ISettingsStore>()(
     (set) => ({
       episodeLayout: "list",
       setEpisodeLayout: (episodeLayout) => set({ episodeLayout }),
-
-      watchPlayerEngine: "classic",
-      setWatchPlayerEngine: (watchPlayerEngine) => set({ watchPlayerEngine }),
 
       preferDub: false,
       setPreferDub: (preferDub) => {
@@ -361,10 +351,9 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 41,
+      version: 42,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
-        watchPlayerEngine: state.watchPlayerEngine,
         preferDub: state.preferDub,
         autoPlay: state.autoPlay,
         hideFillers: state.hideFillers,
@@ -567,8 +556,10 @@ export const useSettingsStore = create<ISettingsStore>()(
           );
         }
         if (version < 41) {
-          const raw = (next as { watchPlayerEngine?: string }).watchPlayerEngine;
-          next.watchPlayerEngine = raw === "custom" ? "custom" : "classic";
+          // Former Classic/Custom toggle — AniKitty is now the only watch player.
+        }
+        if (version < 42) {
+          delete (next as Record<string, unknown>).watchPlayerEngine;
         }
         return next as ISettingsStore;
       },

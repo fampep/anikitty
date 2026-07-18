@@ -176,8 +176,8 @@ export async function sniffIsHlsPlaylist(
 }
 
 /**
- * Pick how to attach a watch URL. Prefer hls.js when MSE is available (same as
- * Classic / Vidstack `preferNativeHLS={false}`) so quality + audio menus work.
+ * Pick how to attach a watch URL. Prefer hls.js when MSE is available so
+ * quality + audio menus work (native HLS hides the ladder on many browsers).
  */
 export function resolveStreamAttachMode(opts: {
   url: string;

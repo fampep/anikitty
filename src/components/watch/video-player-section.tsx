@@ -90,14 +90,9 @@ import WatchServerPicker from "@/components/watch/watch-server-picker";
 import { getProviderAccent, PROVIDER_PANEL, providerChipClass } from "@/lib/kitty/provider-ui-styles";
 import { cn } from "@/lib/core/utils";
 
-const KittyPlayer = dynamic(() => import("@/components/player/kitty-player"), {
-  ssr: false,
-  loading: () => <PlayerSkeleton />,
-});
-
-const CustomVideoPlayer = dynamic(
+const AniKittyPlayer = dynamic(
   () =>
-    import("@/components/custom-player").then((m) => m.CustomVideoPlayer),
+    import("@/components/custom-player").then((m) => m.AniKittyPlayer),
   {
     ssr: false,
     loading: () => <PlayerSkeleton />,
@@ -135,7 +130,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, watchPlayerEngine, setWatchPlayerEngine } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
   // Lightweight health probes — used only to skip known-dead nodes on failover, not for geo/ping routing.
   const { nodes: proxyNodes } = useKittyNodePing({
     enabled: true,
@@ -938,14 +933,6 @@ const VideoPlayerSection = () => {
     void video.requestPictureInPicture?.();
   }, []);
 
-  // Preserve playback position when switching Classic ↔ Custom player shells.
-  const prevWatchPlayerEngineRef = useRef(watchPlayerEngine);
-  useEffect(() => {
-    if (prevWatchPlayerEngineRef.current === watchPlayerEngine) return;
-    prevWatchPlayerEngineRef.current = watchPlayerEngine;
-    commitResumeForSourceSwitch();
-  }, [watchPlayerEngine, commitResumeForSourceSwitch]);
-
   useEffect(() => {
     setHeldStreamSnapshot(null);
     setPlaybackToken((n) => n + 1);
@@ -1654,79 +1641,41 @@ const VideoPlayerSection = () => {
         </div>
       ) : (
       <>
-      {watchPlayerEngine === "custom" ? (
-        <CustomVideoPlayer
-          key={`custom-${displayPlayerKey}`}
-          src={displayFile}
-          tracks={tracksForPlayer}
-          qualities={displayQualities}
-          headers={displayHeaders}
-          kittyNodeId={kittyProxyNode}
-          preferSubtitles={subtitlesEnabled}
-          preferDubAudio={streamAudio === "dub"}
-          onSelectQuality={handlePickQuality}
-          skipTimes={displaySkipTimes}
-          title={
-            currentEpisodeInfo
-              ? t("watch.episode", { n: currentEpisodeInfo.number })
-              : animeName
-          }
-          className="rounded-none"
-          startTime={
-            w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
-              ? w2g.syncState.currentTime
-              : playerStartTime
-          }
-          onShare={copyShareLink}
-          onStart={handleStart}
-          onProgress={handleProgress}
-          onLiveTime={handleLiveTime}
-          onOutroStart={handleOutroStart}
-          onEnded={handleEnded}
-          onPlayerReady={handlePlayerReady}
-          playbackIssueHint={t("watch.playerSettings.customPlayerHlsHint")}
-          useClassicLabel={t("watch.playerSettings.useClassicPlayer")}
-          onUseClassicPlayer={() => setWatchPlayerEngine("classic")}
-          onFatalError={(info) => {
-            // Experimental shell: don't cascade provider fallback on decode failures.
-            // Still remint expired proxy tokens the same way Classic does.
-            if (
-              info.type === "hls-auth" ||
-              info.status === 401 ||
-              info.status === 403
-            ) {
-              handleFatalPlayerError(info);
-            }
-          }}
-        />
-      ) : (
-        <KittyPlayer
-          key={displayPlayerKey}
-          src={displayFile}
-          tracks={tracksForPlayer}
-          headers={displayHeaders}
-          qualities={displayQualities}
-          preferSubtitles={subtitlesEnabled}
-          preferDubAudio={streamAudio === "dub"}
-          skipTimes={displaySkipTimes}
-          startTime={
-            w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
-              ? w2g.syncState.currentTime
-              : playerStartTime
-          }
-          autoFullscreen={autoFullscreen}
-          nextEpisode={playerNextEpisode}
-          onStart={handleStart}
-          onProgress={handleProgress}
-          onLiveTime={handleLiveTime}
-          onNextEpisode={handleNextEpisode}
-          onOutroStart={handleOutroStart}
-          onEnded={handleEnded}
-          onFatalError={handleFatalPlayerError}
-          onPlayerReady={handlePlayerReady}
-          w2g={playerW2g}
-        />
-      )}
+      <AniKittyPlayer
+        key={displayPlayerKey}
+        src={displayFile}
+        tracks={tracksForPlayer}
+        qualities={displayQualities}
+        headers={displayHeaders}
+        kittyNodeId={kittyProxyNode}
+        preferSubtitles={subtitlesEnabled}
+        preferDubAudio={streamAudio === "dub"}
+        onSelectQuality={handlePickQuality}
+        skipTimes={displaySkipTimes}
+        title={
+          currentEpisodeInfo
+            ? t("watch.episode", { n: currentEpisodeInfo.number })
+            : animeName
+        }
+        className="rounded-none"
+        startTime={
+          w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
+            ? w2g.syncState.currentTime
+            : playerStartTime
+        }
+        autoFullscreen={autoFullscreen}
+        nextEpisode={playerNextEpisode}
+        onShare={copyShareLink}
+        onStart={handleStart}
+        onProgress={handleProgress}
+        onLiveTime={handleLiveTime}
+        onNextEpisode={handleNextEpisode}
+        onOutroStart={handleOutroStart}
+        onEnded={handleEnded}
+        onPlayerReady={handlePlayerReady}
+        w2g={playerW2g}
+        onFatalError={handleFatalPlayerError}
+      />
       {showTransitionOverlay && (
         <div
           className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/65 backdrop-blur-[3px] pointer-events-none"
@@ -1774,23 +1723,6 @@ const VideoPlayerSection = () => {
             : undefined
         }
       />
-
-      {watchPlayerEngine === "custom" && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 sm:px-3 border-t border-amber-400/15 bg-amber-500/[0.06]">
-          <p className="text-[10px] font-mono text-amber-100/80">
-            {t("watch.playerSettings.customPlayerActive")}
-            <span className="opacity-50"> · </span>
-            {t("watch.playerSettings.customPlayerHlsHint")}
-          </p>
-          <button
-            type="button"
-            onClick={() => setWatchPlayerEngine("classic")}
-            className="shrink-0 text-[10px] font-bold text-teal-200/90 hover:text-teal-100 underline-offset-2 hover:underline"
-          >
-            {t("watch.playerSettings.useClassicPlayer")}
-          </button>
-        </div>
-      )}
 
       {!showPlayerControls && (
         <WatchStreamInfoBar

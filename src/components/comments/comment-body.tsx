@@ -28,7 +28,7 @@ function TimestampChip({ label, seconds }: { label: string; seconds: number }) {
         // Theatre locks body scroll — skip scrollIntoView so seeking doesn't fight the lock.
         if (document.documentElement.classList.contains("watch-theatre-active")) return;
         document
-          .querySelector(".kitty-vidstack-player")
+          .querySelector(".anikitty-player, .custom-kitty-player")
           ?.scrollIntoView({ behavior: "smooth", block: "center" });
       }}
       className="inline text-violet-300 hover:text-violet-200 font-mono font-medium underline decoration-violet-400/40 underline-offset-2"

@@ -66,7 +66,16 @@ import {
   VolumeMuteIcon,
 } from "./icons";
 import type { SkipTimes } from "@/hooks/use-aniskip";
+import type { W2gSyncState } from "@/lib/kitty/video-player-types";
+import {
+  attachAnime4k,
+  isWebGpuSupported,
+} from "@/lib/player/anime4k";
 import { useSettingsStore } from "@/store/settings-store";
+import {
+  CountdownOverlay,
+  NextEpisodeButton,
+} from "@/components/player/player-overlays";
 
 import {
   buildCastMediaRequest,
@@ -188,7 +197,7 @@ function exitPictureInPictureSafe(video: HTMLVideoElement | null) {
   }
 }
 
-export type CustomVideoPlayerProps = {
+export type AniKittyPlayerProps = {
   src: string;
   poster?: string;
   title?: string;
@@ -197,7 +206,7 @@ export type CustomVideoPlayerProps = {
   tracks?: StreamTrack[];
   /** MegaPlay-style `allServers` ladder when HLS has no useful levels. */
   qualities?: KittyStreamQuality[];
-  /** Same headers Classic uses when minting / resolving Kitty HLS. */
+  /** Headers used when minting / resolving Kitty HLS. */
   headers?: Record<string, string>;
   /** Preferred Kitty CDN node for URL resolution (passthrough). */
   kittyNodeId?: KittyApiNodeId;
@@ -209,6 +218,10 @@ export type CustomVideoPlayerProps = {
   preferSubtitles?: boolean;
   /** Prefer English/dub HLS audio when the master exposes multiple tracks. */
   preferDubAudio?: boolean;
+  /** Enter fullscreen once the first frame is ready (mobile episode swipe). */
+  autoFullscreen?: boolean;
+  /** Next-episode card / autoplay countdown target. */
+  nextEpisode?: { id: string; number: number; title: string; image?: string | null };
   /** Called when the user picks an allServers quality (parent remounts src). */
   onSelectQuality?: (entry: KittyStreamQuality) => void;
   /** Called when share is clicked (stub by default). */
@@ -216,17 +229,24 @@ export type CustomVideoPlayerProps = {
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;
+  onNextEpisode?: () => void;
   /** Fired once when playback enters the outro skip range. */
   onOutroStart?: (duration: number) => void;
   onEnded?: () => void;
   onFatalError?: (info: { type: string; details?: string; status?: number }) => void;
   onPlayerReady?: (player: PlayerController) => void;
+  /** Watch-together host/guest sync. */
+  w2g?: {
+    isHost: boolean;
+    syncState?: W2gSyncState | null;
+    onPlaybackSync?: (state: { isPlaying: boolean; currentTime: number }) => void;
+  };
   /** Optional copy for the HLS / decode failure banner. */
   playbackIssueHint?: string;
-  /** Shown with the issue banner so users can leave custom mode. */
-  onUseClassicPlayer?: () => void;
-  useClassicLabel?: string;
 };
+
+/** @deprecated Use AniKittyPlayerProps */
+export type CustomVideoPlayerProps = AniKittyPlayerProps;
 
 type HlsLevelOption = {
   index: number;
@@ -247,7 +267,7 @@ type CaptionOption = {
   isDefault?: boolean;
 };
 
-export function CustomVideoPlayer({
+export function AniKittyPlayer({
   src,
   poster,
   title,
@@ -260,19 +280,21 @@ export function CustomVideoPlayer({
   skipTimes,
   preferSubtitles = true,
   preferDubAudio = false,
+  autoFullscreen = false,
+  nextEpisode,
   onSelectQuality,
   onShare,
   onStart,
   onProgress,
   onLiveTime,
+  onNextEpisode,
   onOutroStart,
   onEnded,
   onFatalError,
   onPlayerReady,
+  w2g,
   playbackIssueHint,
-  onUseClassicPlayer,
-  useClassicLabel = "Use classic player",
-}: CustomVideoPlayerProps) {
+}: AniKittyPlayerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -308,14 +330,28 @@ export function CustomVideoPlayer({
   const onStartRef = useRef(onStart);
   const onFatalErrorRef = useRef(onFatalError);
   const onPlayerReadyRef = useRef(onPlayerReady);
+  const onNextEpisodeRef = useRef(onNextEpisode);
   const startTimeRef = useRef(startTime);
   const preferDubAudioRef = useRef(preferDubAudio);
   const skipTimesRef = useRef(skipTimes);
+  const w2gRef = useRef(w2g);
+  const nextEpisodeRef = useRef(nextEpisode);
   const introAutoSkippedRef = useRef(false);
   const outroAutoSkippedRef = useRef(false);
   const outroFiredRef = useRef(false);
+  const endHandledRef = useRef(false);
+  const autoNextStartedRef = useRef(false);
+  const applyingW2gRef = useRef(false);
+  const lastW2gReportRef = useRef(0);
+  const autoFsRef = useRef(false);
+  const anime4kDetachRef = useRef<(() => void) | null>(null);
   const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
+  const autoPlay = useSettingsStore((s) => s.autoPlay);
+  const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
+  const anime4kMode = useSettingsStore((s) => s.anime4kMode);
+  const liteMode = useSettingsStore((s) => s.liteMode);
   const autoSkipRef = useRef(autoSkipIntro);
+  const autoNextRef = useRef(autoPlay);
 
   onLiveTimeRef.current = onLiveTime;
   onProgressRef.current = onProgress;
@@ -324,10 +360,14 @@ export function CustomVideoPlayer({
   onStartRef.current = onStart;
   onFatalErrorRef.current = onFatalError;
   onPlayerReadyRef.current = onPlayerReady;
+  onNextEpisodeRef.current = onNextEpisode;
   startTimeRef.current = startTime;
   preferDubAudioRef.current = preferDubAudio;
   skipTimesRef.current = skipTimes;
+  w2gRef.current = w2g;
+  nextEpisodeRef.current = nextEpisode;
   autoSkipRef.current = autoSkipIntro;
+  autoNextRef.current = autoPlay;
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -374,14 +414,23 @@ export function CustomVideoPlayer({
   const [iosVolumeLocked] = useState(() => isAppleTouchDevice());
   const [attachNonce, setAttachNonce] = useState(0);
   const [activeSkip, setActiveSkip] = useState<SkipSegmentKind | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [anime4kActive, setAnime4kActive] = useState(false);
 
   const skipSegments = useMemo(() => buildSkipSegments(skipTimes), [skipTimes]);
+
+  useEffect(() => {
+    if (autoFullscreen) autoFsRef.current = true;
+  }, [autoFullscreen]);
 
   useEffect(() => {
     introAutoSkippedRef.current = false;
     outroAutoSkippedRef.current = false;
     outroFiredRef.current = false;
+    endHandledRef.current = false;
+    autoNextStartedRef.current = false;
     setActiveSkip(null);
+    setCountdown(null);
   }, [src, skipTimes?.intro?.start, skipTimes?.intro?.end, skipTimes?.outro?.start, skipTimes?.outro?.end]);
 
   const resolvedSrc = useMemo(() => {
@@ -704,7 +753,7 @@ export function CustomVideoPlayer({
     setHlsAudioIndex(hls.audioTrack);
   }, [preferDubAudio]);
 
-  // Rotation-lock landscape CSS (same helpers as Classic).
+  // Rotation-lock landscape CSS.
   useEffect(() => {
     const syncOrient = () => {
       setOrientClass(
@@ -716,6 +765,74 @@ export function CustomVideoPlayer({
     syncOrient();
     return onPlayerOrientationChange(syncOrient);
   }, [fullscreen]);
+
+  const reportW2g = useCallback((isPlaying: boolean, time: number) => {
+    const cfg = w2gRef.current;
+    if (!cfg?.isHost || applyingW2gRef.current) return;
+    cfg.onPlaybackSync?.({ isPlaying, currentTime: time });
+    lastW2gReportRef.current = time;
+  }, []);
+
+  // Guest sync from host playback state.
+  useEffect(() => {
+    const video = videoRef.current;
+    const cfg = w2g;
+    if (!video || !cfg?.syncState || cfg.isHost) return;
+    applyingW2gRef.current = true;
+    video.currentTime = cfg.syncState.currentTime;
+    if (cfg.syncState.isPlaying) void video.play().catch(() => {});
+    else video.pause();
+    applyingW2gRef.current = false;
+  }, [w2g?.syncState?.version, w2g?.isHost, w2g?.syncState]);
+
+  // Autoplay next-episode countdown tick.
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return;
+    const timer = window.setTimeout(() => {
+      setCountdown((value) => {
+        if (value === null || value <= 1) {
+          onNextEpisodeRef.current?.();
+          return null;
+        }
+        return value - 1;
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [countdown]);
+
+  // Anime4K WebGPU upscale overlay.
+  useEffect(() => {
+    const video = videoRef.current;
+    const root = rootRef.current;
+    const effective = anime4kEnabled && !liteMode && isWebGpuSupported();
+    let cancelled = false;
+
+    anime4kDetachRef.current?.();
+    anime4kDetachRef.current = null;
+    setAnime4kActive(false);
+
+    if (!effective || !video || !root) return;
+
+    void attachAnime4k({
+      video,
+      videoContainer: root,
+      mode: anime4kMode,
+    }).then((attachment) => {
+      if (cancelled) {
+        attachment.detach();
+        return;
+      }
+      anime4kDetachRef.current = attachment.detach;
+      setAnime4kActive(true);
+    });
+
+    return () => {
+      cancelled = true;
+      anime4kDetachRef.current?.();
+      anime4kDetachRef.current = null;
+      setAnime4kActive(false);
+    };
+  }, [anime4kEnabled, anime4kMode, liteMode, src, attachNonce]);
 
   useEffect(() => {
     if (fullscreen) {
@@ -797,6 +914,10 @@ export function CustomVideoPlayer({
         startedRef.current = true;
         onStartRef.current?.();
       }
+      reportW2g(true, video.currentTime);
+      if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "playing";
+      }
     };
     const onPause = () => {
       setPlaying(false);
@@ -805,6 +926,10 @@ export function CustomVideoPlayer({
       const dur = Number.isFinite(video.duration) ? video.duration : 0;
       if (video.currentTime > 0 && dur > 0) {
         onProgressRef.current?.(video.currentTime, dur);
+      }
+      if (video.currentTime > 0) reportW2g(false, video.currentTime);
+      if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "paused";
       }
     };
     const onTimeUpdate = () => {
@@ -849,6 +974,15 @@ export function CustomVideoPlayer({
         }
       }
       setActiveSkip(nextSkip);
+
+      const cfg = w2gRef.current;
+      if (
+        cfg?.isHost &&
+        !applyingW2gRef.current &&
+        Math.abs(video.currentTime - lastW2gReportRef.current) > 2.5
+      ) {
+        reportW2g(!video.paused, video.currentTime);
+      }
     };
     const onDuration = () => {
       if (Number.isFinite(video.duration)) setDuration(video.duration);
@@ -884,6 +1018,17 @@ export function CustomVideoPlayer({
     const onCanPlay = () => {
       setBuffering(false);
       setSourceLoading(false);
+      if (autoFsRef.current) {
+        autoFsRef.current = false;
+        const target = rootRef.current;
+        if (target) {
+          void requestElementFullscreen(target)
+            .then(() => {
+              void tryLockLandscapeOrientation();
+            })
+            .catch(() => {});
+        }
+      }
     };
     const onSeeking = () => setBuffering(true);
     const onSeeked = () => {
@@ -897,7 +1042,13 @@ export function CustomVideoPlayer({
       setFullscreen(rootFs || Boolean(wk.webkitDisplayingFullscreen));
     };
     const onVideoEnded = () => {
+      if (endHandledRef.current) return;
+      endHandledRef.current = true;
       onEndedRef.current?.();
+      if (nextEpisodeRef.current && autoNextRef.current && !autoNextStartedRef.current) {
+        autoNextStartedRef.current = true;
+        setCountdown(5);
+      }
     };
     const onNativeError = () => {
       // HLS path reports via hls.js; ignore empty-src teardown noise.
@@ -918,7 +1069,7 @@ export function CustomVideoPlayer({
 
       setPlaybackIssue(
         playbackIssueHint ??
-          "This stream could not play in the custom player. Switch back to Classic for full provider support.",
+          "This stream could not play in the AniKitty player. Try another source or refresh.",
       );
       setSourceLoading(false);
       setBuffering(false);
@@ -1007,9 +1158,9 @@ export function CustomVideoPlayer({
       if (seekFlashTimerRef.current) clearTimeout(seekFlashTimerRef.current);
       if (gestureHintTimerRef.current) clearTimeout(gestureHintTimerRef.current);
     };
-  }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint]);
+  }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint, reportW2g]);
 
-  // Attach progressive / HLS source (prefer hls.js like Classic when MSE works).
+  // Attach progressive / HLS source (prefer hls.js when MSE works).
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeSrc) return;
@@ -1043,7 +1194,7 @@ export function CustomVideoPlayer({
       if (cancelled) return;
       setPlaybackIssue(
         playbackIssueHint ??
-          "This stream could not play in the custom player. Switch back to Classic for full provider support.",
+          "This stream could not play in the AniKitty player. Try another source or refresh.",
       );
       setSourceLoading(false);
       setBuffering(false);
@@ -1959,6 +2110,12 @@ export function CustomVideoPlayer({
       : activeSkip === "outro"
         ? skipTimes?.outro
         : undefined;
+  const nearEnd = duration > 60 && currentTime >= duration - 90;
+  const showNextEpisode =
+    !!nextEpisode && (nearEnd || activeSkip === "outro") && countdown === null;
+  const skipStackClass = showNextEpisode
+    ? "kitty-overlay--stacked"
+    : "kitty-overlay--base";
   const showSpinner =
     !casting &&
     (sourceLoading || buffering) &&
@@ -1996,12 +2153,13 @@ export function CustomVideoPlayer({
       ref={rootRef}
       tabIndex={0}
       role="region"
-      aria-label={title ? `Video player: ${title}` : "Video player"}
+      aria-label={title ? `AniKitty player: ${title}` : "AniKitty player"}
       className={cn(
-        "custom-kitty-player group/player relative aspect-video w-full overflow-hidden rounded-lg bg-black outline-none",
+        "anikitty-player group/player relative aspect-video w-full overflow-hidden rounded-lg bg-black outline-none",
         "focus-visible:ring-2 focus-visible:ring-white/40",
         chromeVisible ? "cursor-auto" : "cursor-none",
         seeking && "touch-none overscroll-none",
+        anime4kActive && "anime4k-active",
         orientClass,
         className,
       )}
@@ -2110,15 +2268,6 @@ export function CustomVideoPlayer({
             >
               Retry
             </button>
-            {onUseClassicPlayer ? (
-              <button
-                type="button"
-                onClick={onUseClassicPlayer}
-                className="rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-white/85 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                {useClassicLabel}
-              </button>
-            ) : null}
           </div>
         </div>
       ) : null}
@@ -2214,8 +2363,16 @@ export function CustomVideoPlayer({
         <PlayOutlineIcon className="h-8 w-8 translate-x-0.5" />
       </button>
 
-      {/* Skip intro/outro — prominent when inside a skip segment */}
-      {activeSkip && activeSkipInterval ? (
+      {/* Next episode + skip intro/outro overlays */}
+      {showNextEpisode && nextEpisode ? (
+        <NextEpisodeButton
+          episode={nextEpisode}
+          imageUrl={nextEpisode.image}
+          stackClass="kitty-overlay--base"
+          onClick={() => onNextEpisodeRef.current?.()}
+        />
+      ) : null}
+      {activeSkip && activeSkipInterval && countdown === null ? (
         <button
           type="button"
           onClick={(e) => {
@@ -2230,12 +2387,23 @@ export function CustomVideoPlayer({
             "hover:bg-white/95 active:scale-[0.98]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
             "right-[max(0.75rem,env(safe-area-inset-right))]",
-            "bottom-[4.85rem] sm:bottom-[4.35rem]",
+            skipStackClass === "kitty-overlay--stacked"
+              ? "bottom-[7.25rem] sm:bottom-[6.75rem]"
+              : "bottom-[4.85rem] sm:bottom-[4.35rem]",
             "animate-in fade-in zoom-in-95",
           )}
         >
           {activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}
         </button>
+      ) : null}
+      {countdown !== null && nextEpisode ? (
+        <CountdownOverlay
+          episode={nextEpisode}
+          imageUrl={nextEpisode.image}
+          countdown={countdown}
+          onSkip={() => onNextEpisodeRef.current?.()}
+          onCancel={() => setCountdown(null)}
+        />
       ) : null}
 
       {/* Bottom chrome — sparse ArtPlayer-like bar */}
@@ -2927,3 +3095,6 @@ function IconButton({
     </button>
   );
 }
+
+/** @deprecated Prefer AniKittyPlayer */
+export const CustomVideoPlayer = AniKittyPlayer;

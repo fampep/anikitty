@@ -1,11 +1,10 @@
-import type { MediaPlayerInstance, MediaRemoteControl } from "@vidstack/react";
 import {
   exitElementFullscreen,
   isElementFullscreen,
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
 
-/** Thin adapter so watch-page keyboard shortcuts and media session work without Artplayer. */
+/** Thin adapter so watch-page keyboard shortcuts and media session work with HTML video. */
 export type PlayerController = {
   play: () => void;
   pause: () => void;
@@ -22,58 +21,7 @@ export type PlayerController = {
   readonly video: HTMLVideoElement | null;
 };
 
-export function createPlayerController(
-  player: MediaPlayerInstance,
-  remote: MediaRemoteControl,
-): PlayerController {
-  return {
-    play: () => {
-      remote.play();
-    },
-    pause: () => {
-      remote.pause();
-    },
-    toggle: () => {
-      if (player.paused) remote.play();
-      else remote.pause();
-    },
-    seek: (seconds: number) => {
-      remote.seek(seconds);
-    },
-    get currentTime() {
-      return player.currentTime;
-    },
-    get duration() {
-      return player.duration;
-    },
-    get paused() {
-      return player.paused;
-    },
-    get volume() {
-      return player.volume;
-    },
-    setVolume(value: number) {
-      remote.changeVolume(Math.min(1, Math.max(0, value)));
-    },
-    get muted() {
-      return player.muted;
-    },
-    setMuted(value: boolean) {
-      if (value) remote.mute();
-      else remote.unmute();
-    },
-    toggleFullscreen: () => {
-      const target = player.el;
-      if (target && isElementFullscreen(target)) remote.exitFullscreen();
-      else remote.enterFullscreen();
-    },
-    get video() {
-      return player.el?.querySelector("video") ?? null;
-    },
-  };
-}
-
-/** Adapter for the experimental custom HTML5 player. */
+/** Adapter for the AniKitty HTML5 player. */
 export function createHtmlVideoPlayerController(
   video: HTMLVideoElement,
   root?: HTMLElement | null,

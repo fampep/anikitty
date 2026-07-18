@@ -1,5 +1,7 @@
 export {
+  AniKittyPlayer,
   CustomVideoPlayer,
+  type AniKittyPlayerProps,
   type CustomVideoPlayerProps,
 } from "./custom-video-player";
 export { formatPlayerTime } from "./utils";

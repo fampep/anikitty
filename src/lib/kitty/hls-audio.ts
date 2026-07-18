@@ -1,6 +1,6 @@
 import type Hls from "hls.js";
 
-/** Minimal audio-track shape shared by hls.js and Vidstack. */
+/** Minimal audio-track shape shared by hls.js and the AniKitty player. */
 export type StreamAudioTrackLike = {
   name?: string;
   label?: string;
