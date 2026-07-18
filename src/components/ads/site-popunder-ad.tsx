@@ -11,7 +11,6 @@ import { useSiteAdsVisible } from "@/lib/ads/use-site-ads-visible";
 declare global {
   interface Window {
     aclib?: {
-      runBanner?: (opts: { zoneId: string }) => void;
       runPop?: (opts: { zoneId: string }) => void;
     };
   }
@@ -43,7 +42,7 @@ function waitForAclibPop(timeoutMs = 8_000): Promise<boolean> {
 
 /**
  * Adcash popunder — `aclib.runPop` once after aclib.js is ready.
- * Respects the same kill-switch / signed-in opt-out as banner slots.
+ * Respects the admin kill-switch; users cannot opt out.
  */
 export default function SitePopunderAd() {
   const visible = useSiteAdsVisible();

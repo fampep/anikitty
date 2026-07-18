@@ -142,7 +142,7 @@ export default async function RootLayout({
           </>
         )}
         <PublicEnvScript />
-        {/* Adcash lib — high in <head> per publisher install guide; banners/pop call run* after load. */}
+        {/* Adcash lib — high in <head> per publisher install guide; popunder calls runPop after load. */}
         <script id="aclib" type="text/javascript" src="https://acscdn.com/script/aclib.js" async />
         <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />

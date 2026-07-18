@@ -55,7 +55,7 @@ export const PERMISSION_DEFS: PermissionDef[] = [
   {
     id: "ads.ad_free",
     label: "Ad-free viewing",
-    description: "Banner ads are not shown for this role",
+    description: "Site ads are not shown for this role",
     group: "perks",
   },
 ];

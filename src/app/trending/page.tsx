@@ -11,7 +11,6 @@ import {
 import { IAnime } from "@/types/anime";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
-import SiteBannerAd from "@/components/ads/site-banner-ad";
 import { useEffect, useState } from "react";
 
 const AnimeSections = dynamic(() => import("@/components/home/anime-sections"), { ssr: false });
@@ -56,8 +55,6 @@ export default function TrendingPage() {
           {t("trending.subtitle")}
         </p>
       </Container>
-
-      <SiteBannerAd className="pb-4" />
 
       {isError && !critical ? (
         <QueryRetryPanel

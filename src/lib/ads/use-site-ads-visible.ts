@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSettingsStore } from "@/store/settings-store";
-import { getAdcashBannerZoneId, getAdcashPopZoneId } from "@/lib/ads/ad-config";
+import { getAdcashPopZoneId } from "@/lib/ads/ad-config";
 import { isAdPlacementAllowed } from "@/lib/ads/ad-placement";
 
 /** Cache longer when ads are on; keep kill-switch responsive when off. */
@@ -47,7 +47,7 @@ async function fetchGlobalAdsEnabled(): Promise<boolean> {
   return globalAdsInflight;
 }
 
-/** Whether a banner ad should render on the current page for this user. */
+/** Whether site ads (popunders) may run on the current page for this user. */
 export function useSiteAdsVisible(): boolean {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
@@ -77,8 +77,7 @@ export function useSiteAdsVisible(): boolean {
 
   if (!hydrated) return false;
   if (!isAdPlacementAllowed(pathname)) return false;
-  // Ads need at least one configured product (banner and/or popunder).
-  if (!getAdcashBannerZoneId() && !getAdcashPopZoneId()) return false;
+  if (!getAdcashPopZoneId()) return false;
   if (globalEnabled !== true) return false;
   // User preference cannot disable ads — only the admin kill-switch can.
   return true;

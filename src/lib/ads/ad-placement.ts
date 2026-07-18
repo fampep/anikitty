@@ -1,4 +1,4 @@
-/** Routes where banner ads should never appear. */
+/** Routes where site ads (popunders) should never run. */
 export const AD_EXCLUDED_PATH_PREFIXES = [
   "/profile",
   "/settings",

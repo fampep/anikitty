@@ -140,7 +140,7 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** Site banner ads preference — always forced on (users cannot disable). */
+  /** Site ads preference — always forced on (users cannot disable). Popunders only; banners removed. */
   showBannerAds: boolean;
   setShowBannerAds: (val: boolean) => void;
 

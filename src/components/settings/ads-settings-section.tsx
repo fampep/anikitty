@@ -88,7 +88,7 @@ export default function AdsSettingsSection() {
   const [cannotDisableOpen, setCannotDisableOpen] = useState(false);
 
   const handleToggle = (next: boolean) => {
-    // Always keep ads on — explain why if the user tries to turn them off.
+    // Always keep site ads on — explain why if the user tries to turn them off.
     setShowBannerAds(true);
     if (!next) {
       setCannotDisableOpen(true);
