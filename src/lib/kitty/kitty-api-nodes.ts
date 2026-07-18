@@ -1,8 +1,10 @@
 export type KittyApiNodeId =
   | "primary"
+  | "fallback"
   | "third-choice"
   | "fourth-choice"
-  | "fifth-choice";
+  | "fifth-choice"
+  | "sixth-choice";
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
@@ -23,11 +25,7 @@ export type KittyApiNodeMeta = {
  * even if a stale Coolify `NEXT_PUBLIC_KITTY_NODE_*` build arg still points at them.
  */
 const REMOVED_KITTY_HOST_MARKERS = [
-  "94-75-223-124", // Netherlands
-  "94.75.223.124",
-  "92-119-165-226", // Switzerland
-  "92.119.165.226",
-  "45-150-111-153", // retired cluster IP
+  "45-150-111-153", // retired Bulgaria IP (replaced by 131.123.42.153)
   "45.150.111.153",
 ] as const;
 
@@ -43,7 +41,6 @@ function nodeUrl(envValue: string | undefined, fallback: string): string {
   const raw = (envValue && envValue.trim()) || fallback;
   const trimmed = raw.trim().replace(/\/+$/, "");
   const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  // Stale Coolify args often still point primary at Netherlands after the cutover.
   if (isRemovedKittyApiHost(withProto)) {
     const safe = fallback.trim().replace(/\/+$/, "");
     return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
@@ -59,9 +56,11 @@ function nodeHost(url: string): string {
 // hardcoded. Each falls back to the current default when its var is unset.
 // NEXT_PUBLIC_* is inlined at build time, so set them as build args in Coolify.
 const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://kittyapi.176-125-240-251.sslip.io");
+const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, "https://kittyapi.92-119-165-226.sslip.io");
 const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "https://kittyapi.131-123-42-153.sslip.io");
 const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "https://kittyapi.23-111-15-143.sslip.io");
-const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "https://kittyapi.184-107-88-54.sslip.io");
+const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "https://kittyapi.94-75-223-124.sslip.io");
+const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, "https://kittyapi.184-107-88-54.sslip.io");
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
@@ -78,8 +77,20 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
       "Primary cluster node (Stockholm). AlexHost is Moldova-based (HQ Chisinau); this IP is geolocated to their Stockholm POP.",
   },
   {
-    id: "third-choice",
+    id: "fallback",
     index: 2,
+    label: "Switzerland",
+    ip: "92.119.165.226",
+    url: FALLBACK_URL,
+    host: nodeHost(FALLBACK_URL),
+    location: "Zug, Switzerland",
+    timezone: "Europe/Zurich",
+    operator: "LAIN / AS211507 (Julian Achter)",
+    note: "Restored secondary cluster node (Zug). Maps to API id `secondary`.",
+  },
+  {
+    id: "third-choice",
+    index: 3,
     label: "Bulgaria",
     ip: "131.123.42.153",
     url: THIRD_URL,
@@ -90,7 +101,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   },
   {
     id: "fourth-choice",
-    index: 3,
+    index: 4,
     label: "Singapore",
     ip: "23.111.15.143",
     url: FOURTH_URL,
@@ -101,14 +112,25 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   },
   {
     id: "fifth-choice",
-    index: 4,
-    label: "Canada",
-    ip: "184.107.88.54",
+    index: 5,
+    label: "Netherlands",
+    ip: "94.75.223.124",
     url: FIFTH_URL,
     host: nodeHost(FIFTH_URL),
+    location: "Netherlands",
+    timezone: "Europe/Amsterdam",
+    operator: "Fifth cluster node",
+  },
+  {
+    id: "sixth-choice",
+    index: 6,
+    label: "Canada",
+    ip: "184.107.88.54",
+    url: SIXTH_URL,
+    host: nodeHost(SIXTH_URL),
     location: "Montreal, Canada",
     timezone: "America/Toronto",
-    operator: "Fifth cluster node",
+    operator: "Sixth cluster node",
   },
 ];
 
@@ -117,12 +139,9 @@ export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
 
 /** Legacy node ids that may still be stored in local settings / prefs. */
 const LEGACY_KITTY_NODE_ALIASES: Record<string, KittyApiNodeId> = {
-  // Former Sweden slot before it became primary
-  fallback: "primary",
-  secondary: "primary",
+  // API registry id for Switzerland
+  secondary: "fallback",
   main: "primary",
-  // Old Canada id
-  "sixth-choice": "fifth-choice",
 };
 
 export function getKittyApiNode(id: KittyApiNodeId): KittyApiNodeMeta {
@@ -159,7 +178,10 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
   const aliased = LEGACY_KITTY_NODE_ALIASES[normalized];
   if (aliased) return aliased;
 
-  if (normalized === "fifth-choice" || normalized === "fifthchoice" || normalized === "5" || normalized === "6") {
+  if (normalized === "sixth-choice" || normalized === "sixthchoice" || normalized === "6") {
+    return "sixth-choice";
+  }
+  if (normalized === "fifth-choice" || normalized === "fifthchoice" || normalized === "5") {
     return "fifth-choice";
   }
   if (normalized === "fourth-choice" || normalized === "fourthchoice" || normalized === "4") {
@@ -168,7 +190,10 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
   if (normalized === "third-choice" || normalized === "thirdchoice" || normalized === "3") {
     return "third-choice";
   }
-  if (normalized === "primary" || normalized === "main" || normalized === "1" || normalized === "2") {
+  if (normalized === "fallback" || normalized === "secondary" || normalized === "2") {
+    return "fallback";
+  }
+  if (normalized === "primary" || normalized === "main" || normalized === "1") {
     return "primary";
   }
   return DEFAULT_KITTY_API_NODE_ID;

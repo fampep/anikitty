@@ -352,7 +352,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 43,
+      version: 44,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -565,6 +565,16 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 43) {
           // Ads are required site-wide — re-enable anyone who had them off.
           next.showBannerAds = true;
+        }
+        if (version < 44) {
+          // Switzerland + Netherlands restored; Canada moves fifth → sixth again.
+          const raw = typeof next.kittyProxyNode === "string" ? String(next.kittyProxyNode) : "";
+          if (raw === "fifth-choice") {
+            // While NL was removed, fifth-choice meant Montreal — remap to sixth.
+            next.kittyProxyNode = "sixth-choice";
+          } else {
+            next.kittyProxyNode = coerceKittyApiNodeId(raw);
+          }
         }
         return next as ISettingsStore;
       },

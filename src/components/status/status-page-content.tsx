@@ -66,6 +66,9 @@ const STATUS_META: Record<
 const LOCATION_FLAGS: Record<string, string> = {
   Germany: "🇩🇪",
   Sweden: "🇸🇪",
+  Switzerland: "🇨🇭",
+  "Zug, Switzerland": "🇨🇭",
+  Netherlands: "🇳🇱",
   Bulgaria: "🇧🇬",
   Singapore: "🇸🇬",
   Canada: "🇨🇦",
