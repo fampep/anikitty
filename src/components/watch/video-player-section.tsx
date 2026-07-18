@@ -1630,7 +1630,7 @@ const VideoPlayerSection = () => {
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:gap-2.5">
+    <div className="flex flex-col gap-3 sm:gap-3.5">
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} seekStepSeconds={seekStepSeconds} />
     {anilistId && episodeNumberParsed != null && (
       <SkipTimesSubmitDialog
@@ -1643,7 +1643,9 @@ const VideoPlayerSection = () => {
       />
     )}
 
-    <div className="watch-player-stage flex flex-col rounded-none sm:rounded-xl overflow-hidden ring-0 sm:ring-1 ring-border dark:ring-white/10 shadow-none sm:shadow-[0_28px_80px_-20px_rgba(0,0,0,0.75)] bg-black">
+    {/* Player + under-chrome + episode strip as one composition */}
+    <div className="watch-player-stack flex flex-col overflow-hidden rounded-none sm:rounded-xl ring-0 sm:ring-1 ring-border dark:ring-white/[0.09] shadow-none sm:shadow-[0_28px_80px_-24px_rgba(0,0,0,0.8)] bg-black">
+    <div className="watch-player-stage flex flex-col overflow-hidden bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold
           native fullscreen across episode transitions without dropping out. */}
       <div ref={playerWrapperRef} className="relative w-full bg-black">
@@ -1825,7 +1827,7 @@ const VideoPlayerSection = () => {
             )}
             {providerHasNativeSubs(provider) &&
               resolveServerCodename(provider, streamData?.server) && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-teal-500/10 border border-teal-500/20 text-teal-300/90">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-zinc-500/10 border border-zinc-400/20 text-zinc-300/90">
                   {resolveServerCodename(provider, streamData?.server)}
                 </span>
               )}
@@ -1840,7 +1842,7 @@ const VideoPlayerSection = () => {
                 {subtitleTracks.slice(0, 3).map((track, i) => (
                   <span
                     key={`${track.label ?? "sub"}-${i}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-teal-500/10 border border-teal-500/20 text-teal-300/90 truncate max-w-[120px]"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-500/10 border border-zinc-400/20 text-zinc-200/90 truncate max-w-[120px]"
                     title={track.label}
                   >
                     <Captions className="w-2.5 h-2.5 shrink-0" />
@@ -1861,6 +1863,8 @@ const VideoPlayerSection = () => {
     </div>
 
     {episodeBar}
+
+    </div>
 
     {w2gCode && w2g.isMember && (
       <W2gPanel

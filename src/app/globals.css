@@ -163,6 +163,17 @@ body {
     @apply border-t;
   }
 
+  /* Unified player + episode strip shell */
+  .watch-player-stack .watch-episode-strip {
+    @apply rounded-none border-0 border-t border-border/80 bg-card/80 backdrop-blur-sm;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+
+  .dark .watch-player-stack .watch-episode-strip {
+    @apply border-white/[0.08] bg-[#0a0a0c];
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
   .watch-episode-strip {
     @apply rounded-xl border border-border/80 bg-card/70 backdrop-blur-sm;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);

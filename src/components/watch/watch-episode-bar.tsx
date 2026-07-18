@@ -79,7 +79,7 @@ export default function WatchEpisodeBar({
 
   return (
     <div className="watch-episode-strip overflow-visible animate-in fade-in duration-300">
-      <div className="flex items-stretch min-h-[3rem] sm:min-h-[4.25rem]">
+      <div className="flex items-stretch min-h-[3.25rem] sm:min-h-[4.25rem]">
         <button
           type="button"
           onClick={onPrev}
@@ -150,7 +150,7 @@ export default function WatchEpisodeBar({
               {completed && (
                 <>
                   <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/20">·</span>
-                  <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-teal-400/75 uppercase">
+                  <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-zinc-300/80 uppercase">
                     <Check className="w-2.5 h-2.5" />
                     {t("watch.episodeWatched")}
                   </span>
@@ -185,7 +185,7 @@ export default function WatchEpisodeBar({
                   value={jumpValue}
                   onChange={(e) => setJumpValue(e.target.value)}
                   placeholder={t("watch.episodeJumpPlaceholder")}
-                  className="h-7 w-14 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.04] px-2 text-[11px] font-mono text-foreground dark:text-white/80 focus:outline-none focus:border-teal-400/35"
+                  className="h-7 w-14 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.04] px-2 text-[11px] font-mono text-foreground dark:text-white/80 focus:outline-none focus:border-zinc-400/40"
                   aria-label={t("watch.episodeJumpLabel")}
                 />
                 <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
@@ -207,7 +207,7 @@ export default function WatchEpisodeBar({
             {inProgress && (
               <div className="mt-2 h-1 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden max-w-xs">
                 <div
-                  className="h-full rounded-full bg-teal-500/75 transition-all duration-300"
+                  className="h-full rounded-full bg-zinc-400/80 transition-all duration-300"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>

@@ -62,25 +62,23 @@ export default function WatchCommentsPreview({
       onClick={onOpen}
       aria-label={subtitle}
       className={cn(
-        "w-full text-left rounded-xl border border-border dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.03] px-4 py-3.5",
-        "hover:bg-muted/50 dark:hover:bg-white/[0.05] hover:border-border dark:hover:border-white/14 transition-all group",
+        "w-full text-left flex items-center gap-3 rounded-xl border border-border/60 dark:border-white/[0.08] bg-muted/20 dark:bg-white/[0.025] px-3.5 py-3",
+        "hover:bg-muted/40 dark:hover:bg-white/[0.05] hover:border-border dark:hover:border-white/14 transition-colors group",
         className,
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 group-hover:border-teal-400/25 transition-colors">
-          <MessageSquare className="h-4 w-4 text-muted-foreground dark:text-white/55 group-hover:text-teal-300/80 transition-colors" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground dark:text-white leading-none">
-            {t("watch.tabs.comments")}
-          </p>
-          <p className="mt-1.5 text-[12px] text-muted-foreground dark:text-white/40 leading-snug">{subtitle}</p>
-        </div>
-        <span className="shrink-0 text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 group-hover:text-teal-300/70 transition-colors mt-0.5">
-          →
-        </span>
+      <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground dark:text-white/45 group-hover:text-zinc-300 transition-colors" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-foreground dark:text-white leading-none">
+          {t("watch.tabs.comments")}
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground dark:text-white/40 leading-snug truncate">
+          {subtitle}
+        </p>
       </div>
+      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/70 dark:text-white/25 group-hover:text-zinc-300/80 transition-colors">
+        →
+      </span>
     </button>
   );
 }

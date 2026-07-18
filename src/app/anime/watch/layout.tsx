@@ -396,12 +396,12 @@ const Layout = (props: Props) => {
       <div className="fixed inset-0 z-[35] bg-black pointer-events-none" aria-hidden />
     )}
     <Container className={cn(
-      "pb-16 pb-safe mt-[calc(var(--nav-total-height)+0.5rem)] sm:mt-[calc(var(--nav-total-height)+0.85rem)]",
+      "pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
       // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
     )}>
       {!theatreMode && (
-        <div className="flex items-end justify-between gap-3 mb-2.5 sm:mb-3 min-w-0">
+        <div className="flex items-end justify-between gap-3 mb-3 sm:mb-4 min-w-0">
           <AnimeClearLogo
             name={info.name}
             logoUrl={pickAnimeClearLogo(mappingData?.images)}
@@ -416,12 +416,12 @@ const Layout = (props: Props) => {
       {/* Main grid: player + sidebar */}
       <div
         className={cn(
-          "grid grid-cols-1 gap-3 sm:gap-4",
-          !theatreMode && "lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px] lg:gap-5",
+          "grid grid-cols-1 gap-4 sm:gap-5",
+          !theatreMode && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:gap-6 xl:gap-7",
         )}
       >
         {/* Left: player + episode info + tabs */}
-        <div className="flex flex-col gap-2.5 sm:gap-3 min-w-0">
+        <div className="flex flex-col gap-3 sm:gap-4 min-w-0">
           <div
             id="watch-player-root"
             className={cn(
@@ -437,14 +437,14 @@ const Layout = (props: Props) => {
           {!theatreMode && (
             <div
               id="watch-quick-nav"
-              className="sticky top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/95 dark:bg-[#050505]/95 backdrop-blur-md border-y border-border/50 dark:border-white/[0.05] py-1.5"
+              className="sticky top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-2"
             >
               <WatchQuickNav
                 activeTab={watchTab}
                 onTabChange={handleWatchTabChangeWithMobile}
                 animeId={info.id}
                 hasRelated={hasRelated}
-                className="mb-0 pb-0.5"
+                className="mb-0 pb-0"
               />
             </div>
           )}
@@ -459,8 +459,9 @@ const Layout = (props: Props) => {
               />
             )}
 
+          {/* Mobile comments entry — desktop uses the comments section below */}
           {currentEpisode && currentAnimeId && !theatreMode && (
-            <div className="hidden lg:block">
+            <div className="lg:hidden">
               <WatchCommentsPreview
                 animeId={currentAnimeId}
                 episodeId={episodeId}
@@ -481,16 +482,8 @@ const Layout = (props: Props) => {
             </button>
           )}
 
-          {/* Mobile: episode grid + comments */}
+          {/* Mobile: episode playlist */}
           <div id="watch-mobile-playlist" className={cn("flex flex-col gap-3 lg:hidden scroll-mt-[calc(var(--nav-total-height)+3.5rem)]", theatreMode && "hidden")}>
-            {currentEpisode && currentAnimeId && !theatreMode && (
-              <WatchCommentsPreview
-                animeId={currentAnimeId}
-                episodeId={episodeId}
-                episodeNumber={currentEpisode.number}
-                onOpen={() => openComments("episode")}
-              />
-            )}
             {episodes && (
               <EpisodePlaylist
                 variant="watch"
@@ -506,11 +499,11 @@ const Layout = (props: Props) => {
           {!theatreMode && (
           <>
           {/* Comments (desktop — mobile uses the bottom sheet) */}
-          <section id="watch-comments-panel" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] hidden lg:block">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <section id="watch-comments-panel" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] hidden lg:block space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40" />
-                <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.comments")}</h2>
+                <h2 className="text-[15px] font-semibold tracking-tight text-foreground/90 dark:text-white/85">{t("watch.tabs.comments")}</h2>
               </div>
               {currentEpisode && (
                 <CommentScopeTabs
@@ -521,7 +514,7 @@ const Layout = (props: Props) => {
               )}
             </div>
             {currentAnimeId && currentEpisode && (
-              <div className="site-panel p-5 sm:p-6">
+              <div className="rounded-xl border border-border/60 dark:border-white/[0.07] bg-card/40 dark:bg-white/[0.02] p-4 sm:p-5">
                 <CommentSection
                   key={`${currentAnimeId}-${desktopCommentScope}-${episodeId ?? "none"}`}
                   animeId={currentAnimeId}
@@ -539,16 +532,16 @@ const Layout = (props: Props) => {
           </section>
 
           {/* Info section */}
-          <section id="watch-tab-info" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-5 mt-1">
+          <section id="watch-tab-info" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-4 mt-1">
             <div className="flex items-center gap-2.5">
               <Info className="w-4 h-4 text-muted-foreground dark:text-white/40" />
-              <h2 className="text-base font-bold text-foreground/90 dark:text-white/80">{t("watch.tabs.info")}</h2>
+              <h2 className="text-[15px] font-semibold tracking-tight text-foreground/90 dark:text-white/85">{t("watch.tabs.info")}</h2>
             </div>
 
-            <div className="site-panel p-5 sm:p-6 space-y-5">
+            <div className="rounded-xl border border-border/60 dark:border-white/[0.07] bg-card/40 dark:bg-white/[0.02] p-4 sm:p-5 space-y-5">
               {/* Title · native · genres */}
               <div>
-                <h3 className="text-lg sm:text-xl font-black tracking-tight text-foreground dark:text-white">{info.name}</h3>
+                <h3 className="text-lg sm:text-xl font-bold tracking-tight text-foreground dark:text-white">{info.name}</h3>
                 {moreInfo?.japanese ? (
                   <p className="mt-0.5 text-[13px] italic text-muted-foreground/70 dark:text-white/35">{moreInfo.japanese as string}</p>
                 ) : null}
@@ -558,7 +551,7 @@ const Layout = (props: Props) => {
                       <Link
                         key={g}
                         href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
-                        className="rounded-full border border-amber-500/25 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-amber-200/90 transition-colors hover:bg-amber-500/15"
+                        className="rounded-md border border-border/70 dark:border-white/10 bg-muted/40 dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-muted-foreground dark:text-white/55 transition-colors hover:bg-muted/70 dark:hover:bg-white/[0.08] hover:text-foreground dark:hover:text-white/80"
                       >
                         {g}
                       </Link>
@@ -640,9 +633,9 @@ const Layout = (props: Props) => {
 
         {/* Right sidebar: now-watching + episodes (desktop) */}
         {!theatreMode && (
-          <div className="hidden lg:flex flex-col gap-3 lg:sticky lg:top-[calc(var(--nav-total-height)+0.5rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1.25rem)] lg:overflow-y-auto scrollbar-hide">
+          <aside className="hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm">
             {currentEpisode && (
-              <div className="rounded-xl border border-border/70 dark:border-white/[0.08] bg-card/60 dark:bg-white/[0.025] p-3.5 space-y-3">
+              <div className="shrink-0 border-b border-border/60 dark:border-white/[0.07] p-3.5 space-y-3">
                 {/* Series header */}
                 <div className="flex gap-3">
                   {info.poster && (
@@ -650,18 +643,18 @@ const Layout = (props: Props) => {
                     <img
                       src={info.poster}
                       alt={info.name}
-                      className="w-11 h-[3.75rem] shrink-0 rounded-md object-cover ring-1 ring-border dark:ring-white/10"
+                      className="w-10 h-[3.4rem] shrink-0 rounded-md object-cover ring-1 ring-border dark:ring-white/10"
                     />
                   )}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/70 dark:text-white/30">
                       {t("watch.nowWatching")}
                     </p>
-                    <p className="mt-0.5 text-sm font-bold leading-tight text-foreground/90 dark:text-white/90 line-clamp-2">
+                    <p className="mt-0.5 text-[13px] font-semibold leading-tight text-foreground/90 dark:text-white/90 line-clamp-2">
                       {info.name}
                     </p>
                     <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-teal-500/12 border border-teal-500/25 text-teal-200/90">
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-zinc-500/15 border border-zinc-400/20 text-zinc-200/90">
                         EP {currentEpisode.number}
                       </span>
                       <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-foreground/[0.06] border border-border dark:bg-white/[0.06] dark:border-white/10 text-muted-foreground dark:text-white/60">
@@ -679,7 +672,7 @@ const Layout = (props: Props) => {
                   </div>
                   <div className="h-1 w-full overflow-hidden rounded-full bg-accent dark:bg-white/10">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-teal-500/80 to-amber-400/70 transition-[width] duration-500 ease-out"
+                      className="h-full rounded-full bg-zinc-300/80 dark:bg-zinc-400/70 transition-[width] duration-500 ease-out"
                       style={{ width: `${Math.min(100, (currentEpisode.number / Math.max(totalEps, 1)) * 100)}%` }}
                     />
                   </div>
@@ -687,7 +680,7 @@ const Layout = (props: Props) => {
 
                 {/* Current episode title */}
                 {currentEpisode.title && (
-                  <p className="text-[12px] leading-snug text-foreground/75 dark:text-white/60">
+                  <p className="text-[12px] leading-snug text-foreground/75 dark:text-white/55 line-clamp-2">
                     <span className="mr-1 font-mono text-muted-foreground/60 dark:text-white/30">{currentEpisode.number}.</span>
                     {currentEpisode.title}
                   </p>
@@ -702,22 +695,24 @@ const Layout = (props: Props) => {
             )}
 
             {episodes && (
-              <EpisodePlaylist
-                variant="sidebar"
-                animeId={animeId as string}
-                title={info.name ?? (moreInfo?.japanese as string)}
-                subOrDub={stats?.episodes}
-                episodes={episodes}
-                isLoading={episodeLoading}
-              />
+              <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+                <EpisodePlaylist
+                  variant="sidebar"
+                  animeId={animeId as string}
+                  title={info.name ?? (moreInfo?.japanese as string)}
+                  subOrDub={stats?.episodes}
+                  episodes={episodes}
+                  isLoading={episodeLoading}
+                />
+              </div>
             )}
-          </div>
+          </aside>
         )}
       </div>
 
       {/* ── Full-width sections below the player ── */}
       {!theatreMode && (
-      <div className="mt-7 sm:mt-9 space-y-10">
+      <div className="mt-8 sm:mt-10 space-y-10">
         {hasRelated && (
           <section id="watch-tab-related" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-8">
             <AnimeCarousel title={t("common.alsoWatch")} anime={(anime?.relatedAnimes ?? []) as IAnime[]} />
@@ -795,22 +790,18 @@ function EpisodeNavThumb({
 
 function WatchLayoutSkeleton() {
   return (
-    <Container className="mt-16 sm:mt-20 pb-16 pb-safe animate-pulse">
-      <div className="flex items-end justify-between gap-3 mb-2.5">
+    <Container className="mt-16 sm:mt-20 pb-20 pb-safe animate-pulse">
+      <div className="flex items-end justify-between gap-3 mb-4">
         <div className="h-8 w-48 max-w-[60%] rounded-lg bg-muted/50 dark:bg-white/[0.05]" />
         <div className="h-9 w-28 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-4 lg:gap-5">
-        <div className="flex flex-col gap-2.5">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] gap-5 lg:gap-6">
+        <div className="flex flex-col gap-3">
           <div className="aspect-video rounded-xl bg-muted/50 dark:bg-white/[0.05]" />
-          <div className="h-16 rounded-xl bg-muted/40 dark:bg-white/[0.04]" />
-          <div className="flex gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-8 w-20 rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
-            ))}
-          </div>
+          <div className="h-14 rounded-xl bg-muted/40 dark:bg-white/[0.04]" />
+          <div className="h-9 w-64 max-w-full rounded-lg bg-muted/40 dark:bg-white/[0.04]" />
         </div>
-        <div className="hidden lg:block h-80 rounded-xl bg-muted/30 dark:bg-white/[0.03]" />
+        <div className="hidden lg:block h-[min(70vh,560px)] rounded-xl bg-muted/30 dark:bg-white/[0.03]" />
       </div>
     </Container>
   );

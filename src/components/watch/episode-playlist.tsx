@@ -185,14 +185,17 @@ const EpisodePlaylist = ({
   return (
     <div
       className={cn(
-        "col-span-1 flex flex-col w-full site-panel overflow-hidden",
-        isWatch ? "min-h-0" : "min-h-[240px] max-h-[65vh] lg:max-h-[min(78vh,760px)]",
+        "col-span-1 flex flex-col w-full overflow-hidden",
+        // Sidebar sits inside the watch aside shell — no second panel frame.
+        isWatch
+          ? "site-panel min-h-0"
+          : "min-h-0 flex-1 border-0 bg-transparent rounded-none shadow-none",
       )}
     >
       <div
         className={cn(
-          "shrink-0 border-b border-border dark:border-white/8",
-          isWatch ? "px-3 py-3 space-y-2.5" : "px-3.5 pt-3 pb-2.5 space-y-2.5",
+          "shrink-0 border-b border-border dark:border-white/[0.07]",
+          isWatch ? "px-3 py-3 space-y-2.5" : "px-3.5 pt-3 pb-2.5 space-y-2",
         )}
       >
         {isWatch ? (
@@ -353,8 +356,8 @@ const EpisodePlaylist = ({
       <div
         ref={scrollContainerRef}
         className={cn(
-          "flex-1 overflow-y-auto py-1.5 scroll-momentum",
-          isWatch ? "max-h-[min(52vh,28rem)]" : undefined,
+          "flex-1 overflow-y-auto py-1.5 scroll-momentum scrollbar-hide",
+          isWatch ? "max-h-[min(52vh,28rem)]" : "min-h-0",
         )}
       >
         {isLoading ? (
