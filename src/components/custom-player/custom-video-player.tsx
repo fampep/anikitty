@@ -63,6 +63,7 @@ import {
   FullscreenIcon,
   MoreIcon,
   PauseIcon,
+  PipIcon,
   PlayIcon,
   PlayOutlineIcon,
   SeekBackIcon,
@@ -155,18 +156,23 @@ const SEEK_STEP_FINE = 5;
 const IDLE_MS = 2800;
 const CLICK_DELAY_MS = 280;
 const SEEK_FLASH_MS = 700;
-const GESTURE_HINT_MS = 750;
+const GESTURE_HINT_MS = 900;
+const BUFFER_SPINNER_MS = 280;
 const TOUCH_DOUBLE_TAP_MS = 280;
 const TOUCH_DOUBLE_TAP_PX = 36;
 const LONG_PRESS_MS = 420;
 const HOLD_SPEED_RATE = 2;
 const PREFS_SAVE_MS = 400;
+/** Shift-scrub maps full track width to this many seconds either side. */
+const FINE_SCRUB_WINDOW_SECS = 45;
 
 type BufferedRange = { start: number; end: number };
 
 type GestureHint = {
   label: string;
   detail?: string;
+  /** Optional 0–1 meter under the hint (volume / brightness). */
+  meter?: number;
 };
 
 type WebkitVideo = HTMLVideoElement & {
@@ -345,6 +351,16 @@ export function AniKittyPlayer({
   const wasPlayingBeforeHideRef = useRef(false);
   const scrubRafRef = useRef<number | null>(null);
   const scrubTargetRef = useRef<number | null>(null);
+  const scrubOriginRef = useRef<{
+    time: number;
+    clientX: number;
+    fine: boolean;
+  } | null>(null);
+  const seekAccumRef = useRef<{
+    side: "left" | "right";
+    total: number;
+    resetAt: number;
+  } | null>(null);
   const prefsSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdSpeedActiveRef = useRef(false);
   const rateBeforeHoldRef = useRef(1);
@@ -436,6 +452,7 @@ export function AniKittyPlayer({
     ratio: number;
   } | null>(null);
   const [buffering, setBuffering] = useState(false);
+  const [spinnerArmed, setSpinnerArmed] = useState(false);
   const [sourceLoading, setSourceLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [seekFlash, setSeekFlash] = useState<"left" | "right" | null>(null);
@@ -594,6 +611,42 @@ export function AniKittyPlayer({
     }, GESTURE_HINT_MS);
   }, []);
 
+  // Debounce the buffering spinner so quick seeks don't flash; skip while scrubbing.
+  useEffect(() => {
+    if (sourceLoading) {
+      setSpinnerArmed(true);
+      return;
+    }
+    if (!buffering || seeking) {
+      setSpinnerArmed(false);
+      return;
+    }
+    const timer = setTimeout(() => setSpinnerArmed(true), BUFFER_SPINNER_MS);
+    return () => clearTimeout(timer);
+  }, [buffering, sourceLoading, seeking]);
+
+  // Soft-retry the stream when connectivity returns after a fatal error.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncOffline = () => setIsOffline(!window.navigator.onLine);
+    const onOnline = () => {
+      setIsOffline(false);
+      if (!playbackIssue) return;
+      mediaRetryRef.current = false;
+      setPlaybackIssue(null);
+      setAttachNonce((n) => n + 1);
+      showGestureHint({ label: "Back online", detail: "Retrying" });
+    };
+    const onOffline = () => setIsOffline(true);
+    syncOffline();
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [playbackIssue, showGestureHint]);
+
   bumpControlsRef.current = bumpControls;
   showGestureHintRef.current = showGestureHint;
 
@@ -603,18 +656,6 @@ export function AniKittyPlayer({
       prefsSaveTimerRef.current = null;
       saveCustomPlayerPrefs(patch);
     }, PREFS_SAVE_MS);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const syncOffline = () => setIsOffline(!window.navigator.onLine);
-    syncOffline();
-    window.addEventListener("online", syncOffline);
-    window.addEventListener("offline", syncOffline);
-    return () => {
-      window.removeEventListener("online", syncOffline);
-      window.removeEventListener("offline", syncOffline);
-    };
   }, []);
 
   useEffect(() => {
@@ -695,14 +736,14 @@ export function AniKittyPlayer({
     }
     exitPictureInPictureSafe(video);
     bumpControlsRef.current();
-    showGestureHintRef.current({ label: "Castingâ€¦", detail: "Chromecast" });
+    showGestureHintRef.current({ label: "Casting…", detail: "Chromecast" });
   }, []);
 
   const onCastError = useCallback((message: string) => {
     bumpControlsRef.current();
     showGestureHintRef.current({
       label: "Cast failed",
-      detail: message.length > 72 ? `${message.slice(0, 72)}â€¦` : message,
+      detail: message.length > 72 ? `${message.slice(0, 72)}…` : message,
     });
   }, []);
 
@@ -1147,7 +1188,11 @@ export function AniKittyPlayer({
         }
       }
     };
-    const onSeeking = () => setBuffering(true);
+    const onSeeking = () => {
+      // Intentional scrub already shows preview — avoid spinner flash.
+      if (seekingRef.current) return;
+      setBuffering(true);
+    };
     const onSeeked = () => {
       if (!video.paused && video.readyState >= 3) setBuffering(false);
     };
@@ -1338,7 +1383,7 @@ export function AniKittyPlayer({
 
     const tryAutoplay = () => {
       void video.play().catch(() => {
-        // Autoplay blocked â€” user must tap play (expected on mobile).
+        // Autoplay blocked — user must tap play (expected on mobile).
       });
     };
 
@@ -1563,34 +1608,44 @@ export function AniKittyPlayer({
 
   const seekBy = useCallback(
     (delta: number, opts?: { hint?: boolean }) => {
-      if (castingRef.current) {
-        const base = currentTime;
-        const max = effectiveDuration || base + Math.abs(delta);
-        const next = clamp(base + delta, 0, max);
-        castSeekTo(next);
-        setCurrentTime(next);
-        if (opts?.hint !== false) {
-          const abs = Math.abs(Math.round(delta));
-          showGestureHint({
-            label: delta >= 0 ? `+${abs}s` : `âˆ’${abs}s`,
-          });
+      const applyLocal = () => {
+        if (castingRef.current) {
+          const base = currentTime;
+          const max = effectiveDuration || base + Math.abs(delta);
+          const next = clamp(base + delta, 0, max);
+          castSeekTo(next);
+          setCurrentTime(next);
+          return;
         }
-        bumpControls();
-        return;
-      }
-      const video = videoRef.current;
-      if (!video) return;
-      const next = clamp(
-        video.currentTime + delta,
-        0,
-        Number.isFinite(video.duration) ? video.duration : video.currentTime + delta,
-      );
-      video.currentTime = next;
-      setCurrentTime(next);
+        const video = videoRef.current;
+        if (!video) return;
+        const next = clamp(
+          video.currentTime + delta,
+          0,
+          Number.isFinite(video.duration)
+            ? video.duration
+            : video.currentTime + delta,
+        );
+        video.currentTime = next;
+        setCurrentTime(next);
+      };
+      applyLocal();
       if (opts?.hint !== false) {
-        const abs = Math.abs(Math.round(delta));
+        const side: "left" | "right" = delta >= 0 ? "right" : "left";
+        const stepAbs = Math.abs(Math.round(delta));
+        const now = Date.now();
+        const prev = seekAccumRef.current;
+        const total =
+          prev && prev.side === side && now < prev.resetAt
+            ? prev.total + stepAbs
+            : stepAbs;
+        seekAccumRef.current = {
+          side,
+          total,
+          resetAt: now + SEEK_FLASH_MS + 120,
+        };
         showGestureHint({
-          label: delta >= 0 ? `+${abs}s` : `âˆ’${abs}s`,
+          label: delta >= 0 ? `+${total}s` : `−${total}s`,
         });
       }
       bumpControls();
@@ -1640,27 +1695,52 @@ export function AniKittyPlayer({
     [bumpControls, seekToImmediate],
   );
 
-  const toggleMute = useCallback(() => {
-    if (castingRef.current) {
-      const next = effectiveMuted ? volumeBeforeMuteRef.current || 0.8 : 0;
-      if (!effectiveMuted) volumeBeforeMuteRef.current = castRemoteVolume || 1;
-      castSetVolume(next);
+  const toggleMute = useCallback(
+    (opts?: { hint?: boolean }) => {
+      if (castingRef.current) {
+        const next = effectiveMuted ? volumeBeforeMuteRef.current || 0.8 : 0;
+        if (!effectiveMuted) volumeBeforeMuteRef.current = castRemoteVolume || 1;
+        castSetVolume(next);
+        if (opts?.hint) {
+          showGestureHint({
+            label: next === 0 ? "Muted" : "Unmuted",
+            meter: next === 0 ? 0 : next,
+          });
+        }
+        bumpControls();
+        return;
+      }
+      const video = videoRef.current;
+      if (!video) return;
+      if (video.muted || video.volume === 0) {
+        video.muted = false;
+        video.volume = volumeBeforeMuteRef.current || 1;
+        schedulePrefsSave({ muted: false, volume: video.volume });
+        if (opts?.hint) {
+          showGestureHint({
+            label: "Unmuted",
+            meter: video.volume,
+          });
+        }
+      } else {
+        volumeBeforeMuteRef.current = video.volume || 1;
+        video.muted = true;
+        schedulePrefsSave({ muted: true, volume: volumeBeforeMuteRef.current });
+        if (opts?.hint) {
+          showGestureHint({ label: "Muted", meter: 0 });
+        }
+      }
       bumpControls();
-      return;
-    }
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.muted || video.volume === 0) {
-      video.muted = false;
-      video.volume = volumeBeforeMuteRef.current || 1;
-      schedulePrefsSave({ muted: false, volume: video.volume });
-    } else {
-      volumeBeforeMuteRef.current = video.volume || 1;
-      video.muted = true;
-      schedulePrefsSave({ muted: true, volume: volumeBeforeMuteRef.current });
-    }
-    bumpControls();
-  }, [bumpControls, castRemoteVolume, castSetVolume, effectiveMuted, schedulePrefsSave]);
+    },
+    [
+      bumpControls,
+      castRemoteVolume,
+      castSetVolume,
+      effectiveMuted,
+      schedulePrefsSave,
+      showGestureHint,
+    ],
+  );
 
   const setVolumeLevel = useCallback(
     (level: number, opts?: { hint?: boolean }) => {
@@ -1672,6 +1752,7 @@ export function AniKittyPlayer({
           showGestureHint({
             label: "Volume",
             detail: `${Math.round(next * 100)}%`,
+            meter: next,
           });
         }
         bumpControls();
@@ -1687,6 +1768,7 @@ export function AniKittyPlayer({
         showGestureHint({
           label: "Volume",
           detail: `${Math.round(next * 100)}%`,
+          meter: next,
         });
       }
       bumpControls();
@@ -1704,6 +1786,7 @@ export function AniKittyPlayer({
         showGestureHint({
           label: "Brightness",
           detail: `${Math.round(next * 100)}%`,
+          meter: clamp((next - 0.4) / 1.2, 0, 1),
         });
       }
       bumpControls();
@@ -1770,11 +1853,13 @@ export function AniKittyPlayer({
     try {
       if (document.pictureInPictureElement === video) {
         await document.exitPictureInPicture();
+        showGestureHint({ label: "PiP off" });
         bumpControls();
         return;
       }
       if (video.webkitPresentationMode === "picture-in-picture") {
         video.webkitSetPresentationMode?.("inline");
+        showGestureHint({ label: "PiP off" });
         bumpControls();
         return;
       }
@@ -1799,12 +1884,14 @@ export function AniKittyPlayer({
       } else if (typeof wk.webkitSetPresentationMode === "function") {
         wk.webkitSetPresentationMode("picture-in-picture");
       }
+      showGestureHint({ label: "PiP on" });
     } catch {
       // Soft-fail: keep the control available for a later gesture.
       try {
         const wk = video as WebkitVideo;
         if (typeof wk.webkitSetPresentationMode === "function") {
           wk.webkitSetPresentationMode("picture-in-picture");
+          showGestureHint({ label: "PiP on" });
           bumpControls();
           return;
         }
@@ -1813,7 +1900,7 @@ export function AniKittyPlayer({
       }
     }
     bumpControls();
-  }, [bumpControls, pipSupported, pipBlocked]);
+  }, [bumpControls, pipSupported, pipBlocked, showGestureHint]);
 
   const handleShare = useCallback(() => {
     bumpControls();
@@ -1837,7 +1924,7 @@ export function AniKittyPlayer({
       }
       if (opts?.hint) {
         showGestureHint({
-          label: rate === 1 ? "Normal" : `${rate}Ã—`,
+          label: rate === 1 ? "Normal" : `${rate}×`,
           detail: "Speed",
         });
       }
@@ -1897,7 +1984,7 @@ export function AniKittyPlayer({
     holdSpeedActiveRef.current = true;
     rateBeforeHoldRef.current = playbackRateRef.current || 1;
     video.playbackRate = HOLD_SPEED_RATE;
-    showGestureHint({ label: `${HOLD_SPEED_RATE}Ã—`, detail: "Hold" });
+    showGestureHint({ label: `${HOLD_SPEED_RATE}×`, detail: "Hold" });
   }, [showGestureHint]);
 
   const endHoldSpeed = useCallback(() => {
@@ -1909,7 +1996,7 @@ export function AniKittyPlayer({
     playbackRateRef.current = restore;
     setPlaybackRateState(restore);
     showGestureHint({
-      label: restore === 1 ? "Normal" : `${restore}Ã—`,
+      label: restore === 1 ? "Normal" : `${restore}×`,
       detail: "Speed",
     });
   }, [showGestureHint]);
@@ -1986,6 +2073,7 @@ export function AniKittyPlayer({
     if (captionOptions.length === 0) return;
     if (selectedCaptionId) {
       selectCaption(null);
+      showGestureHint({ label: "Captions off" });
       return;
     }
     const preferred =
@@ -1995,7 +2083,10 @@ export function AniKittyPlayer({
       captionOptions[0]?.id ||
       null;
     selectCaption(preferred);
-  }, [captionOptions, selectCaption, selectedCaptionId]);
+    const label =
+      captionOptions.find((c) => c.id === preferred)?.label ?? "On";
+    showGestureHint({ label: "Captions", detail: label });
+  }, [captionOptions, selectCaption, selectedCaptionId, showGestureHint]);
 
   const openCaptionsPicker = useCallback(() => {
     if (captionOptions.length <= 1) return;
@@ -2257,7 +2348,7 @@ export function AniKittyPlayer({
         case "m":
         case "M":
           e.preventDefault();
-          toggleMute();
+          toggleMute({ hint: true });
           break;
         case "c":
         case "C":
@@ -2266,6 +2357,30 @@ export function AniKittyPlayer({
             toggleCaptions();
           }
           break;
+        case "i":
+        case "I":
+          if (pipSupported && !pipBlocked) {
+            e.preventDefault();
+            void togglePip();
+          }
+          break;
+        case "s":
+        case "S": {
+          if (!activeSkip) break;
+          const interval =
+            activeSkip === "intro"
+              ? skipTimesRef.current?.intro
+              : skipTimesRef.current?.outro;
+          if (!interval || !(interval.end > interval.start)) break;
+          e.preventDefault();
+          seekTo(interval.end);
+          setActiveSkip(null);
+          showGestureHint({
+            label:
+              activeSkip === "intro" ? "Intro skipped" : "Credits skipped",
+          });
+          break;
+        }
         case "Escape":
           if (volumeOpen || moreOpen || captionsOpen) {
             e.preventDefault();
@@ -2301,6 +2416,12 @@ export function AniKittyPlayer({
     toggleCaptions,
     nudgePlaybackRate,
     seekToPercent,
+    pipSupported,
+    pipBlocked,
+    togglePip,
+    activeSkip,
+    seekTo,
+    showGestureHint,
   ]);
 
   const showMiniProgress =
@@ -2316,6 +2437,7 @@ export function AniKittyPlayer({
 
   const progressRatio =
     effectiveDuration > 0 ? clamp(displayTime / effectiveDuration, 0, 1) : 0;
+  const knobRatio = hoverPreview?.ratio ?? progressRatio;
   const hoverSkip = hoverPreview
     ? segmentAtTime(skipSegments, hoverPreview.time)
     : undefined;
@@ -2333,9 +2455,10 @@ export function AniKittyPlayer({
     : "kitty-overlay--base";
   const showSpinner =
     !casting &&
-    (sourceLoading || buffering) &&
+    spinnerArmed &&
     (playing || hasStarted || sourceLoading) &&
-    !playbackIssue;
+    !playbackIssue &&
+    !seeking;
   const showCenterPlay =
     !casting &&
     !effectivePlaying &&
@@ -2345,9 +2468,24 @@ export function AniKittyPlayer({
   const activeServerQuality =
     serverQualities.find((q) => q.file === activeSrc || q.file === src) ?? null;
 
-  const timeFromPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
+  const timeFromPointer = (
+    e: ReactPointerEvent<HTMLDivElement>,
+    opts?: { fine?: boolean },
+  ) => {
     const el = progressRef.current ?? e.currentTarget;
     const rect = el.getBoundingClientRect();
+    const fine = opts?.fine ?? scrubOriginRef.current?.fine ?? false;
+    const origin = scrubOriginRef.current;
+    if (fine && origin && effectiveDuration > 0) {
+      const dx = e.clientX - origin.clientX;
+      const delta =
+        (dx / Math.max(rect.width, 1)) * (FINE_SCRUB_WINDOW_SECS * 2);
+      const time = clamp(origin.time + delta, 0, effectiveDuration);
+      return {
+        time,
+        ratio: clamp(time / effectiveDuration, 0, 1),
+      };
+    }
     const ratio = clamp((e.clientX - rect.left) / Math.max(rect.width, 1), 0, 1);
     return { time: ratio * effectiveDuration, ratio };
   };
@@ -2440,7 +2578,7 @@ export function AniKittyPlayer({
         ))}
       </video>
 
-      {/* Casting handoff surface â€” sparse status, not a card stack */}
+      {/* Casting handoff surface — sparse status, not a card stack */}
       {casting || castConnecting ? (
         <div
           className="pointer-events-none absolute inset-0 z-[15] flex flex-col items-center justify-center gap-2 bg-black/35"
@@ -2448,7 +2586,7 @@ export function AniKittyPlayer({
         >
           <CastConnectedIcon className="h-10 w-10 text-white/90" />
           <p className="text-[13px] font-medium tracking-wide text-white">
-            {castConnecting ? "Connectingâ€¦" : "Castingâ€¦"}
+            {castConnecting ? "Connecting…" : "Casting…"}
           </p>
           {castDeviceName ? (
             <p className="text-[11px] text-white/55">{castDeviceName}</p>
@@ -2559,6 +2697,19 @@ export function AniKittyPlayer({
               {gestureHint.detail}
             </p>
           ) : null}
+          {gestureHint?.meter != null ? (
+            <div
+              className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-white/20"
+              aria-hidden
+            >
+              <div
+                className="h-full rounded-full bg-white/90 transition-[width] duration-75"
+                style={{
+                  width: `${Math.round(clamp(gestureHint.meter, 0, 1) * 100)}%`,
+                }}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -2587,17 +2738,17 @@ export function AniKittyPlayer({
           />
           {sourceLoading && !hasStarted && !playbackIssue ? (
             <span className="text-[11px] font-medium tracking-wide text-white/70">
-              Loading streamâ€¦
+              Loading stream…
             </span>
           ) : buffering && hasStarted ? (
             <span className="text-[11px] font-medium tracking-wide text-white/55">
-              Bufferingâ€¦
+              Buffering…
             </span>
           ) : null}
         </div>
       </div>
 
-      {/* Center play overlay â€” smooth scale-in when paused */}
+      {/* Center play overlay — smooth scale-in when paused */}
       <button
         type="button"
         aria-label="Play"
@@ -2672,7 +2823,7 @@ export function AniKittyPlayer({
         </div>
       ) : null}
 
-      {/* Bottom chrome â€” sparse ArtPlayer-like bar */}
+      {/* Bottom chrome — sparse ArtPlayer-like bar */}
       <div
         className={cn(
           "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-opacity duration-300 ease-out",
@@ -2691,7 +2842,7 @@ export function AniKittyPlayer({
               "pb-[max(0.35rem,env(safe-area-inset-bottom))] pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))]",
             )}
           >
-            {/* Progress â€” full content width; tall touch target; thin visual line */}
+            {/* Progress — full content width; tall touch target; thin visual line */}
             <div
               ref={progressRef}
               role="slider"
@@ -2708,10 +2859,25 @@ export function AniKittyPlayer({
                 seekingRef.current = true;
                 setSeeking(true);
                 bumpControls();
-                const { time, ratio } = timeFromPointer(e);
+                const fine = e.shiftKey;
+                const startTime =
+                  videoRef.current?.currentTime ??
+                  currentTime;
+                scrubOriginRef.current = {
+                  time: startTime,
+                  clientX: e.clientX,
+                  fine,
+                };
+                const { time, ratio } = timeFromPointer(e, { fine });
                 setSeekPreview(time);
                 setHoverPreview({ time, ratio });
                 seekTo(time, { smooth: true });
+                if (fine) {
+                  showGestureHint({
+                    label: "Fine scrub",
+                    detail: `±${FINE_SCRUB_WINDOW_SECS}s`,
+                  });
+                }
               }}
               onPointerMove={(e) => {
                 if (seekingRef.current) e.preventDefault();
@@ -2733,6 +2899,7 @@ export function AniKittyPlayer({
                   seekTo(time);
                 }
                 seekingRef.current = false;
+                scrubOriginRef.current = null;
                 setSeeking(false);
                 setSeekPreview(null);
                 if (e.pointerType !== "mouse") setHoverPreview(null);
@@ -2740,6 +2907,7 @@ export function AniKittyPlayer({
               }}
               onPointerCancel={() => {
                 seekingRef.current = false;
+                scrubOriginRef.current = null;
                 setSeeking(false);
                 setSeekPreview(null);
                 setHoverPreview(null);
@@ -2780,12 +2948,15 @@ export function AniKittyPlayer({
                 />
               ) : null}
               {/*
-                Avoid translateY on the track itself â€” % widths / scaleX fills
+                Avoid translateY on the track itself — % widths / scaleX fills
                 inside transformed parents are unreliable on mobile Firefox.
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
-              <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] bg-white/22 sm:h-[2px] sm:-mt-px group-hover/seek:h-[4px] group-hover/seek:-mt-0.5">
-                {/* Buffered ranges â€” subtle ahead-of-playhead fill */}
+              <div className={cn(
+                "pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] bg-white/22 sm:h-[2px] sm:-mt-px group-hover/seek:h-[4px] group-hover/seek:-mt-0.5",
+                seeking && "h-[4px] -mt-0.5 sm:h-[4px] sm:-mt-0.5",
+              )}>
+                {/* Buffered ranges — subtle ahead-of-playhead fill */}
                 {effectiveDuration > 0 && !casting
                   ? bufferedRanges.map((range, i) => {
                       const left = (range.start / effectiveDuration) * 100;
@@ -2808,7 +2979,7 @@ export function AniKittyPlayer({
                   className="absolute inset-y-0 left-0 z-[2] w-full origin-left bg-white"
                   style={{ transform: `scaleX(${progressRatio})` }}
                 />
-                {/* Skip boundary ticks â€” thin notches at intro/outro start & end */}
+                {/* Skip boundary ticks — thin notches at intro/outro start & end */}
                 {effectiveDuration > 0
                   ? skipSegments.flatMap((seg) =>
                       (
@@ -2832,15 +3003,17 @@ export function AniKittyPlayer({
                     )
                   : null}
               </div>
-              {/* Scrub knob â€” outside overflow:hidden track so it stays visible */}
+              {/* Scrub knob — outside overflow:hidden track so it stays visible */}
               <div
                 className={cn(
-                  "pointer-events-none absolute top-1/2 z-[3] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-opacity",
-                  seeking || hoverPreview
-                    ? "opacity-100"
-                    : "opacity-0 group-hover/seek:opacity-100",
+                  "pointer-events-none absolute top-1/2 z-[3] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-[opacity,transform,width,height] duration-150",
+                  seeking
+                    ? "h-3.5 w-3.5 opacity-100"
+                    : hoverPreview
+                      ? "h-3 w-3 opacity-100"
+                      : "h-3 w-3 opacity-0 group-hover/seek:opacity-100",
                 )}
-                style={{ left: `${progressRatio * 100}%` }}
+                style={{ left: `${knobRatio * 100}%` }}
               />
             </div>
 
@@ -2978,7 +3151,7 @@ export function AniKittyPlayer({
                           ? `Stop casting (${castDeviceName})`
                           : "Stop casting"
                         : castConnecting
-                          ? "Connectingâ€¦"
+                          ? "Connecting…"
                           : "Cast to device"
                     }
                     ariaPressed={casting}
@@ -3070,7 +3243,7 @@ export function AniKittyPlayer({
                             active={playbackRate === rate}
                             onClick={() => applyPlaybackRate(rate, { hint: true })}
                           >
-                            {rate === 1 ? "Normal" : `${rate}Ã—`}
+                            {rate === 1 ? "Normal" : `${rate}×`}
                           </MenuItem>
                         ))}
                       </MenuSection>
@@ -3263,6 +3436,26 @@ export function AniKittyPlayer({
                     </div>
                   )}
                 </div>
+
+                {pipSupported && !pipBlocked ? (
+                  <IconButton
+                    label={
+                      inPip
+                        ? "Exit picture-in-picture"
+                        : "Picture-in-picture"
+                    }
+                    ariaPressed={inPip}
+                    onClick={() => {
+                      void togglePip();
+                    }}
+                    className={cn(
+                      "hidden sm:inline-flex",
+                      inPip && "text-white",
+                    )}
+                  >
+                    <PipIcon className="h-[18px] w-[18px]" />
+                  </IconButton>
+                ) : null}
 
                 <IconButton
                   label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
