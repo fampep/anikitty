@@ -21,6 +21,86 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+/** Playback rates offered in the custom player ⋮ menu / play long-press. */
+export const CUSTOM_PLAYER_SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+
+export type CustomPlayerSpeed = (typeof CUSTOM_PLAYER_SPEEDS)[number];
+
+const CUSTOM_PLAYER_PREFS_KEY = "anikitty:custom-player-prefs";
+
+export type CustomPlayerPrefs = {
+  /** Whether captions were last left on. */
+  captionsOn: boolean;
+  /** Last selected caption track label (matched across episodes when possible). */
+  captionLabel: string | null;
+  playbackRate: number;
+};
+
+const DEFAULT_CUSTOM_PLAYER_PREFS: CustomPlayerPrefs = {
+  captionsOn: true,
+  captionLabel: null,
+  playbackRate: 1,
+};
+
+function sanitizePlaybackRate(rate: unknown): number {
+  const n = typeof rate === "number" ? rate : Number(rate);
+  if (!Number.isFinite(n)) return 1;
+  const nearest = CUSTOM_PLAYER_SPEEDS.reduce((best, cand) =>
+    Math.abs(cand - n) < Math.abs(best - n) ? cand : best,
+  );
+  return nearest;
+}
+
+export function loadCustomPlayerPrefs(): CustomPlayerPrefs {
+  if (typeof window === "undefined") return { ...DEFAULT_CUSTOM_PLAYER_PREFS };
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_PLAYER_PREFS_KEY);
+    if (!raw) return { ...DEFAULT_CUSTOM_PLAYER_PREFS };
+    const parsed = JSON.parse(raw) as Partial<CustomPlayerPrefs>;
+    return {
+      captionsOn:
+        typeof parsed.captionsOn === "boolean"
+          ? parsed.captionsOn
+          : DEFAULT_CUSTOM_PLAYER_PREFS.captionsOn,
+      captionLabel:
+        typeof parsed.captionLabel === "string" && parsed.captionLabel.trim()
+          ? parsed.captionLabel.trim()
+          : null,
+      playbackRate: sanitizePlaybackRate(parsed.playbackRate),
+    };
+  } catch {
+    return { ...DEFAULT_CUSTOM_PLAYER_PREFS };
+  }
+}
+
+export function saveCustomPlayerPrefs(
+  patch: Partial<CustomPlayerPrefs>,
+): CustomPlayerPrefs {
+  const next: CustomPlayerPrefs = {
+    ...loadCustomPlayerPrefs(),
+    ...patch,
+  };
+  if (patch.playbackRate != null) {
+    next.playbackRate = sanitizePlaybackRate(patch.playbackRate);
+  }
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(CUSTOM_PLAYER_PREFS_KEY, JSON.stringify(next));
+    } catch {
+      /* quota / private mode */
+    }
+  }
+  return next;
+}
+
+export function nextCustomPlayerSpeed(current: number): number {
+  const idx = CUSTOM_PLAYER_SPEEDS.findIndex(
+    (r) => Math.abs(r - current) < 0.001,
+  );
+  const nextIdx = idx < 0 ? 0 : (idx + 1) % CUSTOM_PLAYER_SPEEDS.length;
+  return CUSTOM_PLAYER_SPEEDS[nextIdx] ?? 1;
+}
+
 export type StreamAttachMode = "hls-js" | "native-hls" | "progressive" | "unsupported";
 
 export function prefersCoarsePointer(): boolean {

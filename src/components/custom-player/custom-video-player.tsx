@@ -9,6 +9,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
 import Hls from "hls.js";
 
@@ -69,10 +70,14 @@ import { useSettingsStore } from "@/store/settings-store";
 
 import {
   clamp,
+  CUSTOM_PLAYER_SPEEDS,
   formatPlayerTime,
   isAppleTouchDevice,
+  loadCustomPlayerPrefs,
+  nextCustomPlayerSpeed,
   prefersCoarsePointer,
   resolveStreamAttachMode,
+  saveCustomPlayerPrefs,
   sniffIsHlsPlaylist,
 } from "./utils";
 
@@ -118,8 +123,17 @@ const SEEK_STEP_FINE = 5;
 const IDLE_MS = 2800;
 const CLICK_DELAY_MS = 280;
 const SEEK_FLASH_MS = 700;
+const GESTURE_HINT_MS = 750;
 const TOUCH_DOUBLE_TAP_MS = 280;
 const TOUCH_DOUBLE_TAP_PX = 36;
+const LONG_PRESS_MS = 420;
+
+type BufferedRange = { start: number; end: number };
+
+type GestureHint = {
+  label: string;
+  detail?: string;
+};
 
 type WebkitVideo = HTMLVideoElement & {
   webkitEnterFullscreen?: () => void;
@@ -258,10 +272,15 @@ export function CustomVideoPlayer({
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const captionsMenuRef = useRef<HTMLDivElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const captionsTriggerRef = useRef<HTMLButtonElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gestureHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekingRef = useRef(false);
   const startAppliedRef = useRef(false);
   const startedRef = useRef(false);
@@ -274,7 +293,10 @@ export function CustomVideoPlayer({
   const lastTouchTapRef = useRef<{ t: number; x: number; y: number } | null>(
     null,
   );
-  const playbackRateRef = useRef(1);
+  const initialPrefsRef = useRef(
+    typeof window !== "undefined" ? loadCustomPlayerPrefs() : null,
+  );
+  const playbackRateRef = useRef(initialPrefsRef.current?.playbackRate ?? 1);
   const onLiveTimeRef = useRef(onLiveTime);
   const onProgressRef = useRef(onProgress);
   const onEndedRef = useRef(onEnded);
@@ -306,7 +328,7 @@ export function CustomVideoPlayer({
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [buffered, setBuffered] = useState(0);
+  const [bufferedRanges, setBufferedRanges] = useState<BufferedRange[]>([]);
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [brightness, setBrightness] = useState(1);
@@ -329,8 +351,11 @@ export function CustomVideoPlayer({
   const [sourceLoading, setSourceLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [seekFlash, setSeekFlash] = useState<"left" | "right" | null>(null);
+  const [gestureHint, setGestureHint] = useState<GestureHint | null>(null);
   const [playbackIssue, setPlaybackIssue] = useState<string | null>(null);
-  const [playbackRate, setPlaybackRateState] = useState(1);
+  const [playbackRate, setPlaybackRateState] = useState(
+    () => initialPrefsRef.current?.playbackRate ?? 1,
+  );
   const [srcOverride, setSrcOverride] = useState<string | null>(null);
   const [hlsLevels, setHlsLevels] = useState<HlsLevelOption[]>([]);
   const [hlsLevelIndex, setHlsLevelIndex] = useState(-1);
@@ -340,6 +365,8 @@ export function CustomVideoPlayer({
   const lastCaptionIdRef = useRef<string | null>(null);
   const captionsLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captionsLongPressFiredRef = useRef(false);
+  const playLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playLongPressFiredRef = useRef(false);
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
   const [iosVolumeLocked] = useState(() => isAppleTouchDevice());
   const [attachNonce, setAttachNonce] = useState(0);
@@ -428,6 +455,15 @@ export function CustomVideoPlayer({
     }, SEEK_FLASH_MS);
   }, []);
 
+  const showGestureHint = useCallback((hint: GestureHint) => {
+    setGestureHint(hint);
+    if (gestureHintTimerRef.current) clearTimeout(gestureHintTimerRef.current);
+    gestureHintTimerRef.current = setTimeout(() => {
+      setGestureHint(null);
+      gestureHintTimerRef.current = null;
+    }, GESTURE_HINT_MS);
+  }, []);
+
   // Reset local quality override when parent src changes (episode / provider).
   // Keep qualityResumeRef so in-player quality switches can restore time.
   useEffect(() => {
@@ -436,9 +472,26 @@ export function CustomVideoPlayer({
     mediaRetryRef.current = false;
   }, [src]);
 
-  // Prefer-subtitles → pick default / first caption when tracks change.
+  // Prefer-subtitles + remembered caption on/off + last track label.
   useEffect(() => {
-    if (!preferSubtitles || captionOptions.length === 0) {
+    if (captionOptions.length === 0) {
+      setSelectedCaptionId(null);
+      return;
+    }
+    const prefs = loadCustomPlayerPrefs();
+    if (prefs.captionsOn === false) {
+      setSelectedCaptionId(null);
+      return;
+    }
+    if (prefs.captionLabel) {
+      const byLabel = captionOptions.find((c) => c.label === prefs.captionLabel);
+      if (byLabel) {
+        setSelectedCaptionId(byLabel.id);
+        lastCaptionIdRef.current = byLabel.id;
+        return;
+      }
+    }
+    if (!preferSubtitles) {
       setSelectedCaptionId(null);
       return;
     }
@@ -644,9 +697,19 @@ export function CustomVideoPlayer({
       applyStartTime();
     };
     const onBufProgress = () => {
-      if (video.buffered.length > 0) {
-        setBuffered(video.buffered.end(video.buffered.length - 1));
+      const len = video.buffered.length;
+      if (len <= 0) {
+        setBufferedRanges([]);
+        return;
       }
+      const ranges: BufferedRange[] = [];
+      for (let i = 0; i < len; i++) {
+        ranges.push({
+          start: video.buffered.start(i),
+          end: video.buffered.end(i),
+        });
+      }
+      setBufferedRanges(ranges);
     };
     const onVolume = () => {
       setVolume(video.volume);
@@ -784,6 +847,7 @@ export function CustomVideoPlayer({
       clearIdleTimer();
       if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
       if (seekFlashTimerRef.current) clearTimeout(seekFlashTimerRef.current);
+      if (gestureHintTimerRef.current) clearTimeout(gestureHintTimerRef.current);
     };
   }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint]);
 
@@ -807,7 +871,7 @@ export function CustomVideoPlayer({
     setPlaybackIssue(null);
     setCurrentTime(0);
     setDuration(0);
-    setBuffered(0);
+    setBufferedRanges([]);
     setHasStarted(false);
     setBuffering(true);
     setSourceLoading(true);
@@ -1067,7 +1131,7 @@ export function CustomVideoPlayer({
   }, [bumpControls]);
 
   const seekBy = useCallback(
-    (delta: number) => {
+    (delta: number, opts?: { hint?: boolean }) => {
       const video = videoRef.current;
       if (!video) return;
       const next = clamp(
@@ -1077,9 +1141,15 @@ export function CustomVideoPlayer({
       );
       video.currentTime = next;
       setCurrentTime(next);
+      if (opts?.hint !== false) {
+        const abs = Math.abs(Math.round(delta));
+        showGestureHint({
+          label: delta >= 0 ? `+${abs}s` : `−${abs}s`,
+        });
+      }
       bumpControls();
     },
-    [bumpControls],
+    [bumpControls, showGestureHint],
   );
 
   const seekTo = useCallback(
@@ -1108,16 +1178,37 @@ export function CustomVideoPlayer({
   }, [bumpControls]);
 
   const setVolumeLevel = useCallback(
-    (level: number) => {
+    (level: number, opts?: { hint?: boolean }) => {
       const video = videoRef.current;
       if (!video) return;
       const next = clamp(level, 0, 1);
       video.volume = next;
       video.muted = next === 0;
       if (next > 0) volumeBeforeMuteRef.current = next;
+      if (opts?.hint) {
+        showGestureHint({
+          label: "Volume",
+          detail: `${Math.round(next * 100)}%`,
+        });
+      }
       bumpControls();
     },
-    [bumpControls],
+    [bumpControls, showGestureHint],
+  );
+
+  const setBrightnessLevel = useCallback(
+    (level: number, opts?: { hint?: boolean }) => {
+      const next = clamp(level, 0.4, 1.6);
+      setBrightness(next);
+      if (opts?.hint) {
+        showGestureHint({
+          label: "Brightness",
+          detail: `${Math.round(next * 100)}%`,
+        });
+      }
+      bumpControls();
+    },
+    [bumpControls, showGestureHint],
   );
 
   const toggleFullscreen = useCallback(async () => {
@@ -1179,15 +1270,47 @@ export function CustomVideoPlayer({
     try {
       if (document.pictureInPictureElement === video) {
         await document.exitPictureInPicture();
-      } else if (video.webkitPresentationMode === "picture-in-picture") {
+        bumpControls();
+        return;
+      }
+      if (video.webkitPresentationMode === "picture-in-picture") {
         video.webkitSetPresentationMode?.("inline");
+        bumpControls();
+        return;
+      }
+
+      // Some mobile browsers only allow PiP while the media is playing.
+      if (video.paused) {
+        try {
+          await video.play();
+        } catch {
+          /* user gesture may still allow PiP without play */
+        }
+      }
+
+      const wk = video as WebkitVideo;
+      const preferWebkit =
+        isAppleTouchDevice() && typeof wk.webkitSetPresentationMode === "function";
+
+      if (preferWebkit) {
+        wk.webkitSetPresentationMode?.("picture-in-picture");
       } else if (typeof video.requestPictureInPicture === "function") {
         await video.requestPictureInPicture();
-      } else {
-        video.webkitSetPresentationMode?.("picture-in-picture");
+      } else if (typeof wk.webkitSetPresentationMode === "function") {
+        wk.webkitSetPresentationMode("picture-in-picture");
       }
     } catch {
-      setPipBlocked(true);
+      // Soft-fail: keep the control available for a later gesture.
+      try {
+        const wk = video as WebkitVideo;
+        if (typeof wk.webkitSetPresentationMode === "function") {
+          wk.webkitSetPresentationMode("picture-in-picture");
+          bumpControls();
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
     }
     bumpControls();
   }, [bumpControls, pipSupported, pipBlocked]);
@@ -1204,14 +1327,21 @@ export function CustomVideoPlayer({
   }, [bumpControls, onShare]);
 
   const applyPlaybackRate = useCallback(
-    (rate: number) => {
+    (rate: number, opts?: { hint?: boolean }) => {
       const video = videoRef.current;
       if (video) video.playbackRate = rate;
       playbackRateRef.current = rate;
       setPlaybackRateState(rate);
+      saveCustomPlayerPrefs({ playbackRate: rate });
+      if (opts?.hint) {
+        showGestureHint({
+          label: rate === 1 ? "Normal" : `${rate}×`,
+          detail: "Speed",
+        });
+      }
       bumpControls();
     },
-    [bumpControls],
+    [bumpControls, showGestureHint],
   );
 
   const selectServerQuality = useCallback(
@@ -1267,11 +1397,19 @@ export function CustomVideoPlayer({
     (id: string | null) => {
       if (id) lastCaptionIdRef.current = id;
       setSelectedCaptionId(id);
+      const label =
+        id == null
+          ? null
+          : captionOptions.find((c) => c.id === id)?.label ?? null;
+      saveCustomPlayerPrefs({
+        captionsOn: id != null,
+        captionLabel: label ?? loadCustomPlayerPrefs().captionLabel,
+      });
       setMoreOpen(false);
       setCaptionsOpen(false);
       bumpControls();
     },
-    [bumpControls],
+    [bumpControls, captionOptions],
   );
 
   const toggleCaptions = useCallback(() => {
@@ -1313,7 +1451,7 @@ export function CustomVideoPlayer({
       captionsLongPressFiredRef.current = true;
       captionsLongPressRef.current = null;
       openCaptionsPicker();
-    }, 420);
+    }, LONG_PRESS_MS);
   }, [captionOptions.length, clearCaptionsLongPress, openCaptionsPicker]);
 
   const onCaptionsPointerUp = useCallback(() => {
@@ -1332,6 +1470,74 @@ export function CustomVideoPlayer({
     }
     toggleCaptions();
   }, [bumpControls, captionsOpen, toggleCaptions]);
+
+  const clearPlayLongPress = useCallback(() => {
+    if (playLongPressRef.current) {
+      clearTimeout(playLongPressRef.current);
+      playLongPressRef.current = null;
+    }
+  }, []);
+
+  const onPlayPointerDown = useCallback(() => {
+    playLongPressFiredRef.current = false;
+    clearPlayLongPress();
+    playLongPressRef.current = setTimeout(() => {
+      playLongPressFiredRef.current = true;
+      playLongPressRef.current = null;
+      const next = nextCustomPlayerSpeed(playbackRateRef.current);
+      applyPlaybackRate(next, { hint: true });
+    }, LONG_PRESS_MS);
+  }, [applyPlaybackRate, clearPlayLongPress]);
+
+  const onPlayPointerUp = useCallback(() => {
+    clearPlayLongPress();
+  }, [clearPlayLongPress]);
+
+  const onPlayClick = useCallback(() => {
+    if (playLongPressFiredRef.current) {
+      playLongPressFiredRef.current = false;
+      return;
+    }
+    togglePlay();
+  }, [togglePlay]);
+
+  // Focus trap for opaque menus (Tab cycles; Escape closes via keyboard handler).
+  useEffect(() => {
+    if (!moreOpen && !captionsOpen) return;
+    const menu = moreOpen
+      ? moreMenuRef.current
+      : captionsMenuRef.current;
+    if (!menu) return;
+    const focusables = Array.from(
+      menu.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    focusables[0]?.focus({ preventScroll: true });
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab" || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    menu.addEventListener("keydown", onKeyDown);
+    return () => {
+      menu.removeEventListener("keydown", onKeyDown);
+      const restore = moreOpen
+        ? moreTriggerRef.current
+        : captionsTriggerRef.current;
+      (restore ?? previouslyFocused)?.focus?.({ preventScroll: true });
+    };
+  }, [moreOpen, captionsOpen]);
 
   const handleVideoClick = useCallback(() => {
     // Coarse pointers use touch double-tap handler instead.
@@ -1541,7 +1747,6 @@ export function CustomVideoPlayer({
   ]);
 
   const progressRatio = duration > 0 ? clamp(displayTime / duration, 0, 1) : 0;
-  const bufferedRatio = duration > 0 ? clamp(buffered / duration, 0, 1) : 0;
   const hoverSkip = hoverPreview
     ? segmentAtTime(skipSegments, hoverPreview.time)
     : undefined;
@@ -1648,8 +1853,16 @@ export function CustomVideoPlayer({
       </video>
 
       {playbackIssue ? (
-        <div className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex flex-col gap-2 rounded-lg border border-amber-400/30 bg-black/85 px-3 py-2.5 text-left shadow-lg backdrop-blur-md sm:inset-x-auto sm:right-3 sm:max-w-sm">
-          <p className="text-[11px] leading-snug text-amber-100/90">{playbackIssue}</p>
+        <div
+          role="alert"
+          className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex flex-col gap-2.5 rounded-lg border border-white/15 bg-zinc-950 px-3.5 py-3 text-left shadow-xl sm:inset-x-auto sm:right-3 sm:max-w-sm"
+        >
+          <div className="space-y-1">
+            <p className="text-[12px] font-semibold tracking-wide text-white">
+              Playback interrupted
+            </p>
+            <p className="text-[11px] leading-snug text-white/65">{playbackIssue}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -1661,7 +1874,7 @@ export function CustomVideoPlayer({
                 setPlaybackIssue(null);
                 setAttachNonce((n) => n + 1);
               }}
-              className="self-start rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="rounded-md border border-white/25 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-950 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               Retry
             </button>
@@ -1669,7 +1882,7 @@ export function CustomVideoPlayer({
               <button
                 type="button"
                 onClick={onUseClassicPlayer}
-                className="self-start rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-white/85 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               >
                 {useClassicLabel}
               </button>
@@ -1678,7 +1891,7 @@ export function CustomVideoPlayer({
         </div>
       ) : null}
 
-      {/* Double-click seek flash (ArtPlayer-style) */}
+      {/* Double-click / double-tap seek flash (ArtPlayer-style) */}
       <div
         className={cn(
           "pointer-events-none absolute left-[12%] top-1/2 z-20 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-all duration-300",
@@ -1700,6 +1913,28 @@ export function CustomVideoPlayer({
         aria-hidden
       >
         <Forward10Icon className="h-8 w-8" />
+      </div>
+
+      {/* Center gesture hint (±10s / volume / brightness / speed) */}
+      <div
+        className={cn(
+          "pointer-events-none absolute left-1/2 top-[42%] z-30 -translate-x-1/2 -translate-y-1/2 transition-all duration-200",
+          gestureHint
+            ? "scale-100 opacity-100"
+            : "scale-95 opacity-0",
+        )}
+        aria-hidden
+      >
+        <div className="min-w-[4.5rem] rounded-md border border-white/10 bg-zinc-950/95 px-3.5 py-2 text-center shadow-lg">
+          <p className="text-[13px] font-semibold tabular-nums tracking-wide text-white">
+            {gestureHint?.label}
+          </p>
+          {gestureHint?.detail ? (
+            <p className="mt-0.5 text-[10px] uppercase tracking-wider text-white/45">
+              {gestureHint.detail}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {/* Buffering / source-loading spinner */}
@@ -1764,7 +1999,7 @@ export function CustomVideoPlayer({
         <ShareIcon className="h-[18px] w-[18px]" />
       </button>
 
-      {/* Skip intro/outro — light Classic mirror */}
+      {/* Skip intro/outro — prominent when inside a skip segment */}
       {activeSkip && activeSkipInterval ? (
         <button
           type="button"
@@ -1774,10 +2009,14 @@ export function CustomVideoPlayer({
             setActiveSkip(null);
           }}
           className={cn(
-            "absolute right-3 z-40 rounded-md border border-violet-400/30 bg-black/70 px-3 py-1.5",
-            "text-[11px] font-medium tracking-wide text-violet-100/90 backdrop-blur-sm",
-            "transition hover:border-violet-300/45 hover:bg-black/80 hover:text-white",
-            "bottom-[4.75rem] sm:bottom-[4.25rem]",
+            "absolute z-40 rounded-md border border-white/35 bg-white px-3.5 py-2",
+            "text-[12px] font-semibold tracking-wide text-zinc-950 shadow-lg",
+            "transition-[transform,opacity,background-color] duration-200",
+            "hover:bg-white/95 active:scale-[0.98]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
+            "right-[max(0.75rem,env(safe-area-inset-right))]",
+            "bottom-[4.85rem] sm:bottom-[4.35rem]",
+            "animate-in fade-in zoom-in-95",
           )}
         >
           {activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}
@@ -1890,7 +2129,7 @@ export function CustomVideoPlayer({
                 inside transformed parents are unreliable on mobile Firefox.
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
-              <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] bg-white/35 sm:h-[2px] sm:-mt-px group-hover/seek:h-[4px] group-hover/seek:-mt-0.5">
+              <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] bg-white/22 sm:h-[2px] sm:-mt-px group-hover/seek:h-[4px] group-hover/seek:-mt-0.5">
                 {/* Skip segment markers — under fills so played always reads */}
                 {duration > 0
                   ? skipSegments.map((seg) => {
@@ -1914,10 +2153,25 @@ export function CustomVideoPlayer({
                       );
                     })
                   : null}
-                <div
-                  className="absolute inset-y-0 left-0 z-[1] w-full origin-left bg-white/40"
-                  style={{ transform: `scaleX(${bufferedRatio})` }}
-                />
+                {/* Buffered ranges — subtle ahead-of-playhead fill */}
+                {duration > 0
+                  ? bufferedRanges.map((range, i) => {
+                      const left = (range.start / duration) * 100;
+                      const width =
+                        ((range.end - range.start) / duration) * 100;
+                      return (
+                        <div
+                          key={`${range.start}-${range.end}-${i}`}
+                          aria-hidden
+                          className="absolute inset-y-0 z-[1] bg-white/45"
+                          style={{
+                            left: `${left}%`,
+                            width: `${Math.max(width, 0)}%`,
+                          }}
+                        />
+                      );
+                    })
+                  : null}
                 <div
                   className="absolute inset-y-0 left-0 z-[2] w-full origin-left bg-white"
                   style={{ transform: `scaleX(${progressRatio})` }}
@@ -1935,10 +2189,20 @@ export function CustomVideoPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-0.5 px-2 py-2.5 sm:gap-1 sm:px-4 sm:py-3">
+            <div className="flex w-full min-w-0 items-center gap-0 px-1.5 py-2 sm:gap-1 sm:px-4 sm:py-3">
               {/* Left cluster */}
               <div className="flex min-w-0 shrink items-center gap-0 sm:gap-1.5">
-                <IconButton label={playing ? "Pause" : "Play"} onClick={togglePlay}>
+                <IconButton
+                  label={
+                    playing
+                      ? "Pause. Long-press to change speed"
+                      : "Play. Long-press to change speed"
+                  }
+                  onClick={onPlayClick}
+                  onPointerDown={onPlayPointerDown}
+                  onPointerUp={onPlayPointerUp}
+                  onPointerCancel={onPlayPointerUp}
+                >
                   {playing ? (
                     <PauseIcon className="h-[18px] w-[18px]" />
                   ) : (
@@ -1947,6 +2211,7 @@ export function CustomVideoPlayer({
                 </IconButton>
                 <IconButton
                   label="Rewind 10 seconds"
+                  className="max-[360px]:hidden"
                   onClick={() => {
                     seekBy(-SEEK_STEP);
                     showSeekFlash("left");
@@ -1956,6 +2221,7 @@ export function CustomVideoPlayer({
                 </IconButton>
                 <IconButton
                   label="Forward 10 seconds"
+                  className="max-[360px]:hidden"
                   onClick={() => {
                     seekBy(SEEK_STEP);
                     showSeekFlash("right");
@@ -1965,22 +2231,23 @@ export function CustomVideoPlayer({
                 </IconButton>
 
                 <span
-                  className="ml-1 select-none whitespace-nowrap text-[12px] tabular-nums tracking-wide text-white/90 sm:ml-2.5 sm:text-[13px]"
+                  className="ml-0.5 select-none whitespace-nowrap text-[11px] tabular-nums tracking-wide text-white/90 sm:ml-2.5 sm:text-[13px]"
                   aria-hidden
                 >
                   {formatPlayerTime(displayTime)}
-                  <span className="inline-block w-2.5 sm:w-3.5" />
+                  <span className="inline-block w-2 sm:w-3.5" />
                   {formatPlayerTime(duration)}
                 </span>
               </div>
 
-              <div className="min-w-2 flex-1" />
+              <div className="min-w-1.5 flex-1 sm:min-w-2" />
 
-              {/* Right cluster */}
+              {/* Right cluster — sparse; brightness tucked into ⋮ on narrow screens */}
               <div className="flex shrink-0 items-center gap-0 sm:gap-1.5">
                 {showCaptionsMenu ? (
                   <div className="relative">
                     <IconButton
+                      buttonRef={captionsTriggerRef}
                       label={
                         selectedCaptionId
                           ? `Subtitles on (${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "on"}). Long-press to choose track`
@@ -2005,6 +2272,7 @@ export function CustomVideoPlayer({
                     </IconButton>
                     {captionsOpen && captionOptions.length > 1 ? (
                       <div
+                        ref={captionsMenuRef}
                         role="menu"
                         aria-label="Caption tracks"
                         className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(50vh,280px)] min-w-[148px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
@@ -2031,6 +2299,7 @@ export function CustomVideoPlayer({
 
                 <div className="relative">
                   <IconButton
+                    buttonRef={moreTriggerRef}
                     label="More options"
                     ariaExpanded={moreOpen}
                     ariaHasPopup="menu"
@@ -2046,21 +2315,55 @@ export function CustomVideoPlayer({
                   </IconButton>
                   {moreOpen && (
                     <div
+                      ref={moreMenuRef}
                       role="menu"
                       aria-label="Player options"
                       className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(70vh,420px)] min-w-[176px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
                     >
                       <MenuSection title="Speed">
-                        {[1, 1.25, 1.5, 2].map((rate) => (
+                        {CUSTOM_PLAYER_SPEEDS.map((rate) => (
                           <MenuItem
                             key={rate}
                             active={playbackRate === rate}
-                            onClick={() => applyPlaybackRate(rate)}
+                            onClick={() => applyPlaybackRate(rate, { hint: true })}
                           >
                             {rate === 1 ? "Normal" : `${rate}×`}
                           </MenuItem>
                         ))}
                       </MenuSection>
+
+                      <MenuSection title="Brightness" className="min-[420px]:hidden">
+                        {[
+                          { label: "Dim", value: 0.7 },
+                          { label: "Normal", value: 1 },
+                          { label: "Bright", value: 1.35 },
+                        ].map((opt) => (
+                          <MenuItem
+                            key={opt.label}
+                            active={Math.abs(brightness - opt.value) < 0.05}
+                            onClick={() => {
+                              setBrightnessLevel(opt.value, { hint: true });
+                              setMoreOpen(false);
+                            }}
+                          >
+                            {opt.label}
+                          </MenuItem>
+                        ))}
+                      </MenuSection>
+
+                      {pipSupported && !pipBlocked ? (
+                        <MenuSection title="Display" className="sm:hidden">
+                          <MenuItem
+                            active={inPip}
+                            onClick={() => {
+                              void togglePip();
+                              setMoreOpen(false);
+                            }}
+                          >
+                            {inPip ? "Exit picture-in-picture" : "Picture-in-picture"}
+                          </MenuItem>
+                        </MenuSection>
+                      ) : null}
 
                       {serverQualities.length > 1 ? (
                         <MenuSection title="Quality">
@@ -2167,7 +2470,7 @@ export function CustomVideoPlayer({
                 </IconButton>
 
                 <div
-                  className="relative"
+                  className="relative hidden min-[420px]:block"
                   onMouseEnter={() => {
                     if (!prefersCoarsePointer()) setBrightnessOpen(true);
                   }}
@@ -2186,10 +2489,7 @@ export function CustomVideoPlayer({
                       step={0.05}
                       value={brightness}
                       display={`${Math.round(brightness * 100)}%`}
-                      onChange={(v) => {
-                        setBrightness(v);
-                        bumpControls();
-                      }}
+                      onChange={(v) => setBrightnessLevel(v, { hint: true })}
                     />
                   )}
                 </div>
@@ -2221,7 +2521,7 @@ export function CustomVideoPlayer({
                       step={0.01}
                       value={muted ? 0 : volume}
                       display={`${Math.round((muted ? 0 : volume) * 100)}%`}
-                      onChange={setVolumeLevel}
+                      onChange={(v) => setVolumeLevel(v, { hint: true })}
                       footer={
                         iosVolumeLocked
                           ? "iOS uses system volume"
@@ -2253,12 +2553,14 @@ export function CustomVideoPlayer({
 function MenuSection({
   title,
   children,
+  className,
 }: {
   title: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="border-b border-white/10 py-1 last:border-b-0">
+    <div className={cn("border-b border-white/10 py-1 last:border-b-0", className)}>
       <p className="px-3 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-white/40">
         {title}
       </p>
@@ -2355,6 +2657,7 @@ function IconButton({
   onPointerUp,
   onPointerCancel,
   onDoubleClick,
+  buttonRef,
 }: {
   label: string;
   onClick: () => void;
@@ -2368,9 +2671,11 @@ function IconButton({
   onPointerUp?: () => void;
   onPointerCancel?: () => void;
   onDoubleClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void;
+  buttonRef?: RefObject<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       aria-label={label}
       title={label}
@@ -2384,7 +2689,7 @@ function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-white/90 transition-opacity hover:text-white hover:opacity-100 active:opacity-70",
+        "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-white/90 transition-opacity hover:text-white hover:opacity-100 active:opacity-70",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
         "disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:opacity-35",
         "sm:h-9 sm:w-9",
