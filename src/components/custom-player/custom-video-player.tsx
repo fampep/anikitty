@@ -50,20 +50,16 @@ import {
 } from "@/lib/subtitles/subtitle-track-utils";
 
 import {
-  BrightnessIcon,
   CaptionsIcon,
   CastConnectedIcon,
-  CastIcon,
-  Forward10Icon,
   FullscreenExitIcon,
   FullscreenIcon,
   MoreIcon,
   PauseIcon,
-  PipIcon,
   PlayIcon,
   PlayOutlineIcon,
-  Rewind10Icon,
-  ShareIcon,
+  SeekBackIcon,
+  SeekForwardIcon,
   VolumeIcon,
   VolumeLowIcon,
   VolumeMuteIcon,
@@ -345,7 +341,6 @@ export function CustomVideoPlayer({
   const [inPip, setInPip] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [volumeOpen, setVolumeOpen] = useState(false);
-  const [brightnessOpen, setBrightnessOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [captionsOpen, setCaptionsOpen] = useState(false);
   const [seeking, setSeeking] = useState(false);
@@ -441,7 +436,6 @@ export function CustomVideoPlayer({
 
   const closePopovers = useCallback(() => {
     setVolumeOpen(false);
-    setBrightnessOpen(false);
     setMoreOpen(false);
     setCaptionsOpen(false);
   }, []);
@@ -1631,7 +1625,6 @@ export function CustomVideoPlayer({
     setCaptionsOpen(true);
     setMoreOpen(false);
     setVolumeOpen(false);
-    setBrightnessOpen(false);
     bumpControls();
   }, [bumpControls, captionOptions.length]);
 
@@ -1907,7 +1900,7 @@ export function CustomVideoPlayer({
           }
           break;
         case "Escape":
-          if (volumeOpen || brightnessOpen || moreOpen || captionsOpen) {
+          if (volumeOpen || moreOpen || captionsOpen) {
             e.preventDefault();
             closePopovers();
             bumpControls();
@@ -1931,7 +1924,6 @@ export function CustomVideoPlayer({
     setVolumeLevel,
     volume,
     volumeOpen,
-    brightnessOpen,
     moreOpen,
     captionsOpen,
     closePopovers,
@@ -1979,7 +1971,6 @@ export function CustomVideoPlayer({
 
   const onVolumeButtonClick = () => {
     bumpControls();
-    setBrightnessOpen(false);
     setMoreOpen(false);
     setCaptionsOpen(false);
     if (prefersCoarsePointer()) {
@@ -1987,14 +1978,6 @@ export function CustomVideoPlayer({
       return;
     }
     toggleMute();
-  };
-
-  const onBrightnessButtonClick = () => {
-    setBrightnessOpen((v) => !v);
-    setVolumeOpen(false);
-    setMoreOpen(false);
-    setCaptionsOpen(false);
-    bumpControls();
   };
 
   return (
@@ -2130,7 +2113,7 @@ export function CustomVideoPlayer({
         )}
         aria-hidden
       >
-        <Rewind10Icon className="h-8 w-8" />
+        <SeekBackIcon className="h-7 w-7" />
       </div>
       <div
         className={cn(
@@ -2141,10 +2124,10 @@ export function CustomVideoPlayer({
         )}
         aria-hidden
       >
-        <Forward10Icon className="h-8 w-8" />
+        <SeekForwardIcon className="h-7 w-7" />
       </div>
 
-      {/* Center gesture hint (±10s / volume / brightness / speed) */}
+      {/* Center gesture hint (seek / volume / brightness / speed) */}
       <div
         className={cn(
           "pointer-events-none absolute left-1/2 top-[42%] z-30 -translate-x-1/2 -translate-y-1/2 transition-all duration-200",
@@ -2209,23 +2192,6 @@ export function CustomVideoPlayer({
         )}
       >
         <PlayOutlineIcon className="h-8 w-8 translate-x-0.5" />
-      </button>
-
-      {/* Share (top-right) */}
-      <button
-        type="button"
-        aria-label="Share"
-        onClick={handleShare}
-        className={cn(
-          "absolute z-30 flex h-10 w-10 items-center justify-center text-white/85 transition-[opacity,transform] duration-300 hover:text-white sm:h-8 sm:w-8",
-          "right-[max(0.75rem,env(safe-area-inset-right))] top-[max(0.75rem,env(safe-area-inset-top))]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md",
-          chromeVisible
-            ? "opacity-100"
-            : "pointer-events-none opacity-0",
-        )}
-      >
-        <ShareIcon className="h-[18px] w-[18px]" />
       </button>
 
       {/* Skip intro/outro — prominent when inside a skip segment */}
@@ -2418,9 +2384,9 @@ export function CustomVideoPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-0 px-1.5 py-2 sm:gap-1 sm:px-4 sm:py-3">
+            <div className="flex w-full min-w-0 items-center gap-1 px-2 py-2 sm:gap-1.5 sm:px-4 sm:py-3">
               {/* Left cluster */}
-              <div className="flex min-w-0 shrink items-center gap-0 sm:gap-1.5">
+              <div className="flex min-w-0 shrink items-center gap-0.5 sm:gap-1.5">
                 <IconButton
                   label={
                     effectivePlaying
@@ -2439,24 +2405,22 @@ export function CustomVideoPlayer({
                   )}
                 </IconButton>
                 <IconButton
-                  label="Rewind 10 seconds"
-                  className="max-[360px]:hidden"
+                  label="Seek back"
                   onClick={() => {
                     seekBy(-SEEK_STEP);
                     showSeekFlash("left");
                   }}
                 >
-                  <Rewind10Icon className="h-6 w-6" />
+                  <SeekBackIcon className="h-5 w-5" />
                 </IconButton>
                 <IconButton
-                  label="Forward 10 seconds"
-                  className="max-[360px]:hidden"
+                  label="Seek forward"
                   onClick={() => {
                     seekBy(SEEK_STEP);
                     showSeekFlash("right");
                   }}
                 >
-                  <Forward10Icon className="h-6 w-6" />
+                  <SeekForwardIcon className="h-5 w-5" />
                 </IconButton>
 
                 <span
@@ -2469,10 +2433,10 @@ export function CustomVideoPlayer({
                 </span>
               </div>
 
-              <div className="min-w-1.5 flex-1 sm:min-w-2" />
+              <div className="min-w-2 flex-1 sm:min-w-3" />
 
-              {/* Right cluster — sparse; brightness tucked into ⋮ on narrow screens */}
-              <div className="flex shrink-0 items-center gap-0 sm:gap-1.5">
+              {/* Right cluster — essentials only; Cast / PiP / brightness / share in ⋮ */}
+              <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
                 {showCaptionsMenu ? (
                   <div className="relative">
                     <IconButton
@@ -2526,6 +2490,47 @@ export function CustomVideoPlayer({
                   </div>
                 ) : null}
 
+                <div
+                  className="relative hidden sm:block"
+                  onMouseEnter={() => {
+                    if (!prefersCoarsePointer()) setVolumeOpen(true);
+                  }}
+                  onMouseLeave={() => {
+                    if (!prefersCoarsePointer()) setVolumeOpen(false);
+                  }}
+                >
+                  <IconButton
+                    label={effectiveMuted ? "Unmute" : "Mute"}
+                    onClick={onVolumeButtonClick}
+                  >
+                    {effectiveMuted ? (
+                      <VolumeMuteIcon className="h-[18px] w-[18px]" />
+                    ) : effectiveVolume < 0.5 ? (
+                      <VolumeLowIcon className="h-[18px] w-[18px]" />
+                    ) : (
+                      <VolumeIcon className="h-[18px] w-[18px]" />
+                    )}
+                  </IconButton>
+                  {volumeOpen && (
+                    <VerticalSliderPopover
+                      label="Volume"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={effectiveVolume}
+                      display={`${Math.round(effectiveVolume * 100)}%`}
+                      onChange={(v) => setVolumeLevel(v, { hint: true })}
+                      footer={
+                        iosVolumeLocked && !casting
+                          ? "iOS uses system volume"
+                          : casting
+                            ? "Cast volume"
+                            : undefined
+                      }
+                    />
+                  )}
+                </div>
+
                 <div className="relative">
                   <IconButton
                     buttonRef={moreTriggerRef}
@@ -2535,7 +2540,6 @@ export function CustomVideoPlayer({
                     onClick={() => {
                       setMoreOpen((v) => !v);
                       setVolumeOpen(false);
-                      setBrightnessOpen(false);
                       setCaptionsOpen(false);
                       bumpControls();
                     }}
@@ -2561,7 +2565,19 @@ export function CustomVideoPlayer({
                         ))}
                       </MenuSection>
 
-                      <MenuSection title="Brightness" className="min-[420px]:hidden">
+                      <MenuSection title="Volume" className="sm:hidden">
+                        <MenuItem
+                          active={!effectiveMuted}
+                          onClick={() => {
+                            toggleMute();
+                            setMoreOpen(false);
+                          }}
+                        >
+                          {effectiveMuted ? "Unmute" : "Mute"}
+                        </MenuItem>
+                      </MenuSection>
+
+                      <MenuSection title="Brightness">
                         {[
                           { label: "Dim", value: 0.7 },
                           { label: "Normal", value: 1 },
@@ -2580,8 +2596,28 @@ export function CustomVideoPlayer({
                         ))}
                       </MenuSection>
 
+                      {castAvailable ? (
+                        <MenuSection title="Cast">
+                          <MenuItem
+                            active={casting}
+                            onClick={() => {
+                              void toggleCast();
+                              setMoreOpen(false);
+                            }}
+                          >
+                            {casting
+                              ? castDeviceName
+                                ? `Stop casting (${castDeviceName})`
+                                : "Stop casting"
+                              : castConnecting
+                                ? "Connecting…"
+                                : "Cast to device"}
+                          </MenuItem>
+                        </MenuSection>
+                      ) : null}
+
                       {pipSupported && !pipBlocked ? (
-                        <MenuSection title="Display" className="sm:hidden">
+                        <MenuSection title="Display">
                           <MenuItem
                             active={inPip}
                             onClick={() => {
@@ -2666,6 +2702,17 @@ export function CustomVideoPlayer({
                         </MenuSection>
                       ) : null}
 
+                      <MenuSection title="Share">
+                        <MenuItem
+                          onClick={() => {
+                            handleShare();
+                            setMoreOpen(false);
+                          }}
+                        >
+                          Share
+                        </MenuItem>
+                      </MenuSection>
+
                       {activeServerQuality ||
                       (showHlsQualityMenu && hlsLevelIndex >= 0) ? (
                         <p className="border-t border-white/10 px-3 py-2 text-[10px] text-white/45">
@@ -2678,117 +2725,6 @@ export function CustomVideoPlayer({
                         </p>
                       ) : null}
                     </div>
-                  )}
-                </div>
-
-                <IconButton
-                  label={
-                    casting
-                      ? castDeviceName
-                        ? `Stop casting to ${castDeviceName}`
-                        : "Stop casting"
-                      : castConnecting
-                        ? "Connecting to Cast device"
-                        : "Cast to device"
-                  }
-                  ariaPressed={casting}
-                  disabled={!castAvailable || castConnecting}
-                  onClick={() => {
-                    void toggleCast();
-                    bumpControls();
-                  }}
-                  className={cn(
-                    casting && "text-white",
-                    !castAvailable && "hidden",
-                  )}
-                >
-                  {casting ? (
-                    <CastConnectedIcon className="h-[18px] w-[18px]" />
-                  ) : (
-                    <CastIcon className="h-[18px] w-[18px]" />
-                  )}
-                </IconButton>
-
-                <IconButton
-                  label={
-                    pipBlocked
-                      ? "Picture-in-picture unavailable"
-                      : !pipSupported
-                        ? "Picture-in-picture not supported"
-                        : inPip
-                          ? "Exit picture-in-picture"
-                          : "Picture-in-picture"
-                  }
-                  onClick={() => void togglePip()}
-                  disabled={!pipSupported || pipBlocked || casting}
-                  className="hidden sm:inline-flex"
-                >
-                  <PipIcon className="h-[18px] w-[18px]" />
-                </IconButton>
-
-                <div
-                  className="relative hidden min-[420px]:block"
-                  onMouseEnter={() => {
-                    if (!prefersCoarsePointer()) setBrightnessOpen(true);
-                  }}
-                  onMouseLeave={() => {
-                    if (!prefersCoarsePointer()) setBrightnessOpen(false);
-                  }}
-                >
-                  <IconButton label="Brightness" onClick={onBrightnessButtonClick}>
-                    <BrightnessIcon className="h-[18px] w-[18px]" />
-                  </IconButton>
-                  {brightnessOpen && (
-                    <VerticalSliderPopover
-                      label="Brightness"
-                      min={0.4}
-                      max={1.6}
-                      step={0.05}
-                      value={brightness}
-                      display={`${Math.round(brightness * 100)}%`}
-                      onChange={(v) => setBrightnessLevel(v, { hint: true })}
-                    />
-                  )}
-                </div>
-
-                <div
-                  className="relative"
-                  onMouseEnter={() => {
-                    if (!prefersCoarsePointer()) setVolumeOpen(true);
-                  }}
-                  onMouseLeave={() => {
-                    if (!prefersCoarsePointer()) setVolumeOpen(false);
-                  }}
-                >
-                  <IconButton
-                    label={effectiveMuted ? "Unmute" : "Mute"}
-                    onClick={onVolumeButtonClick}
-                  >
-                    {effectiveMuted ? (
-                      <VolumeMuteIcon className="h-[18px] w-[18px]" />
-                    ) : effectiveVolume < 0.5 ? (
-                      <VolumeLowIcon className="h-[18px] w-[18px]" />
-                    ) : (
-                      <VolumeIcon className="h-[18px] w-[18px]" />
-                    )}
-                  </IconButton>
-                  {volumeOpen && (
-                    <VerticalSliderPopover
-                      label="Volume"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={effectiveVolume}
-                      display={`${Math.round(effectiveVolume * 100)}%`}
-                      onChange={(v) => setVolumeLevel(v, { hint: true })}
-                      footer={
-                        iosVolumeLocked && !casting
-                          ? "iOS uses system volume"
-                          : casting
-                            ? "Cast volume"
-                            : undefined
-                      }
-                    />
                   )}
                 </div>
 

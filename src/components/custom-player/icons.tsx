@@ -5,7 +5,7 @@ type IconProps = SVGProps<SVGSVGElement>;
 const stroke = {
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.85,
+  strokeWidth: 1.75,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
@@ -14,7 +14,7 @@ const stroke = {
 export function PlayIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path d="M8.2 5.4v13.2L19.4 12 8.2 5.4z" fill="currentColor" />
+      <path d="M8 5.5v13L19 12 8 5.5z" fill="currentColor" />
     </svg>
   );
 }
@@ -23,7 +23,7 @@ export function PlayIcon(props: IconProps) {
 export function PlayOutlineIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} d="M9.1 6.6v10.8L18.5 12 9.1 6.6z" />
+      <path {...stroke} d="M9 7v10l9-5-9-5z" />
     </svg>
   );
 }
@@ -31,41 +31,27 @@ export function PlayOutlineIcon(props: IconProps) {
 export function PauseIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} strokeWidth={2} d="M8.25 6.25v11.5M15.75 6.25v11.5" />
+      <path {...stroke} strokeWidth={2} d="M9 6.5v11M15 6.5v11" />
     </svg>
   );
 }
 
-/** Shared filled “10” for skip glyphs — reads clearly at ~18–24px. */
-function SkipTenMark() {
-  return (
-    <path
-      fill="currentColor"
-      fillRule="evenodd"
-      stroke="none"
-      d="M9.15 10.05h1.2v5.7H9.15zm2.55 0h3.05c1.45 0 2.4 1 2.4 2.85s-.95 2.85-2.4 2.85h-3.05zm1.2 1.15v3.4h1.8c.75 0 1.2-.55 1.2-1.7s-.45-1.7-1.2-1.7z"
-    />
-  );
-}
-
-/** Skip back 10s — circular arrow + bold “10”. */
-export function Rewind10Icon(props: IconProps) {
+/** Simple double-triangle seek back (no numeral). */
+export function SeekBackIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} d="M7.85 7.4a7.1 7.1 0 1 0 1.35 9.35" />
-      <path {...stroke} d="M8.1 4.2 5.15 7.4 8.1 10.55" />
-      <SkipTenMark />
+      <path fill="currentColor" d="M11.5 6.8v10.4L4.8 12l6.7-5.2z" />
+      <path fill="currentColor" d="M19.2 6.8v10.4L12.5 12l6.7-5.2z" />
     </svg>
   );
 }
 
-/** Skip forward 10s — circular arrow + bold “10”. */
-export function Forward10Icon(props: IconProps) {
+/** Simple double-triangle seek forward (no numeral). */
+export function SeekForwardIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} d="M16.15 7.4a7.1 7.1 0 1 1-1.35 9.35" />
-      <path {...stroke} d="M15.9 4.2 18.85 7.4 15.9 10.55" />
-      <SkipTenMark />
+      <path fill="currentColor" d="M12.5 6.8v10.4L19.2 12l-6.7-5.2z" />
+      <path fill="currentColor" d="M4.8 6.8v10.4L11.5 12 4.8 6.8z" />
     </svg>
   );
 }
@@ -73,9 +59,9 @@ export function Forward10Icon(props: IconProps) {
 export function VolumeIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} d="M4.75 9.4v5.2h3.15L12.2 18.5V5.5L7.9 9.4H4.75z" />
-      <path {...stroke} d="M15.35 9.15a3.55 3.55 0 0 1 0 5.7" />
-      <path {...stroke} d="M17.65 6.85a6.2 6.2 0 0 1 0 10.3" />
+      <path {...stroke} d="M5 9.5v5h3.25L13 18.5V5.5L8.25 9.5H5z" />
+      <path {...stroke} d="M16 9.75a2.75 2.75 0 0 1 0 4.5" />
+      <path {...stroke} d="M18.25 7.5a5.5 5.5 0 0 1 0 9" />
     </svg>
   );
 }
@@ -83,8 +69,8 @@ export function VolumeIcon(props: IconProps) {
 export function VolumeLowIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} d="M4.75 9.4v5.2h3.15L12.2 18.5V5.5L7.9 9.4H4.75z" />
-      <path {...stroke} d="M15.35 9.15a3.55 3.55 0 0 1 0 5.7" />
+      <path {...stroke} d="M5 9.5v5h3.25L13 18.5V5.5L8.25 9.5H5z" />
+      <path {...stroke} d="M16 9.75a2.75 2.75 0 0 1 0 4.5" />
     </svg>
   );
 }
@@ -92,8 +78,8 @@ export function VolumeLowIcon(props: IconProps) {
 export function VolumeMuteIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path {...stroke} d="M4.75 9.4v5.2h3.15L12.2 18.5V5.5L7.9 9.4H4.75z" />
-      <path {...stroke} d="M17.6 9.4 14.15 12.85m0-3.45L17.6 12.85" />
+      <path {...stroke} d="M5 9.5v5h3.25L13 18.5V5.5L8.25 9.5H5z" />
+      <path {...stroke} d="M17.5 9.5 15 12m0-2.5 2.5 2.5" />
     </svg>
   );
 }
@@ -104,7 +90,7 @@ export function FullscreenIcon(props: IconProps) {
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
       <path
         {...stroke}
-        d="M8.75 4.5H4.5V8.75M15.25 4.5H19.5V8.75M8.75 19.5H4.5V15.25M15.25 19.5H19.5V15.25"
+        d="M9 4.5H4.5V9M15 4.5h4.5V9M9 19.5H4.5V15M15 19.5h4.5V15"
       />
     </svg>
   );
@@ -115,7 +101,7 @@ export function FullscreenExitIcon(props: IconProps) {
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
       <path
         {...stroke}
-        d="M8.75 4.5v4.25H4.5M15.25 4.5v4.25H19.5M8.75 19.5v-4.25H4.5M15.25 19.5v-4.25H19.5"
+        d="M9 4.5v4.5H4.5M15 4.5v4.5h4.5M9 19.5v-4.5H4.5M15 19.5v-4.5h4.5"
       />
     </svg>
   );
@@ -124,13 +110,13 @@ export function FullscreenExitIcon(props: IconProps) {
 export function PipIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <rect {...stroke} x="3.25" y="4.75" width="17.5" height="14.5" rx="2.25" />
+      <rect {...stroke} x="3.5" y="5" width="17" height="14" rx="1.5" />
       <rect
-        x="11.75"
-        y="11.25"
-        width="7"
-        height="5.5"
-        rx="1.1"
+        x="12"
+        y="12"
+        width="6.5"
+        height="5"
+        rx="0.75"
         fill="currentColor"
         stroke="none"
       />
@@ -141,11 +127,8 @@ export function PipIcon(props: IconProps) {
 export function BrightnessIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <circle {...stroke} cx="12" cy="12" r="3.15" />
-      <path
-        {...stroke}
-        d="M12 3.15v2.2M12 18.65v2.2M3.15 12h2.2M18.65 12h2.2M5.9 5.9l1.55 1.55M16.55 16.55l1.55 1.55M5.9 18.1l1.55-1.55M16.55 7.45l1.55-1.55"
-      />
+      <circle {...stroke} cx="12" cy="12" r="3.25" />
+      <path {...stroke} d="M12 3.75v2M12 18.25v2M3.75 12h2M18.25 12h2" />
     </svg>
   );
 }
@@ -153,9 +136,9 @@ export function BrightnessIcon(props: IconProps) {
 export function MoreIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <circle cx="12" cy="5.35" r="1.25" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.25" fill="currentColor" />
-      <circle cx="12" cy="18.65" r="1.25" fill="currentColor" />
+      <circle cx="12" cy="6" r="1.35" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.35" fill="currentColor" />
+      <circle cx="12" cy="18" r="1.35" fill="currentColor" />
     </svg>
   );
 }
@@ -163,24 +146,20 @@ export function MoreIcon(props: IconProps) {
 export function ShareIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <circle {...stroke} cx="18" cy="5.4" r="2.2" />
-      <circle {...stroke} cx="6" cy="12" r="2.2" />
-      <circle {...stroke} cx="18" cy="18.6" r="2.2" />
-      <path {...stroke} d="M8.1 10.75 15.85 6.7M8.1 13.25l7.75 4.05" />
+      <circle {...stroke} cx="18" cy="6" r="2" />
+      <circle {...stroke} cx="6" cy="12" r="2" />
+      <circle {...stroke} cx="18" cy="18" r="2" />
+      <path {...stroke} d="M8 11l8-4M8 13l8 4" />
     </svg>
   );
 }
 
-/** Closed captions mark. */
+/** Closed captions mark — frame + two short bars. */
 export function CaptionsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <rect {...stroke} x="3" y="5.25" width="18" height="13.5" rx="2.25" />
-      <path
-        fill="currentColor"
-        stroke="none"
-        d="M7.15 10.2h1.2c.95 0 1.55.55 1.55 1.4 0 .85-.6 1.4-1.55 1.4h-.55v.85h1.85v1.05H7.15zm1.15 1.05v1.7h.4c.35 0 .55-.2.55-.5s-.2-.5-.55-.5h-.4zm4.35-1.05h1.2c.95 0 1.55.55 1.55 1.4 0 .85-.6 1.4-1.55 1.4h-.55v.85h1.85v1.05h-3.15zm1.15 1.05v1.7h.4c.35 0 .55-.2.55-.5s-.2-.5-.55-.5h-.4z"
-      />
+      <rect {...stroke} x="3.25" y="5.5" width="17.5" height="13" rx="2" />
+      <path {...stroke} strokeWidth={2} d="M7.25 12.5h3.25M13.5 12.5h3.25" />
     </svg>
   );
 }
@@ -189,14 +168,10 @@ export function CaptionsIcon(props: IconProps) {
 export function CastIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <path
-        {...stroke}
-        d="M3.35 6h17.3A1.35 1.35 0 0 1 22 7.35v9.3A1.35 1.35 0 0 1 20.65 18H14.1"
-      />
-      <path {...stroke} d="M3.35 15.1a3.4 3.4 0 0 1 3.4 3.4" />
-      <path {...stroke} d="M3.35 11.85a6.65 6.65 0 0 1 6.65 6.65" />
-      <path {...stroke} d="M3.35 8.6a9.9 9.9 0 0 1 9.9 9.9" />
-      <circle cx="3.7" cy="19.15" r="1.05" fill="currentColor" stroke="none" />
+      <path {...stroke} d="M3.5 6.5h17v11H14" />
+      <path {...stroke} d="M3.5 15.25a3.25 3.25 0 0 1 3.25 3.25" />
+      <path {...stroke} d="M3.5 12a6.5 6.5 0 0 1 6.5 6.5" />
+      <circle cx="3.75" cy="19" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -208,11 +183,11 @@ export function CastConnectedIcon(props: IconProps) {
       <path
         fill="currentColor"
         stroke="none"
-        d="M3.35 5.35h17.3A1.9 1.9 0 0 1 22.55 7.25v9.5a1.9 1.9 0 0 1-1.9 1.9H13.75a.8.8 0 0 1 0-1.6h6.9a.3.3 0 0 0 .3-.3v-9.5a.3.3 0 0 0-.3-.3H3.35a.3.3 0 0 0-.3.3v2.35a.8.8 0 1 1-1.6 0V7.25a1.9 1.9 0 0 1 1.9-1.9z"
+        d="M3.5 5.25h17A1.75 1.75 0 0 1 22.25 7v9.5a1.75 1.75 0 0 1-1.75 1.75H14a.75.75 0 0 1 0-1.5h6.5a.25.25 0 0 0 .25-.25V7a.25.25 0 0 0-.25-.25h-17a.25.25 0 0 0-.25.25v2a.75.75 0 0 1-1.5 0V7A1.75 1.75 0 0 1 3.5 5.25z"
       />
-      <path {...stroke} d="M3.35 15.1a3.4 3.4 0 0 1 3.4 3.4" />
-      <path {...stroke} d="M3.35 11.85a6.65 6.65 0 0 1 6.65 6.65" />
-      <circle cx="3.7" cy="19.15" r="1.1" fill="currentColor" stroke="none" />
+      <path {...stroke} d="M3.5 15.25a3.25 3.25 0 0 1 3.25 3.25" />
+      <path {...stroke} d="M3.5 12a6.5 6.5 0 0 1 6.5 6.5" />
+      <circle cx="3.75" cy="19" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
