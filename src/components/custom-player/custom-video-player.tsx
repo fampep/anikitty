@@ -333,8 +333,10 @@ export function AniKittyPlayer({
   const progressRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const captionsMenuRef = useRef<HTMLDivElement>(null);
+  const qualityMenuRef = useRef<HTMLDivElement>(null);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const captionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const qualityTriggerRef = useRef<HTMLButtonElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -445,6 +447,7 @@ export function AniKittyPlayer({
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [captionsOpen, setCaptionsOpen] = useState(false);
+  const [qualityOpen, setQualityOpen] = useState(false);
   const [seeking, setSeeking] = useState(false);
   const [seekPreview, setSeekPreview] = useState<number | null>(null);
   const [hoverPreview, setHoverPreview] = useState<{
@@ -552,6 +555,8 @@ export function AniKittyPlayer({
   }, [qualities]);
 
   const showHlsQualityMenu = serverQualities.length === 0 && hlsLevels.length > 1;
+  const showQualityPicker =
+    serverQualities.length > 1 || showHlsQualityMenu;
   const showAudioMenu = hlsAudioOptions.length > 1;
   const showCaptionsMenu = captionOptions.length > 0;
 
@@ -568,6 +573,7 @@ export function AniKittyPlayer({
     setVolumeOpen(false);
     setMoreOpen(false);
     setCaptionsOpen(false);
+    setQualityOpen(false);
   }, []);
 
   const bumpControls = useCallback(() => {
@@ -2013,7 +2019,7 @@ export function AniKittyPlayer({
       } else {
         setSrcOverride(entry.file);
       }
-      setMoreOpen(false);
+      setQualityOpen(false);
       bumpControls();
     },
     [bumpControls, onSelectQuality],
@@ -2031,7 +2037,7 @@ export function AniKittyPlayer({
         video.currentTime = t;
       }
       setHlsLevelIndex(index);
-      setMoreOpen(false);
+      setQualityOpen(false);
       bumpControls();
     },
     [bumpControls],
@@ -2093,6 +2099,7 @@ export function AniKittyPlayer({
     setCaptionsOpen(true);
     setMoreOpen(false);
     setVolumeOpen(false);
+    setQualityOpen(false);
     bumpControls();
   }, [bumpControls, captionOptions.length]);
 
@@ -2163,10 +2170,12 @@ export function AniKittyPlayer({
 
   // Focus trap for opaque menus (Tab cycles; Escape closes via keyboard handler).
   useEffect(() => {
-    if (!moreOpen && !captionsOpen) return;
+    if (!moreOpen && !captionsOpen && !qualityOpen) return;
     const menu = moreOpen
       ? moreMenuRef.current
-      : captionsMenuRef.current;
+      : qualityOpen
+        ? qualityMenuRef.current
+        : captionsMenuRef.current;
     if (!menu) return;
     const focusables = Array.from(
       menu.querySelectorAll<HTMLElement>(
@@ -2194,10 +2203,12 @@ export function AniKittyPlayer({
       menu.removeEventListener("keydown", onKeyDown);
       const restore = moreOpen
         ? moreTriggerRef.current
-        : captionsTriggerRef.current;
+        : qualityOpen
+          ? qualityTriggerRef.current
+          : captionsTriggerRef.current;
       (restore ?? previouslyFocused)?.focus?.({ preventScroll: true });
     };
-  }, [moreOpen, captionsOpen]);
+  }, [moreOpen, captionsOpen, qualityOpen]);
 
   const handleVideoClick = useCallback(() => {
     // Coarse pointers use touch double-tap handler instead.
@@ -2382,7 +2393,7 @@ export function AniKittyPlayer({
           break;
         }
         case "Escape":
-          if (volumeOpen || moreOpen || captionsOpen) {
+          if (volumeOpen || moreOpen || captionsOpen || qualityOpen) {
             e.preventDefault();
             closePopovers();
             bumpControls();
@@ -2408,6 +2419,7 @@ export function AniKittyPlayer({
     volumeOpen,
     moreOpen,
     captionsOpen,
+    qualityOpen,
     closePopovers,
     bumpControls,
     exitFullscreen,
@@ -2468,6 +2480,22 @@ export function AniKittyPlayer({
   const activeServerQuality =
     serverQualities.find((q) => q.file === activeSrc || q.file === src) ?? null;
 
+  const qualityButtonLabel = (() => {
+    if (activeServerQuality) {
+      const height = parseHeight(activeServerQuality.quality);
+      return height
+        ? `${height}p`
+        : formatStreamQualityLabel(activeServerQuality.quality);
+    }
+    if (showHlsQualityMenu) {
+      if (hlsLevelIndex < 0) return "Auto";
+      const level = hlsLevels.find((l) => l.index === hlsLevelIndex);
+      if (level?.height) return `${level.height}p`;
+      return level?.label ?? "Auto";
+    }
+    return "Quality";
+  })();
+
   const timeFromPointer = (
     e: ReactPointerEvent<HTMLDivElement>,
     opts?: { fine?: boolean },
@@ -2494,6 +2522,7 @@ export function AniKittyPlayer({
     bumpControls();
     setMoreOpen(false);
     setCaptionsOpen(false);
+    setQualityOpen(false);
     if (prefersCoarsePointer()) {
       setVolumeOpen((v) => !v);
       return;
@@ -3068,7 +3097,7 @@ export function AniKittyPlayer({
 
               <div className="min-w-2 flex-1 sm:min-w-3" />
 
-              {/* Right cluster — CC · AirPlay · Cast · volume (sm+) · more · fullscreen */}
+              {/* Right cluster — CC · AirPlay · Cast · Quality · volume (sm+) · more · fullscreen */}
               <div className="flex shrink-0 items-center gap-0 sm:gap-1">
                 {showCaptionsMenu ? (
                   <div className="relative">
@@ -3173,6 +3202,72 @@ export function AniKittyPlayer({
                   </IconButton>
                 ) : null}
 
+                {showQualityPicker ? (
+                  <div className="relative">
+                    <IconButton
+                      buttonRef={qualityTriggerRef}
+                      label={`Quality: ${qualityButtonLabel}`}
+                      ariaExpanded={qualityOpen}
+                      ariaHasPopup="menu"
+                      onClick={() => {
+                        setQualityOpen((v) => !v);
+                        setMoreOpen(false);
+                        setVolumeOpen(false);
+                        setCaptionsOpen(false);
+                        bumpControls();
+                      }}
+                      className="w-auto min-w-10 px-1.5 sm:min-w-9"
+                    >
+                      <span className="select-none text-[11px] font-medium tabular-nums tracking-wide text-white/90 sm:text-[12px]">
+                        {qualityButtonLabel}
+                      </span>
+                    </IconButton>
+                    {qualityOpen ? (
+                      <div
+                        ref={qualityMenuRef}
+                        role="menu"
+                        aria-label="Quality"
+                        className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(50vh,280px)] min-w-[132px] overflow-y-auto rounded-md border border-white/10 bg-zinc-950 py-1 text-xs text-white shadow-lg"
+                      >
+                        {serverQualities.length > 1
+                          ? serverQualities.map((entry) => (
+                              <MenuItem
+                                key={entry.file}
+                                active={activeSrc === entry.file}
+                                onClick={() => selectServerQuality(entry)}
+                              >
+                                {formatStreamQualityLabel(entry.quality)}
+                              </MenuItem>
+                            ))
+                          : null}
+                        {showHlsQualityMenu ? (
+                          <>
+                            <MenuItem
+                              active={hlsLevelIndex < 0}
+                              onClick={() => selectHlsLevel(-1)}
+                            >
+                              Auto
+                            </MenuItem>
+                            {[...hlsLevels]
+                              .sort(
+                                (a, b) => (b.height ?? 0) - (a.height ?? 0),
+                              )
+                              .map((level) => (
+                                <MenuItem
+                                  key={level.index}
+                                  active={hlsLevelIndex === level.index}
+                                  onClick={() => selectHlsLevel(level.index)}
+                                >
+                                  {level.label}
+                                </MenuItem>
+                              ))}
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div
                   className="relative hidden sm:block"
                   onMouseEnter={() => {
@@ -3224,6 +3319,7 @@ export function AniKittyPlayer({
                       setMoreOpen((v) => !v);
                       setVolumeOpen(false);
                       setCaptionsOpen(false);
+                      setQualityOpen(false);
                       bumpControls();
                     }}
                   >
@@ -3290,44 +3386,6 @@ export function AniKittyPlayer({
                           >
                             {inPip ? "Exit picture-in-picture" : "Picture-in-picture"}
                           </MenuItem>
-                        </MenuSection>
-                      ) : null}
-
-                      {serverQualities.length > 1 ? (
-                        <MenuSection title="Quality">
-                          {serverQualities.map((entry) => (
-                            <MenuItem
-                              key={entry.file}
-                              active={activeSrc === entry.file}
-                              onClick={() => selectServerQuality(entry)}
-                            >
-                              {formatStreamQualityLabel(entry.quality)}
-                            </MenuItem>
-                          ))}
-                        </MenuSection>
-                      ) : null}
-
-                      {showHlsQualityMenu ? (
-                        <MenuSection title="Quality">
-                          <MenuItem
-                            active={hlsLevelIndex < 0}
-                            onClick={() => selectHlsLevel(-1)}
-                          >
-                            Auto
-                          </MenuItem>
-                          {[...hlsLevels]
-                            .sort(
-                              (a, b) => (b.height ?? 0) - (a.height ?? 0),
-                            )
-                            .map((level) => (
-                              <MenuItem
-                                key={level.index}
-                                active={hlsLevelIndex === level.index}
-                                onClick={() => selectHlsLevel(level.index)}
-                              >
-                                {level.label}
-                              </MenuItem>
-                            ))}
                         </MenuSection>
                       ) : null}
 
@@ -3421,18 +3479,6 @@ export function AniKittyPlayer({
                           Share
                         </MenuItem>
                       </MenuSection>
-
-                      {activeServerQuality ||
-                      (showHlsQualityMenu && hlsLevelIndex >= 0) ? (
-                        <p className="border-t border-white/10 px-3 py-2 text-[10px] text-white/45">
-                          {activeServerQuality
-                            ? formatStreamQualityLabel(
-                                activeServerQuality.quality,
-                              )
-                            : hlsLevels.find((l) => l.index === hlsLevelIndex)
-                                ?.label}
-                        </p>
-                      ) : null}
                     </div>
                   )}
                 </div>
