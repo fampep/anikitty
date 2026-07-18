@@ -136,5 +136,7 @@ export async function PATCH(req: Request) {
   }
 
   await db.update(users).set({ role: trimmedRole }).where(eq(users.id, userId));
+  const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
+  notifyDiscordRoleSync("admin_role_patch");
   return NextResponse.json({ ok: true });
 }
