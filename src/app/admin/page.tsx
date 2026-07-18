@@ -297,7 +297,7 @@ const SEVERITY_META: Record<string, { label: string; color: string; icon: React.
   success:  { label: "Success",  color: "#22c55e", icon: CheckCircle2 },
   warn:     { label: "Warning",  color: "#f59e0b", icon: AlertTriangle },
   critical: { label: "Critical", color: "#ef4444", icon: AlertOctagon },
-  promo:    { label: "Promo",    color: "#a78bfa", icon: Megaphone },
+  promo:    { label: "Promo",    color: "#a1a1aa", icon: Megaphone },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1359,7 +1359,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           <Link
             href="/chat"
             target="_blank"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-500/25 text-violet-300/80 text-[11px] font-mono hover:bg-violet-500/10 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/25 text-zinc-300/80 text-[11px] font-mono hover:bg-primary/10 transition-all"
           >
             <MessageCircle className="w-3 h-3" /> Live Chat
           </Link>
@@ -1874,7 +1874,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 onClick={() => handleGrantSupporter(u)}
                                 disabled={grantingUserId === u.id}
                                 title="Grant supporter days"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-violet-500/20 text-violet-300/70 text-[11px] hover:bg-violet-500/10 disabled:opacity-40 transition-all"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-primary/20 text-zinc-300/70 text-[11px] hover:bg-primary/10 disabled:opacity-40 transition-all"
                               >
                                 <Sparkles className="w-3 h-3" />
                               </button>
@@ -2382,7 +2382,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </div>
                   {s.notes && (
-                    <p className="text-xs text-white/50 italic border-l-2 border-violet-500/30 pl-3">“{s.notes}”</p>
+                    <p className="text-xs text-white/50 italic border-l-2 border-primary/30 pl-3">“{s.notes}”</p>
                   )}
                   <input
                     type="text"
@@ -2443,7 +2443,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               <div className="rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/5">
                 {audit.map((a) => (
                   <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 text-xs">
-                    <span className="px-2 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-300 font-mono shrink-0">
+                    <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-zinc-300 font-mono shrink-0">
                       {a.action}
                     </span>
                     <span className="text-white/70 shrink-0">{a.actorUsername ?? "Admin panel"}</span>
@@ -2783,7 +2783,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             <Link
                               href={`/forum/${a.forumThreadId}`}
                               target="_blank"
-                              className="inline-flex items-center gap-1 text-[11px] text-violet-300/70 hover:text-violet-200 mt-1 transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] text-zinc-300/70 hover:text-zinc-200 mt-1 transition-colors"
                             >
                               <MessageCircle className="w-3 h-3" />
                               Forum thread linked
@@ -2802,7 +2802,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                             onClick={() => handlePostAnnToForum(a.id)}
                             disabled={annPosting === a.id}
                             title="Post to forum"
-                            className="px-2 py-1 rounded-lg text-[11px] font-mono border border-violet-500/20 text-violet-300/70 hover:bg-violet-500/10 disabled:opacity-40 transition-all"
+                            className="px-2 py-1 rounded-lg text-[11px] font-mono border border-primary/20 text-zinc-300/70 hover:bg-primary/10 disabled:opacity-40 transition-all"
                           >
                             {annPosting === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Forum"}
                           </button>

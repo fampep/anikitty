@@ -12,7 +12,7 @@ export default function NotFound() {
   return (
     <Container className="min-h-[70vh] flex flex-col items-center justify-center text-center py-20">
       <div className="relative">
-        <p className="text-[6rem] sm:text-[8rem] font-black leading-none bg-gradient-to-br from-violet-400 to-fuchsia-500 bg-clip-text text-transparent select-none">
+        <p className="text-[6rem] sm:text-[8rem] font-black leading-none bg-gradient-to-br from-zinc-400 to-zinc-500 bg-clip-text text-transparent select-none">
           404
         </p>
         <span className="absolute -top-2 -right-4 text-4xl -rotate-12" aria-hidden>
@@ -30,7 +30,7 @@ export default function NotFound() {
       <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
         <Link
           href={ROUTES.HOME}
-          className="inline-flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-100 hover:bg-violet-500/25 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/15 px-4 py-2 text-sm font-semibold text-zinc-100 hover:bg-primary/25 transition-colors"
         >
           <Home className="h-4 w-4" />
           {t("notFound.home")}

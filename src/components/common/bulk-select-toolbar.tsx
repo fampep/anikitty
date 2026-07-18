@@ -33,7 +33,7 @@ export function BulkSelectToolbar({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 rounded-xl border border-violet-400/25 bg-violet-500/8 px-3 py-2",
+        "flex flex-wrap items-center gap-2 rounded-xl border border-primary/25 bg-primary/8 px-3 py-2",
         className,
       )}
     >

@@ -97,7 +97,7 @@ function renderNode(node: BbNode, key: string, imgCount: { n: number }): ReactNo
           href={href}
           target="_blank"
           rel="noopener noreferrer nofollow"
-          className="text-violet-300 hover:text-violet-200 underline decoration-violet-400/30 underline-offset-2"
+          className="text-zinc-300 hover:text-zinc-200 underline decoration-zinc-400/30 underline-offset-2"
         >
           {children.length ? children : href}
         </a>
@@ -125,7 +125,7 @@ function renderNode(node: BbNode, key: string, imgCount: { n: number }): ReactNo
       return (
         <blockquote
           key={key}
-          className="my-2 border-l-2 border-violet-400/40 pl-3 text-foreground/75 dark:text-white/65 italic"
+          className="my-2 border-l-2 border-primary/40 pl-3 text-foreground/75 dark:text-white/65 italic"
         >
           {children}
         </blockquote>

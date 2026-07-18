@@ -168,7 +168,7 @@ const SearchBar = ({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={t("search.placeholder")}
-          className="w-full h-9 pl-9 pr-8 bg-accent dark:bg-white/[0.06] border border-border dark:border-white/[0.1] rounded-xl text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground dark:placeholder:text-white/35 focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20 transition-all"
+          className="w-full h-9 pl-9 pr-8 bg-accent dark:bg-white/[0.06] border border-border dark:border-white/[0.1] rounded-xl text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground dark:placeholder:text-white/35 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
         />
         {searchValue && (
           <button
@@ -186,7 +186,7 @@ const SearchBar = ({
         <div
           id={listboxId}
           role="listbox"
-          className="absolute top-[calc(100%+8px)] left-0 z-50 max-h-[70vh] overflow-y-auto overscroll-contain w-full rounded-2xl border border-border dark:border-white/[0.08] bg-[#0a0a10] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
+          className="absolute top-[calc(100%+8px)] left-0 z-50 max-h-[70vh] overflow-y-auto overscroll-contain w-full rounded-2xl border border-border dark:border-white/[0.08] bg-[#09090b] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
         >
           {isLoading && (
             <div className="flex flex-col gap-0 p-2">

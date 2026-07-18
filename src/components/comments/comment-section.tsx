@@ -1012,7 +1012,7 @@ export default function CommentSection({
               className={cn(
                 "rounded-2xl border transition-all duration-200 overflow-hidden",
                 focused
-                  ? "border-violet-500/25 bg-muted/50 dark:bg-white/[0.04] shadow-lg shadow-violet-950/20 ring-1 ring-violet-500/10"
+                  ? "border-primary/25 bg-muted/50 dark:bg-white/[0.04] shadow-lg shadow-black/20 ring-1 ring-primary/10"
                   : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] hover:border-border dark:border-white/12",
                 isSheet && !focused && "bg-muted/40 dark:bg-white/[0.03]",
               )}
@@ -1166,14 +1166,14 @@ export default function CommentSection({
             <button
               type="button"
               onClick={() => openRulesDialog({ readOnly: rulesAccepted })}
-              className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/25 hover:text-violet-400/80 dark:hover:text-violet-300/70 transition-colors mt-1 pl-1 text-left"
+              className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/25 hover:text-zinc-400/80 dark:hover:text-zinc-300/70 transition-colors mt-1 pl-1 text-left"
             >
               {t("comments.viewRules")}
             </button>
           </div>
         </div>
       ) : !auth ? (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 px-4 rounded-2xl bg-gradient-to-r from-white/[0.03] to-violet-500/[0.04] border border-border dark:border-white/8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 px-4 rounded-2xl bg-gradient-to-r from-white/[0.03] to-zinc-500/[0.04] border border-border dark:border-white/8">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <SmilePlus className="w-4 h-4 text-muted-foreground/70 dark:text-white/20 shrink-0" />
             <p className="text-sm text-muted-foreground dark:text-white/30">{t("comments.signInToJoin")}</p>
@@ -1237,7 +1237,7 @@ export default function CommentSection({
                   isHighlighted
                     ? "bg-muted/30 dark:bg-white/[0.025] hover:bg-muted/40 dark:hover:bg-white/[0.04] border-border/50 dark:border-white/[0.05]"
                     : "hover:bg-muted/25 dark:hover:bg-white/[0.02] hover:border-border/40 dark:hover:border-white/[0.06]",
-                  isOwn && "ring-1 ring-violet-500/10",
+                  isOwn && "ring-1 ring-primary/10",
                 )}
               >
                 <CommentAvatar username={c.username} avatarUrl={c.avatarUrl} frameSlug={c.equippedFrame} />
@@ -1257,7 +1257,7 @@ export default function CommentSection({
                       levelTierIcon={c.levelTierIcon}
                     />
                     {c.pinnedAt && (
-                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-primary/10 border border-primary/25 text-zinc-300/80">
                         <Pin className="w-2.5 h-2.5" />
                         {t("comments.pinnedBadge")}
                       </span>
@@ -1290,7 +1290,7 @@ export default function CommentSection({
                             className={cn(
                               "p-1.5 rounded-lg transition-all",
                               c.pinnedAt
-                                ? "text-violet-300 hover:bg-violet-500/10"
+                                ? "text-zinc-300 hover:bg-primary/10"
                                 : "hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60",
                             )}
                           >
@@ -1400,7 +1400,7 @@ export default function CommentSection({
                           placeholder={t("comments.replyTo", { user: c.username })}
                           rows={2}
                           maxLength={1000}
-                          className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-none focus:outline-none focus:border-violet-500/25 transition-colors leading-relaxed"
+                          className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-none focus:outline-none focus:border-primary/25 transition-colors leading-relaxed"
                         />
                         <div className="flex items-center justify-between gap-2 mt-1.5">
                           <button
@@ -1446,7 +1446,7 @@ export default function CommentSection({
 
                   {/* Threaded replies */}
                   {c.replies.length > 0 && (
-                    <div className="mt-3 ml-2 pl-4 border-l-2 border-violet-500/15">
+                    <div className="mt-3 ml-2 pl-4 border-l-2 border-primary/15">
                       {!expandedReplies.has(c.id) ? (
                         <button
                           onClick={() =>

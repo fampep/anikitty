@@ -88,7 +88,7 @@ function AnimeHeatmap({ username }: Props) {
               }
             }}
             disabled={retrying}
-            className="text-xs text-violet-400 hover:text-violet-300 disabled:opacity-50 transition-colors mt-1"
+            className="text-xs text-zinc-400 hover:text-zinc-300 disabled:opacity-50 transition-colors mt-1"
           >
             {retrying ? t("profile.retrying") : t("profile.retry")}
           </button>

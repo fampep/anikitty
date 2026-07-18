@@ -78,7 +78,7 @@ export default function HomeW2gRail() {
                 type="button"
                 onClick={() => void handleJoin(room)}
                 disabled={joining === room.code}
-                className="group flex items-center gap-3 rounded-xl border border-border dark:border-white/[0.08] bg-muted/20 dark:bg-white/[0.02] p-2.5 text-left hover:border-violet-400/25 hover:bg-violet-500/[0.06] transition-all disabled:opacity-50"
+                className="group flex items-center gap-3 rounded-xl border border-border dark:border-white/[0.08] bg-muted/20 dark:bg-white/[0.02] p-2.5 text-left hover:border-primary/25 hover:bg-primary/[0.06] transition-all disabled:opacity-50"
               >
                 <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-lg bg-muted/50 dark:bg-white/[0.04]">
                   {room.animeThumbnail ? (
@@ -98,9 +98,9 @@ export default function HomeW2gRail() {
                   </p>
                 </div>
                 {joining === room.code ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-violet-300" />
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-zinc-300" />
                 ) : (
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-violet-300 transition-colors" />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-zinc-300 transition-colors" />
                 )}
               </button>
             ))}
@@ -109,7 +109,7 @@ export default function HomeW2gRail() {
 
         <Link
           href={ROUTES.WATCH_TOGETHER}
-          className="text-[11px] font-semibold text-violet-300/80 hover:text-violet-200 self-start"
+          className="text-[11px] font-semibold text-zinc-300/80 hover:text-zinc-200 self-start"
         >
           {t("home.w2gRail.viewAll")} →
         </Link>

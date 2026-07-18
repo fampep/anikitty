@@ -48,7 +48,7 @@ function ScopeTab({
       className={cn(
         "inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold border transition-all",
         active
-          ? "bg-violet-500/15 text-violet-200 border-violet-400/35"
+          ? "bg-primary/15 text-zinc-200 border-primary/35"
           : "bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 border-border dark:border-white/10 hover:border-border dark:hover:border-white/20 hover:text-muted-foreground dark:hover:text-white/70",
       )}
     >

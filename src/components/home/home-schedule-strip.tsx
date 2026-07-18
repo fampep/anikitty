@@ -159,7 +159,7 @@ export default function HomeScheduleStrip() {
                             "inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase",
                             isSub
                               ? "bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/25"
-                              : "bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/25",
+                              : "bg-primary/20 text-zinc-200 ring-1 ring-primary/25",
                           )}
                         >
                           {isSub ? <Captions className="h-2 w-2" /> : <Mic className="h-2 w-2" />}

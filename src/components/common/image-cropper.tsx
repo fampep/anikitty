@@ -209,7 +209,7 @@ export default function ImageCropper({
               step={0.01}
               value={zoom}
               onChange={(e) => applyZoom(parseFloat(e.target.value))}
-              className="flex-1 h-1.5 rounded-full appearance-none bg-white/10 accent-violet-400 cursor-pointer"
+              className="flex-1 h-1.5 rounded-full appearance-none bg-white/10 accent-zinc-300 cursor-pointer"
             />
           </div>
         </div>

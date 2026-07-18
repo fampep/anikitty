@@ -149,7 +149,7 @@ function ContinueCard({
       className={cn(
         "relative shrink-0 w-[160px] sm:w-[200px] group",
         editMode && "cursor-pointer",
-        selected && "ring-2 ring-violet-400/60 rounded-xl",
+        selected && "ring-2 ring-primary/60 rounded-xl",
       )}
       onClick={editMode ? onToggleSelect : undefined}
       onKeyDown={
@@ -171,7 +171,7 @@ function ContinueCard({
           className={cn(
             "absolute top-2 left-2 z-30 flex h-5 w-5 items-center justify-center rounded-md border",
             selected
-              ? "bg-violet-500 border-violet-400/50 text-white"
+              ? "bg-primary border-primary/50 text-primary-foreground"
               : "bg-black/70 border-white/20 text-white/50",
           )}
         >
@@ -181,7 +181,7 @@ function ContinueCard({
 
       <Link href={href} className={cn("block", editMode && "pointer-events-none")}>
         {/* Thumbnail area */}
-        <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover:ring-violet-400/20 transition-all" style={{ aspectRatio: "16/9" }}>
+        <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-white/[0.06] group-hover:ring-primary/20 transition-all" style={{ aspectRatio: "16/9" }}>
           <LazyPosterImage
             src={item.poster}
             alt={item.name}
@@ -243,7 +243,7 @@ function ContinueCard({
             "bg-black/60 text-muted-foreground dark:text-white/45 ring-1 ring-border dark:ring-white/10",
             "opacity-80 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
             "hover:bg-rose-500/15 hover:text-rose-300 hover:ring-rose-400/25",
-            "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-violet-400/40",
+            "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-primary/40",
             "transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none",
           )}
         >
@@ -273,7 +273,7 @@ function RemoveContinueDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next && !removing) onClose(); }}>
-      <DialogContent className="border border-border dark:border-white/10 bg-[#0a0a0f] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-violet-950/30 [&>button:last-child]:hidden">
+      <DialogContent className="border border-border dark:border-white/10 bg-[#09090b] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-black/30 [&>button:last-child]:hidden">
         <DialogHeader className="px-5 pt-5 pb-4 border-b border-border dark:border-white/8 text-left space-y-2">
           <DialogTitle className="text-foreground dark:text-white font-semibold text-base tracking-tight">
             {t("home.removeContinueTitle")}

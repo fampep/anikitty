@@ -84,7 +84,7 @@ function ToggleChip({
         aria-hidden
         className={cn(
           "relative w-9 h-5 rounded-full shrink-0 transition-colors",
-          value ? "bg-violet-500/70" : "bg-accent dark:bg-white/12",
+          value ? "bg-primary/70" : "bg-accent dark:bg-white/12",
         )}
       >
         <div
@@ -164,7 +164,7 @@ export default function SiteDisplaySettings() {
                   style={{
                     background: preset.hex
                       ? preset.hex
-                      : "linear-gradient(135deg,#a78bfa 0%,#7c3aed 100%)",
+                      : "linear-gradient(135deg,#fafafa 0%,#71717a 100%)",
                   }}
                 />
                 {preset.name}
@@ -176,7 +176,7 @@ export default function SiteDisplaySettings() {
           <label className="inline-flex items-center gap-2 h-9 px-2 rounded-lg border border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 cursor-pointer w-fit">
             <input
               type="color"
-              value={siteAccentColor ?? "#a78bfa"}
+              value={siteAccentColor ?? "#a1a1aa"}
               onChange={(e) => {
                 const hex = e.target.value;
                 if (isValidThemeColor(hex)) setSiteAccentColor(hex);
@@ -201,7 +201,7 @@ export default function SiteDisplaySettings() {
         >
           <div
             className="h-9 w-9 rounded-lg shrink-0 border border-border dark:border-white/15"
-            style={{ backgroundColor: accentValue ?? "#a78bfa" }}
+            style={{ backgroundColor: accentValue ?? "#a1a1aa" }}
           />
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-foreground dark:text-white/90">{t("settings.accentPreview")}</p>

@@ -27,12 +27,12 @@ export function HomeSectionLink({
     <div className={cn("flex items-center gap-2.5 min-w-0 flex-1", className)}>
       <div
         className={cn(
-          "w-0.5 rounded-full bg-gradient-to-b from-violet-300 via-violet-500 to-violet-700/30 shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.35)] transition-shadow duration-300 group-hover:shadow-[0_0_16px_rgba(124,58,237,0.5)]",
+          "w-0.5 rounded-full bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-700/30 shrink-0 shadow-[0_0_12px_rgba(255, 255, 255, 0.35)] transition-shadow duration-300 group-hover:shadow-[0_0_16px_rgba(255, 255, 255, 0.5)]",
           compact ? "h-5" : "h-8",
         )}
       />
       {icon ? (
-        <span className={cn("text-violet-300/80 flex items-center shrink-0", compact && "scale-90")}>{icon}</span>
+        <span className={cn("text-zinc-300/80 flex items-center shrink-0", compact && "scale-90")}>{icon}</span>
       ) : null}
       <div className="min-w-0 flex-1">
         <span
@@ -50,7 +50,7 @@ export function HomeSectionLink({
       {href ? (
         <span
           className={cn(
-            "ml-auto flex items-center gap-1 text-[11px] font-semibold text-muted-foreground dark:text-white/40 shrink-0 group rounded-lg border border-border dark:border-white/[0.08] bg-muted/50 dark:bg-white/[0.04] group-hover:border-violet-400/30 group-hover:bg-violet-500/[0.1] transition-all",
+            "ml-auto flex items-center gap-1 text-[11px] font-semibold text-muted-foreground dark:text-white/40 shrink-0 group rounded-lg border border-border dark:border-white/[0.08] bg-muted/50 dark:bg-white/[0.04] group-hover:border-primary/30 group-hover:bg-primary/[0.1] transition-all",
             compact ? "px-2.5 py-1.5" : "px-3.5 py-2 rounded-xl",
           )}
         >

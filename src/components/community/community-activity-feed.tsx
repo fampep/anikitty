@@ -78,8 +78,8 @@ function PanelHeader({
   return (
     <div className="flex items-center justify-between gap-3 mb-4">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-violet-400/70 to-violet-400/20 shrink-0" />
-        <span className="text-violet-300/70">{icon}</span>
+        <div className="w-[3px] h-5 rounded-full bg-gradient-to-b from-zinc-400/70 to-primary/20 shrink-0" />
+        <span className="text-zinc-300/70">{icon}</span>
         <h2 className="text-base font-bold text-foreground dark:text-white/90 truncate">{title}</h2>
       </div>
       <Link
@@ -117,7 +117,7 @@ function CommentsColumn({ comments }: { comments: LatestComment[] }) {
         <Link
           key={c.id}
           href={commentLink(c)}
-          className="flex flex-col gap-2 p-3.5 rounded-xl border border-border/80 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.02] hover:border-violet-400/25 hover:bg-violet-500/[0.04] transition-colors group"
+          className="flex flex-col gap-2 p-3.5 rounded-xl border border-border/80 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.02] hover:border-primary/25 hover:bg-primary/[0.04] transition-colors group"
         >
           <div className="flex items-start gap-3 min-w-0">
             <FramedAvatar

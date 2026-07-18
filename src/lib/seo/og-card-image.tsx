@@ -13,10 +13,10 @@ const ACCENT_STYLES: Record<
   { glow: string; badge: string; badgeText: string; chip: string }
 > = {
   violet: {
-    glow: "radial-gradient(ellipse 70% 55% at 50% 40%, rgba(124,58,237,0.22), transparent)",
-    badge: "rgba(124,58,237,0.18)",
+    glow: "radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255, 255, 255, 0.22), transparent)",
+    badge: "rgba(255, 255, 255, 0.18)",
     badgeText: "rgba(196,181,253,0.95)",
-    chip: "rgba(124,58,237,0.12)",
+    chip: "rgba(255, 255, 255, 0.12)",
   },
   teal: {
     glow: "radial-gradient(ellipse 70% 55% at 50% 40%, rgba(20,184,166,0.22), transparent)",

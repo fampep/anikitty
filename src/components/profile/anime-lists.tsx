@@ -282,7 +282,7 @@ function AnimeLists({ status, username, isOwn }: Props) {
                 className={cn(
                   "shrink-0 relative group",
                   inEdit && "cursor-pointer",
-                  selected && "ring-2 ring-violet-400/60 rounded-xl",
+                  selected && "ring-2 ring-primary/60 rounded-xl",
                 )}
                 onClick={inEdit ? () => bulk.toggle(bookmark.animeId) : undefined}
                 onKeyDown={
@@ -317,7 +317,7 @@ function AnimeLists({ status, username, isOwn }: Props) {
                     className={cn(
                       "absolute top-1.5 left-1.5 z-30 flex h-5 w-5 items-center justify-center rounded-md border",
                       selected
-                        ? "bg-violet-500 border-violet-400/50 text-white"
+                        ? "bg-primary border-primary/50 text-primary-foreground"
                         : "bg-black/70 border-white/20 text-white/50",
                     )}
                   >
@@ -382,7 +382,7 @@ function AnimeLists({ status, username, isOwn }: Props) {
       )}
 
       <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open && !removing) setConfirmOpen(false); }}>
-        <DialogContent className="border border-border dark:border-white/10 bg-[#0a0a0f] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-violet-950/30 [&>button:last-child]:hidden">
+        <DialogContent className="border border-border dark:border-white/10 bg-[#09090b] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-black/30 [&>button:last-child]:hidden">
           <DialogHeader className="px-5 pt-5 pb-4 border-b border-border dark:border-white/8 text-left space-y-2">
             <DialogTitle className="text-foreground dark:text-white font-semibold text-base tracking-tight">
               {t("profile.removeWatchlistTitle")}

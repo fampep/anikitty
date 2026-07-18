@@ -30,9 +30,9 @@ export default function CommunityPage() {
           </div>
           <Link
             href={ROUTES.FORUM}
-            className="inline-flex items-center gap-2 shrink-0 self-start rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-muted-foreground dark:text-white/70 hover:border-violet-400/25 hover:bg-violet-500/[0.08] hover:text-foreground dark:hover:text-white transition-all"
+            className="inline-flex items-center gap-2 shrink-0 self-start rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-muted-foreground dark:text-white/70 hover:border-primary/25 hover:bg-primary/[0.08] hover:text-foreground dark:hover:text-white transition-all"
           >
-            <MessagesSquare className="w-4 h-4 text-violet-300/80" />
+            <MessagesSquare className="w-4 h-4 text-zinc-300/80" />
             {t("community.forumCta")}
           </Link>
         </div>

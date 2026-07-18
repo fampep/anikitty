@@ -162,7 +162,7 @@ export default function ProfileCommentsFeed({ username, variant = "full", limit 
           <button
             type="button"
             onClick={load}
-            className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-1"
+            className="text-xs text-zinc-400 hover:text-zinc-300 transition-colors mt-1"
           >
             {t("profile.retry")}
           </button>
@@ -219,7 +219,7 @@ export default function ProfileCommentsFeed({ username, variant = "full", limit 
         {variant === "compact" && total > 0 && (
           <Link
             href={ROUTES.profileComments(username)}
-            className="text-xs font-semibold text-violet-400 hover:text-violet-300 transition-colors"
+            className="text-xs font-semibold text-zinc-400 hover:text-zinc-300 transition-colors"
           >
             {t("profile.commentsPage.viewAll")}
           </Link>

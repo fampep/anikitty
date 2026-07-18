@@ -1401,8 +1401,8 @@ const VideoPlayerSection = () => {
     if (!episodesLoading && (allEpisodes?.totalEpisodes ?? 0) === 0) {
       return (
         <div className="w-full aspect-video bg-[#030303] flex flex-col items-center justify-center gap-4 rounded-xl border border-border dark:border-white/10 ring-1 ring-white/[0.06] shadow-2xl shadow-black/60 overflow-hidden relative">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.1),transparent_60%)] pointer-events-none" />
-          <Cat className="text-violet-300/30 w-12 h-12 relative z-10" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255, 255, 255, 0.1),transparent_60%)] pointer-events-none" />
+          <Cat className="text-zinc-300/30 w-12 h-12 relative z-10" />
           <div className="text-center relative z-10 px-6">
             <p className="text-muted-foreground dark:text-white/50 text-sm font-medium">{t("watch.animeNotAiredYet")}</p>
           </div>
@@ -1412,8 +1412,8 @@ const VideoPlayerSection = () => {
 
     return (
       <div className="w-full aspect-video bg-[#030303] flex flex-col items-center justify-center gap-4 rounded-xl border border-border dark:border-white/10 ring-1 ring-white/[0.06] shadow-2xl shadow-black/60 overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.1),transparent_60%)] pointer-events-none" />
-        <Cat className="text-violet-300/30 w-12 h-12 relative z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255, 255, 255, 0.1),transparent_60%)] pointer-events-none" />
+        <Cat className="text-zinc-300/30 w-12 h-12 relative z-10" />
         <div className="text-center relative z-10 px-6">
           <p className="text-muted-foreground dark:text-white/50 text-sm font-medium">{t("watch.selectEpisode")}</p>
           <p className="text-muted-foreground/80 dark:text-white/25 text-[11px] font-mono mt-1.5">{t("watch.selectEpisodeHint")}</p>
@@ -1806,7 +1806,7 @@ const VideoPlayerSection = () => {
               </span>
             )}
             {streamData?.miruroPipe && provider === "Miruro" && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300/90">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-primary/10 border border-primary/20 text-zinc-300/90">
                 {streamData.miruroPipe}
               </span>
             )}
@@ -1884,7 +1884,7 @@ const PlayerSkeleton = ({
     aria-label={label ?? t("watch.loadingStream")}
     className={`relative w-full aspect-video rounded-xl bg-[#030303] border border-border dark:border-white/[0.08] flex flex-col items-center justify-center gap-3 overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/[0.06] ${dim ? "opacity-40" : ""}`}
   >
-    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(124,58,237,0.08),transparent_60%)] pointer-events-none" />
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255, 255, 255, 0.08),transparent_60%)] pointer-events-none" />
     {accent && (
       <div
         className={cn(
@@ -1899,7 +1899,7 @@ const PlayerSkeleton = ({
         <div
           className={cn(
             "h-full w-1/3 rounded-full animate-pulse",
-            accent ? "bg-gradient-to-r from-white/10 to-white/25" : "bg-gradient-to-r from-violet-600/40 to-violet-400/40",
+            accent ? "bg-gradient-to-r from-white/10 to-white/25" : "bg-gradient-to-r from-primary/40 to-primary/40",
           )}
         />
       </div>

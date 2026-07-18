@@ -42,7 +42,7 @@ export default function ScrollToTop() {
       className={cn(
         "fixed bottom-safe right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full touch-target",
         "border border-border dark:border-white/12 bg-black/70 text-white backdrop-blur-sm shadow-lg shadow-black/40",
-        "hover:bg-violet-500/80 hover:border-violet-400/40 transition-all",
+        "hover:bg-primary/80 hover:border-primary/40 transition-all",
         visible ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-3 pointer-events-none",
       )}
     >

@@ -50,7 +50,7 @@ export default async function VoiceActorPage({ params }: { params: Promise<{ id:
         </p>
         <Link
           href={ROUTES.VOICE_ACTORS}
-          className="mt-6 inline-flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-100 hover:bg-violet-500/25"
+          className="mt-6 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/15 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-primary/25"
         >
           <Search className="h-4 w-4" /> Search voice actors
         </Link>
@@ -62,17 +62,17 @@ export default async function VoiceActorPage({ params }: { params: Promise<{ id:
     <Container className="mt-16 sm:mt-20 pb-24">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 sm:gap-6">
-        <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-2xl ring-1 ring-violet-400/25 shadow-xl">
+        <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-2xl ring-1 ring-primary/25 shadow-xl">
           {va.image ? (
             <Image src={va.image} alt={va.name} fill sizes="128px" className="object-cover" unoptimized />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-violet-500/10 text-violet-300">
+            <div className="flex h-full w-full items-center justify-center bg-primary/10 text-zinc-300">
               <Mic className="h-8 w-8" />
             </div>
           )}
         </div>
         <div className="text-center sm:text-left min-w-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wide text-violet-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
             <Mic className="h-3 w-3" /> Voice Actor
           </span>
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-foreground dark:text-white tracking-tight">{va.name}</h1>

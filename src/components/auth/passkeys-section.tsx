@@ -128,7 +128,7 @@ export default function PasskeysSection() {
               className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 dark:bg-white/[0.03] border border-border dark:border-white/[0.08]"
             >
               <div className="flex items-start gap-3 min-w-0">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-zinc-300">
                   <KeyRound className="w-4 h-4" />
                 </span>
                 <div className="min-w-0">
@@ -162,7 +162,7 @@ export default function PasskeysSection() {
       )}
 
       {showAdd ? (
-        <div className="flex flex-col gap-3 p-4 rounded-xl border border-violet-500/20 bg-violet-500/[0.05]">
+        <div className="flex flex-col gap-3 p-4 rounded-xl border border-primary/20 bg-primary/[0.05]">
           <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-wider">
             {t("settings.passkeyNameLabel")}
           </label>
@@ -171,7 +171,7 @@ export default function PasskeysSection() {
             value={deviceName}
             onChange={(e) => setDeviceName(e.target.value.slice(0, 120))}
             placeholder={t("settings.passkeyNamePlaceholder")}
-            className="h-10 px-3 rounded-xl bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground dark:text-white text-sm focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20"
+            className="h-10 px-3 rounded-xl bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground dark:text-white text-sm focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
           />
           <div className="flex flex-wrap gap-2">
             <button

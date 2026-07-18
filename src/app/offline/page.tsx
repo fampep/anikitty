@@ -21,7 +21,7 @@ export default function OfflinePage() {
       </p>
       <Link
         href={ROUTES.HOME}
-        className="mt-2 inline-flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-100 hover:bg-violet-500/25 transition-colors"
+        className="mt-2 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/15 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-primary/25 transition-colors"
       >
         Retry
       </Link>

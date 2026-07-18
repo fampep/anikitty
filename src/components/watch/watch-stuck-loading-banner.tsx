@@ -29,7 +29,7 @@ export default function WatchStuckLoadingBanner({
           size="sm"
           variant="secondary"
           onClick={onTryAnother}
-          className="h-8 text-[11px] border-violet-500/25 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
+          className="h-8 text-[11px] border-primary/25 bg-primary/10 text-zinc-100 hover:bg-primary/20"
         >
           <Server className="w-3.5 h-3.5 mr-1.5" />
           {t("watch.tryAnotherSourceNamed", { provider: nextProviderLabel })}

@@ -66,7 +66,7 @@ function NavbarAvatar({ auth }: Props) {
             frameSlug={frameSlug}
             className="w-8 h-8"
           />
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#0a0a12] shadow-sm shadow-emerald-400/50" />
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#09090b] shadow-sm shadow-emerald-400/50" />
         </button>
       </PopoverTrigger>
 
@@ -100,7 +100,7 @@ function NavbarAvatar({ auth }: Props) {
                 )}
               </div>
               <div className="flex items-center gap-1 mt-0.5">
-                <Zap className="w-2.5 h-2.5 text-violet-400/60 shrink-0" />
+                <Zap className="w-2.5 h-2.5 text-zinc-400/60 shrink-0" />
                 <p className="text-muted-foreground/80 dark:text-white/25 text-[10px] font-mono truncate">{t("nav.anisurge")}</p>
               </div>
             </div>

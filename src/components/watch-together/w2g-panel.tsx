@@ -98,18 +98,18 @@ export default function W2gPanel({
   const syncLabel = isHost ? t("watch.w2g.youControl") : t("watch.w2g.syncedToHost");
 
   return (
-    <div className="rounded-xl border border-violet-500/25 bg-black/80 backdrop-blur-md overflow-hidden">
+    <div className="rounded-xl border border-primary/25 bg-black/80 backdrop-blur-md overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-violet-500/10 border-b border-violet-500/20"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-primary/10 border-b border-primary/20"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <Users className="h-4 w-4 text-violet-400 shrink-0" />
+          <Users className="h-4 w-4 text-zinc-400 shrink-0" />
           <span className="text-xs font-bold text-foreground dark:text-white truncate">
             {roomName ?? t("watch.w2g.title")}
           </span>
-          <span className="text-[10px] font-mono text-violet-300/80 bg-violet-500/15 px-1.5 py-0.5 rounded shrink-0">
+          <span className="text-[10px] font-mono text-zinc-300/80 bg-primary/15 px-1.5 py-0.5 rounded shrink-0">
             {code}
           </span>
           {isHost && (
@@ -221,12 +221,12 @@ export default function W2gPanel({
               onChange={(e) => setDraft(e.target.value)}
               placeholder={t("watch.w2g.chatPlaceholder")}
               maxLength={500}
-              className="flex-1 min-w-0 bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:border-violet-500/40"
+              className="flex-1 min-w-0 bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:border-primary/40"
             />
             <button
               type="submit"
               disabled={!draft.trim() || sending}
-              className="p-1.5 rounded-lg bg-violet-600 text-white disabled:opacity-40"
+              className="p-1.5 rounded-lg bg-primary text-primary-foreground disabled:opacity-40"
             >
               {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             </button>

@@ -134,7 +134,7 @@ function EpisodeRow({
             <p className="text-[9px] uppercase tracking-wide text-muted-foreground dark:text-white/35 mb-0.5">
               {t("skipSubmit.outro")}
             </p>
-            <p className={cn("tabular-nums", ep.hasOutro ? "text-violet-300/90" : "text-white/25")}>
+            <p className={cn("tabular-nums", ep.hasOutro ? "text-zinc-300/90" : "text-white/25")}>
               {ep.outroLabel ?? "—"}
             </p>
           </div>
@@ -268,7 +268,7 @@ export default function SkipDatabaseBrowser() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { label: t("timestamps.statLive"), value: data.stats.liveEpisodes, accent: "text-sky-300" },
-              { label: t("timestamps.statAnime"), value: data.stats.liveAnime, accent: "text-violet-300" },
+              { label: t("timestamps.statAnime"), value: data.stats.liveAnime, accent: "text-zinc-300" },
               { label: t("timestamps.statPending"), value: data.stats.pendingEpisodes, accent: "text-amber-300" },
               { label: t("timestamps.statPendingAnime"), value: data.stats.pendingAnime, accent: "text-rose-300" },
             ].map((s) => (

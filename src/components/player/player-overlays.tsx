@@ -29,16 +29,16 @@ export function NextEpisodeButton({
       className={`kitty-overlay ${stackClass} kitty-next-card pointer-events-auto group absolute right-4 z-[130] flex max-w-[min(100%,320px)] items-center gap-3 px-3 py-2.5 text-left animate-in slide-in-from-right-4 fade-in duration-300`}
     >
       {imageUrl ? (
-        <div className="relative h-10 w-[4.5rem] shrink-0 overflow-hidden rounded-lg ring-1 ring-violet-400/20">
+        <div className="relative h-10 w-[4.5rem] shrink-0 overflow-hidden rounded-lg ring-1 ring-primary/20">
           <Image src={imageUrl} alt="" fill className="object-cover" unoptimized sizes="72px" />
         </div>
       ) : (
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 ring-1 ring-violet-400/20">
-          <ChevronRight className="h-4 w-4 text-violet-200 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-500/25 to-zinc-500/5 ring-1 ring-primary/20">
+          <ChevronRight className="h-4 w-4 text-zinc-200 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-300/55">
           {t("watch.nextEpisode")}
         </p>
         <p className="truncate text-sm font-semibold leading-tight text-white">{title}</p>
@@ -73,7 +73,7 @@ export function CountdownOverlay({
     <div className="pointer-events-none absolute inset-0 z-[140] flex items-center justify-center bg-black/55 p-4 animate-in fade-in duration-300">
       <div className="kitty-overlay pointer-events-auto flex w-full max-w-md flex-col gap-4 p-5 sm:flex-row sm:items-center">
         {imageUrl ? (
-          <div className="relative mx-auto h-16 w-28 shrink-0 overflow-hidden rounded-lg ring-1 ring-violet-400/20 sm:mx-0">
+          <div className="relative mx-auto h-16 w-28 shrink-0 overflow-hidden rounded-lg ring-1 ring-primary/20 sm:mx-0">
             <Image src={imageUrl} alt="" fill className="object-cover" unoptimized sizes="112px" />
           </div>
         ) : (
@@ -94,7 +94,7 @@ export function CountdownOverlay({
               />
               <defs>
                 <linearGradient id="kitty-countdown-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#7c3aed" />
+                  <stop offset="0%" stopColor="#71717a" />
                   <stop offset="100%" stopColor="#c084fc" />
                 </linearGradient>
               </defs>
@@ -106,7 +106,7 @@ export function CountdownOverlay({
         )}
 
         <div className="min-w-0 flex-1 text-center sm:text-left">
-          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-violet-300/55">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-300/55">
             {t("watch.upNext")}
           </p>
           <p className="mt-1 truncate text-base font-semibold text-white">{title}</p>
@@ -117,7 +117,7 @@ export function CountdownOverlay({
           <button
             type="button"
             onClick={onSkip}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-violet-900/35 transition hover:from-violet-500 hover:to-violet-400"
+            className="inline-flex items-center justify-center gap-1.5 rounded-md bg-white px-4 py-2.5 text-xs font-semibold text-zinc-950 shadow-lg shadow-black/35 transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             {t("watch.playNow")}
             <ChevronRight className="h-3.5 w-3.5" />

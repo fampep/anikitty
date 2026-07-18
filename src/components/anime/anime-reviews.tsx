@@ -313,7 +313,7 @@ export default function AnimeReviews({
               <button
                 type="button"
                 onClick={openEditor}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 {mine ? "Edit review" : "Rate & review"}
@@ -328,7 +328,7 @@ export default function AnimeReviews({
                 placeholder="Share your thoughts (optional)…"
                 rows={4}
                 maxLength={5000}
-                className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white/85 placeholder:text-white/25 outline-none focus:border-violet-500/50"
+                className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white/85 placeholder:text-white/25 outline-none focus:border-primary/50"
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <label className="flex items-center gap-2 text-[13px] text-white/50 cursor-pointer select-none">
@@ -362,7 +362,7 @@ export default function AnimeReviews({
                     type="button"
                     onClick={submit}
                     disabled={saving}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {mine ? "Update" : "Post"}
@@ -382,7 +382,7 @@ export default function AnimeReviews({
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
-          className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-[13px] text-white/70 outline-none focus:border-violet-500/50"
+          className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-[13px] text-white/70 outline-none focus:border-primary/50"
         >
           <option value="helpful">Most helpful</option>
           <option value="recent">Newest</option>
@@ -446,7 +446,7 @@ export default function AnimeReviews({
                     className={cn(
                       "mt-2.5 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors",
                       r.likedByMe
-                        ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
+                        ? "border-primary/40 bg-primary/15 text-zinc-300"
                         : "border-white/10 text-white/45 hover:text-white/70 hover:border-white/20",
                     )}
                   >

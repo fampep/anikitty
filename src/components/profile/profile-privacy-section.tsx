@@ -70,7 +70,7 @@ export default function ProfilePrivacySection() {
           className={cn(
             "shrink-0 flex items-center justify-center w-10 h-10 rounded-xl border text-lg",
             profilePrivate
-              ? "bg-violet-500/10 border-violet-400/25"
+              ? "bg-primary/10 border-primary/25"
               : "bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/10",
           )}
         >
@@ -95,7 +95,7 @@ export default function ProfilePrivacySection() {
         className={cn(
           "shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border disabled:opacity-50",
           profilePrivate
-            ? "bg-violet-600/20 border-violet-400/30 text-violet-200 hover:bg-violet-600/30"
+            ? "bg-primary/20 border-primary/30 text-zinc-200 hover:bg-primary/30"
             : "bg-muted/50 dark:bg-white/5 border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/10 hover:text-foreground dark:hover:text-white",
         )}
       >

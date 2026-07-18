@@ -26,8 +26,8 @@ export default function HomeRecommendations() {
   if (!isLoading && data && !data.hasHistory) {
     return (
       <Container>
-        <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.04] px-5 py-6 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+        <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] px-5 py-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-zinc-300">
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
@@ -36,7 +36,7 @@ export default function HomeRecommendations() {
           </div>
           <Link
             href={ROUTES.TRENDING}
-            className="shrink-0 inline-flex items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/15 px-4 py-2 text-xs font-semibold text-violet-100 hover:bg-violet-500/25 transition-colors"
+            className="shrink-0 inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-zinc-100 hover:bg-primary/25 transition-colors"
           >
             {t("home.recommendationsCta")}
           </Link>

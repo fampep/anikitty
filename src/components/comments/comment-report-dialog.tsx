@@ -22,7 +22,7 @@ export function CommentReportDialog({ open, busy = false, onClose, onSubmit }: P
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) onClose(); }}>
-      <DialogContent className="border border-border dark:border-white/10 bg-[#0a0a0f] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-violet-950/30 [&>button:last-child]:hidden">
+      <DialogContent className="border border-border dark:border-white/10 bg-[#09090b] rounded-2xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-black/30 [&>button:last-child]:hidden">
         <DialogHeader className="px-5 pt-5 pb-4 border-b border-border dark:border-white/8 text-left space-y-2">
           <DialogTitle className="text-foreground dark:text-white font-semibold text-base tracking-tight">
             {t("comments.reportTitle")}
@@ -46,7 +46,7 @@ export function CommentReportDialog({ open, busy = false, onClose, onSubmit }: P
             required
             disabled={busy}
             placeholder={t("comments.reportDetails")}
-            className="w-full resize-none rounded-xl px-4 py-3 text-sm bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-violet-400/40 disabled:opacity-50"
+            className="w-full resize-none rounded-xl px-4 py-3 text-sm bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary/40 disabled:opacity-50"
           />
 
           <DialogFooter className="px-0 pt-4 gap-2 sm:gap-2 sm:justify-end">

@@ -231,7 +231,7 @@ const EpisodePlaylist = ({
               className={cn(
                 "touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors",
                 hideWatched
-                  ? "border-violet-500/35 bg-violet-500/15 text-violet-200"
+                  ? "border-primary/35 bg-primary/15 text-zinc-200"
                   : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65",
               )}
             >

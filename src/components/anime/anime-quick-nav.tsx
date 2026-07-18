@@ -48,14 +48,14 @@ export default function AnimeQuickNav({ tabs, activeTab, onTabChange, className 
             onClick={() => onTabChange(value)}
             className={cn("site-chip snap-start shrink-0", active && "site-chip-active")}
           >
-            <Icon className={cn("w-3.5 h-3.5", active ? "text-violet-300" : "text-violet-300/70")} />
+            <Icon className={cn("w-3.5 h-3.5", active ? "text-zinc-300" : "text-zinc-300/70")} />
             {label}
             {badge != null && badge !== "" && (
               <span
                 className={cn(
                   "ml-0.5 min-w-[1.125rem] px-1 py-px rounded-full text-[9px] font-mono font-bold tabular-nums",
                   active
-                    ? "bg-violet-500/25 text-violet-100"
+                    ? "bg-primary/25 text-zinc-100"
                     : "bg-muted dark:bg-white/8 text-muted-foreground dark:text-white/45",
                 )}
               >

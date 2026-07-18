@@ -319,7 +319,7 @@ function StatPill({ label, accent }: { label: string; accent?: boolean }) {
       className={cn(
         "inline-flex items-center px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-full border font-medium",
         accent
-          ? "border-violet-400/25 text-violet-200/80 bg-violet-500/10"
+          ? "border-primary/25 text-zinc-200/80 bg-primary/10"
           : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 bg-muted/40 dark:bg-white/4",
       )}
     >
@@ -716,7 +716,7 @@ function SettingsHero({
             <ProfileMediaPreview src={bannerUrl} alt="" variant="banner" />
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-violet-950/40 to-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-zinc-950/40 to-black" />
         )}
         {!bannerUrl && (
           <div

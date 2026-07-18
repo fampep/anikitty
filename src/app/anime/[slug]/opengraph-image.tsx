@@ -27,7 +27,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
   const format = m?.format ?? null;
   const episodes = m?.episodes ?? null;
   const genres = (m?.genres ?? []).slice(0, 4);
-  const accent = m?.coverImage?.color || "#7c3aed";
+  const accent = m?.coverImage?.color || "#71717a";
 
   const metaBits = [
     format,
@@ -93,7 +93,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
               style={{
                 padding: "8px 14px",
                 borderRadius: 999,
-                background: "rgba(124,58,237,0.18)",
+                background: "rgba(255, 255, 255, 0.18)",
                 color: "rgba(196,181,253,0.95)",
                 fontSize: 12,
                 fontWeight: 700,

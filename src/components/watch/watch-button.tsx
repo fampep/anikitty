@@ -62,7 +62,7 @@ const WatchButton = () => {
   return (
     <ButtonLink
       href={watchHref}
-      className="max-w-fit text-base px-5 py-2.5 font-semibold border-0 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all"
+      className="max-w-fit text-base px-5 py-2.5 font-semibold border-0 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-black/20 transition-all"
       LeftIcon={CirclePlay}
       classNames={{ leftIcon: "fill-white/20" }}
     >

@@ -93,7 +93,7 @@ export default function HomeWeeklySchedule() {
                   className={cn(
                     "flex shrink-0 flex-col items-center gap-0.5 rounded-none border-b-2 border-transparent px-3 py-2.5 transition-all",
                     "bg-transparent text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/55",
-                    "data-[state=active]:border-violet-400 data-[state=active]:bg-violet-500/[0.06] data-[state=active]:text-white",
+                    "data-[state=active]:border-primary data-[state=active]:bg-primary/[0.06] data-[state=active]:text-white",
                   )}
                 >
                   <span className="text-[11px] font-bold font-mono uppercase tracking-wider">
@@ -102,7 +102,7 @@ export default function HomeWeeklySchedule() {
                   <span className={cn("text-[10px] font-mono", isToday ? "text-muted-foreground dark:text-white/60" : "text-muted-foreground/80 dark:text-white/25")}>
                     {d.toLocaleDateString(locale, { month: "short", day: "numeric" })}
                   </span>
-                  {isToday && <span className="mt-0.5 h-1 w-1 rounded-full bg-violet-400" />}
+                  {isToday && <span className="mt-0.5 h-1 w-1 rounded-full bg-primary" />}
                 </TabsTrigger>
               );
             })}

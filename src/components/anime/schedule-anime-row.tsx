@@ -32,7 +32,7 @@ function ScheduleAudioBadge({
         compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
         isSub
           ? "bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/25"
-          : "bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/25",
+          : "bg-primary/20 text-zinc-200 ring-1 ring-primary/25",
       )}
     >
       {isSub ? (

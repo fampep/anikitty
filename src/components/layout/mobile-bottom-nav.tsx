@@ -54,9 +54,9 @@ function BottomNavTab({
 
   const iconEl = (
     <>
-      <Icon className={cn("h-[18px] w-[18px]", active && "text-violet-500 dark:text-violet-300")} strokeWidth={active ? 2.25 : 1.85} />
+      <Icon className={cn("h-[18px] w-[18px]", active && "text-primary dark:text-zinc-300")} strokeWidth={active ? 2.25 : 1.85} />
       {active && (
-        <span className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-violet-500 dark:bg-violet-300" aria-hidden />
+        <span className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary dark:bg-zinc-300" aria-hidden />
       )}
     </>
   );
@@ -116,15 +116,15 @@ export default function MobileBottomNav() {
                     moreActive
                       ? "text-foreground dark:text-white"
                       : "text-muted-foreground/65 hover:text-foreground/90 dark:text-white/40 dark:hover:text-white/75",
-                    "data-[state=open]:bg-violet-500/10 data-[state=open]:text-violet-500 dark:data-[state=open]:text-violet-300",
+                    "data-[state=open]:bg-primary/10 data-[state=open]:text-primary dark:data-[state=open]:text-zinc-300",
                   )}
                 >
                   <Menu
-                    className={cn("h-[18px] w-[18px]", moreActive && "text-violet-500 dark:text-violet-300")}
+                    className={cn("h-[18px] w-[18px]", moreActive && "text-primary dark:text-zinc-300")}
                     strokeWidth={moreActive ? 2.25 : 1.85}
                   />
                   {moreActive && (
-                    <span className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-violet-500 dark:bg-violet-300" aria-hidden />
+                    <span className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary dark:bg-zinc-300" aria-hidden />
                   )}
                 </button>
               }

@@ -41,7 +41,7 @@ export default function ProfileCustomizationForm({
   const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl);
   const [bio, setBio] = useState(initial.bio);
   const [themeColor, setThemeColor] = useState<string | null>(initial.themeColor);
-  const [customColor, setCustomColor] = useState(initial.themeColor ?? "#a78bfa");
+  const [customColor, setCustomColor] = useState(initial.themeColor ?? "#a1a1aa");
   const [saving, setSaving] = useState(false);
 
   // Upload + crop state
@@ -118,7 +118,7 @@ export default function ProfileCustomizationForm({
     setBannerUrl(initial.bannerUrl);
     setBio(initial.bio);
     setThemeColor(initial.themeColor);
-    setCustomColor(initial.themeColor ?? "#a78bfa");
+    setCustomColor(initial.themeColor ?? "#a1a1aa");
   }, [initial]);
 
   const handleSave = async () => {

@@ -24,7 +24,7 @@ export default function LandingCompactFeatures() {
         <ul className="space-y-5">
           {FEATURES.map(({ icon: Icon, key }) => (
             <li key={key} className="flex items-start gap-3.5">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center text-violet-300/80">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center text-zinc-300/80">
                 <Icon className="w-4 h-4" />
               </span>
               <div className="min-w-0 pt-0.5">

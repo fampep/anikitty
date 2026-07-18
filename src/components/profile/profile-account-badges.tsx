@@ -53,7 +53,7 @@ export default function ProfileAccountBadges({ badges }: { badges: AccountBadges
       title: badges.anisurgeUsername
         ? `${t("profile.badges.anisurge")} · @${badges.anisurgeUsername}`
         : t("profile.badges.anisurge"),
-      color: "#a78bfa",
+      color: "#a1a1aa",
       icon: <Zap className={iconClass} strokeWidth={2.25} />,
     });
   }

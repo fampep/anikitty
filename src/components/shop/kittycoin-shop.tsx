@@ -78,7 +78,7 @@ function ShopItemCard({
         <h3 className="text-sm font-bold text-foreground dark:text-white/90">{item.name}</h3>
         <p className="text-[11px] text-muted-foreground dark:text-white/40 mt-1 leading-relaxed">{item.description}</p>
         {item.donatorOnly && (
-          <p className="text-[10px] text-fuchsia-300/80 mt-2 font-mono">{t("shop.supporterOnly")}</p>
+          <p className="text-[10px] text-zinc-300/80 mt-2 font-mono">{t("shop.supporterOnly")}</p>
         )}
       </div>
 
@@ -168,7 +168,7 @@ export default function KittycoinShop() {
     return (
       <Container className="py-16">
         <div className="site-panel p-8 text-center max-w-lg mx-auto">
-          <Sparkles className="w-10 h-10 text-violet-400/60 mx-auto mb-4" />
+          <Sparkles className="w-10 h-10 text-zinc-400/60 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-foreground dark:text-white mb-2">{t("shop.title")}</h1>
           <p className="text-sm text-muted-foreground dark:text-white/45 mb-6">{t("shop.signIn")}</p>
           <LoginPopoverButton />
@@ -222,7 +222,7 @@ export default function KittycoinShop() {
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold border transition-all",
               tab === type
-                ? "bg-violet-500/15 border-violet-400/30 text-violet-200"
+                ? "bg-primary/15 border-primary/30 text-zinc-200"
                 : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground/85 dark:text-white/75",
             )}
           >

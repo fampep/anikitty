@@ -158,7 +158,7 @@ export default function LevelProgressCard({ level, compact, className }: Props) 
         {typeof level.watchXp === "number" && typeof level.commentXp === "number" && level.xp > 0 && (
           <div className="mt-2 h-1.5 w-full rounded-full bg-accent dark:bg-white/10 overflow-hidden flex">
             <div
-              className="h-full bg-violet-500/80"
+              className="h-full bg-primary/80"
               style={{ width: `${Math.max(0, Math.min(100, (level.watchXp / level.xp) * 100))}%` }}
               title={t("profile.levelCard.watchXpTitle", { xp: level.watchXp })}
             />

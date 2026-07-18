@@ -116,7 +116,7 @@ export default function WatchDownloadPanel({
         <button
           type="button"
           disabled={busy}
-          className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 text-zinc-300 hover:bg-primary/15 transition-colors disabled:opacity-50"
           title={t("watch.downloadEpisode")}
         >
           {busy ? (
@@ -140,7 +140,7 @@ export default function WatchDownloadPanel({
             type="button"
             onClick={handleDownloadCurrent}
             disabled={busy}
-            className="w-full flex items-center justify-center gap-2 h-9 rounded-lg text-[12px] font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 h-9 rounded-lg text-[12px] font-semibold bg-primary/15 border border-primary/30 text-zinc-300 hover:bg-primary/25 transition-colors disabled:opacity-50"
           >
             {downloadingCurrent ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -195,14 +195,14 @@ export default function WatchDownloadPanel({
                   onClick={() => toggleEpisode(ep.number)}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors",
-                    isSelected ? "bg-violet-500/10" : "hover:bg-muted/50 dark:bg-white/[0.04]",
+                    isSelected ? "bg-primary/10" : "hover:bg-muted/50 dark:bg-white/[0.04]",
                   )}
                 >
                   <span
                     className={cn(
                       "w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-colors",
                       isSelected
-                        ? "bg-violet-500 border-violet-400 text-white"
+                        ? "bg-primary border-primary text-primary-foreground"
                         : "border-border dark:border-white/20 bg-transparent",
                     )}
                   >
@@ -215,7 +215,7 @@ export default function WatchDownloadPanel({
                     {ep.title}
                   </span>
                   {isCurrent && (
-                    <span className="text-[9px] font-mono text-violet-400/70 shrink-0">
+                    <span className="text-[9px] font-mono text-zinc-400/70 shrink-0">
                       {t("watch.downloadNowPlaying")}
                     </span>
                   )}
@@ -231,7 +231,7 @@ export default function WatchDownloadPanel({
               type="button"
               onClick={handleDownloadSelected}
               disabled={busy}
-              className="w-full flex items-center justify-center gap-2 h-9 rounded-lg text-[12px] font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 h-9 rounded-lg text-[12px] font-semibold bg-primary/15 border border-primary/30 text-zinc-300 hover:bg-primary/25 transition-colors disabled:opacity-50"
             >
               {batchDownloading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

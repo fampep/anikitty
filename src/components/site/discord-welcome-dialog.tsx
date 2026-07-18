@@ -33,7 +33,7 @@ export default function DiscordWelcomeDialog({ open, onOpenChange, onDismiss }: 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md gap-0 p-0 overflow-hidden sm:rounded-2xl">
-        <div className="border-b border-border dark:border-white/8 bg-gradient-to-br from-indigo-500/15 via-transparent to-violet-500/10 px-6 pt-6 pb-4">
+        <div className="border-b border-border dark:border-white/8 bg-gradient-to-br from-indigo-500/15 via-transparent to-zinc-500/10 px-6 pt-6 pb-4">
           <DialogHeader className="space-y-3 text-left">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/15 ring-1 ring-indigo-400/25 text-indigo-300">
               <DiscordIcon className="w-6 h-6" />

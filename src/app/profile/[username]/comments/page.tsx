@@ -85,7 +85,7 @@ export default function ProfileCommentsPage() {
       <div className="min-h-screen pt-24 flex flex-col items-center gap-3 text-center px-4">
         <p className="text-xl font-bold text-foreground dark:text-white">{t("profile.notFound")}</p>
         <p className="text-sm text-muted-foreground dark:text-white/40">{t("profile.notFoundDesc", { username })}</p>
-        <Link href={ROUTES.HOME} className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+        <Link href={ROUTES.HOME} className="text-sm text-zinc-400 hover:text-zinc-300 transition-colors">
           {t("profile.goHome")}
         </Link>
       </div>
@@ -97,7 +97,7 @@ export default function ProfileCommentsPage() {
       <div className="min-h-screen pt-24 flex flex-col items-center gap-3 text-center px-4">
         <p className="text-xl font-bold text-foreground dark:text-white">{t("profile.ninjaMode")}</p>
         <p className="text-sm text-muted-foreground dark:text-white/40">{t("profile.ninjaModeDesc", { username })}</p>
-        <Link href={ROUTES.HOME} className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+        <Link href={ROUTES.HOME} className="text-sm text-zinc-400 hover:text-zinc-300 transition-colors">
           {t("profile.backToHome")}
         </Link>
       </div>

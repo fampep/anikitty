@@ -8,7 +8,7 @@ import { useT } from "@/providers/i18n-provider";
 
 const PROMOS = [
   { href: ROUTES.SHOP, icon: Coins, color: "text-amber-400", bg: "from-amber-500/10", key: "shop" },
-  { href: ROUTES.WATCH_TOGETHER, icon: Users, color: "text-violet-400", bg: "from-violet-500/10", key: "w2g" },
+  { href: ROUTES.WATCH_TOGETHER, icon: Users, color: "text-zinc-400", bg: "from-zinc-500/10", key: "w2g" },
   { href: ROUTES.SUBTITLES, icon: Captions, color: "text-teal-400", bg: "from-teal-500/10", key: "subs" },
   { href: ROUTES.FORUM, icon: MessageSquare, color: "text-sky-400", bg: "from-sky-500/10", key: "forum" },
 ] as const;
@@ -33,7 +33,7 @@ export default function HomeFeaturePromos() {
               <p className="text-sm font-semibold text-foreground/90 dark:text-white/80">{t(`home.promos.${key}.title`)}</p>
               <p className="text-[11px] text-muted-foreground dark:text-white/30 font-mono mt-0.5 line-clamp-2">{t(`home.promos.${key}.desc`)}</p>
             </div>
-            <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground/50 dark:text-white/15 group-hover:text-violet-300/70 group-hover:translate-x-0.5 transition-all hidden sm:block" />
+            <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground/50 dark:text-white/15 group-hover:text-zinc-300/70 group-hover:translate-x-0.5 transition-all hidden sm:block" />
           </Link>
         ))}
       </div>

@@ -49,7 +49,7 @@ function AudioPill({ type, count }: { type: "sub" | "dub"; count: number }) {
         "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums",
         isSub
           ? "bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/25"
-          : "bg-violet-500/20 text-violet-100 ring-1 ring-violet-400/25",
+          : "bg-primary/20 text-zinc-100 ring-1 ring-primary/25",
       )}
     >
       {isSub ? <Captions className="h-2.5 w-2.5 shrink-0" /> : <Mic className="h-2.5 w-2.5 shrink-0" />}
@@ -88,7 +88,7 @@ const AnimeCard = ({
   return (
     <Link
       href={props.href as string}
-      className="block w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+      className="block w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
       aria-label={props.title}
     >
       <div
@@ -96,8 +96,8 @@ const AnimeCard = ({
           "rounded-xl overflow-hidden relative cursor-pointer group",
           "ring-1 ring-white/[0.09] bg-zinc-950/90",
           "transition-[transform,box-shadow,ring-color] duration-300 ease-out",
-          "[@media(hover:hover)]:hover:scale-[1.03] [@media(hover:hover)]:hover:ring-violet-400/35",
-          "[@media(hover:hover)]:hover:shadow-[0_0_0_1px_rgba(167,139,250,0.2),0_20px_48px_rgba(0,0,0,0.55)]",
+          "[@media(hover:hover)]:hover:scale-[1.03] [@media(hover:hover)]:hover:ring-primary/35",
+          "[@media(hover:hover)]:hover:shadow-[0_0_0_1px_rgba(255, 255, 255, 0.2),0_20px_48px_rgba(0,0,0,0.55)]",
           !compact && variant === "sm" &&
             "h-[14rem] min-[380px]:h-[17rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           !compact && variant === "lg" &&
@@ -193,7 +193,7 @@ const AnimeCard = ({
             />
             <div
               className={cn(
-                "relative bg-white rounded-full shadow-2xl shadow-violet-900/40 scale-75 [@media(hover:hover)]:group-hover:scale-100 transition-transform duration-200 ring-2 ring-violet-400/25",
+                "relative bg-white rounded-full shadow-2xl shadow-black/40 scale-75 [@media(hover:hover)]:group-hover:scale-100 transition-transform duration-200 ring-2 ring-primary/25",
                 compact ? "p-2" : "p-2.5",
               )}
             >
@@ -223,7 +223,7 @@ const AnimeCard = ({
                     {formatSecondsToMMSS(props.watchDetail.current)}/
                     {formatSecondsToMMSS(props.watchDetail.timestamp)}
                   </p>
-                  <Progress value={percentage} className="h-[2px] bg-accent dark:bg-white/10 [&>div]:bg-violet-400/80" />
+                  <Progress value={percentage} className="h-[2px] bg-accent dark:bg-white/10 [&>div]:bg-zinc-400/80" />
                 </>
               )}
 

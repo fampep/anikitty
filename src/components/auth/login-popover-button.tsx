@@ -212,7 +212,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
 
         {tab === "2fa" && (
           <div className="p-5 flex flex-col gap-3.5">
-            <div className="flex items-center gap-2 text-violet-300/80">
+            <div className="flex items-center gap-2 text-zinc-300/80">
               <ShieldCheck className="w-4 h-4" />
               <p className="text-sm font-semibold text-foreground dark:text-white/85">{t("auth.twoFactor")}</p>
             </div>
@@ -229,7 +229,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
             <button
               onClick={handle2fa}
               disabled={loading || totpCode.length !== 6}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
               {t("auth.verifySignIn")}
@@ -265,7 +265,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
               {t("auth.signInSubmit")}
@@ -333,7 +333,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
             <button
               onClick={handleSignup}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors mt-1"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
               {t("auth.createAccountSubmit")}

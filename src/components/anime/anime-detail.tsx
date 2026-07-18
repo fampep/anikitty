@@ -83,7 +83,7 @@ const DB_LINKS = [
 ] as const;
 
 const RATING_STYLES: Record<string, { label: string; color: string }> = {
-  anikitty: { label: "AniKitty", color: "border-violet-500/30 bg-violet-500/12 text-violet-200" },
+  anikitty: { label: "AniKitty", color: "border-primary/30 bg-primary/12 text-zinc-200" },
   anilist: { label: "AniList", color: "border-teal-500/25 bg-teal-500/10 text-teal-300" },
   mal:     { label: "MAL", color: "border-blue-500/25 bg-blue-500/10 text-blue-300" },
   tvdb:    { label: "TVDB", color: "border-green-500/25 bg-green-500/10 text-green-300" },
@@ -373,7 +373,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <div className="flex md:mt-[-14rem] mt-[-2rem] sm:mt-[-3.5rem] md:flex-row flex-col md:items-end gap-5 sm:gap-6 md:gap-8">
           {/* Poster: smaller on mobile, full-size on md+ */}
           <div className="shrink-0 relative self-center md:self-auto">
-            <div className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-transparent blur-xl pointer-events-none" />
+            <div className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-primary/20 via-zinc-600/10 to-transparent blur-xl pointer-events-none" />
             <AnimeCard
               title={info.name}
               poster={info.poster}
@@ -475,7 +475,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 {(moreInfo.genres as string[]).map((g) => {
                   const slug = genreSearchSlug(g);
                   const className =
-                    "px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-lg border border-violet-500/15 text-violet-200/55 bg-violet-500/[0.06] hover:bg-violet-500/10 hover:text-violet-100/80 transition-colors";
+                    "px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-lg border border-primary/15 text-zinc-200/55 bg-primary/[0.06] hover:bg-primary/10 hover:text-zinc-100/80 transition-colors";
                   return slug ? (
                     <Link key={g} href={`${ROUTES.SEARCH}?genres=${slug}`} className={className}>
                       {g}
@@ -497,7 +497,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 <button
                   type="button"
                   onClick={() => handleTabChange("overview")}
-                  className="site-focus mt-1.5 text-[11px] font-semibold text-violet-300/80 hover:text-violet-200 transition-colors rounded-md"
+                  className="site-focus mt-1.5 text-[11px] font-semibold text-zinc-300/80 hover:text-zinc-200 transition-colors rounded-md"
                 >
                   {t("anime.readMore")}
                 </button>
@@ -568,7 +568,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-violet-400 data-[state=active]:text-white data-[state=active]:bg-violet-500/[0.06] text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 transition-all bg-transparent whitespace-nowrap"
+                className="text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-white data-[state=active]:bg-primary/[0.06] text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 transition-all bg-transparent whitespace-nowrap"
               >
                 {tab.label}
               </TabsTrigger>

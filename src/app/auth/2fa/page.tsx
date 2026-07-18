@@ -46,7 +46,7 @@ function TwoFactorForm() {
   return (
     <Container className="max-w-md pt-24 pb-24">
       <div className="rounded-2xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.02] p-6 sm:p-8">
-        <div className="flex items-center gap-2 text-violet-300/80 mb-2">
+        <div className="flex items-center gap-2 text-zinc-300/80 mb-2">
           <ShieldCheck className="w-5 h-5" />
           <h1 className="text-lg font-bold text-foreground dark:text-white">{t("auth.twoFactor")}</h1>
         </div>
@@ -69,7 +69,7 @@ function TwoFactorForm() {
         <button
           onClick={handleVerify}
           disabled={loading || totpCode.length !== 6}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
           {t("auth.verifySignIn")}

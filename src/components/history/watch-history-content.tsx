@@ -105,7 +105,7 @@ export default function WatchHistoryContent() {
         </p>
 
         {!auth ? (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-6 px-5 rounded-2xl bg-gradient-to-r from-white/[0.03] to-violet-500/[0.04] border border-border dark:border-white/8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-6 px-5 rounded-2xl bg-gradient-to-r from-white/[0.03] to-zinc-500/[0.04] border border-border dark:border-white/8">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <History className="w-5 h-5 text-muted-foreground/70 dark:text-white/25 shrink-0" />
               <p className="text-sm text-muted-foreground dark:text-white/45">{t("history.signIn")}</p>
@@ -136,7 +136,7 @@ export default function WatchHistoryContent() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground dark:text-white/35 font-medium">{t("history.empty")}</p>
-              <Link href={ROUTES.TRENDING} className="text-xs text-violet-400/80 hover:text-violet-300 mt-1 inline-block">
+              <Link href={ROUTES.TRENDING} className="text-xs text-zinc-400/80 hover:text-zinc-300 mt-1 inline-block">
                 {t("history.emptyCta")}
               </Link>
             </div>
@@ -166,7 +166,7 @@ export default function WatchHistoryContent() {
                       {/* progress bar */}
                       <div className="absolute bottom-0 inset-x-0 h-1 bg-black/50">
                         <div
-                          className={cn("h-full", finished ? "bg-emerald-400" : "bg-violet-400")}
+                          className={cn("h-full", finished ? "bg-emerald-400" : "bg-primary")}
                           style={{ width: `${progress}%` }}
                         />
                       </div>
@@ -190,7 +190,7 @@ export default function WatchHistoryContent() {
                             {t("history.finished")}
                           </span>
                         ) : (
-                          <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300/80">
+                          <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-primary/10 border border-primary/20 text-zinc-300/80">
                             {t("history.percentWatched", { p: progress })}
                           </span>
                         )}

@@ -34,7 +34,7 @@ export default function LandingTrendingRow({ anime, loading }: Props) {
           <Link
             href={ROUTES.TRENDING}
             prefetch
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/40 hover:text-white/75 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30 rounded-md px-1"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/40 hover:text-white/75 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md px-1"
           >
             {t("landing.seeAll")}
             <ArrowRight className="w-3.5 h-3.5" />
@@ -53,10 +53,10 @@ export default function LandingTrendingRow({ anime, loading }: Props) {
                 <Link
                   key={item.id}
                   href={`${ROUTES.ANIME_DETAILS}/${item.id}`}
-                  className="group shrink-0 snap-start w-[110px] sm:w-[128px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 rounded-xl"
+                  className="group shrink-0 snap-start w-[110px] sm:w-[128px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-xl"
                   aria-label={item.name}
                 >
-                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/[0.08] group-hover:ring-violet-400/30 transition-all duration-300">
+                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/[0.08] group-hover:ring-primary/30 transition-all duration-300">
                     <Image
                       src={item.poster}
                       alt={item.name}

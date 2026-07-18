@@ -149,7 +149,7 @@ export default function MessagesPage() {
                       <div className="flex items-center justify-between gap-2 mt-0.5">
                         <p className="text-[11px] text-muted-foreground dark:text-white/40 truncate">{c.lastMessage ?? t("messages.noMessagesYet")}</p>
                         {c.unreadCount > 0 && (
-                          <span className="shrink-0 rounded-full bg-violet-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
                             {c.unreadCount}
                           </span>
                         )}
@@ -247,7 +247,7 @@ function DmThread({ messages }: { messages: DmMessage[] }) {
                 className={cn(
                   "px-3.5 py-2 rounded-2xl text-sm leading-relaxed break-words",
                   msg.isOwn
-                    ? "bg-violet-600/90 text-white rounded-br-md"
+                    ? "bg-primary/90 text-primary-foreground rounded-br-md"
                     : "bg-accent dark:bg-white/8 text-foreground dark:text-white/90 border border-border dark:border-white/8 rounded-bl-md",
                 )}
               >
@@ -301,7 +301,7 @@ function DmComposer({
       <button
         type="submit"
         disabled={!draft.trim() || sending}
-        className="shrink-0 flex items-center justify-center h-10 w-10 rounded-xl bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40"
+        className="shrink-0 flex items-center justify-center h-10 w-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
       >
         {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
       </button>

@@ -64,7 +64,7 @@ export default function WatchPlayerActions({
         </button>
 
         {w2gCode && w2gIsMember ? (
-          <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-violet-500/10 border border-violet-500/25 text-violet-300/80">
+          <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-primary/10 border border-primary/25 text-zinc-300/80">
             {t("watch.room", { code: w2gCode })}
           </span>
         ) : auth && onCreateW2g ? (
@@ -72,7 +72,7 @@ export default function WatchPlayerActions({
             type="button"
             onClick={onCreateW2g}
             disabled={creatingW2g}
-            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-primary/30 bg-primary/10 text-zinc-300 hover:bg-primary/15 transition-colors disabled:opacity-50"
           >
             {creatingW2g ? (
               <Loader2 className="w-3 h-3 animate-spin" />

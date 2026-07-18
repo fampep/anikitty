@@ -49,13 +49,13 @@ export default function VoiceActorsPanel({ characters }: { characters: Character
           {(() => {
             const inner = (
               <>
-                <div className="relative h-20 w-20 overflow-hidden rounded-full ring-1 ring-violet-400/25">
+                <div className="relative h-20 w-20 overflow-hidden rounded-full ring-1 ring-primary/25">
                   <Image src={group.va.poster} alt={group.va.name} fill sizes="80px" className="object-cover" unoptimized />
-                  <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-violet-500 text-white ring-2 ring-[#0a0a12]">
+                  <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-[#09090b]">
                     <Mic className="h-2.5 w-2.5" />
                   </span>
                 </div>
-                <p className="text-[11px] font-semibold leading-tight text-foreground/90 dark:text-white/85 line-clamp-2 group-hover/va:text-violet-200">{group.va.name}</p>
+                <p className="text-[11px] font-semibold leading-tight text-foreground/90 dark:text-white/85 line-clamp-2 group-hover/va:text-zinc-200">{group.va.name}</p>
                 {group.va.cast && (
                   <p className="text-[9px] font-mono uppercase tracking-wide text-muted-foreground/70 dark:text-white/30">{group.va.cast}</p>
                 )}

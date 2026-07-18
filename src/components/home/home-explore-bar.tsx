@@ -22,7 +22,7 @@ export default function HomeExploreBar() {
           href={ROUTES.SEARCH}
           className="site-input group flex flex-1 items-center gap-3 min-w-0 px-3 py-2.5 rounded-xl transition-all"
         >
-          <Search className="w-4 h-4 shrink-0 text-muted-foreground dark:text-white/30 group-hover:text-violet-300/80 transition-colors" />
+          <Search className="w-4 h-4 shrink-0 text-muted-foreground dark:text-white/30 group-hover:text-zinc-300/80 transition-colors" />
           <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-foreground dark:group-hover:text-white/55 truncate transition-colors">
             {t("home.exploreSearch", { count: catalogLabel })}
           </span>
@@ -42,7 +42,7 @@ export default function HomeExploreBar() {
             </span>
             {t("nav.status")}
           </Link>
-          <div className="site-chip text-violet-300/80">
+          <div className="site-chip text-zinc-300/80">
             <Library className="w-3.5 h-3.5" />
             <span className="tabular-nums">{t("home.catalogTitles", { count: catalogLabel })}</span>
           </div>

@@ -112,7 +112,7 @@ export default function AdsSettingsSection() {
       </SectionCard>
 
       <Dialog open={cannotDisableOpen} onOpenChange={setCannotDisableOpen}>
-        <DialogContent className="max-w-md gap-0 p-0 overflow-hidden border-border/80 dark:border-white/10 dark:bg-[#0a0a10]/98 [&>button:last-child]:top-3.5 [&>button:last-child]:right-3.5">
+        <DialogContent className="max-w-md gap-0 p-0 overflow-hidden border-border/80 dark:border-white/10 dark:bg-[#09090b]/98 [&>button:last-child]:top-3.5 [&>button:last-child]:right-3.5">
           <DialogHeader className="px-5 pt-5 pb-4 text-left border-b border-border/60 dark:border-white/[0.06]">
             <DialogTitle className="text-base font-semibold text-foreground dark:text-white/90">
               {t("settings.ads.cannotDisableTitle")}

@@ -17,7 +17,7 @@ function Section({
   return (
     <section className="scroll-mt-24">
       <div className="flex items-center gap-2.5 mb-4">
-        <span className="text-violet-400/70">{icon}</span>
+        <span className="text-zinc-400/70">{icon}</span>
         <h2 className="text-lg font-bold text-foreground dark:text-white/90">{title}</h2>
       </div>
       <div className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed space-y-3">
@@ -49,9 +49,9 @@ export default function DmcaContent() {
         </p>
 
         {/* Notice about aggregation */}
-        <div className="site-panel p-5 sm:p-6 mb-10 border-l-2 border-l-violet-400/40">
+        <div className="site-panel p-5 sm:p-6 mb-10 border-l-2 border-l-zinc-400/40">
           <div className="flex items-start gap-3">
-            <Server className="w-4 h-4 text-violet-400/70 shrink-0 mt-0.5" />
+            <Server className="w-4 h-4 text-zinc-400/70 shrink-0 mt-0.5" />
             <p className="text-sm text-muted-foreground dark:text-white/60 leading-relaxed">
               AniKitty does <span className="font-semibold text-foreground/90 dark:text-white/80">not</span> host,
               upload, store, or encode any video files on its own servers. AniKitty is an
@@ -70,7 +70,7 @@ export default function DmcaContent() {
               submit a written notice by email. To be actionable, your notice must include all of
               the following:
             </p>
-            <ul className="list-disc pl-5 space-y-2 marker:text-violet-400/60">
+            <ul className="list-disc pl-5 space-y-2 marker:text-zinc-400/60">
               <li>
                 Identification of the copyrighted work you claim has been infringed (e.g. the
                 specific anime title, season, and episode).
@@ -98,7 +98,7 @@ export default function DmcaContent() {
             <p>Send complete takedown notices to our designated copyright contact:</p>
             <a
               href={`mailto:${DMCA_EMAIL}?subject=DMCA%20Takedown%20Request`}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600/15 border border-violet-400/25 text-sm font-medium text-violet-200 hover:bg-violet-600/25 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/15 border border-primary/25 text-sm font-medium text-zinc-200 hover:bg-primary/25 transition-colors"
             >
               <Mail className="w-4 h-4" />
               {DMCA_EMAIL}

@@ -55,7 +55,7 @@ export default function WatchErrorPanel({
                 disabled={tryAnotherDisabled}
                 variant="secondary"
                 size="sm"
-                className="border-violet-500/25 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 hover:text-violet-100 disabled:opacity-40"
+                className="border-primary/25 bg-primary/10 text-zinc-200 hover:bg-primary/20 hover:text-zinc-100 disabled:opacity-40"
               >
                 <Server className="w-3.5 h-3.5 mr-1.5" />
                 {tryAnotherLabel ?? t("watch.tryAnotherSource")}

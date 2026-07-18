@@ -31,20 +31,20 @@ export default function LandingPage() {
   const spotlight = homeData?.spotlightAnimes?.[0] ?? null;
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden flex flex-col">
+    <div className="relative min-h-screen bg-[#09090b] text-white overflow-x-hidden flex flex-col">
       {/* Ambient backdrop — mirrors the home page blurred-poster glow. */}
       {spotlight?.poster && (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[min(78lvh,760px)] overflow-hidden" aria-hidden>
           <div className="relative size-full blur-3xl brightness-[0.18] saturate-125 scale-110">
             <Image src={spotlight.poster} alt="" fill sizes="100vw" className="object-cover object-top" priority unoptimized />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/40 via-[#0a0a0f]/70 to-[#0a0a0f]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/40 via-[#09090b]/70 to-[#09090b]" />
         </div>
       )}
 
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/70 via-[#0a0a0f]/88 to-[#0a0a0f]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_28%,rgba(124,58,237,0.14),transparent_70%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/70 via-[#09090b]/88 to-[#09090b]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_28%,rgba(255, 255, 255, 0.14),transparent_70%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:72px_72px]" />
       </div>
 
@@ -93,7 +93,7 @@ export default function LandingPage() {
           )}
         >
           <span className="text-white drop-shadow-2xl">Ani</span>
-          <span className="bg-gradient-to-br from-violet-300 via-fuchsia-200/80 to-white/30 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-br from-zinc-300 via-zinc-200/80 to-white/30 bg-clip-text text-transparent">
             Kitty
           </span>
         </h1>
@@ -141,7 +141,7 @@ export default function LandingPage() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent("landing_discord")}
-              className="flex items-center gap-2 px-7 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/30"
+              className="flex items-center gap-2 px-7 sm:px-8 py-3.5 bg-white/5 text-white/70 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm w-full sm:w-auto justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               <DiscordLogoIcon width="16" height="16" />
               {t("footer.discord")}

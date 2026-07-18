@@ -144,7 +144,7 @@ export default function TwoFactorSection() {
       </div>
 
       {setup && !enabled && (
-        <div className="flex flex-col gap-4 p-4 rounded-xl border border-violet-500/20 bg-violet-500/[0.05]">
+        <div className="flex flex-col gap-4 p-4 rounded-xl border border-primary/20 bg-primary/[0.05]">
           <p className="text-sm font-medium text-foreground/90 dark:text-white/80">Scan this QR code with your authenticator app</p>
           <div className="flex flex-col sm:flex-row gap-4 items-start">
             <div className="rounded-xl bg-white p-2 shrink-0">
@@ -153,7 +153,7 @@ export default function TwoFactorSection() {
             <div className="flex flex-col gap-2 min-w-0 flex-1">
               <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono">Or enter this secret manually:</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs font-mono text-violet-200/90 bg-muted dark:bg-black/30 border border-border dark:border-white/10 rounded-lg px-3 py-2 break-all">
+                <code className="flex-1 text-xs font-mono text-zinc-200/90 bg-muted dark:bg-black/30 border border-border dark:border-white/10 rounded-lg px-3 py-2 break-all">
                   {setup.secret}
                 </code>
                 <button
@@ -179,7 +179,7 @@ export default function TwoFactorSection() {
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="000000"
-              className="h-10 px-3 rounded-xl bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground dark:text-white text-center text-lg tracking-[0.3em] font-mono focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/20"
+              className="h-10 px-3 rounded-xl bg-muted dark:bg-black/30 border border-border dark:border-white/10 text-foreground dark:text-white text-center text-lg tracking-[0.3em] font-mono focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="flex flex-wrap gap-2">

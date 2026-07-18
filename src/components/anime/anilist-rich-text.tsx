@@ -41,7 +41,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
       const anime = url.match(/anilist\.co\/anime\/(\d+)/i);
       nodes.push(
         anime ? (
-          <Link key={`${keyBase}-l${i}`} href={`${ROUTES.ANIME_DETAILS}/${anime[1]}`} className="text-violet-300 hover:text-violet-200 underline decoration-violet-400/30 underline-offset-2">
+          <Link key={`${keyBase}-l${i}`} href={`${ROUTES.ANIME_DETAILS}/${anime[1]}`} className="text-zinc-300 hover:text-zinc-200 underline decoration-zinc-400/30 underline-offset-2">
             {label}
           </Link>
         ) : (

@@ -152,7 +152,7 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
               className={cn(
                 "touch-target h-11 w-11 flex items-center justify-center rounded-xl border transition-colors",
                 hideWatched
-                  ? "border-violet-500/40 bg-violet-500/15 text-violet-200"
+                  ? "border-primary/40 bg-primary/15 text-zinc-200"
                   : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/50 hover:bg-muted/60 dark:hover:bg-white/8",
               )}
             >

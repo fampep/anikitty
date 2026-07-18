@@ -173,7 +173,7 @@ export default function WatchServerPicker({
                     key={s.id}
                     type="button"
                     onClick={() => onPickSiteServer(s)}
-                    className="px-2 py-1 rounded-md text-[10px] font-mono font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-400/25 hover:text-violet-100/90 touch-manipulation"
+                    className="px-2 py-1 rounded-md text-[10px] font-mono font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-primary/25 hover:text-zinc-100/90 touch-manipulation"
                   >
                     {s.name}
                   </button>

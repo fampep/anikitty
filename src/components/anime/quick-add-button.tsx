@@ -65,7 +65,7 @@ export default function QuickAddButton({
         "opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100",
         state === "added"
           ? "bg-emerald-500/85 text-white ring-emerald-300/40 opacity-100"
-          : "bg-black/55 text-white ring-white/25 hover:bg-violet-500/85 hover:ring-violet-300/40",
+          : "bg-black/55 text-primary-foreground ring-white/25 hover:bg-primary/85 hover:ring-zinc-300/40",
       )}
     >
       {state === "loading" ? (

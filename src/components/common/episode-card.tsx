@@ -86,7 +86,7 @@ const EpisodeCard = ({
             "relative aspect-square rounded-lg w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-all",
             playable ? "cursor-pointer" : "cursor-not-allowed opacity-45",
             playActive
-              ? "bg-violet-600 ring-1 ring-violet-400/50 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)]"
+              ? "bg-primary ring-1 ring-primary/50 text-primary-foreground shadow-[0_0_16px_rgba(255, 255, 255, 0.35)]"
               : isActive
                 ? "bg-muted dark:bg-white/15 ring-1 ring-white/30 text-white"
                 : "bg-accent dark:bg-white/[0.06] hover:bg-accent dark:hover:bg-white/10 text-muted-foreground dark:text-white/60",

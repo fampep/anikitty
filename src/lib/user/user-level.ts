@@ -14,7 +14,7 @@ export const LEVEL_TIERS: LevelTier[] = [
   { name: "Devotee",       minLevel: 28,  maxLevel: 37,  color: "#34d399", icon: "Sparkles"  },
   { name: "Fan",           minLevel: 38,  maxLevel: 47,  color: "#818cf8", icon: "Heart"     },
   { name: "Superfan",      minLevel: 48,  maxLevel: 56,  color: "#6366f1", icon: "Gem"       },
-  { name: "Weeb",          minLevel: 57,  maxLevel: 65,  color: "#a78bfa", icon: "Zap"       },
+  { name: "Weeb",          minLevel: 57,  maxLevel: 65,  color: "#a1a1aa", icon: "Zap"       },
   { name: "Otaku",         minLevel: 66,  maxLevel: 74,  color: "#c084fc", icon: "Flame"     },
   { name: "Connoisseur",   minLevel: 75,  maxLevel: 82,  color: "#d946ef", icon: "Swords"    },
   { name: "Senpai",        minLevel: 83,  maxLevel: 89,  color: "#f472b6", icon: "Award"     },

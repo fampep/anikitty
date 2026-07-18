@@ -158,7 +158,7 @@ export default function FriendsModal({
             >
               {k === "friends" ? t("profile.friends") : t("profile.friendRequests")}
               {k === "requests" && requestCount > 0 && (
-                <span className="px-1.5 py-px rounded-full text-[10px] font-bold bg-violet-500/20 text-violet-200 tabular-nums">
+                <span className="px-1.5 py-px rounded-full text-[10px] font-bold bg-primary/20 text-zinc-200 tabular-nums">
                   {requestCount}
                 </span>
               )}

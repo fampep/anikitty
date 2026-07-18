@@ -69,9 +69,10 @@ const config: Config = {
 				sm: 'calc(var(--radius) - 4px)'
 			},
 			boxShadow: {
-				panel: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.28)',
-				'panel-hover': 'inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.38), 0 0 0 1px rgba(167,139,250,0.06)',
-				'glow-violet': '0 0 24px rgba(124,58,237,0.25)',
+				panel: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.45)',
+				'panel-hover': 'inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06)',
+				'glow-violet': '0 0 24px rgba(255,255,255,0.12)',
+				'glow-zinc': '0 0 24px rgba(255,255,255,0.12)',
 			},
 		}
 	},

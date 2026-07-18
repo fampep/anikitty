@@ -521,7 +521,7 @@ export default function ThreadPage() {
             <button
               type="button"
               onClick={scrollToReplies}
-              className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-bold shadow-lg shadow-violet-900/40 hover:bg-violet-500 transition-colors"
+              className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg shadow-black/40 hover:bg-primary/90 transition-colors"
             >
               <ChevronDown className="w-3.5 h-3.5" />
               {t("forum.thread.newReplies", { count: unseenReplies })}

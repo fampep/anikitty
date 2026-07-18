@@ -8,7 +8,7 @@ import { useT } from "@/providers/i18n-provider";
 
 const CATEGORY_STYLES: Record<string, string> = {
   sky: "text-sky-300 bg-sky-500/10 border-sky-500/20",
-  violet: "text-violet-300 bg-violet-500/10 border-violet-500/20",
+  violet: "text-zinc-300 bg-primary/10 border-primary/20",
   amber: "text-amber-300 bg-amber-500/10 border-amber-500/20",
   emerald: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
   rose: "text-rose-300 bg-rose-500/10 border-rose-500/20",

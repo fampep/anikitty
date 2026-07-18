@@ -23,7 +23,7 @@ export default function LandingWatchYourWay() {
         <ul className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-6">
           {POINTS.map(({ icon: Icon, key }) => (
             <li key={key} className="text-center sm:text-left">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-violet-300/90 mb-3">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-zinc-300/90 mb-3">
                 <Icon className="w-5 h-5" />
               </span>
               <p className="text-sm font-semibold text-white/88 mb-1.5">

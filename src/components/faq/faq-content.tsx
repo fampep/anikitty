@@ -173,7 +173,7 @@ export default function FaqContent() {
           {sections.map((section) => (
             <section key={section.id} id={section.id} className="scroll-mt-24">
               <div className="flex items-center gap-2.5 mb-4">
-                <span className="text-violet-400/70">{section.icon}</span>
+                <span className="text-zinc-400/70">{section.icon}</span>
                 <h2 className="text-lg font-bold text-foreground dark:text-white/90">{section.title}</h2>
               </div>
               <div className="flex flex-col gap-2">
@@ -209,7 +209,7 @@ export default function FaqContent() {
             </a>
             <Link
               href={ROUTES.SETTINGS}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600/20 border border-violet-400/25 text-sm text-violet-200 hover:bg-violet-600/30 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 border border-primary/25 text-sm text-zinc-200 hover:bg-primary/30 transition-colors"
             >
               {t("faq.accountSettings")}
             </Link>

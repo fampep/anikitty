@@ -240,7 +240,7 @@ function StatCard({
       ? "border-teal-500/20 bg-teal-500/[0.06] text-teal-200"
       : accent === "sky"
         ? "border-sky-500/20 bg-sky-500/[0.06] text-sky-200"
-        : "border-violet-500/20 bg-violet-500/[0.06] text-violet-200";
+        : "border-primary/20 bg-primary/[0.06] text-zinc-200";
 
   return (
     <div className={cn("rounded-xl border px-4 py-3", accentClass)}>

@@ -81,12 +81,12 @@ function TimeField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="1:30"
-          className="flex-1 rounded-lg px-3 py-2 text-sm bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-violet-400/40"
+          className="flex-1 rounded-lg px-3 py-2 text-sm bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary/40"
         />
         <button
           type="button"
           onClick={onUsePlayer}
-          className="shrink-0 inline-flex items-center gap-1 px-2.5 py-2 rounded-lg border border-border dark:border-white/10 text-[11px] font-semibold text-muted-foreground dark:text-white/55 hover:text-violet-200 hover:border-violet-400/25 hover:bg-violet-500/10 transition-colors"
+          className="shrink-0 inline-flex items-center gap-1 px-2.5 py-2 rounded-lg border border-border dark:border-white/10 text-[11px] font-semibold text-muted-foreground dark:text-white/55 hover:text-zinc-200 hover:border-primary/25 hover:bg-primary/10 transition-colors"
         >
           <Clock className="h-3.5 w-3.5" />
           {t("skipSubmit.usePlayer")}
@@ -313,10 +313,10 @@ export default function SkipTimesSubmitDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!submitting) onOpenChange(next); }}>
-      <DialogContent className="border border-border dark:border-white/10 bg-[#0a0a0f] rounded-2xl max-w-lg w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-violet-950/30 [&>button:last-child]:hidden">
+      <DialogContent className="border border-border dark:border-white/10 bg-[#09090b] rounded-2xl max-w-lg w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-black/30 [&>button:last-child]:hidden">
         <DialogHeader className="px-5 pt-5 pb-4 border-b border-border dark:border-white/8 text-left space-y-2">
           <DialogTitle className="flex items-center gap-2 text-foreground dark:text-white font-semibold text-base tracking-tight">
-            <SkipForward className="h-4 w-4 text-violet-300" />
+            <SkipForward className="h-4 w-4 text-zinc-300" />
             {t("skipSubmit.title")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground dark:text-white/45 text-sm leading-relaxed">
@@ -336,9 +336,9 @@ export default function SkipTimesSubmitDialog({
           ) : (
             <>
               {stats && (
-                <div className="rounded-xl border border-violet-500/20 bg-violet-500/8 p-3 space-y-2.5">
+                <div className="rounded-xl border border-primary/20 bg-primary/8 p-3 space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-violet-200 flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
                       <Timer className="h-3.5 w-3.5" />
                       {stats.isTimestampHelper
                         ? t("skipSubmit.helperUnlocked", { role: TIMESTAMP_HELPER_DISPLAY })
@@ -348,14 +348,14 @@ export default function SkipTimesSubmitDialog({
                             role: TIMESTAMP_HELPER_DISPLAY,
                           })}
                     </p>
-                    <span className="text-[10px] font-mono text-violet-300/70 tabular-nums">
+                    <span className="text-[10px] font-mono text-zinc-300/70 tabular-nums">
                       {stats.approved} {t("skipSubmit.approvedShort")}
                     </span>
                   </div>
                   {!stats.isTimestampHelper && (
                     <div className="h-1.5 rounded-full bg-black/30 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-sky-400 transition-all"
+                        className="h-full rounded-full bg-gradient-to-r from-zinc-400 to-white transition-all"
                         style={{ width: `${helperPct}%` }}
                       />
                     </div>
@@ -442,7 +442,7 @@ export default function SkipTimesSubmitDialog({
                   rows={2}
                   maxLength={500}
                   placeholder={t("skipSubmit.notesPlaceholder")}
-                  className="w-full resize-none rounded-xl px-3 py-2 text-sm bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-violet-400/40"
+                  className="w-full resize-none rounded-xl px-3 py-2 text-sm bg-muted/60 dark:bg-white/6 border border-border dark:border-white/10 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary/40"
                 />
               </div>
 
@@ -517,7 +517,7 @@ export default function SkipTimesSubmitDialog({
               disabled={submitting || pendingStatus === "pending"}
               className={cn(
                 "px-4 py-2 rounded-xl text-xs font-bold ring-1 transition-colors disabled:opacity-40",
-                "bg-violet-500/15 text-violet-200 ring-violet-400/25 hover:bg-violet-500/25",
+                "bg-primary/15 text-zinc-200 ring-primary/25 hover:bg-primary/25",
               )}
             >
               {submitting ? (

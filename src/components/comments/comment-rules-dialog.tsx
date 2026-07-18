@@ -61,7 +61,7 @@ export default function CommentRulesDialog({
           if (!readOnly) e.preventDefault();
         }}
       >
-        <div className="border-b border-border dark:border-white/8 bg-gradient-to-br from-violet-500/10 via-transparent to-fuchsia-500/5 px-6 pt-6 pb-4">
+        <div className="border-b border-border dark:border-white/8 bg-gradient-to-br from-zinc-500/10 via-transparent to-zinc-500/5 px-6 pt-6 pb-4">
           <DialogHeader className="space-y-2 text-left">
             <DialogTitle className="text-lg font-bold tracking-tight">
               {t("comments.rules.title")}
@@ -80,7 +80,7 @@ export default function CommentRulesDialog({
                 key={key}
                 className="flex gap-3 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] px-3.5 py-3"
               >
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-400 ring-1 ring-violet-500/20">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-zinc-400 ring-1 ring-primary/20">
                   <Icon className="h-3.5 w-3.5" />
                 </span>
                 <p className="text-[13px] leading-relaxed text-foreground/85 dark:text-white/70">
@@ -98,7 +98,7 @@ export default function CommentRulesDialog({
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => setChecked(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-violet-500"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-zinc-400"
               />
               <span
                 className={cn(
@@ -123,7 +123,7 @@ export default function CommentRulesDialog({
               <Button
                 type="button"
                 disabled={!checked}
-                className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0"
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground border-0"
                 onClick={handleAccept}
               >
                 {t("comments.rules.accept")}
@@ -134,7 +134,7 @@ export default function CommentRulesDialog({
           <DialogFooter className="border-t border-border dark:border-white/8 px-6 py-4 bg-muted/20 dark:bg-white/[0.02]">
             <Button
               type="button"
-              className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0"
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground border-0"
               onClick={() => onOpenChange(false)}
             >
               {t("comments.rules.gotIt")}

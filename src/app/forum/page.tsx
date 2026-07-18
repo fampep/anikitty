@@ -215,7 +215,7 @@ export default function ForumPage() {
               />
               <Link
                 href={ROUTES.CHAT}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-zinc-300 bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors"
               >
                 <MessageCircle className="w-3 h-3" />
                 {t("forum.liveChat")}

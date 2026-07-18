@@ -30,7 +30,7 @@ function SideListCard({ anime }: { anime: IAnime }) {
           imageClassName="object-cover scale-110 blur-[2px] brightness-[0.55] saturate-125"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
-        <div className="absolute left-3 bottom-[-1.75rem] z-[2] w-[4.5rem] aspect-[2/3] rounded-lg overflow-hidden ring-2 ring-background dark:ring-[#0a0a0f] shadow-lg">
+        <div className="absolute left-3 bottom-[-1.75rem] z-[2] w-[4.5rem] aspect-[2/3] rounded-lg overflow-hidden ring-2 ring-background dark:ring-[#09090b] shadow-lg">
           <LazyPosterImage
             src={anime.poster}
             alt={anime.name}
@@ -43,7 +43,7 @@ function SideListCard({ anime }: { anime: IAnime }) {
       <div className="flex flex-col gap-1.5 pt-8 px-3 pb-3 min-h-[5.5rem] bg-muted/20 dark:bg-white/[0.03]">
         <div className="flex items-start gap-1 min-w-0 pl-[4.75rem]">
           <AiringDot status={anime.status} />
-          <span className="text-sm font-semibold leading-snug line-clamp-2 text-foreground dark:text-white/90 group-hover:text-violet-200 transition-colors">
+          <span className="text-sm font-semibold leading-snug line-clamp-2 text-foreground dark:text-white/90 group-hover:text-zinc-200 transition-colors">
             {anime.name}
           </span>
         </div>
@@ -62,7 +62,7 @@ export default function HomeSideListRail({ title, animes, href }: Props) {
 
   const header = (
     <div className="flex items-center gap-2 mb-3 px-0.5">
-      <ChevronRight className="w-3.5 h-3.5 text-violet-300/70 shrink-0" aria-hidden />
+      <ChevronRight className="w-3.5 h-3.5 text-zinc-300/70 shrink-0" aria-hidden />
       <span className="text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground dark:text-white/55">
         {title}
       </span>

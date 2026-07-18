@@ -208,7 +208,7 @@ const HeroCarouselItem = ({
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent z-10" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent dark:from-[#0a0a0f] dark:via-[#0a0a0f]/50 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent dark:from-[#09090b] dark:via-[#09090b]/50 z-10" />
 
       <div className="absolute inset-0 z-20 flex items-end">
         <Container className="w-full pb-16 sm:pb-20 pointer-events-none">
@@ -258,7 +258,7 @@ const HeroCarouselItem = ({
                 className={cn(
                   "size-9 flex items-center justify-center rounded-full pointer-events-auto transition-colors disabled:opacity-60",
                   saved
-                    ? "text-violet-300 hover:text-violet-200 hover:bg-white/10"
+                    ? "text-zinc-300 hover:text-zinc-200 hover:bg-white/10"
                     : "text-white/70 hover:text-white hover:bg-white/10",
                 )}
                 aria-label={saved ? t("anime.addedToPlanToWatch") : t("anime.addToList")}

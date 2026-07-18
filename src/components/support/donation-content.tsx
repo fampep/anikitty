@@ -73,8 +73,8 @@ export default function DonationContent() {
     },
     {
       icon: Coffee,
-      accent: "text-violet-300/90",
-      ring: "ring-violet-400/20 bg-violet-500/10",
+      accent: "text-zinc-300/90",
+      ring: "ring-primary/20 bg-primary/10",
       title: t("donate.perks.community"),
       desc: t("donate.perks.communityDesc"),
     },
@@ -150,7 +150,7 @@ export default function DonationContent() {
             href={kofiPayUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="site-brand-btn px-4 py-2.5 text-sm hover:from-violet-500 hover:to-violet-400"
+            className="site-brand-btn px-4 py-2.5 text-sm hover:bg-primary/90"
           >
             <Coffee className="w-4 h-4" />
             {t("donate.donateCta")}

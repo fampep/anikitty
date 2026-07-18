@@ -35,7 +35,7 @@ export function PresenceDot({
           style={{ background: color }}
         />
       )}
-      <span className="relative inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-background dark:ring-[#0a0a10]" style={{ background: color }} />
+      <span className="relative inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-background dark:ring-[#09090b]" style={{ background: color }} />
     </span>
   );
 }

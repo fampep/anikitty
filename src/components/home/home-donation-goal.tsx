@@ -32,11 +32,11 @@ export default function HomeDonationGoal() {
 
   return (
     <Container className="py-4">
-      <div className="site-panel overflow-hidden border-fuchsia-500/15 bg-gradient-to-br from-fuchsia-500/[0.06] via-transparent to-violet-500/[0.04]">
+      <div className="site-panel overflow-hidden border-zinc-500/15 bg-gradient-to-br from-zinc-500/[0.06] via-transparent to-zinc-500/[0.04]">
         <div className="flex flex-col gap-4 p-5 sm:p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-fuchsia-500/25 bg-fuchsia-500/10 text-fuchsia-300">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-500/25 bg-zinc-500/10 text-zinc-300">
                 <Heart className="h-5 w-5" />
               </span>
               <div className="min-w-0">
@@ -51,7 +51,7 @@ export default function HomeDonationGoal() {
               <div className="space-y-2 pl-[52px]">
                 <div className="flex items-center justify-between gap-3 text-[11px] font-mono">
                   <span className="text-muted-foreground dark:text-white/40">{t("home.donationGoalProgress")}</span>
-                  <span className="text-fuchsia-200/80">
+                  <span className="text-zinc-200/80">
                     {t("home.donationGoalAmount", {
                       raised: goal.raisedEur.toFixed(0),
                       goal: goal.goalEur.toFixed(0),
@@ -61,7 +61,7 @@ export default function HomeDonationGoal() {
                 <div className="h-2 overflow-hidden rounded-full border border-border dark:border-white/8 bg-muted/50 dark:bg-white/[0.04]">
                   <div
                     className={cn(
-                      "h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-700",
+                      "h-full rounded-full bg-gradient-to-r from-zinc-500 to-zinc-500 transition-all duration-700",
                     )}
                     style={{ width: `${Math.max(percent, percent > 0 ? 4 : 0)}%` }}
                   />

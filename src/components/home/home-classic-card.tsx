@@ -43,7 +43,7 @@ export default function HomeClassicCard({ anime, href, priority }: Props) {
       <div className="flex flex-col gap-1 min-w-0 px-0.5">
         <div className="flex items-start gap-1 min-w-0">
           <AiringDot status={anime.status} />
-          <h3 className="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 text-foreground dark:text-white/90 group-hover:text-violet-200 transition-colors">
+          <h3 className="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 text-foreground dark:text-white/90 group-hover:text-zinc-200 transition-colors">
             {anime.name}
           </h3>
         </div>

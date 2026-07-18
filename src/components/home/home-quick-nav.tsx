@@ -62,7 +62,7 @@ export default function HomeQuickNav() {
             href={ROUTES.SEARCH}
             className="site-input group flex flex-1 items-center gap-2.5 min-w-0 px-3 py-2 rounded-lg transition-all"
           >
-            <Search className="w-3.5 h-3.5 shrink-0 text-muted-foreground dark:text-white/30 group-hover:text-violet-300/80 transition-colors" />
+            <Search className="w-3.5 h-3.5 shrink-0 text-muted-foreground dark:text-white/30 group-hover:text-zinc-300/80 transition-colors" />
             <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-foreground dark:group-hover:text-white/55 truncate transition-colors">
               {t("home.exploreSearch", { count: catalogLabel })}
             </span>
@@ -71,7 +71,7 @@ export default function HomeQuickNav() {
             </kbd>
           </Link>
           <div className="hidden md:flex items-center gap-1.5 shrink-0">
-            <div className="site-chip text-violet-300/80 py-1.5">
+            <div className="site-chip text-zinc-300/80 py-1.5">
               <Library className="w-3 h-3" />
               <span className="tabular-nums text-[11px]">{catalogLabel}</span>
             </div>
@@ -91,10 +91,10 @@ export default function HomeQuickNav() {
                 aria-current={active ? "true" : undefined}
                 className={cn(
                   "site-chip site-focus snap-start shrink-0 py-1.5 text-xs transition-[color,background-color,border-color,box-shadow] duration-200",
-                  active && "site-chip-active shadow-[inset_0_-2px_0_0_rgba(167,139,250,0.55)]",
+                  active && "site-chip-active shadow-[inset_0_-2px_0_0_rgba(255, 255, 255, 0.55)]",
                 )}
               >
-                <Icon className={cn("w-3 h-3 transition-colors duration-200", active ? "text-violet-300" : "text-violet-300/70")} />
+                <Icon className={cn("w-3 h-3 transition-colors duration-200", active ? "text-zinc-300" : "text-zinc-300/70")} />
                 {t(`home.quickNav.${key}`)}
               </Link>
             );

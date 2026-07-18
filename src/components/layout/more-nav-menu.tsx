@@ -29,7 +29,7 @@ export default function MoreNavMenu({ trigger, items, pathname }: Props) {
         className={cn(
           "z-[150] w-[min(calc(100vw-1.25rem),24rem)] max-h-[min(68vh,26rem)] overflow-hidden p-0",
           "rounded-2xl border border-border/60 bg-background/95 shadow-[0_16px_48px_rgba(0,0,0,0.28)] backdrop-blur-2xl",
-          "dark:border-white/[0.08] dark:bg-[#08080f]/96 dark:shadow-[0_20px_56px_rgba(0,0,0,0.55)]",
+          "dark:border-white/[0.08] dark:bg-[#09090b]/96 dark:shadow-[0_20px_56px_rgba(0,0,0,0.55)]",
           "data-[state=open]:duration-200 data-[state=closed]:duration-150",
           "data-[side=top]:slide-in-from-bottom-3 data-[side=top]:slide-out-to-bottom-2",
           "motion-reduce:animate-none motion-reduce:transition-none",

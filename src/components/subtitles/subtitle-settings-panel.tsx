@@ -80,7 +80,7 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-1.5 rounded-full appearance-none bg-accent dark:bg-white/10 accent-violet-400 cursor-pointer"
+        className="w-full h-1.5 rounded-full appearance-none bg-accent dark:bg-white/10 accent-zinc-300 cursor-pointer"
       />
     </div>
   );
@@ -378,7 +378,7 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
                       {customFontName}
                     </span>
                     {subtitleSettings.fontFamily === "custom" && (
-                      <span className="shrink-0 rounded bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-200">
+                      <span className="shrink-0 rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-zinc-200">
                         {t("settings.subtitleFontActive")}
                       </span>
                     )}
@@ -412,7 +412,7 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingFont}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-border dark:border-white/15 bg-muted/30 dark:bg-white/[0.03] px-3 py-2.5 text-[12px] font-medium text-muted-foreground dark:text-white/55 hover:border-violet-400/40 hover:text-foreground dark:hover:text-white/80 transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-border dark:border-white/15 bg-muted/30 dark:bg-white/[0.03] px-3 py-2.5 text-[12px] font-medium text-muted-foreground dark:text-white/55 hover:border-primary/40 hover:text-foreground dark:hover:text-white/80 transition-colors disabled:opacity-50"
                 >
                   {uploadingFont ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

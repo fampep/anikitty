@@ -49,7 +49,7 @@ export default function SeekStepSetting({ value, onChange, compact }: Props) {
                   className={cn(
                     "min-w-[2.75rem] rounded-lg border px-2.5 py-1.5 font-mono text-[11px] font-semibold tabular-nums transition-colors",
                     active
-                      ? "border-violet-400/35 bg-violet-500/15 text-violet-200/95"
+                      ? "border-primary/35 bg-primary/15 text-zinc-200/95"
                       : "border-border bg-background/60 text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:border-white/16 dark:hover:bg-white/[0.07] dark:hover:text-white/80",
                   )}
                 >

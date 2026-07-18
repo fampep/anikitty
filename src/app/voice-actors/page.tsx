@@ -68,7 +68,7 @@ export default function VoiceActorsPage() {
   return (
     <Container className="mt-16 sm:mt-20 pb-24 max-w-4xl">
       <div className="flex items-center gap-3 mb-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-zinc-300">
           <Mic className="w-5 h-5" />
         </div>
         <h1 className="text-2xl font-bold text-foreground dark:text-white tracking-tight">
@@ -88,14 +88,14 @@ export default function VoiceActorsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("voiceActorsPage.searchPlaceholder")}
-            className="w-full rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] pl-10 pr-3 py-2.5 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/25 focus:outline-none focus:border-violet-500/40"
+            className="w-full rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] pl-10 pr-3 py-2.5 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/25 focus:outline-none focus:border-primary/40"
           />
         </div>
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           aria-label={t("voiceActorsPage.languageFilter")}
-          className="rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] px-3 py-2.5 text-sm text-foreground dark:text-white/85 focus:outline-none focus:border-violet-500/40"
+          className="rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] px-3 py-2.5 text-sm text-foreground dark:text-white/85 focus:outline-none focus:border-primary/40"
         >
           {LANGUAGE_KEYS.map((l) => (
             <option key={l.value || "all"} value={l.value}>
@@ -135,19 +135,19 @@ export default function VoiceActorsPage() {
             <Link
               key={va.id}
               href={`${ROUTES.VOICE_ACTOR}/${va.id}`}
-              className="group flex items-center gap-3 rounded-xl border border-border dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] p-2.5 hover:border-violet-500/30 hover:bg-violet-500/[0.04] transition-colors"
+              className="group flex items-center gap-3 rounded-xl border border-border dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] p-2.5 hover:border-primary/30 hover:bg-primary/[0.04] transition-colors"
             >
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
                 {va.image ? (
                   <Image src={va.image} alt={va.name} fill sizes="48px" className="object-cover" unoptimized />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-violet-500/10 text-violet-300">
+                  <div className="flex h-full w-full items-center justify-center bg-primary/10 text-zinc-300">
                     <Mic className="h-4 w-4" />
                   </div>
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-foreground/90 dark:text-white/85 line-clamp-1 group-hover:text-violet-200">
+                <p className="text-[13px] font-semibold text-foreground/90 dark:text-white/85 line-clamp-1 group-hover:text-zinc-200">
                   {va.name}
                 </p>
                 {va.language && (

@@ -158,7 +158,7 @@ export default function ActiveSessionsSection() {
               className={cn(
                 "flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl border transition-all",
                 checked
-                  ? "border-violet-400/35 bg-violet-500/8"
+                  ? "border-primary/35 bg-primary/8"
                   : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.03] hover:border-border dark:hover:border-white/15",
                 busy && "opacity-60 cursor-not-allowed",
               )}

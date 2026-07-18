@@ -31,7 +31,7 @@ function TimestampChip({ label, seconds }: { label: string; seconds: number }) {
           .querySelector(".anikitty-player, .custom-kitty-player")
           ?.scrollIntoView({ behavior: "smooth", block: "center" });
       }}
-      className="inline text-violet-300 hover:text-violet-200 font-mono font-medium underline decoration-violet-400/40 underline-offset-2"
+      className="inline text-zinc-300 hover:text-zinc-200 font-mono font-medium underline decoration-zinc-400/40 underline-offset-2"
     >
       {label}
     </button>
@@ -80,7 +80,7 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
         <Link
           key={`${keyBase}-m${i}`}
           href={`/profile/${m[2]}`}
-          className="text-violet-300 hover:text-violet-200 font-medium"
+          className="text-zinc-300 hover:text-zinc-200 font-medium"
         >
           @{m[2]}
         </Link>,

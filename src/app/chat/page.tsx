@@ -137,7 +137,7 @@ function ChatBubble({
             onClick={onMention}
             className={cn(
               "text-xs font-semibold transition-colors text-left",
-              isOwn ? "text-violet-300 hover:text-violet-200" : "text-foreground/90 dark:text-white/80 hover:text-foreground dark:hover:text-white",
+              isOwn ? "text-zinc-300 hover:text-zinc-200" : "text-foreground/90 dark:text-white/80 hover:text-foreground dark:hover:text-white",
             )}
           >
             {message.username}
@@ -156,7 +156,7 @@ function ChatBubble({
           className={cn(
             "relative px-3.5 py-2 rounded-2xl text-sm leading-relaxed break-words",
             isOwn
-              ? "bg-violet-600/90 text-white rounded-br-md"
+              ? "bg-primary/90 text-primary-foreground rounded-br-md"
               : "bg-accent dark:bg-white/8 text-foreground dark:text-white/90 border border-border dark:border-white/8 rounded-bl-md",
           )}
         >
@@ -183,11 +183,11 @@ function ChatBubble({
               className={cn(canEdit && "cursor-text")}
               linkClassName={
                 isOwn
-                  ? "text-violet-100 hover:text-white underline underline-offset-2 break-all"
+                  ? "text-zinc-100 hover:text-white underline underline-offset-2 break-all"
                   : undefined
               }
               mentionClassName={
-                isOwn ? "text-violet-100 hover:text-white" : undefined
+                isOwn ? "text-zinc-100 hover:text-white" : undefined
               }
               onDoubleClick={canEdit ? onEdit : undefined}
               title={canEdit ? t("chat.doubleClickEdit") : undefined}
@@ -524,7 +524,7 @@ export default function ChatPage() {
                 <button
                   type="button"
                   onClick={jumpToLatest}
-                  className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-bold shadow-lg shadow-violet-900/40 hover:bg-violet-500 transition-colors"
+                  className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg shadow-black/40 hover:bg-primary/90 transition-colors"
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
                   {t("chat.newMessages", { count: unseenCount })}
@@ -553,7 +553,7 @@ export default function ChatPage() {
             {isLoggedIn ? (
               <form onSubmit={handleSend} className="flex flex-col gap-2">
                 {isEditing && (
-                  <div className="flex items-center justify-between gap-2 px-1 text-xs text-violet-300/80">
+                  <div className="flex items-center justify-between gap-2 px-1 text-xs text-zinc-300/80">
                     <span>{t("chat.editing")}</span>
                     <button
                       type="button"
@@ -565,9 +565,9 @@ export default function ChatPage() {
                   </div>
                 )}
                 {replyingTo && !isEditing && (
-                  <div className="flex items-start justify-between gap-3 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-xs">
+                  <div className="flex items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs">
                     <div className="min-w-0">
-                      <p className="font-semibold text-violet-200/90">{t("chat.replyingTo", { user: replyingTo.username })}</p>
+                      <p className="font-semibold text-zinc-200/90">{t("chat.replyingTo", { user: replyingTo.username })}</p>
                       <p className="truncate text-muted-foreground dark:text-white/55 mt-0.5">
                         {replyPreviewText(replyingTo, t)}
                       </p>
@@ -705,7 +705,7 @@ export default function ChatPage() {
                     disabled={!canSend}
                     className={cn(
                       "shrink-0 flex items-center justify-center h-11 w-11 rounded-xl transition-all",
-                      "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed",
+                      "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed",
                     )}
                   >
                     {sending ? (

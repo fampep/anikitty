@@ -111,7 +111,7 @@ export default function AnimeThemePlayer({ anilistId, className }: AnimeThemePla
           className,
         )}
       >
-        <Music2 className="w-4 h-4 text-violet-300/50 shrink-0" />
+        <Music2 className="w-4 h-4 text-zinc-300/50 shrink-0" />
         <div className="h-8 flex-1 rounded bg-white/10" />
       </div>
     );
@@ -161,13 +161,13 @@ export default function AnimeThemePlayer({ anilistId, className }: AnimeThemePla
       <div
         className={cn(
           "flex items-center gap-2 sm:gap-3 rounded-xl border border-white/10 bg-black/45 backdrop-blur-md px-3 py-2 sm:px-4 sm:py-2.5 shadow-lg",
-          playing && muted && "ring-1 ring-violet-400/30",
+          playing && muted && "ring-1 ring-primary/30",
           className,
         )}
       >
         <Music2
           className={cn(
-            "w-4 h-4 text-violet-300 shrink-0",
+            "w-4 h-4 text-zinc-300 shrink-0",
             playing && !needsGesture && "animate-pulse",
           )}
         />

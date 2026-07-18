@@ -132,9 +132,9 @@ const LIST_STATUS_STYLES: Record<string, { bar: string; icon: string; tab: strin
     tab: "data-[state=active]:text-sky-300 data-[state=active]:border-sky-500/30 data-[state=active]:bg-sky-500/10",
   },
   plan: {
-    bar: "bg-violet-500",
-    icon: "text-violet-400",
-    tab: "data-[state=active]:text-violet-300 data-[state=active]:border-violet-500/30 data-[state=active]:bg-violet-500/10",
+    bar: "bg-primary",
+    icon: "text-zinc-400",
+    tab: "data-[state=active]:text-zinc-300 data-[state=active]:border-primary/30 data-[state=active]:bg-primary/10",
   },
   onHold: {
     bar: "bg-amber-500",
@@ -487,14 +487,14 @@ function ProfilePage() {
   if (profileHidden) {
     return (
       <div className="min-h-screen pt-24 flex flex-col items-center gap-4 text-center px-4">
-        <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-500/10 border border-violet-400/20 text-4xl">
+        <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 text-4xl">
           🥷
         </div>
         <p className="text-xl font-bold text-foreground dark:text-white">{t("profile.ninjaMode")}</p>
         <p className="text-sm text-muted-foreground dark:text-white/40 max-w-sm">
           {t("profile.ninjaModeDesc", { username: profileUsername })}
         </p>
-        <Link href="/home" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+        <Link href="/home" className="text-sm text-zinc-400 hover:text-zinc-300 transition-colors">
           {t("profile.backToHome")}
         </Link>
       </div>
@@ -506,7 +506,7 @@ function ProfilePage() {
       <div className="min-h-screen pt-24 flex flex-col items-center gap-3 text-center px-4">
         <p className="text-xl font-bold text-foreground dark:text-white">{t("profile.notFound")}</p>
         <p className="text-sm text-muted-foreground dark:text-white/40">{t("profile.notFoundDesc", { username: profileUsername })}</p>
-        <Link href="/" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+        <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-300 transition-colors">
           {t("profile.goHome")}
         </Link>
       </div>
@@ -794,7 +794,7 @@ function ProfilePage() {
                     </span>
                   )}
                   {isOwn && profile.profilePrivate && (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-violet-400/25 bg-violet-500/10 text-violet-200/90 text-[10px] font-mono">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-primary/25 bg-primary/10 text-zinc-200/90 text-[10px] font-mono">
                       🥷 {t("profile.ninjaMode")}
                     </span>
                   )}
@@ -841,7 +841,7 @@ function ProfilePage() {
                   />
                   <StatTile
                     icon={MessageSquare}
-                    accent="text-violet-300"
+                    accent="text-zinc-300"
                     value={displayLevel?.commentCount ?? 0}
                     label={t("profile.comments")}
                     onClick={() => router.push(ROUTES.profileComments(profile.username))}
@@ -919,7 +919,7 @@ function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setEditOpen(true)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-200 hover:bg-violet-500/20 transition-colors shrink-0"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-primary/20 transition-colors shrink-0"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                       {t("profile.addBioCta")}
@@ -1212,7 +1212,7 @@ function RailButton({
 }) {
   const cls = cn(
     "inline-flex w-auto md:w-full items-center justify-center gap-2 rounded-xl px-3.5 md:px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50",
-    variant === "primary" && "bg-violet-600 text-white hover:bg-violet-500 shadow-lg shadow-violet-500/20",
+    variant === "primary" && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-black/20",
     variant === "amber" && "border border-amber-400/25 bg-amber-500/10 text-amber-200/90 hover:bg-amber-500/20",
     variant === "danger" && "border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20",
     variant === "default" &&

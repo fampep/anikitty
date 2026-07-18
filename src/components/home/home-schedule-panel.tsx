@@ -93,7 +93,7 @@ export default function HomeSchedulePanel() {
                     : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70",
                 )}
               >
-                <span className={cn("text-xs font-bold", active && "text-violet-300")}>
+                <span className={cn("text-xs font-bold", active && "text-zinc-300")}>
                   {d.toLocaleDateString(locale, { weekday: "short" })}
                 </span>
                 {active || isToday ? (
@@ -154,7 +154,7 @@ export default function HomeSchedulePanel() {
             })}
             <Link
               href={ROUTES.SCHEDULE}
-              className="mt-1 px-2 py-2 text-xs font-semibold text-violet-300/80 hover:text-violet-200 transition-colors"
+              className="mt-1 px-2 py-2 text-xs font-semibold text-zinc-300/80 hover:text-zinc-200 transition-colors"
             >
               {t("common.viewAll")} →
             </Link>

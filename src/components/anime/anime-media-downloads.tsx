@@ -319,7 +319,7 @@ function BatchBar({
           type="button"
           onClick={onDownloadSelected}
           disabled={downloading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-violet-500/15 border border-violet-500/25 text-violet-300 hover:bg-violet-500/25 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-primary/15 border border-primary/25 text-zinc-300 hover:bg-primary/25 disabled:opacity-50"
         >
           {downloading ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -354,7 +354,7 @@ function EpisodeDownloadCard({
     <div
       className={cn(
         "rounded-xl border bg-muted/30 dark:bg-white/[0.02] overflow-hidden transition-colors",
-        selected ? "border-violet-500/35 ring-1 ring-violet-500/15" : "border-border dark:border-white/8",
+        selected ? "border-primary/35 ring-1 ring-primary/15" : "border-border dark:border-white/8",
       )}
     >
       <div className="flex gap-0">
@@ -366,7 +366,7 @@ function EpisodeDownloadCard({
             className={cn(
               "absolute top-2 left-2 z-20 w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
               selected
-                ? "bg-violet-500 border-violet-400 text-white"
+                ? "bg-primary border-primary text-primary-foreground"
                 : "bg-black/55 border-border dark:border-white/25 text-transparent hover:border-white/45",
             )}
             aria-label={`Select episode ${episode.number}`}
@@ -376,7 +376,7 @@ function EpisodeDownloadCard({
           <EpisodeThumbnail image={episode.image} episode={episode.number} />
           {downloading && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
-              <Loader2 className="w-5 h-5 text-violet-300 animate-spin" />
+              <Loader2 className="w-5 h-5 text-zinc-300 animate-spin" />
             </div>
           )}
           <span className="absolute bottom-1.5 left-1.5 z-[1] text-[9px] font-mono font-bold text-foreground dark:text-white/90 bg-black/65 px-1.5 py-0.5 rounded">
@@ -400,7 +400,7 @@ function EpisodeDownloadCard({
             type="button"
             onClick={onDownload}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-violet-500/15 border border-violet-500/25 text-violet-300 hover:bg-violet-500/25 transition-colors disabled:opacity-50 shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-primary/15 border border-primary/25 text-zinc-300 hover:bg-primary/25 transition-colors disabled:opacity-50 shrink-0"
           >
             {downloading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

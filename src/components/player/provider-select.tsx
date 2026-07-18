@@ -195,9 +195,9 @@ const PROVIDER_ROW_STYLES: Record<
     idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
   },
   multi: {
-    label: "text-violet-300/70",
-    active: "bg-violet-500/25 border-violet-400/45 text-violet-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-violet-500/30 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+    label: "text-zinc-300/70",
+    active: "bg-primary/25 border-primary/45 text-zinc-100",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-primary/30 hover:text-zinc-200/80 hover:bg-primary/[0.06]",
   },
 };
 

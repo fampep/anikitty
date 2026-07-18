@@ -28,7 +28,7 @@ export default function WatchPageHeader({
   return (
     <div className="site-panel flex items-center gap-3 p-3 sm:p-3.5 mb-3 min-w-0">
       <Link href={detailHref} className="shrink-0 group">
-        <div className="relative w-10 h-14 sm:w-11 sm:h-[3.75rem] rounded-lg overflow-hidden ring-1 ring-border dark:ring-white/10 shadow-lg shadow-black/40 group-hover:ring-violet-400/35 transition-all">
+        <div className="relative w-10 h-14 sm:w-11 sm:h-[3.75rem] rounded-lg overflow-hidden ring-1 ring-border dark:ring-white/10 shadow-lg shadow-black/40 group-hover:ring-primary/35 transition-all">
           {poster ? (
             <Image
               src={poster}
@@ -39,18 +39,18 @@ export default function WatchPageHeader({
               sizes="44px"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-white/5" />
+            <div className="absolute inset-0 bg-gradient-to-br from-zinc-500/10 to-white/5" />
           )}
         </div>
       </Link>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-mono uppercase tracking-wider text-violet-300/60 mb-0.5">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-300/60 mb-0.5">
           {t("watch.nowWatching")}
         </p>
         <Link
           href={detailHref}
-          className="text-sm sm:text-[15px] font-bold text-foreground dark:text-white hover:text-violet-200/90 transition-colors line-clamp-1"
+          className="text-sm sm:text-[15px] font-bold text-foreground dark:text-white hover:text-zinc-200/90 transition-colors line-clamp-1"
         >
           {name}
         </Link>

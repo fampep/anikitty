@@ -109,7 +109,7 @@ export default function PresenceSettings() {
               className={cn(
                 "flex items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
                 active
-                  ? "border-primary/40 bg-accent dark:border-violet-400/25 dark:bg-violet-500/[0.08]"
+                  ? "border-primary/40 bg-accent dark:border-primary/25 dark:bg-primary/[0.08]"
                   : "border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02] hover:border-border dark:hover:border-white/18",
               )}
             >

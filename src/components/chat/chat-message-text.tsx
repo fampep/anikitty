@@ -27,7 +27,7 @@ function renderLineWithMentionsAndLinks(
         key={`m-${match.index}-${username}`}
         href={`/profile/${encodeURIComponent(username)}`}
         className={cn(
-          "font-medium text-violet-300 hover:text-violet-200",
+          "font-medium text-zinc-300 hover:text-zinc-200",
           mentionClassName,
         )}
       >

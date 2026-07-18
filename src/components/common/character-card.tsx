@@ -46,9 +46,9 @@ const CharacterCard = ({ ...props }: Props) => {
           aria-label={va.name}
           className="group/va absolute top-2 right-2 z-10"
         >
-          <div className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-black/50 transition group-hover/va:ring-violet-400/70">
+          <div className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-black/50 transition group-hover/va:ring-primary/70">
             <Image src={va.poster} alt={va.name} fill sizes="44px" className="object-cover" unoptimized />
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-500 text-white ring-2 ring-black/60">
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-black/60">
               <Mic className="h-2 w-2" />
             </span>
           </div>
@@ -61,7 +61,7 @@ const CharacterCard = ({ ...props }: Props) => {
         {va?.name && (
           <Link
             href={va.id ? `${ROUTES.VOICE_ACTOR}/${va.id}` : "#"}
-            className="text-[11px] text-violet-200/70 hover:text-violet-100 line-clamp-1 transition-colors"
+            className="text-[11px] text-zinc-200/70 hover:text-zinc-100 line-clamp-1 transition-colors"
           >
             {va.name}
           </Link>

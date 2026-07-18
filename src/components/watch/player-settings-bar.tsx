@@ -58,7 +58,7 @@ function ToggleRow({
       <div
         className={cn(
           "relative w-9 h-5 rounded-full transition-colors duration-200 shrink-0",
-          value ? "bg-violet-500/70" : "bg-accent dark:bg-white/12",
+          value ? "bg-primary/70" : "bg-accent dark:bg-white/12",
         )}
         aria-hidden
       >
@@ -139,7 +139,7 @@ export default function PlayerSettingsBar({
           aria-expanded={playerSettingsOpen}
           className="flex flex-1 items-center gap-2 min-w-0 text-left group"
         >
-          <Settings2 className="w-3.5 h-3.5 text-violet-400/70 shrink-0" />
+          <Settings2 className="w-3.5 h-3.5 text-zinc-400/70 shrink-0" />
           <span className="text-[12px] font-bold text-foreground/85 dark:text-white/75 truncate">
             {t("watch.playerSettings.title")}
           </span>
@@ -158,7 +158,7 @@ export default function PlayerSettingsBar({
           className={cn(
             "inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors touch-manipulation",
             theatreMode
-              ? "border-violet-400/30 bg-violet-500/15 text-violet-200/90"
+              ? "border-primary/30 bg-primary/15 text-zinc-200/90"
               : "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:hover:text-white/75",
           )}
           title={t("watch.playerSettings.theatre")}
@@ -175,7 +175,7 @@ export default function PlayerSettingsBar({
             "inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-bold border transition-colors touch-manipulation",
             showPlayerControls
               ? "border-border dark:border-white/12 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/50 hover:text-foreground/85 dark:hover:text-white/75"
-              : "border-violet-400/30 bg-violet-500/15 text-violet-200/90",
+              : "border-primary/30 bg-primary/15 text-zinc-200/90",
           )}
           title={
             showPlayerControls
@@ -286,7 +286,7 @@ export default function PlayerSettingsBar({
                           className={cn(
                             "px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors",
                             anime4kMode === mode
-                              ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                              ? "border-primary/40 bg-primary/15 text-zinc-200"
                               : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75",
                           )}
                         >

@@ -87,7 +87,7 @@ function RoomCard({
               {t("w2gPage.memberCount", { count: room.memberCount })}
             </span>
             <span className="text-muted-foreground/30 dark:text-white/15">·</span>
-            <span className="text-[10px] font-mono uppercase text-violet-300/70">{room.audio}</span>
+            <span className="text-[10px] font-mono uppercase text-zinc-300/70">{room.audio}</span>
           </div>
         </div>
       </div>
@@ -108,7 +108,7 @@ function RoomCard({
           disabled={joining}
           className={cn(
             "inline-flex items-center justify-center gap-1.5 flex-1 sm:flex-none h-9 px-4 rounded-xl text-[11px] font-bold transition-all",
-            "bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40",
+            "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40",
           )}
         >
           {joining ? (
@@ -203,8 +203,8 @@ export default function WatchTogetherContent() {
       <Container className="max-w-2xl">
         <div className="flex flex-col gap-8">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-violet-500/10 border border-violet-500/25 mb-4">
-              <Users className="h-7 w-7 text-violet-400" />
+            <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 border border-primary/25 mb-4">
+              <Users className="h-7 w-7 text-zinc-400" />
             </div>
             <h1 className="text-2xl font-bold text-foreground dark:text-white mb-2">
               {t("w2gPage.title")}
@@ -239,7 +239,7 @@ export default function WatchTogetherContent() {
                 customTrigger={
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl text-xs font-bold bg-violet-600 text-white hover:bg-violet-500 transition-colors shrink-0"
+                    className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
                   >
                     <LogIn className="h-3.5 w-3.5" />
                     {t("w2gPage.signIn")}
@@ -262,7 +262,7 @@ export default function WatchTogetherContent() {
               </p>
               <Link
                 href={ROUTES.HOME}
-                className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-violet-300 hover:text-violet-200"
+                className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-zinc-300 hover:text-zinc-200"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t("w2gPage.browseToCreate")}

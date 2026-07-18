@@ -28,8 +28,8 @@ function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className={cn(
         "group hidden h-9 min-w-0 max-w-md flex-1 items-center rounded-full border border-border/60 bg-muted/30",
-        "text-muted-foreground transition-colors hover:border-violet-400/25 hover:bg-violet-500/[0.06] hover:text-foreground",
-        "dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-white/45 dark:hover:border-violet-400/20 dark:hover:bg-violet-500/[0.05] dark:hover:text-white/80",
+        "text-muted-foreground transition-colors hover:border-primary/25 hover:bg-primary/[0.06] hover:text-foreground",
+        "dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-white/45 dark:hover:border-primary/20 dark:hover:bg-primary/[0.05] dark:hover:text-white/80",
         "lg:inline-flex xl:max-w-lg",
         "justify-start gap-2.5 px-3.5",
       )}

@@ -20,7 +20,7 @@ export default function HomeWelcomeBar() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-3 py-2 site-panel">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-foreground/90 dark:text-white/80 truncate">
-            {t("home.welcomeBack")} <span className="text-violet-200">{auth.username}</span>
+            {t("home.welcomeBack")} <span className="text-zinc-200">{auth.username}</span>
           </p>
           {level ? (
             <div className="mt-1.5">
