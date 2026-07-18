@@ -163,3 +163,24 @@ export function ShareIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Thin-stroke closed captions mark (ArtPlayer-like). */
+export function CaptionsIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <rect {...stroke} x="3.25" y="5.5" width="17.5" height="13" rx="2.25" />
+      <text
+        x="12"
+        y="14.35"
+        fill="currentColor"
+        stroke="none"
+        fontSize="7.25"
+        fontWeight="600"
+        textAnchor="middle"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >
+        CC
+      </text>
+    </svg>
+  );
+}
