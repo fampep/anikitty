@@ -52,6 +52,7 @@ import {
 import {
   CaptionsIcon,
   CastConnectedIcon,
+  CastIcon,
   FullscreenExitIcon,
   FullscreenIcon,
   MoreIcon,
@@ -2454,7 +2455,7 @@ export function CustomVideoPlayer({
 
               <div className="min-w-2 flex-1 sm:min-w-3" />
 
-              {/* Right cluster — essentials only; Cast / PiP / brightness / share in ⋮ */}
+              {/* Right cluster — CC · Cast · volume (sm+) · more · fullscreen */}
               <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
                 {showCaptionsMenu ? (
                   <div className="relative">
@@ -2507,6 +2508,36 @@ export function CustomVideoPlayer({
                       </div>
                     ) : null}
                   </div>
+                ) : null}
+
+                {castAvailable ? (
+                  <IconButton
+                    label={
+                      casting
+                        ? castDeviceName
+                          ? `Stop casting (${castDeviceName})`
+                          : "Stop casting"
+                        : castConnecting
+                          ? "Connecting…"
+                          : "Cast to device"
+                    }
+                    ariaPressed={casting}
+                    disabled={castConnecting}
+                    onClick={() => {
+                      void toggleCast();
+                      bumpControls();
+                    }}
+                    className={cn(
+                      casting && "text-white",
+                      castConnecting && "opacity-70",
+                    )}
+                  >
+                    {casting || castConnecting ? (
+                      <CastConnectedIcon className="h-[18px] w-[18px]" />
+                    ) : (
+                      <CastIcon className="h-[18px] w-[18px]" />
+                    )}
+                  </IconButton>
                 ) : null}
 
                 <div
@@ -2614,26 +2645,6 @@ export function CustomVideoPlayer({
                           </MenuItem>
                         ))}
                       </MenuSection>
-
-                      {castAvailable ? (
-                        <MenuSection title="Cast">
-                          <MenuItem
-                            active={casting}
-                            onClick={() => {
-                              void toggleCast();
-                              setMoreOpen(false);
-                            }}
-                          >
-                            {casting
-                              ? castDeviceName
-                                ? `Stop casting (${castDeviceName})`
-                                : "Stop casting"
-                              : castConnecting
-                                ? "Connecting…"
-                                : "Cast to device"}
-                          </MenuItem>
-                        </MenuSection>
-                      ) : null}
 
                       {pipSupported && !pipBlocked ? (
                         <MenuSection title="Display">
