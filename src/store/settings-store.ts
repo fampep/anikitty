@@ -140,7 +140,7 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** User preference for site banner ads (signed-in users can disable). */
+  /** Site banner ads preference — always forced on (users cannot disable). */
   showBannerAds: boolean;
   setShowBannerAds: (val: boolean) => void;
 
@@ -330,7 +330,8 @@ export const useSettingsStore = create<ISettingsStore>()(
       setNotifyFollows: (notifyFollows) => set({ notifyFollows }),
 
       showBannerAds: true,
-      setShowBannerAds: (showBannerAds) => set({ showBannerAds }),
+      // Ads cannot be turned off — keep the setter for sync/API compatibility.
+      setShowBannerAds: () => set({ showBannerAds: true }),
 
       seekStepSeconds: DEFAULT_PLAYER_SEEK_STEP,
       setSeekStepSeconds: (seekStepSeconds) => set({ seekStepSeconds: sanitizeSeekStepSeconds(seekStepSeconds) }),
@@ -351,7 +352,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 42,
+      version: 43,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -560,6 +561,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 42) {
           delete (next as Record<string, unknown>).watchPlayerEngine;
+        }
+        if (version < 43) {
+          // Ads are required site-wide — re-enable anyone who had them off.
+          next.showBannerAds = true;
         }
         return next as ISettingsStore;
       },

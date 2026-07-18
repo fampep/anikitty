@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
-import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
@@ -38,11 +37,10 @@ type Props = {
   className?: string;
 };
 
-/** Small home notice — signed-in users can disable ads in Settings. */
+/** Small home notice — ads are required site-wide; Settings explains why. */
 export default function HomeAdsNotice({ className }: Props) {
   const t = useT();
   const auth = useAuthStore((s) => s.auth);
-  const showBannerAds = useSettingsStore((s) => s.showBannerAds);
   const [globalEnabled, setGlobalEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -56,7 +54,6 @@ export default function HomeAdsNotice({ className }: Props) {
   }, []);
 
   if (globalEnabled === false) return null;
-  if (auth && !showBannerAds) return null;
 
   return (
     <div className={cn("relative z-[5] px-4", className)}>

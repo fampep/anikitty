@@ -76,7 +76,8 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.notifyMentions !== undefined) patch.notifyMentions = prefs.notifyMentions;
   if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;
   if (prefs.notifyFollows !== undefined) patch.notifyFollows = prefs.notifyFollows;
-  if (prefs.showBannerAds !== undefined) patch.showBannerAds = prefs.showBannerAds;
+  // Ads are required — never apply a remote "off" preference.
+  patch.showBannerAds = true;
   if (prefs.seekStepSeconds !== undefined) {
     patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
   }
@@ -136,9 +137,9 @@ export default function SettingsSync() {
         applyingRef.current = true;
         if (hasRemote) {
           applyRemotePreferences(remote);
-        } else {
-          await pushLocalPreferences();
         }
+        // Always push so coerced ads-on (and first-time prefs) land on the server.
+        await pushLocalPreferences();
         readyRef.current = true;
         lastPushedRef.current = JSON.stringify(pickLocalSyncedPreferences());
       } catch {

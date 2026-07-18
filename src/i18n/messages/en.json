@@ -83,9 +83,9 @@
   },
   "banner": {
     "adsPromoGuestTitle": "Sorry — we have to show ads",
-    "adsPromoGuestBody": "Running AniKitty costs about €100/month. Ads help us afford servers and streaming. Sign in to turn them off in Settings, or support us on Ko-fi.",
+    "adsPromoGuestBody": "Running AniKitty costs about €100/month. Ads help us afford servers and streaming. They cannot be turned off — optional Ko-fi tips still help if you want to support us directly.",
     "adsPromoSignedInTitle": "Sorry about the ads",
-    "adsPromoSignedInBody": "They help cover the ~€100/month running cost. You can disable them anytime in Settings → General.",
+    "adsPromoSignedInBody": "They help cover the ~€100/month running cost and cannot be turned off. See Settings → General for details.",
     "adsPromoCta": "Settings"
   },
   "footer": {
@@ -626,22 +626,28 @@
     "playbackDesc": "Default behaviour when watching anime — synced across devices when signed in",
     "ads": {
       "title": "Site ads",
-      "desc": "We're sorry, but banner ads outside the player help us afford running AniKitty (~€100/month). The player and profile pages stay ad-free. Signed-in users can turn ads off here.",
+      "desc": "We're sorry, but banner ads outside the player help us afford running AniKitty (~€100/month). The player and profile pages stay ad-free. Ads cannot be turned off.",
       "showAds": "Show site ads",
-      "showAdsDesc": "Banner ads around the site (never inside the player). Off syncs to every device while you are signed in.",
-      "signInHint": "Sign in to disable ads. Guests always see site ads — they help keep AniKitty online. The player and profiles stay ad-free for everyone.",
+      "showAdsDesc": "Banner ads around the site (never inside the player). Required for everyone so we can keep AniKitty online.",
+      "signInHint": "Guests and signed-in users both see site ads — they help keep AniKitty online. The player and profiles stay ad-free for everyone.",
       "saveFailed": "Could not save your ad preference. Try again.",
       "donatorActive": "You have the donator role on your profile. Thank you for supporting AniKitty!",
       "donatorActiveUntil": "Your donator role is active until {date}. Thank you for supporting AniKitty!",
       "optionalSupportHint": "Ko-fi donations are completely optional — they help keep the site online.",
       "optionalSupportLink": "Learn about optional support",
       "disableTitle": "Turn off site ads?",
-      "disableIntro": "We're sorry about the ads — they help afford running AniKitty (~€100/month for servers and streaming). The choice is always yours.",
+      "disableIntro": "We're sorry about the ads — they help afford running AniKitty (~€100/month for servers and streaming).",
       "disableEmbedTitle": "Why ads exist",
-      "disableEmbedBody": "AniKitty is free for everyone. Site banner ads are how we cover hosting, streaming, and the database without charging a subscription. They never run inside the video player or on profile pages. Guests always see them; signed-in users can disable them.",
-      "disableNote": "You can turn ads off anytime — no donation required. We believe everyone should be able to choose. Optional Ko-fi tips still help if you want to support the site directly.",
+      "disableEmbedBody": "AniKitty is free for everyone. Site banner ads are how we cover hosting, streaming, and the database without charging a subscription. They never run inside the video player or on profile pages.",
+      "disableNote": "Ads cannot be turned off. Optional Ko-fi tips still help if you want to support the site directly.",
       "keepAds": "Keep ads on",
-      "disableConfirm": "Turn off anyway"
+      "disableConfirm": "Turn off anyway",
+      "cannotDisableTitle": "Ads cannot be turned off",
+      "cannotDisableIntro": "We're sorry — site ads help keep AniKitty running (~€100/month for servers and streaming). Turning them off is not available.",
+      "cannotDisableEmbedTitle": "Why ads stay on",
+      "cannotDisableEmbedBody": "AniKitty is free for everyone. Banner ads outside the player are how we cover hosting, streaming, and the database without a subscription. The player and profile pages stay ad-free.",
+      "cannotDisableNote": "Optional Ko-fi tips still help if you want to support the site directly — thank you for understanding.",
+      "cannotDisableOk": "Got it"
     },
     "content": "Content",
     "contentDesc": "Control what kinds of titles appear across the site",
@@ -1228,11 +1234,11 @@
     },
     "basics": {
       "whatIsQ": "What is AniKitty?",
-      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. Browse the catalog, watch episodes in sub or dub where available, rate and review titles, and join community features when signed in. We're sorry, but site banner ads help afford running costs (~€100/month for servers and streaming). They never run inside the video player or on profile pages. Guests always see them; signed-in users can turn them off in Settings → General. AniKitty does not host video files — streams are resolved through third-party sources via KittyAPI.",
+      "whatIsA": "AniKitty is a free anime streaming site with no subscription paywall. Browse the catalog, watch episodes in sub or dub where available, rate and review titles, and join community features when signed in. We're sorry, but site banner ads help afford running costs (~€100/month for servers and streaming). They never run inside the video player or on profile pages, and they cannot be turned off. AniKitty does not host video files — streams are resolved through third-party sources via KittyAPI.",
       "accountQ": "Do I need an account?",
       "accountA": "No — you can browse and watch without signing in. An account unlocks your watchlist, synced progress across devices, watch history, episode comments, forum posts, live chat, friends, public profiles, levels and achievements, Kittycoins, optional AniList import, reviews, and security options like 2FA and passkeys. Sign up from the Log in button in the navbar.",
       "freeQ": "Is AniKitty really free?",
-      "freeA": "Yes. There is no paid tier. The video player and profile pages stay ad-free for everyone. Site banner ads elsewhere help afford the ~€100/month running cost. Guests always see them; signed-in users can disable them in Settings → General. Optional Ko-fi tips grant the donator role as a thank-you."
+      "freeA": "Yes. There is no paid tier. The video player and profile pages stay ad-free for everyone. Site banner ads elsewhere help afford the ~€100/month running cost and cannot be turned off. Optional Ko-fi tips grant the donator role as a thank-you."
     },
     "watching": {
       "streamingQ": "How does streaming work?",
@@ -1316,9 +1322,9 @@
       "adsQ": "Why are there ads?",
       "adsA": "We're sorry, but running AniKitty costs about €100 per month — servers, streaming, and the database. Site ads are how we afford to keep everything free. They never run inside the video player or on profile pages.",
       "disableQ": "Can I turn ads off?",
-      "disableA": "Yes. Sign in and go to Settings → General to disable site banner ads — synced on every device. Guests cannot disable ads. No donation required.",
+      "disableA": "No. Site banner ads are required for everyone so we can keep AniKitty free. The video player and profile pages stay ad-free. Optional Ko-fi tips help cover costs but are not required.",
       "kofiQ": "Is Ko-fi support required?",
-      "kofiA": "No. The site is free for everyone whether you donate or not. Ko-fi tips are optional, grant the donator badge as a thank-you, and help cover costs — but they are not required to use AniKitty or to hide ads."
+      "kofiA": "No. The site is free for everyone whether you donate or not. Ko-fi tips are optional, grant the donator badge as a thank-you, and help cover costs — but they are not required to use AniKitty."
     },
     "security": {
       "passwordQ": "How is my password protected?",
@@ -2100,12 +2106,12 @@
   "donate": {
     "title": "Support AniKitty",
     "subtitle": "Optional Ko-fi tips help afford the ~€100/month running cost. Donate €4 with your @username for one month as a donator.",
-    "body": "AniKitty is free for everyone. We're sorry about the ads — they exist because servers and streaming cost about €100 every month, and tips alone do not cover it. If you enjoy watching here, an optional Ko-fi donation helps directly. Donations grant the donator badge — not ad removal. Signed-in users can turn ads off in Settings.",
+    "body": "AniKitty is free for everyone. We're sorry about the ads — they exist because servers and streaming cost about €100 every month, and tips alone do not cover it. If you enjoy watching here, an optional Ko-fi donation helps directly. Donations grant the donator badge — not ad removal. Ads cannot be turned off.",
     "sorryTitle": "We're sorry about the ads",
-    "sorryBody": "Nobody here likes them. But running AniKitty — servers, streaming, database, and bandwidth — costs about €100 every month. Site ads are the only way we can keep the site free for everyone right now. They never run inside the video player. Sign in and open Settings → General to turn them off anytime. Ko-fi tips help too, but donating is never required.",
+    "sorryBody": "Nobody here likes them. But running AniKitty — servers, streaming, database, and bandwidth — costs about €100 every month. Site ads are the only way we can keep the site free for everyone right now. They never run inside the video player, and they cannot be turned off. Ko-fi tips help too, but donating is never required.",
     "badgePreviewLabel": "What you get",
     "badgePreviewDesc": "The donator role shows a pink heart badge on your profile, comments, and forum posts for as long as your support is active.",
-    "adsNote": "Donating does not remove ads — signed-in users can disable them in Settings. We're sorry they exist; they help us afford keeping the site online.",
+    "adsNote": "Donating does not remove ads — ads cannot be turned off. We're sorry they exist; they help us afford keeping the site online.",
     "adsSettingsCta": "Open Settings",
     "kofiCta": "Ko-fi",
     "donateCta": "Donate on Ko-fi",
@@ -2133,9 +2139,9 @@
     "activeDonatorUntil": "Your donator role is active until {date} — thank you for supporting AniKitty!",
     "faqTitle": "Good to know",
     "faqDonatorQ": "What does donating give me?",
-    "faqDonatorA": "Ko-fi tips with your AniKitty @username in the message grant the donator role for a period based on the amount (€4 ≈ 30 days). You get a pink heart badge on your profile and comments. Donating does not remove ads — signed-in users can turn them off in Settings.",
+    "faqDonatorA": "Ko-fi tips with your AniKitty @username in the message grant the donator role for a period based on the amount (€4 ≈ 30 days). You get a pink heart badge on your profile and comments. Donating does not remove ads — ads cannot be turned off.",
     "faqBannerQ": "Why are there ads if the site is free?",
-    "faqBannerA": "We're sorry, but AniKitty costs about €100/month to run. Site ads help us afford servers and streaming so we do not have to charge anyone. They never run inside the player. Sign in and disable them in Settings → General if you prefer.",
+    "faqBannerA": "We're sorry, but AniKitty costs about €100/month to run. Site ads help us afford servers and streaming so we do not have to charge anyone. They never run inside the player, and they cannot be turned off.",
     "faqKoFiQ": "How does Ko-fi activation work?",
     "faqKoFiA": "Donate on Ko-fi (ko-fi.com/fampep) with your @username in the message, then tap Activate donator on this page or DM @fampep. We match recent donations automatically when possible.",
     "faqVoluntaryQ": "Is donating required?",

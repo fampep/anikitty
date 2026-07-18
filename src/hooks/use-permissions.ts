@@ -1,12 +1,10 @@
 import { useAuthStore } from "@/store/auth-store";
 import { hasAnyPermission, hasPermission, type PermissionId } from "@/lib/security/permissions";
-import { useSettingsStore } from "@/store/settings-store";
 
 const EMPTY_PERMISSIONS: string[] = [];
 
 export function usePermissions() {
   const auth = useAuthStore((s) => s.auth);
-  const showBannerAds = useSettingsStore((s) => s.showBannerAds);
   const permissions = auth?.permissions ?? EMPTY_PERMISSIONS;
 
   return {
@@ -18,7 +16,8 @@ export function usePermissions() {
     canModerateForum: hasPermission(permissions, "forum.moderate"),
     canMuteUsers: hasPermission(permissions, "users.mute"),
     canBanUsers: hasPermission(permissions, "users.ban"),
-    adFree: auth?.role === "admin" || (Boolean(auth) && !showBannerAds),
+    // Site ads are required for all users; only admins skip the ad-free flag.
+    adFree: auth?.role === "admin",
     isStaff: hasAnyPermission(permissions, [
       "comments.moderate",
       "chat.moderate",

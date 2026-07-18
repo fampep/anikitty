@@ -24,7 +24,7 @@ export const users = pgTable("users", {
   themeColor: varchar("theme_color", { length: 7 }),
   role: varchar("role", { length: 20 }).notNull().default("user"),
   supporterUntil: timestamp("supporter_until"),
-  /** Click ads preference — synced across devices when signed in. */
+  /** Click ads preference — always true; users cannot disable ads. */
   showAds: boolean("show_ads").notNull().default(true),
   /** Cross-device synced kitty-settings subset (json). */
   preferences: jsonb("preferences").$type<Record<string, unknown>>().notNull().default({}),

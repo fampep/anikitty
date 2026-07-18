@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import { getAdcashBannerZoneId, getAdcashPopZoneId } from "@/lib/ads/ad-config";
 import { isAdPlacementAllowed } from "@/lib/ads/ad-placement";
@@ -51,8 +50,6 @@ async function fetchGlobalAdsEnabled(): Promise<boolean> {
 /** Whether a banner ad should render on the current page for this user. */
 export function useSiteAdsVisible(): boolean {
   const pathname = usePathname();
-  const auth = useAuthStore((s) => s.auth);
-  const showBannerAds = useSettingsStore((s) => s.showBannerAds);
   const [hydrated, setHydrated] = useState(false);
   const [globalEnabled, setGlobalEnabled] = useState<boolean | null>(null);
 
@@ -60,7 +57,7 @@ export function useSiteAdsVisible(): boolean {
     let cancelled = false;
 
     const sync = () => {
-      if (!useAuthStore.persist.hasHydrated() || !useSettingsStore.persist.hasHydrated()) {
+      if (!useSettingsStore.persist.hasHydrated()) {
         return;
       }
       setHydrated(true);
@@ -70,12 +67,10 @@ export function useSiteAdsVisible(): boolean {
     };
 
     sync();
-    const unsubAuthHydration = useAuthStore.persist.onFinishHydration(sync);
     const unsubSettingsHydration = useSettingsStore.persist.onFinishHydration(sync);
 
     return () => {
       cancelled = true;
-      unsubAuthHydration();
       unsubSettingsHydration();
     };
   }, []);
@@ -85,7 +80,6 @@ export function useSiteAdsVisible(): boolean {
   // Ads need at least one configured product (banner and/or popunder).
   if (!getAdcashBannerZoneId() && !getAdcashPopZoneId()) return false;
   if (globalEnabled !== true) return false;
-  // Only signed-in users can disable ads in Settings; guests always see them.
-  if (auth && !showBannerAds) return false;
+  // User preference cannot disable ads — only the admin kill-switch can.
   return true;
 }

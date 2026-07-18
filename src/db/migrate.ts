@@ -702,6 +702,23 @@ export async function migrateDb() {
     `.catch((e: unknown) =>
       console.error("[migrate] global click ads seed failed:", e),
     );
+
+    // Force site ads on for every account (legacy show_ads column + synced prefs).
+    await client`
+      UPDATE users
+      SET
+        show_ads = TRUE,
+        preferences = jsonb_set(
+          COALESCE(preferences, '{}'::jsonb),
+          '{showBannerAds}',
+          'true'::jsonb,
+          true
+        )
+      WHERE show_ads IS DISTINCT FROM TRUE
+         OR COALESCE(preferences->>'showBannerAds', 'true') <> 'true'
+    `.catch((e: unknown) =>
+      console.error("[migrate] force showBannerAds on failed:", e),
+    );
   } finally {
     await client.end();
   }
