@@ -28,19 +28,72 @@ export type CustomPlayerSpeed = (typeof CUSTOM_PLAYER_SPEEDS)[number];
 
 const CUSTOM_PLAYER_PREFS_KEY = "anikitty:custom-player-prefs";
 
+export type CaptionSizePref = "sm" | "md" | "lg";
+export type CaptionPositionPref = "low" | "mid" | "high";
+
 export type CustomPlayerPrefs = {
   /** Whether captions were last left on. */
   captionsOn: boolean;
   /** Last selected caption track label (matched across episodes when possible). */
   captionLabel: string | null;
   playbackRate: number;
+  volume: number;
+  muted: boolean;
+  brightness: number;
+  captionSize: CaptionSizePref;
+  captionPosition: CaptionPositionPref;
 };
 
 const DEFAULT_CUSTOM_PLAYER_PREFS: CustomPlayerPrefs = {
   captionsOn: true,
   captionLabel: null,
   playbackRate: 1,
+  volume: 1,
+  muted: false,
+  brightness: 1,
+  captionSize: "md",
+  captionPosition: "low",
 };
+
+const CAPTION_SIZES: readonly CaptionSizePref[] = ["sm", "md", "lg"];
+const CAPTION_POSITIONS: readonly CaptionPositionPref[] = ["low", "mid", "high"];
+
+function sanitizeVolume(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return clamp(n, 0, 1);
+}
+
+function sanitizeBrightness(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return clamp(n, 0.4, 1.6);
+}
+
+function sanitizeCaptionSize(value: unknown): CaptionSizePref {
+  return CAPTION_SIZES.includes(value as CaptionSizePref)
+    ? (value as CaptionSizePref)
+    : "md";
+}
+
+function sanitizeCaptionPosition(value: unknown): CaptionPositionPref {
+  return CAPTION_POSITIONS.includes(value as CaptionPositionPref)
+    ? (value as CaptionPositionPref)
+    : "low";
+}
+
+export function captionSizeCss(size: CaptionSizePref): string {
+  if (size === "sm") return "0.85em";
+  if (size === "lg") return "1.25em";
+  return "1.05em";
+}
+
+/** WebKit text-track display bottom inset (higher = raised on screen). */
+export function captionPositionCss(position: CaptionPositionPref): string {
+  if (position === "high") return "28%";
+  if (position === "mid") return "16%";
+  return "8%";
+}
 
 function sanitizePlaybackRate(rate: unknown): number {
   const n = typeof rate === "number" ? rate : Number(rate);
@@ -67,6 +120,11 @@ export function loadCustomPlayerPrefs(): CustomPlayerPrefs {
           ? parsed.captionLabel.trim()
           : null,
       playbackRate: sanitizePlaybackRate(parsed.playbackRate),
+      volume: sanitizeVolume(parsed.volume),
+      muted: typeof parsed.muted === "boolean" ? parsed.muted : false,
+      brightness: sanitizeBrightness(parsed.brightness),
+      captionSize: sanitizeCaptionSize(parsed.captionSize),
+      captionPosition: sanitizeCaptionPosition(parsed.captionPosition),
     };
   } catch {
     return { ...DEFAULT_CUSTOM_PLAYER_PREFS };
@@ -82,6 +140,18 @@ export function saveCustomPlayerPrefs(
   };
   if (patch.playbackRate != null) {
     next.playbackRate = sanitizePlaybackRate(patch.playbackRate);
+  }
+  if (patch.volume != null) {
+    next.volume = sanitizeVolume(patch.volume);
+  }
+  if (patch.brightness != null) {
+    next.brightness = sanitizeBrightness(patch.brightness);
+  }
+  if (patch.captionSize != null) {
+    next.captionSize = sanitizeCaptionSize(patch.captionSize);
+  }
+  if (patch.captionPosition != null) {
+    next.captionPosition = sanitizeCaptionPosition(patch.captionPosition);
   }
   if (typeof window !== "undefined") {
     try {

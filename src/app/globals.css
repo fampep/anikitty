@@ -1127,3 +1127,28 @@ html[data-user-theme] .dark ::selection {
   animation: fadeInUp 0.35s ease both;
 }
 
+/* AniKitty player — captions + reduced motion */
+.anikitty-player {
+  --ak-cue-size: 1.05em;
+  --ak-cue-bottom: 8%;
+}
+
+.anikitty-player .anikitty-player-video::cue {
+  font-size: var(--ak-cue-size);
+  background-color: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 0 0.25em;
+}
+
+.anikitty-player .anikitty-player-video::-webkit-media-text-track-display {
+  bottom: var(--ak-cue-bottom) !important;
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.anikitty-player.anikitty-player--reduce-motion,
+.anikitty-player.anikitty-player--reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+

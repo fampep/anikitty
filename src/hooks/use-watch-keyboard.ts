@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { PlayerController } from "@/lib/player/player-controller";
+import { CUSTOM_PLAYER_SPEEDS, saveCustomPlayerPrefs } from "@/components/custom-player/utils";
 
 type Options = {
   enabled?: boolean;
@@ -47,6 +48,34 @@ function isPlayerVisible(player: PlayerController | null): boolean {
   return r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
 }
 
+function isInsideAniKittyPlayer(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    Boolean(target.closest(".anikitty-player"))
+  );
+}
+
+function isAniKittyPlayerActive(target: EventTarget | null): boolean {
+  if (isInsideAniKittyPlayer(target)) return true;
+  if (typeof document === "undefined") return false;
+  const root = document.querySelector(".anikitty-player");
+  if (!root) return false;
+  if (root.matches(":hover")) return true;
+  const fs = document.fullscreenElement;
+  return Boolean(fs && (fs === root || root.contains(fs)));
+}
+
+function nudgeRate(video: HTMLVideoElement, direction: 1 | -1) {
+  const speeds = CUSTOM_PLAYER_SPEEDS;
+  const current = video.playbackRate || 1;
+  let idx = speeds.findIndex((r) => Math.abs(r - current) < 0.001);
+  if (idx < 0) idx = speeds.indexOf(1);
+  const nextIdx = Math.min(speeds.length - 1, Math.max(0, idx + direction));
+  const next = speeds[nextIdx] ?? 1;
+  video.playbackRate = next;
+  saveCustomPlayerPrefs({ playbackRate: next });
+}
+
 export function useWatchKeyboard({
   enabled = true,
   player,
@@ -69,6 +98,7 @@ export function useWatchKeyboard({
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       const key = e.key.toLowerCase();
+      const playerActive = isAniKittyPlayerActive(e.target);
 
       if (key === "?" || (key === "h" && e.shiftKey)) {
         e.preventDefault();
@@ -88,20 +118,22 @@ export function useWatchKeyboard({
         return;
       }
 
+      // C = captions while the player is active; Shift+C always copies.
       if (key === "c") {
+        if (playerActive && !e.shiftKey) return;
         e.preventDefault();
         onCopyShareLink?.();
         return;
       }
 
-      if (key === "n" || key === "]") {
+      if (key === "n") {
         if (!hasNext) return;
         e.preventDefault();
         onNextEpisode?.();
         return;
       }
 
-      if (key === "p" || key === "[") {
+      if (key === "p") {
         if (!hasPrev) return;
         e.preventDefault();
         onPrevEpisode?.();
@@ -109,48 +141,74 @@ export function useWatchKeyboard({
       }
 
       if (!player) return;
+      const video = player.video;
 
-      if (key === "f") {
+      if (key === "[" || key === "]") {
+        if (!video) return;
+        // Prefer the in-player handler (gesture hints) when the surface is active.
+        if (playerActive) return;
         e.preventDefault();
-        player.toggleFullscreen();
+        nudgeRate(video, key === "]" ? 1 : -1);
         return;
       }
 
-      if (key === "m") {
+      if (e.key >= "0" && e.key <= "9") {
+        if (playerActive) return;
+        const dur = player.duration;
+        if (!(dur > 0)) return;
         e.preventDefault();
-        player.setMuted(!player.muted);
-        return;
-      }
-
-      const isSpace = e.code === "Space" || key === " " || key === "spacebar";
-      if (isSpace || key === "k") {
-        if (isSpace && (isInteractiveTarget(e.target) || !isPlayerVisible(player))) return;
-        e.preventDefault();
-        player.toggle();
+        player.seek((Number(e.key) / 10) * dur);
         return;
       }
 
       if (key === "arrowleft" || key === "j") {
+        if (playerActive) return;
         e.preventDefault();
         player.seek(Math.max(0, player.currentTime - seekStepSeconds));
         return;
       }
 
       if (key === "arrowright" || key === "l") {
+        if (playerActive) return;
         e.preventDefault();
         player.seek(player.currentTime + seekStepSeconds);
         return;
       }
 
       if (key === "arrowup") {
+        if (playerActive) return;
         e.preventDefault();
         player.setVolume(Math.min(1, player.volume + 0.1));
         return;
       }
 
       if (key === "arrowdown") {
+        if (playerActive) return;
         e.preventDefault();
         player.setVolume(Math.max(0, player.volume - 0.1));
+        return;
+      }
+
+      if (key === "m") {
+        if (playerActive) return;
+        e.preventDefault();
+        player.setMuted(!player.muted);
+        return;
+      }
+
+      if (key === "f") {
+        if (playerActive) return;
+        e.preventDefault();
+        player.toggleFullscreen();
+        return;
+      }
+
+      const isSpace = e.code === "Space" || key === " " || key === "spacebar";
+      if (isSpace || key === "k") {
+        if (playerActive) return;
+        if (isSpace && (isInteractiveTarget(e.target) || !isPlayerVisible(player))) return;
+        e.preventDefault();
+        player.toggle();
         return;
       }
     };
