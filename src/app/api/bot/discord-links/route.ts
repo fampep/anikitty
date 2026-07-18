@@ -4,12 +4,13 @@ import { users } from "@/db/schema";
 import { isNotNull } from "drizzle-orm";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";
 import { DONATOR_ROLE, STAFF_ROLES } from "@/lib/social/donation-config";
+import { getUsersXpStats } from "@/lib/user/user-xp";
+import { levelTierDiscordKey } from "@/lib/bot/discord-sync-roles";
 
 /**
  * Linked Discord accounts + effective site roles for Discord role sync.
- * Role keys match `discord_role_map` / bot sync: admin, moderator, donator,
- * timestamp_helper (any non-`user` site role plus active donator window).
- * Only returns discordId / site role flags — no emails or secrets.
+ * Role keys match `discord_role_map` / bot sync: staff roles + current level tier
+ * (e.g. level_newcomer). Only one level key per user.
  */
 function hasActiveSupporterWindow(
   supporterUntil: Date | string | null,
@@ -19,7 +20,7 @@ function hasActiveSupporterWindow(
   return Number.isFinite(t) && t > Date.now();
 }
 
-function effectiveDiscordRoles(
+function effectiveStaffRoles(
   role: string,
   supporterUntil: Date | string | null,
 ): string[] {
@@ -36,7 +37,6 @@ function effectiveDiscordRoles(
     roles.add(role);
   }
 
-  // Staff keep admin/moderator on site but may still have an active supporter window.
   if (STAFF_ROLES.has(role) && hasActiveSupporterWindow(supporterUntil)) {
     roles.add(DONATOR_ROLE);
   }
@@ -57,6 +57,7 @@ export async function GET(req: Request) {
     const db = getDb();
     const rows = await db
       .select({
+        id: users.id,
         discordId: users.discordId,
         discordUsername: users.discordUsername,
         siteUsername: users.username,
@@ -67,18 +68,28 @@ export async function GET(req: Request) {
       .from(users)
       .where(isNotNull(users.discordId));
 
-    const linked = rows
-      .filter((r) => r.discordId && !r.bannedAt)
-      .map((r) => {
-        const roles = effectiveDiscordRoles(r.role, r.supporterUntil);
-        return {
-          discordId: r.discordId as string,
-          discordUsername: r.discordUsername ?? null,
-          siteUsername: r.siteUsername,
-          role: r.role,
-          roles,
-        };
-      });
+    const active = rows.filter((r) => r.discordId && !r.bannedAt);
+    const statsMap = await getUsersXpStats(
+      db,
+      active.map((r) => r.id),
+    );
+
+    const linked = active.map((r) => {
+      const roles = effectiveStaffRoles(r.role, r.supporterUntil);
+      const stats = statsMap.get(r.id);
+      const levelKey = levelTierDiscordKey(stats?.levelRole ?? "Newcomer");
+      roles.push(levelKey);
+
+      return {
+        discordId: r.discordId as string,
+        discordUsername: r.discordUsername ?? null,
+        siteUsername: r.siteUsername,
+        role: r.role,
+        level: stats?.level ?? 1,
+        levelRole: stats?.levelRole ?? "Newcomer",
+        roles,
+      };
+    });
 
     return Response.json({
       count: linked.length,

@@ -942,7 +942,7 @@ export const onlineVisitors = pgTable(
 );
 
 /**
- * Discord guild role snowflakes for site role keys (admin, moderator, …).
+ * Discord guild role snowflakes for site role keys (admin, moderator, level_*, …).
  * Owned by the site; the Discord bot creates roles and upserts this map.
  */
 export const discordRoleMap = pgTable(
@@ -957,5 +957,27 @@ export const discordRoleMap = pgTable(
   (t) => ({
     pk: primaryKey({ columns: [t.guildId, t.siteRoleKey] }),
     roleIdIdx: index("discord_role_map_discord_role_id_idx").on(t.discordRoleId),
+  }),
+);
+
+/**
+ * One-time codes from Discord `/link` — user opens site URL while logged in to bind discord_id.
+ */
+export const discordLinkCodes = pgTable(
+  "discord_link_codes",
+  {
+    code: varchar("code", { length: 64 }).primaryKey(),
+    discordId: varchar("discord_id", { length: 32 }).notNull(),
+    discordUsername: varchar("discord_username", { length: 100 }),
+    expiresAt: timestamp("expires_at").notNull(),
+    usedAt: timestamp("used_at"),
+    usedByUserId: uuid("used_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    discordIdIdx: index("discord_link_codes_discord_id_idx").on(t.discordId),
+    expiresAtIdx: index("discord_link_codes_expires_at_idx").on(t.expiresAt),
   }),
 );

@@ -13,6 +13,7 @@ export const ROUTES = {
   SUBTITLES: "/subtitles",
   WATCH_TOGETHER: "/watch-together",
   SETTINGS: "/settings",
+  LINK_DISCORD: "/link-discord",
   HISTORY: "/history",
   FAQ: "/faq",
   DMCA: "/dmca",
