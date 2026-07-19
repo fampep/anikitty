@@ -1,27 +1,27 @@
-AniKitty 0.9.0 - Custom player, Cast/AirPlay, and new providers
-Date: 2026-07-19
+**AniKitty 0.9.0** — Custom player, Cast & AirPlay, new providers
 
-ADDED
-- AniKitty custom player is now the sole watch player (Vidstack removed)
-- Google Cast on the control bar — soft subs, auto-next episode, episode poster while casting
+Big watch upgrade: the AniKitty player is now the only player, with Cast/AirPlay and more streams to choose from.
+
+**Player**
+- AniKitty player is the sole watch player (Vidstack retired)
+- Zinc chrome polish — captions, quality picker, skip markers, shortcuts help
+- Seek preview thumbnails from storyboards
+- Scrub / storyboard jank and caption position fixes
+
+**Cast & AirPlay**
+- Google Cast on the control bar — soft subs, auto-next episode, poster while casting
+- Cast works across providers (cookie-safe remint)
 - AirPlay for Safari / iOS
-- KuroHost and Zenkai (Zulu) as selectable providers; MKissa (Echo) re-enabled
+
+**Streaming**
+- New providers: KuroHost and Zenkai (Zulu)
+- MKissa (Echo) re-enabled; ReAnime replaced by KuroHost
 - Drag-to-reorder provider priority in Settings
-- Seek preview thumbnails from stream storyboards
-- Official AniKitty domains listed on the landing footer
+- CH + NL CDN nodes back in the race pool
 
-IMPROVED
-- Player chrome — captions, quality picker, skip markers, scrub/storyboard, shortcuts help
-- Watch page layout — denser player-first composition and clearer mobile playlist
-- Cast remint covers every provider path and keeps upstream cookies when needed
-- Switzerland and Netherlands CDN nodes back in the race pool
+**Site**
+- Watch page layout — denser player-first view, clearer mobile playlist
+- Official domains listed on the landing footer (spot the real sites)
+- Adcash banners removed
 
-FIXED
-- Chromecast hanging or missing soft subtitles on load
-- Captions sticking to the top of the frame
-- Player scrub / storyboard jank and mobile chrome edges
-
-REMOVED
-- Classic Vidstack player toggle
-- ReAnime (slot replaced by KuroHost)
-- Adcash banner ad placements
+Try it on https://anikitty.moe
