@@ -412,7 +412,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 48,
+      version: 49,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -672,6 +672,9 @@ export const useSettingsStore = create<ISettingsStore>()(
             ...DEFAULT_CUSTOM_THEME_COLORS,
             ...(next.siteAccentColor ? { accent: next.siteAccentColor } : {}),
           });
+        } else if (version < 49) {
+          // Custom theme extras: border + accentHover (sanitize fills defaults).
+          next.customThemeColors = sanitizeCustomThemeColors(next.customThemeColors);
         } else {
           next.customThemeColors = sanitizeCustomThemeColors(next.customThemeColors);
         }

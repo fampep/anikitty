@@ -1081,7 +1081,9 @@ html[data-user-theme] .user-accent-btn {
 }
 
 html[data-user-theme] .user-accent-btn:hover {
-  background-color: rgb(var(--user-accent-rgb) / 0.22) !important;
+  background-color: rgb(var(--user-accent-hover-rgb, var(--user-accent-rgb)) / 0.22) !important;
+  color: rgb(var(--user-accent-hover-rgb, var(--user-accent-rgb)) / 1) !important;
+  border-color: rgb(var(--user-accent-hover-rgb, var(--user-accent-rgb)) / 0.45) !important;
 }
 
 /* User accent theme — player controls follow profile color */
@@ -1124,7 +1126,8 @@ html[data-user-theme] .site-brand-btn {
 }
 
 html[data-user-theme] .site-brand-btn:hover {
-  filter: brightness(1.08);
+  background: rgb(var(--user-accent-hover-rgb, var(--user-accent-rgb)) / 1) !important;
+  filter: none;
 }
 
 html[data-user-theme] .site-chip-active {
