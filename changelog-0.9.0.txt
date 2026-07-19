@@ -1,0 +1,27 @@
+AniKitty 0.9.0 - Custom player, Cast/AirPlay, and new providers
+Date: 2026-07-19
+
+ADDED
+- AniKitty custom player is now the sole watch player (Vidstack removed)
+- Google Cast on the control bar — soft subs, auto-next episode, episode poster while casting
+- AirPlay for Safari / iOS
+- KuroHost and Zenkai (Zulu) as selectable providers; MKissa (Echo) re-enabled
+- Drag-to-reorder provider priority in Settings
+- Seek preview thumbnails from stream storyboards
+- Official AniKitty domains listed on the landing footer
+
+IMPROVED
+- Player chrome — captions, quality picker, skip markers, scrub/storyboard, shortcuts help
+- Watch page layout — denser player-first composition and clearer mobile playlist
+- Cast remint covers every provider path and keeps upstream cookies when needed
+- Switzerland and Netherlands CDN nodes back in the race pool
+
+FIXED
+- Chromecast hanging or missing soft subtitles on load
+- Captions sticking to the top of the frame
+- Player scrub / storyboard jank and mobile chrome edges
+
+REMOVED
+- Classic Vidstack player toggle
+- ReAnime (slot replaced by KuroHost)
+- Adcash banner ad placements
