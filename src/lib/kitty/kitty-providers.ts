@@ -46,6 +46,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AnimaxAnime",
   "AnimeStream",
   "KickAssAnime",
+  "KuroHost",
 ] as const;
 
 export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
@@ -62,6 +63,7 @@ export const KITTY_PROVIDERS = [
   "MKissa",
   "KickAssAnime",
   "ReAnime",
+  "KuroHost",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -170,6 +172,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "reanime.to · FlixCloud HLS · SUB · DUB",
   },
+  {
+    id: "KuroHost",
+    label: "Hotel",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: false,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "KuroAnime self-host · bunny.kuroanime.lol · SUB · soft EN subs",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -182,6 +195,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "MKissa",
   "KickAssAnime",
   "ReAnime",
+  "KuroHost",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -207,6 +221,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniNeko",
   "KickAssAnime",
   "ReAnime",
+  "KuroHost",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */

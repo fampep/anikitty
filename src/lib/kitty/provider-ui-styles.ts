@@ -107,6 +107,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-lime-400",
     glow: "from-lime-500/20",
   },
+  KuroHost: {
+    chip: "border-violet-400/30 bg-violet-500/10 text-violet-100/90",
+    pillActive: "border-violet-400/45 bg-violet-500/20 text-violet-50 shadow-[0_0_12px_-4px_rgba(167,139,250,0.35)]",
+    pillIdle: "border-transparent text-violet-300/45 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+    dot: "bg-violet-400",
+    glow: "from-violet-500/20",
+  },
   AniBD: {
     chip: "border-slate-400/30 bg-slate-500/10 text-slate-200/90",
     pillActive: "border-slate-400/40 bg-slate-500/15 text-slate-100 shadow-[0_0_12px_-4px_rgba(148,163,184,0.25)]",
