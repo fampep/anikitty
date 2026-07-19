@@ -41,6 +41,9 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("AniNeko");
         continue;
       }
+      if (item === "Zenkai") {
+        continue;
+      }
       push(item);
     }
   }

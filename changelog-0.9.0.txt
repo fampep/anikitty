@@ -1,27 +1,27 @@
-**AniKitty 0.9.0** — Custom player, Cast & AirPlay, new providers
+**AniKitty 0.9.0** — Your player. Cast. More streams.
 
-Big watch upgrade: the AniKitty player is now the only player, with Cast/AirPlay and more streams to choose from.
+AniKitty player is now the only watch player — with Cast/AirPlay and new providers.
 
 **Player**
-- AniKitty player is the sole watch player (Vidstack retired)
-- Zinc chrome polish — captions, quality picker, skip markers, shortcuts help
-- Seek preview thumbnails from storyboards
-- Scrub / storyboard jank and caption position fixes
+- Custom AniKitty player only (Vidstack retired)
+- Zinc chrome — captions, quality picker, skip markers, shortcuts help
+- Storyboard seek thumbnails while scrubbing
+- Fixes: scrub/storyboard jank, captions stuck at top, mobile chrome edges
 
 **Cast & AirPlay**
-- Google Cast on the control bar — soft subs, auto-next episode, poster while casting
-- Cast works across providers (cookie-safe remint)
+- Google Cast on the control bar — soft subs, auto-next, episode poster
+- Works across every provider path (cookie-safe remint)
 - AirPlay for Safari / iOS
 
-**Streaming**
-- New providers: KuroHost and Zenkai (Zulu)
-- MKissa (Echo) re-enabled; ReAnime replaced by KuroHost
-- Drag-to-reorder provider priority in Settings
+**Providers**
+- New: KuroHost; AniKuro (Alpha) is the site default
+- MKissa (Echo) re-enabled; ReAnime replaced by KuroHost; Zenkai retired
+- Drag-to-reorder provider priority in Settings (touch + mouse)
 - CH + NL CDN nodes back in the race pool
 
-**Site**
-- Watch page layout — denser player-first view, clearer mobile playlist
-- Official domains listed on the landing footer (spot the real sites)
+**Watch & site**
+- Denser player-first watch layout, clearer mobile playlist
+- Official domains listed on the landing footer
 - Adcash banners removed
 
-Try it on https://anikitty.moe
+Try it → https://anikitty.moe · https://anikitty.online

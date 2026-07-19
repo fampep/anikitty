@@ -15,7 +15,6 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "AniWaves",
   "KickAssAnime",
   "KuroHost",
-  "Zenkai",
 ] as const;
 
 export type KittySubProvider = (typeof KITTY_SUB_PROVIDERS_FALLBACK)[number];

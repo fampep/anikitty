@@ -45,6 +45,41 @@ export default function ProviderOrderSettings() {
     setDragOverIndex(null);
   };
 
+  const indexFromPoint = (clientX: number, clientY: number): number | null => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const row = el?.closest<HTMLElement>("[data-provider-index]");
+    if (!row) return null;
+    const idx = Number(row.dataset.providerIndex);
+    return Number.isFinite(idx) ? idx : null;
+  };
+
+  const onGripPointerDown = (e: React.PointerEvent<HTMLButtonElement>, index: number) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragFromRef.current = index;
+    setDraggingIndex(index);
+    setDragOverIndex(index);
+  };
+
+  const onGripPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragFromRef.current == null) return;
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    const over = indexFromPoint(e.clientX, e.clientY);
+    if (over != null && over !== dragOverIndex) setDragOverIndex(over);
+  };
+
+  const onGripPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragFromRef.current == null) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    const from = dragFromRef.current;
+    const to = indexFromPoint(e.clientX, e.clientY) ?? dragOverIndex;
+    if (from != null && to != null && from !== to) applyReorder(from, to);
+    clearDrag();
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -81,30 +116,9 @@ export default function ProviderOrderSettings() {
           return (
             <li
               key={id}
-              draggable
-              onDragStart={(e) => {
-                dragFromRef.current = index;
-                setDraggingIndex(index);
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", id);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                if (dragOverIndex !== index) setDragOverIndex(index);
-              }}
-              onDragLeave={() => {
-                if (dragOverIndex === index) setDragOverIndex(null);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const from = dragFromRef.current;
-                if (from != null && from !== index) applyReorder(from, index);
-                clearDrag();
-              }}
-              onDragEnd={clearDrag}
+              data-provider-index={index}
               className={cn(
-                "flex items-center gap-2 rounded-xl border px-2.5 py-2 transition-colors",
+                "flex items-center gap-1.5 sm:gap-2 rounded-xl border px-2 py-2 sm:px-2.5 transition-colors select-none",
                 isDragging
                   ? "border-border dark:border-white/20 bg-muted/50 dark:bg-white/[0.06] opacity-60"
                   : isDropTarget
@@ -112,13 +126,23 @@ export default function ProviderOrderSettings() {
                     : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.03]",
               )}
             >
-              <span
-                className="inline-flex h-7 w-7 shrink-0 cursor-grab active:cursor-grabbing items-center justify-center rounded-md text-muted-foreground/70 dark:text-white/30"
-                aria-hidden
+              <button
+                type="button"
+                aria-label={t("settings.providerOrderDrag")}
                 title={t("settings.providerOrderDrag")}
+                onPointerDown={(e) => onGripPointerDown(e, index)}
+                onPointerMove={onGripPointerMove}
+                onPointerUp={onGripPointerUp}
+                onPointerCancel={clearDrag}
+                className={cn(
+                  "inline-flex h-11 w-11 sm:h-8 sm:w-8 shrink-0 cursor-grab active:cursor-grabbing items-center justify-center rounded-md",
+                  "text-muted-foreground/80 dark:text-white/40 touch-none",
+                  "hover:bg-accent dark:hover:bg-white/[0.08] hover:text-foreground dark:hover:text-white/70",
+                  isDragging && "bg-accent dark:bg-white/[0.1]",
+                )}
               >
-                <GripVertical className="w-4 h-4" />
-              </span>
+                <GripVertical className="w-5 h-5 sm:w-4 sm:h-4 pointer-events-none" />
+              </button>
               <span className="w-6 shrink-0 text-center text-[11px] font-mono tabular-nums text-muted-foreground/80 dark:text-white/30">
                 {index + 1}
               </span>

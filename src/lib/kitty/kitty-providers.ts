@@ -57,15 +57,14 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
 export const KITTY_PROVIDERS = [
+  "AniKuro",
   "AniWaves",
   "Anikoto",
-  "AniKuro",
   "AniWatch",
   "AniNeko",
   "MKissa",
   "KickAssAnime",
   "KuroHost",
-  "Zenkai",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -95,6 +94,17 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
+    id: "AniKuro",
+    label: "Alpha",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "AniList ID · anikuro.ru · animepower + mirrors · SUB · DUB · soft subs",
+  },
+  {
     id: "AniWaves",
     label: "Whiskey",
     group: "featured",
@@ -116,17 +126,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "AniList ID · anichi.to scrape · SUB · DUB · soft subs",
-  },
-  {
-    id: "AniKuro",
-    label: "Alpha",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "AniList ID · anikuro.ru · animepower + mirrors · SUB · DUB · soft subs",
   },
   {
     id: "AniWatch",
@@ -185,31 +184,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "KuroAnime self-host · bunny.kuroanime.lol · SUB · soft EN subs",
   },
-  {
-    id: "Zenkai",
-    label: "Zulu",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "zenkai.to scrape · Senpai/Sakura vivibebe HLS · SUB · DUB · soft EN",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
+  "AniKuro",
   "AniWaves",
   "Anikoto",
-  "AniKuro",
   "AniWatch",
   "AniNeko",
   "MKissa",
   "KickAssAnime",
-  "Zenkai",
   "KuroHost",
 ];
 
@@ -230,14 +216,13 @@ export {
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
+  "AniKuro",
   "AniWaves",
   "Anikoto",
-  "AniKuro",
   "AniWatch",
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "Zenkai",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -255,6 +240,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
   if (value === "ReAnime") return "KuroHost";
+  if (value === "Zenkai") return DEFAULT_KITTY_PROVIDER;
   if (value && isActiveKittyProvider(value)) return value;
   if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
   // Any retired provider (or unknown value) falls back to the default.
