@@ -9,7 +9,12 @@ import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-provide
 import { sanitizeDefaultProvider, sanitizeProviderOrder } from "@/lib/kitty/provider-order";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
-import { isSiteSurfaceTheme, type SiteSurfaceTheme } from "@/lib/core/site-surface";
+import {
+  isSiteSurfaceTheme,
+  sanitizeCustomThemeColors,
+  type CustomThemeColors,
+  type SiteSurfaceTheme,
+} from "@/lib/core/site-surface";
 import { sanitizeSeekStepSeconds, type PlayerSeekStep } from "@/lib/player/seek-step";
 import { sanitizeAnime4kMode, type Anime4kMode } from "@/lib/player/anime4k";
 import { isValidThemeColor } from "@/lib/core/theme-color";
@@ -32,6 +37,7 @@ export type SyncedUserPreferences = {
   playThemeSong?: boolean;
   siteAccentColor?: string | null;
   siteSurfaceTheme?: SiteSurfaceTheme;
+  customThemeColors?: CustomThemeColors;
   uiFontScale?: UiFontScale;
   interfaceDensity?: InterfaceDensity;
   showBetaBadge?: boolean;
@@ -101,8 +107,13 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   } else if (typeof input.siteAccentColor === "string" && isValidThemeColor(input.siteAccentColor)) {
     out.siteAccentColor = input.siteAccentColor.toLowerCase();
   }
-  if (isSiteSurfaceTheme(input.siteSurfaceTheme)) {
+  if (input.siteSurfaceTheme === "cinema") {
+    out.siteSurfaceTheme = "custom";
+  } else if (isSiteSurfaceTheme(input.siteSurfaceTheme)) {
     out.siteSurfaceTheme = input.siteSurfaceTheme;
+  }
+  if (input.customThemeColors !== undefined) {
+    out.customThemeColors = sanitizeCustomThemeColors(input.customThemeColors);
   }
 
   if (input.subtitleSettings && typeof input.subtitleSettings === "object") {

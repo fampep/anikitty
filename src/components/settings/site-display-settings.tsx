@@ -1,10 +1,10 @@
 "use client";
 
-import { Palette, Eye, Clapperboard } from "lucide-react";
+import { Palette, Eye, Paintbrush, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { THEME_COLOR_PRESETS, isValidThemeColor } from "@/lib/core/theme-color";
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
-import type { SiteSurfaceTheme } from "@/lib/core/site-surface";
+import type { CustomThemeColors, SiteSurfaceTheme } from "@/lib/core/site-surface";
 import { useSettingsStore } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import { ThemeModeSelect } from "@/components/settings/theme-mode-select";
@@ -99,6 +99,37 @@ function ToggleChip({
   );
 }
 
+function ColorPickerRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (hex: string) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] px-3 py-2.5 cursor-pointer touch-manipulation">
+      <span className="text-[12px] font-medium text-foreground/90 dark:text-white/80">{label}</span>
+      <span className="inline-flex items-center gap-2 shrink-0">
+        <span className="text-[10px] font-mono text-muted-foreground dark:text-white/40 uppercase tabular-nums">
+          {value}
+        </span>
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => {
+            const hex = e.target.value;
+            if (isValidThemeColor(hex)) onChange(hex.toLowerCase());
+          }}
+          className="h-9 w-11 rounded-lg border border-border dark:border-white/15 bg-transparent cursor-pointer p-0.5"
+          aria-label={label}
+        />
+      </span>
+    </label>
+  );
+}
+
 export default function SiteDisplaySettings() {
   const t = useT();
   const auth = useAuthStore((s) => s.auth);
@@ -111,6 +142,9 @@ export default function SiteDisplaySettings() {
     setSiteAccentColor,
     siteSurfaceTheme,
     setSiteSurfaceTheme,
+    customThemeColors,
+    setCustomThemeColors,
+    resetCustomThemeColors,
     showBetaBadge,
     setShowBetaBadge,
     showOnlineCount,
@@ -119,8 +153,11 @@ export default function SiteDisplaySettings() {
     setShowAnnouncementBanner,
   } = useSettingsStore();
 
-  const accentValue = auth?.themeColor ?? siteAccentColor;
+  const accentValue =
+    auth?.themeColor ??
+    (siteSurfaceTheme === "custom" ? customThemeColors.accent : siteAccentColor);
   const accentControlledByProfile = Boolean(auth?.themeColor);
+  const isCustomSurface = siteSurfaceTheme === "custom";
 
   const fontScaleOptions: { value: UiFontScale; label: string }[] = [
     { value: "small", label: t("settings.fontScaleSmall") },
@@ -135,7 +172,15 @@ export default function SiteDisplaySettings() {
 
   const surfaceOptions: { value: SiteSurfaceTheme; label: string; hint: string }[] = [
     { value: "zinc", label: t("settings.surfaceZinc"), hint: t("settings.surfaceZincDesc") },
-    { value: "cinema", label: t("settings.surfaceCinema"), hint: t("settings.surfaceCinemaDesc") },
+    { value: "custom", label: t("settings.surfaceCustom"), hint: t("settings.surfaceCustomDesc") },
+  ];
+
+  const customPickers: { key: keyof CustomThemeColors; label: string }[] = [
+    { key: "accent", label: t("settings.customThemeAccent") },
+    { key: "background", label: t("settings.customThemeBackground") },
+    { key: "surface", label: t("settings.customThemeSurface") },
+    { key: "foreground", label: t("settings.customThemeForeground") },
+    { key: "mutedForeground", label: t("settings.customThemeMuted") },
   ];
 
   return (
@@ -144,7 +189,7 @@ export default function SiteDisplaySettings() {
 
       <div className="flex flex-col gap-2.5 pb-6 border-b border-border dark:border-white/6">
         <div className="flex items-center gap-2">
-          <Clapperboard className="w-3.5 h-3.5 text-muted-foreground dark:text-white/40" />
+          <Paintbrush className="w-3.5 h-3.5 text-muted-foreground dark:text-white/40" />
           <p className="text-sm font-medium text-foreground dark:text-white/85">{t("settings.surfaceTheme")}</p>
         </div>
         <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
@@ -171,88 +216,128 @@ export default function SiteDisplaySettings() {
             );
           })}
         </div>
-      </div>
 
-      <div className="flex flex-col gap-2.5 pb-6 border-b border-border dark:border-white/6">
-        <div className="flex items-center gap-2">
-          <Palette className="w-3.5 h-3.5 text-muted-foreground dark:text-white/40" />
-          <p className="text-sm font-medium text-foreground dark:text-white/85">{t("settings.siteAccent")}</p>
-        </div>
-        <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
-          {accentControlledByProfile ? t("settings.siteAccentProfileHint") : t("settings.siteAccentDesc")}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {THEME_COLOR_PRESETS.map((preset) => {
-            const selected = (accentValue ?? "") === preset.hex;
-            return (
+        {isCustomSurface && (
+          <div className="flex flex-col gap-2.5 pt-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[13px] font-medium text-foreground/90 dark:text-white/80">
+                  {t("settings.customThemeColors")}
+                </p>
+                <p className="text-[10px] text-muted-foreground dark:text-white/30 font-mono mt-0.5">
+                  {t("settings.customThemeColorsDesc")}
+                </p>
+              </div>
               <button
-                key={preset.name}
                 type="button"
-                disabled={accentControlledByProfile}
-                onClick={() => setSiteAccentColor(preset.hex || null)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all",
-                  selected
-                    ? "border-primary/50 bg-accent dark:border-white/35 dark:bg-white/10 text-foreground dark:text-white"
-                    : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:border-border dark:border-white/20",
-                  accentControlledByProfile && "opacity-60 cursor-not-allowed",
-                )}
+                onClick={() => resetCustomThemeColors()}
+                className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-lg border border-border dark:border-white/12 text-[10px] font-semibold text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white/80 hover:bg-accent dark:hover:bg-white/[0.06] transition-colors touch-manipulation"
               >
-                <span
-                  className="w-3.5 h-3.5 rounded-full border border-border dark:border-white/20 shrink-0"
-                  style={{
-                    background: preset.hex
-                      ? preset.hex
-                      : "linear-gradient(135deg,#fafafa 0%,#71717a 100%)",
+                <RotateCcw className="w-3 h-3" />
+                {t("settings.customThemeReset")}
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {customPickers.map((row) => (
+                <ColorPickerRow
+                  key={row.key}
+                  label={row.label}
+                  value={customThemeColors[row.key]}
+                  onChange={(hex) => {
+                    setCustomThemeColors({ [row.key]: hex });
+                    if (row.key === "accent" && !accentControlledByProfile) {
+                      setSiteAccentColor(hex);
+                    }
                   }}
                 />
-                {preset.name}
-              </button>
-            );
-          })}
-        </div>
-        {!accentControlledByProfile && (
-          <label className="inline-flex items-center gap-2 h-9 px-2 rounded-lg border border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 cursor-pointer w-fit">
-            <input
-              type="color"
-              value={siteAccentColor ?? "#a1a1aa"}
-              onChange={(e) => {
-                const hex = e.target.value;
-                if (isValidThemeColor(hex)) setSiteAccentColor(hex);
-              }}
-              className="w-6 h-6 rounded border-0 bg-transparent cursor-pointer"
-            />
-            <span className="text-[11px] text-muted-foreground dark:text-white/45 font-mono">
-              {t("settings.subtitleCustomColor")}
-            </span>
-          </label>
-        )}
-        <div
-          className="rounded-xl border border-border dark:border-white/10 p-3 flex items-center gap-3"
-          style={
-            accentValue
-              ? {
-                  borderColor: `${accentValue}55`,
-                  background: `linear-gradient(135deg, ${accentValue}18, transparent)`,
-                }
-              : undefined
-          }
-        >
-          <div
-            className="h-9 w-9 rounded-lg shrink-0 border border-border dark:border-white/15"
-            style={{ backgroundColor: accentValue ?? "#a1a1aa" }}
-          />
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold text-foreground dark:text-white/90">{t("settings.accentPreview")}</p>
-            <p className="text-[10px] text-muted-foreground dark:text-white/35 font-mono mt-0.5">
-              {t("settings.accentPreviewDesc")}
-            </p>
+              ))}
+            </div>
           </div>
-          <span className="ml-auto shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold border user-accent-btn">
-            {t("settings.accentPreviewChip")}
-          </span>
-        </div>
+        )}
       </div>
+
+      {!isCustomSurface && (
+        <div className="flex flex-col gap-2.5 pb-6 border-b border-border dark:border-white/6">
+          <div className="flex items-center gap-2">
+            <Palette className="w-3.5 h-3.5 text-muted-foreground dark:text-white/40" />
+            <p className="text-sm font-medium text-foreground dark:text-white/85">{t("settings.siteAccent")}</p>
+          </div>
+          <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
+            {accentControlledByProfile ? t("settings.siteAccentProfileHint") : t("settings.siteAccentDesc")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {THEME_COLOR_PRESETS.map((preset) => {
+              const selected = (accentValue ?? "") === preset.hex;
+              return (
+                <button
+                  key={preset.name}
+                  type="button"
+                  disabled={accentControlledByProfile}
+                  onClick={() => setSiteAccentColor(preset.hex || null)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all",
+                    selected
+                      ? "border-primary/50 bg-accent dark:border-white/35 dark:bg-white/10 text-foreground dark:text-white"
+                      : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:border-border dark:border-white/20",
+                    accentControlledByProfile && "opacity-60 cursor-not-allowed",
+                  )}
+                >
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border border-border dark:border-white/20 shrink-0"
+                    style={{
+                      background: preset.hex
+                        ? preset.hex
+                        : "linear-gradient(135deg,#fafafa 0%,#71717a 100%)",
+                    }}
+                  />
+                  {preset.name}
+                </button>
+              );
+            })}
+          </div>
+          {!accentControlledByProfile && (
+            <label className="inline-flex items-center gap-2 h-9 px-2 rounded-lg border border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 cursor-pointer w-fit">
+              <input
+                type="color"
+                value={siteAccentColor ?? "#a1a1aa"}
+                onChange={(e) => {
+                  const hex = e.target.value;
+                  if (isValidThemeColor(hex)) setSiteAccentColor(hex);
+                }}
+                className="w-6 h-6 rounded border-0 bg-transparent cursor-pointer"
+              />
+              <span className="text-[11px] text-muted-foreground dark:text-white/45 font-mono">
+                {t("settings.subtitleCustomColor")}
+              </span>
+            </label>
+          )}
+          <div
+            className="rounded-xl border border-border dark:border-white/10 p-3 flex items-center gap-3"
+            style={
+              accentValue
+                ? {
+                    borderColor: `${accentValue}55`,
+                    background: `linear-gradient(135deg, ${accentValue}18, transparent)`,
+                  }
+                : undefined
+            }
+          >
+            <div
+              className="h-9 w-9 rounded-lg shrink-0 border border-border dark:border-white/15"
+              style={{ backgroundColor: accentValue ?? "#a1a1aa" }}
+            />
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-foreground dark:text-white/90">{t("settings.accentPreview")}</p>
+              <p className="text-[10px] text-muted-foreground dark:text-white/35 font-mono mt-0.5">
+                {t("settings.accentPreviewDesc")}
+              </p>
+            </div>
+            <span className="ml-auto shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold border user-accent-btn">
+              {t("settings.accentPreviewChip")}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <OptionRow

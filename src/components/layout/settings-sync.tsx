@@ -35,6 +35,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     playThemeSong: s.playThemeSong,
     siteAccentColor: s.siteAccentColor,
     siteSurfaceTheme: s.siteSurfaceTheme,
+    customThemeColors: s.customThemeColors,
     uiFontScale: s.uiFontScale,
     interfaceDensity: s.interfaceDensity,
     showBetaBadge: s.showBetaBadge,
@@ -73,6 +74,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.playThemeSong !== undefined) patch.playThemeSong = prefs.playThemeSong;
   if (prefs.siteAccentColor !== undefined) patch.siteAccentColor = prefs.siteAccentColor;
   if (prefs.siteSurfaceTheme !== undefined) patch.siteSurfaceTheme = prefs.siteSurfaceTheme;
+  if (prefs.customThemeColors !== undefined) patch.customThemeColors = prefs.customThemeColors;
   if (prefs.uiFontScale !== undefined) patch.uiFontScale = prefs.uiFontScale;
   if (prefs.interfaceDensity !== undefined) patch.interfaceDensity = prefs.interfaceDensity;
   if (prefs.showBetaBadge !== undefined) patch.showBetaBadge = prefs.showBetaBadge;

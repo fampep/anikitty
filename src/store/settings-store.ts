@@ -17,8 +17,11 @@ import {
 } from "@/lib/subtitles/subtitle-settings";
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
 import {
+  DEFAULT_CUSTOM_THEME_COLORS,
   DEFAULT_SITE_SURFACE,
+  sanitizeCustomThemeColors,
   sanitizeSiteSurfaceTheme,
+  type CustomThemeColors,
   type SiteSurfaceTheme,
 } from "@/lib/core/site-surface";
 import {
@@ -134,9 +137,14 @@ interface ISettingsStore {
   siteAccentColor: string | null;
   setSiteAccentColor: (color: string | null) => void;
 
-  /** Zinc flat chrome vs Cinema (anime backdrop + glass panels). */
+  /** Zinc flat chrome vs Custom (user-picked colors). */
   siteSurfaceTheme: SiteSurfaceTheme;
   setSiteSurfaceTheme: (theme: SiteSurfaceTheme) => void;
+
+  /** Colors applied when `siteSurfaceTheme` is `"custom"`. */
+  customThemeColors: CustomThemeColors;
+  setCustomThemeColors: (colors: Partial<CustomThemeColors>) => void;
+  resetCustomThemeColors: () => void;
 
   uiFontScale: UiFontScale;
   setUiFontScale: (scale: UiFontScale) => void;
@@ -345,6 +353,17 @@ export const useSettingsStore = create<ISettingsStore>()(
       setSiteSurfaceTheme: (siteSurfaceTheme) =>
         set({ siteSurfaceTheme: sanitizeSiteSurfaceTheme(siteSurfaceTheme) }),
 
+      customThemeColors: { ...DEFAULT_CUSTOM_THEME_COLORS },
+      setCustomThemeColors: (partial) =>
+        set((state) => ({
+          customThemeColors: sanitizeCustomThemeColors({
+            ...state.customThemeColors,
+            ...partial,
+          }),
+        })),
+      resetCustomThemeColors: () =>
+        set({ customThemeColors: { ...DEFAULT_CUSTOM_THEME_COLORS } }),
+
       uiFontScale: "default",
       setUiFontScale: (uiFontScale) => set({ uiFontScale }),
 
@@ -393,7 +412,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 47,
+      version: 48,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -415,6 +434,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         playThemeSong: state.playThemeSong,
         siteAccentColor: state.siteAccentColor,
         siteSurfaceTheme: state.siteSurfaceTheme,
+        customThemeColors: state.customThemeColors,
         uiFontScale: state.uiFontScale,
         interfaceDensity: state.interfaceDensity,
         showBetaBadge: state.showBetaBadge,
@@ -644,6 +664,16 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.siteSurfaceTheme = DEFAULT_SITE_SURFACE;
         } else {
           next.siteSurfaceTheme = sanitizeSiteSurfaceTheme(next.siteSurfaceTheme);
+        }
+        if (version < 48) {
+          // Cinema surface removed — sanitize maps legacy "cinema" → "custom".
+          next.siteSurfaceTheme = sanitizeSiteSurfaceTheme(next.siteSurfaceTheme);
+          next.customThemeColors = sanitizeCustomThemeColors({
+            ...DEFAULT_CUSTOM_THEME_COLORS,
+            ...(next.siteAccentColor ? { accent: next.siteAccentColor } : {}),
+          });
+        } else {
+          next.customThemeColors = sanitizeCustomThemeColors(next.customThemeColors);
         }
         return next as ISettingsStore;
       },

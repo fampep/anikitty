@@ -20,8 +20,8 @@ import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
 import LiteModeSync from "@/components/layout/lite-mode-sync";
 import SettingsSync from "@/components/layout/settings-sync";
-import SiteBackdrop from "@/components/layout/site-backdrop";
 import OnlinePresence from "@/components/common/online-presence";
+import { buildSurfaceFoucScript } from "@/lib/core/site-surface";
 import DisableDevtoolGuard from "@/components/security/disable-devtool-guard";
 import SitePopunderAd from "@/components/ads/site-popunder-ad";
 
@@ -124,7 +124,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='anikitty-theme',s=localStorage.getItem(k),t=s||'dark';if(t==='system'){document.documentElement.classList.toggle('dark',window.matchMedia('(prefers-color-scheme: dark)').matches)}else{document.documentElement.classList.toggle('dark',t==='dark')}var st=localStorage.getItem('kitty-settings');if(st){var lm=JSON.parse(st).state;if(lm&&lm.liteMode)document.documentElement.classList.add('lite-mode');if(lm&&lm.siteSurfaceTheme==='cinema')document.documentElement.setAttribute('data-surface','cinema')}}catch(e){}})();`,
+            __html: `(function(){try{var k='anikitty-theme',s=localStorage.getItem(k),t=s||'dark';if(t==='system'){document.documentElement.classList.toggle('dark',window.matchMedia('(prefers-color-scheme: dark)').matches)}else{document.documentElement.classList.toggle('dark',t==='dark')}}catch(e){}})();${buildSurfaceFoucScript()}`,
           }}
         />
         {ENABLE_ANALYTICS && (
@@ -170,7 +170,6 @@ export default async function RootLayout({
           >
             <QueryProvider>
               <SiteDisplaySync />
-              <SiteBackdrop />
               <SkipToContent />
               <NavBar />
               <SiteAnnouncementBanner />

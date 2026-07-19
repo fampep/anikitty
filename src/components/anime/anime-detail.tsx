@@ -49,7 +49,6 @@ import AnimeQuickNav from "@/components/anime/anime-quick-nav";
 import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
-import { usePageBackdrop } from "@/hooks/use-page-backdrop";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { capEpisodeCount } from "@/lib/anime/episode-availability";
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
@@ -127,18 +126,6 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: mappingData } = useGetAnimeMappings(anilistId);
   const { data: episodesData } = useGetAllEpisodes(slug);
   const watchedEpisodes = useEpisodeProgress(slug);
-
-  const cinemaBackdropUrl = useMemo(
-    () =>
-      resolveAnimeBackdropUrl({
-        images: mappingData?.images,
-        anilistBanner: banner?.Media.bannerImage,
-        infoBanner: anime?.anime.info.banner,
-        poster: anime?.anime.info.poster,
-      }),
-    [mappingData?.images, banner?.Media.bannerImage, anime?.anime.info.banner, anime?.anime.info.poster],
-  );
-  usePageBackdrop(cinemaBackdropUrl);
 
   const rawEpisodeCount =
     episodesData?.episodes?.length ?? episodesData?.totalEpisodes ?? 0;

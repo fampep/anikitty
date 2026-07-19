@@ -14,13 +14,14 @@ import {
 const FONT_SCALE_CLASSES = Object.values(UI_FONT_SCALE_CLASS).filter(Boolean);
 const DENSITY_CLASSES = Object.values(INTERFACE_DENSITY_CLASS).filter(Boolean);
 
-/** Applies font scale, density, surface theme, and guest accent color from settings store. */
+/** Applies font scale, density, surface theme, and accent color from settings store. */
 export default function SiteDisplaySync() {
   const auth = useAuthStore((s) => s.auth);
   const uiFontScale = useSettingsStore((s) => s.uiFontScale);
   const interfaceDensity = useSettingsStore((s) => s.interfaceDensity);
   const siteAccentColor = useSettingsStore((s) => s.siteAccentColor);
   const siteSurfaceTheme = useSettingsStore((s) => s.siteSurfaceTheme);
+  const customThemeColors = useSettingsStore((s) => s.customThemeColors);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -39,16 +40,23 @@ export default function SiteDisplaySync() {
   }, [uiFontScale, interfaceDensity]);
 
   useEffect(() => {
-    applySiteSurfaceTheme(siteSurfaceTheme);
-  }, [siteSurfaceTheme]);
+    applySiteSurfaceTheme(
+      siteSurfaceTheme,
+      siteSurfaceTheme === "custom" ? customThemeColors : null,
+    );
+  }, [siteSurfaceTheme, customThemeColors]);
 
   useEffect(() => {
     if (auth?.themeColor) {
       applyUserThemeColor(auth.themeColor);
       return;
     }
+    if (siteSurfaceTheme === "custom") {
+      applyUserThemeColor(customThemeColors.accent);
+      return;
+    }
     applyUserThemeColor(siteAccentColor);
-  }, [auth?.themeColor, siteAccentColor]);
+  }, [auth?.themeColor, siteAccentColor, siteSurfaceTheme, customThemeColors.accent]);
 
   return null;
 }

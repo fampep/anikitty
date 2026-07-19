@@ -448,185 +448,17 @@ html.lite-mode .site-section-card {
   -webkit-backdrop-filter: none;
 }
 
-/* Cinema surface — anime backdrop + frosted zinc glass
- * Unlayered so these beat utility solid fills (dialogs, sidebars, etc.).
+/* Custom surface — user-picked palette via inline CSS vars on html[data-surface="custom"].
+ * Zinc (no data-surface) keeps the default :root / .dark tokens untouched.
  */
-html[data-surface="cinema"] {
-  --cinema-glass-bg: rgb(9 9 11 / 0.36);
-  --cinema-glass-bg-strong: rgb(9 9 11 / 0.5);
-  --cinema-glass-bg-soft: rgb(9 9 11 / 0.26);
-  --cinema-glass-border: rgb(255 255 255 / 0.1);
-  --cinema-glass-border-soft: rgb(255 255 255 / 0.08);
-  --cinema-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.1);
-  --cinema-glass-shadow: 0 8px 28px rgb(0 0 0 / 0.2);
-  --cinema-glass-blur: blur(28px) saturate(1.15);
-}
-
-html[data-surface="cinema"]:not(.dark) {
-  --cinema-glass-bg: rgb(255 255 255 / 0.48);
-  --cinema-glass-bg-strong: rgb(255 255 255 / 0.62);
-  --cinema-glass-bg-soft: rgb(255 255 255 / 0.38);
-  --cinema-glass-border: rgb(24 24 27 / 0.1);
-  --cinema-glass-border-soft: rgb(24 24 27 / 0.08);
-  --cinema-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.72);
-  --cinema-glass-shadow: 0 8px 28px rgb(24 24 27 / 0.06);
-}
-
-html[data-surface="cinema"] body {
-  background: transparent !important;
-}
-
-html[data-surface="cinema"].dark body::before {
-  display: none;
-}
-
-html[data-surface="cinema"] .site-page {
-  background: transparent;
-}
-
-html[data-surface="cinema"] .home-cinema-body {
-  background: transparent;
-}
-
-html[data-surface="cinema"] .home-rail-fade-left {
-  @apply from-transparent dark:from-transparent;
-  background-image: linear-gradient(to right, rgba(9, 9, 11, 0.42), transparent);
-}
-
-html[data-surface="cinema"] .home-rail-fade-right {
-  @apply from-transparent dark:from-transparent;
-  background-image: linear-gradient(to left, rgba(9, 9, 11, 0.42), transparent);
-}
-
-.site-backdrop-scrim {
+html[data-surface="custom"] body {
   background:
-    linear-gradient(180deg, rgba(9, 9, 11, 0.55) 0%, rgba(9, 9, 11, 0.38) 38%, rgba(9, 9, 11, 0.62) 100%),
-    linear-gradient(90deg, rgba(9, 9, 11, 0.32) 0%, transparent 42%, transparent 58%, rgba(9, 9, 11, 0.24) 100%);
+    radial-gradient(ellipse 110% 70% at 50% -24%, hsl(var(--primary) / 0.06), transparent 55%),
+    hsl(var(--background));
 }
 
-html[data-surface="cinema"]:not(.dark) .site-backdrop-scrim {
-  background:
-    linear-gradient(180deg, rgba(250, 250, 250, 0.68) 0%, rgba(250, 250, 250, 0.5) 40%, rgba(244, 244, 245, 0.72) 100%),
-    linear-gradient(90deg, rgba(250, 250, 250, 0.32) 0%, transparent 45%, transparent 55%, rgba(250, 250, 250, 0.22) 100%);
-}
-
-/* Soften the rotating art so frosted chrome reads cleaner */
-html[data-surface="cinema"] .site-backdrop-layer {
-  filter: blur(2px) saturate(1.12);
-  transform: scale(1.03);
-  transform-origin: center;
-}
-
-/* Fallback when no backdrop image loaded yet */
-html[data-surface="cinema"] .site-backdrop {
-  background: radial-gradient(120% 80% at 50% 0%, #27272a 0%, #09090b 55%, #000 100%);
-}
-
-html.watch-theatre-active[data-surface="cinema"] .site-backdrop {
-  opacity: 0;
-}
-
-/* Shared frosted fill used by chrome + overlays (beats utility solids) */
-html[data-surface="cinema"] .site-panel,
-html[data-surface="cinema"] .site-glass,
-html[data-surface="cinema"] .site-overlay-surface,
-html[data-surface="cinema"] .site-header,
-html[data-surface="cinema"] .site-bottom-nav {
-  border-color: var(--cinema-glass-border);
-  background-color: var(--cinema-glass-bg);
-  backdrop-filter: var(--cinema-glass-blur);
-  -webkit-backdrop-filter: var(--cinema-glass-blur);
-  box-shadow: var(--cinema-glass-highlight), var(--cinema-glass-shadow);
-}
-
-html[data-surface="cinema"] .site-header {
-  background-color: var(--cinema-glass-bg-soft);
-  border-color: var(--cinema-glass-border-soft);
-  box-shadow: var(--cinema-glass-highlight);
-}
-
-html[data-surface="cinema"] .site-bottom-nav {
-  background-color: var(--cinema-glass-bg-strong);
-  box-shadow: var(--cinema-glass-highlight), 0 10px 32px rgb(0 0 0 / 0.28);
-}
-
-html[data-surface="cinema"]:not(.dark) .site-bottom-nav {
-  box-shadow: var(--cinema-glass-highlight), 0 10px 32px rgb(24 24 27 / 0.1);
-}
-
-html[data-surface="cinema"] .site-overlay-surface {
-  background-color: var(--cinema-glass-bg-strong);
-}
-
-html[data-surface="cinema"] .site-panel-hover:hover {
-  border-color: rgb(255 255 255 / 0.18);
-  background-color: var(--cinema-glass-bg-strong);
-}
-
-html[data-surface="cinema"]:not(.dark) .site-panel-hover:hover {
-  border-color: rgb(24 24 27 / 0.16);
-}
-
-html[data-surface="cinema"].dark .watch-chrome,
-html[data-surface="cinema"] .dark .watch-chrome {
-  border-color: var(--cinema-glass-border-soft);
-  background-image: linear-gradient(
-    to bottom,
-    rgb(12 12 14 / 0.55),
-    rgb(9 9 11 / 0.62)
-  );
-  backdrop-filter: var(--cinema-glass-blur);
-  -webkit-backdrop-filter: var(--cinema-glass-blur);
-  box-shadow: var(--cinema-glass-highlight);
-}
-
-html[data-surface="cinema"].dark .watch-player-stack .watch-episode-strip,
-html[data-surface="cinema"].dark .watch-episode-strip {
-  border-color: var(--cinema-glass-border-soft);
-  background-color: var(--cinema-glass-bg);
-  backdrop-filter: var(--cinema-glass-blur);
-  -webkit-backdrop-filter: var(--cinema-glass-blur);
-  box-shadow: var(--cinema-glass-highlight);
-}
-
-html[data-surface="cinema"] .watch-sidebar,
-html[data-surface="cinema"] .watch-sticky-chrome,
-html[data-surface="cinema"] .anime-sticky-chrome {
-  border-color: var(--cinema-glass-border);
-  background-color: var(--cinema-glass-bg);
-  backdrop-filter: var(--cinema-glass-blur);
-  -webkit-backdrop-filter: var(--cinema-glass-blur);
-  box-shadow: var(--cinema-glass-highlight);
-}
-
-@media (min-width: 640px) {
-  html[data-surface="cinema"] .anime-sticky-chrome {
-    border-color: transparent;
-    background-color: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
-  }
-}
-
-html.lite-mode[data-surface="cinema"] .site-backdrop-layer {
-  filter: none;
-  transform: none;
-}
-
-html[data-surface="cinema"] .site-section-card {
-  border-color: var(--cinema-glass-border-soft);
-  background-color: var(--cinema-glass-bg-soft);
-  backdrop-filter: var(--cinema-glass-blur);
-  -webkit-backdrop-filter: var(--cinema-glass-blur);
-  box-shadow: var(--cinema-glass-highlight);
-}
-
-html[data-surface="cinema"] .site-header .site-search-overlay {
-  border-color: var(--cinema-glass-border-soft);
-  background-color: var(--cinema-glass-bg-strong);
-  backdrop-filter: var(--cinema-glass-blur);
-  -webkit-backdrop-filter: var(--cinema-glass-blur);
+html[data-surface="custom"].dark body::before {
+  opacity: 0.28;
 }
 
 html.density-compact {
@@ -667,12 +499,12 @@ html.density-compact .site-bottom-nav {
 @layer components {
   .site-header {
     @apply border-b border-border/40 bg-background/80 backdrop-blur-xl;
-    @apply dark:border-white/[0.08] dark:bg-zinc-950/80;
+    @apply dark:border-white/[0.08] dark:bg-background/80;
   }
 
   .site-bottom-nav {
     @apply rounded-full border border-border/50 bg-background/90 shadow-[0_4px_24px_rgba(0,0,0,0.18)] backdrop-blur-2xl;
-    @apply dark:border-white/10 dark:bg-zinc-950/90 dark:shadow-[0_8px_32px_rgba(0,0,0,0.55)];
+    @apply dark:border-white/10 dark:bg-background/90 dark:shadow-[0_8px_32px_rgba(0,0,0,0.55)];
   }
 
   .site-panel {
@@ -684,7 +516,7 @@ html.density-compact .site-bottom-nav {
   }
 
   .dark .site-panel {
-    @apply border-white/10 bg-zinc-950/90;
+    @apply border-white/10 bg-card/90;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.05),
       0 8px 24px rgba(0, 0, 0, 0.45),
@@ -705,7 +537,7 @@ html.density-compact .site-bottom-nav {
   }
 
   .dark .site-panel-hover:hover {
-    @apply border-white/20 bg-zinc-950;
+    @apply border-white/20 bg-card;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
       0 12px 40px rgba(0, 0, 0, 0.55),
@@ -743,7 +575,7 @@ html.density-compact .site-bottom-nav {
   }
 
   .site-glass {
-    @apply border border-border/80 bg-background/80 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/80;
+    @apply border border-border/80 bg-background/80 backdrop-blur-xl dark:border-white/10 dark:bg-background/80;
   }
 
   .nav-link-active {
