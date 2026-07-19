@@ -8,6 +8,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
 } from "react";
 import Hls from "hls.js";
 
@@ -265,6 +266,12 @@ export type AniKittyPlayerProps = {
   preferDubAudio?: boolean;
   /** Enter fullscreen once the first frame is ready (mobile episode swipe). */
   autoFullscreen?: boolean;
+  /**
+   * Persistent element to fullscreen (e.g. watch-page wrapper). When set,
+   * episode remounts of this player keep document fullscreen because the
+   * target does not unmount between episodes.
+   */
+  fullscreenContainerRef?: RefObject<HTMLElement | null>;
   /** Next-episode card / autoplay countdown target. */
   nextEpisode?: { id: string; number: number; title: string; image?: string | null };
   /** Previous episode for chrome skip controls. */
@@ -330,6 +337,7 @@ export function AniKittyPlayer({
   preferSubtitles = true,
   preferDubAudio = false,
   autoFullscreen = false,
+  fullscreenContainerRef,
   nextEpisode,
   prevEpisode,
   onSelectQuality,
@@ -374,7 +382,6 @@ export function AniKittyPlayer({
   const audioUserPickedRef = useRef(false);
   const qualityResumeRef = useRef<number | null>(null);
   const mediaRetryRef = useRef(false);
-  const wasPlayingBeforeHideRef = useRef(false);
   const scrubRafRef = useRef<number | null>(null);
   const scrubTargetRef = useRef<number | null>(null);
   const scrubOriginRef = useRef<{
@@ -548,6 +555,11 @@ export function AniKittyPlayer({
   useEffect(() => {
     if (autoFullscreen) autoFsRef.current = true;
   }, [autoFullscreen]);
+
+  /** Prefer persistent watch-page wrapper so next-episode remounts keep FS. */
+  const getFullscreenTarget = useCallback((): HTMLElement | null => {
+    return fullscreenContainerRef?.current ?? rootRef.current;
+  }, [fullscreenContainerRef]);
 
   useEffect(() => {
     introAutoSkippedRef.current = false;
@@ -1330,26 +1342,6 @@ export function AniKittyPlayer({
     void tryUnlockScreenOrientation();
   }, [fullscreen]);
 
-  // Pause when the tab is hidden; resume if we were playing.
-  useEffect(() => {
-    const onVisibility = () => {
-      if (castingRef.current) return;
-      const video = videoRef.current;
-      if (!video) return;
-      if (document.hidden) {
-        wasPlayingBeforeHideRef.current = !video.paused;
-        if (!video.paused) video.pause();
-        return;
-      }
-      if (wasPlayingBeforeHideRef.current) {
-        wasPlayingBeforeHideRef.current = false;
-        void video.play().catch(() => {});
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
-
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -1508,7 +1500,7 @@ export function AniKittyPlayer({
       setSourceLoading(false);
       if (autoFsRef.current) {
         autoFsRef.current = false;
-        const target = rootRef.current;
+        const target = getFullscreenTarget();
         const wk = video as WebkitVideo;
         if (target) {
           void requestElementFullscreen(target)
@@ -1665,7 +1657,7 @@ export function AniKittyPlayer({
       if (seekFlashTimerRef.current) clearTimeout(seekFlashTimerRef.current);
       if (gestureHintTimerRef.current) clearTimeout(gestureHintTimerRef.current);
     };
-  }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint, reportW2g]);
+  }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint, reportW2g, getFullscreenTarget]);
 
   // Attach progressive / HLS source (prefer hls.js when MSE works).
   useEffect(() => {
@@ -2164,12 +2156,12 @@ export function AniKittyPlayer({
   );
 
   const toggleFullscreen = useCallback(async () => {
-    const root = rootRef.current;
+    const target = getFullscreenTarget();
     const video = videoRef.current as WebkitVideo | null;
-    if (!root) return;
+    if (!target) return;
     try {
       if (
-        isElementFullscreen(root) ||
+        isElementFullscreen(target) ||
         getFullscreenElement() ||
         video?.webkitDisplayingFullscreen
       ) {
@@ -2180,16 +2172,16 @@ export function AniKittyPlayer({
         }
       } else {
         const canElementFs =
-          typeof root.requestFullscreen === "function" ||
+          typeof target.requestFullscreen === "function" ||
           typeof (
-            root as HTMLElement & { webkitRequestFullscreen?: () => void }
+            target as HTMLElement & { webkitRequestFullscreen?: () => void }
           ).webkitRequestFullscreen === "function";
 
         if (!canElementFs && video?.webkitEnterFullscreen) {
           video.webkitEnterFullscreen();
         } else {
           try {
-            await requestElementFullscreen(root);
+            await requestElementFullscreen(target);
           } catch {
             // iOS Safari often only fullscreens the <video> element.
             video?.webkitEnterFullscreen?.();
@@ -2200,7 +2192,7 @@ export function AniKittyPlayer({
       /* browser may deny fullscreen without gesture */
     }
     bumpControls();
-  }, [bumpControls]);
+  }, [bumpControls, getFullscreenTarget]);
 
   const exitFullscreen = useCallback(async () => {
     const video = videoRef.current as WebkitVideo | null;

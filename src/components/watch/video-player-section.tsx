@@ -97,6 +97,11 @@ import WatchAutoFallbackHint from "@/components/watch/watch-auto-fallback-hint";
 import WatchServerPicker from "@/components/watch/watch-server-picker";
 import { getProviderAccent, PROVIDER_PANEL, providerChipClass } from "@/lib/kitty/provider-ui-styles";
 import { cn } from "@/lib/core/utils";
+import {
+  getFullscreenElement,
+  isElementFullscreen,
+  requestElementFullscreen,
+} from "@/lib/kitty/fullscreen";
 
 const AniKittyPlayer = dynamic(
   () =>
@@ -325,9 +330,13 @@ const VideoPlayerSection = () => {
   const [resumeChoice, setResumeChoice] = useState<"resume" | "start" | null>(null);
   const resumeReadyRef = useRef(false);
   const [playerController, setPlayerController] = useState<PlayerController | null>(null);
+  const [autoFullscreen, setAutoFullscreen] = useState(false);
+  const playerWrapperRef = useRef<HTMLDivElement>(null);
+  const navigatingRef = useRef(false);
   const handlePlayerReady = useCallback((player: PlayerController) => {
     playerRef.current = player;
     setPlayerController(player);
+    setAutoFullscreen(false);
   }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [skipSubmitOpen, setSkipSubmitOpen] = useState(false);
@@ -431,24 +440,27 @@ const VideoPlayerSection = () => {
     return adjacentPlayableEpisode(allEpisodes.episodes, episodeId, "next");
   }, [allEpisodes, episodeId]);
 
-  const [autoFullscreen, setAutoFullscreen] = useState(false);
-  const playerWrapperRef = useRef<HTMLDivElement>(null);
-  const navigatingRef = useRef(false);
-
   const navigateToEpisode = useCallback(
     (ep: Episode) => {
       if (!animeSlug || navigatingRef.current) return;
       if (ep.episodeId === episodeId) return;
       navigatingRef.current = true;
       playerRef.current?.pause?.();
-      const isFs = !!document.fullscreenElement;
-      if (isFs && playerWrapperRef.current) {
-        playerWrapperRef.current.requestFullscreen().catch(() => {});
+      const wrapper = playerWrapperRef.current;
+      const fsEl = getFullscreenElement();
+      const wrapperAlreadyFs = isElementFullscreen(wrapper);
+      // If FS is on the player root (legacy), hoist it onto the persistent
+      // wrapper before React remounts the keyed player child.
+      if (fsEl && wrapper && !wrapperAlreadyFs) {
+        void requestElementFullscreen(wrapper).catch(() => {});
       }
+      const keepFs = Boolean(fsEl) || wrapperAlreadyFs;
       progressEpisodeIdRef.current = null;
       liveTimeRef.current = 0;
       setSavedResumeTime(0);
-      setAutoFullscreen(isFs);
+      // Only re-request FS after remount when the wrapper is not already FS
+      // (e.g. iOS video-element FS, or hoist failed).
+      setAutoFullscreen(keepFs && !isElementFullscreen(wrapper));
       setResumeChoice(null);
       setSelectedEpisode(ep.episodeId);
       setPlaybackToken((n) => n + 1);
@@ -527,7 +539,9 @@ const VideoPlayerSection = () => {
       />
     ) : null;
 
-  // Reset refs when episode changes so we don't cross-contaminate
+  // Reset refs when episode changes so we don't cross-contaminate.
+  // Keep heldStreamSnapshot so the player shell (and fullscreen wrapper)
+  // stay mounted until the next episode stream is ready.
   useEffect(() => {
     navigatingRef.current = false;
     bookmarkIdRef.current = null;
@@ -543,7 +557,6 @@ const VideoPlayerSection = () => {
     triedKittyNodesRef.current.clear();
     fallbackBusyRef.current = false;
     remintAttemptedRef.current = false;
-    setHeldStreamSnapshot(null);
     setManualStreamFile(null);
     setManualStreamHeaders(null);
   }, [episodeId, urlAnimeId]);
@@ -929,13 +942,22 @@ const VideoPlayerSection = () => {
     void video.requestPictureInPicture?.();
   }, []);
 
+  // Provider / audio / anime changes remount the stream — clear held shell.
+  // Episode-only changes keep the held shell so fullscreen + chrome persist.
   useEffect(() => {
     setHeldStreamSnapshot(null);
     setPlaybackToken((n) => n + 1);
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
     setStreamKittyNode("auto");
-  }, [streamQueryAudio, provider, urlAnimeId, anilistId, episodeId]);
+  }, [streamQueryAudio, provider, urlAnimeId, anilistId]);
+
+  useEffect(() => {
+    setPlaybackToken((n) => n + 1);
+    triedKittyNodesRef.current.clear();
+    setExcludeKittyNodes([]);
+    setStreamKittyNode("auto");
+  }, [episodeId]);
 
   // Proxy node switch from mid-play failover remount: keep resume time.
   // Soft sync from race winner is ignored when playback already matches the new URL.
@@ -1141,13 +1163,20 @@ const VideoPlayerSection = () => {
   const useLiveStream = Boolean(streamReady && streamData?.file && !manualStreamFile);
   const useHeldPlayerShell = Boolean(
     heldStreamSnapshot?.file &&
-      heldSnapshotSameEpisode &&
-      (showStreamLoading || (pendingNewEpisode && (!useLiveStream || !resumeReady))),
+      (
+        // Same episode: keep shell while reloading stream (provider/node switch)
+        (heldSnapshotSameEpisode && showStreamLoading) ||
+        // Next episode: keep previous shell until the new stream is ready so the
+        // fullscreen wrapper never unmounts mid-transition.
+        (pendingNewEpisode && (showStreamLoading || !useLiveStream || !resumeReady))
+      ),
   );
   const showTransitionOverlay = Boolean(
     heldStreamSnapshot?.file &&
-      heldSnapshotSameEpisode &&
-      (showStreamLoading || (pendingNewEpisode && !useLiveStream)),
+      (
+        (heldSnapshotSameEpisode && showStreamLoading) ||
+        (pendingNewEpisode && !useLiveStream)
+      ),
   );
   const canRenderPlayerShell = useHeldPlayerShell || useLiveStream || Boolean(manualStreamFile);
   const displayPlayerKey = useLiveStream || manualStreamFile ? playerKey : (heldStreamSnapshot?.key ?? playerKey);
@@ -1687,6 +1716,7 @@ const VideoPlayerSection = () => {
             : playerStartTime
         }
         autoFullscreen={autoFullscreen}
+        fullscreenContainerRef={playerWrapperRef}
         nextEpisode={playerNextEpisode}
         prevEpisode={playerPrevEpisode}
         onStart={handleStart}
