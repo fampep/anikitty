@@ -1,4 +1,5 @@
 import { getBotApiSecret } from "@/lib/bot/authorize-bot";
+import { getDiscordBotLevelUpUrl } from "@/lib/bot/discord-bot-webhook";
 import { levelTierDiscordKey } from "@/lib/bot/discord-sync-roles";
 import { notifyDiscordRoleSync } from "@/lib/bot/notify-discord-sync";
 import type { getDb } from "@/db";
@@ -22,29 +23,8 @@ export type DiscordLevelUpPayload = {
   tierChanged: boolean;
 };
 
-/** Derive POST /levelup from DISCORD_BOT_LEVELUP_URL or DISCORD_BOT_SYNC_URL. */
-function resolveLevelUpUrl(): string | null {
-  const explicit = process.env.DISCORD_BOT_LEVELUP_URL?.trim();
-  if (explicit) return explicit;
-
-  const sync = process.env.DISCORD_BOT_SYNC_URL?.trim();
-  if (!sync) return null;
-
-  try {
-    const u = new URL(sync);
-    if (u.pathname === "/sync" || u.pathname.endsWith("/sync")) {
-      u.pathname = u.pathname.replace(/\/sync\/?$/, "/levelup");
-      return u.toString();
-    }
-    u.pathname = "/levelup";
-    return u.toString();
-  } catch {
-    return sync.replace(/\/sync\/?$/, "/levelup");
-  }
-}
-
 export function notifyDiscordLevelUp(payload: DiscordLevelUpPayload): void {
-  const url = resolveLevelUpUrl();
+  const url = getDiscordBotLevelUpUrl();
   const secret = getBotApiSecret();
   if (!url || !secret) return;
 
@@ -56,8 +36,8 @@ export function notifyDiscordLevelUp(payload: DiscordLevelUpPayload): void {
     },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(5_000),
-  }).catch(() => {
-    /* ignore — announcements are best-effort */
+  }).catch((err) => {
+    console.error("[discord-levelup] webhook failed:", err);
   });
 }
 
@@ -65,6 +45,7 @@ export function notifyDiscordLevelUp(payload: DiscordLevelUpPayload): void {
  * After XP-granting writes: if the user's level rose past the last announced
  * level and they have Discord linked, push a level-up webhook to the bot.
  * First sighting bootstraps without announcing (avoids spam on deploy/link).
+ * Uses the same `getUserXpStats` total (watch + comments + Discord chat XP).
  */
 export async function maybeAnnounceDiscordLevelUp(
   db: Db,

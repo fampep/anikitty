@@ -110,8 +110,8 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 | Variable | Required | Purpose |
 |---|---|---|
 | `BOT_API_SECRET` | Recommended | Bearer secret for `GET /api/bot/*` — must match the bot’s `BOT_API_SECRET`. A hardcoded fallback exists so APIs work if unset; set this in Coolify (runtime) to override. |
-| `DISCORD_BOT_SYNC_URL` | Optional | e.g. `http://discord-bot:8787/sync` — ping the bot after role/supporter changes for immediate Discord role sync |
-| `DISCORD_BOT_LEVELUP_URL` | Optional | e.g. `http://discord-bot:8787/levelup` — level-up announcements. If unset, derived from `DISCORD_BOT_SYNC_URL` (`/sync` → `/levelup`). |
+| `DISCORD_BOT_SYNC_URL` | Optional | Bot `POST /sync` URL. Default fallback: `http://discord-bot:8787/sync` (Coolify private network; rename service to `discord-bot` or override). |
+| `DISCORD_BOT_LEVELUP_URL` | Optional | Bot `POST /levelup` URL for channel embeds. Default: derived from sync URL (`/sync` → `/levelup`), i.e. `http://discord-bot:8787/levelup`. |
 
 Protected routes: `/api/bot/online`, `/api/bot/search?q=`, `/api/bot/discord-links`, `GET/POST /api/bot/discord-role-map` (role keys: `admin`, `moderator`, `donator`, `timestamp_helper`, `level_*`), `GET/PUT /api/bot/guild-settings` (level-up channel), `POST /api/bot/discord-xp` (Discord chat XP for linked users; cooldown in `discord_chat_xp`). The bot creates Discord roles at runtime and persists snowflakes in `discord_role_map` — do not invent role IDs in config. Redeploy after merging so Coolify serves the new routes (otherwise production returns 404). Migrations for `discord_role_map` / `discord_guild_settings` / `discord_chat_xp` run via `migrateDb()` on site startup.
 

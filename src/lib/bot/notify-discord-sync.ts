@@ -1,12 +1,12 @@
 import { getBotApiSecret } from "@/lib/bot/authorize-bot";
+import { getDiscordBotSyncUrl } from "@/lib/bot/discord-bot-webhook";
 
 /**
- * Optional fire-and-forget ping so the Discord bot can sync roles immediately
- * after a site role change. Configure `DISCORD_BOT_SYNC_URL` on the site
- * (e.g. `http://discord-bot:8787/sync`) and the same `BOT_API_SECRET`.
+ * Fire-and-forget ping so the Discord bot can sync roles immediately after a
+ * site role change. Uses `DISCORD_BOT_SYNC_URL` or `http://discord-bot:8787/sync`.
  */
 export function notifyDiscordRoleSync(reason?: string): void {
-  const url = process.env.DISCORD_BOT_SYNC_URL?.trim();
+  const url = getDiscordBotSyncUrl();
   const secret = getBotApiSecret();
   if (!url || !secret) return;
 
@@ -18,7 +18,7 @@ export function notifyDiscordRoleSync(reason?: string): void {
     },
     body: JSON.stringify({ reason: reason ?? "role_change" }),
     signal: AbortSignal.timeout(5_000),
-  }).catch(() => {
-    /* ignore — scheduled sync is the fallback */
+  }).catch((err) => {
+    console.error("[discord-sync] webhook failed:", err);
   });
 }
