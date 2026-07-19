@@ -478,7 +478,7 @@ const Layout = (props: Props) => {
           {!theatreMode && (
             <div
               id="watch-quick-nav"
-              className="lg:sticky lg:top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-1.5 sm:py-2"
+              className="watch-sticky-chrome lg:sticky lg:top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-1.5 sm:py-2"
             >
               <WatchQuickNav
                 activeTab={watchTab}
@@ -681,7 +681,7 @@ const Layout = (props: Props) => {
 
         {/* Right sidebar: now-watching + episodes (desktop) */}
         {!theatreMode && (
-          <aside className="hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm">
+          <aside className="watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm">
             {currentEpisode && (
               <div className="shrink-0 border-b border-border/60 dark:border-white/[0.07] px-3.5 py-3 space-y-2.5">
                 {/* Series header */}

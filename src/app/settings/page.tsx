@@ -230,7 +230,7 @@ function ShopSection() {
 
 function SectionCard({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card/50 overflow-hidden dark:border-white/8 dark:bg-white/[0.02]", className)}>
+    <div className={cn("site-section-card rounded-xl border border-border bg-card/50 overflow-hidden dark:border-white/10 dark:bg-white/[0.02]", className)}>
       {children}
     </div>
   );

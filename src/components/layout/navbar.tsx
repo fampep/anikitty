@@ -167,7 +167,7 @@ const NavBar = () => {
     <header className="site-header fixed left-0 right-0 top-0 z-[100] pt-safe">
       <Container className="relative">
         {searchOpen && (
-          <div className="absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl dark:border-white/[0.05] dark:bg-[#050508]/98">
+          <div className="site-search-overlay absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl dark:border-white/[0.05] dark:bg-[#050508]/98">
             <SearchBar className="mx-auto max-w-3xl flex-1" autoFocus onAnimeClick={() => setSearchOpen(false)} />
             <button
               type="button"

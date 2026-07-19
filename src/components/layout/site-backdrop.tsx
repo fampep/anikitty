@@ -108,7 +108,7 @@ export default function SiteBackdrop() {
     >
       <div
         className={cn(
-          "absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity ease-out",
+          "site-backdrop-layer absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity ease-out",
           showA ? "opacity-100" : "opacity-0",
         )}
         style={{
@@ -118,7 +118,7 @@ export default function SiteBackdrop() {
       />
       <div
         className={cn(
-          "absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity ease-out",
+          "site-backdrop-layer absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity ease-out",
           showA ? "opacity-0" : "opacity-100",
         )}
         style={{

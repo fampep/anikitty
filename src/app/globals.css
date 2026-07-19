@@ -435,12 +435,43 @@ html.lite-mode .home-rail-fade {
   display: none !important;
 }
 
-html.lite-mode .site-panel {
+html.lite-mode .site-panel,
+html.lite-mode .site-glass,
+html.lite-mode .site-overlay-surface,
+html.lite-mode .site-header,
+html.lite-mode .site-bottom-nav,
+html.lite-mode .watch-sidebar,
+html.lite-mode .watch-sticky-chrome,
+html.lite-mode .anime-sticky-chrome,
+html.lite-mode .site-section-card {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
-/* Cinema surface — anime backdrop + frosted zinc glass */
+/* Cinema surface — anime backdrop + frosted zinc glass
+ * Unlayered so these beat utility solid fills (dialogs, sidebars, etc.).
+ */
+html[data-surface="cinema"] {
+  --cinema-glass-bg: rgb(9 9 11 / 0.36);
+  --cinema-glass-bg-strong: rgb(9 9 11 / 0.5);
+  --cinema-glass-bg-soft: rgb(9 9 11 / 0.26);
+  --cinema-glass-border: rgb(255 255 255 / 0.1);
+  --cinema-glass-border-soft: rgb(255 255 255 / 0.08);
+  --cinema-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.1);
+  --cinema-glass-shadow: 0 8px 28px rgb(0 0 0 / 0.2);
+  --cinema-glass-blur: blur(28px) saturate(1.15);
+}
+
+html[data-surface="cinema"]:not(.dark) {
+  --cinema-glass-bg: rgb(255 255 255 / 0.48);
+  --cinema-glass-bg-strong: rgb(255 255 255 / 0.62);
+  --cinema-glass-bg-soft: rgb(255 255 255 / 0.38);
+  --cinema-glass-border: rgb(24 24 27 / 0.1);
+  --cinema-glass-border-soft: rgb(24 24 27 / 0.08);
+  --cinema-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.72);
+  --cinema-glass-shadow: 0 8px 28px rgb(24 24 27 / 0.06);
+}
+
 html[data-surface="cinema"] body {
   background: transparent !important;
 }
@@ -459,24 +490,31 @@ html[data-surface="cinema"] .home-cinema-body {
 
 html[data-surface="cinema"] .home-rail-fade-left {
   @apply from-transparent dark:from-transparent;
-  background-image: linear-gradient(to right, rgba(9, 9, 11, 0.55), transparent);
+  background-image: linear-gradient(to right, rgba(9, 9, 11, 0.42), transparent);
 }
 
 html[data-surface="cinema"] .home-rail-fade-right {
   @apply from-transparent dark:from-transparent;
-  background-image: linear-gradient(to left, rgba(9, 9, 11, 0.55), transparent);
+  background-image: linear-gradient(to left, rgba(9, 9, 11, 0.42), transparent);
 }
 
 .site-backdrop-scrim {
   background:
-    linear-gradient(180deg, rgba(9, 9, 11, 0.72) 0%, rgba(9, 9, 11, 0.55) 35%, rgba(9, 9, 11, 0.78) 100%),
-    linear-gradient(90deg, rgba(9, 9, 11, 0.45) 0%, transparent 40%, transparent 60%, rgba(9, 9, 11, 0.35) 100%);
+    linear-gradient(180deg, rgba(9, 9, 11, 0.55) 0%, rgba(9, 9, 11, 0.38) 38%, rgba(9, 9, 11, 0.62) 100%),
+    linear-gradient(90deg, rgba(9, 9, 11, 0.32) 0%, transparent 42%, transparent 58%, rgba(9, 9, 11, 0.24) 100%);
 }
 
 html[data-surface="cinema"]:not(.dark) .site-backdrop-scrim {
   background:
-    linear-gradient(180deg, rgba(250, 250, 250, 0.78) 0%, rgba(250, 250, 250, 0.62) 40%, rgba(244, 244, 245, 0.82) 100%),
-    linear-gradient(90deg, rgba(250, 250, 250, 0.4) 0%, transparent 45%, transparent 55%, rgba(250, 250, 250, 0.3) 100%);
+    linear-gradient(180deg, rgba(250, 250, 250, 0.68) 0%, rgba(250, 250, 250, 0.5) 40%, rgba(244, 244, 245, 0.72) 100%),
+    linear-gradient(90deg, rgba(250, 250, 250, 0.32) 0%, transparent 45%, transparent 55%, rgba(250, 250, 250, 0.22) 100%);
+}
+
+/* Soften the rotating art so frosted chrome reads cleaner */
+html[data-surface="cinema"] .site-backdrop-layer {
+  filter: blur(2px) saturate(1.12);
+  transform: scale(1.03);
+  transform-origin: center;
 }
 
 /* Fallback when no backdrop image loaded yet */
@@ -486,6 +524,109 @@ html[data-surface="cinema"] .site-backdrop {
 
 html.watch-theatre-active[data-surface="cinema"] .site-backdrop {
   opacity: 0;
+}
+
+/* Shared frosted fill used by chrome + overlays (beats utility solids) */
+html[data-surface="cinema"] .site-panel,
+html[data-surface="cinema"] .site-glass,
+html[data-surface="cinema"] .site-overlay-surface,
+html[data-surface="cinema"] .site-header,
+html[data-surface="cinema"] .site-bottom-nav {
+  border-color: var(--cinema-glass-border);
+  background-color: var(--cinema-glass-bg);
+  backdrop-filter: var(--cinema-glass-blur);
+  -webkit-backdrop-filter: var(--cinema-glass-blur);
+  box-shadow: var(--cinema-glass-highlight), var(--cinema-glass-shadow);
+}
+
+html[data-surface="cinema"] .site-header {
+  background-color: var(--cinema-glass-bg-soft);
+  border-color: var(--cinema-glass-border-soft);
+  box-shadow: var(--cinema-glass-highlight);
+}
+
+html[data-surface="cinema"] .site-bottom-nav {
+  background-color: var(--cinema-glass-bg-strong);
+  box-shadow: var(--cinema-glass-highlight), 0 10px 32px rgb(0 0 0 / 0.28);
+}
+
+html[data-surface="cinema"]:not(.dark) .site-bottom-nav {
+  box-shadow: var(--cinema-glass-highlight), 0 10px 32px rgb(24 24 27 / 0.1);
+}
+
+html[data-surface="cinema"] .site-overlay-surface {
+  background-color: var(--cinema-glass-bg-strong);
+}
+
+html[data-surface="cinema"] .site-panel-hover:hover {
+  border-color: rgb(255 255 255 / 0.18);
+  background-color: var(--cinema-glass-bg-strong);
+}
+
+html[data-surface="cinema"]:not(.dark) .site-panel-hover:hover {
+  border-color: rgb(24 24 27 / 0.16);
+}
+
+html[data-surface="cinema"].dark .watch-chrome,
+html[data-surface="cinema"] .dark .watch-chrome {
+  border-color: var(--cinema-glass-border-soft);
+  background-image: linear-gradient(
+    to bottom,
+    rgb(12 12 14 / 0.55),
+    rgb(9 9 11 / 0.62)
+  );
+  backdrop-filter: var(--cinema-glass-blur);
+  -webkit-backdrop-filter: var(--cinema-glass-blur);
+  box-shadow: var(--cinema-glass-highlight);
+}
+
+html[data-surface="cinema"].dark .watch-player-stack .watch-episode-strip,
+html[data-surface="cinema"].dark .watch-episode-strip {
+  border-color: var(--cinema-glass-border-soft);
+  background-color: var(--cinema-glass-bg);
+  backdrop-filter: var(--cinema-glass-blur);
+  -webkit-backdrop-filter: var(--cinema-glass-blur);
+  box-shadow: var(--cinema-glass-highlight);
+}
+
+html[data-surface="cinema"] .watch-sidebar,
+html[data-surface="cinema"] .watch-sticky-chrome,
+html[data-surface="cinema"] .anime-sticky-chrome {
+  border-color: var(--cinema-glass-border);
+  background-color: var(--cinema-glass-bg);
+  backdrop-filter: var(--cinema-glass-blur);
+  -webkit-backdrop-filter: var(--cinema-glass-blur);
+  box-shadow: var(--cinema-glass-highlight);
+}
+
+@media (min-width: 640px) {
+  html[data-surface="cinema"] .anime-sticky-chrome {
+    border-color: transparent;
+    background-color: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+}
+
+html.lite-mode[data-surface="cinema"] .site-backdrop-layer {
+  filter: none;
+  transform: none;
+}
+
+html[data-surface="cinema"] .site-section-card {
+  border-color: var(--cinema-glass-border-soft);
+  background-color: var(--cinema-glass-bg-soft);
+  backdrop-filter: var(--cinema-glass-blur);
+  -webkit-backdrop-filter: var(--cinema-glass-blur);
+  box-shadow: var(--cinema-glass-highlight);
+}
+
+html[data-surface="cinema"] .site-header .site-search-overlay {
+  border-color: var(--cinema-glass-border-soft);
+  background-color: var(--cinema-glass-bg-strong);
+  backdrop-filter: var(--cinema-glass-blur);
+  -webkit-backdrop-filter: var(--cinema-glass-blur);
 }
 
 html.density-compact {
@@ -550,63 +691,6 @@ html.density-compact .site-bottom-nav {
       0 1px 2px rgba(0, 0, 0, 0.25);
   }
 
-  html[data-surface="cinema"] .site-panel {
-    @apply backdrop-blur-2xl;
-    border-color: rgb(255 255 255 / 0.12);
-    background-color: rgb(9 9 11 / 0.45);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 8px 28px rgba(0, 0, 0, 0.35),
-      0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-
-  html[data-surface="cinema"]:not(.dark) .site-panel {
-    @apply backdrop-blur-2xl;
-    border-color: rgb(24 24 27 / 0.1);
-    background-color: rgb(255 255 255 / 0.55);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
-      0 8px 28px rgba(24, 24, 27, 0.08);
-  }
-
-  html[data-surface="cinema"] .site-header {
-    @apply backdrop-blur-2xl;
-    border-color: rgb(255 255 255 / 0.08);
-    background-color: rgb(9 9 11 / 0.4);
-  }
-
-  html[data-surface="cinema"]:not(.dark) .site-header {
-    @apply border-border/50 bg-background/55 backdrop-blur-2xl;
-  }
-
-  html[data-surface="cinema"] .site-bottom-nav {
-    @apply backdrop-blur-2xl;
-    border-color: rgb(255 255 255 / 0.12);
-    background-color: rgb(9 9 11 / 0.55);
-  }
-
-  html[data-surface="cinema"]:not(.dark) .site-bottom-nav {
-    @apply border-border/50 bg-background/70 backdrop-blur-2xl;
-  }
-
-  html[data-surface="cinema"] .site-glass {
-    @apply backdrop-blur-2xl;
-    border-color: rgb(255 255 255 / 0.12);
-    background-color: rgb(9 9 11 / 0.4);
-  }
-
-  html[data-surface="cinema"] .dark .watch-chrome,
-  html[data-surface="cinema"].dark .watch-chrome {
-    background-image: linear-gradient(to bottom, rgba(12, 12, 14, 0.72), rgba(9, 9, 11, 0.78));
-  }
-
-  html[data-surface="cinema"].dark .watch-player-stack .watch-episode-strip,
-  html[data-surface="cinema"].dark .watch-episode-strip {
-    @apply backdrop-blur-xl;
-    border-color: rgb(255 255 255 / 0.1);
-    background-color: rgb(9 9 11 / 0.4);
-  }
-
   .site-panel-hover {
     @apply site-panel transition-all duration-300 ease-out;
   }
@@ -626,11 +710,6 @@ html.density-compact .site-bottom-nav {
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
       0 12px 40px rgba(0, 0, 0, 0.55),
       0 0 0 1px rgba(255, 255, 255, 0.06);
-  }
-
-  html[data-surface="cinema"] .site-panel-hover:hover {
-    border-color: rgb(255 255 255 / 0.2);
-    background-color: rgb(9 9 11 / 0.6);
   }
 
   .site-label {

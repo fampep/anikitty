@@ -54,7 +54,7 @@ export default function ProfileSectionNav({ sections, className }: Props) {
     <nav
       aria-label={t("profile.sectionNav.label")}
       className={cn(
-        "sticky top-16 z-20 -mx-1 mb-8 flex gap-1 overflow-x-auto rounded-xl border border-border dark:border-white/10 bg-background/90 dark:bg-[#0a0a0a]/90 p-1 backdrop-blur-md scrollbar-none shadow-sm shadow-black/5",
+        "site-glass sticky top-16 z-20 -mx-1 mb-8 flex gap-1 overflow-x-auto rounded-xl border border-border dark:border-white/10 bg-background/90 dark:bg-[#0a0a0a]/90 p-1 backdrop-blur-md scrollbar-none shadow-sm shadow-black/5",
         className,
       )}
     >

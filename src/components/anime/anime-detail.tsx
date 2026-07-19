@@ -568,7 +568,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
         {/* ── Tabs ── */}
         <div id="anime-tabs-panel" className="scroll-mt-[calc(var(--nav-total-height)+0.75rem)] mt-6 sm:mt-10">
-          <div className="sticky top-[var(--nav-total-height)] z-30 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur-md border-b border-border/80 dark:border-white/8 sm:static sm:mx-0 sm:px-0 sm:py-0 sm:mb-4 sm:bg-transparent sm:backdrop-blur-none sm:border-b-0">
+          <div className="anime-sticky-chrome sticky top-[var(--nav-total-height)] z-30 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur-md border-b border-border/80 dark:border-white/10 sm:static sm:mx-0 sm:px-0 sm:py-0 sm:mb-4 sm:bg-transparent sm:backdrop-blur-none sm:border-b-0">
             <AnimeQuickNav
               tabs={tabItems}
               activeTab={activeTab}
