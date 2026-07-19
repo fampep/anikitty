@@ -158,7 +158,6 @@ export function ProviderQuickPick({
   className,
   compact,
   streamCaps,
-  preferredProvider,
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
@@ -166,7 +165,6 @@ export function ProviderQuickPick({
   className?: string;
   compact?: boolean;
   streamCaps?: EpisodeStreamCapabilities;
-  preferredProvider?: KittyProvider | null;
 }) {
   return (
     <ProviderGrid
@@ -176,7 +174,6 @@ export function ProviderQuickPick({
       onSelect={onSelect}
       className={className}
       streamCaps={streamCaps}
-      preferredProvider={preferredProvider}
     />
   );
 }
@@ -218,7 +215,6 @@ type ProviderGridProps = {
   rows?: ProviderAudioMode[];
   compact?: boolean;
   streamCaps?: EpisodeStreamCapabilities;
-  preferredProvider?: KittyProvider | null;
 };
 
 function ProviderScrollRow({
@@ -259,7 +255,6 @@ export function ProviderGrid({
   rows,
   compact,
   streamCaps,
-  preferredProvider,
 }: ProviderGridProps) {
   const t = useT();
   const { providerSectionHidden, toggleProviderSectionHidden, providerOrder, defaultProvider } = useSettingsStore();
@@ -286,7 +281,6 @@ export function ProviderGrid({
       {visibleRows.map((mode) => {
         const baseItems = kittyProvidersForAudioMode(mode);
         const items = sortProvidersForPicker(baseItems, {
-          preferredId: preferredProvider,
           priorityOrder: providerOrder,
           defaultProvider,
         });

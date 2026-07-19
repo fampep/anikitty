@@ -24,18 +24,14 @@ function writeJson(key: string, value: unknown) {
   }
 }
 
-export function getAnimeProviderPreference(anilistId: number): KittyProvider | null {
-  const map = readJson<Record<string, KittyProvider>>(ANIME_PROVIDER_KEY, {});
-  const saved = map[String(anilistId)];
-  if (!saved) return null;
-  if (saved === "AllAnime") return "MKissa";
-  return saved;
-}
-
-export function saveAnimeProviderPreference(anilistId: number, provider: KittyProvider) {
-  const map = readJson<Record<string, KittyProvider>>(ANIME_PROVIDER_KEY, {});
-  map[String(anilistId)] = provider;
-  writeJson(ANIME_PROVIDER_KEY, map);
+/** Drop legacy per-anime provider map (watch now follows Settings only). */
+export function clearLegacyAnimeProviderPreferences() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(ANIME_PROVIDER_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function recordProviderOutcome(provider: KittyProvider, success: boolean) {
@@ -54,11 +50,10 @@ export function providerSuccessScore(provider: KittyProvider): number {
   return row.ok - row.fail * 2;
 }
 
-/** Sort providers: capability-available first, then per-anime pref, then user/site priority. */
+/** Sort providers: capability-available first, then user/site priority. */
 export function sortProvidersForPicker<T extends { id: KittyProvider }>(
   items: T[],
   opts: {
-    preferredId?: KittyProvider | null;
     availableIds?: Set<KittyProvider> | null;
     /** User preference order; defaults to site {@link DEFAULT_PROVIDER_PRIORITY}. */
     priorityOrder?: KittyProvider[] | null;
@@ -74,11 +69,6 @@ export function sortProvidersForPicker<T extends { id: KittyProvider }>(
     const aAvail = opts.availableIds ? opts.availableIds.has(a.id) : true;
     const bAvail = opts.availableIds ? opts.availableIds.has(b.id) : true;
     if (aAvail !== bAvail) return aAvail ? -1 : 1;
-
-    if (opts.preferredId) {
-      if (a.id === opts.preferredId) return -1;
-      if (b.id === opts.preferredId) return 1;
-    }
 
     const pa = priority.get(a.id) ?? 999;
     const pb = priority.get(b.id) ?? 999;

@@ -70,8 +70,8 @@ interface ISettingsStore {
   resetProviderOrder: () => void;
 
   /**
-   * Explicit default provider — tried first when starting a watch with no
-   * per-anime preference; may differ from the top of `providerOrder`.
+   * Explicit default provider — tried first when starting a watch;
+   * may differ from the top of `providerOrder`.
    */
   defaultProvider: KittyProvider;
   setDefaultProvider: (id: KittyProvider) => void;

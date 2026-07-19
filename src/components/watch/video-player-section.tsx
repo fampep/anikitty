@@ -69,8 +69,7 @@ import { useGetStreamCapabilities } from "@/query/stream/get-stream-capabilities
 import { useWatchSwipeNav } from "@/hooks/use-watch-swipe-nav";
 import { useStreamLoadingStuck } from "@/hooks/use-stream-loading-stuck";
 import {
-  getAnimeProviderPreference,
-  saveAnimeProviderPreference,
+  clearLegacyAnimeProviderPreferences,
   recordProviderOutcome,
   hasSeenAutoFallbackHint,
   markAutoFallbackHintSeen,
@@ -162,8 +161,7 @@ const VideoPlayerSection = () => {
 
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kittyProvider");
-      if (saved) return normalizeKittyProvider(saved);
+      clearLegacyAnimeProviderPreferences();
       const s = useSettingsStore.getState();
       return getPreferredDefaultProvider(s.providerOrder, s.defaultProvider);
     }
@@ -239,10 +237,11 @@ const VideoPlayerSection = () => {
 
   const episodesAnimeId = animeMatchesUrl ? (animeSlug ?? "") : (urlAnimeId ?? "");
 
+  // New anime → Settings default + order (session picker choice does not persist).
   useEffect(() => {
     if (!anilistId) return;
-    const saved = getAnimeProviderPreference(anilistId);
-    if (saved) setProvider(normalizeKittyProvider(saved));
+    const s = useSettingsStore.getState();
+    setProvider(getPreferredDefaultProvider(s.providerOrder, s.defaultProvider));
   }, [anilistId]);
 
   // Episode list for next-episode navigation (also resolves episode number for stream API)
@@ -311,8 +310,6 @@ const VideoPlayerSection = () => {
     episodeNo || undefined,
     animeTitle,
   );
-
-  const preferredAnimeProvider = anilistId ? getAnimeProviderPreference(anilistId) : null;
 
   // ── Resume position ──────────────────────────────────────────────
   const [savedResumeTime, setSavedResumeTime] = useState(0);
@@ -1178,16 +1175,14 @@ const VideoPlayerSection = () => {
       setProvider(p);
       const resolvedMode = resolveProviderAudioMode(p, mode);
       setAudioMode(resolvedMode);
-      localStorage.setItem("kittyProvider", p);
       localStorage.setItem("kittyAudioMode", resolvedMode);
-      if (anilistId) saveAnimeProviderPreference(anilistId, p);
       if (mode === "dub") {
         applyStreamAudio("dub");
       } else {
         applyStreamAudio("sub");
       }
     },
-    [preservePlaybackPosition, anilistId, applyStreamAudio],
+    [preservePlaybackPosition, applyStreamAudio, resolveProviderAudioMode],
   );
 
   const handleSimpleProviderChange = useCallback(
@@ -1457,7 +1452,6 @@ const VideoPlayerSection = () => {
       onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
       onProviderChange={handleSimpleProviderChange}
       streamCaps={streamCaps}
-      preferredProvider={preferredAnimeProvider}
     />
   ) : (
     <ProviderQuickPick
@@ -1466,7 +1460,6 @@ const VideoPlayerSection = () => {
       compact={isMobile}
       onSelect={handleProviderGridSelect}
       streamCaps={streamCaps}
-      preferredProvider={preferredAnimeProvider}
     />
   );
 

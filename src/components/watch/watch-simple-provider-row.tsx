@@ -31,7 +31,6 @@ type Props = {
   onAudioChange?: (audio: "sub" | "dub") => void;
   onProviderChange: (provider: KittyProvider) => void;
   streamCaps?: EpisodeStreamCapabilities;
-  preferredProvider?: KittyProvider | null;
   className?: string;
 };
 
@@ -74,7 +73,6 @@ export default function WatchSimpleProviderRow({
   provider,
   onProviderChange,
   streamCaps,
-  preferredProvider,
   className,
 }: Props) {
   const t = useT();
@@ -98,7 +96,6 @@ export default function WatchSimpleProviderRow({
         <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
           {(["featured", "other"] as const).map((group) => {
             const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
-              preferredId: preferredProvider,
               priorityOrder: providerOrder,
               defaultProvider,
             });
