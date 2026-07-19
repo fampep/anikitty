@@ -14,7 +14,6 @@ export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "AniNeko",
   "AniWaves",
   "KickAssAnime",
-  "ReAnime",
   "KuroHost",
 ] as const;
 

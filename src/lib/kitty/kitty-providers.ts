@@ -62,7 +62,6 @@ export const KITTY_PROVIDERS = [
   "AniNeko",
   "MKissa",
   "KickAssAnime",
-  "ReAnime",
   "KuroHost",
 ] as const;
 
@@ -162,17 +161,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "KickAssAnime · kaa.lt · VidStreaming/CatStream HLS · SUB · DUB",
   },
   {
-    id: "ReAnime",
-    label: "Romeo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "reanime.to · FlixCloud HLS · SUB · DUB",
-  },
-  {
     id: "KuroHost",
     label: "Hotel",
     group: "featured",
@@ -194,7 +182,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniNeko",
   "MKissa",
   "KickAssAnime",
-  "ReAnime",
   "KuroHost",
 ];
 
@@ -220,7 +207,6 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniWatch",
   "AniNeko",
   "KickAssAnime",
-  "ReAnime",
   "KuroHost",
 ]);
 
@@ -238,6 +224,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
+  if (value === "ReAnime") return "KuroHost";
   if (value === "AniKuro") {
     return DEFAULT_KITTY_PROVIDER;
   }
