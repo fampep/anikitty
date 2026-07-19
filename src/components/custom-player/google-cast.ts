@@ -14,6 +14,11 @@ import {
   resolveKittyStreamType,
   type KittyStreamType,
 } from "@/lib/kitty/stream-format";
+import {
+  detectSubtitleFormat,
+  isOurSubtitleUrl,
+  subtitleProxyUrl,
+} from "@/lib/subtitles/subtitle-track-utils";
 
 /** Inline check — avoid importing Node `crypto` HLS token helpers into the client bundle. */
 function isKittyHlsProxyUrl(url: string): boolean {
@@ -56,6 +61,16 @@ export function peekCastConnectionState(): CastConnectionState {
   }
 }
 
+/** Soft subtitle track for Chromecast Default Media Receiver (WebVTT). */
+export type CastTextTrackRequest = {
+  /** Absolute or site-relative caption URL (VTT preferred). */
+  url: string;
+  label?: string;
+  language?: string;
+  /** When true, enable this track after loadMedia. */
+  active?: boolean;
+};
+
 export type CastMediaRequest = {
   url: string;
   contentType: string;
@@ -64,6 +79,8 @@ export type CastMediaRequest = {
   autoplay?: boolean;
   muted?: boolean;
   volume?: number;
+  /** Soft WebVTT tracks exposed to the Cast receiver. */
+  textTracks?: CastTextTrackRequest[];
 };
 
 export type CastLoadResult = {
@@ -71,6 +88,9 @@ export type CastLoadResult = {
   error?: string;
   contentId?: string;
   contentType?: string;
+  /** Track IDs attached to MediaInfo (1-based, same order as prepared text tracks). */
+  textTrackIds?: number[];
+  activeTextTrackIds?: number[];
 };
 
 type CastApiWindow = Window & {
@@ -363,10 +383,112 @@ export async function prepareCastMediaUrl(
   }
 }
 
+/**
+ * Make a soft-subtitle URL fetchable by the Chromecast receiver.
+ * Our `/api/kitty/subtitles` endpoints already CORS-open; external hosts are
+ * wrapped through the subtitle proxy (same as local playback).
+ * ASS/SSA tracks are skipped — Default Media Receiver only renders WebVTT.
+ */
+export function prepareCastTextTrackUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  const format = detectSubtitleFormat({ url: trimmed });
+  if (format === "ass") return null;
+
+  let candidate = trimmed;
+  if (!isOurSubtitleUrl(candidate) && /^https?:\/\//i.test(candidate)) {
+    candidate = subtitleProxyUrl(candidate);
+  }
+
+  const absolute = toAbsoluteCastUrl(candidate);
+  if (!absolute || !isCastUrlReachableFromDevice(absolute)) return null;
+  return absolute;
+}
+
+export type PreparedCastTextTrack = {
+  trackId: number;
+  url: string;
+  label: string;
+  language: string;
+  active: boolean;
+};
+
+/** Absolutize / proxy castable text tracks; assign stable 1-based trackIds. */
+export function prepareCastTextTracks(
+  tracks: readonly CastTextTrackRequest[] | undefined,
+): PreparedCastTextTrack[] {
+  if (!tracks?.length) return [];
+  const out: PreparedCastTextTrack[] = [];
+  for (const track of tracks) {
+    const url = prepareCastTextTrackUrl(track.url);
+    if (!url) continue;
+    out.push({
+      trackId: out.length + 1,
+      url,
+      label: track.label?.trim() || `Subtitles ${out.length + 1}`,
+      language: track.language?.trim() || "en",
+      active: Boolean(track.active),
+    });
+  }
+  return out;
+}
+
+function buildDefaultTextTrackStyle(): chrome.cast.media.TextTrackStyle | null {
+  if (!hasCastApis()) return null;
+  const style = new chrome.cast.media.TextTrackStyle();
+  style.backgroundColor = "#00000000";
+  style.foregroundColor = "#FFFFFFFF";
+  style.edgeType = chrome.cast.media.TextTrackEdgeType.DROP_SHADOW;
+  style.edgeColor = "#000000FF";
+  style.fontScale = 1;
+  style.fontGenericFamily =
+    chrome.cast.media.TextTrackFontGenericFamily.SANS_SERIF;
+  return style;
+}
+
+function editTracksInfoAsync(
+  media: chrome.cast.media.Media,
+  activeTrackIds: number[],
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const req = new chrome.cast.media.EditTracksInfoRequest(activeTrackIds);
+      media.editTracksInfo(
+        req,
+        () => resolve(),
+        (err) => reject(err),
+      );
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+/**
+ * Enable / disable text tracks on the current Cast media session.
+ * Pass `[]` to turn captions off on the TV.
+ */
+export async function setCastActiveTextTrackIds(
+  activeTrackIds: number[],
+): Promise<boolean> {
+  const ctx = ensureCastContext();
+  if (!ctx || !hasCastApis()) return false;
+  const media = ctx.getCurrentSession()?.getMediaSession();
+  if (!media) return false;
+  try {
+    await editTracksInfoAsync(media, activeTrackIds);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Build the chrome.cast LoadRequest payload (exported for tests). */
 export function buildCastLoadRequest(
   media: CastMediaRequest,
   contentId: string,
+  preparedTracks: readonly PreparedCastTextTrack[] = [],
 ): chrome.cast.media.LoadRequest | null {
   if (!hasCastApis() || !contentId) return null;
 
@@ -392,8 +514,30 @@ export function buildCastLoadRequest(
   if (media.title) metadata.title = media.title;
   mediaInfo.metadata = metadata;
 
+  const activeTrackIds: number[] = [];
+  if (preparedTracks.length > 0) {
+    mediaInfo.tracks = preparedTracks.map((track) => {
+      const castTrack = new chrome.cast.media.Track(
+        track.trackId,
+        chrome.cast.media.TrackType.TEXT,
+      );
+      castTrack.trackContentId = track.url;
+      castTrack.trackContentType = "text/vtt";
+      castTrack.subtype = chrome.cast.media.TextTrackType.SUBTITLES;
+      castTrack.name = track.label;
+      castTrack.language = track.language;
+      if (track.active) activeTrackIds.push(track.trackId);
+      return castTrack;
+    });
+    const style = buildDefaultTextTrackStyle();
+    if (style) mediaInfo.textTrackStyle = style;
+  }
+
   const request = new chrome.cast.media.LoadRequest(mediaInfo);
   request.autoplay = media.autoplay !== false;
+  if (activeTrackIds.length > 0) {
+    request.activeTrackIds = activeTrackIds;
+  }
   if (
     typeof media.currentTime === "number" &&
     Number.isFinite(media.currentTime) &&
@@ -428,17 +572,42 @@ export async function loadMediaOnSession(
 
   const contentId = prepared.url;
   const contentType = prepared.contentType || media.contentType;
+  const preparedTracks = prepareCastTextTracks(media.textTracks);
   const request = buildCastLoadRequest(
     { ...media, contentType },
     contentId,
+    preparedTracks,
   );
   if (!request) {
     return { ok: false, error: "Could not build Cast load request" };
   }
 
+  const activeTextTrackIds = preparedTracks
+    .filter((t) => t.active)
+    .map((t) => t.trackId);
+  const textTrackIds = preparedTracks.map((t) => t.trackId);
+
   try {
     await session.loadMedia(request);
-    return { ok: true, contentId, contentType };
+    // Some receivers honor LoadRequest.activeTrackIds; others need an explicit
+    // editTracksInfo after media is ready (esp. when resuming / replacing).
+    if (preparedTracks.length > 0) {
+      const mediaSession = session.getMediaSession();
+      if (mediaSession) {
+        try {
+          await editTracksInfoAsync(mediaSession, activeTextTrackIds);
+        } catch {
+          /* load succeeded; captions may still work via activeTrackIds */
+        }
+      }
+    }
+    return {
+      ok: true,
+      contentId,
+      contentType,
+      textTrackIds,
+      activeTextTrackIds,
+    };
   } catch (err) {
     const detail = formatCastError(err);
     const unreachableHint =
@@ -450,6 +619,8 @@ export async function loadMediaOnSession(
       error: `${detail}.${unreachableHint}`.trim(),
       contentId,
       contentType,
+      textTrackIds,
+      activeTextTrackIds,
     };
   }
 }
@@ -474,9 +645,13 @@ export async function describeCastLoadPayload(
   streamType: string;
   autoplay: boolean;
   currentTime: number;
+  textTracks: PreparedCastTextTrack[];
+  activeTrackIds: number[];
   error?: string;
 }> {
   const prepared = await prepareCastMediaUrl(media.url, media.contentType);
+  const textTracks = prepareCastTextTracks(media.textTracks);
+  const activeTrackIds = textTracks.filter((t) => t.active).map((t) => t.trackId);
   if (!prepared.ok || !prepared.url) {
     return {
       contentId: "",
@@ -484,6 +659,8 @@ export async function describeCastLoadPayload(
       streamType: "BUFFERED",
       autoplay: media.autoplay !== false,
       currentTime: media.currentTime ?? 0,
+      textTracks,
+      activeTrackIds,
       error: prepared.error,
     };
   }
@@ -493,5 +670,7 @@ export async function describeCastLoadPayload(
     streamType: "BUFFERED",
     autoplay: media.autoplay !== false,
     currentTime: media.currentTime ?? 0,
+    textTracks,
+    activeTrackIds,
   };
 }

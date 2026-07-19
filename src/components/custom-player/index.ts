@@ -10,6 +10,9 @@ export {
   resolveCastContentType,
   toAbsoluteCastUrl,
   prepareCastMediaUrl,
+  prepareCastTextTrackUrl,
+  prepareCastTextTracks,
   buildCastLoadRequest,
   describeCastLoadPayload,
+  setCastActiveTextTrackIds,
 } from "./google-cast";

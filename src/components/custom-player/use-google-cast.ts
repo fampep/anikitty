@@ -14,9 +14,11 @@ import {
   noteCastSessionActive,
   peekCastConnectionState,
   resolveCastContentType,
+  setCastActiveTextTrackIds,
   type CastConnectionState,
   type CastLoadResult,
   type CastMediaRequest,
+  type CastTextTrackRequest,
 } from "./google-cast";
 
 export type UseGoogleCastOptions = {
@@ -63,6 +65,11 @@ export type UseGoogleCastResult = {
   setVolumeLevel: (level: number) => void;
   /** Reload media on an active session (e.g. quality change). */
   syncMedia: () => Promise<boolean>;
+  /**
+   * Enable Cast text tracks by 1-based trackId (same order as textTracks in
+   * the last loadMedia). Pass `[]` to disable captions on the TV.
+   */
+  setActiveTextTrackIds: (trackIds: number[]) => Promise<boolean>;
 };
 
 export function useGoogleCast(
@@ -470,6 +477,13 @@ export function useGoogleCast(
     setRemoteMuted(next === 0);
   }, []);
 
+  const setActiveTextTrackIds = useCallback(async (trackIds: number[]) => {
+    if (connection !== "connected") return false;
+    return setCastActiveTextTrackIds(
+      trackIds.filter((id) => Number.isFinite(id) && id > 0),
+    );
+  }, [connection]);
+
   return {
     available,
     loading,
@@ -488,6 +502,7 @@ export function useGoogleCast(
     seekTo,
     setVolumeLevel,
     syncMedia,
+    setActiveTextTrackIds,
   };
 }
 
@@ -505,6 +520,7 @@ export function buildCastMediaRequest(opts: {
   autoplay?: boolean;
   volume?: number;
   muted?: boolean;
+  textTracks?: CastTextTrackRequest[];
 }): CastMediaRequest | null {
   const url = opts.url.trim();
   if (!url) return null;
@@ -516,5 +532,6 @@ export function buildCastMediaRequest(opts: {
     autoplay: opts.autoplay,
     volume: opts.volume,
     muted: opts.muted,
+    textTracks: opts.textTracks,
   };
 }

@@ -41,6 +41,7 @@ import {
   type PlayerController,
 } from "@/lib/player/player-controller";
 import {
+  detectSubtitleFormat,
   getTrackFile,
   isSubtitleTrack,
   labelToLanguage,
@@ -583,6 +584,15 @@ export function AniKittyPlayer({
       .filter((track) => Boolean(track.src));
   }, [tracks]);
 
+  /** Chromecast DMR only renders WebVTT — keep Cast trackIds aligned with this list. */
+  const castCaptionOptions = useMemo(
+    () =>
+      captionOptions.filter(
+        (track) => detectSubtitleFormat({ url: track.src }) !== "ass",
+      ),
+    [captionOptions],
+  );
+
   const serverQualities = useMemo(() => {
     const deduped = dedupeStreamQualities(qualities);
     if (deduped.length > 1 && isResolutionQualityLadder(deduped)) return deduped;
@@ -830,6 +840,13 @@ export function AniKittyPlayer({
     ) {
       seek = startTimeRef.current;
     }
+    const activeCastCaptionId =
+      selectedCaptionId == null
+        ? null
+        : castCaptionOptions.some((t) => t.id === selectedCaptionId)
+          ? selectedCaptionId
+          : (castCaptionOptions[0]?.id ?? null);
+
     return buildCastMediaRequest({
       url: activeSrc,
       qualities,
@@ -838,8 +855,25 @@ export function AniKittyPlayer({
       autoplay: true,
       volume: muted ? 0 : volume,
       muted,
+      textTracks: castCaptionOptions.map((track) => ({
+        url: track.src,
+        label: track.label,
+        language: track.language,
+        active: Boolean(
+          activeCastCaptionId && track.id === activeCastCaptionId,
+        ),
+      })),
     });
-  }, [activeSrc, qualities, title, currentTime, volume, muted]);
+  }, [
+    activeSrc,
+    qualities,
+    title,
+    currentTime,
+    volume,
+    muted,
+    castCaptionOptions,
+    selectedCaptionId,
+  ]);
 
   const onCastSessionEnd = useCallback(
     (info: { resumeAt: number | null; wasPlaying: boolean }) => {
@@ -928,6 +962,7 @@ export function AniKittyPlayer({
     seekTo: castSeekTo,
     setVolumeLevel: castSetVolume,
     syncMedia: castSyncMedia,
+    setActiveTextTrackIds: castSetActiveTextTrackIds,
   } = cast;
 
   const {
@@ -2389,8 +2424,15 @@ export function AniKittyPlayer({
       setMoreOpen(false);
       setCaptionsOpen(false);
       bumpControls();
+      // Mirror caption choice onto the Chromecast receiver (1-based trackIds).
+      if (castingRef.current) {
+        const idx = id
+          ? castCaptionOptions.findIndex((c) => c.id === id)
+          : -1;
+        void castSetActiveTextTrackIds(idx >= 0 ? [idx + 1] : []);
+      }
     },
-    [bumpControls, captionOptions],
+    [bumpControls, captionOptions, castCaptionOptions, castSetActiveTextTrackIds],
   );
 
   const toggleCaptions = useCallback(() => {
