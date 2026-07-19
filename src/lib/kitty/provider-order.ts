@@ -57,15 +57,44 @@ export function resolveProviderOrder(custom?: KittyProvider[] | null): KittyProv
   return sanitizeProviderOrder(custom);
 }
 
-export function getPreferredDefaultProvider(custom?: KittyProvider[] | null): KittyProvider {
-  return resolveProviderOrder(custom)[0] ?? DEFAULT_KITTY_PROVIDER;
+/** Coerce a saved default provider id against the active list. */
+export function sanitizeDefaultProvider(
+  value: unknown,
+  order?: KittyProvider[] | null,
+): KittyProvider {
+  const resolved = resolveProviderOrder(order);
+  if (typeof value === "string" && isActiveKittyProvider(value)) return value;
+  return resolved[0] ?? DEFAULT_KITTY_PROVIDER;
 }
 
-/** Auto-fallback sequence: user priority first, then remaining featured / active. */
-export function buildProviderFallbackOrder(custom?: KittyProvider[] | null): KittyProvider[] {
+/**
+ * Try order for auto-pick / fallback: explicit default first, then the rest of
+ * `providerOrder` without duplicating.
+ */
+export function buildTryOrder(
+  customOrder?: KittyProvider[] | null,
+  defaultProvider?: KittyProvider | null,
+): KittyProvider[] {
+  const order = resolveProviderOrder(customOrder);
+  const preferred = sanitizeDefaultProvider(defaultProvider, order);
+  return [preferred, ...order.filter((id) => id !== preferred)];
+}
+
+export function getPreferredDefaultProvider(
+  customOrder?: KittyProvider[] | null,
+  defaultProvider?: KittyProvider | null,
+): KittyProvider {
+  return sanitizeDefaultProvider(defaultProvider, customOrder);
+}
+
+/** Auto-fallback sequence: user default + priority first, then remaining featured / active. */
+export function buildProviderFallbackOrder(
+  custom?: KittyProvider[] | null,
+  defaultProvider?: KittyProvider | null,
+): KittyProvider[] {
   const featured = KITTY_PROVIDER_META.filter((p) => p.group === "featured").map((p) => p.id);
   const ordered: KittyProvider[] = [
-    ...resolveProviderOrder(custom),
+    ...buildTryOrder(custom, defaultProvider),
     ...featured,
     ...KITTY_PROVIDERS,
   ];
@@ -82,11 +111,17 @@ export function arraysEqualProviderOrder(a: KittyProvider[], b: KittyProvider[])
   return a.every((id, i) => id === b[i]);
 }
 
-export function isSiteDefaultProviderOrder(order: KittyProvider[]): boolean {
-  return arraysEqualProviderOrder(
+export function isSiteDefaultProviderOrder(
+  order: KittyProvider[],
+  defaultProvider?: KittyProvider | null,
+): boolean {
+  const orderMatches = arraysEqualProviderOrder(
     resolveProviderOrder(order),
     sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY),
   );
+  if (!orderMatches) return false;
+  if (defaultProvider == null) return true;
+  return sanitizeDefaultProvider(defaultProvider, order) === DEFAULT_KITTY_PROVIDER;
 }
 
 export function moveProviderInOrder(
@@ -113,5 +148,27 @@ export function moveProviderInOrder(
     next.splice(insertAt, 0, id);
   }
 
+  return next;
+}
+
+/** HTML5 / button drag reorder by index. */
+export function reorderProviderAt(
+  order: KittyProvider[],
+  fromIndex: number,
+  toIndex: number,
+): KittyProvider[] {
+  const list = resolveProviderOrder(order);
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= list.length ||
+    toIndex >= list.length ||
+    fromIndex === toIndex
+  ) {
+    return list;
+  }
+  const next = [...list];
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
   return next;
 }

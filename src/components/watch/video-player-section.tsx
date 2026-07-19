@@ -131,7 +131,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider } = useSettingsStore();
   // Lightweight health probes — used only to skip known-dead nodes on failover, not for geo/ping routing.
   const { nodes: proxyNodes } = useKittyNodePing({
     enabled: true,
@@ -164,7 +164,8 @@ const VideoPlayerSection = () => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kittyProvider");
       if (saved) return normalizeKittyProvider(saved);
-      return getPreferredDefaultProvider(useSettingsStore.getState().providerOrder);
+      const s = useSettingsStore.getState();
+      return getPreferredDefaultProvider(s.providerOrder, s.defaultProvider);
     }
     return DEFAULT_PROVIDER;
   });
@@ -1263,7 +1264,7 @@ const VideoPlayerSection = () => {
     const tried = triedProvidersRef.current;
     if (!tried.has(provider)) tried.add(provider);
 
-    const next = getNextFallbackProvider(provider, tried, providerOrder);
+    const next = getNextFallbackProvider(provider, tried, providerOrder, defaultProvider);
     if (!next) return false;
 
     tried.add(next);
@@ -1277,13 +1278,13 @@ const VideoPlayerSection = () => {
       fallbackBusyRef.current = false;
     }, 1200);
     return true;
-  }, [providerAutoFallback, provider, audioMode, t, handleProviderGridSelect, providerOrder]);
+  }, [providerAutoFallback, provider, audioMode, t, handleProviderGridSelect, providerOrder, defaultProvider]);
 
   const handleTryAnotherServer = useCallback(() => {
     if (!triedProvidersRef.current.has(provider)) {
       triedProvidersRef.current.add(provider);
     }
-    const next = getNextFallbackProvider(provider, triedProvidersRef.current, providerOrder);
+    const next = getNextFallbackProvider(provider, triedProvidersRef.current, providerOrder, defaultProvider);
     if (!next) {
       toast.error(t("watch.noMoreProviders"));
       return;
@@ -1291,7 +1292,7 @@ const VideoPlayerSection = () => {
     toast.info(t("watch.providerFallback", { from: provider, to: next }));
     const mode = normalizeProviderAudioMode(audioMode, streamAudio);
     handleProviderGridSelect(next, mode, true);
-  }, [provider, audioMode, streamAudio, t, handleProviderGridSelect, providerOrder]);
+  }, [provider, audioMode, streamAudio, t, handleProviderGridSelect, providerOrder, defaultProvider]);
 
   const revealProviderControls = useCallback(() => {
     setShowPlayerControls(true);
@@ -1307,8 +1308,8 @@ const VideoPlayerSection = () => {
   const peekNextFallbackProvider = useCallback(() => {
     const tried = new Set(triedProvidersRef.current);
     tried.add(provider);
-    return getNextFallbackProvider(provider, tried, providerOrder);
-  }, [provider, providerOrder]);
+    return getNextFallbackProvider(provider, tried, providerOrder, defaultProvider);
+  }, [provider, providerOrder, defaultProvider]);
 
   // Stream fetch failed → try another healthy node on infra errors, then providers.
   useEffect(() => {

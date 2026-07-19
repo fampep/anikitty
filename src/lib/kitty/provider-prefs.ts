@@ -1,5 +1,5 @@
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
-import { resolveProviderOrder } from "@/lib/kitty/provider-order";
+import { buildTryOrder } from "@/lib/kitty/provider-order";
 
 const ANIME_PROVIDER_KEY = "kitty:provider-by-anime";
 const PROVIDER_SCORES_KEY = "kitty:provider-scores";
@@ -62,9 +62,13 @@ export function sortProvidersForPicker<T extends { id: KittyProvider }>(
     availableIds?: Set<KittyProvider> | null;
     /** User preference order; defaults to site {@link DEFAULT_PROVIDER_PRIORITY}. */
     priorityOrder?: KittyProvider[] | null;
+    /** Explicit default provider — tried before the rest of `priorityOrder`. */
+    defaultProvider?: KittyProvider | null;
   } = {},
 ): T[] {
-  const priority = new Map(resolveProviderOrder(opts.priorityOrder).map((id, i) => [id, i]));
+  const priority = new Map(
+    buildTryOrder(opts.priorityOrder, opts.defaultProvider).map((id, i) => [id, i]),
+  );
 
   return [...items].sort((a, b) => {
     const aAvail = opts.availableIds ? opts.availableIds.has(a.id) : true;

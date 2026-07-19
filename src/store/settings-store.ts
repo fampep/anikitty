@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-providers";
-import { DEFAULT_PROVIDER_PRIORITY } from "@/lib/kitty/kitty-providers";
-import { sanitizeProviderOrder } from "@/lib/kitty/provider-order";
+import { DEFAULT_KITTY_PROVIDER, DEFAULT_PROVIDER_PRIORITY } from "@/lib/kitty/kitty-providers";
+import { sanitizeDefaultProvider, sanitizeProviderOrder } from "@/lib/kitty/provider-order";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { coerceKittyApiNodeId, DEFAULT_KITTY_API_NODE_ID, isKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
@@ -68,6 +68,13 @@ interface ISettingsStore {
   providerOrder: KittyProvider[];
   setProviderOrder: (order: KittyProvider[]) => void;
   resetProviderOrder: () => void;
+
+  /**
+   * Explicit default provider — tried first when starting a watch with no
+   * per-anime preference; may differ from the top of `providerOrder`.
+   */
+  defaultProvider: KittyProvider;
+  setDefaultProvider: (id: KittyProvider) => void;
 
   /** Compact provider dropdown instead of full grid. */
   simpleProviderPicker: boolean;
@@ -215,7 +222,16 @@ export const useSettingsStore = create<ISettingsStore>()(
       providerOrder: sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY),
       setProviderOrder: (order) => set({ providerOrder: sanitizeProviderOrder(order) }),
       resetProviderOrder: () =>
-        set({ providerOrder: sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY) }),
+        set({
+          providerOrder: sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY),
+          defaultProvider: DEFAULT_KITTY_PROVIDER,
+        }),
+
+      defaultProvider: DEFAULT_KITTY_PROVIDER,
+      setDefaultProvider: (id) =>
+        set((s) => ({
+          defaultProvider: sanitizeDefaultProvider(id, s.providerOrder),
+        })),
 
       simpleProviderPicker: true,
       setSimpleProviderPicker: (simpleProviderPicker) => set({ simpleProviderPicker }),
@@ -364,7 +380,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 45,
+      version: 46,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -377,6 +393,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         theatreMode: state.theatreMode,
         providerAutoFallback: state.providerAutoFallback,
         providerOrder: state.providerOrder,
+        defaultProvider: state.defaultProvider,
         simpleProviderPicker: state.simpleProviderPicker,
         providerSectionHidden: state.providerSectionHidden,
         kittyProxyNode: state.kittyProxyNode,
@@ -595,6 +612,18 @@ export const useSettingsStore = create<ISettingsStore>()(
           );
         } else if (next.providerOrder) {
           next.providerOrder = sanitizeProviderOrder(next.providerOrder);
+        }
+        if (version < 46) {
+          // Explicit default was previously implied by providerOrder[0].
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? next.providerOrder?.[0] ?? DEFAULT_KITTY_PROVIDER,
+            next.providerOrder,
+          );
+        } else {
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider,
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },

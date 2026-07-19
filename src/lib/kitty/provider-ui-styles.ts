@@ -37,6 +37,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-cyan-400",
     glow: "from-cyan-500/20",
   },
+  AniKuro: {
+    chip: "border-pink-400/30 bg-pink-500/10 text-pink-100/90",
+    pillActive: "border-pink-400/45 bg-pink-500/20 text-pink-50 shadow-[0_0_12px_-4px_rgba(244,114,182,0.35)]",
+    pillIdle: "border-transparent text-pink-300/45 hover:text-pink-200/80 hover:bg-pink-500/[0.06]",
+    dot: "bg-pink-400",
+    glow: "from-pink-500/20",
+  },
   MegaPlay: {
     chip: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100/90",
     pillActive: "border-emerald-400/45 bg-emerald-500/20 text-emerald-50 shadow-[0_0_12px_-4px_rgba(52,211,153,0.35)]",

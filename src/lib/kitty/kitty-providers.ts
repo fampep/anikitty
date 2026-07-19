@@ -59,6 +59,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
 export const KITTY_PROVIDERS = [
   "AniWaves",
   "Anikoto",
+  "AniKuro",
   "AniWatch",
   "AniNeko",
   "MKissa",
@@ -115,6 +116,17 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "AniList ID · anichi.to scrape · SUB · DUB · soft subs",
+  },
+  {
+    id: "AniKuro",
+    label: "Alpha",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "AniList ID · anikuro.ru · animepower + mirrors · SUB · DUB · soft subs",
   },
   {
     id: "AniWatch",
@@ -192,6 +204,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniWaves",
   "Anikoto",
+  "AniKuro",
   "AniWatch",
   "AniNeko",
   "MKissa",
@@ -219,6 +232,7 @@ export {
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniWaves",
   "Anikoto",
+  "AniKuro",
   "AniWatch",
   "AniNeko",
   "KickAssAnime",
@@ -241,9 +255,6 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
   if (value === "ReAnime") return "KuroHost";
-  if (value === "AniKuro") {
-    return DEFAULT_KITTY_PROVIDER;
-  }
   if (value && isActiveKittyProvider(value)) return value;
   if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
   // Any retired provider (or unknown value) falls back to the default.

@@ -67,7 +67,8 @@ export function ProviderDefaultBadge({
 }) {
   const t = useT();
   const providerOrder = useSettingsStore((s) => s.providerOrder);
-  const preferredDefault = getPreferredDefaultProvider(providerOrder);
+  const defaultProvider = useSettingsStore((s) => s.defaultProvider);
+  const preferredDefault = getPreferredDefaultProvider(providerOrder, defaultProvider);
   if (id !== preferredDefault) return null;
 
   return (
@@ -91,6 +92,7 @@ export default function ProviderSelect({
 }: Props) {
   const t = useT();
   const providerOrder = useSettingsStore((s) => s.providerOrder);
+  const defaultProvider = useSettingsStore((s) => s.defaultProvider);
 
   return (
     <Select value={value} onValueChange={(v) => onChange(v as KittyProvider)} disabled={disabled}>
@@ -112,6 +114,7 @@ export default function ProviderSelect({
         {(["featured", "other"] as const).map((group) => {
           const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
             priorityOrder: providerOrder,
+            defaultProvider,
           });
           if (items.length === 0) return null;
 
@@ -259,7 +262,7 @@ export function ProviderGrid({
   preferredProvider,
 }: ProviderGridProps) {
   const t = useT();
-  const { providerSectionHidden, toggleProviderSectionHidden, providerOrder } = useSettingsStore();
+  const { providerSectionHidden, toggleProviderSectionHidden, providerOrder, defaultProvider } = useSettingsStore();
   const visibleRows = rows ?? PROVIDER_GRID_ROWS;
   const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
 
@@ -285,6 +288,7 @@ export function ProviderGrid({
         const items = sortProvidersForPicker(baseItems, {
           preferredId: preferredProvider,
           priorityOrder: providerOrder,
+          defaultProvider,
         });
         if (items.length === 0) return null;
         const styles = PROVIDER_ROW_STYLES[mode];

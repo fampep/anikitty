@@ -6,7 +6,7 @@ import {
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { coerceKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-providers";
-import { sanitizeProviderOrder } from "@/lib/kitty/provider-order";
+import { sanitizeDefaultProvider, sanitizeProviderOrder } from "@/lib/kitty/provider-order";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
 import { sanitizeSeekStepSeconds, type PlayerSeekStep } from "@/lib/player/seek-step";
@@ -22,6 +22,7 @@ export type SyncedUserPreferences = {
   playerSettingsOpen?: boolean;
   providerAutoFallback?: boolean;
   providerOrder?: KittyProvider[];
+  defaultProvider?: KittyProvider;
   simpleProviderPicker?: boolean;
   providerSectionHidden?: Partial<Record<ProviderAudioMode, boolean>>;
   kittyProxyNode?: KittyApiNodeId;
@@ -63,6 +64,9 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.simpleProviderPicker === "boolean") out.simpleProviderPicker = input.simpleProviderPicker;
   if (Array.isArray(input.providerOrder)) {
     out.providerOrder = sanitizeProviderOrder(input.providerOrder);
+  }
+  if (typeof input.defaultProvider === "string") {
+    out.defaultProvider = sanitizeDefaultProvider(input.defaultProvider, out.providerOrder);
   }
   if (typeof input.liteMode === "boolean") out.liteMode = input.liteMode;
   if (typeof input.autoSkipIntro === "boolean") out.autoSkipIntro = input.autoSkipIntro;

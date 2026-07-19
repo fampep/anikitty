@@ -79,6 +79,7 @@ export default function WatchSimpleProviderRow({
 }: Props) {
   const t = useT();
   const providerOrder = useSettingsStore((s) => s.providerOrder);
+  const defaultProvider = useSettingsStore((s) => s.defaultProvider);
   const serverCount = KITTY_PROVIDER_META.length;
 
   return (
@@ -99,6 +100,7 @@ export default function WatchSimpleProviderRow({
             const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
               preferredId: preferredProvider,
               priorityOrder: providerOrder,
+              defaultProvider,
             });
             if (items.length === 0) return null;
             return (

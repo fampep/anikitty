@@ -27,6 +27,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     providerAutoFallback: s.providerAutoFallback,
     simpleProviderPicker: s.simpleProviderPicker,
     providerOrder: s.providerOrder,
+    defaultProvider: s.defaultProvider,
     providerSectionHidden: s.providerSectionHidden,
     kittyProxyNode: s.kittyProxyNode,
     liteMode: s.liteMode,
@@ -63,6 +64,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.providerAutoFallback !== undefined) patch.providerAutoFallback = prefs.providerAutoFallback;
   if (prefs.simpleProviderPicker !== undefined) patch.simpleProviderPicker = prefs.simpleProviderPicker;
   if (prefs.providerOrder !== undefined) patch.providerOrder = prefs.providerOrder;
+  if (prefs.defaultProvider !== undefined) patch.defaultProvider = prefs.defaultProvider;
   if (prefs.providerSectionHidden !== undefined) patch.providerSectionHidden = prefs.providerSectionHidden;
   if (prefs.kittyProxyNode !== undefined) patch.kittyProxyNode = prefs.kittyProxyNode;
   if (prefs.liteMode !== undefined) patch.liteMode = prefs.liteMode;
