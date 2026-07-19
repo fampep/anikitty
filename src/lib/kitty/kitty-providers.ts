@@ -47,6 +47,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AnimeStream",
   "KickAssAnime",
   "KuroHost",
+  "Zenkai",
 ] as const;
 
 export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
@@ -63,6 +64,7 @@ export const KITTY_PROVIDERS = [
   "MKissa",
   "KickAssAnime",
   "KuroHost",
+  "Zenkai",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -171,6 +173,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "KuroAnime self-host · bunny.kuroanime.lol · SUB · soft EN subs",
   },
+  {
+    id: "Zenkai",
+    label: "Zulu",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "zenkai.to scrape · Senpai/Sakura vivibebe HLS · SUB · DUB · soft EN",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -182,6 +196,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniNeko",
   "MKissa",
   "KickAssAnime",
+  "Zenkai",
   "KuroHost",
 ];
 
@@ -208,6 +223,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
+  "Zenkai",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
