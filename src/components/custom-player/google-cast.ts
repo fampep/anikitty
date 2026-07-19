@@ -14,6 +14,7 @@ import {
   resolveKittyStreamType,
   type KittyStreamType,
 } from "@/lib/kitty/stream-format";
+import { APP_NAME, APP_URL, SITE_LOGO } from "@/lib/seo/site-seo";
 import {
   detectSubtitleFormat,
   isOurSubtitleUrl,
@@ -69,7 +70,16 @@ export type CastTextTrackRequest = {
 export type CastMediaRequest = {
   url: string;
   contentType: string;
+  /** Episode / media title shown on the Cast receiver. */
   title?: string;
+  /** Secondary line (series name or "AniKitty"). */
+  subtitle?: string;
+  /** Anime / series name when known (TvShow-style metadata). */
+  seriesTitle?: string;
+  /** Episode number when known. */
+  episode?: number;
+  /** Episode or anime poster URL (absolutized for the receiver). */
+  posterUrl?: string;
   currentTime?: number;
   autoplay?: boolean;
   muted?: boolean;
@@ -259,6 +269,85 @@ export function isCastUrlReachableFromDevice(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Absolute HTTPS URL for the AniKitty wordmark the Chromecast can fetch.
+ * Prefers the current origin when public; otherwise production anikitty.moe.
+ */
+export function getCastBrandLogoUrl(): string {
+  const production = `${APP_URL.replace(/\/$/, "")}${SITE_LOGO}`;
+  if (typeof window === "undefined") return production;
+  const local = toAbsoluteCastUrl(SITE_LOGO);
+  if (local && isCastUrlReachableFromDevice(local)) return local;
+  return production;
+}
+
+/** Absolutize an image URL for MediaInfo; null when Chromecast cannot fetch it. */
+export function prepareCastImageUrl(url: string | undefined | null): string | null {
+  const trimmed = (url ?? "").trim();
+  if (!trimmed) return null;
+  const absolute = toAbsoluteCastUrl(trimmed);
+  if (!absolute || !isCastUrlReachableFromDevice(absolute)) return null;
+  return absolute;
+}
+
+function buildCastImage(url: string, width?: number, height?: number): chrome.cast.Image {
+  const image = new chrome.cast.Image(url);
+  if (width) image.width = width;
+  if (height) image.height = height;
+  return image;
+}
+
+/**
+ * Rich MediaInfo metadata for Default Media Receiver loading/idle art:
+ * poster (when available) + AniKitty logo, title, and brand subtitle.
+ */
+export function buildCastMediaMetadata(
+  media: Pick<
+    CastMediaRequest,
+    "title" | "subtitle" | "seriesTitle" | "episode" | "posterUrl"
+  >,
+): chrome.cast.media.GenericMediaMetadata | chrome.cast.media.TvShowMediaMetadata {
+  const brandLogo = getCastBrandLogoUrl();
+  const poster = prepareCastImageUrl(media.posterUrl);
+  const images: chrome.cast.Image[] = [];
+  // Poster first so episode art fills the TV while buffering; logo always present.
+  if (poster) images.push(buildCastImage(poster));
+  images.push(buildCastImage(brandLogo));
+
+  const episodeTitle =
+    media.title?.trim() ||
+    (media.episode != null ? `Episode ${media.episode}` : APP_NAME);
+  const series =
+    media.seriesTitle?.trim() ||
+    media.subtitle?.trim() ||
+    APP_NAME;
+  const brandLine =
+    media.subtitle?.trim() ||
+    (series !== APP_NAME ? `${series} · ${APP_NAME}` : APP_NAME);
+
+  if (
+    hasCastApis() &&
+    (media.seriesTitle?.trim() || media.episode != null)
+  ) {
+    const tv = new chrome.cast.media.TvShowMediaMetadata();
+    tv.metadataType = chrome.cast.media.MetadataType.TV_SHOW;
+    tv.seriesTitle = series;
+    tv.title = episodeTitle;
+    if (media.episode != null && Number.isFinite(media.episode)) {
+      tv.episode = media.episode;
+    }
+    tv.images = images;
+    return tv;
+  }
+
+  const generic = new chrome.cast.media.GenericMediaMetadata();
+  generic.metadataType = chrome.cast.media.MetadataType.GENERIC;
+  generic.title = episodeTitle;
+  generic.subtitle = brandLine;
+  generic.images = images;
+  return generic;
 }
 
 export function resolveCastContentType(
@@ -586,9 +675,7 @@ export function buildCastLoadRequest(
     // fMP4 sources still work when the playlist signals CMAF clearly.
   }
 
-  const metadata = new chrome.cast.media.GenericMediaMetadata();
-  metadata.metadataType = chrome.cast.media.MetadataType.GENERIC;
-  if (media.title) metadata.title = media.title;
+  const metadata = buildCastMediaMetadata(media);
   mediaInfo.metadata = metadata;
 
   // Attach track metadata for later editTracksInfo toggles, but do not set
@@ -838,11 +925,18 @@ export async function describeCastLoadPayload(
   currentTime: number;
   textTracks: PreparedCastTextTrack[];
   activeTrackIds: number[];
+  title?: string;
+  subtitle?: string;
+  seriesTitle?: string;
+  posterUrl?: string | null;
+  brandLogoUrl: string;
   error?: string;
 }> {
   const prepared = await prepareCastMediaUrl(media.url, media.contentType);
   const textTracks = prepareCastTextTracks(media.textTracks);
   const activeTrackIds = textTracks.filter((t) => t.active).map((t) => t.trackId);
+  const brandLogoUrl = getCastBrandLogoUrl();
+  const posterUrl = prepareCastImageUrl(media.posterUrl);
   if (!prepared.ok || !prepared.url) {
     return {
       contentId: "",
@@ -852,6 +946,11 @@ export async function describeCastLoadPayload(
       currentTime: media.currentTime ?? 0,
       textTracks,
       activeTrackIds,
+      title: media.title,
+      subtitle: media.subtitle,
+      seriesTitle: media.seriesTitle,
+      posterUrl,
+      brandLogoUrl,
       error: prepared.error,
     };
   }
@@ -863,5 +962,10 @@ export async function describeCastLoadPayload(
     currentTime: media.currentTime ?? 0,
     textTracks,
     activeTrackIds,
+    title: media.title,
+    subtitle: media.subtitle,
+    seriesTitle: media.seriesTitle,
+    posterUrl,
+    brandLogoUrl,
   };
 }

@@ -1660,6 +1660,8 @@ const VideoPlayerSection = () => {
             ? t("watch.episode", { n: currentEpisodeInfo.number })
             : animeName
         }
+        seriesTitle={animeName ?? undefined}
+        episodeNumber={currentEpisodeInfo?.number}
         className="rounded-none"
         startTime={
           w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState

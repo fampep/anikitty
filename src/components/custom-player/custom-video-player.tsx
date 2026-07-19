@@ -237,6 +237,10 @@ export type AniKittyPlayerProps = {
   src: string;
   poster?: string;
   title?: string;
+  /** Anime / series name for Chromecast MediaInfo (and chrome). */
+  seriesTitle?: string;
+  /** Episode number for Chromecast TvShow metadata. */
+  episodeNumber?: number;
   className?: string;
   /** Soft subtitle / caption tracks (VTT preferred). */
   tracks?: StreamTrack[];
@@ -313,6 +317,8 @@ export function AniKittyPlayer({
   src,
   poster,
   title,
+  seriesTitle,
+  episodeNumber,
   className,
   tracks = [],
   qualities = [],
@@ -857,6 +863,12 @@ export function AniKittyPlayer({
       url: activeSrc,
       qualities,
       title,
+      seriesTitle,
+      episode: episodeNumber,
+      posterUrl: poster,
+      subtitle: seriesTitle
+        ? `${seriesTitle} · AniKitty`
+        : "AniKitty",
       currentTime: seek,
       autoplay: true,
       volume: muted ? 0 : volume,
@@ -874,6 +886,9 @@ export function AniKittyPlayer({
     activeSrc,
     qualities,
     title,
+    seriesTitle,
+    episodeNumber,
+    poster,
     currentTime,
     volume,
     muted,

@@ -553,6 +553,10 @@ export function buildCastMediaRequest(opts: {
   url: string;
   qualities?: readonly { file: string }[];
   title?: string;
+  subtitle?: string;
+  seriesTitle?: string;
+  episode?: number;
+  posterUrl?: string;
   currentTime?: number;
   autoplay?: boolean;
   volume?: number;
@@ -565,6 +569,10 @@ export function buildCastMediaRequest(opts: {
     url,
     contentType: resolveCastContentType(url, opts.qualities ?? []),
     title: opts.title,
+    subtitle: opts.subtitle,
+    seriesTitle: opts.seriesTitle,
+    episode: opts.episode,
+    posterUrl: opts.posterUrl,
     currentTime: opts.currentTime,
     autoplay: opts.autoplay,
     volume: opts.volume,
