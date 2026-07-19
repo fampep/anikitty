@@ -551,7 +551,9 @@ html.density-compact .site-bottom-nav {
   }
 
   html[data-surface="cinema"] .site-panel {
-    @apply border-white/12 bg-zinc-950/45 backdrop-blur-2xl;
+    @apply backdrop-blur-2xl;
+    border-color: rgb(255 255 255 / 0.12);
+    background-color: rgb(9 9 11 / 0.45);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 8px 28px rgba(0, 0, 0, 0.35),
@@ -559,14 +561,18 @@ html.density-compact .site-bottom-nav {
   }
 
   html[data-surface="cinema"]:not(.dark) .site-panel {
-    @apply border-zinc-900/10 bg-white/55 backdrop-blur-2xl;
+    @apply backdrop-blur-2xl;
+    border-color: rgb(24 24 27 / 0.1);
+    background-color: rgb(255 255 255 / 0.55);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.7),
       0 8px 28px rgba(24, 24, 27, 0.08);
   }
 
   html[data-surface="cinema"] .site-header {
-    @apply border-white/[0.08] bg-zinc-950/40 backdrop-blur-2xl;
+    @apply backdrop-blur-2xl;
+    border-color: rgb(255 255 255 / 0.08);
+    background-color: rgb(9 9 11 / 0.4);
   }
 
   html[data-surface="cinema"]:not(.dark) .site-header {
@@ -574,7 +580,9 @@ html.density-compact .site-bottom-nav {
   }
 
   html[data-surface="cinema"] .site-bottom-nav {
-    @apply border-white/12 bg-zinc-950/55 backdrop-blur-2xl;
+    @apply backdrop-blur-2xl;
+    border-color: rgb(255 255 255 / 0.12);
+    background-color: rgb(9 9 11 / 0.55);
   }
 
   html[data-surface="cinema"]:not(.dark) .site-bottom-nav {
@@ -582,7 +590,9 @@ html.density-compact .site-bottom-nav {
   }
 
   html[data-surface="cinema"] .site-glass {
-    @apply border-white/12 bg-zinc-950/40 backdrop-blur-2xl;
+    @apply backdrop-blur-2xl;
+    border-color: rgb(255 255 255 / 0.12);
+    background-color: rgb(9 9 11 / 0.4);
   }
 
   html[data-surface="cinema"] .dark .watch-chrome,
@@ -592,7 +602,9 @@ html.density-compact .site-bottom-nav {
 
   html[data-surface="cinema"].dark .watch-player-stack .watch-episode-strip,
   html[data-surface="cinema"].dark .watch-episode-strip {
-    @apply border-white/[0.1] bg-zinc-950/40 backdrop-blur-xl;
+    @apply backdrop-blur-xl;
+    border-color: rgb(255 255 255 / 0.1);
+    background-color: rgb(9 9 11 / 0.4);
   }
 
   .site-panel-hover {
@@ -617,7 +629,8 @@ html.density-compact .site-bottom-nav {
   }
 
   html[data-surface="cinema"] .site-panel-hover:hover {
-    @apply border-white/20 bg-zinc-950/60;
+    border-color: rgb(255 255 255 / 0.2);
+    background-color: rgb(9 9 11 / 0.6);
   }
 
   .site-label {
