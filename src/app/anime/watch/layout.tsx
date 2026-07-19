@@ -16,6 +16,7 @@ import { CommentScopeTabs, type CommentScope } from "@/components/comments/comme
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import NextEpisodeCountdown from "@/components/anime/next-episode-countdown";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
+import { resolveAnimeBackdropUrl } from "@/lib/anime/resolve-backdrop";
 import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime/anime-carousel";
@@ -49,6 +50,7 @@ import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import { useSettingsStore } from "@/store/settings-store";
 import { useTheatreModeEffects } from "@/hooks/use-theatre-mode-effects";
+import { usePageBackdrop } from "@/hooks/use-page-backdrop";
 
 const CommentSection = dynamic(() => import("@/components/comments/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
@@ -208,6 +210,17 @@ const Layout = (props: Props) => {
   const mappings = mappingData?.mappings;
   const extMeta = mappingData?.metadata;
   const malMeta = extMeta?.mal;
+
+  const cinemaBackdropUrl = useMemo(
+    () =>
+      resolveAnimeBackdropUrl({
+        images: mappingData?.images,
+        infoBanner: anime?.anime?.info?.banner,
+        poster: anime?.anime?.info?.poster,
+      }),
+    [mappingData?.images, anime?.anime?.info?.banner, anime?.anime?.info?.poster],
+  );
+  usePageBackdrop(cinemaBackdropUrl);
 
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (anilistId)              externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(anilistId) });

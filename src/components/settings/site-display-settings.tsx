@@ -1,9 +1,10 @@
 "use client";
 
-import { Palette, Eye } from "lucide-react";
+import { Palette, Eye, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { THEME_COLOR_PRESETS, isValidThemeColor } from "@/lib/core/theme-color";
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
+import type { SiteSurfaceTheme } from "@/lib/core/site-surface";
 import { useSettingsStore } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import { ThemeModeSelect } from "@/components/settings/theme-mode-select";
@@ -108,6 +109,8 @@ export default function SiteDisplaySettings() {
     setInterfaceDensity,
     siteAccentColor,
     setSiteAccentColor,
+    siteSurfaceTheme,
+    setSiteSurfaceTheme,
     showBetaBadge,
     setShowBetaBadge,
     showOnlineCount,
@@ -130,9 +133,45 @@ export default function SiteDisplaySettings() {
     { value: "compact", label: t("settings.densityCompact") },
   ];
 
+  const surfaceOptions: { value: SiteSurfaceTheme; label: string; hint: string }[] = [
+    { value: "zinc", label: t("settings.surfaceZinc"), hint: t("settings.surfaceZincDesc") },
+    { value: "cinema", label: t("settings.surfaceCinema"), hint: t("settings.surfaceCinemaDesc") },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <ThemeModeSelect />
+
+      <div className="flex flex-col gap-2.5 pb-6 border-b border-border dark:border-white/6">
+        <div className="flex items-center gap-2">
+          <Clapperboard className="w-3.5 h-3.5 text-muted-foreground dark:text-white/40" />
+          <p className="text-sm font-medium text-foreground dark:text-white/85">{t("settings.surfaceTheme")}</p>
+        </div>
+        <p className="text-[11px] text-muted-foreground dark:text-white/35 font-mono leading-relaxed">
+          {t("settings.surfaceThemeDesc")}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {surfaceOptions.map((opt) => {
+            const selected = siteSurfaceTheme === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSiteSurfaceTheme(opt.value)}
+                className={cn(
+                  "flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl border text-left transition-all min-w-[8.5rem]",
+                  selected
+                    ? "border-primary/50 bg-accent dark:border-white/35 dark:bg-white/10 text-foreground dark:text-white"
+                    : "border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:border-border dark:hover:border-white/20",
+                )}
+              >
+                <span className="text-[11px] font-semibold">{opt.label}</span>
+                <span className="text-[10px] font-mono opacity-70 leading-snug">{opt.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2.5 pb-6 border-b border-border dark:border-white/6">
         <div className="flex items-center gap-2">

@@ -43,11 +43,13 @@ import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import NextEpisodeCountdown from "@/components/anime/next-episode-countdown";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
+import { resolveAnimeBackdropUrl } from "@/lib/anime/resolve-backdrop";
 import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
 import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
+import { usePageBackdrop } from "@/hooks/use-page-backdrop";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 import { capEpisodeCount } from "@/lib/anime/episode-availability";
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
@@ -125,6 +127,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const { data: mappingData } = useGetAnimeMappings(anilistId);
   const { data: episodesData } = useGetAllEpisodes(slug);
   const watchedEpisodes = useEpisodeProgress(slug);
+
+  const cinemaBackdropUrl = useMemo(
+    () =>
+      resolveAnimeBackdropUrl({
+        images: mappingData?.images,
+        anilistBanner: banner?.Media.bannerImage,
+        infoBanner: anime?.anime.info.banner,
+        poster: anime?.anime.info.poster,
+      }),
+    [mappingData?.images, banner?.Media.bannerImage, anime?.anime.info.banner, anime?.anime.info.poster],
+  );
+  usePageBackdrop(cinemaBackdropUrl);
 
   const rawEpisodeCount =
     episodesData?.episodes?.length ?? episodesData?.totalEpisodes ?? 0;
@@ -294,12 +308,12 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     (moreInfo.malscore !== "N/A" ? moreInfo.malscore : null);
 
   const bannerSrc =
-    mapImages?.fanart ||
-    banner?.Media.bannerImage ||
-    mapImages?.banner ||
-    mapImages?.artworks?.backgrounds?.[0]?.image ||
-    mapImages?.artworks?.banners?.[0]?.image ||
-    info.poster;
+    resolveAnimeBackdropUrl({
+      images: mapImages,
+      anilistBanner: banner?.Media.bannerImage,
+      infoBanner: info.banner,
+      poster: info.poster,
+    }) || info.poster;
 
   const clearLogo = pickAnimeClearLogo(mapImages);
 

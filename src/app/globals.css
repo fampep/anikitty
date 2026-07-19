@@ -440,6 +440,54 @@ html.lite-mode .site-panel {
   -webkit-backdrop-filter: none;
 }
 
+/* Cinema surface — anime backdrop + frosted zinc glass */
+html[data-surface="cinema"] body {
+  background: transparent !important;
+}
+
+html[data-surface="cinema"].dark body::before {
+  display: none;
+}
+
+html[data-surface="cinema"] .site-page {
+  background: transparent;
+}
+
+html[data-surface="cinema"] .home-cinema-body {
+  background: transparent;
+}
+
+html[data-surface="cinema"] .home-rail-fade-left {
+  @apply from-transparent dark:from-transparent;
+  background-image: linear-gradient(to right, rgba(9, 9, 11, 0.55), transparent);
+}
+
+html[data-surface="cinema"] .home-rail-fade-right {
+  @apply from-transparent dark:from-transparent;
+  background-image: linear-gradient(to left, rgba(9, 9, 11, 0.55), transparent);
+}
+
+.site-backdrop-scrim {
+  background:
+    linear-gradient(180deg, rgba(9, 9, 11, 0.72) 0%, rgba(9, 9, 11, 0.55) 35%, rgba(9, 9, 11, 0.78) 100%),
+    linear-gradient(90deg, rgba(9, 9, 11, 0.45) 0%, transparent 40%, transparent 60%, rgba(9, 9, 11, 0.35) 100%);
+}
+
+html[data-surface="cinema"]:not(.dark) .site-backdrop-scrim {
+  background:
+    linear-gradient(180deg, rgba(250, 250, 250, 0.78) 0%, rgba(250, 250, 250, 0.62) 40%, rgba(244, 244, 245, 0.82) 100%),
+    linear-gradient(90deg, rgba(250, 250, 250, 0.4) 0%, transparent 45%, transparent 55%, rgba(250, 250, 250, 0.3) 100%);
+}
+
+/* Fallback when no backdrop image loaded yet */
+html[data-surface="cinema"] .site-backdrop {
+  background: radial-gradient(120% 80% at 50% 0%, #27272a 0%, #09090b 55%, #000 100%);
+}
+
+html.watch-theatre-active[data-surface="cinema"] .site-backdrop {
+  opacity: 0;
+}
+
 html.density-compact {
   --nav-height: 3.25rem;
   --home-section-gap: 1.5rem;
@@ -502,6 +550,51 @@ html.density-compact .site-bottom-nav {
       0 1px 2px rgba(0, 0, 0, 0.25);
   }
 
+  html[data-surface="cinema"] .site-panel {
+    @apply border-white/12 bg-zinc-950/45 backdrop-blur-2xl;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 8px 28px rgba(0, 0, 0, 0.35),
+      0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  html[data-surface="cinema"]:not(.dark) .site-panel {
+    @apply border-zinc-900/10 bg-white/55 backdrop-blur-2xl;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 8px 28px rgba(24, 24, 27, 0.08);
+  }
+
+  html[data-surface="cinema"] .site-header {
+    @apply border-white/[0.08] bg-zinc-950/40 backdrop-blur-2xl;
+  }
+
+  html[data-surface="cinema"]:not(.dark) .site-header {
+    @apply border-border/50 bg-background/55 backdrop-blur-2xl;
+  }
+
+  html[data-surface="cinema"] .site-bottom-nav {
+    @apply border-white/12 bg-zinc-950/55 backdrop-blur-2xl;
+  }
+
+  html[data-surface="cinema"]:not(.dark) .site-bottom-nav {
+    @apply border-border/50 bg-background/70 backdrop-blur-2xl;
+  }
+
+  html[data-surface="cinema"] .site-glass {
+    @apply border-white/12 bg-zinc-950/40 backdrop-blur-2xl;
+  }
+
+  html[data-surface="cinema"] .dark .watch-chrome,
+  html[data-surface="cinema"].dark .watch-chrome {
+    background-image: linear-gradient(to bottom, rgba(12, 12, 14, 0.72), rgba(9, 9, 11, 0.78));
+  }
+
+  html[data-surface="cinema"].dark .watch-player-stack .watch-episode-strip,
+  html[data-surface="cinema"].dark .watch-episode-strip {
+    @apply border-white/[0.1] bg-zinc-950/40 backdrop-blur-xl;
+  }
+
   .site-panel-hover {
     @apply site-panel transition-all duration-300 ease-out;
   }
@@ -521,6 +614,10 @@ html.density-compact .site-bottom-nav {
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
       0 12px 40px rgba(0, 0, 0, 0.55),
       0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  html[data-surface="cinema"] .site-panel-hover:hover {
+    @apply border-white/20 bg-zinc-950/60;
   }
 
   .site-label {

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/store/settings-store";
 import { applyUserThemeColor } from "@/lib/core/theme-color";
+import { applySiteSurfaceTheme } from "@/lib/core/site-surface";
 import {
   INTERFACE_DENSITY_CLASS,
   UI_FONT_SCALE_CLASS,
@@ -13,12 +14,13 @@ import {
 const FONT_SCALE_CLASSES = Object.values(UI_FONT_SCALE_CLASS).filter(Boolean);
 const DENSITY_CLASSES = Object.values(INTERFACE_DENSITY_CLASS).filter(Boolean);
 
-/** Applies font scale, density, and guest accent color from settings store. */
+/** Applies font scale, density, surface theme, and guest accent color from settings store. */
 export default function SiteDisplaySync() {
   const auth = useAuthStore((s) => s.auth);
   const uiFontScale = useSettingsStore((s) => s.uiFontScale);
   const interfaceDensity = useSettingsStore((s) => s.interfaceDensity);
   const siteAccentColor = useSettingsStore((s) => s.siteAccentColor);
+  const siteSurfaceTheme = useSettingsStore((s) => s.siteSurfaceTheme);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -35,6 +37,10 @@ export default function SiteDisplaySync() {
     const densityClass = INTERFACE_DENSITY_CLASS[interfaceDensity];
     if (densityClass) root.classList.add(densityClass);
   }, [uiFontScale, interfaceDensity]);
+
+  useEffect(() => {
+    applySiteSurfaceTheme(siteSurfaceTheme);
+  }, [siteSurfaceTheme]);
 
   useEffect(() => {
     if (auth?.themeColor) {

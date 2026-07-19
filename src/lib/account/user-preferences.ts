@@ -9,6 +9,7 @@ import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-provide
 import { sanitizeDefaultProvider, sanitizeProviderOrder } from "@/lib/kitty/provider-order";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
+import { isSiteSurfaceTheme, type SiteSurfaceTheme } from "@/lib/core/site-surface";
 import { sanitizeSeekStepSeconds, type PlayerSeekStep } from "@/lib/player/seek-step";
 import { sanitizeAnime4kMode, type Anime4kMode } from "@/lib/player/anime4k";
 import { isValidThemeColor } from "@/lib/core/theme-color";
@@ -30,6 +31,7 @@ export type SyncedUserPreferences = {
   autoSkipIntro?: boolean;
   playThemeSong?: boolean;
   siteAccentColor?: string | null;
+  siteSurfaceTheme?: SiteSurfaceTheme;
   uiFontScale?: UiFontScale;
   interfaceDensity?: InterfaceDensity;
   showBetaBadge?: boolean;
@@ -98,6 +100,9 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
     out.siteAccentColor = null;
   } else if (typeof input.siteAccentColor === "string" && isValidThemeColor(input.siteAccentColor)) {
     out.siteAccentColor = input.siteAccentColor.toLowerCase();
+  }
+  if (isSiteSurfaceTheme(input.siteSurfaceTheme)) {
+    out.siteSurfaceTheme = input.siteSurfaceTheme;
   }
 
   if (input.subtitleSettings && typeof input.subtitleSettings === "object") {

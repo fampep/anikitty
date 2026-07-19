@@ -309,3 +309,38 @@ async function fetchHomePostersUncached(): Promise<string[]> {
 export const getHomePosterUrls = unstable_cache(fetchHomePostersUncached, ["home-poster-urls-v1"], {
   revalidate: 3600,
 });
+
+const BACKDROP_QUERY = `
+  query {
+    spotlight: Page(page: 1, perPage: 10) {
+      media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
+        bannerImage
+      }
+    }
+    trending: Page(page: 1, perPage: 14) {
+      media(type: ANIME, sort: TRENDING_DESC) {
+        bannerImage
+      }
+    }
+  }
+`;
+
+async function fetchHomeBackdropsUncached(): Promise<string[]> {
+  const raw = await queryAniList<{
+    spotlight?: { media: Array<{ bannerImage?: string | null }> };
+    trending?: { media: Array<{ bannerImage?: string | null }> };
+  }>(BACKDROP_QUERY);
+
+  const urls = [
+    ...(raw.spotlight?.media ?? []),
+    ...(raw.trending?.media ?? []),
+  ]
+    .map((m) => m.bannerImage?.trim() ?? "")
+    .filter(Boolean);
+
+  return [...new Set(urls)].slice(0, 12);
+}
+
+export const getHomeBackdropUrls = unstable_cache(fetchHomeBackdropsUncached, ["home-backdrop-urls-v1"], {
+  revalidate: 3600,
+});

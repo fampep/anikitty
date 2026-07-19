@@ -17,6 +17,11 @@ import {
 } from "@/lib/subtitles/subtitle-settings";
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
 import {
+  DEFAULT_SITE_SURFACE,
+  sanitizeSiteSurfaceTheme,
+  type SiteSurfaceTheme,
+} from "@/lib/core/site-surface";
+import {
   DEFAULT_PLAYER_SEEK_STEP,
   type PlayerSeekStep,
   sanitizeSeekStepSeconds,
@@ -128,6 +133,10 @@ interface ISettingsStore {
   /** Guest/local accent when no profile theme is set. */
   siteAccentColor: string | null;
   setSiteAccentColor: (color: string | null) => void;
+
+  /** Zinc flat chrome vs Cinema (anime backdrop + glass panels). */
+  siteSurfaceTheme: SiteSurfaceTheme;
+  setSiteSurfaceTheme: (theme: SiteSurfaceTheme) => void;
 
   uiFontScale: UiFontScale;
   setUiFontScale: (scale: UiFontScale) => void;
@@ -332,6 +341,10 @@ export const useSettingsStore = create<ISettingsStore>()(
       siteAccentColor: null,
       setSiteAccentColor: (siteAccentColor) => set({ siteAccentColor }),
 
+      siteSurfaceTheme: DEFAULT_SITE_SURFACE,
+      setSiteSurfaceTheme: (siteSurfaceTheme) =>
+        set({ siteSurfaceTheme: sanitizeSiteSurfaceTheme(siteSurfaceTheme) }),
+
       uiFontScale: "default",
       setUiFontScale: (uiFontScale) => set({ uiFontScale }),
 
@@ -380,7 +393,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 46,
+      version: 47,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -401,6 +414,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         autoSkipIntro: state.autoSkipIntro,
         playThemeSong: state.playThemeSong,
         siteAccentColor: state.siteAccentColor,
+        siteSurfaceTheme: state.siteSurfaceTheme,
         uiFontScale: state.uiFontScale,
         interfaceDensity: state.interfaceDensity,
         showBetaBadge: state.showBetaBadge,
@@ -489,6 +503,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 22) {
           next.siteAccentColor = next.siteAccentColor ?? null;
+          next.siteSurfaceTheme = sanitizeSiteSurfaceTheme(next.siteSurfaceTheme);
           next.uiFontScale = next.uiFontScale ?? "default";
           next.interfaceDensity = next.interfaceDensity ?? "compact";
           next.showBetaBadge = next.showBetaBadge ?? true;
@@ -624,6 +639,11 @@ export const useSettingsStore = create<ISettingsStore>()(
             next.defaultProvider,
             next.providerOrder,
           );
+        }
+        if (version < 47) {
+          next.siteSurfaceTheme = DEFAULT_SITE_SURFACE;
+        } else {
+          next.siteSurfaceTheme = sanitizeSiteSurfaceTheme(next.siteSurfaceTheme);
         }
         return next as ISettingsStore;
       },
