@@ -48,6 +48,10 @@ function absoluteFromRequest(req: Request, pathAndQuery: string): string {
  * Remint the current browser HLS proxy URL as a Cast-friendly absolute URL.
  * Chromecast cannot send the HttpOnly `ak_pb` session cookie, so cast playback
  * uses longer-TTL tokens that authenticate without cookies (+ CORS).
+ *
+ * Preserves encrypted upstream Referer / Origin / Cookie from the browser
+ * token so every active provider (AniWaves, Anikoto, AniWatch, AniNeko,
+ * MKissa, KickAssAnime, KuroHost) keeps host-specific auth after remint.
  */
 export async function POST(req: Request) {
   const limited = checkRateLimit(`kitty-cast:${getClientIp(req)}`, 20, 60_000);

@@ -20,11 +20,6 @@ import {
   subtitleProxyUrl,
 } from "@/lib/subtitles/subtitle-track-utils";
 
-/** Inline check — avoid importing Node `crypto` HLS token helpers into the client bundle. */
-function isKittyHlsProxyUrl(url: string): boolean {
-  return url.trim().includes("/api/kitty/hls");
-}
-
 const CAST_SDK_SRC =
   "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1";
 
@@ -304,8 +299,11 @@ function formatCastError(err: unknown): string {
 }
 
 /**
- * Remint Kitty HLS proxy URLs into Cast-friendly absolute HTTPS URLs.
- * Non-proxy URLs are absolutized locally.
+ * Remint any playback URL into a Chromecast-fetchable absolute HTTPS URL.
+ * Always goes through `POST /api/kitty/cast` so every provider path (AniWaves,
+ * Anikoto, AniWatch, AniNeko, MKissa, KickAssAnime, KuroHost, …) gets the same
+ * cookie-free cast token + CORS treatment — including quality / next-episode
+ * reloads that call this again via syncMedia.
  */
 export async function prepareCastMediaUrl(
   playbackUrl: string,
@@ -314,28 +312,6 @@ export async function prepareCastMediaUrl(
   const trimmed = playbackUrl.trim();
   if (!trimmed) {
     return { ok: false, error: "No stream URL to cast" };
-  }
-
-  if (!isKittyHlsProxyUrl(trimmed)) {
-    const absolute = toAbsoluteCastUrl(trimmed);
-    if (!absolute) {
-      return { ok: false, error: "Invalid stream URL" };
-    }
-    if (!isCastUrlReachableFromDevice(absolute)) {
-      return {
-        ok: false,
-        error:
-          "Chromecast cannot reach this URL (localhost / non-HTTPS). Use a public HTTPS site.",
-        contentId: absolute,
-      };
-    }
-    return {
-      ok: true,
-      url: absolute,
-      contentId: absolute,
-      contentType:
-        contentTypeHint || resolveCastContentType(absolute),
-    };
   }
 
   try {

@@ -22,6 +22,11 @@ type HlsProxyPayload = {
   u: string;
   r?: string;
   o?: string;
+  /**
+   * Upstream `Cookie` header (e.g. KuroHost `kv_pass=…`). Encrypted in the
+   * token so Cast remint / segment rewrites keep auth that Referer alone cannot.
+   */
+  k?: string;
   sid: string;
   e: number;
   /** `1` = Cast-friendly: valid token alone is enough (no session cookie). */
@@ -32,6 +37,8 @@ export type ResolvedHlsProxyToken = {
   url: string;
   referer: string;
   origin: string;
+  /** Upstream Cookie header value, if the stream required one. */
+  cookie: string;
   sessionId: string;
   cast: boolean;
 };
@@ -156,6 +163,11 @@ export function mintKittyHlsProxyUrl(
 
   const referer = sanitizeHeaderValue(headers.Referer ?? headers.referer);
   const origin = sanitizeHeaderValue(headers.Origin ?? headers.origin);
+  // Cookie values (kv_pass JWTs) can exceed the default 512-char header cap.
+  const cookie = sanitizeHeaderValue(
+    headers.Cookie ?? headers.cookie,
+    1_024,
+  );
   const cast = Boolean(options?.cast);
   const ttl =
     options?.ttlSec ?? (cast ? HLS_CAST_TOKEN_TTL_SEC : HLS_TOKEN_TTL_SEC);
@@ -164,6 +176,7 @@ export function mintKittyHlsProxyUrl(
     u: url,
     r: referer || undefined,
     o: origin || undefined,
+    k: cookie || undefined,
     sid: sessionId,
     e: exp,
     c: cast ? 1 : undefined,
@@ -199,7 +212,11 @@ export function remintKittyHlsAsCastProxyUrl(
   if (!resolved) return null;
   return mintKittyHlsProxyUrl(
     resolved.url,
-    { Referer: resolved.referer, Origin: resolved.origin },
+    {
+      Referer: resolved.referer,
+      Origin: resolved.origin,
+      ...(resolved.cookie ? { Cookie: resolved.cookie } : {}),
+    },
     { sessionId: resolved.sessionId, cast: true },
   );
 }
@@ -223,6 +240,7 @@ export function resolveKittyHlsProxyToken(
     url: payload.u,
     referer: payload.r ?? "",
     origin: payload.o ?? "",
+    cookie: payload.k ?? "",
     sessionId: payload.sid,
     cast,
   };

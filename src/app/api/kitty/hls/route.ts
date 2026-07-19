@@ -68,12 +68,17 @@ function buildProxyUrl(
   abs: string,
   referer: string,
   origin: string,
+  cookie: string,
   sessionId: string,
   cast: boolean,
 ): string {
   return mintKittyHlsProxyUrl(
     abs,
-    { Referer: referer, Origin: origin },
+    {
+      Referer: referer,
+      Origin: origin,
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
     { sessionId, cast },
   );
 }
@@ -83,6 +88,7 @@ function rewriteUriInTag(
   manifestUrl: string,
   referer: string,
   origin: string,
+  cookie: string,
   sessionId: string,
   cast: boolean,
 ): string {
@@ -92,7 +98,7 @@ function rewriteUriInTag(
     .replace(/URI="([^"]+)"/gi, (_, uri) => {
       try {
         const abs = new URL(uri, base).toString();
-        return `URI="${buildProxyUrl(abs, referer, origin, sessionId, cast)}"`;
+        return `URI="${buildProxyUrl(abs, referer, origin, cookie, sessionId, cast)}"`;
       } catch {
         return `URI="${uri}"`;
       }
@@ -100,7 +106,7 @@ function rewriteUriInTag(
     .replace(/URI='([^']+)'/gi, (_, uri) => {
       try {
         const abs = new URL(uri, base).toString();
-        return `URI='${buildProxyUrl(abs, referer, origin, sessionId, cast)}'`;
+        return `URI='${buildProxyUrl(abs, referer, origin, cookie, sessionId, cast)}'`;
       } catch {
         return `URI='${uri}'`;
       }
@@ -112,6 +118,7 @@ function rewriteManifest(
   manifestUrl: string,
   referer: string,
   origin: string,
+  cookie: string,
   sessionId: string,
   cast: boolean,
 ): string {
@@ -125,12 +132,20 @@ function rewriteManifest(
       if (!trimmed) return line;
 
       if (trimmed.startsWith("#")) {
-        return rewriteUriInTag(line, manifestUrl, referer, origin, sessionId, cast);
+        return rewriteUriInTag(
+          line,
+          manifestUrl,
+          referer,
+          origin,
+          cookie,
+          sessionId,
+          cast,
+        );
       }
 
       try {
         const abs = new URL(trimmed, base).toString();
-        return buildProxyUrl(abs, referer, origin, sessionId, cast);
+        return buildProxyUrl(abs, referer, origin, cookie, sessionId, cast);
       } catch {
         return line;
       }
@@ -138,7 +153,12 @@ function rewriteManifest(
     .join("\n");
 }
 
-function upstreamHeaders(referer: string, origin: string, range?: string | null): HeadersInit {
+function upstreamHeaders(
+  referer: string,
+  origin: string,
+  cookie: string,
+  range?: string | null,
+): HeadersInit {
   const headers: Record<string, string> = {
     Accept: "*/*",
     "User-Agent":
@@ -146,8 +166,10 @@ function upstreamHeaders(referer: string, origin: string, range?: string | null)
   };
   const safeReferer = referer.replace(/[\r\n\0]/g, "").trim().slice(0, 512);
   const safeOrigin = origin.replace(/[\r\n\0]/g, "").trim().slice(0, 512);
+  const safeCookie = cookie.replace(/[\r\n\0]/g, "").trim().slice(0, 1_024);
   if (safeReferer) headers.Referer = safeReferer;
   if (safeOrigin) headers.Origin = safeOrigin;
+  if (safeCookie) headers.Cookie = safeCookie;
   if (range) headers.Range = range.replace(/[\r\n\0]/g, "").trim().slice(0, 128);
   return headers;
 }
@@ -206,6 +228,7 @@ export async function GET(req: Request) {
   const decoded = resolved.url;
   const referer = resolved.referer;
   const origin = resolved.origin;
+  const cookie = resolved.cookie;
   const sessionId = resolved.sessionId;
   const cast = resolved.cast;
 
@@ -219,7 +242,7 @@ export async function GET(req: Request) {
   try {
     upstream = await fetch(decoded, {
       cache: "no-store",
-      headers: upstreamHeaders(referer, origin, range),
+      headers: upstreamHeaders(referer, origin, cookie, range),
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
@@ -240,6 +263,7 @@ export async function GET(req: Request) {
       rewriteBase,
       referer,
       origin,
+      cookie,
       sessionId,
       cast,
     );
@@ -303,6 +327,7 @@ export async function GET(req: Request) {
         rewriteBase,
         referer,
         origin,
+        cookie,
         sessionId,
         cast,
       );
@@ -344,6 +369,7 @@ export async function GET(req: Request) {
       rewriteBase,
       referer,
       origin,
+      cookie,
       sessionId,
       cast,
     );
