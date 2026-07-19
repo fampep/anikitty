@@ -22,6 +22,7 @@ import {
   type KittyStreamNodeParam,
 } from "@/query/stream/get-kitty-stream";
 import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { getPreferredDefaultProvider } from "@/lib/kitty/provider-order";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import { ProviderQuickPick } from "@/components/player/provider-select";
@@ -130,7 +131,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder } = useSettingsStore();
   // Lightweight health probes — used only to skip known-dead nodes on failover, not for geo/ping routing.
   const { nodes: proxyNodes } = useKittyNodePing({
     enabled: true,
@@ -162,7 +163,8 @@ const VideoPlayerSection = () => {
   const [provider, setProvider] = useState<KittyProvider>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kittyProvider");
-      return normalizeKittyProvider(saved);
+      if (saved) return normalizeKittyProvider(saved);
+      return getPreferredDefaultProvider(useSettingsStore.getState().providerOrder);
     }
     return DEFAULT_PROVIDER;
   });
@@ -1261,7 +1263,7 @@ const VideoPlayerSection = () => {
     const tried = triedProvidersRef.current;
     if (!tried.has(provider)) tried.add(provider);
 
-    const next = getNextFallbackProvider(provider, tried);
+    const next = getNextFallbackProvider(provider, tried, providerOrder);
     if (!next) return false;
 
     tried.add(next);
@@ -1275,13 +1277,13 @@ const VideoPlayerSection = () => {
       fallbackBusyRef.current = false;
     }, 1200);
     return true;
-  }, [providerAutoFallback, provider, audioMode, t, handleProviderGridSelect]);
+  }, [providerAutoFallback, provider, audioMode, t, handleProviderGridSelect, providerOrder]);
 
   const handleTryAnotherServer = useCallback(() => {
     if (!triedProvidersRef.current.has(provider)) {
       triedProvidersRef.current.add(provider);
     }
-    const next = getNextFallbackProvider(provider, triedProvidersRef.current);
+    const next = getNextFallbackProvider(provider, triedProvidersRef.current, providerOrder);
     if (!next) {
       toast.error(t("watch.noMoreProviders"));
       return;
@@ -1289,7 +1291,7 @@ const VideoPlayerSection = () => {
     toast.info(t("watch.providerFallback", { from: provider, to: next }));
     const mode = normalizeProviderAudioMode(audioMode, streamAudio);
     handleProviderGridSelect(next, mode, true);
-  }, [provider, audioMode, streamAudio, t, handleProviderGridSelect]);
+  }, [provider, audioMode, streamAudio, t, handleProviderGridSelect, providerOrder]);
 
   const revealProviderControls = useCallback(() => {
     setShowPlayerControls(true);
@@ -1305,8 +1307,8 @@ const VideoPlayerSection = () => {
   const peekNextFallbackProvider = useCallback(() => {
     const tried = new Set(triedProvidersRef.current);
     tried.add(provider);
-    return getNextFallbackProvider(provider, tried);
-  }, [provider]);
+    return getNextFallbackProvider(provider, tried, providerOrder);
+  }, [provider, providerOrder]);
 
   // Stream fetch failed → try another healthy node on infra errors, then providers.
   useEffect(() => {

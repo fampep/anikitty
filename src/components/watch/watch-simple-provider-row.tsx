@@ -23,6 +23,7 @@ import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
 import { Captions, Mic, Server, Zap } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
+import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   provider: KittyProvider;
@@ -77,6 +78,7 @@ export default function WatchSimpleProviderRow({
   className,
 }: Props) {
   const t = useT();
+  const providerOrder = useSettingsStore((s) => s.providerOrder);
   const serverCount = KITTY_PROVIDER_META.length;
 
   return (
@@ -96,6 +98,7 @@ export default function WatchSimpleProviderRow({
           {(["featured", "other"] as const).map((group) => {
             const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
               preferredId: preferredProvider,
+              priorityOrder: providerOrder,
             });
             if (items.length === 0) return null;
             return (

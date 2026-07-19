@@ -26,6 +26,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     playerSettingsOpen: s.playerSettingsOpen,
     providerAutoFallback: s.providerAutoFallback,
     simpleProviderPicker: s.simpleProviderPicker,
+    providerOrder: s.providerOrder,
     providerSectionHidden: s.providerSectionHidden,
     kittyProxyNode: s.kittyProxyNode,
     liteMode: s.liteMode,
@@ -61,6 +62,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.playerSettingsOpen !== undefined) patch.playerSettingsOpen = prefs.playerSettingsOpen;
   if (prefs.providerAutoFallback !== undefined) patch.providerAutoFallback = prefs.providerAutoFallback;
   if (prefs.simpleProviderPicker !== undefined) patch.simpleProviderPicker = prefs.simpleProviderPicker;
+  if (prefs.providerOrder !== undefined) patch.providerOrder = prefs.providerOrder;
   if (prefs.providerSectionHidden !== undefined) patch.providerSectionHidden = prefs.providerSectionHidden;
   if (prefs.kittyProxyNode !== undefined) patch.kittyProxyNode = prefs.kittyProxyNode;
   if (prefs.liteMode !== undefined) patch.liteMode = prefs.liteMode;

@@ -1,5 +1,5 @@
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
-import { DEFAULT_PROVIDER_PRIORITY } from "@/lib/kitty/kitty-providers";
+import { resolveProviderOrder } from "@/lib/kitty/provider-order";
 
 const ANIME_PROVIDER_KEY = "kitty:provider-by-anime";
 const PROVIDER_SCORES_KEY = "kitty:provider-scores";
@@ -54,15 +54,17 @@ export function providerSuccessScore(provider: KittyProvider): number {
   return row.ok - row.fail * 2;
 }
 
-/** Sort providers: capability-available first, then per-anime pref, then global success scores. */
+/** Sort providers: capability-available first, then per-anime pref, then user/site priority. */
 export function sortProvidersForPicker<T extends { id: KittyProvider }>(
   items: T[],
   opts: {
     preferredId?: KittyProvider | null;
     availableIds?: Set<KittyProvider> | null;
+    /** User preference order; defaults to site {@link DEFAULT_PROVIDER_PRIORITY}. */
+    priorityOrder?: KittyProvider[] | null;
   } = {},
 ): T[] {
-  const priority = new Map(DEFAULT_PROVIDER_PRIORITY.map((id, i) => [id, i]));
+  const priority = new Map(resolveProviderOrder(opts.priorityOrder).map((id, i) => [id, i]));
 
   return [...items].sort((a, b) => {
     const aAvail = opts.availableIds ? opts.availableIds.has(a.id) : true;
@@ -74,12 +76,11 @@ export function sortProvidersForPicker<T extends { id: KittyProvider }>(
       if (b.id === opts.preferredId) return 1;
     }
 
-    const scoreDiff = providerSuccessScore(b.id) - providerSuccessScore(a.id);
-    if (scoreDiff !== 0) return scoreDiff;
-
     const pa = priority.get(a.id) ?? 999;
     const pb = priority.get(b.id) ?? 999;
-    return pa - pb;
+    if (pa !== pb) return pa - pb;
+
+    return providerSuccessScore(b.id) - providerSuccessScore(a.id);
   });
 }
 

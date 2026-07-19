@@ -30,6 +30,8 @@ import {
   AtSign,
   CornerUpLeft,
   UserPlus,
+  Radio,
+  Server,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -62,7 +64,7 @@ import { useT } from "@/providers/i18n-provider";
 import { ROUTES } from "@/constants/routes";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 import PresenceSettings from "@/components/settings/presence-settings";
-import { Radio } from "lucide-react";
+import ProviderOrderSettings from "@/components/settings/provider-order-settings";
 
 type SettingsTab = "general" | "profile" | "security" | "connections";
 
@@ -629,6 +631,23 @@ function PlaybackSection({
   );
 }
 
+function ProviderOrderSection() {
+  const t = useT();
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<Server className="w-4 h-4" />}
+        title={t("settings.providerOrder")}
+        description={t("settings.providerOrderDesc")}
+      />
+      <SectionBody>
+        <ProviderOrderSettings />
+      </SectionBody>
+    </SectionCard>
+  );
+}
+
 function ContentSection() {
   const t = useT();
   const showAdultContent = useSettingsStore((s) => s.showAdultContent);
@@ -874,6 +893,7 @@ export default function SettingsPage() {
                     playerTouchSeekEnabled={playerTouchSeekEnabled}
                     setPlayerTouchSeekEnabled={setPlayerTouchSeekEnabled}
                   />
+                  <ProviderOrderSection />
                   <EpisodeLayoutSection
                     episodeLayouts={episodeLayouts}
                     episodeLayout={episodeLayout}
@@ -1015,6 +1035,7 @@ export default function SettingsPage() {
               playerTouchSeekEnabled={playerTouchSeekEnabled}
               setPlayerTouchSeekEnabled={setPlayerTouchSeekEnabled}
             />
+            <ProviderOrderSection />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}
               episodeLayout={episodeLayout}

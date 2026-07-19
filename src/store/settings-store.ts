@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { DEFAULT_PROVIDER_PRIORITY } from "@/lib/kitty/kitty-providers";
+import { sanitizeProviderOrder } from "@/lib/kitty/provider-order";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { coerceKittyApiNodeId, DEFAULT_KITTY_API_NODE_ID, isKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import {
@@ -61,6 +63,11 @@ interface ISettingsStore {
   /** Auto-switch to next provider when stream fails. */
   providerAutoFallback: boolean;
   setProviderAutoFallback: (val: boolean) => void;
+
+  /** Preferred provider try-order (auto-pick + fallback + picker listing). */
+  providerOrder: KittyProvider[];
+  setProviderOrder: (order: KittyProvider[]) => void;
+  resetProviderOrder: () => void;
 
   /** Compact provider dropdown instead of full grid. */
   simpleProviderPicker: boolean;
@@ -204,6 +211,11 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       providerAutoFallback: false,
       setProviderAutoFallback: (providerAutoFallback) => set({ providerAutoFallback }),
+
+      providerOrder: sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY),
+      setProviderOrder: (order) => set({ providerOrder: sanitizeProviderOrder(order) }),
+      resetProviderOrder: () =>
+        set({ providerOrder: sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY) }),
 
       simpleProviderPicker: true,
       setSimpleProviderPicker: (simpleProviderPicker) => set({ simpleProviderPicker }),
@@ -352,7 +364,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 44,
+      version: 45,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         preferDub: state.preferDub,
@@ -364,6 +376,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         playerSettingsOpen: state.playerSettingsOpen,
         theatreMode: state.theatreMode,
         providerAutoFallback: state.providerAutoFallback,
+        providerOrder: state.providerOrder,
         simpleProviderPicker: state.simpleProviderPicker,
         providerSectionHidden: state.providerSectionHidden,
         kittyProxyNode: state.kittyProxyNode,
@@ -575,6 +588,13 @@ export const useSettingsStore = create<ISettingsStore>()(
           } else {
             next.kittyProxyNode = coerceKittyApiNodeId(raw);
           }
+        }
+        if (version < 45) {
+          next.providerOrder = sanitizeProviderOrder(
+            next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY,
+          );
+        } else if (next.providerOrder) {
+          next.providerOrder = sanitizeProviderOrder(next.providerOrder);
         }
         return next as ISettingsStore;
       },

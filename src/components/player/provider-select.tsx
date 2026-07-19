@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/select";
 import {
   DEFAULT_KITTY_PROVIDER,
-  isDefaultProvider,
   kittyProvidersByGroup,
   kittyProvidersForAudioMode,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
+import { getPreferredDefaultProvider } from "@/lib/kitty/provider-order";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import {
   providerCapabilityBadges,
@@ -66,7 +66,9 @@ export function ProviderDefaultBadge({
   compact?: boolean;
 }) {
   const t = useT();
-  if (!isDefaultProvider(id)) return null;
+  const providerOrder = useSettingsStore((s) => s.providerOrder);
+  const preferredDefault = getPreferredDefaultProvider(providerOrder);
+  if (id !== preferredDefault) return null;
 
   return (
     <span
@@ -88,6 +90,7 @@ export default function ProviderSelect({
   className,
 }: Props) {
   const t = useT();
+  const providerOrder = useSettingsStore((s) => s.providerOrder);
 
   return (
     <Select value={value} onValueChange={(v) => onChange(v as KittyProvider)} disabled={disabled}>
@@ -107,7 +110,9 @@ export default function ProviderSelect({
       </SelectTrigger>
       <SelectContent className="bg-[#0c0c0c] border-border dark:border-white/10 max-h-[min(22rem,70vh)]">
         {(["featured", "other"] as const).map((group) => {
-          const items = kittyProvidersByGroup(group);
+          const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
+            priorityOrder: providerOrder,
+          });
           if (items.length === 0) return null;
 
           return (
@@ -254,7 +259,7 @@ export function ProviderGrid({
   preferredProvider,
 }: ProviderGridProps) {
   const t = useT();
-  const { providerSectionHidden, toggleProviderSectionHidden } = useSettingsStore();
+  const { providerSectionHidden, toggleProviderSectionHidden, providerOrder } = useSettingsStore();
   const visibleRows = rows ?? PROVIDER_GRID_ROWS;
   const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
 
@@ -279,6 +284,7 @@ export function ProviderGrid({
         const baseItems = kittyProvidersForAudioMode(mode);
         const items = sortProvidersForPicker(baseItems, {
           preferredId: preferredProvider,
+          priorityOrder: providerOrder,
         });
         if (items.length === 0) return null;
         const styles = PROVIDER_ROW_STYLES[mode];
