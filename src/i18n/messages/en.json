@@ -285,6 +285,9 @@
     "featuredCollection": "Featured Collection",
     "featuredSubtitle": "Curated lists across all time",
     "latestComments": "Latest Comments",
+    "latestCommentsEmpty": "No comments yet — start a discussion on any episode.",
+    "latestCommentsEmptyCta": "Browse anime",
+    "latestCommentsLoadError": "Couldn't load latest comments",
     "airingToday": "Airing Today",
     "scheduleDesc": "What's airing this week",
     "upcoming": "Upcoming",
@@ -2155,6 +2158,11 @@
     "emojiReactions": "Reactions",
     "emojiAnime": "Anime",
     "emojiFaces": "Faces",
+    "linkCopied": "Comment link copied",
+    "linkCopyFailed": "Couldn't copy link",
+    "insertInlineSpoiler": "Wrap selection as ||inline spoiler||",
+    "inlineSpoiler": "|| ||",
+    "spoilerPlaceholder": "spoiler",
     "netScore": "+{score}"
   },
   "donate": {

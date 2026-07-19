@@ -51,6 +51,7 @@ export async function GET() {
       episodeId: comments.episodeId,
       episodeNumber: comments.episodeNumber,
       isSpoiler: comments.isSpoiler,
+      likeCount: comments.likeCount,
       createdAt: comments.createdAt,
       userId: comments.userId,
       username: users.username,
@@ -64,7 +65,7 @@ export async function GET() {
     .innerJoin(users, eq(users.id, comments.userId))
     .leftJoin(roles, eq(roles.name, users.role))
     .orderBy(desc(comments.createdAt))
-    .limit(5);
+    .limit(8);
 
   const xpStatsMap = await getUsersXpStats(db, rows.map((r) => r.userId));
   const enriched = rows.map((r) => attachLevelRole(r, xpStatsMap));

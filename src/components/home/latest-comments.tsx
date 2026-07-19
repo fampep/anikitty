@@ -8,7 +8,7 @@ import { CosmeticUsername } from "@/components/common/user-cosmetics";
 import { HomeSectionLink } from "./home-shared";
 import { UserBadges } from "@/components/profile/user-badges";
 import { CommentFeedBody } from "@/components/comments/comment-feed-body";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageSquare, ThumbsUp } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 
@@ -17,6 +17,7 @@ interface LatestComment {
   body: string;
   gifUrl: string | null;
   isSpoiler?: boolean;
+  likeCount?: number;
   animeId: string;
   animeTitle?: string | null;
   episodeId?: string | null;
@@ -34,10 +35,11 @@ interface LatestComment {
 }
 
 function commentLink(c: LatestComment) {
+  const hash = `#comment-${c.id}`;
   if (c.episodeId) {
-    return `${ROUTES.WATCH}?anime=${encodeURIComponent(c.animeId)}&episode=${encodeURIComponent(c.episodeId)}`;
+    return `${ROUTES.WATCH}?anime=${encodeURIComponent(c.animeId)}&episode=${encodeURIComponent(c.episodeId)}${hash}`;
   }
-  return `${ROUTES.ANIME_DETAILS}/${c.animeId}`;
+  return `${ROUTES.ANIME_DETAILS}/${c.animeId}${hash}`;
 }
 
 function timeAgo(dateStr: string, t: ReturnType<typeof useT>) {
@@ -137,6 +139,12 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
                 Ep {c.episodeNumber}
               </span>
             ) : null}
+            {(c.likeCount ?? 0) > 0 ? (
+              <span className="shrink-0 inline-flex items-center gap-0.5 text-emerald-300/60">
+                <ThumbsUp className="w-2.5 h-2.5" />
+                {c.likeCount}
+              </span>
+            ) : null}
             <ArrowRight className="w-3 h-3 shrink-0 ml-auto group-hover:translate-x-0.5 transition-transform" />
           </div>
         </Link>
@@ -145,17 +153,52 @@ function CommentsFeed({ comments }: { comments: LatestComment[] }) {
   );
 }
 
+function EmptyState() {
+  const t = useT();
+  return (
+    <div className="flex flex-col items-center gap-3 py-10 px-4 text-center rounded-2xl border border-dashed border-border dark:border-white/[0.08] bg-muted/20 dark:bg-white/[0.015]">
+      <div className="w-12 h-12 rounded-2xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/[0.08] flex items-center justify-center">
+        <MessageSquare className="w-5 h-5 text-muted-foreground/70 dark:text-white/20" />
+      </div>
+      <p className="text-sm text-muted-foreground dark:text-white/35">{t("home.latestCommentsEmpty")}</p>
+      <Link
+        href={ROUTES.SEARCH}
+        className="text-[12px] font-semibold text-zinc-300 hover:text-white transition-colors"
+      >
+        {t("home.latestCommentsEmptyCta")} →
+      </Link>
+    </div>
+  );
+}
+
 export default function LatestComments({ bare = false }: { bare?: boolean }) {
   const t = useT();
   const [comments, setComments] = useState<LatestComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/comments/latest")
-      .then((r) => r.json())
-      .then((d) => setComments(d.comments ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then(async (r) => {
+        if (!r.ok) throw new Error("fail");
+        return r.json();
+      })
+      .then((d) => {
+        if (!cancelled) {
+          setComments(d.comments ?? []);
+          setError(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const header = (
@@ -177,24 +220,47 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
     </div>
   );
 
+  const body = error ? (
+    <div className="flex flex-col items-center gap-2 py-8 text-center">
+      <p className="text-sm text-muted-foreground dark:text-white/35">{t("home.latestCommentsLoadError")}</p>
+      <button
+        type="button"
+        onClick={() => {
+          setLoading(true);
+          setError(false);
+          fetch("/api/comments/latest")
+            .then((r) => r.json())
+            .then((d) => setComments(d.comments ?? []))
+            .catch(() => setError(true))
+            .finally(() => setLoading(false));
+        }}
+        className="text-[12px] font-semibold text-zinc-300 hover:text-white transition-colors"
+      >
+        {t("home.retry")}
+      </button>
+    </div>
+  ) : !comments.length ? (
+    <EmptyState />
+  ) : (
+    <CommentsFeed comments={comments} />
+  );
+
   if (bare) {
     if (loading) return <BareLoadingSkeleton />;
-    if (!comments.length) return null;
     return (
       <div className="flex flex-col gap-4">
         {header}
-        <CommentsFeed comments={comments} />
+        {body}
       </div>
     );
   }
 
   if (loading) return <LoadingSkeleton />;
-  if (!comments.length) return null;
 
   return (
     <Container className="flex flex-col gap-4 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       {header}
-      <CommentsFeed comments={comments} />
+      {body}
     </Container>
   );
 }

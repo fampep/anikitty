@@ -8,6 +8,7 @@ import { withAuth } from "@/lib/auth/auth-fetch";
 import {
   MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
   ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin, Flag,
+  Link2, Brackets,
 } from "lucide-react";
 import CommentBody from "@/components/comments/comment-body";
 import { CommentFeedBody } from "@/components/comments/comment-feed-body";
@@ -164,6 +165,59 @@ function relativeTime(iso: string, t: (key: string, vars?: Record<string, string
   return new Date(iso).toLocaleDateString();
 }
 
+function absoluteTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+const SORT_STORAGE_KEY = "anikitty-comment-sort";
+type CommentSort = "new" | "best" | "top" | "old";
+
+function readStoredSort(): CommentSort {
+  if (typeof window === "undefined") return "new";
+  try {
+    const stored = localStorage.getItem(SORT_STORAGE_KEY);
+    if (stored === "new" || stored === "best" || stored === "top" || stored === "old") return stored;
+  } catch {
+    /* ignore */
+  }
+  return "new";
+}
+
+function CommentTimestamp({
+  iso,
+  edited,
+  t,
+  className,
+}: {
+  iso: string;
+  edited?: boolean;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+  className?: string;
+}) {
+  return (
+    <time
+      dateTime={iso}
+      title={absoluteTime(iso)}
+      className={cn(
+        "text-[11px] font-mono text-muted-foreground/60 dark:text-white/18 leading-none",
+        className,
+      )}
+    >
+      {relativeTime(iso, t)}
+      {edited && (
+        <span className="ml-1 text-muted-foreground/50 dark:text-white/15">{t("comments.edited")}</span>
+      )}
+    </time>
+  );
+}
+
 function netScore(c: Comment): number {
   return c.likes - c.dislikes;
 }
@@ -280,7 +334,7 @@ export default function CommentSection({
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<"new" | "best" | "top" | "old">("new");
+  const [sort, setSort] = useState<CommentSort>(readStoredSort);
   const [hideSpoilers, setHideSpoilers] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -297,6 +351,14 @@ export default function CommentSection({
       /* ignore */
     }
   }, [hideSpoilers]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, sort);
+    } catch {
+      /* ignore */
+    }
+  }, [sort]);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -320,12 +382,17 @@ export default function CommentSection({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
   const [replyIsSpoiler, setReplyIsSpoiler] = useState(false);
+  const [replyGif, setReplyGif] = useState<string | null>(null);
+  const [showReplyGifPanel, setShowReplyGifPanel] = useState(false);
   const [submittingReply, setSubmittingReply] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const deepLinkHandled = useRef(false);
 
   const openRulesDialog = useCallback((opts?: { readOnly?: boolean }) => {
     setRulesReadOnly(!!opts?.readOnly);
@@ -360,6 +427,41 @@ export default function CommentSection({
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [draft, focused]);
 
+  useEffect(() => {
+    const el = replyTextareaRef.current;
+    if (!el || !replyingTo) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [replyDraft, replyingTo]);
+
+  useEffect(() => {
+    if (loading || deepLinkHandled.current || !comments.length) return;
+    if (typeof window === "undefined") return;
+    const match = window.location.hash.match(/^#comment-(.+)$/);
+    if (!match) return;
+    const id = match[1];
+    let found = false;
+    for (const c of comments) {
+      if (c.id === id) {
+        found = true;
+        break;
+      }
+      if (c.replies.some((r) => r.id === id)) {
+        setExpandedReplies((prev) => new Set([...prev, c.id]));
+        found = true;
+        break;
+      }
+    }
+    if (!found) return;
+    deepLinkHandled.current = true;
+    setHighlightId(id);
+    requestAnimationFrame(() => {
+      document.getElementById(`comment-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const timer = window.setTimeout(() => setHighlightId(null), 2800);
+    return () => window.clearTimeout(timer);
+  }, [loading, comments]);
+
   // ── Fetch ───────────────────────────────────────────────────────────────────
 
   const fetchComments = useCallback(
@@ -390,10 +492,23 @@ export default function CommentSection({
         );
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error ?? t("comments.loadFailed"));
+        const incoming: Comment[] = data.comments ?? [];
         if (append) {
-          setComments((prev) => [...prev, ...(data.comments ?? [])]);
+          setComments((prev) => [...prev, ...incoming]);
+          setExpandedReplies((prev) => {
+            const next = new Set(prev);
+            for (const c of incoming) {
+              if (c.replies?.length > 0 && c.replies.length <= 3) next.add(c.id);
+            }
+            return next;
+          });
         } else {
-          setComments(data.comments ?? []);
+          setComments(incoming);
+          const auto = new Set<string>();
+          for (const c of incoming) {
+            if (c.replies?.length > 0 && c.replies.length <= 3) auto.add(c.id);
+          }
+          setExpandedReplies(auto);
         }
         setTotal(data.total ?? 0);
         setHasMore(data.hasMore ?? false);
@@ -478,7 +593,7 @@ export default function CommentSection({
 
   const handleReply = async (parentId: string) => {
     const body = replyDraft.trim();
-    if (!body || submittingReply) return;
+    if ((!body && !replyGif) || submittingReply) return;
     if (!auth) return;
     if (!ensureRulesAccepted()) return;
 
@@ -489,7 +604,12 @@ export default function CommentSection({
         withAuth({
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body, parentId, isSpoiler: replyIsSpoiler }),
+          body: JSON.stringify({
+            body,
+            parentId,
+            isSpoiler: replyIsSpoiler,
+            gifUrl: replyGif,
+          }),
         }),
       );
       if (!res.ok) {
@@ -504,6 +624,8 @@ export default function CommentSection({
       );
       setReplyDraft("");
       setReplyIsSpoiler(false);
+      setReplyGif(null);
+      setShowReplyGifPanel(false);
       setReplyingTo(null);
       setExpandedReplies((prev) => new Set([...prev, parentId]));
       invalidateUserLevel();
@@ -512,6 +634,62 @@ export default function CommentSection({
     } finally {
       setSubmittingReply(false);
     }
+  };
+
+  const startReply = useCallback(
+    (parentId: string, mentionUser?: string) => {
+      if (replyingTo === parentId && !mentionUser) {
+        setReplyingTo(null);
+        setReplyDraft("");
+        setReplyGif(null);
+        setReplyIsSpoiler(false);
+        return;
+      }
+      if (!ensureRulesAccepted()) return;
+      setReplyingTo(parentId);
+      setReplyDraft(mentionUser ? `@${mentionUser} ` : "");
+      setReplyIsSpoiler(false);
+      setReplyGif(null);
+      setShowReplyGifPanel(false);
+      requestAnimationFrame(() => replyTextareaRef.current?.focus());
+    },
+    [replyingTo, ensureRulesAccepted],
+  );
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+    setReplyDraft("");
+    setReplyIsSpoiler(false);
+    setReplyGif(null);
+    setShowReplyGifPanel(false);
+  };
+
+  const copyCommentLink = async (commentId: string) => {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}#comment-${commentId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(t("comments.linkCopied"));
+    } catch {
+      toast.error(t("comments.linkCopyFailed"));
+    }
+  };
+
+  const insertInlineSpoiler = () => {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? draft.length;
+    const end = el?.selectionEnd ?? draft.length;
+    const selected = draft.slice(start, end);
+    const inner = selected || t("comments.spoilerPlaceholder");
+    const next = `${draft.slice(0, start)}||${inner}||${draft.slice(end)}`;
+    setDraft(next);
+    setFocused(true);
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.setSelectionRange(start + 2, start + 2 + inner.length);
+    });
   };
 
   const handleDelete = async (commentId: string) => {
@@ -696,6 +874,7 @@ export default function CommentSection({
         : t("comments.placeholder");
 
   const canSubmit = (draft.trim().length > 0 || !!selectedGif) && !submitting;
+  const canSubmitReply = (replyDraft.trim().length > 0 || !!replyGif) && !submittingReply;
   const showToolbar = focused || !!draft || !!selectedGif || isSpoiler;
   const charNearLimit = draft.length > 850;
   const visibleComments = hideSpoilers ? comments.filter((c) => !c.isSpoiler) : comments;
@@ -729,8 +908,13 @@ export default function CommentSection({
     </Link>
   );
 
-  const renderVoteReact = (c: Comment, compact = false, showReply = false) => (
-    <div className={cn("flex items-center gap-1 flex-wrap", compact ? "mt-2" : "mt-2.5")}>
+  const renderVoteReact = (
+    c: Comment,
+    compact = false,
+    showReply = false,
+    replyParentId?: string,
+  ) => (
+    <div className={cn("flex items-center gap-0.5 flex-wrap", compact ? "mt-2" : "mt-2.5")}>
       <button
         onClick={() => auth && handleVote(c.id, 1)}
         disabled={!auth}
@@ -739,7 +923,7 @@ export default function CommentSection({
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === 1
             ? "text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20"
-            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/80 dark:text-white/25 disabled:cursor-default",
+            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5 disabled:hover:bg-transparent disabled:cursor-default",
         )}
       >
         <ThumbsUp className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -753,7 +937,7 @@ export default function CommentSection({
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === -1
             ? "text-rose-400 bg-rose-500/10 ring-1 ring-rose-500/20"
-            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/80 dark:text-white/25 disabled:cursor-default",
+            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5 disabled:hover:bg-transparent disabled:cursor-default",
         )}
       >
         <ThumbsDown className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -770,7 +954,7 @@ export default function CommentSection({
         <div className="relative ml-0.5">
           <button
             onClick={() => setReactionPickerFor(reactionPickerFor === c.id ? null : c.id)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5 transition-all"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5 transition-all"
             title={t("comments.addReaction")}
           >
             <SmilePlus className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -788,24 +972,30 @@ export default function CommentSection({
       {showReply && auth && (
         <button
           onClick={() => {
-            if (replyingTo === c.id) {
-              setReplyingTo(null);
-              return;
-            }
-            if (!ensureRulesAccepted()) return;
-            setReplyingTo(c.id);
+            const parent = replyParentId ?? c.id;
+            startReply(parent, replyParentId ? c.username : undefined);
           }}
           className={cn(
             "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ml-0.5",
-            replyingTo === c.id
+            replyingTo === (replyParentId ?? c.id)
               ? "text-muted-foreground dark:text-white/70 bg-accent dark:bg-white/10 ring-1 ring-white/15"
-              : "text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/55 hover:bg-muted/50 dark:bg-white/5",
+              : "text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5",
           )}
         >
           <Reply className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
-          {t("comments.reply")}
+          {!compact && t("comments.reply")}
         </button>
       )}
+
+      <button
+        type="button"
+        onClick={() => copyCommentLink(c.id)}
+        title={t("comments.copyLink")}
+        aria-label={t("comments.copyLink")}
+        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/50 dark:text-white/15 hover:text-muted-foreground dark:hover:text-white/50 hover:bg-muted/50 dark:hover:bg-white/5 transition-all ml-0.5"
+      >
+        <Link2 className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
+      </button>
 
       {auth && c.userId !== auth.id && (
         <button
@@ -952,12 +1142,12 @@ export default function CommentSection({
           </div>
         )}
         {!loading && (
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 max-w-full overflow-x-auto scrollbar-none">
             <button
               type="button"
               onClick={() => setHideSpoilers((v) => !v)}
               className={cn(
-                "px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                "shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all",
                 hideSpoilers
                   ? "bg-amber-500/12 text-amber-200 border-amber-500/25"
                   : "border-border dark:border-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
@@ -969,19 +1159,19 @@ export default function CommentSection({
               <button
                 type="button"
                 onClick={jumpToNewest}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-border dark:border-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55 transition-all"
+                className="shrink-0 hidden sm:inline-flex px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-border dark:border-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55 transition-all"
               >
                 {t("comments.jumpToLatest")}
               </button>
             )}
-            <div className="flex items-center gap-0.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-0.5">
+            <div className="flex items-center gap-0.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-0.5 shrink-0">
             {(["new", "best", "top", "old"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setSort(s)}
                 aria-pressed={sort === s}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all",
+                  "px-2 sm:px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all",
                   sort === s
                     ? "bg-accent dark:bg-white/12 text-foreground dark:text-white shadow-sm shadow-black/20"
                     : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
@@ -1003,7 +1193,12 @@ export default function CommentSection({
 
       {/* Composer */}
       {auth && !requiresEpisode ? (
-        <div className={cn("flex gap-3", isSheet && "gap-2.5")}>
+        <div
+          className={cn(
+            "flex gap-3",
+            isSheet && "gap-2.5 sticky top-10 z-[9] -mx-1 px-1 py-2 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/[0.04]",
+          )}
+        >
           {!isSheet && (
             <CommentAvatar username={auth.username} avatarUrl={auth.avatar} frameSlug={auth.equippedFrame} />
           )}
@@ -1075,15 +1270,16 @@ export default function CommentSection({
               )}
 
               {showToolbar && (
-                <div className="flex items-center justify-between px-3 pb-2.5 pt-1 border-t border-border dark:border-white/6">
-                  <div className="flex items-center gap-1 relative">
+                <div className="flex items-center justify-between gap-1 px-2 sm:px-3 pb-2.5 pt-1 border-t border-border dark:border-white/6">
+                  <div className="flex items-center gap-0.5 sm:gap-1 relative min-w-0 overflow-x-auto scrollbar-none">
                     <button
                       onClick={() => { setShowEmojiPicker((v) => !v); setShowGifPanel(false); }}
+                      aria-label={t("comments.emojiPopular")}
                       className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
+                        "flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border shrink-0",
                         showEmojiPicker
                           ? "bg-accent dark:bg-white/12 text-foreground dark:text-white border-border dark:border-white/20"
-                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:bg-white/5 border-transparent",
+                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:hover:bg-white/5 border-transparent",
                       )}
                     >
                       <SmilePlus className="w-3.5 h-3.5" />
@@ -1099,14 +1295,14 @@ export default function CommentSection({
                     <button
                       onClick={() => { setShowGifPanel((v) => !v); setShowEmojiPicker(false); }}
                       className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
+                        "flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border shrink-0",
                         showGifPanel || selectedGif
                           ? "bg-accent dark:bg-white/12 text-foreground dark:text-white border-border dark:border-white/20"
-                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:bg-white/5 border-transparent",
+                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:hover:bg-white/5 border-transparent",
                       )}
                     >
                       <ImagePlay className="w-3.5 h-3.5" />
-                      {t("comments.gif")}
+                      <span className="hidden sm:inline">{t("comments.gif")}</span>
                     </button>
                     {showGifPanel && (
                       <GifPickerPanel
@@ -1122,22 +1318,36 @@ export default function CommentSection({
                       aria-label={t("comments.markSpoiler")}
                       title={t("comments.markSpoiler")}
                       className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
+                        "flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border shrink-0",
                         isSpoiler
                           ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:bg-white/5 border-transparent",
+                          : "text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:hover:bg-white/5 border-transparent",
                       )}
                     >
                       <EyeOff className="w-3.5 h-3.5" />
-                      <span>{t("comments.spoiler")}</span>
+                      <span className="hidden sm:inline">{t("comments.spoiler")}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={insertInlineSpoiler}
+                      title={t("comments.insertInlineSpoiler")}
+                      aria-label={t("comments.insertInlineSpoiler")}
+                      className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border shrink-0 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:hover:bg-white/5 border-transparent"
+                    >
+                      <Brackets className="w-3.5 h-3.5" />
+                      <span className="hidden md:inline">{t("comments.inlineSpoiler")}</span>
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                     <span
                       className={cn(
-                        "hidden sm:block text-[10px] font-mono tabular-nums transition-colors",
-                        charNearLimit ? "text-amber-400/70" : "text-muted-foreground/50 dark:text-white/15",
+                        "text-[10px] font-mono tabular-nums transition-colors",
+                        charNearLimit
+                          ? "text-amber-400/70"
+                          : "text-muted-foreground/50 dark:text-white/15 hidden sm:block",
+                        draft.length > 0 && "block",
                       )}
                     >
                       {draft.length}/1000
@@ -1145,14 +1355,14 @@ export default function CommentSection({
                     <button
                       onClick={handleSubmit}
                       disabled={!canSubmit}
-                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-white to-white/90 text-black text-xs font-bold hover:from-white/95 hover:to-white/85 disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-sm shadow-black/20"
+                      className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-gradient-to-r from-white to-white/90 text-black text-xs font-bold hover:from-white/95 hover:to-white/85 disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-sm shadow-black/20"
                     >
                       {submitting ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Send className="w-3.5 h-3.5" />
                       )}
-                      {t("comments.post")}
+                      <span className="hidden sm:inline">{t("comments.post")}</span>
                     </button>
                   </div>
                 </div>
@@ -1227,17 +1437,20 @@ export default function CommentSection({
             const isOwn = auth?.id === c.userId;
             const isEditing = editingId === c.id;
             const isHighlighted = isOwn || netScore(c) >= 5;
+            const isDeepLinked = highlightId === c.id;
 
             return (
               <div
+                id={`comment-${c.id}`}
                 key={c.id}
                 className={cn(
-                  "flex gap-3 py-4 px-3 -mx-1 rounded-2xl border border-transparent transition-colors group",
+                  "flex gap-3 py-4 px-3 -mx-1 rounded-2xl border border-transparent transition-colors group scroll-mt-24",
                   index > 0 && "mt-1",
                   isHighlighted
                     ? "bg-muted/30 dark:bg-white/[0.025] hover:bg-muted/40 dark:hover:bg-white/[0.04] border-border/50 dark:border-white/[0.05]"
                     : "hover:bg-muted/25 dark:hover:bg-white/[0.02] hover:border-border/40 dark:hover:border-white/[0.06]",
                   isOwn && "ring-1 ring-primary/10",
+                  isDeepLinked && "ring-2 ring-sky-400/40 bg-sky-500/[0.06]",
                 )}
               >
                 <CommentAvatar username={c.username} avatarUrl={c.avatarUrl} frameSlug={c.equippedFrame} />
@@ -1274,12 +1487,7 @@ export default function CommentSection({
                         {t("comments.episodeShort", { n: c.episodeNumber })}
                       </span>
                     )}
-                    <span className="text-[11px] font-mono text-muted-foreground/60 dark:text-white/18 leading-none">
-                      {relativeTime(c.createdAt, t)}
-                      {c.updatedAt && (
-                        <span className="ml-1 text-muted-foreground/50 dark:text-white/15">{t("comments.edited")}</span>
-                      )}
-                    </span>
+                    <CommentTimestamp iso={c.createdAt} edited={!!c.updatedAt} t={t} />
 
                     {(isOwn || canModerateComments) && !isEditing && (
                       <div className="ml-auto flex items-center gap-1 opacity-80 sm:opacity-55 sm:group-hover:opacity-100 transition-opacity">
@@ -1384,50 +1592,81 @@ export default function CommentSection({
                         frameSlug={auth!.equippedFrame}
                         size="sm"
                       />
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <textarea
+                          ref={replyTextareaRef}
                           autoFocus
                           value={replyDraft}
                           onChange={(e) => setReplyDraft(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
                               handleReply(c.id);
-                            if (e.key === "Escape") {
-                              setReplyingTo(null);
-                              setReplyDraft("");
-                            }
+                            if (e.key === "Escape") cancelReply();
                           }}
                           placeholder={t("comments.replyTo", { user: c.username })}
                           rows={2}
                           maxLength={1000}
                           className="w-full bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-lg px-3 py-2 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 resize-none focus:outline-none focus:border-primary/25 transition-colors leading-relaxed"
                         />
-                        <div className="flex items-center justify-between gap-2 mt-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setReplyIsSpoiler((v) => !v)}
-                            aria-pressed={replyIsSpoiler}
-                            aria-label={t("comments.markReplySpoiler")}
-                            className={cn(
-                              "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border transition-all",
-                              replyIsSpoiler
-                                ? "bg-amber-500/12 text-amber-200 border-amber-500/25"
-                                : "border-border dark:border-white/10 text-muted-foreground dark:text-white/30",
+                        {replyGif && (
+                          <div className="mt-2 relative inline-block rounded-lg overflow-hidden ring-1 ring-border dark:ring-white/10">
+                            <GifImage src={replyGif} alt="GIF" className="max-h-28 w-auto block" />
+                            <button
+                              type="button"
+                              onClick={() => setReplyGif(null)}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 flex items-center justify-center hover:bg-black transition-colors"
+                            >
+                              <X className="w-3 h-3 text-foreground dark:text-white" />
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
+                          <div className="flex items-center gap-1 relative">
+                            <button
+                              type="button"
+                              onClick={() => setReplyIsSpoiler((v) => !v)}
+                              aria-pressed={replyIsSpoiler}
+                              aria-label={t("comments.markReplySpoiler")}
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                                replyIsSpoiler
+                                  ? "bg-amber-500/12 text-amber-200 border-amber-500/25"
+                                  : "border-border dark:border-white/10 text-muted-foreground dark:text-white/30",
+                              )}
+                            >
+                              <EyeOff className="w-3 h-3" />
+                              {t("comments.markReplySpoiler")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowReplyGifPanel((v) => !v)}
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                                replyGif || showReplyGifPanel
+                                  ? "bg-accent dark:bg-white/12 text-foreground dark:text-white border-border dark:border-white/20"
+                                  : "border-border dark:border-white/10 text-muted-foreground dark:text-white/30",
+                              )}
+                            >
+                              <ImagePlay className="w-3 h-3" />
+                              {t("comments.gif")}
+                            </button>
+                            {showReplyGifPanel && (
+                              <GifPickerPanel
+                                onAttach={(url) => { setReplyGif(url); setShowReplyGifPanel(false); }}
+                                onClose={() => setShowReplyGifPanel(false)}
+                              />
                             )}
-                          >
-                            <EyeOff className="w-3 h-3" />
-                            {t("comments.markReplySpoiler")}
-                          </button>
+                          </div>
                           <div className="flex items-center gap-2">
                           <button
-                            onClick={() => { setReplyingTo(null); setReplyDraft(""); setReplyIsSpoiler(false); }}
+                            onClick={cancelReply}
                             className="text-xs text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55 transition-colors px-2 py-1"
                           >
                             {t("comments.cancel")}
                           </button>
                           <button
                             onClick={() => handleReply(c.id)}
-                            disabled={!replyDraft.trim() || submittingReply}
+                            disabled={!canSubmitReply}
                             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
                           >
                             {submittingReply ? (
@@ -1446,18 +1685,38 @@ export default function CommentSection({
 
                   {/* Threaded replies */}
                   {c.replies.length > 0 && (
-                    <div className="mt-3 ml-2 pl-4 border-l-2 border-primary/15">
+                    <div className="mt-3 ml-1 sm:ml-2 pl-3 sm:pl-4 border-l-2 border-zinc-500/25 dark:border-white/12">
                       {!expandedReplies.has(c.id) ? (
                         <button
                           onClick={() =>
                             setExpandedReplies((prev) => new Set([...prev, c.id]))
                           }
-                          className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 py-1 transition-colors"
+                          className="flex flex-col items-start gap-1 text-xs text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 py-1 transition-colors w-full text-left"
                         >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                          {c.replies.length === 1
-                            ? t("comments.replyOne")
-                            : t("comments.repliesMany", { count: c.replies.length })}
+                          <span className="flex items-center gap-1.5 font-semibold">
+                            <ChevronDown className="w-3.5 h-3.5" />
+                            {c.replies.length === 1
+                              ? t("comments.replyOne")
+                              : t("comments.repliesMany", { count: c.replies.length })}
+                          </span>
+                          {(() => {
+                            const preview = [...c.replies].reverse().find((r) => !hideSpoilers || !r.isSpoiler);
+                            if (!preview) return null;
+                            const snippet = preview.body?.trim()
+                              ? preview.body.trim().slice(0, 80)
+                              : preview.gifUrl
+                                ? t("home.sharedGif")
+                                : "";
+                            if (!snippet) return null;
+                            return (
+                              <span className="pl-5 text-[11px] text-muted-foreground/70 dark:text-white/25 line-clamp-1 font-normal">
+                                <span className="text-muted-foreground dark:text-white/40">{preview.username}</span>
+                                {": "}
+                                {snippet}
+                                {(preview.body?.length ?? 0) > 80 ? "…" : ""}
+                              </span>
+                            );
+                          })()}
                         </button>
                       ) : (
                         <>
@@ -1466,11 +1725,16 @@ export default function CommentSection({
                             .map((reply) => {
                             const replyOwn = auth?.id === reply.userId;
                             const replyEditing = editingId === reply.id;
+                            const replyDeepLinked = highlightId === reply.id;
 
                             return (
                               <div
+                                id={`comment-${reply.id}`}
                                 key={reply.id}
-                                className="flex gap-2.5 py-3 group/reply border-t border-border dark:border-white/[0.04] first:border-t-0"
+                                className={cn(
+                                  "flex gap-2.5 py-3 group/reply border-t border-border dark:border-white/[0.04] first:border-t-0 scroll-mt-24 rounded-lg -mx-1 px-1",
+                                  replyDeepLinked && "ring-2 ring-sky-400/40 bg-sky-500/[0.06]",
+                                )}
                               >
                                 <CommentAvatar
                                   username={reply.username}
@@ -1497,12 +1761,12 @@ export default function CommentSection({
                                         {t("comments.spoiler")}
                                       </span>
                                     )}
-                                    <span className="text-[10px] font-mono text-muted-foreground/60 dark:text-white/18 leading-none">
-                                      {relativeTime(reply.createdAt, t)}
-                                      {reply.updatedAt && (
-                                        <span className="ml-1 text-muted-foreground/50 dark:text-white/15">{t("comments.edited")}</span>
-                                      )}
-                                    </span>
+                                    <CommentTimestamp
+                                      iso={reply.createdAt}
+                                      edited={!!reply.updatedAt}
+                                      t={t}
+                                      className="text-[10px]"
+                                    />
                                     {(replyOwn || canModerateComments) && !replyEditing && (
                                       <div className="ml-auto flex items-center gap-1 opacity-80 sm:opacity-55 sm:group-hover/reply:opacity-100 transition-opacity">
                                         {replyOwn && (
@@ -1512,7 +1776,7 @@ export default function CommentSection({
                                               setEditDraft(reply.body);
                                             }}
                                             aria-label={t("comments.editReply")}
-                                            className="p-1 rounded-lg hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60 transition-all"
+                                            className="p-1 rounded-lg hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:hover:text-white/60 transition-all"
                                           >
                                             <Pencil className="w-3 h-3" />
                                           </button>
@@ -1549,7 +1813,7 @@ export default function CommentSection({
                                       <div className="flex items-center justify-end gap-1.5 mt-1.5">
                                         <button
                                           onClick={() => { setEditingId(null); setEditDraft(""); }}
-                                          className="px-2.5 py-1 rounded-lg text-xs text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 hover:bg-muted/50 dark:bg-white/5 transition-all"
+                                          className="px-2.5 py-1 rounded-lg text-xs text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:hover:text-white/65 hover:bg-muted/50 dark:hover:bg-white/5 transition-all"
                                         >
                                           {t("comments.cancel")}
                                         </button>
@@ -1582,7 +1846,7 @@ export default function CommentSection({
 
                                   {!replyEditing && (
                                     <div className="flex flex-col gap-1">
-                                      {renderVoteReact(reply, true)}
+                                      {renderVoteReact(reply, true, true, c.id)}
                                       {renderReactionPills(reply)}
                                     </div>
                                   )}
@@ -1594,12 +1858,12 @@ export default function CommentSection({
                           <button
                             onClick={() =>
                               setExpandedReplies((prev) => {
-                                const s = new Set(prev);
-                                s.delete(c.id);
-                                return s;
+                                const next = new Set(prev);
+                                next.delete(c.id);
+                                return next;
                               })
                             }
-                            className="flex items-center gap-1.5 text-xs text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:text-white/45 py-2 transition-colors"
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:hover:text-white/45 py-2 transition-colors"
                           >
                             <ChevronUp className="w-3.5 h-3.5" />
                             {t("comments.hideReplies")}
@@ -1621,13 +1885,14 @@ export default function CommentSection({
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 hover:bg-muted/50 dark:bg-white/5 border border-border dark:border-white/6 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:hover:text-white/70 hover:bg-muted/50 dark:hover:bg-white/5 border border-border dark:border-white/6 transition-all disabled:opacity-50"
           >
             {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {t("comments.loadMore")}
           </button>
         </div>
       )}
+
       {!hasMore && comments.length > 0 && (
         <p className="text-center text-[11px] font-mono text-muted-foreground/70 dark:text-white/20 py-2">
           {t("comments.endOfList")}
