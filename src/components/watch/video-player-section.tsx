@@ -21,7 +21,15 @@ import {
   type KittyTrack,
   type KittyStreamNodeParam,
 } from "@/query/stream/get-kitty-stream";
-import { normalizeKittyProvider, DEFAULT_KITTY_PROVIDER, normalizeProviderAudioMode, getKittyProviderMeta, providerHasNativeSubs, providerSupportsDub, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import {
+  DEFAULT_KITTY_PROVIDER,
+  getKittyProviderLabel,
+  normalizeKittyProvider,
+  normalizeProviderAudioMode,
+  providerHasNativeSubs,
+  providerSupportsDub,
+  type ProviderAudioMode,
+} from "@/lib/kitty/kitty-providers";
 import { getPreferredDefaultProvider } from "@/lib/kitty/provider-order";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
@@ -1264,7 +1272,12 @@ const VideoPlayerSection = () => {
 
     tried.add(next);
     fallbackBusyRef.current = true;
-    toast.info(t("watch.providerFallback", { from: provider, to: next }));
+    toast.info(
+      t("watch.providerFallback", {
+        from: getKittyProviderLabel(provider),
+        to: getKittyProviderLabel(next),
+      }),
+    );
 
     const mode = normalizeProviderAudioMode(audioMode, "sub");
     handleProviderGridSelect(next, mode, true);
@@ -1284,7 +1297,12 @@ const VideoPlayerSection = () => {
       toast.error(t("watch.noMoreProviders"));
       return;
     }
-    toast.info(t("watch.providerFallback", { from: provider, to: next }));
+    toast.info(
+      t("watch.providerFallback", {
+        from: getKittyProviderLabel(provider),
+        to: getKittyProviderLabel(next),
+      }),
+    );
     const mode = normalizeProviderAudioMode(audioMode, streamAudio);
     handleProviderGridSelect(next, mode, true);
   }, [provider, audioMode, streamAudio, t, handleProviderGridSelect, providerOrder, defaultProvider]);
@@ -1477,7 +1495,7 @@ const VideoPlayerSection = () => {
   };
 
   const stuckNextFallback = peekNextFallbackProvider();
-  const stuckNextLabel = stuckNextFallback ? getKittyProviderMeta(stuckNextFallback).label : null;
+  const stuckNextLabel = stuckNextFallback ? getKittyProviderLabel(stuckNextFallback) : null;
   const proxyNodeLabel = getKittyApiNode(kittyProxyNode).label;
   const activeQualityLabel = displayQualities.find((q) => q.file === displayFile)?.quality ?? null;
   const raceMs = streamData?.raceMs ?? null;
@@ -1510,11 +1528,11 @@ const VideoPlayerSection = () => {
       (streamError instanceof Error ? streamError.message : null);
     const streamFailMessage = isEpisodeNotFound(rawMessage)
       ? t("watch.episodeNotFoundOnProvider", {
-          provider: getKittyProviderMeta(provider).label,
+          provider: getKittyProviderLabel(provider),
         })
       : (rawMessage ?? t("watch.streamNotFound"));
     const nextFallback = peekNextFallbackProvider();
-    const nextFallbackLabel = nextFallback ? getKittyProviderMeta(nextFallback).label : undefined;
+    const nextFallbackLabel = nextFallback ? getKittyProviderLabel(nextFallback) : undefined;
 
     return (
       <div className="flex flex-col gap-2 sm:gap-2.5">
@@ -1543,13 +1561,13 @@ const VideoPlayerSection = () => {
           label={
             currentEpisodeInfo
               ? t("watch.loadingEpisode", { n: currentEpisodeInfo.number })
-              : t("watch.loadingStreamProvider", { provider: getKittyProviderMeta(provider).label })
+              : t("watch.loadingStreamProvider", { provider: getKittyProviderLabel(provider) })
           }
         />
         <div className={cn(PROVIDER_PANEL.shell, PROVIDER_PANEL.inner)}>
           {loadingStuck && (
             <WatchStuckLoadingBanner
-              providerLabel={getKittyProviderMeta(provider).label}
+              providerLabel={getKittyProviderLabel(provider)}
               nextProviderLabel={stuckNextLabel}
               onTryAnother={stuckNextFallback ? handleTryAnotherServer : undefined}
             />
@@ -1584,7 +1602,7 @@ const VideoPlayerSection = () => {
 
   if ((!streamReady || !streamData?.file) && !canRenderPlayerShell) {
     const nextFallback = peekNextFallbackProvider();
-    const nextFallbackLabel = nextFallback ? getKittyProviderMeta(nextFallback).label : undefined;
+    const nextFallbackLabel = nextFallback ? getKittyProviderLabel(nextFallback) : undefined;
 
     return (
       <div className="flex flex-col gap-3">
@@ -1689,7 +1707,7 @@ const VideoPlayerSection = () => {
         >
           <span className={cn(providerChipClass(provider), "mb-4 px-3 py-1.5 text-[11px]")}>
             <span className={cn("h-2 w-2 rounded-full shrink-0 animate-pulse", getProviderAccent(provider).dot)} />
-            {getKittyProviderMeta(provider).label}
+            {getKittyProviderLabel(provider)}
             <span className="opacity-40">·</span>
             {streamAudio === "dub" ? t("card.dub") : t("card.sub")}
           </span>
@@ -1697,7 +1715,7 @@ const VideoPlayerSection = () => {
           <p className="mt-3 text-[11px] font-mono text-white/55">
             {currentEpisodeInfo
               ? t("watch.loadingEpisode", { n: currentEpisodeInfo.number })
-              : t("watch.loadingStreamProvider", { provider: getKittyProviderMeta(provider).label })}
+              : t("watch.loadingStreamProvider", { provider: getKittyProviderLabel(provider) })}
           </p>
         </div>
       )}
@@ -1707,7 +1725,7 @@ const VideoPlayerSection = () => {
 
       <WatchPlayerToolbar
         provider={provider}
-        providerLabel={getKittyProviderMeta(provider).label}
+        providerLabel={getKittyProviderLabel(provider)}
         streamAudio={streamAudio}
         dubEnabled={providerSupportsDub(provider)}
         onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
@@ -1733,7 +1751,7 @@ const VideoPlayerSection = () => {
 
       {!showPlayerControls && (
         <WatchStreamInfoBar
-          providerLabel={getKittyProviderMeta(provider).label}
+          providerLabel={getKittyProviderLabel(provider)}
           streamAudio={streamAudio}
           serverName={streamData?.server}
           provider={provider}

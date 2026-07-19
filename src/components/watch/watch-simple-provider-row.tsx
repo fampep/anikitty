@@ -12,6 +12,7 @@ import {
 import { ProviderDefaultBadge, ProviderCapabilityBadge } from "@/components/player/provider-select";
 import {
   KITTY_PROVIDER_META,
+  getKittyProviderLabel,
   kittyProvidersByGroup,
   providerSupportsDub,
   providerSupportsSub,
@@ -90,7 +91,7 @@ export default function WatchSimpleProviderRow({
         <SelectTrigger className={TRIGGER_CLASS}>
           <div className="flex items-center gap-1.5 min-w-0">
             <Zap className="w-3.5 h-3.5 shrink-0 opacity-60" />
-            <SelectValue />
+            <SelectValue>{getKittyProviderLabel(provider)}</SelectValue>
           </div>
         </SelectTrigger>
         <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>

@@ -10,6 +10,7 @@ import {
 } from "@/lib/kitty/anilist-site-client";
 import { isAnilistSiteProvider, type AnilistSiteProviderId } from "@/lib/kitty/anilist-site-providers";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
+import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 
@@ -168,16 +169,22 @@ export default function WatchServerPicker({
                 </p>
               )}
               <div className="flex flex-wrap gap-1.5">
-                {siteServers.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => onPickSiteServer(s)}
-                    className="px-2 py-1 rounded-md text-[10px] font-mono font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-primary/25 hover:text-zinc-100/90 touch-manipulation"
-                  >
-                    {s.name}
-                  </button>
-                ))}
+                {siteServers.map((s, index) => {
+                  const displayName =
+                    resolveServerCodename(provider, s.name) ??
+                    resolveServerCodename(provider, s.id) ??
+                    `Line ${index + 1}`;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => onPickSiteServer(s)}
+                      className="px-2 py-1 rounded-md text-[10px] font-mono font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-primary/25 hover:text-zinc-100/90 touch-manipulation"
+                    >
+                      {displayName}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -54,7 +54,7 @@ export default function WatchStreamInfoBar({
 }: Props) {
   const t = useT();
   const accent = getProviderAccent(provider);
-  const server = resolveServerCodename(provider, serverName) ?? serverName?.trim();
+  const server = resolveServerCodename(provider, serverName);
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
   const quality = qualityLabel ? formatStreamQualityLabel(qualityLabel) : null;
   const proxyTitle =

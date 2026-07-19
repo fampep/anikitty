@@ -16,7 +16,7 @@ import {
   SkipForward,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
-import type { KittyProvider } from "@/lib/kitty/kitty-providers";
+import { getKittyProviderLabel, type KittyProvider } from "@/lib/kitty/kitty-providers";
 import { AUDIO_SEGMENT, getProviderAccent, providerChipClass } from "@/lib/kitty/provider-ui-styles";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
@@ -154,7 +154,7 @@ export default function WatchPlayerToolbar({
   const toggleTheatreMode = useSettingsStore((s) => s.toggleTheatreMode);
   const theatreMode = useSettingsStore((s) => s.theatreMode);
 
-  const displayProvider = providerLabel ?? provider;
+  const displayProvider = providerLabel ?? getKittyProviderLabel(provider);
   const accent = getProviderAccent(provider);
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
 

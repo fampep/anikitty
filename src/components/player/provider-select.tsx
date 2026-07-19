@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import {
   DEFAULT_KITTY_PROVIDER,
+  getKittyProviderLabel,
   kittyProvidersByGroup,
   kittyProvidersForAudioMode,
   type KittyProvider,
@@ -107,7 +108,9 @@ export default function ProviderSelect({
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <Server className="w-3.5 h-3.5 shrink-0 opacity-50" />
-          <SelectValue placeholder={t("watch.providerSelect")} />
+          <SelectValue placeholder={t("watch.providerSelect")}>
+            {getKittyProviderLabel(value)}
+          </SelectValue>
         </div>
       </SelectTrigger>
       <SelectContent className="bg-[#0c0c0c] border-border dark:border-white/10 max-h-[min(22rem,70vh)]">

@@ -103,7 +103,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: false,
-    hint: "AniList ID · anikuro.ru · animepower + mirrors · SUB · DUB · soft subs",
+    hint: "SUB · DUB · soft subs · mirrors",
   },
   {
     id: "AniWaves",
@@ -114,7 +114,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: false,
-    hint: "aniwaves.ru scrape · Vidplay/MyCloud · SUB · DUB",
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "Anikoto",
@@ -126,7 +126,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "AniList ID · anichi.to scrape · SUB · DUB · soft subs",
+    hint: "SUB · DUB · soft · hard subs",
   },
   {
     id: "AniWatch",
@@ -137,7 +137,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "aniwatch.one scrape · MGCLD/BYFMS · SUB · DUB · soft subs",
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "Senshi",
@@ -149,7 +149,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "senshi.live · Ninstream HLS · HardSub/SoftSub · DUB",
+    hint: "SUB · DUB · soft · hard subs",
   },
   {
     id: "AniNeko",
@@ -161,7 +161,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "SUB · DUB · soft subs",
+    hint: "SUB · DUB · soft · hard subs",
   },
   {
     id: "MKissa",
@@ -173,7 +173,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: false,
     kittySubs: false,
-    hint: "AniList ID · mkissa.to · mirror servers (Ok, Mp4, …) · SUB · DUB",
+    hint: "SUB · DUB · hard subs · mirrors",
   },
   {
     id: "KickAssAnime",
@@ -184,7 +184,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "KickAssAnime · kaa.lt · VidStreaming/CatStream HLS · SUB · DUB",
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "KuroHost",
@@ -195,7 +195,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
-    hint: "KuroAnime self-host · bunny.kuroanime.lol · SUB · soft EN subs",
+    hint: "SUB · soft EN subs",
   },
 ];
 
@@ -264,6 +264,12 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
 
 export function getKittyProviderMeta(id: KittyProvider): KittyProviderMeta {
   return KITTY_PROVIDER_META.find((p) => p.id === id) ?? { id, label: id, group: "other" };
+}
+
+/** Site-only display name for UI — never the scrape/API provider id. */
+export function getKittyProviderLabel(id: string | null | undefined): string {
+  const normalized = normalizeKittyProvider(id);
+  return getKittyProviderMeta(normalized).label;
 }
 
 export function isDefaultProvider(id: KittyProvider): boolean {

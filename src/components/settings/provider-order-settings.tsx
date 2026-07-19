@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { ChevronDown, ChevronUp, GripVertical, RotateCcw, Star } from "lucide-react";
 import { cn } from "@/lib/core/utils";
-import { getKittyProviderMeta, type KittyProvider } from "@/lib/kitty/kitty-providers";
+import { getKittyProviderLabel, getKittyProviderMeta, type KittyProvider } from "@/lib/kitty/kitty-providers";
 import {
   isSiteDefaultProviderOrder,
   moveProviderInOrder,
@@ -148,11 +148,13 @@ export default function ProviderOrderSettings() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground/90 dark:text-white/85 truncate">
-                  {meta.label}
+                  {getKittyProviderLabel(id)}
                 </p>
                 <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/25 truncate">
-                  {id}
-                  {isPreferred ? ` · ${t("settings.providerOrderDefault")}` : ""}
+                  {meta.hint ?? ""}
+                  {isPreferred
+                    ? `${meta.hint ? " · " : ""}${t("settings.providerOrderDefault")}`
+                    : ""}
                 </p>
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
