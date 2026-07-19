@@ -11,6 +11,7 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
   "Anikoto",
   "AniWatch",
+  "Senshi",
   "AniNeko",
   "AniWaves",
   "KickAssAnime",
