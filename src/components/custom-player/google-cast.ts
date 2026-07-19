@@ -384,17 +384,33 @@ export async function prepareCastMediaUrl(
 }
 
 /**
+ * Max soft tracks on a single LoadRequest. Large track lists raise the odds
+ * the Default Media Receiver aborts the entire load (CORS / bad cue files).
+ */
+const CAST_MAX_TEXT_TRACKS = 6;
+
+/**
  * Make a soft-subtitle URL fetchable by the Chromecast receiver.
  * Our `/api/kitty/subtitles` endpoints already CORS-open; external hosts are
  * wrapped through the subtitle proxy (same as local playback).
- * ASS/SSA tracks are skipped — Default Media Receiver only renders WebVTT.
+ *
+ * Default Media Receiver only renders WebVTT. ASS/SSA/SRT (and unlabeled
+ * cached `/api/kitty/subtitles?id=` files that are not clearly VTT) are
+ * skipped — a bad trackContentId can reject the whole loadMedia.
  */
-export function prepareCastTextTrackUrl(url: string): string | null {
+export function prepareCastTextTrackUrl(
+  url: string,
+  label?: string,
+): string | null {
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  const format = detectSubtitleFormat({ url: trimmed });
-  if (format === "ass") return null;
+  const format = detectSubtitleFormat({ url: trimmed, label });
+  // DMR cannot render ASS/SRT. URL-less cached ids often default to "vtt" in
+  // detectSubtitleFormat — only trust those when the path/extension says VTT
+  // or the upstream URL inside a proxy query clearly ends in .vtt.
+  if (format === "ass" || format === "srt") return null;
+  if (!isLikelyCastWebVttUrl(trimmed, label)) return null;
 
   let candidate = trimmed;
   if (!isOurSubtitleUrl(candidate) && /^https?:\/\//i.test(candidate)) {
@@ -404,6 +420,44 @@ export function prepareCastTextTrackUrl(url: string): string | null {
   const absolute = toAbsoluteCastUrl(candidate);
   if (!absolute || !isCastUrlReachableFromDevice(absolute)) return null;
   return absolute;
+}
+
+/** True when the URL/label strongly indicates WebVTT (not ASS/SRT/unknown). */
+export function isLikelyCastWebVttUrl(url: string, label?: string): boolean {
+  const lower = url.toLowerCase();
+  const labelLower = (label ?? "").toLowerCase();
+  if (
+    lower.includes(".ass") ||
+    lower.includes(".ssa") ||
+    lower.includes(".srt") ||
+    labelLower.includes(".ass") ||
+    labelLower.includes(".ssa") ||
+    labelLower.includes(".srt") ||
+    /\bass\b/.test(labelLower) ||
+    /\bssa\b/.test(labelLower)
+  ) {
+    return false;
+  }
+  if (lower.includes(".vtt") || labelLower.includes(".vtt")) return true;
+  // Proxy wraps the upstream URL in ?url= — accept when that target is .vtt.
+  try {
+    const parsed = new URL(
+      lower.startsWith("http")
+        ? url
+        : typeof window !== "undefined"
+          ? new URL(url, window.location.origin).href
+          : `https://placeholder.local${url.startsWith("/") ? url : `/${url}`}`,
+    );
+    if (parsed.pathname.includes("/api/kitty/subtitles/proxy")) {
+      const upstream = parsed.searchParams.get("url") ?? "";
+      return /\.vtt(\?|#|$)/i.test(upstream);
+    }
+  } catch {
+    /* fall through */
+  }
+  // Ryuo / known VTT CDN paths without a misleading extension.
+  if (/\/s\/\d+\/\d+\/[a-z0-9_-]+\.vtt\b/i.test(lower)) return true;
+  return false;
 }
 
 export type PreparedCastTextTrack = {
@@ -421,7 +475,8 @@ export function prepareCastTextTracks(
   if (!tracks?.length) return [];
   const out: PreparedCastTextTrack[] = [];
   for (const track of tracks) {
-    const url = prepareCastTextTrackUrl(track.url);
+    if (out.length >= CAST_MAX_TEXT_TRACKS) break;
+    const url = prepareCastTextTrackUrl(track.url, track.label);
     if (!url) continue;
     out.push({
       trackId: out.length + 1,
@@ -548,6 +603,72 @@ export function buildCastLoadRequest(
   return request;
 }
 
+/**
+ * CAF loadMedia may reject with ErrorCode, or (on some sender builds) resolve
+ * with a non-null ErrorCode. Treat either as failure.
+ */
+async function loadRequestOnSession(
+  session: cast.framework.CastSession,
+  request: chrome.cast.media.LoadRequest,
+): Promise<void> {
+  const result = await session.loadMedia(request);
+  if (result != null && result !== undefined && String(result) !== "") {
+    throw result;
+  }
+}
+
+function waitMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * After loadMedia resolves, the receiver can still fail while fetching tracks
+ * (CORS / bad VTT) and surface IDLE+ERROR. Only treat explicit ERROR as failure
+ * so slow buffering does not drop working captions.
+ */
+async function castLoadFailedAfterTracks(
+  session: cast.framework.CastSession,
+  watchMs = 1_500,
+): Promise<boolean> {
+  const started = Date.now();
+  while (Date.now() - started < watchMs) {
+    try {
+      const media = session.getMediaSession();
+      const reason = String(media?.idleReason ?? "");
+      if (reason === "ERROR") return true;
+      const state = String(media?.playerState ?? "");
+      if (
+        state === "PLAYING" ||
+        state === "PAUSED" ||
+        state === "BUFFERING" ||
+        state === "LOADING"
+      ) {
+        return false;
+      }
+    } catch {
+      /* keep watching */
+    }
+    await waitMs(200);
+  }
+  return false;
+}
+
+async function applyActiveTextTracks(
+  session: cast.framework.CastSession,
+  activeTextTrackIds: number[],
+): Promise<void> {
+  if (activeTextTrackIds.length === 0) return;
+  const mediaSession = session.getMediaSession();
+  if (!mediaSession) return;
+  try {
+    await editTracksInfoAsync(mediaSession, activeTextTrackIds);
+  } catch {
+    /* load succeeded; captions may still work via LoadRequest.activeTrackIds */
+  }
+}
+
 export async function loadMediaOnSession(
   media: CastMediaRequest,
 ): Promise<CastLoadResult> {
@@ -573,56 +694,79 @@ export async function loadMediaOnSession(
   const contentId = prepared.url;
   const contentType = prepared.contentType || media.contentType;
   const preparedTracks = prepareCastTextTracks(media.textTracks);
-  const request = buildCastLoadRequest(
-    { ...media, contentType },
-    contentId,
-    preparedTracks,
-  );
-  if (!request) {
-    return { ok: false, error: "Could not build Cast load request" };
-  }
+  const mediaPayload = { ...media, contentType };
 
-  const activeTextTrackIds = preparedTracks
-    .filter((t) => t.active)
-    .map((t) => t.trackId);
-  const textTrackIds = preparedTracks.map((t) => t.trackId);
-
-  try {
-    await session.loadMedia(request);
-    // Some receivers honor LoadRequest.activeTrackIds; others need an explicit
-    // editTracksInfo after media is ready (esp. when resuming / replacing).
-    if (preparedTracks.length > 0) {
-      const mediaSession = session.getMediaSession();
-      if (mediaSession) {
-        try {
-          await editTracksInfoAsync(mediaSession, activeTextTrackIds);
-        } catch {
-          /* load succeeded; captions may still work via activeTrackIds */
-        }
-      }
+  const attemptLoad = async (
+    tracks: readonly PreparedCastTextTrack[],
+    watchForTrackFailure: boolean,
+  ): Promise<CastLoadResult> => {
+    const request = buildCastLoadRequest(mediaPayload, contentId, tracks);
+    if (!request) {
+      return { ok: false, error: "Could not build Cast load request" };
     }
+    const activeTextTrackIds = tracks
+      .filter((t) => t.active)
+      .map((t) => t.trackId);
+    const textTrackIds = tracks.map((t) => t.trackId);
+    try {
+      await loadRequestOnSession(session, request);
+      if (
+        watchForTrackFailure &&
+        tracks.length > 0 &&
+        (await castLoadFailedAfterTracks(session))
+      ) {
+        return {
+          ok: false,
+          error: "Cast receiver rejected media with text tracks",
+          contentId,
+          contentType,
+          textTrackIds,
+          activeTextTrackIds,
+        };
+      }
+      await applyActiveTextTracks(session, activeTextTrackIds);
+      return {
+        ok: true,
+        contentId,
+        contentType,
+        textTrackIds,
+        activeTextTrackIds,
+      };
+    } catch (err) {
+      const detail = formatCastError(err);
+      const unreachableHint =
+        /LOAD_MEDIA_FAILED|load_media_failed|error_code|media.?failed|timeout/i.test(
+          detail,
+        )
+          ? " The Chromecast must reach the stream URL on your network (CORS + HTTPS)."
+          : "";
+      return {
+        ok: false,
+        error: `${detail}.${unreachableHint}`.trim(),
+        contentId,
+        contentType,
+        textTrackIds,
+        activeTextTrackIds,
+      };
+    }
+  };
+
+  // Prefer video + subs, but never strand a connected session with no media:
+  // invalid MediaInfo.tracks / non-CORS cue files commonly fail the whole load.
+  if (preparedTracks.length > 0) {
+    const withTracks = await attemptLoad(preparedTracks, true);
+    if (withTracks.ok) return withTracks;
+  }
+
+  const videoOnly = await attemptLoad([], false);
+  if (videoOnly.ok) {
     return {
-      ok: true,
-      contentId,
-      contentType,
-      textTrackIds,
-      activeTextTrackIds,
-    };
-  } catch (err) {
-    const detail = formatCastError(err);
-    const unreachableHint =
-      /LOAD_MEDIA_FAILED|error_code|media.?failed|timeout/i.test(detail)
-        ? " The Chromecast must reach the stream URL on your network (CORS + HTTPS)."
-        : "";
-    return {
-      ok: false,
-      error: `${detail}.${unreachableHint}`.trim(),
-      contentId,
-      contentType,
-      textTrackIds,
-      activeTextTrackIds,
+      ...videoOnly,
+      textTrackIds: [],
+      activeTextTrackIds: [],
     };
   }
+  return videoOnly;
 }
 
 export function getCastDeviceName(): string | null {

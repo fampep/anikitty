@@ -12,6 +12,7 @@ export {
   prepareCastMediaUrl,
   prepareCastTextTrackUrl,
   prepareCastTextTracks,
+  isLikelyCastWebVttUrl,
   buildCastLoadRequest,
   describeCastLoadPayload,
   setCastActiveTextTrackIds,

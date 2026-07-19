@@ -41,7 +41,6 @@ import {
   type PlayerController,
 } from "@/lib/player/player-controller";
 import {
-  detectSubtitleFormat,
   getTrackFile,
   isSubtitleTrack,
   labelToLanguage,
@@ -95,6 +94,7 @@ import {
   VerticalSliderPopover,
 } from "./player-chrome";
 import { useAirPlay } from "./use-airplay";
+import { isLikelyCastWebVttUrl } from "./google-cast";
 import {
   buildCastMediaRequest,
   useGoogleCast,
@@ -587,8 +587,8 @@ export function AniKittyPlayer({
   /** Chromecast DMR only renders WebVTT — keep Cast trackIds aligned with this list. */
   const castCaptionOptions = useMemo(
     () =>
-      captionOptions.filter(
-        (track) => detectSubtitleFormat({ url: track.src }) !== "ass",
+      captionOptions.filter((track) =>
+        isLikelyCastWebVttUrl(track.src, track.label),
       ),
     [captionOptions],
   );
