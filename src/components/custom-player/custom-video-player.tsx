@@ -87,7 +87,9 @@ import {
   MenuSection,
   NextEpisodeChip,
   PLAYER_POPOVER_CLASS,
+  PLAYER_POPOVER_MOTION_CLASS,
   SeekPreviewCard,
+  SegmentedChoice,
   UpNextCountdown,
   VerticalSliderPopover,
 } from "./player-chrome";
@@ -262,8 +264,6 @@ export type AniKittyPlayerProps = {
   prevEpisode?: { id: string; number: number; title: string } | null;
   /** Called when the user picks an allServers quality (parent remounts src). */
   onSelectQuality?: (entry: KittyStreamQuality) => void;
-  /** Called when share is clicked (stub by default). */
-  onShare?: () => void;
   onStart?: () => void;
   onProgress?: (current: number, duration: number) => void;
   onLiveTime?: (current: number, duration: number) => void;
@@ -324,7 +324,6 @@ export function AniKittyPlayer({
   nextEpisode,
   prevEpisode,
   onSelectQuality,
-  onShare,
   onStart,
   onProgress,
   onLiveTime,
@@ -2211,17 +2210,6 @@ export function AniKittyPlayer({
     bumpControls();
   }, [bumpControls, pipSupported, pipBlocked, showGestureHint]);
 
-  const handleShare = useCallback(() => {
-    bumpControls();
-    if (onShare) {
-      onShare();
-      return;
-    }
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      void navigator.clipboard.writeText(window.location.href);
-    }
-  }, [bumpControls, onShare]);
-
   const applyPlaybackRate = useCallback(
     (rate: number, opts?: { hint?: boolean; persist?: boolean }) => {
       const video = videoRef.current;
@@ -3160,10 +3148,11 @@ export function AniKittyPlayer({
 
       {/* Double-click / double-tap seek flash — zone wash + accumulated seconds */}
       <div
-        className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 z-20 w-1/3 transition-opacity duration-300",
-          seekFlash === "left" ? "opacity-100" : "opacity-0",
-        )}
+          className={cn(
+            "pointer-events-none absolute inset-y-0 left-0 z-20 w-1/3 transition-[opacity,transform] duration-300 ease-out",
+            seekFlash === "left" ? "opacity-100" : "opacity-0",
+            reduceMotion && "transition-none",
+          )}
         aria-hidden
       >
         <div className="absolute inset-0 bg-gradient-to-r from-white/[0.1] via-white/[0.03] to-transparent" />
@@ -3184,10 +3173,11 @@ export function AniKittyPlayer({
         </div>
       </div>
       <div
-        className={cn(
-          "pointer-events-none absolute inset-y-0 right-0 z-20 w-1/3 transition-opacity duration-300",
-          seekFlash === "right" ? "opacity-100" : "opacity-0",
-        )}
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 z-20 w-1/3 transition-[opacity,transform] duration-300 ease-out",
+            seekFlash === "right" ? "opacity-100" : "opacity-0",
+            reduceMotion && "transition-none",
+          )}
         aria-hidden
       >
         <div className="absolute inset-0 bg-gradient-to-l from-white/[0.1] via-white/[0.03] to-transparent" />
@@ -3373,7 +3363,8 @@ export function AniKittyPlayer({
             skipStackClass === "kitty-overlay--stacked"
               ? "bottom-[7.25rem] sm:bottom-[6.75rem]"
               : "bottom-[4.85rem] sm:bottom-[4.35rem]",
-            "animate-in fade-in zoom-in-95",
+            !reduceMotion &&
+              "animate-in fade-in zoom-in-95 slide-in-from-right-2 duration-200",
           )}
         >
           <span>{activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}</span>
@@ -3434,7 +3425,8 @@ export function AniKittyPlayer({
       >
         <div
           className={cn(
-            "pointer-events-auto bg-gradient-to-t from-black/75 via-black/35 to-transparent pt-8",
+            "group/chrome pointer-events-auto bg-gradient-to-t from-black/55 via-black/20 to-transparent pt-8 transition-[background] duration-200",
+            "hover:from-black/80 hover:via-black/40",
             !chromeVisible && "pointer-events-none",
           )}
           onMouseEnter={() => {
@@ -3451,7 +3443,10 @@ export function AniKittyPlayer({
         >
           <div
             className={cn(
-              "w-full min-w-0 bg-black/25 backdrop-blur-[10px] supports-[backdrop-filter]:bg-black/15",
+              "w-full min-w-0 bg-black/10 backdrop-blur-[3px] supports-[backdrop-filter]:bg-black/[0.06]",
+              "transition-[background-color,backdrop-filter,-webkit-backdrop-filter] duration-200 ease-out",
+              "group-hover/chrome:bg-black/40 group-hover/chrome:backdrop-blur-[12px]",
+              "group-hover/chrome:supports-[backdrop-filter]:bg-black/25",
               "pb-[max(0.35rem,env(safe-area-inset-bottom))] pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))]",
             )}
           >
@@ -3580,7 +3575,7 @@ export function AniKittyPlayer({
                         <div
                           key={`${range.start}-${range.end}-${i}`}
                           aria-hidden
-                          className="absolute inset-y-0 z-[1] rounded-full bg-white/30"
+                          className="absolute inset-y-0 z-[2] rounded-full bg-white/30"
                           style={{
                             left: `${left}%`,
                             width: `${Math.max(width, 0)}%`,
@@ -3590,39 +3585,43 @@ export function AniKittyPlayer({
                     })
                   : null}
                 <div
-                  className="absolute inset-y-0 left-0 z-[2] w-full origin-left rounded-full bg-white"
+                  className="absolute inset-y-0 left-0 z-[3] w-full origin-left rounded-full bg-white"
                   style={{ transform: `scaleX(${progressRatio})` }}
                 />
                 {/* Playhead tip — tiny bright tick for scrub clarity */}
                 {effectiveDuration > 0 ? (
                   <div
                     aria-hidden
-                    className="absolute top-1/2 z-[4] h-2 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-90 group-hover/seek:opacity-0"
+                    className="absolute top-1/2 z-[5] h-2 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-90 group-hover/seek:opacity-0"
                     style={{ left: `${progressRatio * 100}%` }}
                   />
                 ) : null}
-                {/* Skip boundary ticks — thin notches at intro/outro start & end */}
+                {/* Skip segment ranges — filled colored bars (intro / outro) */}
                 {effectiveDuration > 0
-                  ? skipSegments.flatMap((seg) =>
-                      (
-                        [
-                          { key: `${seg.kind}-start`, at: seg.start },
-                          { key: `${seg.kind}-end`, at: seg.end },
-                        ] as const
-                      ).map(({ key, at }) => (
+                  ? skipSegments.map((seg) => {
+                      const left = (seg.start / effectiveDuration) * 100;
+                      const width =
+                        ((seg.end - seg.start) / effectiveDuration) * 100;
+                      return (
                         <div
-                          key={key}
+                          key={`${seg.kind}-range`}
                           title={seg.kind === "intro" ? "Intro" : "Outro"}
                           aria-hidden
                           className={cn(
-                            "absolute top-1/2 z-[3] w-px -translate-x-1/2 -translate-y-1/2",
-                            "h-[7px] bg-white/70",
-                            "group-hover/seek:h-[9px]",
+                            "absolute top-1/2 z-[1] -translate-y-1/2 rounded-sm transition-[height] duration-150",
+                            "h-[5px] group-hover/seek:h-[7px]",
+                            seeking && "h-[7px]",
+                            seg.kind === "intro"
+                              ? "bg-white/40"
+                              : "bg-amber-400/55",
                           )}
-                          style={{ left: `${(at / effectiveDuration) * 100}%` }}
+                          style={{
+                            left: `${left}%`,
+                            width: `${Math.max(width, 0)}%`,
+                          }}
                         />
-                      )),
-                    )
+                      );
+                    })
                   : null}
               </div>
               {/* Scrub knob — outside overflow:hidden track so it stays visible */}
@@ -3748,79 +3747,88 @@ export function AniKittyPlayer({
                     {captionsOpen ? (
                       <div
                         ref={captionsMenuRef}
-                        role="menu"
-                        aria-label="Caption tracks"
+                        role="dialog"
+                        aria-label="Captions"
                         className={cn(
-                          "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(55vh,340px)] min-w-[172px] overflow-y-auto py-1",
+                          "absolute bottom-full right-0 z-50 mb-2.5 w-[min(calc(100vw-1.5rem),240px)] overflow-hidden",
                           PLAYER_POPOVER_CLASS,
+                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                         )}
                       >
-                        <MenuSection title="Track">
-                          <MenuItem
-                            active={selectedCaptionId == null}
-                            onClick={() => selectCaption(null)}
-                          >
-                            Off
-                          </MenuItem>
-                          {captionOptions.map((track) => (
+                        <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
+                          <p className="text-[11px] font-semibold tracking-wide text-white">
+                            Captions
+                          </p>
+                          <span className="text-[10px] tabular-nums text-white/35">
+                            {selectedCaptionId
+                              ? captionOptions.find((c) => c.id === selectedCaptionId)
+                                  ?.label ?? "On"
+                              : "Off"}
+                          </span>
+                        </div>
+                        <div className="max-h-[min(52vh,320px)] overflow-y-auto">
+                          <MenuSection title="Language">
                             <MenuItem
-                              key={track.id}
-                              active={selectedCaptionId === track.id}
-                              onClick={() => selectCaption(track.id)}
+                              active={selectedCaptionId == null}
+                              onClick={() => selectCaption(null)}
                             >
-                              {track.label}
+                              Off
                             </MenuItem>
-                          ))}
-                        </MenuSection>
-                        <MenuSection title="Size">
-                          {(
-                            [
-                              { label: "Small", value: "sm" },
-                              { label: "Medium", value: "md" },
-                              { label: "Large", value: "lg" },
-                            ] as const
-                          ).map((opt) => (
-                            <MenuItem
-                              key={opt.value}
-                              active={captionSize === opt.value}
-                              onClick={() => applyCaptionSize(opt.value)}
-                            >
-                              {opt.label}
-                            </MenuItem>
-                          ))}
-                        </MenuSection>
-                        <MenuSection title="Position">
-                          {(
-                            [
-                              { label: "Bottom", value: "low" },
-                              { label: "Mid", value: "mid" },
-                              { label: "High", value: "high" },
-                            ] as const
-                          ).map((opt) => (
-                            <MenuItem
-                              key={opt.value}
-                              active={captionPosition === opt.value}
-                              onClick={() => applyCaptionPosition(opt.value)}
-                            >
-                              {opt.label}
-                            </MenuItem>
-                          ))}
-                        </MenuSection>
-                        <MenuSection title="Timing">
-                          {CAPTION_OFFSET_OPTIONS.map((offset) => (
-                            <MenuItem
-                              key={offset}
-                              active={Math.abs(captionOffset - offset) < 0.001}
-                              onClick={() => applyCaptionOffset(offset)}
-                            >
-                              {offset === 0
-                                ? "On time"
-                                : offset > 0
-                                  ? `+${offset}s`
-                                  : `${offset}s`}
-                            </MenuItem>
-                          ))}
-                        </MenuSection>
+                            {captionOptions.map((track) => (
+                              <MenuItem
+                                key={track.id}
+                                active={selectedCaptionId === track.id}
+                                onClick={() => selectCaption(track.id)}
+                              >
+                                {track.label}
+                              </MenuItem>
+                            ))}
+                          </MenuSection>
+                          <div className="border-t border-white/[0.08] py-0.5">
+                            <p className="px-3 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
+                              Appearance
+                            </p>
+                            <SegmentedChoice
+                              label="Size"
+                              value={captionSize}
+                              onChange={applyCaptionSize}
+                              options={
+                                [
+                                  { label: "S", value: "sm" },
+                                  { label: "M", value: "md" },
+                                  { label: "L", value: "lg" },
+                                ] as const
+                              }
+                            />
+                            <SegmentedChoice
+                              label="Position"
+                              value={captionPosition}
+                              onChange={applyCaptionPosition}
+                              options={
+                                [
+                                  { label: "Bottom", value: "low" },
+                                  { label: "Mid", value: "mid" },
+                                  { label: "High", value: "high" },
+                                ] as const
+                              }
+                            />
+                          </div>
+                          <MenuSection title="Timing">
+                            {CAPTION_OFFSET_OPTIONS.map((offset) => (
+                              <MenuItem
+                                key={offset}
+                                active={Math.abs(captionOffset - offset) < 0.001}
+                                onClick={() => applyCaptionOffset(offset)}
+                              >
+                                {offset === 0
+                                  ? "On time"
+                                  : offset > 0
+                                    ? `+${offset}s`
+                                    : `${offset}s`}
+                              </MenuItem>
+                            ))}
+                          </MenuSection>
+                        </div>
                       </div>
                     ) : null}
                   </div>
@@ -3906,6 +3914,7 @@ export function AniKittyPlayer({
                         className={cn(
                           "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(50vh,280px)] min-w-[136px] overflow-y-auto py-1",
                           PLAYER_POPOVER_CLASS,
+                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                         )}
                       >
                         {serverQualities.length > 1
@@ -3979,6 +3988,7 @@ export function AniKittyPlayer({
                       className={cn(
                         "absolute bottom-full right-0 z-50 mb-2.5 min-w-[116px] overflow-y-auto py-1",
                         PLAYER_POPOVER_CLASS,
+                        !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                       )}
                     >
                       {CUSTOM_PLAYER_SPEEDS.map((rate) => (
@@ -4027,6 +4037,7 @@ export function AniKittyPlayer({
                         className={cn(
                           "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(50vh,280px)] min-w-[152px] overflow-y-auto py-1",
                           PLAYER_POPOVER_CLASS,
+                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                         )}
                       >
                         {hlsAudioOptions.map((track) => (
@@ -4127,6 +4138,7 @@ export function AniKittyPlayer({
                       className={cn(
                         "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,420px)] min-w-[180px] overflow-y-auto py-1",
                         PLAYER_POPOVER_CLASS,
+                        !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                       )}
                     >
                       <MenuSection title="Volume" className="sm:hidden">
@@ -4296,17 +4308,6 @@ export function AniKittyPlayer({
                           }}
                         >
                           Keyboard shortcuts (?)
-                        </MenuItem>
-                      </MenuSection>
-
-                      <MenuSection title="Share">
-                        <MenuItem
-                          onClick={() => {
-                            handleShare();
-                            setMoreOpen(false);
-                          }}
-                        >
-                          Share
                         </MenuItem>
                       </MenuSection>
                     </div>

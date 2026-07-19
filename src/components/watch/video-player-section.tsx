@@ -1673,7 +1673,6 @@ const VideoPlayerSection = () => {
         autoFullscreen={autoFullscreen}
         nextEpisode={playerNextEpisode}
         prevEpisode={playerPrevEpisode}
-        onShare={copyShareLink}
         onStart={handleStart}
         onProgress={handleProgress}
         onLiveTime={handleLiveTime}
@@ -1726,6 +1725,7 @@ const VideoPlayerSection = () => {
         onTogglePip={togglePip}
         pipSupported={pipSupported}
         onOpenComments={watchPage ? () => watchPage.openComments("episode") : undefined}
+        onShare={copyShareLink}
         onSubmitSkipTimes={
           anilistId && episodeNumberParsed != null
             ? () => setSkipSubmitOpen(true)
@@ -1785,7 +1785,6 @@ const VideoPlayerSection = () => {
           episodes={allEpisodes?.episodes}
           streamAudio={streamAudio}
           provider={provider}
-          onCopyLink={copyShareLink}
           w2gCode={w2gCode}
           w2gIsMember={w2g.isMember}
           auth={Boolean(auth)}

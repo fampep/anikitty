@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Command,
   Lightbulb,
+  Link2,
   MessageSquare,
   Mic,
   PictureInPicture,
@@ -72,6 +73,7 @@ type Props = {
   pipSupported?: boolean;
   onOpenComments?: () => void;
   onSubmitSkipTimes?: () => void;
+  onShare?: () => void;
 };
 
 function ToolbarAudioToggle({
@@ -142,6 +144,7 @@ export default function WatchPlayerToolbar({
   pipSupported = false,
   onOpenComments,
   onSubmitSkipTimes,
+  onShare,
 }: Props) {
   const t = useT();
   const autoPlay = useSettingsStore((s) => s.autoPlay);
@@ -215,6 +218,18 @@ export default function WatchPlayerToolbar({
           >
             <MessageSquare className="w-3 h-3 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.comments")}</span>
+          </button>
+        )}
+        {onShare && (
+          <button
+            type="button"
+            onClick={onShare}
+            aria-label={t("watch.toolbar.share")}
+            title={t("watch.toolbar.share")}
+            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
+          >
+            <Link2 className="w-3 h-3 shrink-0" />
+            <span className="hidden sm:inline">{t("watch.toolbar.share")}</span>
           </button>
         )}
         {onShowProviders && !showProviderControls ? (

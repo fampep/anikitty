@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, Loader2, Users } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import WatchDownloadPanel from "@/components/watch/watch-download-panel";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
@@ -13,7 +13,6 @@ type Props = {
   episodes?: Episode[];
   streamAudio: "sub" | "dub";
   provider: KittyProvider;
-  onCopyLink: () => void;
   w2gCode?: string | null;
   w2gIsMember?: boolean;
   auth?: boolean;
@@ -28,7 +27,6 @@ export default function WatchPlayerActions({
   episodes,
   streamAudio,
   provider,
-  onCopyLink,
   w2gCode,
   w2gIsMember,
   auth,
@@ -51,17 +49,6 @@ export default function WatchPlayerActions({
             provider={provider}
           />
         )}
-
-        <button
-          type="button"
-          onClick={onCopyLink}
-          aria-label={t("watch.copyLink")}
-          className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/70 transition-colors"
-          title={t("watch.copyLink")}
-        >
-          <Link2 className="w-3 h-3" />
-          <span className="hidden sm:inline">{t("watch.copyLink")}</span>
-        </button>
 
         {w2gCode && w2gIsMember ? (
           <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-primary/10 border border-primary/25 text-zinc-300/80">

@@ -16,6 +16,10 @@ import { formatPlayerTime } from "./utils";
 export const PLAYER_POPOVER_CLASS =
   "rounded-lg border border-white/[0.12] bg-zinc-950/92 text-xs text-white backdrop-blur-xl supports-[backdrop-filter]:bg-zinc-950/80";
 
+/** Open animation for player popovers / panels. */
+export const PLAYER_POPOVER_MOTION_CLASS =
+  "animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-200";
+
 export function MenuSection({
   title,
   children,
@@ -50,7 +54,7 @@ export function MenuItem({
       role="menuitemradio"
       aria-checked={active}
       className={cn(
-        "relative block w-full px-3 py-2.5 text-left text-white/75 transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none sm:py-2",
+        "relative block w-full px-3 py-2.5 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:py-2",
         active && "bg-white/[0.09] font-medium text-white",
       )}
       onClick={onClick}
@@ -63,6 +67,54 @@ export function MenuItem({
       ) : null}
       {children}
     </button>
+  );
+}
+
+/** Compact segmented choice row for captions / settings windows. */
+export function SegmentedChoice<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly { label: string; value: T }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="px-3 py-2">
+      <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
+        {label}
+      </p>
+      <div
+        className="flex rounded-md border border-white/[0.1] bg-black/30 p-0.5"
+        role="group"
+        aria-label={label}
+      >
+        {options.map((opt) => {
+          const active = opt.value === value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                "min-w-0 flex-1 rounded px-2 py-1.5 text-[11px] font-medium tracking-wide transition-[color,background-color,transform] duration-150",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35",
+                "active:scale-[0.97]",
+                active
+                  ? "bg-white/[0.14] text-white"
+                  : "text-white/45 hover:text-white/80",
+              )}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -90,6 +142,7 @@ export function VerticalSliderPopover({
       className={cn(
         "absolute bottom-full left-1/2 z-40 mb-2.5 flex -translate-x-1/2 flex-col items-center gap-2.5 px-3.5 py-3",
         PLAYER_POPOVER_CLASS,
+        PLAYER_POPOVER_MOTION_CLASS,
       )}
     >
       <input
@@ -166,11 +219,12 @@ export function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-white/70 transition-[color,opacity,background-color] duration-150",
+        "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-white/70",
+        "transition-[color,opacity,background-color,transform] duration-150 ease-out",
         "hover:bg-white/[0.06] hover:text-white",
-        "active:bg-white/[0.1] active:opacity-90",
+        "active:scale-[0.92] active:bg-white/[0.1] active:opacity-90",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
-        "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/70",
+        "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/70 disabled:active:scale-100",
         "aria-pressed:text-white aria-expanded:text-white",
         "sm:h-9 sm:w-9",
         className,
@@ -293,8 +347,10 @@ export function NextEpisodeChip({
       className={cn(
         "absolute z-40 flex max-w-[min(100%,280px)] items-center gap-2.5 px-2.5 py-2 text-left",
         PLAYER_POPOVER_CLASS,
-        "transition-[opacity,border-color,background-color] duration-200 hover:border-white/25 hover:bg-zinc-950/95",
+        PLAYER_POPOVER_MOTION_CLASS,
+        "transition-[opacity,border-color,background-color,transform] duration-200 hover:border-white/25 hover:bg-zinc-950/95",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+        "active:scale-[0.98]",
         "right-[max(0.75rem,env(safe-area-inset-right))]",
         stacked
           ? "bottom-[7.25rem] sm:bottom-[6.75rem]"
