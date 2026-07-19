@@ -969,6 +969,7 @@ export function AniKittyPlayer({
     setVolumeLevel: castSetVolume,
     syncMedia: castSyncMedia,
     setActiveTextTrackIds: castSetActiveTextTrackIds,
+    attachedTextTrackIds: castAttachedTextTrackIds,
   } = cast;
 
   useEffect(() => {
@@ -2434,15 +2435,45 @@ export function AniKittyPlayer({
       setMoreOpen(false);
       setCaptionsOpen(false);
       bumpControls();
-      // Mirror caption choice onto the Chromecast receiver (1-based trackIds).
+      // Mirror caption choice onto Chromecast via editTracksInfo only — never
+      // reload media just to toggle subs (that greys out Default Media Receiver).
       if (castingRef.current) {
-        const idx = id
+        const castIdx = id
           ? castCaptionOptions.findIndex((c) => c.id === id)
           : -1;
-        void castSetActiveTextTrackIds(idx >= 0 ? [idx + 1] : []);
+        void (async () => {
+          if (id == null) {
+            await castSetActiveTextTrackIds([]);
+            return;
+          }
+          if (castIdx < 0) {
+            showGestureHint({
+              label: "Captions unavailable on Cast",
+            });
+            await castSetActiveTextTrackIds([]);
+            return;
+          }
+          // Prefer IDs from the last successful with-tracks load; fall back to
+          // 1-based order (hook refuses when loadMedia was video-only).
+          const trackId =
+            castAttachedTextTrackIds[castIdx] ?? castIdx + 1;
+          const ok = await castSetActiveTextTrackIds([trackId]);
+          if (!ok) {
+            showGestureHint({
+              label: "Captions unavailable on Cast",
+            });
+          }
+        })();
       }
     },
-    [bumpControls, captionOptions, castCaptionOptions, castSetActiveTextTrackIds],
+    [
+      bumpControls,
+      captionOptions,
+      castAttachedTextTrackIds,
+      castCaptionOptions,
+      castSetActiveTextTrackIds,
+      showGestureHint,
+    ],
   );
 
   const toggleCaptions = useCallback(() => {

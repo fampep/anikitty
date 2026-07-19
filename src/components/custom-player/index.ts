@@ -16,4 +16,5 @@ export {
   buildCastLoadRequest,
   describeCastLoadPayload,
   setCastActiveTextTrackIds,
+  getCastAttachedTextTrackIds,
 } from "./google-cast";

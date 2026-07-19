@@ -496,9 +496,28 @@ function editTracksInfoAsync(
   });
 }
 
+/** Text track IDs currently attached to the receiver MediaInfo (from loadMedia). */
+export function getCastAttachedTextTrackIds(): number[] {
+  const ctx = ensureCastContext();
+  if (!ctx || !hasCastApis()) return [];
+  const media = ctx.getCurrentSession()?.getMediaSession();
+  if (!media?.media?.tracks?.length) return [];
+  try {
+    return media.media.tracks
+      .filter((t) => t.type === chrome.cast.media.TrackType.TEXT)
+      .map((t) => t.trackId)
+      .filter((id) => Number.isFinite(id) && id > 0);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Enable / disable text tracks on the current Cast media session.
  * Pass `[]` to turn captions off on the TV.
+ *
+ * Never reloads media. Only activates IDs that were attached at loadMedia;
+ * on editTracksInfo failure, reverts to `[]` so video keeps playing.
  */
 export async function setCastActiveTextTrackIds(
   activeTrackIds: number[],
@@ -507,10 +526,37 @@ export async function setCastActiveTextTrackIds(
   if (!ctx || !hasCastApis()) return false;
   const media = ctx.getCurrentSession()?.getMediaSession();
   if (!media) return false;
+
+  const requested = activeTrackIds.filter(
+    (id) => Number.isFinite(id) && id > 0,
+  );
+
+  // Always safe: turn captions off without touching MediaInfo.tracks.
+  if (requested.length === 0) {
+    try {
+      await editTracksInfoAsync(media, []);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // DMR cannot add soft tracks mid-session — only activate ones from loadMedia.
+  const attached = new Set(getCastAttachedTextTrackIds());
+  if (attached.size === 0) return false;
+  const filtered = requested.filter((id) => attached.has(id));
+  if (filtered.length === 0) return false;
+
   try {
-    await editTracksInfoAsync(media, activeTrackIds);
+    await editTracksInfoAsync(media, filtered);
     return true;
   } catch {
+    // Revert to no captions; never loadMedia — video stability wins.
+    try {
+      await editTracksInfoAsync(media, []);
+    } catch {
+      /* ignore */
+    }
     return false;
   }
 }
@@ -545,7 +591,10 @@ export function buildCastLoadRequest(
   if (media.title) metadata.title = media.title;
   mediaInfo.metadata = metadata;
 
-  const activeTrackIds: number[] = [];
+  // Attach track metadata for later editTracksInfo toggles, but do not set
+  // LoadRequest.activeTrackIds — activating cues during loadMedia can abort
+  // the whole item on Default Media Receiver. Enable via editTracksInfo after
+  // playback is confirmed (see applyActiveTextTracks).
   if (preparedTracks.length > 0) {
     mediaInfo.tracks = preparedTracks.map((track) => {
       const castTrack = new chrome.cast.media.Track(
@@ -557,7 +606,6 @@ export function buildCastLoadRequest(
       castTrack.subtype = chrome.cast.media.TextTrackType.SUBTITLES;
       castTrack.name = track.label;
       castTrack.language = track.language;
-      if (track.active) activeTrackIds.push(track.trackId);
       return castTrack;
     });
     const style = buildDefaultTextTrackStyle();
@@ -566,9 +614,6 @@ export function buildCastLoadRequest(
 
   const request = new chrome.cast.media.LoadRequest(mediaInfo);
   request.autoplay = media.autoplay !== false;
-  if (activeTrackIds.length > 0) {
-    request.activeTrackIds = activeTrackIds;
-  }
   if (
     typeof media.currentTime === "number" &&
     Number.isFinite(media.currentTime) &&
@@ -634,14 +679,21 @@ async function castLoadFailedAfterTracks(
 async function applyActiveTextTracks(
   session: cast.framework.CastSession,
   activeTextTrackIds: number[],
-): Promise<void> {
-  if (activeTextTrackIds.length === 0) return;
+): Promise<boolean> {
+  if (activeTextTrackIds.length === 0) return true;
   const mediaSession = session.getMediaSession();
-  if (!mediaSession) return;
+  if (!mediaSession) return false;
   try {
     await editTracksInfoAsync(mediaSession, activeTextTrackIds);
+    return true;
   } catch {
-    /* load succeeded; captions may still work via LoadRequest.activeTrackIds */
+    // Keep video; do not leave a half-applied caption state.
+    try {
+      await editTracksInfoAsync(mediaSession, []);
+    } catch {
+      /* ignore */
+    }
+    return false;
   }
 }
 
@@ -700,13 +752,32 @@ export async function loadMediaOnSession(
           activeTextTrackIds,
         };
       }
-      await applyActiveTextTracks(session, activeTextTrackIds);
+      // Activate captions after video is healthy. If activation kills the
+      // session, fail so the video-only fallback can recover.
+      const captionsOk = await applyActiveTextTracks(
+        session,
+        activeTextTrackIds,
+      );
+      if (
+        watchForTrackFailure &&
+        activeTextTrackIds.length > 0 &&
+        (await castLoadFailedAfterTracks(session, 1_000))
+      ) {
+        return {
+          ok: false,
+          error: "Cast receiver rejected active text tracks",
+          contentId,
+          contentType,
+          textTrackIds,
+          activeTextTrackIds,
+        };
+      }
       return {
         ok: true,
         contentId,
         contentType,
         textTrackIds,
-        activeTextTrackIds,
+        activeTextTrackIds: captionsOk ? activeTextTrackIds : [],
       };
     } catch (err) {
       const detail = formatCastError(err);

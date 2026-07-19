@@ -67,9 +67,12 @@ export type UseGoogleCastResult = {
   syncMedia: () => Promise<boolean>;
   /**
    * Enable Cast text tracks by 1-based trackId (same order as textTracks in
-   * the last loadMedia). Pass `[]` to disable captions on the TV.
+   * the last successful loadMedia that kept tracks). Pass `[]` to disable.
+   * Never reloads media; returns false when captions cannot be applied on Cast.
    */
   setActiveTextTrackIds: (trackIds: number[]) => Promise<boolean>;
+  /** Track IDs attached on the last successful Cast load (empty if video-only). */
+  attachedTextTrackIds: number[];
 };
 
 export function useGoogleCast(
@@ -130,6 +133,11 @@ export function useGoogleCast(
   const [remoteVolume, setRemoteVolume] = useState(1);
   const [remoteMuted, setRemoteMuted] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  /** IDs from the last loadMedia that kept MediaInfo.tracks (not video-only). */
+  const [attachedTextTrackIds, setAttachedTextTrackIds] = useState<number[]>(
+    [],
+  );
+  const attachedTextTrackIdsRef = useRef<number[]>([]);
 
   const casting = connection === "connected";
   const connecting = connection === "connecting";
@@ -214,6 +222,12 @@ export function useGoogleCast(
     onMediaEndedRef.current?.();
   }, []);
 
+  const rememberAttachedTextTracks = useCallback((ids: number[] | undefined) => {
+    const next = (ids ?? []).filter((id) => Number.isFinite(id) && id > 0);
+    attachedTextTrackIdsRef.current = next;
+    setAttachedTextTrackIds(next);
+  }, []);
+
   const handleSessionEnded = useCallback(() => {
     if (!wasConnectedRef.current && !endingLocallyRef.current) return;
     wasConnectedRef.current = false;
@@ -222,6 +236,8 @@ export function useGoogleCast(
     mediaArmedRef.current = false;
     mediaEndedFiredRef.current = false;
     sawPlayingNearEndRef.current = false;
+    attachedTextTrackIdsRef.current = [];
+    setAttachedTextTrackIds([]);
     noteCastSessionActive(false);
     const resumeAt = lastRemoteTimeRef.current;
     const wasPlaying = lastRemotePlayingRef.current;
@@ -372,9 +388,11 @@ export function useGoogleCast(
     const result: CastLoadResult = await loadMediaOnSession(media);
     if (!result.ok) {
       replacingMediaRef.current = false;
+      rememberAttachedTextTracks([]);
       reportCastError(result.error || "Failed to load media on Cast device");
       return false;
     }
+    rememberAttachedTextTracks(result.textTrackIds);
     setLastError(null);
     // Allow end detection after the new item starts progressing.
     window.setTimeout(() => {
@@ -382,7 +400,7 @@ export function useGoogleCast(
       refreshRemoteSnapshot();
     }, 750);
     return true;
-  }, [refreshRemoteSnapshot, reportCastError]);
+  }, [refreshRemoteSnapshot, rememberAttachedTextTracks, reportCastError]);
 
   const toggleCast = useCallback(async () => {
     if (!available) return;
@@ -477,12 +495,30 @@ export function useGoogleCast(
     setRemoteMuted(next === 0);
   }, []);
 
-  const setActiveTextTrackIds = useCallback(async (trackIds: number[]) => {
-    if (connection !== "connected") return false;
-    return setCastActiveTextTrackIds(
-      trackIds.filter((id) => Number.isFinite(id) && id > 0),
-    );
-  }, [connection]);
+  const setActiveTextTrackIds = useCallback(
+    async (trackIds: number[]) => {
+      if (connection !== "connected") return false;
+      const requested = trackIds.filter(
+        (id) => Number.isFinite(id) && id > 0,
+      );
+      // Enabling when loadMedia fell back to video-only would call
+      // editTracksInfo with phantom IDs and can kill the DMR session.
+      if (
+        requested.length > 0 &&
+        attachedTextTrackIdsRef.current.length === 0
+      ) {
+        return false;
+      }
+      if (requested.length > 0) {
+        const attached = new Set(attachedTextTrackIdsRef.current);
+        const filtered = requested.filter((id) => attached.has(id));
+        if (filtered.length === 0) return false;
+        return setCastActiveTextTrackIds(filtered);
+      }
+      return setCastActiveTextTrackIds([]);
+    },
+    [connection],
+  );
 
   return {
     available,
@@ -503,6 +539,7 @@ export function useGoogleCast(
     setVolumeLevel,
     syncMedia,
     setActiveTextTrackIds,
+    attachedTextTrackIds,
   };
 }
 
