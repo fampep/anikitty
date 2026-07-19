@@ -2,6 +2,9 @@
 
 import Image from "next/image";
 import {
+  useEffect,
+  useRef,
+  useState,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type Ref,
@@ -174,6 +177,62 @@ export function VerticalSliderPopover({
   );
 }
 
+/** Compact horizontal volume rail — desktop hover / open (zinc, no chrome bloat). */
+export function HorizontalVolumeRail({
+  label,
+  value,
+  display,
+  onChange,
+  footer,
+}: {
+  label: string;
+  value: number;
+  display: string;
+  onChange: (value: number) => void;
+  footer?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute bottom-full left-1/2 z-40 mb-2.5 flex -translate-x-1/2 items-center gap-2.5 px-3 py-2.5",
+        PLAYER_POPOVER_CLASS,
+        PLAYER_POPOVER_MOTION_CLASS,
+      )}
+    >
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={value}
+        role="slider"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={1}
+        aria-valuenow={Number(value.toFixed(2))}
+        aria-valuetext={display}
+        className="h-1 w-[5.5rem] cursor-pointer appearance-none rounded-full bg-white/20 accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
+        onChange={(e) => onChange(Number(e.target.value))}
+        onPointerDown={(e) => e.stopPropagation()}
+        onWheel={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const delta = e.deltaY > 0 || e.deltaX > 0 ? -0.05 : 0.05;
+          onChange(Math.min(1, Math.max(0, value + delta)));
+        }}
+      />
+      <span className="min-w-[2.25rem] text-right text-[10px] font-medium tabular-nums tracking-wide text-white/80" aria-hidden>
+        {display}
+      </span>
+      {footer ? (
+        <span className="max-w-[4.5rem] text-[9px] leading-tight text-white/40">
+          {footer}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export function IconButton({
   label,
   onClick,
@@ -251,18 +310,51 @@ export function SeekPreviewCard({
   skipKind: "intro" | "outro" | null;
   bufferAheadSecs: number | null;
 }) {
+  // Hold the last painted cue until the next sprite sheet finishes loading —
+  // prevents blank flashes when scrubbing across sheet boundaries.
+  const [painted, setPainted] = useState<StoryboardCue | null>(cue);
+  const paintedSrcRef = useRef<string | null>(cue?.src ?? null);
+
+  useEffect(() => {
+    if (!cue) {
+      paintedSrcRef.current = null;
+      setPainted(null);
+      return;
+    }
+    if (paintedSrcRef.current === cue.src) {
+      setPainted(cue);
+      return;
+    }
+    let cancelled = false;
+    const img = new window.Image();
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    const commit = () => {
+      if (cancelled) return;
+      paintedSrcRef.current = cue.src;
+      setPainted(cue);
+    };
+    img.onload = commit;
+    img.onerror = commit;
+    img.src = cue.src;
+    return () => {
+      cancelled = true;
+    };
+  }, [cue]);
+
+  const show = painted ?? cue;
   const leftPct = Math.min(100, Math.max(0, ratio * 100));
   const hasSprite =
-    cue != null &&
-    cue.w != null &&
-    cue.h != null &&
-    cue.x != null &&
-    cue.y != null &&
-    cue.w > 0 &&
-    cue.h > 0;
+    show != null &&
+    show.w != null &&
+    show.h != null &&
+    show.x != null &&
+    show.y != null &&
+    show.w > 0 &&
+    show.h > 0;
 
-  const tileW = hasSprite ? cue!.w! : 160;
-  const tileH = hasSprite ? cue!.h! : 90;
+  const tileW = hasSprite ? show!.w! : 160;
+  const tileH = hasSprite ? show!.h! : 90;
   const scale = Math.min(1, SEEK_PREVIEW_MAX_W / tileW);
   const previewW = Math.round(tileW * scale);
   const previewH = Math.round(tileH * scale);
@@ -278,14 +370,14 @@ export function SeekPreviewCard({
       }}
     >
       <div className="flex flex-col items-center gap-1.5">
-        {cue ? (
+        {show ? (
           <div
             className="relative overflow-hidden rounded-md border border-white/[0.14] bg-zinc-950"
             style={{ width: previewW, height: previewH }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={cue.src}
+              src={show.src}
               alt=""
               draggable={false}
               decoding="async"
@@ -294,7 +386,7 @@ export function SeekPreviewCard({
               style={
                 hasSprite
                   ? {
-                      transform: `scale(${scale}) translate(${-cue!.x!}px, ${-cue!.y!}px)`,
+                      transform: `scale(${scale}) translate(${-show!.x!}px, ${-show!.y!}px)`,
                       transformOrigin: "0 0",
                     }
                   : undefined
@@ -313,6 +405,73 @@ export function SeekPreviewCard({
             <span className="ml-1.5 text-white/35">· {bufferAheadSecs}s</span>
           ) : null}
         </div>
+      </div>
+    </div>
+  );
+}
+
+const SHORTCUT_ROWS: readonly { keys: string; action: string }[] = [
+  { keys: "Space / K", action: "Play / pause" },
+  { keys: "J / L · ← / →", action: "Seek ±10s (Shift ±5s)" },
+  { keys: "0–9", action: "Jump to 0–90%" },
+  { keys: "↑ / ↓", action: "Volume" },
+  { keys: "M", action: "Mute" },
+  { keys: "C", action: "Captions" },
+  { keys: "[ / ]", action: "Speed" },
+  { keys: "F", action: "Fullscreen" },
+  { keys: "I", action: "Picture-in-picture" },
+  { keys: "N / P", action: "Next / previous episode" },
+  { keys: "S", action: "Skip intro / credits" },
+  { keys: "?", action: "This help" },
+];
+
+/** Sparse keyboard shortcuts overlay — zinc, no Vidstack chrome. */
+export function ShortcutsPanel({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="absolute inset-0 z-[55] flex items-center justify-center bg-black/60 p-3 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+      onClick={onClose}
+      style={{
+        paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+        paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+      }}
+    >
+      <div
+        className={cn(
+          "pointer-events-auto w-full max-w-sm overflow-hidden",
+          PLAYER_POPOVER_CLASS,
+          PLAYER_POPOVER_MOTION_CLASS,
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-white/[0.08] px-3.5 py-2.5">
+          <p className="text-[12px] font-semibold tracking-wide text-white">
+            Keyboard shortcuts
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md px-2 py-1 text-[11px] font-medium text-white/45 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Esc
+          </button>
+        </div>
+        <ul className="max-h-[min(60vh,360px)] overflow-y-auto py-1.5">
+          {SHORTCUT_ROWS.map((row) => (
+            <li
+              key={row.keys}
+              className="flex items-baseline justify-between gap-3 px-3.5 py-1.5"
+            >
+              <span className="text-[11px] text-white/55">{row.action}</span>
+              <kbd className="shrink-0 rounded border border-white/[0.12] bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium tabular-nums tracking-wide text-white/80">
+                {row.keys}
+              </kbd>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

@@ -82,6 +82,7 @@ import {
 } from "@/lib/player/anime4k";
 import { useSettingsStore } from "@/store/settings-store";
 import {
+  HorizontalVolumeRail,
   IconButton,
   MenuItem,
   MenuSection,
@@ -90,6 +91,7 @@ import {
   PLAYER_POPOVER_MOTION_CLASS,
   SeekPreviewCard,
   SegmentedChoice,
+  ShortcutsPanel,
   UpNextCountdown,
   VerticalSliderPopover,
 } from "./player-chrome";
@@ -477,6 +479,8 @@ export function AniKittyPlayer({
   const [qualityOpen, setQualityOpen] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [audioOpen, setAudioOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [castErrorDismissed, setCastErrorDismissed] = useState(false);
   const [seeking, setSeeking] = useState(false);
   const [mediaSeeking, setMediaSeeking] = useState(false);
   const [seekPreview, setSeekPreview] = useState<number | null>(null);
@@ -621,6 +625,7 @@ export function AniKittyPlayer({
     setQualityOpen(false);
     setSpeedOpen(false);
     setAudioOpen(false);
+    setHelpOpen(false);
   }, []);
 
   const bumpControls = useCallback(() => {
@@ -727,7 +732,8 @@ export function AniKittyPlayer({
     captionsOpen ||
     qualityOpen ||
     speedOpen ||
-    audioOpen;
+    audioOpen ||
+    helpOpen;
 
   const schedulePrefsSave = useCallback((patch: Parameters<typeof saveCustomPlayerPrefs>[0]) => {
     pendingPrefsPatchRef.current = {
@@ -964,6 +970,10 @@ export function AniKittyPlayer({
     syncMedia: castSyncMedia,
     setActiveTextTrackIds: castSetActiveTextTrackIds,
   } = cast;
+
+  useEffect(() => {
+    setCastErrorDismissed(false);
+  }, [castLastError]);
 
   const {
     available: airPlayAvailable,
@@ -2710,6 +2720,10 @@ export function AniKittyPlayer({
 
       const step = seekStepRef.current || SEEK_STEP;
 
+      if (helpOpen && e.key !== "Escape" && e.key !== "?") {
+        return;
+      }
+
       if (e.key >= "0" && e.key <= "9") {
         e.preventDefault();
         seekToPercent(Number(e.key) * 10);
@@ -2798,8 +2812,45 @@ export function AniKittyPlayer({
           });
           break;
         }
+        case "n":
+        case "N":
+          if (nextEpisode && onNextEpisode) {
+            e.preventDefault();
+            goToNextEpisode();
+          }
+          break;
+        case "p":
+        case "P":
+          if (prevEpisode && onPrevEpisode) {
+            e.preventDefault();
+            goToPrevEpisode();
+          }
+          break;
+        case "?":
+          e.preventDefault();
+          setHelpOpen((v) => {
+            const next = !v;
+            if (next) popoverOpenRef.current = true;
+            return next;
+          });
+          setVolumeOpen(false);
+          setMoreOpen(false);
+          setCaptionsOpen(false);
+          setQualityOpen(false);
+          setSpeedOpen(false);
+          setAudioOpen(false);
+          bumpControls();
+          break;
         case "Escape":
-          if (volumeOpen || moreOpen || captionsOpen || qualityOpen || speedOpen || audioOpen) {
+          if (
+            helpOpen ||
+            volumeOpen ||
+            moreOpen ||
+            captionsOpen ||
+            qualityOpen ||
+            speedOpen ||
+            audioOpen
+          ) {
             e.preventDefault();
             closePopovers();
             bumpControls();
@@ -2828,6 +2879,7 @@ export function AniKittyPlayer({
     qualityOpen,
     speedOpen,
     audioOpen,
+    helpOpen,
     closePopovers,
     bumpControls,
     exitFullscreen,
@@ -2841,6 +2893,12 @@ export function AniKittyPlayer({
     activeSkip,
     seekTo,
     showGestureHint,
+    nextEpisode,
+    prevEpisode,
+    onNextEpisode,
+    onPrevEpisode,
+    goToNextEpisode,
+    goToPrevEpisode,
   ]);
 
   const showMiniProgress =
@@ -3069,7 +3127,7 @@ export function AniKittyPlayer({
         ))}
       </video>
 
-      {/* Chromecast surface — poster + status; local video stays mounted but invisible */}
+      {/* Chromecast surface — poster + live remote status; local video stays mounted but invisible */}
       {casting || castConnecting ? (
         <div
           className="pointer-events-none absolute inset-0 z-[15] overflow-hidden bg-zinc-950"
@@ -3095,18 +3153,49 @@ export function AniKittyPlayer({
           <div className="relative flex h-full flex-col items-center justify-center gap-3 px-4">
             <div
               className={cn(
-                "flex flex-col items-center gap-2.5 px-5 py-4",
+                "flex w-full max-w-[17rem] flex-col items-center gap-2.5 px-5 py-4",
                 PLAYER_POPOVER_CLASS,
               )}
             >
-              <CastConnectedIcon className="h-8 w-8 text-white/90" />
+              <CastConnectedIcon
+                className={cn(
+                  "h-8 w-8 text-white/90",
+                  castConnecting && !reduceMotion && "animate-pulse",
+                )}
+              />
               <p className="text-[13px] font-medium tracking-wide text-white">
-                {castConnecting ? "Connecting…" : "Casting…"}
+                {castConnecting
+                  ? "Connecting…"
+                  : castRemotePlaying
+                    ? "Playing on Cast"
+                    : "Paused on Cast"}
               </p>
               {castDeviceName ? (
                 <p className="text-[11px] tracking-wide text-white/55">
                   {castDeviceName}
                 </p>
+              ) : null}
+              {casting && effectiveDuration > 0 ? (
+                <div className="mt-0.5 w-full space-y-1.5">
+                  <p className="text-center text-[11px] tabular-nums tracking-wide text-white/70">
+                    {formatPlayerTime(displayTime)}
+                    <span className="text-white/35">
+                      {" "}
+                      / {formatPlayerTime(effectiveDuration)}
+                    </span>
+                  </p>
+                  <div
+                    className="h-[2.5px] w-full overflow-hidden rounded-full bg-white/15"
+                    aria-hidden
+                  >
+                    <div
+                      className="h-full rounded-full bg-white/85 transition-[width] duration-300 ease-out"
+                      style={{
+                        width: `${Math.round(progressRatio * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
               ) : null}
             </div>
             {title ? (
@@ -3116,14 +3205,28 @@ export function AniKittyPlayer({
             ) : null}
           </div>
         </div>
-      ) : castLastError ? (
+      ) : castLastError && !castErrorDismissed ? (
         <div
-          className="pointer-events-none absolute inset-x-4 bottom-[max(5.5rem,env(safe-area-inset-bottom))] z-[15] text-center"
+          className="absolute inset-x-4 bottom-[max(5.5rem,env(safe-area-inset-bottom))] z-[15] flex justify-center"
           role="status"
         >
-          <p className="mx-auto max-w-md text-[11px] leading-snug text-white/70">
-            {castLastError}
-          </p>
+          <div
+            className={cn(
+              "pointer-events-auto flex max-w-md items-start gap-2 px-3 py-2",
+              PLAYER_POPOVER_CLASS,
+            )}
+          >
+            <p className="min-w-0 flex-1 text-[11px] leading-snug text-white/70">
+              {castLastError}
+            </p>
+            <button
+              type="button"
+              onClick={() => setCastErrorDismissed(true)}
+              className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-white/45 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -3432,6 +3535,10 @@ export function AniKittyPlayer({
         />
       ) : null}
 
+      {helpOpen ? (
+        <ShortcutsPanel onClose={() => setHelpOpen(false)} />
+      ) : null}
+
       {/* Netflix-style mini progress while chrome is hidden */}
       {showMiniProgress ? (
         <div
@@ -3520,9 +3627,9 @@ export function AniKittyPlayer({
                   fine,
                 };
                 const { time, ratio } = timeFromPointer(e, { fine });
+                // Preview-only while dragging — commit on pointer up (avoids HLS thrash).
                 setSeekPreview(time);
                 setHoverPreview({ time, ratio });
-                seekTo(time, { smooth: true });
                 if (fine) {
                   showGestureHint({
                     label: "Fine scrub",
@@ -3536,7 +3643,6 @@ export function AniKittyPlayer({
                 if (seekingRef.current) {
                   setSeekPreview(time);
                   setHoverPreview({ time, ratio });
-                  seekTo(time, { smooth: true });
                   return;
                 }
                 // Desktop hover scrub preview
@@ -3680,7 +3786,7 @@ export function AniKittyPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-0.5 px-1.5 py-1 sm:gap-0.5 sm:px-2.5 sm:py-2">
+            <div className="flex w-full min-w-0 items-center gap-0 px-1 py-0.5 sm:gap-0.5 sm:px-2.5 sm:py-2">
               {/* Left cluster */}
               <div className="flex min-w-0 shrink items-center gap-0 sm:gap-0.5">
                 <IconButton
@@ -3752,6 +3858,17 @@ export function AniKittyPlayer({
                   aria-hidden
                 >
                   {formatPlayerTime(displayTime)}
+                  <span className="text-white/35 sm:hidden">
+                    {effectiveDuration > 0 ? (
+                      <>
+                        <span className="inline-block w-1" />
+                        −
+                        {formatPlayerTime(
+                          Math.max(0, effectiveDuration - displayTime),
+                        )}
+                      </>
+                    ) : null}
+                  </span>
                   <span className="hidden text-white/35 sm:inline">
                     <span className="inline-block w-1.5 sm:w-2.5" />
                     {formatPlayerTime(effectiveDuration)}
@@ -4134,24 +4251,39 @@ export function AniKittyPlayer({
                       <VolumeIcon className="h-[18px] w-[18px]" />
                     )}
                   </IconButton>
-                  {volumeOpen && (
-                    <VerticalSliderPopover
-                      label="Volume"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={effectiveVolume}
-                      display={`${Math.round(effectiveVolume * 100)}%`}
-                      onChange={(v) => setVolumeLevel(v, { hint: true })}
-                      footer={
-                        iosVolumeLocked && !casting
-                          ? "iOS uses system volume"
-                          : casting
-                            ? "Cast volume"
-                            : undefined
-                      }
-                    />
-                  )}
+                  {volumeOpen &&
+                    (prefersCoarsePointer() ? (
+                      <VerticalSliderPopover
+                        label="Volume"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={effectiveVolume}
+                        display={`${Math.round(effectiveVolume * 100)}%`}
+                        onChange={(v) => setVolumeLevel(v, { hint: true })}
+                        footer={
+                          iosVolumeLocked && !casting
+                            ? "iOS uses system volume"
+                            : casting
+                              ? "Cast volume"
+                              : undefined
+                        }
+                      />
+                    ) : (
+                      <HorizontalVolumeRail
+                        label="Volume"
+                        value={effectiveVolume}
+                        display={`${Math.round(effectiveVolume * 100)}%`}
+                        onChange={(v) => setVolumeLevel(v, { hint: true })}
+                        footer={
+                          iosVolumeLocked && !casting
+                            ? "iOS uses system volume"
+                            : casting
+                              ? "Cast volume"
+                              : undefined
+                        }
+                      />
+                    ))}
                 </div>
 
                 <div className="relative">
@@ -4343,10 +4475,9 @@ export function AniKittyPlayer({
                         <MenuItem
                           onClick={() => {
                             setMoreOpen(false);
-                            showGestureHint({
-                              label: "Shortcuts",
-                              detail: "Press ?",
-                            });
+                            popoverOpenRef.current = true;
+                            setHelpOpen(true);
+                            bumpControls();
                           }}
                         >
                           Keyboard shortcuts (?)
