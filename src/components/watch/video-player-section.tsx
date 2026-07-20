@@ -346,7 +346,8 @@ const VideoPlayerSection = () => {
   const fallbackBusyRef = useRef(false);
   const remintAttemptedRef = useRef(false);
   const linkRefreshAttemptedRef = useRef(false);
-  const [streamRefresh, setStreamRefresh] = useState(false);
+  /** Bumped only on dead-upstream refresh — never cleared (avoids query-key remount loops). */
+  const [streamRefreshNonce, setStreamRefreshNonce] = useState(0);
   const [playbackToken, setPlaybackToken] = useState(0);
   const [streamLinkId, setStreamLinkId] = useState<string | null>(null);
   const [manualStreamFile, setManualStreamFile] = useState<string | null>(null);
@@ -356,8 +357,8 @@ const VideoPlayerSection = () => {
   const [pipSupported, setPipSupported] = useState(false);
 
   useEffect(() => {
-    setStreamRefresh(false);
     linkRefreshAttemptedRef.current = false;
+    setStreamRefreshNonce(0);
   }, [anilistId, episodeNo, provider, streamAudio]);
 
   // Live position tracking — updated every timeupdate event (no re-render)
@@ -781,7 +782,7 @@ const VideoPlayerSection = () => {
         false,
         streamLinkId,
         excludeKittyNodes,
-        streamRefresh,
+        streamRefreshNonce,
       ),
     });
     fallbackBusyRef.current = false;
@@ -797,7 +798,7 @@ const VideoPlayerSection = () => {
     streamLinkId,
     streamKittyNode,
     excludeKittyNodes,
-    streamRefresh,
+    streamRefreshNonce,
   ]);
 
   // On finishing the final episode the server moves the title to Completed —
@@ -912,17 +913,16 @@ const VideoPlayerSection = () => {
     false,
     streamLinkId,
     excludeKittyNodes,
-    streamRefresh,
+    streamRefreshNonce,
   );
 
   // Remember the race winner for labels / remints — not geo/ping routing.
-  // Stick to that node for the rest of the episode so stored links stay fast.
   useEffect(() => {
     const won = streamData?.kittyNode;
     if (!won || !isKittyApiNodeId(won)) return;
-    if (kittyProxyNode !== won) setKittyProxyNode(won);
-    if (streamKittyNode === "auto") setStreamKittyNode(won);
-  }, [streamData?.kittyNode, kittyProxyNode, setKittyProxyNode, streamKittyNode]);
+    if (kittyProxyNode === won) return;
+    setKittyProxyNode(won);
+  }, [streamData?.kittyNode, kittyProxyNode, setKittyProxyNode]);
 
   const streamQueryEnabled =
     animeMatchesUrl &&
@@ -944,12 +944,6 @@ const VideoPlayerSection = () => {
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
   const loadingStuck = useStreamLoadingStuck(showStreamLoading, 14_000);
-
-  // After a forced re-resolve succeeds, drop refresh so later hits use the stored link.
-  useEffect(() => {
-    if (!streamReady || !streamRefresh) return;
-    setStreamRefresh(false);
-  }, [streamReady, streamRefresh]);
 
   const togglePip = useCallback(() => {
     const video = playerRef.current?.video;
@@ -1444,7 +1438,6 @@ const VideoPlayerSection = () => {
       const deadUpstream =
         info?.status === 404
         || info?.status === 410
-        || info?.type === "networkError"
         || info?.details === "manifestLoadError"
         || info?.details === "levelLoadError";
 
@@ -1454,7 +1447,7 @@ const VideoPlayerSection = () => {
         setManualStreamFile(null);
         setManualStreamHeaders(null);
         toast.message(t("watch.refreshingPlayback"));
-        setStreamRefresh(true);
+        setStreamRefreshNonce((n) => n + 1);
         return;
       }
 
@@ -1626,7 +1619,7 @@ const VideoPlayerSection = () => {
           error={new Error(streamFailMessage)}
           onRetry={() => {
             linkRefreshAttemptedRef.current = true;
-            setStreamRefresh(true);
+            setStreamRefreshNonce((n) => n + 1);
           }}
           onTryAnother={nextFallback ? handleTryAnotherServer : undefined}
           tryAnotherLabel={
@@ -1699,7 +1692,7 @@ const VideoPlayerSection = () => {
           error={new Error(streamData?.error ?? t("watch.streamNotFound"))}
           onRetry={() => {
             linkRefreshAttemptedRef.current = true;
-            setStreamRefresh(true);
+            setStreamRefreshNonce((n) => n + 1);
           }}
           onTryAnother={nextFallback ? handleTryAnotherServer : undefined}
           tryAnotherLabel={

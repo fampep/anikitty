@@ -104,7 +104,7 @@ export function buildKittyStreamQueryKey(
   preferHardSub?: boolean,
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
-  refresh?: boolean,
+  refreshNonce = 0,
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -117,7 +117,7 @@ export function buildKittyStreamQueryKey(
     preferHardSub === true,
     linkId ?? "",
     excludeKittyNodes?.length ? excludeKittyNodes.slice().sort().join(",") : "",
-    refresh === true,
+    refreshNonce,
   ];
 }
 
@@ -176,7 +176,7 @@ export const useGetKittyStream = (
   preferHardSub = false,
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
-  refresh = false,
+  refreshNonce = 0,
 ) => {
   const abortRef = useRef<AbortController | null>(null);
 
@@ -198,7 +198,7 @@ export const useGetKittyStream = (
       preferHardSub,
       linkId,
       excludeKittyNodes,
-      refresh,
+      refreshNonce,
     ),
     queryFn: async () => {
       abortRef.current?.abort();
@@ -216,7 +216,7 @@ export const useGetKittyStream = (
           preferHardSub,
           linkId,
           excludeKittyNodes,
-          refresh,
+          refreshNonce > 0,
         );
       } finally {
         if (abortRef.current === controller) {
