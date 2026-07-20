@@ -432,7 +432,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 54,
+      version: 55,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -735,6 +735,16 @@ export const useSettingsStore = create<ISettingsStore>()(
           } else {
             next.defaultProvider = sanitizeDefaultProvider(next.defaultProvider, next.providerOrder);
           }
+        }
+        if (version < 55) {
+          // Alpha (AniKuro) is second choice again after Whiskey.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const rest = order.filter((id) => id !== "AniWaves" && id !== "AniKuro");
+          next.providerOrder = sanitizeProviderOrder(["AniWaves", "AniKuro", ...rest]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider === "AniKuro" ? "AniWaves" : (next.defaultProvider ?? "AniWaves"),
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },
