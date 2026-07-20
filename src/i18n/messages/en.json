@@ -341,9 +341,9 @@
     "todayPanel": "Today on AniKitty",
     "todayPanelDesc": "Airing schedule and quick genre picks",
     "discover": "Discover",
-    "exploreSearch": "Search {count}+ anime titles…",
+    "exploreSearch": "Search anime titles…",
     "exploreSearchHint": "Press / to search",
-    "catalogTitles": "{count}+ titles",
+    "catalogTitles": "Catalog",
     "quickNav": {
       "label": "Jump to section",
       "continue": "Continue",

@@ -7,14 +7,12 @@ import {
   Compass,
   Flame,
   History,
-  Library,
   Search,
   Sparkles,
   Tv2,
 } from "lucide-react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { CATALOG_ANIME_COUNT } from "@/constants/site-meta";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 
@@ -30,7 +28,6 @@ const LINKS = [
 
 export default function HomeQuickNav() {
   const t = useT();
-  const catalogLabel = CATALOG_ANIME_COUNT.toLocaleString();
   const [activeId, setActiveId] = useState<string>(LINKS[0].id);
 
   useEffect(() => {
@@ -64,18 +61,12 @@ export default function HomeQuickNav() {
           >
             <Search className="w-3.5 h-3.5 shrink-0 text-muted-foreground dark:text-white/30 group-hover:text-zinc-300/80 transition-colors" />
             <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-foreground dark:group-hover:text-white/55 truncate transition-colors">
-              {t("home.exploreSearch", { count: catalogLabel })}
+              {t("home.exploreSearch")}
             </span>
             <kbd className="ml-auto hidden sm:inline-flex shrink-0 items-center rounded border border-border dark:border-white/12 bg-muted/60 dark:bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70 dark:text-white/30">
               /
             </kbd>
           </Link>
-          <div className="hidden md:flex items-center gap-1.5 shrink-0">
-            <div className="site-chip text-zinc-300/80 py-1.5">
-              <Library className="w-3 h-3" />
-              <span className="tabular-nums text-[11px]">{catalogLabel}</span>
-            </div>
-          </div>
         </div>
 
         <nav
