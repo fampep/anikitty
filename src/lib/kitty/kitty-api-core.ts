@@ -123,6 +123,9 @@ export function getKittyApiBase(nodeId?: KittyApiNodeId): string {
 /** True when the host belongs to a configured KittyAPI cluster node. */
 export function isKittyApiHost(hostname: string): boolean {
   const lower = hostname.toLowerCase();
+  if (lower === "vps.anikitty.online") return true;
+  if (/^vps-[a-z0-9-]+\.anikitty\.online$/i.test(lower)) return true;
+  if (/\.vps\.anikitty\.online$/i.test(lower)) return true;
   if (/^kittyapi\.[\d-]+\.sslip\.io$/i.test(lower)) return true;
   return KITTY_API_NODES.some((node) => node.host.toLowerCase() === lower);
 }

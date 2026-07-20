@@ -4,12 +4,12 @@
  */
 
 const NODES = [
-  { label: "Sweden", url: process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY ?? "https://kittyapi.176-125-240-251.sslip.io" },
-  { label: "Switzerland", url: process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK ?? "https://kittyapi.92-119-165-226.sslip.io" },
-  { label: "Bulgaria", url: process.env.NEXT_PUBLIC_KITTY_NODE_THIRD ?? "https://kittyapi.131-123-42-153.sslip.io" },
-  { label: "Singapore", url: process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH ?? "https://kittyapi.23-111-15-143.sslip.io" },
-  { label: "Netherlands", url: process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH ?? "https://kittyapi.94-75-223-124.sslip.io" },
-  { label: "Canada", url: process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH ?? "https://kittyapi.184-107-88-54.sslip.io" },
+  { label: "Sweden", url: process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY ?? "https://vps.anikitty.online" },
+  { label: "Switzerland", url: process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK ?? "https://vps.anikitty.online" },
+  { label: "Bulgaria", url: process.env.NEXT_PUBLIC_KITTY_NODE_THIRD ?? "https://vps.anikitty.online" },
+  { label: "Singapore", url: process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH ?? "https://vps.anikitty.online" },
+  { label: "Netherlands", url: process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH ?? "https://vps.anikitty.online" },
+  { label: "Canada", url: process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH ?? "https://vps.anikitty.online" },
 ];
 
 const ANILIST_ID = 1535; // Death Note

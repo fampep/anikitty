@@ -55,12 +55,14 @@ function nodeHost(url: string): string {
 // Proxy/cluster node origins are configurable via env so domains aren't
 // hardcoded. Each falls back to the current default when its var is unset.
 // NEXT_PUBLIC_* is inlined at build time, so set them as build args in Coolify.
-const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://kittyapi.176-125-240-251.sslip.io");
-const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, "https://kittyapi.92-119-165-226.sslip.io");
-const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "https://kittyapi.131-123-42-153.sslip.io");
-const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "https://kittyapi.23-111-15-143.sslip.io");
-const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "https://kittyapi.94-75-223-124.sslip.io");
-const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, "https://kittyapi.184-107-88-54.sslip.io");
+// Single Cloudflare-proxied cluster hostname. Real VPS IPs stay in `ip` for status UI.
+const SHARED_VPS_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://vps.anikitty.online");
+const PRIMARY_URL = SHARED_VPS_URL;
+const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, SHARED_VPS_URL);
+const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, SHARED_VPS_URL);
+const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, SHARED_VPS_URL);
+const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, SHARED_VPS_URL);
+const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, SHARED_VPS_URL);
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
