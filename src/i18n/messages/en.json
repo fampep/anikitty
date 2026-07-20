@@ -518,7 +518,11 @@
     "openShop": "Open shop",
     "tabs": {
       "general": "General",
+      "appearance": "Appearance",
+      "playback": "Playback",
+      "providers": "Providers",
       "profile": "Profile",
+      "notifications": "Notifications",
       "security": "Privacy & Security",
       "connections": "Connections"
     },
@@ -1323,7 +1327,7 @@
       "anilistQ": "Can I sync my list from AniList?",
       "anilistA": "Yes. In Settings → Connections, connect AniList via OAuth and import your library into your AniKitty watchlist. MyAnimeList account sign-in was removed — use AniList for list sync. Anime pages still show MyAnimeList metadata (score, rank, popularity, etc.) for reference.",
       "subtitlesQ": "Subtitles and the subtitle library",
-      "subtitlesA": "In SUB mode, the player loads soft subtitle tracks when the source includes them (Alpha, Whiskey, Kilo, Juliet, Guard, Gamma, Uniform, and Hotel often do). Subtitles are hidden in DUB mode. Hard-sub streams already have text burned in — enable \"Soft subs on hard-sub streams\" in player settings only if you want extra tracks on top. Customize appearance and timing offset in Settings → Subtitles. The Subtitle Library lists tracks cached when you watch episodes — use refresh on that page to manually fetch more.",
+      "subtitlesA": "In SUB mode, the player loads soft subtitle tracks when the source includes them (Alpha, Whiskey, Kilo, Juliet, Guard, Gamma, Uniform, and Hotel often do). Subtitles are hidden in DUB mode. Hard-sub streams already have text burned in — enable \"Soft subs on hard-sub streams\" in player settings only if you want extra tracks on top. Customize appearance and timing offset in Settings → Playback. The Subtitle Library lists tracks cached when you watch episodes — use refresh on that page to manually fetch more.",
       "scheduleQ": "What are Schedule and Trending?",
       "scheduleA": "Schedule shows what is airing this week in your local timezone. Trending highlights popular and upcoming titles from the catalog feed."
     },
