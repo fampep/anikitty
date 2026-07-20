@@ -21,6 +21,7 @@ import {
   type KittyProvider,
   type KittyTrack,
   type KittyStreamNodeParam,
+  type KittyStreamQuality,
 } from "@/query/stream/get-kitty-stream";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -116,6 +117,7 @@ const AniKittyPlayer = dynamic(
 const DEFAULT_PROVIDER: KittyProvider = DEFAULT_KITTY_PROVIDER;
 const EMPTY_PLAYER_TRACKS: KittyTrack[] = [];
 const EMPTY_PLAYER_HEADERS: Record<string, string> = {};
+const EMPTY_PLAYER_QUALITIES: KittyStreamQuality[] = [];
 
 function parseResumeTimeParam(raw: string | null): number {
   if (!raw) return 0;
@@ -1205,8 +1207,8 @@ const VideoPlayerSection = () => {
     manualStreamHeaders ??
     (useLiveStream ? playerHeaders : (heldStreamSnapshot?.headers ?? EMPTY_PLAYER_HEADERS));
   const displayQualities = useLiveStream
-    ? (streamData?.allServers ?? [])
-    : (heldStreamSnapshot?.qualities ?? []);
+    ? (streamData?.allServers ?? EMPTY_PLAYER_QUALITIES)
+    : (heldStreamSnapshot?.qualities ?? EMPTY_PLAYER_QUALITIES);
   const displaySkipTimes = useLiveStream ? skipTimes : heldStreamSnapshot?.skipTimes;
   const displayThumbnails = useLiveStream
     ? (streamData?.thumbnails ?? null)

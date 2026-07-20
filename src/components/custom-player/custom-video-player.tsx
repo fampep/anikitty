@@ -182,6 +182,10 @@ const PREFS_SAVE_MS = 400;
 /** Shift-scrub maps full track width to this many seconds either side. */
 const FINE_SCRUB_WINDOW_SECS = 45;
 
+const EMPTY_TRACKS: StreamTrack[] = [];
+const EMPTY_QUALITIES: KittyStreamQuality[] = [];
+const EMPTY_HEADERS: Record<string, string> = {};
+
 type BufferedRange = { start: number; end: number };
 
 type GestureHint = {
@@ -333,9 +337,9 @@ export function AniKittyPlayer({
   seriesTitle,
   episodeNumber,
   className,
-  tracks = [],
-  qualities = [],
-  headers = {},
+  tracks = EMPTY_TRACKS,
+  qualities = EMPTY_QUALITIES,
+  headers = EMPTY_HEADERS,
   kittyNodeId,
   startTime = 0,
   skipTimes,
@@ -424,6 +428,7 @@ export function AniKittyPlayer({
   const startTimeRef = useRef(startTime);
   const preferDubAudioRef = useRef(preferDubAudio);
   const skipTimesRef = useRef(skipTimes);
+  const qualitiesRef = useRef(qualities);
   const w2gRef = useRef(w2g);
   const nextEpisodeRef = useRef(nextEpisode);
   const prevEpisodeRef = useRef(prevEpisode);
@@ -459,6 +464,7 @@ export function AniKittyPlayer({
   startTimeRef.current = startTime;
   preferDubAudioRef.current = preferDubAudio;
   skipTimesRef.current = skipTimes;
+  qualitiesRef.current = qualities;
   w2gRef.current = w2g;
   nextEpisodeRef.current = nextEpisode;
   prevEpisodeRef.current = prevEpisode;
@@ -1972,7 +1978,7 @@ export function AniKittyPlayer({
         url: activeSrc,
         video,
         hlsJsSupported: Hls.isSupported(),
-        qualities,
+        qualities: qualitiesRef.current,
         sniffedHls: sniffed,
       });
 
@@ -2005,7 +2011,8 @@ export function AniKittyPlayer({
       video.removeAttribute("src");
       video.load();
     };
-  }, [activeSrc, playbackIssueHint, qualities, attachNonce]);
+    // qualities intentionally omitted — unstable [] / ladder updates must not tear down HLS mid-play.
+  }, [activeSrc, playbackIssueHint, attachNonce]);
 
   const togglePlay = useCallback(() => {
     if (castingRef.current) {
