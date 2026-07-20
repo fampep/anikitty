@@ -931,7 +931,7 @@ const VideoPlayerSection = () => {
   const streamReady = hasStreamFile && !streamStale && audioMatchesRequest;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
-  const loadingStuck = useStreamLoadingStuck(showStreamLoading);
+  const loadingStuck = useStreamLoadingStuck(showStreamLoading, 14_000);
 
   const togglePip = useCallback(() => {
     const video = playerRef.current?.video;
@@ -1370,6 +1370,27 @@ const VideoPlayerSection = () => {
     streamReady,
     streamFailed,
     streamError,
+    attemptNodeFailover,
+    attemptProviderFallback,
+  ]);
+
+  // Still spinning with no file — don't wait for the full 45s client timeout.
+  useEffect(() => {
+    if (!loadingStuck || !showStreamLoading || streamReady) return;
+    if (!providerAutoFallback) return;
+    // Auto race already probes multiple nodes — switch providers instead of re-racing.
+    if (streamKittyNode === "auto") {
+      attemptProviderFallback();
+      return;
+    }
+    if (attemptNodeFailover()) return;
+    attemptProviderFallback();
+  }, [
+    loadingStuck,
+    showStreamLoading,
+    streamReady,
+    providerAutoFallback,
+    streamKittyNode,
     attemptNodeFailover,
     attemptProviderFallback,
   ]);

@@ -16,13 +16,16 @@ import type { KittyStreamPayload } from "@/lib/kitty/kitty-api-core";
 export const KITTY_NODE_DEAD_COOLDOWN_MS = 45_000;
 
 /** Parallel /health budget before stream-direct race. */
-export const KITTY_HEALTH_PREFILTER_MS = 1_200;
+export const KITTY_HEALTH_PREFILTER_MS = 800;
 
 /** Delay between launching each additional racer (avoids thundering herd). */
-export const KITTY_RACE_STAGGER_MS = 75;
+export const KITTY_RACE_STAGGER_MS = 50;
 
 /** Per-node stream-direct budget during a race. */
-export const KITTY_RACE_ATTEMPT_TIMEOUT_MS = 14_000;
+export const KITTY_RACE_ATTEMPT_TIMEOUT_MS = 12_000;
+
+/** Hard wall-clock budget for the whole race (health + first win). */
+export const KITTY_RACE_DEADLINE_MS = 16_000;
 
 const deadUntil = new Map<KittyApiNodeId, number>();
 

@@ -119,11 +119,25 @@ const SAFE_ANINEKO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
-/** Active providers use dedicated stream resolution (direct linkId / stream-direct before servers). */
-const STREAM_DIRECT_EXCLUDE = new Set<string>([...KITTY_PROVIDERS, "Miruro"]);
-const STREAM_DIRECT_PROVIDERS = new Set<string>(
-  KITTY_PROVIDERS.filter((p) => !STREAM_DIRECT_EXCLUDE.has(p)),
-);
+/**
+ * Providers with their own race / mirror wiring — skip the shared auto race.
+ * Everyone else races `stream-direct` across CDN nodes when kittyNode=auto.
+ */
+const STREAM_RACE_SKIP = new Set<string>(["Miruro"]);
+
+/**
+ * After an auto race misses, still try dedicated linkId/servers/mirrors.
+ * Plain stream-direct providers already exhausted every healthy CDN node.
+ */
+const STREAM_DEDICATED_AFTER_RACE = new Set<string>([
+  "MKissa",
+  "Anikoto",
+  "MegaPlay",
+  "Animex",
+  "AniSnatch",
+  "Lunar",
+  "Animo",
+]);
 
 type StreamPayload = {
   file: string;
@@ -356,22 +370,36 @@ export async function GET(req: Request) {
       : [];
 
     data.tracks = stripSubtitleTracks(data.tracks);
-    const fetchedSubs = await ensurePlaybackSubtitleCache(
-      {
-        ...playbackCtx,
-        animeTitle: titleParam,
-        streamProvider: providerName,
-      },
-    );
-
-    data.tracks = await mergeCachedSubtitleTracks(
+    const cachedMerged = await mergeCachedSubtitleTracks(
       data.tracks,
       playbackCtx,
       data.headers ?? {},
     );
 
+    // Don't block first paint on Kitty /subs when the provider already shipped soft subs.
+    // Warm the cache in the background so later episodes / language picks stay fast.
+    let fetchedSubs: StreamTrack[] = [];
+    const subWarm = {
+      ...playbackCtx,
+      animeTitle: titleParam,
+      streamProvider: providerName,
+    };
+    if (preserveInlineSubs && providerSubtitleTracks.length > 0) {
+      void ensurePlaybackSubtitleCache(subWarm);
+    } else {
+      fetchedSubs = await Promise.race([
+        ensurePlaybackSubtitleCache(subWarm),
+        new Promise<StreamTrack[]>((resolve) => {
+          setTimeout(() => resolve([]), 2_000);
+        }),
+      ]);
+      if (fetchedSubs.length === 0) {
+        void ensurePlaybackSubtitleCache(subWarm);
+      }
+    }
+
     data.tracks = dedupeSubtitleTracks([
-      ...data.tracks,
+      ...cachedMerged,
       ...providerSubtitleTracks,
       ...fetchedSubs.filter(isSubtitleTrack),
     ]);
@@ -476,25 +504,29 @@ export async function GET(req: Request) {
     return { ...attempt, nodeId: wonNode, raceMs };
   }
 
-  if (STREAM_DIRECT_PROVIDERS.has(provider)) {
-    const directAttempt = await fetchStreamDirectPlayback(provider);
-    const directResponse = await respondWithStream(
-      directAttempt.result,
+  // kittyNode=auto: race stream-direct across healthy CDN nodes first.
+  // Dedicated handlers below are fallbacks (linkId / servers / mirrors).
+  if (raceMode && !STREAM_RACE_SKIP.has(provider)) {
+    const racedAttempt = await fetchStreamDirectPlayback(provider);
+    const racedResponse = await respondWithStream(
+      racedAttempt.result,
       provider,
-      directAttempt.servedAudio,
-      directAttempt.audioFallback,
-      directAttempt.nodeId,
-      directAttempt.raceMs,
+      racedAttempt.servedAudio,
+      racedAttempt.audioFallback,
+      racedAttempt.nodeId,
+      racedAttempt.raceMs,
     );
-    if (directResponse) return directResponse;
+    if (racedResponse) return racedResponse;
 
-    return Response.json(
-      {
-        file: null,
-        error: "Provider unavailable",
-      },
-      { status: 200 },
-    );
+    if (!STREAM_DEDICATED_AFTER_RACE.has(provider)) {
+      return Response.json(
+        {
+          file: null,
+          error: "Provider unavailable",
+        },
+        { status: 200 },
+      );
+    }
   }
 
   if (provider === "AniWaves") {

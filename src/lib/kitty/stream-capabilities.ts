@@ -90,8 +90,8 @@ const EMPTY_MULTI_SERVER_FIELDS = {
   mkissaServerRows: [] as AllanimeKittyServer[],
 };
 
-const PROBE_TIMEOUT_MS = 5_000;
-const DIRECT_PROBE_CONCURRENCY = 10;
+const PROBE_TIMEOUT_MS = 4_000;
+const DIRECT_PROBE_CONCURRENCY = 6;
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -147,11 +147,15 @@ async function probeStreamDirect(
 
   for (const path of paths) {
     try {
-      const res = await kittyApiFetch(path, {
-        cache: "no-store",
-        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-        headers: kittyStreamHeaders(),
-      });
+      const res = await kittyApiFetch(
+        path,
+        {
+          cache: "no-store",
+          signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+          headers: kittyStreamHeaders(),
+        },
+        { failover: false },
+      );
 
       const data = await res.json();
       const parsed = parseKittyStreamJson(data, res.ok);

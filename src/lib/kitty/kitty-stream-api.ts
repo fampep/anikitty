@@ -20,6 +20,7 @@ import {
 import {
   isValidKittyStreamWin,
   KITTY_RACE_ATTEMPT_TIMEOUT_MS,
+  KITTY_RACE_DEADLINE_MS,
   KITTY_RACE_STAGGER_MS,
   markKittyNodeDead,
   orderKittyNodesForRace,
@@ -226,17 +227,29 @@ export async function raceKittyProviderStream(
     return { stream: stream!, nodeId, raceMs: Date.now() - raceStarted };
   }
 
-  // Per-node budget: stream-direct often needs 8–14s; fail faster than a hung peer.
+  // Prefer the top scored healthy peers — racing every node overloads scrapers.
+  if (candidates.length > 3) candidates = candidates.slice(0, 3);
+
+  // Per-node budget: stream-direct often needs 8–12s; fail faster than a hung peer.
   const attemptTimeoutMs = Math.min(
     opts.timeoutMs ?? 40_000,
     KITTY_RACE_ATTEMPT_TIMEOUT_MS,
   );
+  const raceDeadlineMs = Math.min(opts.timeoutMs ?? KITTY_RACE_DEADLINE_MS, KITTY_RACE_DEADLINE_MS);
 
   return new Promise<RacedKittyStream | null>((resolve) => {
     let settled = false;
     let pending = candidates.length;
     const controllers = candidates.map(() => new AbortController());
     const staggerTimers: ReturnType<typeof setTimeout>[] = [];
+
+    const finish = (value: RacedKittyStream | null) => {
+      if (settled) return;
+      settled = true;
+      for (const timer of staggerTimers) clearTimeout(timer);
+      for (const controller of controllers) controller.abort();
+      resolve(value);
+    };
 
     const abortLosers = (winnerIndex: number) => {
       for (let i = 0; i < controllers.length; i++) {
@@ -246,12 +259,11 @@ export async function raceKittyProviderStream(
     };
 
     const settleNull = () => {
-      if (!settled && pending <= 0) {
-        settled = true;
-        for (const timer of staggerTimers) clearTimeout(timer);
-        resolve(null);
-      }
+      if (!settled && pending <= 0) finish(null);
     };
+
+    const deadlineTimer = setTimeout(() => finish(null), raceDeadlineMs);
+    staggerTimers.push(deadlineTimer);
 
     const launch = (nodeId: KittyApiNodeId, index: number) => {
       const controller = controllers[index]!;
@@ -271,10 +283,9 @@ export async function raceKittyProviderStream(
         .then((stream) => {
           if (settled) return;
           if (isValidKittyStreamWin(stream)) {
-            settled = true;
             abortLosers(index);
             recordKittyProviderNodeWin(provider, nodeId);
-            resolve({
+            finish({
               stream: stream!,
               nodeId,
               raceMs: Date.now() - raceStarted,

@@ -24,7 +24,7 @@ const getEpisodeStreamCapabilities = async (
       ...(tier ? { tier } : {}),
       ...(title ? { title } : {}),
     },
-    timeout: tier === "rest" ? 90_000 : 45_000,
+    timeout: 45_000,
   });
   return res.data;
 };
@@ -75,7 +75,8 @@ export const useGetStreamCapabilities = (
   const rest = useQuery({
     queryKey: [...baseKey, "rest"],
     queryFn: () => getEpisodeStreamCapabilities(anilistId!, episode!, title, "rest"),
-    enabled,
+    // Defer the long-tail probe so it doesn't compete with the active stream race.
+    enabled: enabled && (featured.isSuccess || featured.isError),
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
     retry: 1,

@@ -265,7 +265,15 @@ function hostFromUrl(value: string): string | null {
 const SITE_HOST = hostFromUrl(APP_URL) ?? "anikitty.moe";
 
 function allowedSiteHosts(): Set<string> {
-  const hosts = new Set<string>([SITE_HOST, `www.${SITE_HOST.replace(/^www\./, "")}`]);
+  const hosts = new Set<string>([
+    SITE_HOST,
+    `www.${SITE_HOST.replace(/^www\./, "")}`,
+    // Common AniKitty hosts — APP_URL may be .moe while users browse .online.
+    "anikitty.moe",
+    "www.anikitty.moe",
+    "anikitty.online",
+    "www.anikitty.online",
+  ]);
   const extra = process.env.HLS_ALLOWED_HOSTS?.split(",") ?? [];
   for (const raw of extra) {
     const h = raw.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/:\d+$/, "");
