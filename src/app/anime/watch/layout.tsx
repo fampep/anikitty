@@ -10,6 +10,7 @@ import { useAnimeStore } from "@/store/anime-store";
 import EpisodePlaylist from "@/components/watch/episode-playlist";
 import WatchCommentsPreview from "@/components/watch/watch-comments-preview";
 import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
+import WatchPlaylistSheet from "@/components/watch/watch-playlist-sheet";
 import WatchQuickNav from "@/components/watch/watch-quick-nav";
 import { WatchPageProvider } from "@/components/watch/watch-page-context";
 import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
@@ -77,7 +78,14 @@ const Layout = (props: Props) => {
   const auth = useAuthStore((s) => s.auth);
   const router = useRouter();
   const theatreMode = useSettingsStore((s) => s.theatreMode);
+  const watchLayout = useSettingsStore((s) => s.watchLayout);
   useTheatreModeEffects(theatreMode);
+
+  const isTheaterLayout = !theatreMode && watchLayout === "theater";
+  const isCompactLayout = !theatreMode && watchLayout === "compact";
+  const isFocusLayout = !theatreMode && watchLayout === "focus";
+  const showSideSidebar = !theatreMode && (watchLayout === "default" || watchLayout === "compact");
+  const showTheaterPlaylist = isTheaterLayout;
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
   const episodeId = searchParams.get("episode");
@@ -121,7 +129,7 @@ const Layout = (props: Props) => {
   }, [episodeId]);
 
   useEffect(() => {
-    if (!mobilePlaylistOpen) return;
+    if (!mobilePlaylistOpen || isFocusLayout) return;
     const id = window.requestAnimationFrame(() => {
       document.getElementById("watch-mobile-playlist")?.scrollIntoView({
         behavior: "smooth",
@@ -129,7 +137,7 @@ const Layout = (props: Props) => {
       });
     });
     return () => window.cancelAnimationFrame(id);
-  }, [mobilePlaylistOpen]);
+  }, [mobilePlaylistOpen, isFocusLayout]);
 
   const toggleMobilePlaylist = useCallback(() => {
     setMobilePlaylistOpen((open) => !open);
@@ -250,7 +258,7 @@ const Layout = (props: Props) => {
               ? "watch-mobile-playlist"
               : null;
 
-    if (scrollTarget) {
+    if (scrollTarget && !(value === "episodes" && isFocusLayout)) {
       requestAnimationFrame(() => {
         document.getElementById(scrollTarget)?.scrollIntoView({
           behavior: "smooth",
@@ -423,13 +431,21 @@ const Layout = (props: Props) => {
     {theatreMode && (
       <div className="fixed inset-0 z-[35] bg-black pointer-events-none" aria-hidden />
     )}
-    <Container className={cn(
+    <Container
+      data-watch-layout={theatreMode ? "theatre" : watchLayout}
+      className={cn(
       "pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
       // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
+      isTheaterLayout && "max-w-[min(100%,96rem)]",
+      isCompactLayout && "watch-layout-compact",
+      isFocusLayout && "watch-layout-focus",
     )}>
       {!theatreMode && (
-        <div className="flex items-end justify-between gap-3 mb-3 sm:mb-4 min-w-0">
+        <div className={cn(
+          "flex items-end justify-between gap-3 mb-3 sm:mb-4 min-w-0",
+          isCompactLayout && "mb-2 sm:mb-2.5",
+        )}>
           <AnimeClearLogo
             name={info.name}
             logoUrl={pickAnimeClearLogo(mappingData?.images)}
@@ -445,11 +461,16 @@ const Layout = (props: Props) => {
       <div
         className={cn(
           "grid grid-cols-1 gap-3 sm:gap-4",
-          !theatreMode && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:gap-5 xl:gap-6",
+          isCompactLayout && "gap-2 sm:gap-2.5",
+          showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:gap-5 xl:gap-6",
+          isCompactLayout && showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:gap-3 xl:gap-4",
         )}
       >
         {/* Left: player + episode info + tabs */}
-        <div className="flex flex-col gap-2.5 sm:gap-3.5 min-w-0">
+        <div className={cn(
+          "flex flex-col gap-2.5 sm:gap-3.5 min-w-0",
+          isCompactLayout && "gap-1.5 sm:gap-2",
+        )}>
           <div
             id="watch-player-root"
             className={cn(
@@ -457,6 +478,7 @@ const Layout = (props: Props) => {
               // Size the 16:9 video so video + under-player chrome fit below the nav.
               theatreMode &&
                 "mx-auto w-full max-w-[min(100%,calc((100dvh-var(--theatre-chrome-h)-var(--theatre-player-chrome-h))*16/9))]",
+              isTheaterLayout && "sm:mx-0",
             )}
           >
             {props.children}
@@ -465,7 +487,10 @@ const Layout = (props: Props) => {
           {!theatreMode && (
             <div
               id="watch-quick-nav"
-              className="watch-sticky-chrome lg:sticky lg:top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-1.5 sm:py-2"
+              className={cn(
+                "watch-sticky-chrome lg:sticky lg:top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-1.5 sm:py-2",
+                isCompactLayout && "py-1 sm:py-1.5",
+              )}
             >
               <WatchQuickNav
                 activeTab={watchTab}
@@ -473,6 +498,7 @@ const Layout = (props: Props) => {
                 animeId={info.id}
                 hasRelated={hasRelated}
                 className="mb-0 pb-0"
+                showEpisodesOnDesktop={isFocusLayout}
               />
             </div>
           )}
@@ -510,12 +536,13 @@ const Layout = (props: Props) => {
             </button>
           )}
 
-          {/* Mobile: episode playlist — collapsed until opened from strip / quick nav */}
+          {/* Mobile: episode playlist — collapsed until opened from strip / quick nav.
+              Focus layout uses a sheet instead; theatre hides this entirely. */}
           <div
             id="watch-mobile-playlist"
             className={cn(
               "flex flex-col gap-2 lg:hidden scroll-mt-[calc(var(--nav-total-height)+2.5rem)]",
-              theatreMode && "hidden",
+              (theatreMode || isFocusLayout) && "hidden",
               !mobilePlaylistOpen && "hidden",
             )}
           >
@@ -530,6 +557,33 @@ const Layout = (props: Props) => {
               />
             )}
           </div>
+
+          {/* Theater layout: full-width episode list below the player (desktop) */}
+          {showTheaterPlaylist && episodes && (
+            <aside className="watch-sidebar hidden lg:flex flex-col gap-0 max-h-[min(70vh,36rem)] overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm">
+              <WatchNowPlayingCard
+                info={info}
+                currentEpisode={currentEpisode}
+                totalEps={totalEps}
+                audioLabel={audioLabel}
+                prevEp={prevEp}
+                nextEp={nextEp}
+                buildEpUrl={buildEpUrl}
+                t={t}
+                compact
+              />
+              <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+                <EpisodePlaylist
+                  variant="sidebar"
+                  animeId={animeId as string}
+                  title={info.name ?? (moreInfo?.japanese as string)}
+                  subOrDub={stats?.episodes}
+                  episodes={episodes}
+                  isLoading={episodeLoading}
+                />
+              </div>
+            </aside>
+          )}
 
           {!theatreMode && (
           <>
@@ -666,68 +720,23 @@ const Layout = (props: Props) => {
 
         </div>
 
-        {/* Right sidebar: now-watching + episodes (desktop) */}
-        {!theatreMode && (
-          <aside className="watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm">
-            {currentEpisode && (
-              <div className="shrink-0 border-b border-border/60 dark:border-white/[0.07] px-3.5 py-3 space-y-2.5">
-                {/* Series header */}
-                <div className="flex gap-2.5">
-                  {info.poster && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={info.poster}
-                      alt={info.name}
-                      className="w-9 h-[3.15rem] shrink-0 rounded object-cover ring-1 ring-border dark:ring-white/10"
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/65 dark:text-white/28">
-                      {t("watch.nowWatching")}
-                    </p>
-                    <p className="mt-0.5 text-[12px] font-semibold leading-snug text-foreground/90 dark:text-white/88 line-clamp-2">
-                      {info.name}
-                    </p>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold tabular-nums bg-zinc-500/15 border border-zinc-400/20 text-zinc-200/90">
-                        EP {currentEpisode.number}
-                      </span>
-                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-foreground/[0.05] border border-border dark:bg-white/[0.05] dark:border-white/10 text-muted-foreground dark:text-white/55">
-                        {audioLabel}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Series progress */}
-                <div>
-                  <div className="mb-1 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.14em] text-muted-foreground/65 dark:text-white/28">
-                    <span>{t("watch.seriesProgress")}</span>
-                    <span className="tabular-nums">{currentEpisode.number}/{totalEps}</span>
-                  </div>
-                  <div className="h-0.5 w-full overflow-hidden rounded-full bg-accent dark:bg-white/[0.08]">
-                    <div
-                      className="h-full rounded-full bg-zinc-300/75 dark:bg-zinc-400/65 transition-[width] duration-500 ease-out"
-                      style={{ width: `${Math.min(100, (currentEpisode.number / Math.max(totalEps, 1)) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Current episode title */}
-                {currentEpisode.title && (
-                  <p className="text-[11px] leading-snug text-foreground/70 dark:text-white/48 line-clamp-2">
-                    <span className="mr-1 font-mono tabular-nums text-muted-foreground/55 dark:text-white/28">{currentEpisode.number}.</span>
-                    {currentEpisode.title}
-                  </p>
-                )}
-
-                {/* Prev / next episode */}
-                <div className="grid grid-cols-2 gap-1.5">
-                  <EpisodeNavThumb ep={prevEp} dir="prev" label={t("watch.prevEpisode")} fallbackPoster={info.poster} buildUrl={buildEpUrl} />
-                  <EpisodeNavThumb ep={nextEp} dir="next" label={t("watch.nextEpisode")} fallbackPoster={info.poster} buildUrl={buildEpUrl} />
-                </div>
-              </div>
-            )}
+        {/* Right sidebar: now-watching + episodes (desktop) — Default & Compact */}
+        {showSideSidebar && (
+          <aside className={cn(
+            "watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm",
+            isCompactLayout && "watch-sidebar--compact",
+          )}>
+            <WatchNowPlayingCard
+              info={info}
+              currentEpisode={currentEpisode}
+              totalEps={totalEps}
+              audioLabel={audioLabel}
+              prevEp={prevEp}
+              nextEp={nextEp}
+              buildEpUrl={buildEpUrl}
+              t={t}
+              compact={isCompactLayout}
+            />
 
             {episodes && (
               <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
@@ -778,10 +787,134 @@ const Layout = (props: Props) => {
           onScopeChange={setMobileCommentScope}
         />
       )}
+
+      {isFocusLayout && episodes && animeId && (
+        <WatchPlaylistSheet
+          open={mobilePlaylistOpen}
+          onOpenChange={setMobilePlaylistOpen}
+          animeId={animeId}
+          title={info.name ?? (moreInfo?.japanese as string)}
+          subOrDub={stats?.episodes}
+          episodes={episodes}
+          isLoading={episodeLoading}
+        />
+      )}
     </Container>
     </WatchPageProvider>
   );
 };
+
+/** Compact / default sidebar “now watching” header. */
+function WatchNowPlayingCard({
+  info,
+  currentEpisode,
+  totalEps,
+  audioLabel,
+  prevEp,
+  nextEp,
+  buildEpUrl,
+  t,
+  compact = false,
+}: {
+  info: { name: string; poster?: string };
+  currentEpisode: { number: number; title?: string | null; episodeId: string } | null | undefined;
+  totalEps: number;
+  audioLabel: string;
+  prevEp: { episodeId: string; number: number; title: string; image?: string | null } | null;
+  nextEp: { episodeId: string; number: number; title: string; image?: string | null } | null;
+  buildEpUrl: (id: string) => string;
+  t: ReturnType<typeof useT>;
+  compact?: boolean;
+}) {
+  if (!currentEpisode) return null;
+
+  return (
+    <div
+      className={cn(
+        "shrink-0 border-b border-border/60 dark:border-white/[0.07] space-y-2.5",
+        compact ? "px-2.5 py-2 space-y-1.5" : "px-3.5 py-3",
+      )}
+    >
+      <div className={cn("flex", compact ? "gap-2" : "gap-2.5")}>
+        {info.poster && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={info.poster}
+            alt={info.name}
+            className={cn(
+              "shrink-0 rounded object-cover ring-1 ring-border dark:ring-white/10",
+              compact ? "w-8 h-11" : "w-9 h-[3.15rem]",
+            )}
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/65 dark:text-white/28">
+            {t("watch.nowWatching")}
+          </p>
+          <p
+            className={cn(
+              "mt-0.5 font-semibold leading-snug text-foreground/90 dark:text-white/88 line-clamp-2",
+              compact ? "text-[11px]" : "text-[12px]",
+            )}
+          >
+            {info.name}
+          </p>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold tabular-nums bg-zinc-500/15 border border-zinc-400/20 text-zinc-200/90">
+              EP {currentEpisode.number}
+            </span>
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono font-bold bg-foreground/[0.05] border border-border dark:bg-white/[0.05] dark:border-white/10 text-muted-foreground dark:text-white/55">
+              {audioLabel}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-1 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.14em] text-muted-foreground/65 dark:text-white/28">
+          <span>{t("watch.seriesProgress")}</span>
+          <span className="tabular-nums">
+            {currentEpisode.number}/{totalEps}
+          </span>
+        </div>
+        <div className="h-0.5 w-full overflow-hidden rounded-full bg-accent dark:bg-white/[0.08]">
+          <div
+            className="h-full rounded-full bg-zinc-300/75 dark:bg-zinc-400/65 transition-[width] duration-500 ease-out"
+            style={{
+              width: `${Math.min(100, (currentEpisode.number / Math.max(totalEps, 1)) * 100)}%`,
+            }}
+          />
+        </div>
+      </div>
+
+      {currentEpisode.title && !compact && (
+        <p className="text-[11px] leading-snug text-foreground/70 dark:text-white/48 line-clamp-2">
+          <span className="mr-1 font-mono tabular-nums text-muted-foreground/55 dark:text-white/28">
+            {currentEpisode.number}.
+          </span>
+          {currentEpisode.title}
+        </p>
+      )}
+
+      <div className={cn("grid grid-cols-2", compact ? "gap-1" : "gap-1.5")}>
+        <EpisodeNavThumb
+          ep={prevEp}
+          dir="prev"
+          label={t("watch.prevEpisode")}
+          fallbackPoster={info.poster}
+          buildUrl={buildEpUrl}
+        />
+        <EpisodeNavThumb
+          ep={nextEp}
+          dir="next"
+          label={t("watch.nextEpisode")}
+          fallbackPoster={info.poster}
+          buildUrl={buildEpUrl}
+        />
+      </div>
+    </div>
+  );
+}
 
 /** Prev/next episode thumbnail button for the sidebar now-watching card. */
 function EpisodeNavThumb({

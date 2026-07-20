@@ -19,6 +19,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
   const s = useSettingsStore.getState();
   return extractSyncedPreferences({
     episodeLayout: s.episodeLayout,
+    watchLayout: s.watchLayout,
     preferDub: s.preferDub,
     autoPlay: s.autoPlay,
     subtitleSettings: s.subtitleSettings,
@@ -58,6 +59,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
 function applyRemotePreferences(prefs: SyncedUserPreferences) {
   const patch: Partial<ReturnType<typeof useSettingsStore.getState>> = {};
   if (prefs.episodeLayout !== undefined) patch.episodeLayout = prefs.episodeLayout;
+  if (prefs.watchLayout !== undefined) patch.watchLayout = prefs.watchLayout;
   if (prefs.preferDub !== undefined) patch.preferDub = prefs.preferDub;
   if (prefs.autoPlay !== undefined) patch.autoPlay = prefs.autoPlay;
   if (prefs.subtitleSettings !== undefined) patch.subtitleSettings = prefs.subtitleSettings;

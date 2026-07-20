@@ -664,6 +664,17 @@
     "layoutCompactDesc": "Number-only grid — great for long series",
     "layoutThumbnail": "Thumbnail",
     "layoutThumbnailDesc": "Poster-style cards showing episode artwork",
+    "watchLayout": "Watch page layout",
+    "watchLayoutDesc": "How the player and episode list are arranged on the watch page — synced when signed in",
+    "watchLayoutDefault": "Default",
+    "watchLayoutDefaultDesc": "Player with a sticky episode sidebar on desktop",
+    "watchLayoutTheater": "Theater",
+    "watchLayoutTheaterDesc": "Wider player; episode list sits below instead of beside",
+    "watchLayoutCompact": "Compact",
+    "watchLayoutCompactDesc": "Tighter gaps and a narrower playlist column",
+    "watchLayoutFocus": "Focus",
+    "watchLayoutFocusDesc": "Player only — open episodes from the playlist button (drawer)",
+    "watchLayoutMobileNote": "On small screens all layouts use the same collapsible playlist pattern.",
     "playback": "Playback",
     "playbackDesc": "Default behaviour when watching anime — synced across devices when signed in",
     "ads": {
@@ -2035,7 +2046,9 @@
       "showAll": "Show all episodes",
       "skipFillers": "Hide filler episodes",
       "showFillers": "Show filler episodes",
-      "noEpisodes": "No episodes found"
+      "noEpisodes": "No episodes found",
+      "focusSheetTitle": "Episodes",
+      "focusSheetDesc": "Pick an episode — layout stays player-first"
     },
     "commentsPreview": "EP {ep} · {count} comments · Tap to join the discussion",
     "commentsPreviewEmpty": "EP {ep} · No comments yet · Tap to start the discussion",

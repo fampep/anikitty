@@ -2,7 +2,7 @@
 
 import Container from "@/components/layout/container";
 import Avatar from "@/components/common/avatar";
-import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
+import { useSettingsStore, EpisodeLayout, WatchLayout } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/core/utils";
 import {
@@ -32,6 +32,9 @@ import {
   UserPlus,
   Radio,
   Server,
+  PanelRight,
+  Rows3,
+  Focus,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -159,6 +162,85 @@ function useEpisodeLayouts(t: ReturnType<typeof useT>) {
                   </span>
                 </div>
               ))}
+            </div>
+          ),
+        },
+      ] as const,
+    [t],
+  );
+}
+
+function useWatchLayouts(t: ReturnType<typeof useT>) {
+  return useMemo(
+    () =>
+      [
+        {
+          value: "default" as WatchLayout,
+          label: t("settings.watchLayoutDefault"),
+          description: t("settings.watchLayoutDefaultDesc"),
+          icon: <PanelRight className="w-4 h-4" />,
+          preview: (
+            <div className="flex gap-1.5 w-full h-full px-2.5 py-2">
+              <div className="flex-1 rounded-md bg-muted/60 dark:bg-white/[0.08] flex items-center justify-center">
+                <div className="w-[70%] aspect-video rounded-sm bg-zinc-400/25 dark:bg-white/15" />
+              </div>
+              <div className="w-[28%] rounded-md bg-muted/40 dark:bg-white/[0.05] flex flex-col gap-1 p-1.5">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="h-2 rounded-sm bg-accent dark:bg-white/10" />
+                ))}
+              </div>
+            </div>
+          ),
+        },
+        {
+          value: "theater" as WatchLayout,
+          label: t("settings.watchLayoutTheater"),
+          description: t("settings.watchLayoutTheaterDesc"),
+          icon: <Maximize2 className="w-4 h-4" />,
+          preview: (
+            <div className="flex flex-col gap-1.5 w-full h-full px-2.5 py-2">
+              <div className="flex-1 rounded-md bg-muted/60 dark:bg-white/[0.08] flex items-center justify-center">
+                <div className="w-[88%] aspect-video rounded-sm bg-zinc-400/25 dark:bg-white/15" />
+              </div>
+              <div className="h-5 rounded-md bg-muted/40 dark:bg-white/[0.05] flex gap-1 px-1.5 items-center">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <div key={n} className="h-2 flex-1 rounded-sm bg-accent dark:bg-white/10" />
+                ))}
+              </div>
+            </div>
+          ),
+        },
+        {
+          value: "compact" as WatchLayout,
+          label: t("settings.watchLayoutCompact"),
+          description: t("settings.watchLayoutCompactDesc"),
+          icon: <Rows3 className="w-4 h-4" />,
+          preview: (
+            <div className="flex gap-1 w-full h-full px-2.5 py-2">
+              <div className="flex-1 rounded bg-muted/60 dark:bg-white/[0.08] flex items-center justify-center">
+                <div className="w-[72%] aspect-video rounded-[2px] bg-zinc-400/25 dark:bg-white/15" />
+              </div>
+              <div className="w-[22%] rounded bg-muted/40 dark:bg-white/[0.05] flex flex-col gap-0.5 p-1">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <div key={n} className="h-1.5 rounded-[1px] bg-accent dark:bg-white/10" />
+                ))}
+              </div>
+            </div>
+          ),
+        },
+        {
+          value: "focus" as WatchLayout,
+          label: t("settings.watchLayoutFocus"),
+          description: t("settings.watchLayoutFocusDesc"),
+          icon: <Focus className="w-4 h-4" />,
+          preview: (
+            <div className="relative flex w-full h-full px-2.5 py-2">
+              <div className="flex-1 rounded-md bg-muted/60 dark:bg-white/[0.08] flex items-center justify-center">
+                <div className="w-[82%] aspect-video rounded-sm bg-zinc-400/25 dark:bg-white/15" />
+              </div>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-10 rounded-l-md border border-border/80 dark:border-white/15 bg-muted/80 dark:bg-white/10 flex items-center justify-center">
+                <span className="text-[7px] font-mono text-muted-foreground dark:text-white/40 rotate-90">EPS</span>
+              </div>
             </div>
           ),
         },
@@ -525,6 +607,74 @@ function EpisodeLayoutSection({
   );
 }
 
+function WatchLayoutSection({
+  watchLayouts,
+  watchLayout,
+  setWatchLayout,
+}: {
+  watchLayouts: ReturnType<typeof useWatchLayouts>;
+  watchLayout: WatchLayout;
+  setWatchLayout: (v: WatchLayout) => void;
+}) {
+  const t = useT();
+
+  return (
+    <SectionCard>
+      <SectionHeader
+        icon={<PanelRight className="w-4 h-4" />}
+        title={t("settings.watchLayout")}
+        description={t("settings.watchLayoutDesc")}
+      />
+      <SectionBody className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {watchLayouts.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setWatchLayout(opt.value)}
+              aria-pressed={watchLayout === opt.value}
+              className={cn(
+                "flex flex-col rounded-xl border transition-all duration-200 overflow-hidden text-left",
+                watchLayout === opt.value
+                  ? "border-primary/50 bg-accent dark:border-white/40 dark:bg-white/8 ring-1 ring-primary/20 dark:ring-white/20"
+                  : "border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] hover:border-border dark:hover:border-white/20 hover:bg-muted/50 dark:hover:bg-white/[0.05]",
+              )}
+            >
+              <div className="h-24 bg-muted dark:bg-black/30 flex items-center justify-center border-b border-border dark:border-white/6">
+                {opt.preview}
+              </div>
+              <div className="px-3 py-2.5 flex items-center gap-2">
+                <span className={watchLayout === opt.value ? "text-muted-foreground dark:text-white/70" : "text-muted-foreground dark:text-white/30"}>
+                  {opt.icon}
+                </span>
+                <div className="min-w-0">
+                  <p
+                    className={cn(
+                      "text-sm font-semibold",
+                      watchLayout === opt.value ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/55",
+                    )}
+                  >
+                    {opt.label}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/80 dark:text-white/25 mt-0.5 font-mono line-clamp-2">
+                    {opt.description}
+                  </p>
+                </div>
+                {watchLayout === opt.value && (
+                  <div className="ml-auto w-2 h-2 rounded-full bg-muted/60 dark:bg-white/60 shrink-0" />
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/30 leading-relaxed">
+          {t("settings.watchLayoutMobileNote")}
+        </p>
+      </SectionBody>
+    </SectionCard>
+  );
+}
+
 function PerformanceSection() {
   const t = useT();
 
@@ -802,9 +952,28 @@ export default function SettingsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const episodeLayouts = useEpisodeLayouts(t);
+  const watchLayouts = useWatchLayouts(t);
   const { auth } = useAuthStore();
-  const { episodeLayout, setEpisodeLayout, preferDub, setPreferDub, autoPlay, setAutoPlay, playThemeSong, setPlayThemeSong, autoSkipIntro, setAutoSkipIntro, theatreMode, setTheatreMode, seekStepSeconds, setSeekStepSeconds, playerTouchSeekEnabled, setPlayerTouchSeekEnabled } =
-    useSettingsStore();
+  const {
+    episodeLayout,
+    setEpisodeLayout,
+    watchLayout,
+    setWatchLayout,
+    preferDub,
+    setPreferDub,
+    autoPlay,
+    setAutoPlay,
+    playThemeSong,
+    setPlayThemeSong,
+    autoSkipIntro,
+    setAutoSkipIntro,
+    theatreMode,
+    setTheatreMode,
+    seekStepSeconds,
+    setSeekStepSeconds,
+    playerTouchSeekEnabled,
+    setPlayerTouchSeekEnabled,
+  } = useSettingsStore();
 
   const defaultTab = useMemo((): SettingsTab => {
     const tab = searchParams.get("tab");
@@ -894,6 +1063,11 @@ export default function SettingsPage() {
                     setPlayerTouchSeekEnabled={setPlayerTouchSeekEnabled}
                   />
                   <ProviderOrderSection />
+                  <WatchLayoutSection
+                    watchLayouts={watchLayouts}
+                    watchLayout={watchLayout}
+                    setWatchLayout={setWatchLayout}
+                  />
                   <EpisodeLayoutSection
                     episodeLayouts={episodeLayouts}
                     episodeLayout={episodeLayout}
@@ -1036,6 +1210,11 @@ export default function SettingsPage() {
               setPlayerTouchSeekEnabled={setPlayerTouchSeekEnabled}
             />
             <ProviderOrderSection />
+            <WatchLayoutSection
+              watchLayouts={watchLayouts}
+              watchLayout={watchLayout}
+              setWatchLayout={setWatchLayout}
+            />
             <EpisodeLayoutSection
               episodeLayouts={episodeLayouts}
               episodeLayout={episodeLayout}

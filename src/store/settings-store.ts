@@ -37,9 +37,25 @@ import {
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
+/** Watch page structure: player + playlist arrangement (not theatre chrome). */
+export type WatchLayout = "default" | "theater" | "compact" | "focus";
+
+export const DEFAULT_WATCH_LAYOUT: WatchLayout = "default";
+
+export function sanitizeWatchLayout(value: unknown): WatchLayout {
+  if (value === "default" || value === "theater" || value === "compact" || value === "focus") {
+    return value;
+  }
+  return DEFAULT_WATCH_LAYOUT;
+}
+
 interface ISettingsStore {
   episodeLayout: EpisodeLayout;
   setEpisodeLayout: (layout: EpisodeLayout) => void;
+
+  /** Watch page layout: sidebar / theater / compact / focus. */
+  watchLayout: WatchLayout;
+  setWatchLayout: (layout: WatchLayout) => void;
 
   preferDub: boolean;
   setPreferDub: (val: boolean) => void;
@@ -203,6 +219,9 @@ export const useSettingsStore = create<ISettingsStore>()(
     (set) => ({
       episodeLayout: "list",
       setEpisodeLayout: (episodeLayout) => set({ episodeLayout }),
+
+      watchLayout: DEFAULT_WATCH_LAYOUT,
+      setWatchLayout: (watchLayout) => set({ watchLayout: sanitizeWatchLayout(watchLayout) }),
 
       preferDub: false,
       setPreferDub: (preferDub) => {
@@ -412,9 +431,10 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 49,
+      version: 50,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
+        watchLayout: state.watchLayout,
         preferDub: state.preferDub,
         autoPlay: state.autoPlay,
         hideFillers: state.hideFillers,
@@ -677,6 +697,11 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.customThemeColors = sanitizeCustomThemeColors(next.customThemeColors);
         } else {
           next.customThemeColors = sanitizeCustomThemeColors(next.customThemeColors);
+        }
+        if (version < 50) {
+          next.watchLayout = sanitizeWatchLayout(next.watchLayout ?? DEFAULT_WATCH_LAYOUT);
+        } else {
+          next.watchLayout = sanitizeWatchLayout(next.watchLayout);
         }
         return next as ISettingsStore;
       },

@@ -26,6 +26,8 @@ type Props = {
   animeId: string;
   hasRelated?: boolean;
   className?: string;
+  /** Focus layout: show Episodes on desktop (opens playlist drawer). */
+  showEpisodesOnDesktop?: boolean;
 };
 
 export default function WatchQuickNav({
@@ -34,6 +36,7 @@ export default function WatchQuickNav({
   animeId,
   hasRelated = true,
   className,
+  showEpisodesOnDesktop = false,
 }: Props) {
   const t = useT();
 
@@ -49,6 +52,7 @@ export default function WatchQuickNav({
       <div className="inline-flex items-center gap-0.5 rounded-lg border border-border/60 dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.03] p-0.5">
         {tabs.map(({ value, icon: Icon, key, mobileOnly }) => {
           const active = activeTab === value;
+          const hideOnDesktop = Boolean(mobileOnly) && !showEpisodesOnDesktop;
           return (
             <button
               key={value}
@@ -59,7 +63,7 @@ export default function WatchQuickNav({
                 active
                   ? "bg-background dark:bg-white/[0.1] text-foreground dark:text-white shadow-sm"
                   : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/75",
-                mobileOnly && "lg:hidden",
+                hideOnDesktop && "lg:hidden",
               )}
             >
               <Icon

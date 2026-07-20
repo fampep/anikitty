@@ -143,7 +143,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider, watchLayout } = useSettingsStore();
   // Lightweight health probes — used only to skip known-dead nodes on failover, not for geo/ping routing.
   const { nodes: proxyNodes } = useKittyNodePing({
     enabled: true,
@@ -536,6 +536,7 @@ const VideoPlayerSection = () => {
         animeId={animeSlug ?? undefined}
         episodeDuration={liveDurationRef.current || undefined}
         theatreMode={theatreMode}
+        showPlaylistToggleOnDesktop={!theatreMode && watchLayout === "focus"}
       />
     ) : null;
 

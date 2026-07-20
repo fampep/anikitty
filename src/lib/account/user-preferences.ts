@@ -1,4 +1,5 @@
-import type { EpisodeLayout } from "@/store/settings-store";
+import type { EpisodeLayout, WatchLayout } from "@/store/settings-store";
+import { sanitizeWatchLayout } from "@/store/settings-store";
 import {
   sanitizeSubtitleSettings,
   type SubtitleSettings,
@@ -21,6 +22,7 @@ import { isValidThemeColor } from "@/lib/core/theme-color";
 
 export type SyncedUserPreferences = {
   episodeLayout?: EpisodeLayout;
+  watchLayout?: WatchLayout;
   preferDub?: boolean;
   autoPlay?: boolean;
   subtitleSettings?: SubtitleSettings;
@@ -63,6 +65,9 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
 
   if (input.episodeLayout === "list" || input.episodeLayout === "compact" || input.episodeLayout === "thumbnail") {
     out.episodeLayout = input.episodeLayout;
+  }
+  if ("watchLayout" in input) {
+    out.watchLayout = sanitizeWatchLayout(input.watchLayout);
   }
   if (typeof input.preferDub === "boolean") out.preferDub = input.preferDub;
   if (typeof input.autoPlay === "boolean") out.autoPlay = input.autoPlay;

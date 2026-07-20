@@ -34,6 +34,8 @@ type Props = {
   episodeDuration?: number;
   /** Theatre hides the mobile playlist — show jump + hide playlist toggle. */
   theatreMode?: boolean;
+  /** Focus layout: keep the playlist control visible on desktop. */
+  showPlaylistToggleOnDesktop?: boolean;
 };
 
 function episodeTitle(ep: Episode, animeName: string | undefined, t: (key: string, vars?: Record<string, string | number>) => string) {
@@ -61,6 +63,7 @@ export default function WatchEpisodeBar({
   animeId,
   episodeDuration,
   theatreMode = false,
+  showPlaylistToggleOnDesktop = false,
 }: Props) {
   const t = useT();
   const [jumpValue, setJumpValue] = useState("");
@@ -225,7 +228,10 @@ export default function WatchEpisodeBar({
           <button
             type="button"
             onClick={onTogglePlaylist}
-            className="lg:hidden site-focus flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border/80 dark:border-white/[0.07] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-colors shrink-0"
+            className={cn(
+              "site-focus flex flex-col items-center justify-center gap-0.5 px-2.5 border-l border-border/80 dark:border-white/[0.07] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-colors shrink-0",
+              !showPlaylistToggleOnDesktop && "lg:hidden",
+            )}
           >
             <span className="text-[9px] font-mono uppercase tracking-wide leading-none">
               {t("anime.episodes.title")}
