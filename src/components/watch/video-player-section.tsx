@@ -1125,8 +1125,8 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  const streamNodeKey = streamData?.kittyNode ?? "racing";
-  const playerKey = `${anilistId}-${episodeNo}-${provider}-${audioMode}-${streamQueryAudio}-${streamNodeKey}-${playbackToken}`;
+  // Do not include kittyNode — race-winner updates must not remount the player mid-play.
+  const playerKey = `${anilistId}-${episodeNo}-${provider}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);
@@ -1435,11 +1435,11 @@ const VideoPlayerSection = () => {
         return;
       }
 
+      // Only hard-gone upstreams — not transient HLS levelLoadError (reloads mid-play).
       const deadUpstream =
         info?.status === 404
         || info?.status === 410
-        || info?.details === "manifestLoadError"
-        || info?.details === "levelLoadError";
+        || (info?.details === "manifestLoadError" && (info?.status === 404 || info?.status === 410));
 
       if (deadUpstream && !linkRefreshAttemptedRef.current) {
         linkRefreshAttemptedRef.current = true;
