@@ -432,7 +432,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 53,
+      version: 54,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -724,6 +724,17 @@ export const useSettingsStore = create<ISettingsStore>()(
           const middle = order.filter((id) => id !== "AniWaves" && id !== "MKissa");
           next.providerOrder = sanitizeProviderOrder(["AniWaves", ...middle, "MKissa"]);
           next.defaultProvider = sanitizeDefaultProvider("AniWaves", next.providerOrder);
+        }
+        if (version < 54) {
+          // Alpha (AniKuro) moves to the end of the chooser / fallback order.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const withoutAlpha = order.filter((id) => id !== "AniKuro");
+          next.providerOrder = sanitizeProviderOrder([...withoutAlpha, "AniKuro"]);
+          if (next.defaultProvider === "AniKuro") {
+            next.defaultProvider = sanitizeDefaultProvider("AniWaves", next.providerOrder);
+          } else {
+            next.defaultProvider = sanitizeDefaultProvider(next.defaultProvider, next.providerOrder);
+          }
         }
         return next as ISettingsStore;
       },
