@@ -1,0 +1,10 @@
+**AniKitty 0.9.1**
+
+- Episode lists follow AniList (all aired eps)
+- Smaller episode selector
+- Fixed overlapping watch toolbar
+- Removed the fake 6500 catalog count
+- Whiskey default · Alpha second
+- KittyAPI on static VPS IPs
+
+https://anikitty.moe · https://anikitty.online

@@ -23,6 +23,8 @@ import {
 } from "@/lib/anime/episode-availability";
 import { getAnikotoSeriesSchedule } from "@/lib/providers/anikoto-availability";
 
+/** Episode list length + planned total come from AniList; Anikoto is titles-only. */
+
 export const revalidate = 3600;
 
 const QUERY = `
@@ -100,42 +102,23 @@ export async function GET(
       streamingEpisodeCount: streamingEpisodes.length,
     };
 
-    const airedUpToFromAnilist = resolveAiredEpisodeCount(airingCtx);
+    // AniList schedule / season length is the source of truth for how many
+    // aired slots to show — do not bump or shrink from Anikoto / TMDB catalogs.
+    const airedUpTo = capEpisodeCount(
+      resolveAiredEpisodeCount(airingCtx),
+      m.episodes,
+    );
 
     const [sources, anikotoSchedule] = await Promise.all([
       // Thumbs: AniZip (`api.ani.zip/mappings?anilist_id=…`). Titles may still use AniList.
       fetchAllEpisodeImageSources(numId, streamingEpisodes).catch(() => EMPTY_SOURCES),
+      // Titles only — never used for list length or planned totals.
       getAnikotoSeriesSchedule({ anilistId: numId, malId: m.idMal }).catch(() => null),
     ]);
-
-    const tmdbTotal = sources.tmdbTotalEpisodes ?? null;
-    const anikotoAiredSub = capEpisodeCount(
-      anikotoSchedule?.airedSub ?? 0,
-      tmdbTotal,
-      m.episodes,
-    );
-
-    // Anikoto can catch AniList lag after a drop, but must not invent a large
-    // unaired block when schedule metadata is present.
-    let airedUpTo = airedUpToFromAnilist;
-    if (anikotoAiredSub > airedUpTo) {
-      const hasSchedule =
-        m.nextAiringEpisode?.episode != null && m.nextAiringEpisode.episode > 0;
-      airedUpTo = hasSchedule
-        ? Math.min(anikotoAiredSub, airedUpToFromAnilist + 1)
-        : anikotoAiredSub;
-    }
-    airedUpTo = capEpisodeCount(airedUpTo, tmdbTotal, m.episodes);
 
     const plannedTotal = resolveTotalEpisodeCount({
       ...airingCtx,
       metadataMaxEpisode: maxEpisodeNumberInSources(sources),
-      anikotoTotal: capEpisodeCount(
-        anikotoSchedule?.catalogTotalEpisodes ?? 0,
-        tmdbTotal,
-        m.episodes,
-      ),
-      tmdbTotal: tmdbTotal ?? undefined,
     });
 
     if (airedUpTo <= 0) {

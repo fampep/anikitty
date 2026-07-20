@@ -50,7 +50,6 @@ import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
-import { capEpisodeCount } from "@/lib/anime/episode-availability";
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
 });
@@ -275,20 +274,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     ? `https://www.themoviedb.org/tv/${mappings.themoviedb_id}`
     : null;
 
-  const totalEpisodeCount =
-    capEpisodeCount(rawEpisodeCount, tmdb?.episodes) ||
-    (tmdb?.episodes && tmdb.episodes > 0 ? tmdb.episodes : rawEpisodeCount);
-
-  const plannedTotalRaw = episodesData?.plannedTotal;
-  const plannedTotal = plannedTotalRaw
-    ? capEpisodeCount(plannedTotalRaw, tmdb?.episodes) || undefined
-    : undefined;
+  const totalEpisodeCount = rawEpisodeCount;
+  const plannedTotal =
+    episodesData?.plannedTotal && episodesData.plannedTotal > 0
+      ? episodesData.plannedTotal
+      : undefined;
   const episodeCountLabel =
     totalEpisodeCount > 0 && plannedTotal && plannedTotal > totalEpisodeCount
       ? `${totalEpisodeCount} / ${plannedTotal}`
       : totalEpisodeCount > 0
         ? String(totalEpisodeCount)
-        : tmdb?.episodes ?? stats?.episodes?.sub ?? null;
+        : stats?.episodes?.sub ?? null;
 
   const malScoreLabel =
     extMeta?.ratings?.find((r) => r.provider === "mal")?.label ??

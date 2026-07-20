@@ -141,7 +141,7 @@ export function maxEpisodeNumberInRecords(
   return max;
 }
 
-/** Full season length for UI lists — includes episodes that have not aired yet. */
+/** Full season length for UI lists — prefers AniList `episodes` over provider catalogs. */
 export function resolveTotalEpisodeCount(
   ctx: AiringContext & {
     metadataMaxEpisode?: number;
@@ -151,37 +151,43 @@ export function resolveTotalEpisodeCount(
 ): number {
   const aired = resolveAiredEpisodeCount(ctx);
   const planned = ctx.episodes;
+
+  // AniList season length wins when known.
+  if (planned != null && planned > 0) {
+    const nextEp = ctx.nextAiringEpisode;
+    if (nextEp != null && nextEp > 0) {
+      return Math.max(planned, nextEp);
+    }
+    return Math.max(planned, aired);
+  }
+
   const anikotoTotal = ctx.anikotoTotal ?? 0;
   const tmdbTotal = ctx.tmdbTotal ?? 0;
   // Prefer TMDB show-level count over per-episode metadata keys (multi-season maps inflate).
   const metadataMax = tmdbTotal > 0 ? 0 : (ctx.metadataMaxEpisode ?? 0);
 
-  let total = maxPositive(planned, metadataMax, aired, anikotoTotal, tmdbTotal);
+  let total = maxPositive(metadataMax, aired, anikotoTotal, tmdbTotal);
 
   const nextEp = ctx.nextAiringEpisode;
   if (nextEp != null && nextEp > 0) {
     total = Math.max(total, nextEp);
   }
 
-  if (tmdbTotal > 0) {
-    total = Math.min(total, tmdbTotal);
-  }
-
   return total;
 }
 
-/** Whether an episode has been released and can be watched. */
+/** Whether an episode has been released and can be watched.
+ *  `airedUpTo` (AniList schedule / season) is the source of truth.
+ *  Calendar dates only gate episodes beyond that count.
+ */
 export function resolveEpisodeAiredStatus(
   episodeNumber: number,
   airDate: string | null | undefined,
   airedUpTo: number,
 ): boolean {
-  // Explicit calendar dates win — never treat a future air date as aired
-  // just because a provider catalog lists the slot.
-  if (airDate?.trim()) {
-    return isEpisodeAiredByDate(airDate);
-  }
-  return episodeNumber <= airedUpTo;
+  if (episodeNumber <= airedUpTo) return true;
+  if (airDate?.trim()) return isEpisodeAiredByDate(airDate);
+  return false;
 }
 
 export function isEpisodePlayable(

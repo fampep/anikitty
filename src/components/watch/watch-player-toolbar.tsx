@@ -159,8 +159,8 @@ export default function WatchPlayerToolbar({
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
 
   return (
-    <div className="watch-chrome flex items-center gap-2 px-2.5 py-2 sm:px-3 border-b overflow-x-auto scrollbar-hide">
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+    <div className="watch-chrome flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2.5 py-2 sm:px-3 border-b">
+      <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1 basis-[min(100%,18rem)]">
         <ToolbarToggle
           active={autoPlay}
           icon={<Play className="w-3 h-3 shrink-0" />}
@@ -265,7 +265,7 @@ export default function WatchPlayerToolbar({
         )}
       </div>
 
-      <div className="flex items-center gap-1 shrink-0 ml-auto pl-1 border-l border-border/60 dark:border-white/[0.06]">
+      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
         {streamAudio && onAudioChange && (
           <ToolbarAudioToggle
             value={streamAudio}
@@ -294,7 +294,7 @@ export default function WatchPlayerToolbar({
           >
             <ChevronLeft className="w-3.5 h-3.5" />
             {prevEpisodeNumber != null && (
-              <span className="hidden xs:inline sm:inline">{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
+              <span className="hidden sm:inline">{t("watch.toolbar.episodeNav", { n: prevEpisodeNumber })}</span>
             )}
           </button>
           <button
@@ -314,7 +314,7 @@ export default function WatchPlayerToolbar({
             )}
           >
             {nextEpisodeNumber != null && (
-              <span className="hidden xs:inline sm:inline">{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
+              <span className="hidden sm:inline">{t("watch.toolbar.episodeNav", { n: nextEpisodeNumber })}</span>
             )}
             <ChevronRight className="w-3.5 h-3.5" />
           </button>

@@ -1,7 +1,7 @@
 export interface IEpisodes {
   /** Aired episodes returned in `episodes`. */
   totalEpisodes: number;
-  /** Full season length when known (AniList / Anikoto / TMDB). */
+  /** Full season length when known (AniList `episodes`). */
   plannedTotal?: number;
   airedCount?: number;
   episodes: Episode[];

@@ -182,7 +182,7 @@ export async function GET(
           stats: {
             rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
             quality: "HD",
-            episodes: { sub: Math.max(audio.sub, episodeCount) || episodeCount, dub: audio.dub },
+            episodes: { sub: episodeCount, dub: audio.dub },
             type: toFormat(m.format),
             duration: m.duration ? `${m.duration} min` : "N/A",
           },
