@@ -432,7 +432,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 52,
+      version: 53,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -717,6 +717,13 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Default watch page matches Miruro: player + right episode rail.
           next.watchLayout = "default";
           next.theatreMode = false;
+        }
+        if (version < 53) {
+          // Whiskey (AniWaves) is the new site default; Echo (MKissa) moves last.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const middle = order.filter((id) => id !== "AniWaves" && id !== "MKissa");
+          next.providerOrder = sanitizeProviderOrder(["AniWaves", ...middle, "MKissa"]);
+          next.defaultProvider = sanitizeDefaultProvider("AniWaves", next.providerOrder);
         }
         return next as ISettingsStore;
       },

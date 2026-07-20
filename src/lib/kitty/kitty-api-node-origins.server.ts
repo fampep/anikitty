@@ -1,33 +1,24 @@
 import "server-only";
 
-import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import {
+  KITTY_API_NODE_ORIGIN_IPS,
+  type KittyApiNodeId,
+} from "@/lib/kitty/kitty-api-nodes";
 
 /**
- * Real VPS IPv4 addresses — server-only. Never import this from client components.
- * Public traffic uses https://vps.anikitty.online (Cloudflare-proxied); these pins
- * are for health/failover only.
+ * Real VPS IPv4 addresses — re-exported from the shared node registry.
+ * Playback and API fetches pin to these static IPs (no Cloudflare hop).
  */
-const KITTY_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
-  primary: "176.125.240.251",
-  "third-choice": "131.123.42.153",
-  "fourth-choice": "23.111.15.143",
-  "fifth-choice": "94.75.223.124",
-  "sixth-choice": "184.107.88.54",
-};
-
 export function getKittyApiNodeOriginIp(id: KittyApiNodeId): string {
-  return KITTY_NODE_ORIGIN_IPS[id];
+  return KITTY_API_NODE_ORIGIN_IPS[id];
 }
 
-/**
- * Server-side origin that pins traffic to one VPS (bypasses Cloudflare).
- * Never surface this in the UI or client bundle.
- */
+/** Server-side origin that pins traffic to one VPS static IP. */
 export function getKittyApiNodeDirectUrl(id: KittyApiNodeId): string {
   return `http://${getKittyApiNodeOriginIp(id)}`;
 }
 
-/** Match a probe/benchmark origin string to a node via its private IP. */
+/** Match a probe/benchmark origin string to a node via its static IP. */
 export function resolveKittyNodeIdFromOriginIp(origin: string | null | undefined): KittyApiNodeId | null {
   if (!origin?.trim()) return null;
   const lower = origin.trim().toLowerCase();
@@ -38,6 +29,6 @@ export function resolveKittyNodeIdFromOriginIp(origin: string | null | undefined
   if (!ip) return null;
   // Retired Switzerland IP — treat as gone (do not map to a live node).
   if (ip === "92.119.165.226") return null;
-  const entry = Object.entries(KITTY_NODE_ORIGIN_IPS).find(([, value]) => value === ip);
+  const entry = Object.entries(KITTY_API_NODE_ORIGIN_IPS).find(([, value]) => value === ip);
   return (entry?.[0] as KittyApiNodeId | undefined) ?? null;
 }

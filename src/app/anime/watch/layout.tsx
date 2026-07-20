@@ -471,11 +471,11 @@ const Layout = (props: Props) => {
         className={cn(
           "grid grid-cols-1 gap-3 sm:gap-4",
           isCompactLayout && "gap-2 sm:gap-2.5",
-          showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:gap-5 xl:gap-6",
-          // Miruro-like: wider episode rail (~28%) next to a large player.
+          showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] lg:gap-5 xl:gap-6",
+          // Miruro-like: roomy episode rail next to a large player.
           isDefaultLayout &&
-            "lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:gap-4 xl:gap-5",
-          isCompactLayout && showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:gap-3 xl:gap-4",
+            "lg:grid-cols-[minmax(0,1fr)_minmax(380px,460px)] xl:grid-cols-[minmax(0,1fr)_minmax(400px,500px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(420px,520px)] lg:gap-4 xl:gap-5",
+          isCompactLayout && showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] lg:gap-3 xl:gap-4",
         )}
       >
         {/* Left: player + episode info + tabs */}
@@ -576,7 +576,7 @@ const Layout = (props: Props) => {
 
           {/* Theater layout: full-width episode list below the player (desktop) */}
           {showTheaterPlaylist && episodes && (
-            <aside className="watch-sidebar hidden lg:flex flex-col gap-0 max-h-[min(70vh,36rem)] overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm">
+            <aside className="watch-sidebar hidden lg:flex flex-col gap-0 max-h-[min(78vh,44rem)] overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm">
               <WatchNowPlayingCard
                 info={info}
                 currentEpisode={currentEpisode}
@@ -739,8 +739,8 @@ const Layout = (props: Props) => {
         {/* Right sidebar: episodes (desktop) — Default & Compact */}
         {showSideSidebar && (
           <aside className={cn(
-            "watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm",
-            isCompactLayout && "watch-sidebar--compact",
+            "watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:min-h-[min(72vh,42rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm",
+            isCompactLayout && "watch-sidebar--compact lg:min-h-0",
             // Miruro: episode rail fills the column; now-playing lives under the player.
             isDefaultLayout && "rounded-2xl border-border/50 dark:border-white/[0.07]",
           )}>

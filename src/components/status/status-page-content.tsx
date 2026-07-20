@@ -404,6 +404,9 @@ export default function StatusPageContent() {
                             </span>
                           )}
                         </div>
+                        <p className="text-[11px] font-mono text-muted-foreground/70 dark:text-white/30 mt-1 truncate">
+                          {node.host}
+                        </p>
                         <p className="text-[11px] text-muted-foreground/80 dark:text-white/35 mt-1.5">
                           {loading && ping == null
                             ? t("status.measuring")

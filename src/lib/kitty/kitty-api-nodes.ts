@@ -10,7 +10,7 @@ export type KittyApiNodeMeta = {
   /** Display number in the proxy chooser (1 = Primary, 2 = …). */
   index: number;
   label: string;
-  /** Public cluster origin (shared Cloudflare-proxied hostname). */
+  /** Direct static-IP origin for this node (`http://A.B.C.D`). */
   url: string;
   host: string;
   location: string;
@@ -28,9 +28,21 @@ const REMOVED_KITTY_HOST_MARKERS = [
   "92.119.165.226",
 ] as const;
 
-/** Public Cloudflare hostname for the whole KittyAPI cluster. */
+/**
+ * Legacy Cloudflare shared hostname — still accepted when rewriting old URLs,
+ * but playback no longer routes through it.
+ */
 export const PUBLIC_KITTY_API_HOST = "vps.anikitty.online";
 export const PUBLIC_KITTY_API_ORIGIN = `https://${PUBLIC_KITTY_API_HOST}`;
+
+/** Static origin IPv4 per cluster node (source of truth for direct routing). */
+export const KITTY_API_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
+  primary: "176.125.240.251",
+  "third-choice": "131.123.42.153",
+  "fourth-choice": "23.111.15.143",
+  "fifth-choice": "94.75.223.124",
+  "sixth-choice": "184.107.88.54",
+};
 
 /** True when a URL/host belongs to a removed KittyAPI node. */
 export function isRemovedKittyApiHost(value: string | null | undefined): boolean {
@@ -45,32 +57,32 @@ export function isKittySslipHost(value: string | null | undefined): boolean {
   return /(?:^|[/.])kittyapi\.[\d-]+\.sslip\.io(?:\/|$)/i.test(value.trim());
 }
 
+function staticOriginUrl(ip: string): string {
+  return `http://${ip}`;
+}
+
 /**
- * Resolve a public node origin. Stale Coolify `NEXT_PUBLIC_KITTY_NODE_*` values
- * (sslip / removed hosts / bare IPs) are ignored so the site always uses the
- * Cloudflare cluster hostname.
+ * Resolve a node origin. Prefer static IPs. Stale Coolify sslip / removed hosts
+ * fall back to the hard-coded IP for that slot.
  */
-function nodeUrl(envValue: string | undefined, fallback: string): string {
+function nodeUrl(envValue: string | undefined, fallbackIp: string): string {
+  const fallback = staticOriginUrl(fallbackIp);
   const raw = (envValue && envValue.trim()) || fallback;
   const trimmed = raw.trim().replace(/\/+$/, "");
-  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  if (
-    isRemovedKittyApiHost(withProto) ||
-    isKittySslipHost(withProto) ||
-    /https?:\/\/\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:\/|$)/i.test(withProto)
-  ) {
-    const safe = fallback.trim().replace(/\/+$/, "");
-    return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
+  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+  if (isRemovedKittyApiHost(withProto) || isKittySslipHost(withProto)) {
+    return fallback;
   }
   try {
     const host = new URL(withProto).hostname.toLowerCase();
-    if (host !== PUBLIC_KITTY_API_HOST && !host.endsWith(".anikitty.online")) {
-      const safe = fallback.trim().replace(/\/+$/, "");
-      return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
+    // Shared CF hostname is not a pin — map to this node's static IP.
+    if (host === PUBLIC_KITTY_API_HOST || host.endsWith(".anikitty.online")) {
+      return fallback;
     }
+    const bareIp = extractKittyOriginIpv4(host);
+    if (bareIp) return staticOriginUrl(bareIp);
   } catch {
-    const safe = fallback.trim().replace(/\/+$/, "");
-    return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
+    return fallback;
   }
   return withProto;
 }
@@ -89,13 +101,11 @@ export function extractKittyOriginIpv4(value: string | null | undefined): string
   return bare?.[1] ?? null;
 }
 
-// Shared Cloudflare-proxied cluster hostname. Origin IPs stay server-only.
-const SHARED_VPS_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, PUBLIC_KITTY_API_ORIGIN);
-const PRIMARY_URL = SHARED_VPS_URL;
-const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, SHARED_VPS_URL);
-const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, SHARED_VPS_URL);
-const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, SHARED_VPS_URL);
-const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, SHARED_VPS_URL);
+const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, KITTY_API_NODE_ORIGIN_IPS.primary);
+const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, KITTY_API_NODE_ORIGIN_IPS["third-choice"]);
+const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, KITTY_API_NODE_ORIGIN_IPS["fourth-choice"]);
+const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, KITTY_API_NODE_ORIGIN_IPS["fifth-choice"]);
+const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, KITTY_API_NODE_ORIGIN_IPS["sixth-choice"]);
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
@@ -194,7 +204,14 @@ export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined):
   const match = KITTY_API_NODES.find(
     (node) => normalizeNodeOrigin(node.url) === normalized || node.host.toLowerCase() === normalized,
   );
-  return match?.id ?? null;
+  if (match) return match.id;
+
+  const ip = extractKittyOriginIpv4(trimmed);
+  if (!ip || ip === "92.119.165.226") return null;
+  const byIp = (Object.entries(KITTY_API_NODE_ORIGIN_IPS) as [KittyApiNodeId, string][]).find(
+    ([, value]) => value === ip,
+  );
+  return byIp?.[0] ?? null;
 }
 
 export function parseKittyNodeParam(value: string | null | undefined): KittyApiNodeId {

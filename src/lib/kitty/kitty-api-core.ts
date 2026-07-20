@@ -2,6 +2,7 @@ import {
   DEFAULT_KITTY_API_NODE_ID,
   getKittyApiNodeUrl,
   isRemovedKittyApiHost,
+  KITTY_API_NODE_ORIGIN_IPS,
   KITTY_API_NODES,
   PUBLIC_KITTY_API_HOST,
   PUBLIC_KITTY_API_ORIGIN,
@@ -111,10 +112,10 @@ function normalizeBase(base: string): string {
   return base.replace(/\/$/, "");
 }
 
-/** Public browser-facing KittyAPI origin (Cloudflare). */
+/** KittyAPI origin for a node (static IP). Defaults to the primary node. */
 export function getKittyApiPublicBase(nodeId?: KittyApiNodeId): string {
   if (nodeId) return getKittyApiNodeUrl(nodeId);
-  return PUBLIC_KITTY_API_ORIGIN;
+  return getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_ID);
 }
 
 export function getKittyApiBases(): string[] {
@@ -132,9 +133,10 @@ export function isKittyApiHost(hostname: string): boolean {
   if (lower === PUBLIC_KITTY_API_HOST) return true;
   if (/^vps-[a-z0-9-]+\.anikitty\.online$/i.test(lower)) return true;
   if (/\.vps\.anikitty\.online$/i.test(lower)) return true;
-  // Legacy direct hostnames — rewrite to the public origin; never advertise them.
+  // Legacy sslip hostnames — rewrite onto the active node's static IP.
   if (/^kittyapi\.[\d-]+\.sslip\.io$/i.test(lower)) return true;
-  return KITTY_API_NODES.some((node) => node.host.toLowerCase() === lower);
+  if (KITTY_API_NODES.some((node) => node.host.toLowerCase() === lower)) return true;
+  return Object.values(KITTY_API_NODE_ORIGIN_IPS).some((ip) => ip === lower);
 }
 
 /**

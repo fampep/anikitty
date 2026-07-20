@@ -121,7 +121,7 @@ const MAX_TITLE_LEN = 200;
 
 /**
  * Providers with their own race / mirror wiring — skip the shared auto race.
- * Everyone else races `stream-direct` across CDN nodes when kittyNode=auto.
+ * Everyone else races `stream-direct` across static-IP nodes when kittyNode=auto.
  */
 const STREAM_RACE_SKIP = new Set<string>(["Miruro"]);
 
@@ -504,7 +504,7 @@ export async function GET(req: Request) {
     return { ...attempt, nodeId: wonNode, raceMs };
   }
 
-  // kittyNode=auto: race stream-direct across healthy CDN nodes first.
+  // kittyNode=auto: race stream-direct across healthy static-IP nodes first.
   // Dedicated handlers below are fallbacks (linkId / servers / mirrors).
   if (raceMode && !STREAM_RACE_SKIP.has(provider)) {
     const racedAttempt = await fetchStreamDirectPlayback(provider);
