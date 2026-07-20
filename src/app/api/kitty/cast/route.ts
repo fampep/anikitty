@@ -11,7 +11,6 @@ import {
   kittyStreamChromecastMime,
   resolveKittyStreamType,
 } from "@/lib/kitty/stream-format";
-import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 
 export type CastRemintResponse = {
   url: string;
@@ -54,9 +53,7 @@ function absoluteFromRequest(req: Request, pathAndQuery: string): string {
  * MKissa, KickAssAnime, KuroHost) keeps host-specific auth after remint.
  */
 export async function POST(req: Request) {
-  const limited = checkRateLimit(`kitty-cast:${getClientIp(req)}`, 20, 60_000);
-  if (limited) return limited;
-
+  // No per-IP rate limit — cast remints happen on episode/provider switches.
   const sessionId = verifyHlsSessionCookieValue(
     readCookie(req, HLS_SESSION_COOKIE),
   );
