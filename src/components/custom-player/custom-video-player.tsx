@@ -16,6 +16,7 @@ import { pickHlsAudioTrack } from "@/lib/kitty/hls-audio";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import {
   exitElementFullscreen,
+  elementSupportsFullscreenRequest,
   getFullscreenElement,
   isElementFullscreen,
   onFullscreenChange,
@@ -496,6 +497,9 @@ export function AniKittyPlayer({
   const captionTrackOffsetsRef = useRef(new WeakMap<TextTrack, number>());
   const captionOffsetSrcRef = useRef<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  /** iOS / fallback: fixed-viewport FS that keeps custom chrome (no native <video> FS). */
+  const [cssFullscreen, setCssFullscreen] = useState(false);
+  const cssFullscreenRef = useRef(false);
   const [pipSupported, setPipSupported] = useState(false);
   const [pipBlocked, setPipBlocked] = useState(false);
   const [inPip, setInPip] = useState(false);
@@ -574,6 +578,24 @@ export function AniKittyPlayer({
   const getFullscreenTarget = useCallback((): HTMLElement | null => {
     return fullscreenContainerRef?.current ?? rootRef.current;
   }, [fullscreenContainerRef]);
+
+  useEffect(() => {
+    cssFullscreenRef.current = cssFullscreen;
+  }, [cssFullscreen]);
+
+  // CSS fullscreen host class + scroll lock (iOS / API fallback).
+  useEffect(() => {
+    const host = getFullscreenTarget();
+    if (!host) return;
+    host.classList.toggle("anikitty-fs-host--active", cssFullscreen);
+    document.documentElement.classList.toggle("anikitty-css-fs", cssFullscreen);
+    document.body.classList.toggle("anikitty-css-fs", cssFullscreen);
+    return () => {
+      host.classList.remove("anikitty-fs-host--active");
+      document.documentElement.classList.remove("anikitty-css-fs");
+      document.body.classList.remove("anikitty-css-fs");
+    };
+  }, [cssFullscreen, getFullscreenTarget]);
 
   useEffect(() => {
     introAutoSkippedRef.current = false;
@@ -1281,13 +1303,17 @@ export function AniKittyPlayer({
     const syncOrient = () => {
       setOrientClass(
         resolvePlayerOrientClass({
-          isFullscreen: fullscreen || isElementFullscreen(rootRef.current),
+          isFullscreen:
+            fullscreen ||
+            cssFullscreen ||
+            isElementFullscreen(getFullscreenTarget()) ||
+            isElementFullscreen(rootRef.current),
         }),
       );
     };
     syncOrient();
     return onPlayerOrientationChange(syncOrient);
-  }, [fullscreen]);
+  }, [fullscreen, cssFullscreen, getFullscreenTarget]);
 
   const reportW2g = useCallback((isPlaying: boolean, time: number) => {
     const cfg = w2gRef.current;
@@ -1356,14 +1382,14 @@ export function AniKittyPlayer({
   }, [anime4kEnabled, anime4kMode, liteMode, src, attachNonce]);
 
   useEffect(() => {
-    if (fullscreen) {
+    if (fullscreen || cssFullscreen) {
       void tryLockLandscapeOrientation();
       return () => {
         void tryUnlockScreenOrientation();
       };
     }
     void tryUnlockScreenOrientation();
-  }, [fullscreen]);
+  }, [fullscreen, cssFullscreen]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1525,21 +1551,25 @@ export function AniKittyPlayer({
       if (autoFsRef.current) {
         autoFsRef.current = false;
         const target = getFullscreenTarget();
-        const wk = video as WebkitVideo;
-        if (target) {
-          void requestElementFullscreen(target)
-            .then(() => {
-              void tryLockLandscapeOrientation();
-            })
-            .catch(() => {
-              // iOS Safari often only fullscreens the <video> element.
-              try {
-                wk.webkitEnterFullscreen?.();
-              } catch {
-                /* ignore */
-              }
-            });
+        if (!target) return;
+        // Keep custom chrome — never fall back to native <video> FS on phones.
+        if (isAppleTouchDevice() || !elementSupportsFullscreenRequest(target)) {
+          setCssFullscreen(true);
+          setFullscreen(true);
+          void tryLockLandscapeOrientation();
+          bumpControlsRef.current();
+          return;
         }
+        void requestElementFullscreen(target)
+          .then(() => {
+            void tryLockLandscapeOrientation();
+          })
+          .catch(() => {
+            setCssFullscreen(true);
+            setFullscreen(true);
+            void tryLockLandscapeOrientation();
+            bumpControlsRef.current();
+          });
       }
     };
     const onSeeking = () => {
@@ -1555,9 +1585,12 @@ export function AniKittyPlayer({
     const onEnterPip = () => setInPip(true);
     const onLeavePip = () => setInPip(false);
     const syncFs = () => {
-      const rootFs = isElementFullscreen(rootRef.current);
+      const target = getFullscreenTarget();
+      const hostFs = isElementFullscreen(target) || isElementFullscreen(rootRef.current);
       const wk = video as WebkitVideo;
-      setFullscreen(rootFs || Boolean(wk.webkitDisplayingFullscreen));
+      setFullscreen(
+        hostFs || Boolean(wk.webkitDisplayingFullscreen) || cssFullscreenRef.current,
+      );
     };
     const onVideoEnded = () => {
       beginEndedFlowRef.current();
@@ -2211,34 +2244,46 @@ export function AniKittyPlayer({
     const target = getFullscreenTarget();
     const video = videoRef.current as WebkitVideo | null;
     if (!target) return;
+
+    const inCss = cssFullscreenRef.current;
+    const inDoc =
+      isElementFullscreen(target) ||
+      isElementFullscreen(rootRef.current) ||
+      Boolean(getFullscreenElement());
+    const inWebkit = Boolean(video?.webkitDisplayingFullscreen);
+
     try {
-      if (
-        isElementFullscreen(target) ||
-        getFullscreenElement() ||
-        video?.webkitDisplayingFullscreen
-      ) {
-        if (video?.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
+      if (inCss || inDoc || inWebkit) {
+        if (inCss) {
+          setCssFullscreen(false);
+          setFullscreen(false);
+        }
+        if (inWebkit && video?.webkitExitFullscreen) {
           video.webkitExitFullscreen();
-        } else {
+        } else if (inDoc) {
           await exitElementFullscreen();
         }
-      } else {
-        const canElementFs =
-          typeof target.requestFullscreen === "function" ||
-          typeof (
-            target as HTMLElement & { webkitRequestFullscreen?: () => void }
-          ).webkitRequestFullscreen === "function";
+        bumpControls();
+        return;
+      }
 
-        if (!canElementFs && video?.webkitEnterFullscreen) {
-          video.webkitEnterFullscreen();
-        } else {
-          try {
-            await requestElementFullscreen(target);
-          } catch {
-            // iOS Safari often only fullscreens the <video> element.
-            video?.webkitEnterFullscreen?.();
-          }
-        }
+      // iOS native <video> fullscreen hides our control bar — use CSS FS instead.
+      if (isAppleTouchDevice() || !elementSupportsFullscreenRequest(target)) {
+        setCssFullscreen(true);
+        setFullscreen(true);
+        void tryLockLandscapeOrientation();
+        bumpControls();
+        return;
+      }
+
+      try {
+        await requestElementFullscreen(target);
+        void tryLockLandscapeOrientation();
+        setFullscreen(true);
+      } catch {
+        setCssFullscreen(true);
+        setFullscreen(true);
+        void tryLockLandscapeOrientation();
       }
     } catch {
       /* browser may deny fullscreen without gesture */
@@ -2249,6 +2294,10 @@ export function AniKittyPlayer({
   const exitFullscreen = useCallback(async () => {
     const video = videoRef.current as WebkitVideo | null;
     try {
+      if (cssFullscreenRef.current) {
+        setCssFullscreen(false);
+        setFullscreen(false);
+      }
       if (getFullscreenElement()) {
         await exitElementFullscreen();
       } else if (video?.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
@@ -2944,7 +2993,11 @@ export function AniKittyPlayer({
             e.preventDefault();
             closePopovers();
             bumpControls();
-          } else if (isElementFullscreen(root)) {
+          } else if (
+            isElementFullscreen(root) ||
+            isElementFullscreen(getFullscreenTarget()) ||
+            cssFullscreenRef.current
+          ) {
             e.preventDefault();
             void exitFullscreen();
           }
@@ -2989,6 +3042,7 @@ export function AniKittyPlayer({
     onPrevEpisode,
     goToNextEpisode,
     goToPrevEpisode,
+    getFullscreenTarget,
   ]);
 
   const showMiniProgress =
@@ -4601,11 +4655,11 @@ export function AniKittyPlayer({
                 ) : null}
 
                 <IconButton
-                  label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  label={fullscreen || cssFullscreen ? "Exit fullscreen" : "Fullscreen"}
                   onClick={() => void toggleFullscreen()}
                   className="text-white"
                 >
-                  {fullscreen ? (
+                  {fullscreen || cssFullscreen ? (
                     <FullscreenExitIcon className="h-[18px] w-[18px]" />
                   ) : (
                     <FullscreenIcon className="h-[18px] w-[18px]" />

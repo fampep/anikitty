@@ -1192,6 +1192,43 @@ html[data-user-theme] .dark ::selection {
   height: 100%;
 }
 
+/* Watch-page host (wrapper) — document fullscreen + CSS fullscreen fallback */
+.anikitty-fs-host:fullscreen,
+.anikitty-fs-host:-webkit-full-screen,
+.anikitty-fs-host--active {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  background: #000 !important;
+  border-radius: 0 !important;
+}
+
+.anikitty-fs-host--active {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483646 !important;
+  margin: 0 !important;
+}
+
+.anikitty-fs-host:fullscreen .anikitty-player,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player,
+.anikitty-fs-host--active .anikitty-player {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  border-radius: 0 !important;
+}
+
+html.anikitty-css-fs,
+html.anikitty-css-fs body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
 .anikitty-player .anikitty-player-video::cue {
   font-size: var(--ak-cue-size);
   color: #fafafa;

@@ -1703,7 +1703,7 @@ const VideoPlayerSection = () => {
     <div className="watch-player-stage flex flex-col overflow-hidden bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold
           native fullscreen across episode transitions without dropping out. */}
-      <div ref={playerWrapperRef} className="relative w-full bg-black">
+      <div ref={playerWrapperRef} className="anikitty-fs-host relative w-full bg-black">
       {needsResumePrompt ? (
         <div className="relative w-full aspect-video bg-[#030303]">
           <WatchResumePrompt

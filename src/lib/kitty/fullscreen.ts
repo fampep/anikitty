@@ -42,6 +42,17 @@ export function requestElementFullscreen(el: HTMLElement): Promise<void> {
   return Promise.reject(new Error("Fullscreen API is not supported"));
 }
 
+/** Whether this element exposes a Fullscreen API entry point. */
+export function elementSupportsFullscreenRequest(el: HTMLElement): boolean {
+  const target = el as FullscreenElement;
+  return Boolean(
+    target.requestFullscreen ||
+      target.webkitRequestFullscreen ||
+      target.mozRequestFullScreen ||
+      target.msRequestFullscreen,
+  );
+}
+
 /** Exit document fullscreen (standard + vendor prefixes). */
 export function exitElementFullscreen(): Promise<void> {
   const doc = document as FullscreenDocument;

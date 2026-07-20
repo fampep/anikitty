@@ -65,14 +65,10 @@ export function createHtmlVideoPlayerController(
       const target = root ?? video;
       if (isElementFullscreen(target)) {
         void exitElementFullscreen().catch(() => {});
-      } else {
-        void requestElementFullscreen(target).catch(() => {
-          const wk = video as HTMLVideoElement & {
-            webkitEnterFullscreen?: () => void;
-          };
-          wk.webkitEnterFullscreen?.();
-        });
+        return;
       }
+      // Never fall back to native <video> fullscreen — it hides custom chrome.
+      void requestElementFullscreen(target).catch(() => {});
     },
     get video() {
       return video;
