@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   LUNAR_SERVERS,
@@ -153,16 +154,30 @@ async function fetchLunarStreamDirect(opts: {
   };
 }
 
-/** Resolve a named Lunar server via Kitty servers + stream endpoints. */
-export async function fetchLunarVideoStream(opts: {
+function buildLunarLinkId(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: LunarServerId | null;
+  serverId: LunarServerId;
+}): string {
+  const id = String(opts.anilistId);
+  return JSON.stringify({
+    slug: id,
+    id,
+    ep: opts.episode,
+    audio: opts.audio,
+    host: opts.serverId,
+    kind: "vermillion",
+  });
+}
+
+async function streamLunarViaServers(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId: LunarServerId;
   title?: string | null;
 }): Promise<LunarStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_LUNAR_SERVER;
-
   const servers = await fetchLunarServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -173,7 +188,7 @@ export async function fetchLunarVideoStream(opts: {
   for (const row of servers) {
     try {
       const link = JSON.parse(row.id) as LunarLinkId;
-      if (!serverMatchesRow(serverId, link, row.name)) continue;
+      if (!serverMatchesRow(opts.serverId, link, row.name)) continue;
       const stream = await fetchLunarStreamByLinkId(row.id);
       if (stream?.file) {
         return { ...stream, server: stream.server ?? row.name };
@@ -182,8 +197,25 @@ export async function fetchLunarVideoStream(opts: {
       continue;
     }
   }
+  return null;
+}
 
-  return fetchLunarStreamDirect(opts);
+/** Resolve a named Lunar server via direct linkId, stream-direct, then servers list. */
+export async function fetchLunarVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId?: LunarServerId | null;
+  title?: string | null;
+}): Promise<LunarStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_LUNAR_SERVER;
+
+  return resolveKittyNamedStream({
+    builtLinkId: buildLunarLinkId({ ...opts, serverId }),
+    streamByLinkId: fetchLunarStreamByLinkId,
+    streamDirect: () => fetchLunarStreamDirect(opts),
+    streamViaServers: () => streamLunarViaServers({ ...opts, serverId }),
+  });
 }
 
 export type LunarServerCapabilities = {

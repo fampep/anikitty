@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANIKURO_SERVERS,
@@ -177,26 +178,13 @@ async function fetchAnikuroStreamDirect(opts: {
   return normalizeStreamPayload(data as Record<string, unknown>);
 }
 
-export async function fetchAnikuroVideoStream(opts: {
+async function streamAnikuroViaServers(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: AnikuroServerId | null;
+  serverId: AnikuroServerId;
   title?: string | null;
 }): Promise<AnikuroStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
-
-  const linkId = buildAnikuroLinkId({
-    anilistId: opts.anilistId,
-    episode: opts.episode,
-    audio: opts.audio,
-    serverId,
-  });
-  const direct = await fetchAnikuroStreamByLinkId(linkId);
-  if (direct?.file) {
-    return { ...direct, server: anikuroServerDisplayLabel(serverId) };
-  }
-
   const servers = await fetchAnikuroServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -207,24 +195,41 @@ export async function fetchAnikuroVideoStream(opts: {
   for (const row of servers) {
     try {
       const link = JSON.parse(row.id) as AnikuroLinkId;
-      if (!serverMatchesRow(serverId, link, row.name)) continue;
+      if (!serverMatchesRow(opts.serverId, link, row.name)) continue;
       const stream = await fetchAnikuroStreamByLinkId(row.id);
       if (stream?.file) {
-        return { ...stream, server: anikuroServerDisplayLabel(serverId) };
+        return { ...stream, server: anikuroServerDisplayLabel(opts.serverId) };
       }
     } catch {
-      if (nameMatchesServer(serverId, row.name)) {
+      if (nameMatchesServer(opts.serverId, row.name)) {
         const stream = await fetchAnikuroStreamByLinkId(row.id);
         if (stream?.file) {
-          return { ...stream, server: anikuroServerDisplayLabel(serverId) };
+          return { ...stream, server: anikuroServerDisplayLabel(opts.serverId) };
         }
       }
     }
   }
+  return null;
+}
 
-  const fallback = await fetchAnikuroStreamDirect(opts);
-  if (fallback?.file) {
-    return { ...fallback, server: anikuroServerDisplayLabel(serverId) };
+export async function fetchAnikuroVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId?: AnikuroServerId | null;
+  title?: string | null;
+}): Promise<AnikuroStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
+
+  const result = await resolveKittyNamedStream({
+    builtLinkId: buildAnikuroLinkId({ ...opts, serverId }),
+    streamByLinkId: fetchAnikuroStreamByLinkId,
+    streamDirect: () => fetchAnikuroStreamDirect(opts),
+    streamViaServers: () => streamAnikuroViaServers({ ...opts, serverId }),
+  });
+
+  if (result?.file) {
+    return { ...result, server: result.server ?? anikuroServerDisplayLabel(serverId) };
   }
-  return fallback;
+  return result;
 }

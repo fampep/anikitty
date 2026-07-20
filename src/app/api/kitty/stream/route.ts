@@ -16,6 +16,23 @@ import {
   type AnikuroServerId,
 } from "@/lib/providers/anikuro-api";
 import {
+  DEFAULT_ANIWAVES_SERVER,
+  fetchAniwavesVideoStream,
+  isAniwavesServerId,
+  type AniwavesServerId,
+} from "@/lib/providers/aniwaves-api";
+import {
+  DEFAULT_ANINEKO_SERVER,
+  fetchAninekoVideoStream,
+  isAninekoServerId,
+  type AninekoServerId,
+} from "@/lib/providers/anineko-api";
+import { fetchAnikotoVideoStream } from "@/lib/providers/anikoto-api";
+import { fetchAniwatchVideoStream } from "@/lib/providers/aniwatch-api";
+import { fetchSenshiVideoStream } from "@/lib/providers/senshi-api";
+import { fetchKickAssAnimeVideoStream } from "@/lib/providers/kickassanime-api";
+import { fetchKuroHostVideoStream } from "@/lib/providers/kurohost-api";
+import {
   DEFAULT_ANISNATCH_SERVER,
   fetchAnisnatchVideoStream,
   isAnisnatchServerId,
@@ -88,11 +105,6 @@ import {
 } from "@/lib/subtitles/subtitle-track-utils";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
-import { fetchAnilistSiteStream } from "@/lib/kitty/anilist-site-api";
-import {
-  isAnilistSiteProvider,
-  type AnilistSiteProviderId,
-} from "@/lib/kitty/anilist-site-providers";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
@@ -102,11 +114,13 @@ const SAFE_LUNAR_SERVER = /^[a-z0-9-]{2,12}$/;
 const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ANIKURO_SERVER = /^[a-z0-9-]{2,16}$/;
+const SAFE_ANIWAVES_SERVER = /^[0-9]{1,3}$/;
+const SAFE_ANINEKO_SERVER = /^hd-[1-3]$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
-/** Active providers that use generic KittyAPI stream-direct only. */
-const STREAM_DIRECT_EXCLUDE = new Set<string>(["AniKuro", "MKissa", "Miruro"]);
+/** Active providers use dedicated stream resolution (direct linkId / stream-direct before servers). */
+const STREAM_DIRECT_EXCLUDE = new Set<string>([...KITTY_PROVIDERS, "Miruro"]);
 const STREAM_DIRECT_PROVIDERS = new Set<string>(
   KITTY_PROVIDERS.filter((p) => !STREAM_DIRECT_EXCLUDE.has(p)),
 );
@@ -157,6 +171,8 @@ export async function GET(req: Request) {
   const lunarServerParam = searchParams.get("lunarServer");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const anikuroServerParam = searchParams.get("anikuroServer");
+  const aniwavesServerParam = searchParams.get("aniwavesServer");
+  const aninekoServerParam = searchParams.get("aninekoServer");
   const animoServerParam = searchParams.get("animoServer");
   const linkIdParam = searchParams.get("linkId")?.trim() || undefined;
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
@@ -230,6 +246,24 @@ export async function GET(req: Request) {
       ? anikuroServerParam
       : provider === "AniKuro"
         ? DEFAULT_ANIKURO_SERVER
+        : null;
+
+  const aniwavesServer =
+    aniwavesServerParam &&
+    SAFE_ANIWAVES_SERVER.test(aniwavesServerParam) &&
+    isAniwavesServerId(aniwavesServerParam)
+      ? aniwavesServerParam
+      : provider === "AniWaves"
+        ? DEFAULT_ANIWAVES_SERVER
+        : null;
+
+  const aninekoServer =
+    aninekoServerParam &&
+    SAFE_ANINEKO_SERVER.test(aninekoServerParam) &&
+    isAninekoServerId(aninekoServerParam)
+      ? aninekoServerParam
+      : provider === "AniNeko"
+        ? DEFAULT_ANINEKO_SERVER
         : null;
 
   const animoServer =
@@ -443,15 +477,6 @@ export async function GET(req: Request) {
   }
 
   if (STREAM_DIRECT_PROVIDERS.has(provider)) {
-    if (linkIdParam && isAnilistSiteProvider(provider)) {
-      const linked = await fetchAnilistSiteStream({
-        provider: provider as AnilistSiteProviderId,
-        linkId: linkIdParam,
-      });
-      const linkedResponse = await respondWithStream(linked, provider, audio as "sub" | "dub", false);
-      if (linkedResponse) return linkedResponse;
-    }
-
     const directAttempt = await fetchStreamDirectPlayback(provider);
     const directResponse = await respondWithStream(
       directAttempt.result,
@@ -470,6 +495,271 @@ export async function GET(req: Request) {
       },
       { status: 200 },
     );
+  }
+
+  if (provider === "AniWaves") {
+    try {
+      const aniwavesAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const aniwaves = await fetchAniwavesVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: aniwavesServer as AniwavesServerId,
+            title: titleParam,
+          });
+
+          if (!aniwaves?.file) return null;
+
+          return {
+            file: aniwaves.file,
+            headers: aniwaves.headers,
+            tracks: aniwaves.tracks,
+            allServers: aniwaves.allServers,
+            skipTimes: aniwaves.skipTimes,
+            server: aniwaves.server,
+            download: aniwaves.download,
+          };
+        },
+      );
+
+      const aniwavesResponse = await respondWithStream(
+        aniwavesAttempt.result,
+        "AniWaves",
+        aniwavesAttempt.servedAudio,
+        aniwavesAttempt.audioFallback,
+      );
+      if (aniwavesResponse) return aniwavesResponse;
+    } catch (e) {
+      console.error("[kitty/stream] AniWaves server failed:", e);
+    }
+  }
+
+  if (provider === "AniNeko") {
+    try {
+      const aninekoAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const anineko = await fetchAninekoVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: aninekoServer as AninekoServerId,
+            title: titleParam,
+          });
+
+          if (!anineko?.file) return null;
+
+          return {
+            file: anineko.file,
+            headers: anineko.headers,
+            tracks: anineko.tracks,
+            allServers: anineko.allServers,
+            skipTimes: anineko.skipTimes,
+            server: anineko.server,
+            download: anineko.download,
+          };
+        },
+      );
+
+      const aninekoResponse = await respondWithStream(
+        aninekoAttempt.result,
+        "AniNeko",
+        aninekoAttempt.servedAudio,
+        aninekoAttempt.audioFallback,
+      );
+      if (aninekoResponse) return aninekoResponse;
+    } catch (e) {
+      console.error("[kitty/stream] AniNeko server failed:", e);
+    }
+  }
+
+  if (provider === "Anikoto") {
+    try {
+      const anikotoAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const anikoto = await fetchAnikotoVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+            preferHardSub,
+            linkId: linkIdParam,
+          });
+
+          if (!anikoto?.file) return null;
+
+          return {
+            file: anikoto.file,
+            headers: anikoto.headers,
+            tracks: anikoto.tracks,
+            allServers: anikoto.allServers,
+            server: anikoto.server,
+            download: anikoto.download,
+          };
+        },
+      );
+
+      const anikotoResponse = await respondWithStream(
+        anikotoAttempt.result,
+        "Anikoto",
+        anikotoAttempt.servedAudio,
+        anikotoAttempt.audioFallback,
+      );
+      if (anikotoResponse) return anikotoResponse;
+    } catch (e) {
+      console.error("[kitty/stream] Anikoto stream failed:", e);
+    }
+  }
+
+  if (provider === "AniWatch") {
+    try {
+      const aniwatchAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const aniwatch = await fetchAniwatchVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+          });
+
+          if (!aniwatch?.file) return null;
+
+          return {
+            file: aniwatch.file,
+            headers: aniwatch.headers,
+            tracks: aniwatch.tracks,
+            allServers: aniwatch.allServers,
+            server: aniwatch.server,
+            download: aniwatch.download,
+          };
+        },
+      );
+
+      const aniwatchResponse = await respondWithStream(
+        aniwatchAttempt.result,
+        "AniWatch",
+        aniwatchAttempt.servedAudio,
+        aniwatchAttempt.audioFallback,
+      );
+      if (aniwatchResponse) return aniwatchResponse;
+    } catch (e) {
+      console.error("[kitty/stream] AniWatch stream failed:", e);
+    }
+  }
+
+  if (provider === "Senshi") {
+    try {
+      const senshiAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const senshi = await fetchSenshiVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+          });
+
+          if (!senshi?.file) return null;
+
+          return {
+            file: senshi.file,
+            headers: senshi.headers,
+            tracks: senshi.tracks,
+            allServers: senshi.allServers,
+            server: senshi.server,
+            download: senshi.download,
+          };
+        },
+      );
+
+      const senshiResponse = await respondWithStream(
+        senshiAttempt.result,
+        "Senshi",
+        senshiAttempt.servedAudio,
+        senshiAttempt.audioFallback,
+      );
+      if (senshiResponse) return senshiResponse;
+    } catch (e) {
+      console.error("[kitty/stream] Senshi stream failed:", e);
+    }
+  }
+
+  if (provider === "KickAssAnime") {
+    try {
+      const kaaAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const kaa = await fetchKickAssAnimeVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+          });
+
+          if (!kaa?.file) return null;
+
+          return {
+            file: kaa.file,
+            headers: kaa.headers,
+            tracks: kaa.tracks,
+            allServers: kaa.allServers,
+            server: kaa.server,
+            download: kaa.download,
+          };
+        },
+      );
+
+      const kaaResponse = await respondWithStream(
+        kaaAttempt.result,
+        "KickAssAnime",
+        kaaAttempt.servedAudio,
+        kaaAttempt.audioFallback,
+      );
+      if (kaaResponse) return kaaResponse;
+    } catch (e) {
+      console.error("[kitty/stream] KickAssAnime stream failed:", e);
+    }
+  }
+
+  if (provider === "KuroHost") {
+    try {
+      const kuroAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const kuro = await fetchKuroHostVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+          });
+
+          if (!kuro?.file) return null;
+
+          return {
+            file: kuro.file,
+            headers: kuro.headers,
+            tracks: kuro.tracks,
+            allServers: kuro.allServers,
+            server: kuro.server,
+            download: kuro.download,
+          };
+        },
+      );
+
+      const kuroResponse = await respondWithStream(
+        kuroAttempt.result,
+        "KuroHost",
+        kuroAttempt.servedAudio,
+        kuroAttempt.audioFallback,
+      );
+      if (kuroResponse) return kuroResponse;
+    } catch (e) {
+      console.error("[kitty/stream] KuroHost stream failed:", e);
+    }
   }
 
   if (provider === "Miruro") {

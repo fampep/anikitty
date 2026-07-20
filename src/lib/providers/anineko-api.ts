@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders, parseKittyStreamAudio } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANINEKO_SERVERS,
@@ -179,16 +180,13 @@ export function pickDefaultAninekoServer(
   return DEFAULT_ANINEKO_SERVER;
 }
 
-/** Resolve a named AniNeko server via Kitty servers + stream, then stream-direct fallback. */
-export async function fetchAninekoVideoStream(opts: {
+async function streamAninekoViaServers(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: AninekoServerId | null;
+  serverId: AninekoServerId;
   title?: string | null;
 }): Promise<AninekoStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_ANINEKO_SERVER;
-
   const servers = await fetchAninekoServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -199,24 +197,40 @@ export async function fetchAninekoVideoStream(opts: {
   for (const row of servers) {
     try {
       const link = JSON.parse(row.id) as AninekoLinkId;
-      if (!serverMatchesRow(serverId, link, row.name)) continue;
+      if (!serverMatchesRow(opts.serverId, link, row.name)) continue;
       const stream = await fetchAninekoStreamByLinkId(row.id);
       if (stream?.file) {
-        const meta = serverMeta(serverId);
+        const meta = serverMeta(opts.serverId);
         return { ...stream, server: stream.server ?? meta?.label ?? row.name };
       }
     } catch {
-      if (nameMatchesServer(serverId, row.name)) {
+      if (nameMatchesServer(opts.serverId, row.name)) {
         const stream = await fetchAninekoStreamByLinkId(row.id);
         if (stream?.file) {
-          const meta = serverMeta(serverId);
+          const meta = serverMeta(opts.serverId);
           return { ...stream, server: stream.server ?? meta?.label ?? row.name };
         }
       }
     }
   }
+  return null;
+}
 
-  return fetchAninekoStreamDirect(opts);
+/** Resolve a named AniNeko server via stream-direct, then servers list. */
+export async function fetchAninekoVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId?: AninekoServerId | null;
+  title?: string | null;
+}): Promise<AninekoStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_ANINEKO_SERVER;
+
+  return resolveKittyNamedStream({
+    streamByLinkId: fetchAninekoStreamByLinkId,
+    streamDirect: () => fetchAninekoStreamDirect(opts),
+    streamViaServers: () => streamAninekoViaServers({ ...opts, serverId }),
+  });
 }
 
 export function countAninekoSubtitleTracks(tracks: StreamTrack[] | undefined): number {

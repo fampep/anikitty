@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import { getKittyProviderMeta, type KittyProvider, type ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
@@ -151,16 +152,37 @@ async function fetchAnimexStreamDirect(opts: {
   };
 }
 
-/** Resolve a named Animex server via Kitty servers + stream endpoints. */
-export async function fetchAnimexVideoStream(opts: {
+function animexSourceForServer(serverId: AnimexServerId): {
+  source: string;
+  providerId?: string;
+} {
+  if (serverId === "zen") return { source: "flix" };
+  if (serverId === "koto") return { source: "megaplay" };
+  return { source: "hawk", providerId: serverId };
+}
+
+function buildAnimexLinkId(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: AnimexServerId | null;
-  title?: string | null;
-}): Promise<AnimexStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_ANIMEX_SERVER;
+  serverId: AnimexServerId;
+}): string {
+  const { source, providerId } = animexSourceForServer(opts.serverId);
+  return JSON.stringify({
+    anilistId: opts.anilistId,
+    epNum: opts.episode,
+    audio: opts.audio,
+    source,
+    ...(providerId ? { providerId } : {}),
+  });
+}
 
+async function streamAnimexViaServers(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId: AnimexServerId;
+}): Promise<AnimexStreamResult | null> {
   const servers = await fetchAnimexServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -170,7 +192,7 @@ export async function fetchAnimexVideoStream(opts: {
   for (const row of servers) {
     try {
       const link = JSON.parse(row.id) as AnimexLinkId;
-      if (!serverMatchesLink(serverId, link)) continue;
+      if (!serverMatchesLink(opts.serverId, link)) continue;
       const stream = await fetchAnimexStreamByLinkId(row.id);
       if (stream?.file) {
         return { ...stream, server: stream.server ?? row.name };
@@ -179,8 +201,25 @@ export async function fetchAnimexVideoStream(opts: {
       continue;
     }
   }
+  return null;
+}
 
-  return fetchAnimexStreamDirect(opts);
+/** Resolve a named Animex server via direct linkId, stream-direct, then servers list. */
+export async function fetchAnimexVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId?: AnimexServerId | null;
+  title?: string | null;
+}): Promise<AnimexStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_ANIMEX_SERVER;
+
+  return resolveKittyNamedStream({
+    builtLinkId: buildAnimexLinkId({ ...opts, serverId }),
+    streamByLinkId: fetchAnimexStreamByLinkId,
+    streamDirect: () => fetchAnimexStreamDirect(opts),
+    streamViaServers: () => streamAnimexViaServers({ ...opts, serverId }),
+  });
 }
 
 export type AnimexServerCapabilities = {

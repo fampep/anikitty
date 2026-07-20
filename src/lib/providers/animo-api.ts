@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANIMO_SERVERS,
@@ -157,16 +158,27 @@ async function fetchAnimoStreamDirect(opts: {
   };
 }
 
-/** Resolve a named Animo server via Kitty servers + stream, then stream-direct fallback. */
-export async function fetchAnimoVideoStream(opts: {
+function buildAnimoLinkId(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: AnimoServerId | null;
+  serverId: AnimoServerId;
+}): string {
+  return JSON.stringify({
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    lang: opts.audio,
+    server: opts.serverId,
+  });
+}
+
+async function streamAnimoViaServers(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId: AnimoServerId;
   title?: string | null;
 }): Promise<AnimoStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_ANIMO_SERVER;
-
   const servers = await fetchAnimoServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -177,7 +189,7 @@ export async function fetchAnimoVideoStream(opts: {
   for (const row of servers) {
     try {
       const link = JSON.parse(row.id) as AnimoLinkId;
-      if (!serverMatchesLink(serverId, link, row.name)) continue;
+      if (!serverMatchesLink(opts.serverId, link, row.name)) continue;
       const stream = await fetchAnimoStreamByLinkId(row.id);
       if (stream?.file) {
         return { ...stream, server: stream.server ?? row.name };
@@ -186,9 +198,25 @@ export async function fetchAnimoVideoStream(opts: {
       continue;
     }
   }
+  return null;
+}
 
-  // Kitty stream-direct tries HD-1 → HD-2 → HD-3 when servers list is empty or unmatched.
-  return fetchAnimoStreamDirect(opts);
+/** Resolve a named Animo server via direct linkId, stream-direct, then servers list. */
+export async function fetchAnimoVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId?: AnimoServerId | null;
+  title?: string | null;
+}): Promise<AnimoStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_ANIMO_SERVER;
+
+  return resolveKittyNamedStream({
+    builtLinkId: buildAnimoLinkId({ ...opts, serverId }),
+    streamByLinkId: fetchAnimoStreamByLinkId,
+    streamDirect: () => fetchAnimoStreamDirect(opts),
+    streamViaServers: () => streamAnimoViaServers({ ...opts, serverId }),
+  });
 }
 
 export type AnimoServerCapabilities = {

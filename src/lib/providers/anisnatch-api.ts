@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANISNATCH_SERVERS,
@@ -158,16 +159,13 @@ async function fetchAnisnatchStreamDirect(opts: {
   };
 }
 
-/** Resolve a named AniSnatch server via Kitty servers + stream endpoints. */
-export async function fetchAnisnatchVideoStream(opts: {
+async function streamAnisnatchViaServers(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: AnisnatchServerId | null;
+  serverId: AnisnatchServerId;
   title?: string | null;
 }): Promise<AnisnatchStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_ANISNATCH_SERVER;
-
   const servers = await fetchAnisnatchServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -178,7 +176,7 @@ export async function fetchAnisnatchVideoStream(opts: {
   for (const row of servers) {
     try {
       const link = JSON.parse(row.id) as AnisnatchLinkId;
-      if (!serverMatchesRow(serverId, link, row.name)) continue;
+      if (!serverMatchesRow(opts.serverId, link, row.name)) continue;
       const stream = await fetchAnisnatchStreamByLinkId(row.id);
       if (stream?.file) {
         return { ...stream, server: stream.server ?? row.name };
@@ -187,8 +185,24 @@ export async function fetchAnisnatchVideoStream(opts: {
       continue;
     }
   }
+  return null;
+}
 
-  return fetchAnisnatchStreamDirect(opts);
+/** Resolve a named AniSnatch server via stream-direct, then servers list. */
+export async function fetchAnisnatchVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId?: AnisnatchServerId | null;
+  title?: string | null;
+}): Promise<AnisnatchStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_ANISNATCH_SERVER;
+
+  return resolveKittyNamedStream({
+    streamByLinkId: fetchAnisnatchStreamByLinkId,
+    streamDirect: () => fetchAnisnatchStreamDirect(opts),
+    streamViaServers: () => streamAnisnatchViaServers({ ...opts, serverId }),
+  });
 }
 
 export type AnisnatchServerCapabilities = {

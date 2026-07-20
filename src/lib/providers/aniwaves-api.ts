@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders, parseKittyStreamAudio } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANIWAVES_SERVERS,
@@ -172,16 +173,13 @@ export function pickDefaultAniwavesServer(
   return DEFAULT_ANIWAVES_SERVER;
 }
 
-/** Resolve a named AniWaves server via Kitty servers + stream, then stream-direct fallback. */
-export async function fetchAniwavesVideoStream(opts: {
+async function streamAniwavesViaServers(opts: {
   anilistId: number;
   episode: number;
   audio: "sub" | "dub";
-  serverId?: AniwavesServerId | null;
+  serverId: AniwavesServerId;
   title?: string | null;
 }): Promise<AniwavesStreamResult | null> {
-  const serverId = opts.serverId ?? DEFAULT_ANIWAVES_SERVER;
-
   const servers = await fetchAniwavesServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -192,26 +190,38 @@ export async function fetchAniwavesVideoStream(opts: {
   for (const row of servers) {
     try {
       const link = JSON.parse(row.id) as AniwavesLinkId;
-      if (!serverMatchesRow(serverId, link, row.name)) continue;
+      if (!serverMatchesRow(opts.serverId, link, row.name)) continue;
       const stream = await fetchAniwavesStreamByLinkId(row.id);
       if (stream?.file) {
-        return { ...stream, server: aniwavesServerDisplayLabel(serverId) };
+        return { ...stream, server: aniwavesServerDisplayLabel(opts.serverId) };
       }
     } catch {
-      if (nameMatchesServer(serverId, row.name)) {
+      if (nameMatchesServer(opts.serverId, row.name)) {
         const stream = await fetchAniwavesStreamByLinkId(row.id);
         if (stream?.file) {
-          return { ...stream, server: aniwavesServerDisplayLabel(serverId) };
+          return { ...stream, server: aniwavesServerDisplayLabel(opts.serverId) };
         }
       }
     }
   }
+  return null;
+}
 
-  const direct = await fetchAniwavesStreamDirect(opts);
-  if (direct?.file) {
-    return { ...direct, server: aniwavesServerDisplayLabel(serverId) };
-  }
-  return direct;
+/** Resolve a named AniWaves server via stream-direct, then servers list. */
+export async function fetchAniwavesVideoStream(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId?: AniwavesServerId | null;
+  title?: string | null;
+}): Promise<AniwavesStreamResult | null> {
+  const serverId = opts.serverId ?? DEFAULT_ANIWAVES_SERVER;
+
+  return resolveKittyNamedStream({
+    streamByLinkId: fetchAniwavesStreamByLinkId,
+    streamDirect: () => fetchAniwavesStreamDirect(opts),
+    streamViaServers: () => streamAniwavesViaServers({ ...opts, serverId }),
+  });
 }
 
 export function countAniwavesSubtitleTracks(tracks: StreamTrack[] | undefined): number {

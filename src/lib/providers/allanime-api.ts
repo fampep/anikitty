@@ -1,5 +1,6 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
 import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { StreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
@@ -223,7 +224,33 @@ async function fetchAllanimeStreamDirect(opts: {
   };
 }
 
-/** Resolve a named AllAnime/MKissa mirror via Kitty stream endpoint (one API call when possible). */
+async function streamAllanimeViaServers(opts: {
+  provider: AllanimeProviderName;
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  mirror: AllanimeMirrorId;
+  title?: string | null;
+}): Promise<AllanimeStreamResult | null> {
+  const servers = await fetchAllanimeServers({
+    provider: opts.provider,
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    audio: opts.audio,
+    title: opts.title,
+  });
+
+  for (const row of servers) {
+    if (!mirrorMatchesRow(opts.mirror, row)) continue;
+    const stream = await fetchAllanimeStreamByLinkId(opts.provider, row.id);
+    if (stream?.file) {
+      return { ...stream, server: stream.server ?? row.name };
+    }
+  }
+  return fetchAllanimeStreamDirect(opts);
+}
+
+/** Resolve a named AllAnime/MKissa mirror via direct linkId when possible. */
 export async function fetchAllanimeVideoStream(opts: {
   provider: AllanimeProviderName;
   anilistId: number;
@@ -234,37 +261,25 @@ export async function fetchAllanimeVideoStream(opts: {
 }): Promise<AllanimeStreamResult | null> {
   const mirror = opts.mirror ?? defaultAllanimeMirrorForProvider(opts.provider);
 
-  const linkId = buildAllanimeMirrorLinkId({
-    anilistId: opts.anilistId,
-    episode: opts.episode,
-    audio: opts.audio,
-    mirror,
+  const result = await resolveKittyNamedStream({
+    builtLinkId: buildAllanimeMirrorLinkId({
+      anilistId: opts.anilistId,
+      episode: opts.episode,
+      audio: opts.audio,
+      mirror,
+    }),
+    streamByLinkId: (linkId) => fetchAllanimeStreamByLinkId(opts.provider, linkId),
+    streamViaServers: () => streamAllanimeViaServers({ ...opts, mirror }),
+    preferServersBeforeDirect: true,
   });
-  const direct = await fetchAllanimeStreamByLinkId(opts.provider, linkId);
-  if (direct?.file) {
+
+  if (result?.file) {
     return {
-      ...direct,
-      server: direct.server ?? `${opts.provider} - ${mirror} (${opts.audio.toUpperCase()})`,
+      ...result,
+      server: result.server ?? `${opts.provider} - ${mirror} (${opts.audio.toUpperCase()})`,
     };
   }
-
-  const servers = await fetchAllanimeServers({
-    provider: opts.provider,
-    anilistId: opts.anilistId,
-    episode: opts.episode,
-    audio: opts.audio,
-    title: opts.title,
-  });
-
-  for (const row of servers) {
-    if (!mirrorMatchesRow(mirror, row)) continue;
-    const stream = await fetchAllanimeStreamByLinkId(opts.provider, row.id);
-    if (stream?.file) {
-      return { ...stream, server: stream.server ?? row.name };
-    }
-  }
-
-  return fetchAllanimeStreamDirect(opts);
+  return result;
 }
 
 const EMPTY_ALLANIME_CAPS: StreamCapabilities = {
