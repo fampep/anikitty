@@ -198,12 +198,15 @@ function useWatchLayouts(t: ReturnType<typeof useT>) {
           description: t("settings.watchLayoutDefaultDesc"),
           icon: <PanelRight className="w-4 h-4" />,
           preview: (
-            <div className="flex gap-1.5 w-full h-full px-2.5 py-2">
-              <div className="flex-1 rounded-md bg-muted/60 dark:bg-white/[0.08] flex items-center justify-center">
-                <div className="w-[70%] aspect-video rounded-sm bg-zinc-400/25 dark:bg-white/15" />
+            <div className="flex gap-1.5 w-full h-full px-2 py-2">
+              <div className="flex-1 flex flex-col gap-1 min-w-0">
+                <div className="flex-1 rounded-md bg-muted/60 dark:bg-white/[0.08] flex items-center justify-center">
+                  <div className="w-[86%] aspect-video rounded-sm bg-zinc-400/25 dark:bg-white/15" />
+                </div>
+                <div className="h-2.5 rounded-sm bg-muted/40 dark:bg-white/[0.05]" />
               </div>
-              <div className="w-[28%] rounded-md bg-muted/40 dark:bg-white/[0.05] flex flex-col gap-1 p-1.5">
-                {[1, 2, 3, 4].map((n) => (
+              <div className="w-[30%] rounded-md bg-muted/40 dark:bg-white/[0.05] flex flex-col gap-1 p-1.5">
+                {[1, 2, 3, 4, 5].map((n) => (
                   <div key={n} className="h-2 rounded-sm bg-accent dark:bg-white/10" />
                 ))}
               </div>

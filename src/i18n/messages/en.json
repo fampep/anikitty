@@ -673,7 +673,7 @@
     "watchLayout": "Watch page layout",
     "watchLayoutDesc": "How the player and episode list are arranged on the watch page — synced when signed in",
     "watchLayoutDefault": "Default",
-    "watchLayoutDefaultDesc": "Player with a sticky episode sidebar on desktop",
+    "watchLayoutDefaultDesc": "Miruro-style: wide player with episode list on the right",
     "watchLayoutTheater": "Theater",
     "watchLayoutTheaterDesc": "Wider player; episode list sits below instead of beside",
     "watchLayoutCompact": "Compact",

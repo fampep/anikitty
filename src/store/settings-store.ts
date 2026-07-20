@@ -42,6 +42,7 @@ export type WatchLayout = "default" | "theater" | "compact" | "focus";
 
 export const DEFAULT_WATCH_LAYOUT: WatchLayout = "default";
 
+/** Miruro-style default: wide player + sticky episode rail on desktop. */
 export function sanitizeWatchLayout(value: unknown): WatchLayout {
   if (value === "default" || value === "theater" || value === "compact" || value === "focus") {
     return value;
@@ -431,7 +432,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 51,
+      version: 52,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -711,6 +712,11 @@ export const useSettingsStore = create<ISettingsStore>()(
           } else {
             next.kittyProxyNode = coerceKittyApiNodeId(raw);
           }
+        }
+        if (version < 52) {
+          // Default watch page matches Miruro: player + right episode rail.
+          next.watchLayout = "default";
+          next.theatreMode = false;
         }
         return next as ISettingsStore;
       },

@@ -84,6 +84,7 @@ const Layout = (props: Props) => {
   const isTheaterLayout = !theatreMode && watchLayout === "theater";
   const isCompactLayout = !theatreMode && watchLayout === "compact";
   const isFocusLayout = !theatreMode && watchLayout === "focus";
+  const isDefaultLayout = !theatreMode && watchLayout === "default";
   const showSideSidebar = !theatreMode && (watchLayout === "default" || watchLayout === "compact");
   const showTheaterPlaylist = isTheaterLayout;
 
@@ -437,11 +438,14 @@ const Layout = (props: Props) => {
       "pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
       // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
-      isTheaterLayout && "max-w-[min(100%,96rem)]",
+      // Miruro-style default + theater: near full-bleed player column.
+      (isTheaterLayout || isDefaultLayout) && "max-w-[min(100%,96rem)]",
       isCompactLayout && "watch-layout-compact",
       isFocusLayout && "watch-layout-focus",
+      isDefaultLayout && "watch-layout-default",
     )}>
-      {!theatreMode && (
+      {/* Classic layouts keep the logo header; default goes straight into the player like Miruro. */}
+      {!theatreMode && !isDefaultLayout && (
         <div className={cn(
           "flex items-end justify-between gap-3 mb-3 sm:mb-4 min-w-0",
           isCompactLayout && "mb-2 sm:mb-2.5",
@@ -456,6 +460,11 @@ const Layout = (props: Props) => {
           <div className="shrink-0">{listSelector}</div>
         </div>
       )}
+      {!theatreMode && isDefaultLayout && (
+        <div className="flex items-center justify-end gap-2 mb-2 min-w-0">
+          <div className="shrink-0">{listSelector}</div>
+        </div>
+      )}
 
       {/* Main grid: player + sidebar */}
       <div
@@ -463,6 +472,9 @@ const Layout = (props: Props) => {
           "grid grid-cols-1 gap-3 sm:gap-4",
           isCompactLayout && "gap-2 sm:gap-2.5",
           showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:gap-5 xl:gap-6",
+          // Miruro-like: wider episode rail (~28%) next to a large player.
+          isDefaultLayout &&
+            "lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:gap-4 xl:gap-5",
           isCompactLayout && showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:gap-3 xl:gap-4",
         )}
       >
@@ -488,7 +500,11 @@ const Layout = (props: Props) => {
             <div
               id="watch-quick-nav"
               className={cn(
-                "watch-sticky-chrome lg:sticky lg:top-[var(--nav-total-height)] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-1.5 sm:py-2",
+                "watch-sticky-chrome -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-1.5 sm:py-2",
+                // Default (Miruro-like): keep tabs in flow under the player, not sticky over content.
+                isDefaultLayout
+                  ? "relative z-10"
+                  : "lg:sticky lg:top-[var(--nav-total-height)] z-20",
                 isCompactLayout && "py-1 sm:py-1.5",
               )}
             >
@@ -720,23 +736,27 @@ const Layout = (props: Props) => {
 
         </div>
 
-        {/* Right sidebar: now-watching + episodes (desktop) — Default & Compact */}
+        {/* Right sidebar: episodes (desktop) — Default & Compact */}
         {showSideSidebar && (
           <aside className={cn(
             "watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm",
             isCompactLayout && "watch-sidebar--compact",
+            // Miruro: episode rail fills the column; now-playing lives under the player.
+            isDefaultLayout && "rounded-2xl border-border/50 dark:border-white/[0.07]",
           )}>
-            <WatchNowPlayingCard
-              info={info}
-              currentEpisode={currentEpisode}
-              totalEps={totalEps}
-              audioLabel={audioLabel}
-              prevEp={prevEp}
-              nextEp={nextEp}
-              buildEpUrl={buildEpUrl}
-              t={t}
-              compact={isCompactLayout}
-            />
+            {!isDefaultLayout && (
+              <WatchNowPlayingCard
+                info={info}
+                currentEpisode={currentEpisode}
+                totalEps={totalEps}
+                audioLabel={audioLabel}
+                prevEp={prevEp}
+                nextEp={nextEp}
+                buildEpUrl={buildEpUrl}
+                t={t}
+                compact={isCompactLayout}
+              />
+            )}
 
             {episodes && (
               <div className="min-h-0 flex-1 overflow-hidden flex flex-col">

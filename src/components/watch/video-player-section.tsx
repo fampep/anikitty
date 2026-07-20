@@ -1696,7 +1696,10 @@ const VideoPlayerSection = () => {
     )}
 
     {/* Player + under-chrome + episode strip as one composition */}
-    <div className="watch-player-stack flex flex-col overflow-hidden rounded-none sm:rounded-xl ring-0 sm:ring-1 ring-border dark:ring-white/[0.09] shadow-none sm:shadow-[0_28px_80px_-24px_rgba(0,0,0,0.8)] bg-black">
+    <div className={cn(
+      "watch-player-stack flex flex-col overflow-hidden rounded-none sm:rounded-xl ring-0 sm:ring-1 ring-border dark:ring-white/[0.09] shadow-none sm:shadow-[0_28px_80px_-24px_rgba(0,0,0,0.8)] bg-black",
+      watchLayout === "default" && "sm:rounded-2xl",
+    )}>
     <div className="watch-player-stage flex flex-col overflow-hidden bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold
           native fullscreen across episode transitions without dropping out. */}
