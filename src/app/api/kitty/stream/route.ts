@@ -3,11 +3,18 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitles/subtitle-cache-store";
 import {
+  DEFAULT_ALLANIME_MIRROR,
   DEFAULT_MKISSA_MIRROR,
   fetchAllanimeVideoStream,
   isAllanimeMirrorId,
   type AllanimeMirrorId,
 } from "@/lib/providers/allanime-api";
+import {
+  DEFAULT_ANIKURO_SERVER,
+  fetchAnikuroVideoStream,
+  isAnikuroServerId,
+  type AnikuroServerId,
+} from "@/lib/providers/anikuro-api";
 import {
   DEFAULT_ANISNATCH_SERVER,
   fetchAnisnatchVideoStream,
@@ -94,11 +101,12 @@ const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
 const SAFE_LUNAR_SERVER = /^[a-z0-9-]{2,12}$/;
 const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
+const SAFE_ANIKURO_SERVER = /^[a-z0-9-]{2,16}$/;
 const SAFE_ID = /^\d{1,10}$/;
 const MAX_TITLE_LEN = 200;
 
-/** Active providers that use generic KittyAPI stream-direct only (not MKissa mirrors or Miruro pipe). */
-const STREAM_DIRECT_EXCLUDE = new Set<string>(["MKissa", "Miruro"]);
+/** Active providers that use generic KittyAPI stream-direct only. */
+const STREAM_DIRECT_EXCLUDE = new Set<string>(["AniKuro", "MKissa", "Miruro"]);
 const STREAM_DIRECT_PROVIDERS = new Set<string>(
   KITTY_PROVIDERS.filter((p) => !STREAM_DIRECT_EXCLUDE.has(p)),
 );
@@ -148,6 +156,7 @@ export async function GET(req: Request) {
   const anisnatchServerParam = searchParams.get("anisnatchServer");
   const lunarServerParam = searchParams.get("lunarServer");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
+  const anikuroServerParam = searchParams.get("anikuroServer");
   const animoServerParam = searchParams.get("animoServer");
   const linkIdParam = searchParams.get("linkId")?.trim() || undefined;
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
@@ -212,6 +221,15 @@ export async function GET(req: Request) {
       ? mkissaMirrorParam
       : provider === "MKissa"
         ? DEFAULT_MKISSA_MIRROR
+        : null;
+
+  const anikuroServer =
+    anikuroServerParam &&
+    SAFE_ANIKURO_SERVER.test(anikuroServerParam) &&
+    isAnikuroServerId(anikuroServerParam)
+      ? anikuroServerParam
+      : provider === "AniKuro"
+        ? DEFAULT_ANIKURO_SERVER
         : null;
 
   const animoServer =
@@ -652,6 +670,45 @@ export async function GET(req: Request) {
       if (lunarResponse) return lunarResponse;
     } catch (e) {
       console.error("[kitty/stream] Lunar server failed:", e);
+    }
+  }
+
+  if (provider === "AniKuro") {
+    try {
+      const anikuroAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const anikuro = await fetchAnikuroVideoStream({
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            serverId: anikuroServer as AnikuroServerId,
+            title: titleParam,
+          });
+
+          if (!anikuro?.file) return null;
+
+          return {
+            file: anikuro.file,
+            headers: anikuro.headers,
+            tracks: anikuro.tracks,
+            allServers: anikuro.allServers,
+            skipTimes: anikuro.skipTimes,
+            server: anikuro.server,
+            download: anikuro.download,
+          };
+        },
+      );
+
+      const anikuroResponse = await respondWithStream(
+        anikuroAttempt.result,
+        "AniKuro",
+        anikuroAttempt.servedAudio,
+        anikuroAttempt.audioFallback,
+      );
+      if (anikuroResponse) return anikuroResponse;
+    } catch (e) {
+      console.error("[kitty/stream] AniKuro server failed:", e);
     }
   }
 

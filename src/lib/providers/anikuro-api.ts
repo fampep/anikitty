@@ -29,6 +29,21 @@ function anikuroDataIds(
   return JSON.stringify(payload);
 }
 
+/** Single-call stream linkId — API resolves the named backend directly. */
+function buildAnikuroLinkId(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId: AnikuroServerId;
+}): string {
+  return JSON.stringify({
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    backend: opts.serverId,
+    audio: opts.audio,
+  });
+}
+
 function normalizeServerToken(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -171,6 +186,17 @@ export async function fetchAnikuroVideoStream(opts: {
 }): Promise<AnikuroStreamResult | null> {
   const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
 
+  const linkId = buildAnikuroLinkId({
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    audio: opts.audio,
+    serverId,
+  });
+  const direct = await fetchAnikuroStreamByLinkId(linkId);
+  if (direct?.file) {
+    return { ...direct, server: anikuroServerDisplayLabel(serverId) };
+  }
+
   const servers = await fetchAnikuroServers({
     anilistId: opts.anilistId,
     episode: opts.episode,
@@ -196,9 +222,9 @@ export async function fetchAnikuroVideoStream(opts: {
     }
   }
 
-  const direct = await fetchAnikuroStreamDirect(opts);
-  if (direct?.file) {
-    return { ...direct, server: anikuroServerDisplayLabel(serverId) };
+  const fallback = await fetchAnikuroStreamDirect(opts);
+  if (fallback?.file) {
+    return { ...fallback, server: anikuroServerDisplayLabel(serverId) };
   }
-  return direct;
+  return fallback;
 }

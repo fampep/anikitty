@@ -36,6 +36,21 @@ function allanimeDataIds(anilistId: number, episode: number, mode: "sub" | "dub"
   });
 }
 
+/** Single-call stream linkId — API resolves showId from anilistId + extracts the named mirror. */
+function buildAllanimeMirrorLinkId(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  mirror: AllanimeMirrorId;
+}): string {
+  return JSON.stringify({
+    anilistId: opts.anilistId,
+    ep: String(opts.episode),
+    mode: opts.audio,
+    provider: opts.mirror,
+  });
+}
+
 /** Parse mirror label from Kitty server row name (e.g. "Ok (SUB)", "MKissa - Ok (SUB)"). */
 export function mirrorFromAllanimeRow(row: Pick<AllanimeKittyServer, "name" | "id">): AllanimeMirrorId {
   try {
@@ -208,7 +223,7 @@ async function fetchAllanimeStreamDirect(opts: {
   };
 }
 
-/** Resolve a named AllAnime/MKissa mirror via Kitty servers + stream endpoints. */
+/** Resolve a named AllAnime/MKissa mirror via Kitty stream endpoint (one API call when possible). */
 export async function fetchAllanimeVideoStream(opts: {
   provider: AllanimeProviderName;
   anilistId: number;
@@ -218,6 +233,20 @@ export async function fetchAllanimeVideoStream(opts: {
   title?: string | null;
 }): Promise<AllanimeStreamResult | null> {
   const mirror = opts.mirror ?? defaultAllanimeMirrorForProvider(opts.provider);
+
+  const linkId = buildAllanimeMirrorLinkId({
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    audio: opts.audio,
+    mirror,
+  });
+  const direct = await fetchAllanimeStreamByLinkId(opts.provider, linkId);
+  if (direct?.file) {
+    return {
+      ...direct,
+      server: direct.server ?? `${opts.provider} - ${mirror} (${opts.audio.toUpperCase()})`,
+    };
+  }
 
   const servers = await fetchAllanimeServers({
     provider: opts.provider,
