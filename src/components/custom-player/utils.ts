@@ -54,6 +54,11 @@ export type CustomPlayerPrefs = {
   playbackRate: number;
   volume: number;
   muted: boolean;
+  /**
+   * Local Web Audio gain (1–3). 1 = off. Amplifies beyond HTMLMediaElement.volume.
+   * Cast remote volume is separate and ignores this.
+   */
+  volumeBoost: number;
   brightness: number;
   captionSize: CaptionSizePref;
   captionPosition: CaptionPositionPref;
@@ -67,6 +72,7 @@ const DEFAULT_CUSTOM_PLAYER_PREFS: CustomPlayerPrefs = {
   playbackRate: 1,
   volume: 1,
   muted: false,
+  volumeBoost: 1,
   brightness: 1,
   captionSize: "md",
   captionPosition: "low",
@@ -83,6 +89,14 @@ function sanitizeVolume(value: unknown): number {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return 1;
   return clamp(n, 0, 1);
+}
+
+/** Sound boost gain: 1 (off) … 3 (300%). Kept in utils so prefs stay self-contained. */
+function sanitizeVolumeBoost(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 1;
+  const stepped = Math.round(n * 20) / 20;
+  return clamp(stepped, 1, 3);
 }
 
 function sanitizeBrightness(value: unknown): number {
@@ -160,6 +174,7 @@ export function loadCustomPlayerPrefs(): CustomPlayerPrefs {
       playbackRate: sanitizePlaybackRate(parsed.playbackRate),
       volume: sanitizeVolume(parsed.volume),
       muted: typeof parsed.muted === "boolean" ? parsed.muted : false,
+      volumeBoost: sanitizeVolumeBoost(parsed.volumeBoost),
       brightness: sanitizeBrightness(parsed.brightness),
       captionSize: sanitizeCaptionSize(parsed.captionSize),
       captionPosition: sanitizeCaptionPosition(parsed.captionPosition),
@@ -182,6 +197,9 @@ export function saveCustomPlayerPrefs(
   }
   if (patch.volume != null) {
     next.volume = sanitizeVolume(patch.volume);
+  }
+  if (patch.volumeBoost != null) {
+    next.volumeBoost = sanitizeVolumeBoost(patch.volumeBoost);
   }
   if (patch.brightness != null) {
     next.brightness = sanitizeBrightness(patch.brightness);

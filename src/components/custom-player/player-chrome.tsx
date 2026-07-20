@@ -121,7 +121,7 @@ export function SegmentedChoice<T extends string>({
   );
 }
 
-export function VerticalSliderPopover({
+function VerticalRail({
   label,
   min,
   max,
@@ -129,7 +129,7 @@ export function VerticalSliderPopover({
   value,
   display,
   onChange,
-  footer,
+  caption,
 }: {
   label: string;
   min: number;
@@ -138,17 +138,15 @@ export function VerticalSliderPopover({
   value: number;
   display: string;
   onChange: (value: number) => void;
-  footer?: string;
+  /** Small label under the rail (e.g. Volume / Boost). */
+  caption?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "absolute bottom-full left-1/2 z-40 mb-2.5 flex -translate-x-1/2 flex-col items-center gap-2.5 px-3.5 py-3",
-        PLAYER_POPOVER_CLASS,
-        PLAYER_POPOVER_MOTION_CLASS,
-      )}
-    >
-      <span className="text-[10px] font-medium tabular-nums tracking-wide text-white/80" aria-hidden>
+    <div className="flex flex-col items-center gap-2">
+      <span
+        className="text-[10px] font-medium tabular-nums tracking-wide text-white/80"
+        aria-hidden
+      >
         {display}
       </span>
       <input
@@ -174,8 +172,80 @@ export function VerticalSliderPopover({
           onChange(Math.min(max, Math.max(min, value + delta)));
         }}
       />
+      {caption ? (
+        <span className="max-w-[3.25rem] text-center text-[9px] font-medium uppercase tracking-[0.06em] text-white/40">
+          {caption}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+export function VerticalSliderPopover({
+  label,
+  min,
+  max,
+  step,
+  value,
+  display,
+  onChange,
+  footer,
+  secondary,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  display: string;
+  onChange: (value: number) => void;
+  footer?: string;
+  /** Optional second rail (e.g. sound boost beside volume). */
+  secondary?: {
+    label: string;
+    caption?: string;
+    min: number;
+    max: number;
+    step: number;
+    value: number;
+    display: string;
+    onChange: (value: number) => void;
+  };
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute bottom-full left-1/2 z-40 mb-2.5 flex -translate-x-1/2 flex-col items-center gap-2.5 px-3.5 py-3",
+        PLAYER_POPOVER_CLASS,
+        PLAYER_POPOVER_MOTION_CLASS,
+      )}
+    >
+      <div className={cn("flex items-end", secondary ? "gap-4" : "")}>
+        <VerticalRail
+          label={label}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          display={display}
+          onChange={onChange}
+          caption={secondary ? "Volume" : undefined}
+        />
+        {secondary ? (
+          <VerticalRail
+            label={secondary.label}
+            min={secondary.min}
+            max={secondary.max}
+            step={secondary.step}
+            value={secondary.value}
+            display={secondary.display}
+            onChange={secondary.onChange}
+            caption={secondary.caption ?? "Boost"}
+          />
+        ) : null}
+      </div>
       {footer ? (
-        <span className="max-w-[5.5rem] text-center text-[9px] leading-tight text-white/40">
+        <span className="max-w-[7.5rem] text-center text-[9px] leading-tight text-white/40">
           {footer}
         </span>
       ) : null}

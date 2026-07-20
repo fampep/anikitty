@@ -102,6 +102,13 @@ import {
 } from "./use-google-cast";
 import { useSurfaceGestures } from "./use-surface-gestures";
 import {
+  AudioBoostController,
+  formatVolumeBoost,
+  sanitizeVolumeBoost,
+  VOLUME_BOOST_MAX,
+  VOLUME_BOOST_MIN,
+} from "./audio-boost";
+import {
   bufferedRangesEqual,
   CAPTION_OFFSET_OPTIONS,
   captionPositionCss,
@@ -377,6 +384,10 @@ export function AniKittyPlayer({
   const startedRef = useRef(false);
   const lastProgressTsRef = useRef(0);
   const volumeBeforeMuteRef = useRef(1);
+  const audioBoostRef = useRef<AudioBoostController | null>(null);
+  if (audioBoostRef.current == null) {
+    audioBoostRef.current = new AudioBoostController();
+  }
   const audioUserPickedRef = useRef(false);
   const qualityResumeRef = useRef<number | null>(null);
   const mediaRetryRef = useRef(false);
@@ -464,6 +475,11 @@ export function AniKittyPlayer({
   const [muted, setMuted] = useState(
     () => initialPrefsRef.current?.muted ?? false,
   );
+  const [volumeBoost, setVolumeBoostState] = useState(
+    () => initialPrefsRef.current?.volumeBoost ?? 1,
+  );
+  const volumeBoostRef = useRef(volumeBoost);
+  volumeBoostRef.current = volumeBoost;
   const [brightness, setBrightness] = useState(
     () => initialPrefsRef.current?.brightness ?? 1,
   );
@@ -787,7 +803,7 @@ export function AniKittyPlayer({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Apply remembered volume / mute once the video element mounts.
+  // Apply remembered volume / mute / boost once the video element mounts.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -798,6 +814,15 @@ export function AniKittyPlayer({
     if (prefs.volume > 0 && !prefs.muted) {
       volumeBeforeMuteRef.current = prefs.volume;
     }
+    audioBoostRef.current?.ensure(video, prefs.volumeBoost ?? 1);
+  }, []);
+
+  // Dispose Web Audio graph only when the player unmounts (not on src swaps).
+  useEffect(() => {
+    const boost = audioBoostRef.current;
+    return () => {
+      boost?.dispose();
+    };
   }, []);
 
   /** Shared local / Cast end → up-next countdown (guards double-fire). */
@@ -1386,6 +1411,7 @@ export function AniKittyPlayer({
       setBuffering(false);
       setSourceLoading(false);
       bumpControls();
+      void audioBoostRef.current?.resume();
       if (!startedRef.current) {
         startedRef.current = true;
         onStartRef.current?.();
@@ -1709,6 +1735,8 @@ export function AniKittyPlayer({
       video.volume = savedVolume;
       video.muted = savedMuted;
       setPlaybackRateState(savedRate);
+      // Re-apply boost after src attach — same <video>, so MediaElementSource is reused.
+      audioBoostRef.current?.ensure(video, volumeBoostRef.current);
     };
 
     const applyResumeTime = () => {
@@ -2133,6 +2161,32 @@ export function AniKittyPlayer({
       bumpControls();
     },
     [bumpControls, castSetVolume, schedulePrefsSave, showGestureHint],
+  );
+
+  const setVolumeBoostLevel = useCallback(
+    (level: number, opts?: { hint?: boolean }) => {
+      // Cast volume is remote-only — boost stays local and is ignored while casting.
+      if (castingRef.current) return;
+      const next = sanitizeVolumeBoost(level);
+      setVolumeBoostState(next);
+      volumeBoostRef.current = next;
+      const video = videoRef.current;
+      if (video) {
+        audioBoostRef.current?.ensure(video, next);
+      } else {
+        audioBoostRef.current?.setBoost(next);
+      }
+      schedulePrefsSave({ volumeBoost: next });
+      if (opts?.hint) {
+        showGestureHint({
+          label: "Sound boost",
+          detail: formatVolumeBoost(next),
+          meter: (next - VOLUME_BOOST_MIN) / (VOLUME_BOOST_MAX - VOLUME_BOOST_MIN),
+        });
+      }
+      bumpControls();
+    },
+    [bumpControls, schedulePrefsSave, showGestureHint],
   );
 
   const setBrightnessLevel = useCallback(
@@ -4282,12 +4336,29 @@ export function AniKittyPlayer({
                       value={effectiveVolume}
                       display={`${Math.round(effectiveVolume * 100)}%`}
                       onChange={(v) => setVolumeLevel(v, { hint: true })}
+                      secondary={
+                        casting
+                          ? undefined
+                          : {
+                              label: "Sound boost",
+                              caption: "Boost",
+                              min: VOLUME_BOOST_MIN,
+                              max: VOLUME_BOOST_MAX,
+                              step: 0.05,
+                              value: volumeBoost,
+                              display: formatVolumeBoost(volumeBoost),
+                              onChange: (v) =>
+                                setVolumeBoostLevel(v, { hint: true }),
+                            }
+                      }
                       footer={
                         iosVolumeLocked && !casting
                           ? "iOS uses system volume"
                           : casting
                             ? "Cast volume"
-                            : undefined
+                            : volumeBoost > 1
+                              ? "Boost amplifies local audio"
+                              : undefined
                       }
                     />
                   ) : null}
@@ -4341,6 +4412,21 @@ export function AniKittyPlayer({
                         >
                           Volume slider
                         </MenuItem>
+                        {!casting ? (
+                          <MenuItem
+                            active={volumeBoost > 1}
+                            onClick={() => {
+                              setMoreOpen(false);
+                              setVolumeOpen(true);
+                              bumpControls();
+                            }}
+                          >
+                            Sound boost
+                            {volumeBoost > 1
+                              ? ` · ${formatVolumeBoost(volumeBoost)}`
+                              : ""}
+                          </MenuItem>
+                        ) : null}
                       </MenuSection>
 
                       <MenuSection title="Speed" className="min-[480px]:hidden">
