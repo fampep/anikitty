@@ -3,6 +3,8 @@ import {
   getKittyApiNodeUrl,
   isRemovedKittyApiHost,
   KITTY_API_NODES,
+  PUBLIC_KITTY_API_HOST,
+  PUBLIC_KITTY_API_ORIGIN,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";
 
@@ -15,6 +17,8 @@ export {
   isRemovedKittyApiHost,
   coerceKittyApiNodeId,
   KITTY_API_NODES,
+  PUBLIC_KITTY_API_HOST,
+  PUBLIC_KITTY_API_ORIGIN,
   parseKittyNodeParam,
   resolveKittyNodeIdFromOrigin,
   isKittyNodeRaceParam,
@@ -107,25 +111,28 @@ function normalizeBase(base: string): string {
   return base.replace(/\/$/, "");
 }
 
-export function getKittyApiBases(): string[] {
-  const envBase = process.env.KITTY_API_BASE?.trim();
-  if (envBase && !isRemovedKittyApiHost(envBase)) return [normalizeBase(envBase)];
-  return KITTY_API_NODES.map((node) => getKittyApiNodeUrl(node.id));
+/** Public browser-facing KittyAPI origin (Cloudflare). */
+export function getKittyApiPublicBase(nodeId?: KittyApiNodeId): string {
+  if (nodeId) return getKittyApiNodeUrl(nodeId);
+  return PUBLIC_KITTY_API_ORIGIN;
 }
 
+export function getKittyApiBases(): string[] {
+  return KITTY_API_NODES.map((node) => getKittyApiPublicBase(node.id));
+}
+
+/** @deprecated Prefer getKittyApiPublicBase for browser-facing URLs. */
 export function getKittyApiBase(nodeId?: KittyApiNodeId): string {
-  if (nodeId) return getKittyApiNodeUrl(nodeId);
-  const envBase = process.env.KITTY_API_BASE?.trim();
-  if (envBase && !isRemovedKittyApiHost(envBase)) return normalizeBase(envBase);
-  return getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_ID);
+  return getKittyApiPublicBase(nodeId);
 }
 
 /** True when the host belongs to a configured KittyAPI cluster node. */
 export function isKittyApiHost(hostname: string): boolean {
   const lower = hostname.toLowerCase();
-  if (lower === "vps.anikitty.online") return true;
+  if (lower === PUBLIC_KITTY_API_HOST) return true;
   if (/^vps-[a-z0-9-]+\.anikitty\.online$/i.test(lower)) return true;
   if (/\.vps\.anikitty\.online$/i.test(lower)) return true;
+  // Legacy direct hostnames — rewrite to the public origin; never advertise them.
   if (/^kittyapi\.[\d-]+\.sslip\.io$/i.test(lower)) return true;
   return KITTY_API_NODES.some((node) => node.host.toLowerCase() === lower);
 }
@@ -176,6 +183,8 @@ export type KittyApiFetchOptions = {
    * unreachable (network / 5xx). Does not failover on 4xx application errors.
    */
   failover?: boolean;
+  /** Server-only: pin fetches to a per-node origin (e.g. http://IP). */
+  resolveBase?: (nodeId: KittyApiNodeId) => string;
 };
 
 /** KittyAPI key from `KITTY_API_KEY` env (e.g. `akitty_cd32a8c2…`). Never use query params. */
@@ -263,7 +272,9 @@ export async function kittyApiFetch(
         : new Error("KittyAPI request aborted");
     }
 
-    const base = getKittyApiBase(nodeId);
+    const base = normalizeBase(
+      opts?.resolveBase?.(nodeId) ?? getKittyApiPublicBase(nodeId),
+    );
     if (isRemovedKittyApiHost(base)) continue;
 
     try {
@@ -409,6 +420,7 @@ export function buildKittyHealthPath(): string {
 
 export type KittyBenchmarkNode = {
   origin?: string;
+  nodeId?: string | null;
   online?: boolean;
   latencyMs?: number;
   bandwidthMbps?: number;
@@ -417,6 +429,7 @@ export type KittyBenchmarkNode = {
 
 export type KittyBenchmarkResponse = {
   recommended?: string;
+  recommendedNodeId?: string | null;
   nodes?: KittyBenchmarkNode[];
 };
 

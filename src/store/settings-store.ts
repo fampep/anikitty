@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 50,
+      version: 51,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -702,6 +702,15 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.watchLayout = sanitizeWatchLayout(next.watchLayout ?? DEFAULT_WATCH_LAYOUT);
         } else {
           next.watchLayout = sanitizeWatchLayout(next.watchLayout);
+        }
+        if (version < 51) {
+          // Switzerland (fallback/secondary) removed from the cluster.
+          const raw = typeof next.kittyProxyNode === "string" ? String(next.kittyProxyNode) : "";
+          if (raw === "fallback" || raw === "secondary") {
+            next.kittyProxyNode = "primary";
+          } else {
+            next.kittyProxyNode = coerceKittyApiNodeId(raw);
+          }
         }
         return next as ISettingsStore;
       },

@@ -1,11 +1,11 @@
 import "server-only";
 
 import {
-  getKittyApiNodeUrl,
   KITTY_API_NODES,
   kittyNodeRaceOrder,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";
+import { getKittyApiNodeDirectUrl } from "@/lib/kitty/kitty-api-node-origins.server";
 import {
   buildKittyHealthPath,
   kittyAuthHeaders,
@@ -138,7 +138,7 @@ export async function prefilterHealthyKittyNodes(
   const results = await Promise.all(
     candidates.map(async (nodeId) => {
       if (opts?.signal?.aborted) return { nodeId, ok: false as const };
-      const base = getKittyApiNodeUrl(nodeId);
+      const base = getKittyApiNodeDirectUrl(nodeId);
       try {
         const timeout = AbortSignal.timeout(timeoutMs);
         const signal =
@@ -150,7 +150,8 @@ export async function prefilterHealthyKittyNodes(
           headers: auth,
           signal,
         });
-        const ok = res.ok;
+        // Auth-gated health returns 401 when the origin is up without a key.
+        const ok = res.ok || res.status === 401;
         if (!ok) markKittyNodeDead(nodeId, Math.min(KITTY_NODE_DEAD_COOLDOWN_MS, 20_000));
         else clearKittyNodeDead(nodeId);
         return { nodeId, ok };

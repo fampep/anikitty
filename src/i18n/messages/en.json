@@ -138,7 +138,7 @@
   "status": {
     "eyebrow": "System status",
     "title": "Streaming proxy health",
-    "subtitle": "Live health of AniKitty's KittyAPI CDN nodes. Streams auto-route to the lowest-ping healthy node for you — no manual server pick.",
+    "subtitle": "Live health of AniKitty's KittyAPI CDN nodes behind vps.anikitty.online. Streams auto-route to the lowest-ping healthy node for you — no manual server pick.",
     "checking": "Checking proxies…",
     "overall": {
       "operational": "All proxies operational",
@@ -149,6 +149,8 @@
     "autoRefresh": "Auto-refreshes every 60 seconds",
     "manualRefreshLite": "Lite mode — use Refresh to check proxies",
     "refresh": "Refresh now",
+    "clusterEndpoint": "Cluster endpoint",
+    "clusterEndpointHint": "All playback traffic uses this Cloudflare-proxied hostname with automatic failover.",
     "proxyNodes": "Proxy nodes",
     "proxyNodesHint": "Read-only cluster map. Playback always uses automatic CDN routing with failover.",
     "recommended": "Fastest",

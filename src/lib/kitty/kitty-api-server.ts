@@ -6,6 +6,7 @@ import {
   parseKittyNodeParam,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";
+import { getKittyApiNodeDirectUrl } from "@/lib/kitty/kitty-api-node-origins.server";
 import {
   kittyApiFetch as kittyApiFetchCore,
   kittyApiPath,
@@ -51,7 +52,11 @@ export async function kittyApiFetch(
   opts?: KittyApiFetchOptions,
 ): Promise<Response> {
   const nodeId = opts?.nodeId ?? getKittyRequestNodeId() ?? DEFAULT_KITTY_API_NODE_ID;
-  return kittyApiFetchCore(path, init, { ...opts, nodeId });
+  return kittyApiFetchCore(path, init, {
+    ...opts,
+    nodeId,
+    resolveBase: opts?.resolveBase ?? getKittyApiNodeDirectUrl,
+  });
 }
 
 export async function handleKittyApiRequest(

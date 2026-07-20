@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/container";
-import { KITTY_API_NODES, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import { KITTY_API_NODES, PUBLIC_KITTY_API_ORIGIN, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useIntervalWhenVisible } from "@/hooks/use-interval-when-visible";
 import { usePollingIntervalMs } from "@/hooks/use-polling-interval-ms";
@@ -106,7 +106,7 @@ export default function StatusPageContent() {
   const activeNode = useSettingsStore((s) => s.kittyProxyNode);
   const statusPollMs = usePollingIntervalMs("status");
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
-    useKittyNodePing();
+    useKittyNodePing({ lightweight: true });
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -284,6 +284,31 @@ export default function StatusPageContent() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="site-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 border-sky-400/20 bg-sky-500/[0.06]">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 bg-sky-500/15 ring-sky-400/25 text-sky-300">
+              <Globe2 className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/35">
+                {t("status.clusterEndpoint")}
+              </p>
+              <a
+                href={`${PUBLIC_KITTY_API_ORIGIN}/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-sky-300 hover:text-sky-200 transition-colors break-all"
+              >
+                {PUBLIC_KITTY_API_ORIGIN}/
+                <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70" />
+              </a>
+              <p className="text-[12px] text-muted-foreground dark:text-white/45 mt-1 leading-relaxed">
+                {t("status.clusterEndpointHint")}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="site-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 border-teal-400/20 bg-teal-500/[0.06]">

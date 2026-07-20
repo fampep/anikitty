@@ -1,5 +1,5 @@
 /** Quick Miruro subtitle diagnostic. Run: node --env-file=.env scripts/test-miruro-subs.mjs */
-const KITTY = process.env.KITTY_API_BASE ?? "https://kittyapi.176-125-240-251.sslip.io";
+const KITTY = process.env.KITTY_API_BASE ?? "https://vps.anikitty.online";
 const LOCAL = process.env.LOCAL_API ?? "http://localhost:3000";
 const ANILIST_ID = 1535;
 const EP = 1;

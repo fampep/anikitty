@@ -21,6 +21,8 @@ export {
   isKittyNodeRaceParam,
   kittyNodeRaceOrder,
   KITTY_API_NODES,
+  PUBLIC_KITTY_API_HOST,
+  PUBLIC_KITTY_API_ORIGIN,
   kittyApiFetch,
   kittyApiHeaders,
   kittyApiPath,

@@ -5,7 +5,6 @@
 
 const NODES = [
   { label: "Sweden", url: process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY ?? "https://vps.anikitty.online" },
-  { label: "Switzerland", url: process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK ?? "https://vps.anikitty.online" },
   { label: "Bulgaria", url: process.env.NEXT_PUBLIC_KITTY_NODE_THIRD ?? "https://vps.anikitty.online" },
   { label: "Singapore", url: process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH ?? "https://vps.anikitty.online" },
   { label: "Netherlands", url: process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH ?? "https://vps.anikitty.online" },

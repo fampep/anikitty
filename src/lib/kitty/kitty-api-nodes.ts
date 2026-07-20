@@ -1,6 +1,5 @@
 export type KittyApiNodeId =
   | "primary"
-  | "fallback"
   | "third-choice"
   | "fourth-choice"
   | "fifth-choice"
@@ -11,13 +10,11 @@ export type KittyApiNodeMeta = {
   /** Display number in the proxy chooser (1 = Primary, 2 = …). */
   index: number;
   label: string;
-  ip: string;
+  /** Public cluster origin (shared Cloudflare-proxied hostname). */
   url: string;
   host: string;
   location: string;
   timezone: string;
-  operator: string;
-  note?: string;
 };
 
 /**
@@ -27,7 +24,13 @@ export type KittyApiNodeMeta = {
 const REMOVED_KITTY_HOST_MARKERS = [
   "45-150-111-153", // retired Bulgaria IP (replaced by 131.123.42.153)
   "45.150.111.153",
+  "92-119-165-226", // retired Switzerland / secondary
+  "92.119.165.226",
 ] as const;
+
+/** Public Cloudflare hostname for the whole KittyAPI cluster. */
+export const PUBLIC_KITTY_API_HOST = "vps.anikitty.online";
+export const PUBLIC_KITTY_API_ORIGIN = `https://${PUBLIC_KITTY_API_HOST}`;
 
 /** True when a URL/host belongs to a removed KittyAPI node. */
 export function isRemovedKittyApiHost(value: string | null | undefined): boolean {
@@ -36,12 +39,36 @@ export function isRemovedKittyApiHost(value: string | null | undefined): boolean
   return REMOVED_KITTY_HOST_MARKERS.some((marker) => lower.includes(marker));
 }
 
-/** Normalize an env-provided node origin into a clean `https://host` URL. */
+/** True when a value is an old free sslip hostname (embeds the origin IP). */
+export function isKittySslipHost(value: string | null | undefined): boolean {
+  if (!value?.trim()) return false;
+  return /(?:^|[/.])kittyapi\.[\d-]+\.sslip\.io(?:\/|$)/i.test(value.trim());
+}
+
+/**
+ * Resolve a public node origin. Stale Coolify `NEXT_PUBLIC_KITTY_NODE_*` values
+ * (sslip / removed hosts / bare IPs) are ignored so the site always uses the
+ * Cloudflare cluster hostname.
+ */
 function nodeUrl(envValue: string | undefined, fallback: string): string {
   const raw = (envValue && envValue.trim()) || fallback;
   const trimmed = raw.trim().replace(/\/+$/, "");
   const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  if (isRemovedKittyApiHost(withProto)) {
+  if (
+    isRemovedKittyApiHost(withProto) ||
+    isKittySslipHost(withProto) ||
+    /https?:\/\/\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:\/|$)/i.test(withProto)
+  ) {
+    const safe = fallback.trim().replace(/\/+$/, "");
+    return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
+  }
+  try {
+    const host = new URL(withProto).hostname.toLowerCase();
+    if (host !== PUBLIC_KITTY_API_HOST && !host.endsWith(".anikitty.online")) {
+      const safe = fallback.trim().replace(/\/+$/, "");
+      return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
+    }
+  } catch {
     const safe = fallback.trim().replace(/\/+$/, "");
     return /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
   }
@@ -52,13 +79,19 @@ function nodeHost(url: string): string {
   return url.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
 }
 
-// Proxy/cluster node origins are configurable via env so domains aren't
-// hardcoded. Each falls back to the current default when its var is unset.
-// NEXT_PUBLIC_* is inlined at build time, so set them as build args in Coolify.
-// Single Cloudflare-proxied cluster hostname. Real VPS IPs stay in `ip` for status UI.
-const SHARED_VPS_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "https://vps.anikitty.online");
+/** Extract an IPv4 from a URL/host (including `kittyapi.A-B-C-D.sslip.io`). */
+export function extractKittyOriginIpv4(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
+  const lower = value.trim().toLowerCase();
+  const sslip = lower.match(/kittyapi\.(\d{1,3})-(\d{1,3})-(\d{1,3})-(\d{1,3})\.sslip\.io/);
+  if (sslip) return `${sslip[1]}.${sslip[2]}.${sslip[3]}.${sslip[4]}`;
+  const bare = lower.match(/\b(\d{1,3}(?:\.\d{1,3}){3})\b/);
+  return bare?.[1] ?? null;
+}
+
+// Shared Cloudflare-proxied cluster hostname. Origin IPs stay server-only.
+const SHARED_VPS_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, PUBLIC_KITTY_API_ORIGIN);
 const PRIMARY_URL = SHARED_VPS_URL;
-const FALLBACK_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FALLBACK, SHARED_VPS_URL);
 const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, SHARED_VPS_URL);
 const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, SHARED_VPS_URL);
 const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, SHARED_VPS_URL);
@@ -69,70 +102,46 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     id: "primary",
     index: 1,
     label: "Sweden",
-    ip: "176.125.240.251",
     url: PRIMARY_URL,
     host: nodeHost(PRIMARY_URL),
     location: "Sweden",
     timezone: "Europe/Stockholm",
-    operator: "AlexHost SRL / AS200019",
-    note:
-      "Primary cluster node (Stockholm). AlexHost is Moldova-based (HQ Chisinau); this IP is geolocated to their Stockholm POP.",
-  },
-  {
-    id: "fallback",
-    index: 2,
-    label: "Switzerland",
-    ip: "92.119.165.226",
-    url: FALLBACK_URL,
-    host: nodeHost(FALLBACK_URL),
-    location: "Zug, Switzerland",
-    timezone: "Europe/Zurich",
-    operator: "LAIN / AS211507 (Julian Achter)",
-    note: "Restored secondary cluster node (Zug). Maps to API id `secondary`.",
   },
   {
     id: "third-choice",
-    index: 3,
+    index: 2,
     label: "Bulgaria",
-    ip: "131.123.42.153",
     url: THIRD_URL,
     host: nodeHost(THIRD_URL),
     location: "Bulgaria",
     timezone: "Europe/Sofia",
-    operator: "Third cluster node",
   },
   {
     id: "fourth-choice",
-    index: 4,
+    index: 3,
     label: "Singapore",
-    ip: "23.111.15.143",
     url: FOURTH_URL,
     host: nodeHost(FOURTH_URL),
     location: "Singapore",
     timezone: "Asia/Singapore",
-    operator: "Fourth cluster node",
   },
   {
     id: "fifth-choice",
-    index: 5,
+    index: 4,
     label: "Netherlands",
-    ip: "94.75.223.124",
     url: FIFTH_URL,
     host: nodeHost(FIFTH_URL),
     location: "Netherlands",
     timezone: "Europe/Amsterdam",
-    operator: "Fifth cluster node",
   },
   {
     id: "sixth-choice",
-    index: 6,
+    index: 5,
     label: "Canada",
-    ip: "184.107.88.54",
     url: SIXTH_URL,
     host: nodeHost(SIXTH_URL),
     location: "Montreal, Canada",
     timezone: "America/Toronto",
-    operator: "Sixth cluster node",
   },
 ];
 
@@ -141,8 +150,9 @@ export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
 
 /** Legacy node ids that may still be stored in local settings / prefs. */
 const LEGACY_KITTY_NODE_ALIASES: Record<string, KittyApiNodeId> = {
-  // API registry id for Switzerland
-  secondary: "fallback",
+  // Retired Switzerland node → Sweden
+  secondary: "primary",
+  fallback: "primary",
   main: "primary",
 };
 
@@ -154,7 +164,6 @@ export function getKittyApiNodeUrl(id: KittyApiNodeId): string {
   return getKittyApiNode(id).url.replace(/\/$/, "");
 }
 
-/** Map a KittyAPI cluster origin URL to our node id. */
 /** Strip protocol, case and trailing slashes so origins compare reliably. */
 function normalizeNodeOrigin(value: string): string {
   return value
@@ -164,9 +173,24 @@ function normalizeNodeOrigin(value: string): string {
     .replace(/\/+$/, "");
 }
 
+/** API registry id → site node id (retired Switzerland `secondary` → primary). */
+const API_NODE_ID_ALIASES: Record<string, KittyApiNodeId> = {
+  primary: "primary",
+  secondary: "primary",
+  fallback: "primary",
+  "third-choice": "third-choice",
+  "fourth-choice": "fourth-choice",
+  "fifth-choice": "fifth-choice",
+  "sixth-choice": "sixth-choice",
+};
+
 export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined): KittyApiNodeId | null {
   if (!origin?.trim()) return null;
-  const normalized = normalizeNodeOrigin(origin);
+  const trimmed = origin.trim();
+  const aliased = API_NODE_ID_ALIASES[trimmed.toLowerCase()];
+  if (aliased) return aliased;
+
+  const normalized = normalizeNodeOrigin(trimmed);
   const match = KITTY_API_NODES.find(
     (node) => normalizeNodeOrigin(node.url) === normalized || node.host.toLowerCase() === normalized,
   );
@@ -189,11 +213,17 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
   if (normalized === "fourth-choice" || normalized === "fourthchoice" || normalized === "4") {
     return "fourth-choice";
   }
-  if (normalized === "third-choice" || normalized === "thirdchoice" || normalized === "3") {
+  if (
+    normalized === "third-choice" ||
+    normalized === "thirdchoice" ||
+    normalized === "3" ||
+    normalized === "2"
+  ) {
+    // "2" was Switzerland; remap to the next live node (Bulgaria).
     return "third-choice";
   }
-  if (normalized === "fallback" || normalized === "secondary" || normalized === "2") {
-    return "fallback";
+  if (normalized === "fallback" || normalized === "secondary") {
+    return "primary";
   }
   if (normalized === "primary" || normalized === "main" || normalized === "1") {
     return "primary";
