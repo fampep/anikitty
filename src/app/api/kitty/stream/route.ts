@@ -419,7 +419,6 @@ export async function GET(req: Request) {
     data.servedAudio = servedAudio;
     data.audioFallback = audioFallback;
     data.kittyNode = nodeId ?? getKittyRequestNodeId();
-    if (payload.cached) data.cached = true;
     if (typeof raceMeta?.raceMs === "number" && Number.isFinite(raceMeta.raceMs)) {
       data.raceMs = Math.max(0, Math.round(raceMeta.raceMs));
     }
