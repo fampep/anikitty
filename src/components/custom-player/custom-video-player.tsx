@@ -510,6 +510,9 @@ export function AniKittyPlayer({
   const [pipBlocked, setPipBlocked] = useState(false);
   const [inPip, setInPip] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsVisibleRef = useRef(controlsVisible);
+  /** Ignore hide-on-tap until after the reveal tap finishes (mobile show→hide race). */
+  const revealGuardUntilRef = useRef(0);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [captionsOpen, setCaptionsOpen] = useState(false);
@@ -517,6 +520,7 @@ export function AniKittyPlayer({
   const [speedOpen, setSpeedOpen] = useState(false);
   const [audioOpen, setAudioOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [coarsePointer, setCoarsePointer] = useState(false);
   const [castErrorDismissed, setCastErrorDismissed] = useState(false);
   const [seeking, setSeeking] = useState(false);
   const [mediaSeeking, setMediaSeeking] = useState(false);
@@ -688,6 +692,8 @@ export function AniKittyPlayer({
     setHelpOpen(false);
   }, []);
 
+  controlsVisibleRef.current = controlsVisible;
+
   const bumpControls = useCallback(() => {
     setControlsVisible(true);
     clearIdleTimer();
@@ -711,6 +717,15 @@ export function AniKittyPlayer({
       closePopovers();
     }, IDLE_MS);
   }, [clearIdleTimer, closePopovers]);
+
+  const revealControlsFromTouch = useCallback(() => {
+    const wasHidden = !controlsVisibleRef.current;
+    bumpControls();
+    // touchstart shows chrome; the delayed single-tap must not immediately hide it.
+    if (wasHidden) {
+      revealGuardUntilRef.current = Date.now() + TOUCH_DOUBLE_TAP_MS + 120;
+    }
+  }, [bumpControls]);
 
   const hideControls = useCallback(() => {
     if (popoverOpenRef.current || seekingRef.current) return;
@@ -826,6 +841,15 @@ export function AniKittyPlayer({
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sync = () => setReduceMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(hover: none), (pointer: coarse)");
+    const sync = () => setCoarsePointer(mq.matches);
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
@@ -2800,11 +2824,12 @@ export function AniKittyPlayer({
       // Playing + chrome up: hide chrome (don't accidental-pause).
       // Playing + chrome down: reveal. Paused: play.
       if (castingRef.current) {
-        if (!controlsVisible && castRemotePlayingRef.current) {
+        if (!controlsVisibleRef.current && castRemotePlayingRef.current) {
           bumpControls();
           return;
         }
-        if (castRemotePlayingRef.current && controlsVisible) {
+        if (castRemotePlayingRef.current && controlsVisibleRef.current) {
+          if (Date.now() < revealGuardUntilRef.current) return;
           hideControls();
           return;
         }
@@ -2813,11 +2838,13 @@ export function AniKittyPlayer({
       }
       const video = videoRef.current;
       const isPlaying = video ? !video.paused : playing;
-      if (isPlaying && !controlsVisible) {
+      if (isPlaying && !controlsVisibleRef.current) {
         bumpControls();
         return;
       }
-      if (isPlaying && controlsVisible) {
+      if (isPlaying && controlsVisibleRef.current) {
+        // Same gesture that revealed chrome via touchstart — keep it up.
+        if (Date.now() < revealGuardUntilRef.current) return;
         hideControls();
         return;
       }
@@ -3225,7 +3252,7 @@ export function AniKittyPlayer({
           }, 900);
         }
       }}
-      onTouchStart={bumpControls}
+      onTouchStart={revealControlsFromTouch}
     >
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveRegionAnnouncement ||
@@ -4444,16 +4471,27 @@ export function AniKittyPlayer({
                     <SettingsIcon className="h-[18px] w-[18px]" />
                   </IconButton>
                   {moreOpen && (
-                    <div
-                      ref={moreMenuRef}
-                      role="menu"
-                      aria-label="Settings"
-                      className={cn(
-                        "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,420px)] min-w-[180px] overflow-y-auto py-1",
-                        PLAYER_POPOVER_CLASS,
-                        !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
-                      )}
-                    >
+                    <>
+                      {coarsePointer ? (
+                        <button
+                          type="button"
+                          aria-label="Close settings"
+                          className="absolute inset-0 z-[55] bg-black/50"
+                          onClick={() => setMoreOpen(false)}
+                        />
+                      ) : null}
+                      <div
+                        ref={moreMenuRef}
+                        role="menu"
+                        aria-label="Settings"
+                        className={cn(
+                          coarsePointer
+                            ? "absolute inset-x-0 bottom-0 z-[60] max-h-[min(70dvh,420px)] w-full overflow-y-auto overscroll-contain rounded-t-xl border-x-0 border-b-0 py-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                            : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,420px)] min-w-[180px] overflow-y-auto py-1",
+                          PLAYER_POPOVER_CLASS,
+                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                        )}
+                      >
                       <MenuSection title="Volume" className="sm:hidden">
                         <MenuItem
                           active={!effectiveMuted}
@@ -4638,6 +4676,7 @@ export function AniKittyPlayer({
                         </MenuItem>
                       </MenuSection>
                     </div>
+                    </>
                   )}
                 </div>
 

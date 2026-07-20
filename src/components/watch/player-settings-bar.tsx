@@ -193,8 +193,8 @@ export default function PlayerSettingsBar({
       </div>
 
       {playerSettingsOpen && (
-        <div className="px-3 py-3 space-y-3">
-          <div className="flex items-center gap-1 rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-1">
+        <div className="max-h-[min(60dvh,28rem)] space-y-3 overflow-y-auto overscroll-contain px-3 py-3 sm:max-h-none sm:overflow-visible">
+          <div className="flex items-center gap-1 rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-1 sticky top-0 z-[1] bg-muted/95 dark:bg-zinc-950/95 backdrop-blur-sm sm:static sm:bg-muted/40 sm:dark:bg-white/[0.03] sm:backdrop-blur-none">
             {settingsTabs.map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
