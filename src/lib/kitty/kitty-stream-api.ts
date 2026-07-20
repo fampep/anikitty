@@ -42,6 +42,8 @@ export type FetchKittyStreamOpts = {
   directOnly?: boolean;
   /** MegaPlay / Anikoto — pick `HS:` site servers before soft-sub lines. */
   preferHardSub?: boolean;
+  /** Bust KittyAPI persistent stream_links and re-resolve. */
+  refresh?: boolean;
   /** Pin to one cluster node (disables cross-node sequential failover when set with failover false). */
   nodeId?: KittyApiNodeId;
   /** Default true. Race probes set false so each attempt stays on one node. */
@@ -131,6 +133,7 @@ export async function fetchKittyStreamDirect(
     episode: opts.episode,
     audio: opts.audio,
     title: opts.title,
+    refresh: opts.refresh,
   });
 
   return fetchKittyStreamPath(path, timeoutMs, fetchOpts);

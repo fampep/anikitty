@@ -44,12 +44,18 @@ export interface KittyStreamResponse {
   subtitleSource?: string;
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
+  /** KittyAPI served a persistent stored stream URL (indefinite link cache). */
+  cached?: boolean;
   error?: string;
   /** Node that won the stream race (or the pinned node). */
   kittyNode?: KittyApiNodeId;
   /** Wall-clock ms for the CDN race when kittyNode=auto. */
   raceMs?: number;
 }
+
+/** Keep resolved streams in the client — KittyAPI already persists the upstream link indefinitely. */
+export const KITTY_STREAM_STALE_MS = 24 * 60 * 60 * 1000;
+export const KITTY_STREAM_GC_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const getKittyStream = async (
   anilistId: number,
@@ -62,6 +68,7 @@ export const getKittyStream = async (
   preferHardSub?: boolean,
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
+  refresh?: boolean,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -76,9 +83,11 @@ export const getKittyStream = async (
       ...(excludeKittyNodes?.length
         ? { excludeKittyNodes: excludeKittyNodes.join(",") }
         : {}),
+      ...(refresh ? { refresh: "1" } : {}),
     },
     signal,
-    timeout: 22_000,
+    // Cached hits are fast; cold extract can still need headroom.
+    timeout: refresh ? 45_000 : 22_000,
   });
   return res.data;
 };
@@ -95,6 +104,7 @@ export function buildKittyStreamQueryKey(
   preferHardSub?: boolean,
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
+  refresh?: boolean,
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -107,6 +117,7 @@ export function buildKittyStreamQueryKey(
     preferHardSub === true,
     linkId ?? "",
     excludeKittyNodes?.length ? excludeKittyNodes.slice().sort().join(",") : "",
+    refresh === true,
   ];
 }
 
@@ -165,6 +176,7 @@ export const useGetKittyStream = (
   preferHardSub = false,
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
+  refresh = false,
 ) => {
   const abortRef = useRef<AbortController | null>(null);
 
@@ -186,6 +198,7 @@ export const useGetKittyStream = (
       preferHardSub,
       linkId,
       excludeKittyNodes,
+      refresh,
     ),
     queryFn: async () => {
       abortRef.current?.abort();
@@ -203,6 +216,7 @@ export const useGetKittyStream = (
           preferHardSub,
           linkId,
           excludeKittyNodes,
+          refresh,
         );
       } finally {
         if (abortRef.current === controller) {
@@ -212,9 +226,10 @@ export const useGetKittyStream = (
     },
     enabled: !!anilistId && !!episode && parseInt(episode, 10) > 0,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    staleTime: 30_000,
-    gcTime: 5 * 60 * 1000,
+    // Persistent KittyAPI links — don't re-hit on every remount.
+    refetchOnMount: false,
+    staleTime: KITTY_STREAM_STALE_MS,
+    gcTime: KITTY_STREAM_GC_MS,
     placeholderData: keepPreviousData,
     retry: false,
   });

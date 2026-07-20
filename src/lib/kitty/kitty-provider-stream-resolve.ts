@@ -38,6 +38,7 @@ export async function fetchKittyStreamDirectForProvider(opts: {
   audio: "sub" | "dub";
   title?: string | null;
   timeoutMs?: number;
+  refresh?: boolean;
 }): Promise<KittyStreamPayload | null> {
   const timeoutMs = opts.timeoutMs ?? 25_000;
   try {
@@ -48,6 +49,7 @@ export async function fetchKittyStreamDirectForProvider(opts: {
         episode: opts.episode,
         audio: opts.audio,
         title: opts.title,
+        refresh: opts.refresh,
       }),
       {
         cache: "no-store",

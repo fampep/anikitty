@@ -153,6 +153,8 @@ type StreamPayload = {
   subtitleSource?: string;
   servedAudio?: "sub" | "dub";
   audioFallback?: boolean;
+  /** KittyAPI returned a persistent stored stream URL. */
+  cached?: boolean;
   error?: string;
   /** Cluster node that won the stream race (or the pinned kittyNode). */
   kittyNode?: KittyApiNodeId;
@@ -190,6 +192,8 @@ export async function GET(req: Request) {
   const animoServerParam = searchParams.get("animoServer");
   const linkIdParam = searchParams.get("linkId")?.trim() || undefined;
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
+  const refreshStream =
+    searchParams.get("refresh") === "1" || searchParams.get("refresh") === "true";
   const raceCandidates = kittyNodeRaceOrder(parseExcludeKittyNodes(searchParams.get("excludeKittyNodes")));
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -415,6 +419,7 @@ export async function GET(req: Request) {
     data.servedAudio = servedAudio;
     data.audioFallback = audioFallback;
     data.kittyNode = nodeId ?? getKittyRequestNodeId();
+    if (payload.cached) data.cached = true;
     if (typeof raceMeta?.raceMs === "number" && Number.isFinite(raceMeta.raceMs)) {
       data.raceMs = Math.max(0, Math.round(raceMeta.raceMs));
     }
@@ -422,6 +427,8 @@ export async function GET(req: Request) {
     return Response.json(data, {
       headers: {
         "Set-Cookie": hlsSessionCookieHeader(sessionId),
+        // Proxied URLs are session-bound; browser must not reuse the JSON body.
+        // React Query keeps the resolved stream client-side for 24h.
         "Cache-Control": "private, no-store",
       },
     });
@@ -466,6 +473,7 @@ export async function GET(req: Request) {
             title: titleParam,
             directOnly: true,
             preferHardSub,
+            refresh: refreshStream,
           },
           raceCandidates,
         );
@@ -473,6 +481,7 @@ export async function GET(req: Request) {
         wonNode = raced.nodeId;
         raceMs = raced.raceMs;
         const payload = raced.stream as StreamPayload;
+        if (raced.stream.cached) payload.cached = true;
         const serverLabel = payload.server;
         if (typeof serverLabel === "string") {
           const trimmed = serverLabel.trim();
@@ -489,11 +498,13 @@ export async function GET(req: Request) {
         title: titleParam,
         directOnly: true,
         preferHardSub,
+        refresh: refreshStream,
       });
 
       if (!streamResult?.file) return null;
 
       const payload = streamResult as StreamPayload;
+      if (streamResult.cached) payload.cached = true;
       const serverLabel = payload.server;
       if (typeof serverLabel === "string") {
         const trimmed = serverLabel.trim();

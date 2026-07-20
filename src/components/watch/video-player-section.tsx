@@ -17,6 +17,7 @@ import {
   getKittyStream,
   isKittyStreamAbortError,
   isKittyNodeFailoverError,
+  KITTY_STREAM_STALE_MS,
   type KittyProvider,
   type KittyTrack,
   type KittyStreamNodeParam,
@@ -344,6 +345,8 @@ const VideoPlayerSection = () => {
   const triedKittyNodesRef = useRef(new Set<KittyApiNodeId>());
   const fallbackBusyRef = useRef(false);
   const remintAttemptedRef = useRef(false);
+  const linkRefreshAttemptedRef = useRef(false);
+  const [streamRefresh, setStreamRefresh] = useState(false);
   const [playbackToken, setPlaybackToken] = useState(0);
   const [streamLinkId, setStreamLinkId] = useState<string | null>(null);
   const [manualStreamFile, setManualStreamFile] = useState<string | null>(null);
@@ -351,6 +354,11 @@ const VideoPlayerSection = () => {
   const [siteEpisodeDataIds, setSiteEpisodeDataIds] = useState<string | null>(null);
   const [showFallbackHint, setShowFallbackHint] = useState(false);
   const [pipSupported, setPipSupported] = useState(false);
+
+  useEffect(() => {
+    setStreamRefresh(false);
+    linkRefreshAttemptedRef.current = false;
+  }, [anilistId, episodeNo, provider, streamAudio]);
 
   // Live position tracking — updated every timeupdate event (no re-render)
   const liveTimeRef = useRef(0);
@@ -773,6 +781,7 @@ const VideoPlayerSection = () => {
         false,
         streamLinkId,
         excludeKittyNodes,
+        streamRefresh,
       ),
     });
     fallbackBusyRef.current = false;
@@ -788,6 +797,7 @@ const VideoPlayerSection = () => {
     streamLinkId,
     streamKittyNode,
     excludeKittyNodes,
+    streamRefresh,
   ]);
 
   // On finishing the final episode the server moves the title to Completed —
@@ -902,15 +912,17 @@ const VideoPlayerSection = () => {
     false,
     streamLinkId,
     excludeKittyNodes,
+    streamRefresh,
   );
 
   // Remember the race winner for labels / remints — not geo/ping routing.
+  // Stick to that node for the rest of the episode so stored links stay fast.
   useEffect(() => {
     const won = streamData?.kittyNode;
     if (!won || !isKittyApiNodeId(won)) return;
-    if (kittyProxyNode === won) return;
-    setKittyProxyNode(won);
-  }, [streamData?.kittyNode, kittyProxyNode, setKittyProxyNode]);
+    if (kittyProxyNode !== won) setKittyProxyNode(won);
+    if (streamKittyNode === "auto") setStreamKittyNode(won);
+  }, [streamData?.kittyNode, kittyProxyNode, setKittyProxyNode, streamKittyNode]);
 
   const streamQueryEnabled =
     animeMatchesUrl &&
@@ -932,6 +944,12 @@ const VideoPlayerSection = () => {
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
   const loadingStuck = useStreamLoadingStuck(showStreamLoading, 14_000);
+
+  // After a forced re-resolve succeeds, drop refresh so later hits use the stored link.
+  useEffect(() => {
+    if (!streamReady || !streamRefresh) return;
+    setStreamRefresh(false);
+  }, [streamReady, streamRefresh]);
 
   const togglePip = useCallback(() => {
     const video = playerRef.current?.video;
@@ -1017,7 +1035,7 @@ const VideoPlayerSection = () => {
           animeTitle,
           "auto",
         ),
-      staleTime: 30_000,
+      staleTime: KITTY_STREAM_STALE_MS,
     });
     }, 45_000);
 
@@ -1423,6 +1441,23 @@ const VideoPlayerSection = () => {
         return;
       }
 
+      const deadUpstream =
+        info?.status === 404
+        || info?.status === 410
+        || info?.type === "networkError"
+        || info?.details === "manifestLoadError"
+        || info?.details === "levelLoadError";
+
+      if (deadUpstream && !linkRefreshAttemptedRef.current) {
+        linkRefreshAttemptedRef.current = true;
+        preservePlaybackPosition();
+        setManualStreamFile(null);
+        setManualStreamHeaders(null);
+        toast.message(t("watch.refreshingPlayback"));
+        setStreamRefresh(true);
+        return;
+      }
+
       const gatewayStatus =
         info?.status === 502 ||
         info?.status === 503 ||
@@ -1589,7 +1624,10 @@ const VideoPlayerSection = () => {
       <div className="flex flex-col gap-2 sm:gap-2.5">
         <WatchErrorPanel
           error={new Error(streamFailMessage)}
-          onRetry={() => void retryStream()}
+          onRetry={() => {
+            linkRefreshAttemptedRef.current = true;
+            setStreamRefresh(true);
+          }}
           onTryAnother={nextFallback ? handleTryAnotherServer : undefined}
           tryAnotherLabel={
             nextFallbackLabel
@@ -1659,7 +1697,10 @@ const VideoPlayerSection = () => {
       <div className="flex flex-col gap-3">
         <WatchErrorPanel
           error={new Error(streamData?.error ?? t("watch.streamNotFound"))}
-          onRetry={() => void retryStream()}
+          onRetry={() => {
+            linkRefreshAttemptedRef.current = true;
+            setStreamRefresh(true);
+          }}
           onTryAnother={nextFallback ? handleTryAnotherServer : undefined}
           tryAnotherLabel={
             nextFallbackLabel

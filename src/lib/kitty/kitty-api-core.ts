@@ -97,6 +97,8 @@ export type KittyStreamPayload = {
   thumbnails?: string | null;
   /** Actual audio on the stream when KittyAPI reports it (may differ from the request). */
   audio?: "sub" | "dub";
+  /** True when KittyAPI returned a persistent stored stream URL. */
+  cached?: boolean;
   error?: string;
 };
 
@@ -315,6 +317,8 @@ export function buildKittyStreamDirectPath(opts: {
   episode: number | string;
   audio: "sub" | "dub";
   title?: string | null;
+  /** Bust persistent stream_links row and re-resolve. */
+  refresh?: boolean;
 }): string {
   const params = new URLSearchParams({
     anilistId: String(opts.anilistId),
@@ -324,6 +328,7 @@ export function buildKittyStreamDirectPath(opts: {
 
   const title = opts.title?.trim();
   if (title) params.set("title", title);
+  if (opts.refresh) params.set("refresh", "1");
 
   return `/provider/${encodeURIComponent(opts.provider)}/stream-direct?${params.toString()}`;
 }
@@ -401,6 +406,7 @@ export function parseKittyStreamJson(
     allServers: parseKittyStreamQualities(row.allServers),
     thumbnails: thumbnailsRaw,
     audio: parseKittyStreamAudio(row),
+    cached: row.cached === true || row.cached === "true",
     server:
       typeof row.server === "string"
         ? row.server
