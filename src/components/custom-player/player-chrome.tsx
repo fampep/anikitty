@@ -148,6 +148,9 @@ export function VerticalSliderPopover({
         PLAYER_POPOVER_MOTION_CLASS,
       )}
     >
+      <span className="text-[10px] font-medium tabular-nums tracking-wide text-white/80" aria-hidden>
+        {display}
+      </span>
       <input
         type="range"
         min={min}
@@ -160,72 +163,19 @@ export function VerticalSliderPopover({
         aria-valuemax={max}
         aria-valuenow={Number(value.toFixed(2))}
         aria-valuetext={display}
-        className="h-24 w-1.5 cursor-pointer appearance-none rounded-full bg-white/20 accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 sm:h-20 sm:w-1"
+        className="h-28 w-1.5 cursor-pointer appearance-none rounded-full bg-white/20 accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 sm:h-24 sm:w-1"
         style={{ writingMode: "vertical-lr", direction: "rtl" }}
-        onChange={(e) => onChange(Number(e.target.value))}
-        onPointerDown={(e) => e.stopPropagation()}
-      />
-      <span className="text-[10px] font-medium tabular-nums tracking-wide text-white/80" aria-hidden>
-        {display}
-      </span>
-      {footer ? (
-        <span className="max-w-[5.5rem] text-center text-[9px] leading-tight text-white/40">
-          {footer}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-/** Compact horizontal volume rail — desktop hover / open (zinc, no chrome bloat). */
-export function HorizontalVolumeRail({
-  label,
-  value,
-  display,
-  onChange,
-  footer,
-}: {
-  label: string;
-  value: number;
-  display: string;
-  onChange: (value: number) => void;
-  footer?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "absolute bottom-full left-1/2 z-40 mb-2.5 flex -translate-x-1/2 items-center gap-2.5 px-3 py-2.5",
-        PLAYER_POPOVER_CLASS,
-        PLAYER_POPOVER_MOTION_CLASS,
-      )}
-    >
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={value}
-        role="slider"
-        aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={1}
-        aria-valuenow={Number(value.toFixed(2))}
-        aria-valuetext={display}
-        className="h-1 w-[5.5rem] cursor-pointer appearance-none rounded-full bg-white/20 accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
         onChange={(e) => onChange(Number(e.target.value))}
         onPointerDown={(e) => e.stopPropagation()}
         onWheel={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          const delta = e.deltaY > 0 || e.deltaX > 0 ? -0.05 : 0.05;
-          onChange(Math.min(1, Math.max(0, value + delta)));
+          const delta = e.deltaY > 0 || e.deltaX > 0 ? -step * 5 : step * 5;
+          onChange(Math.min(max, Math.max(min, value + delta)));
         }}
       />
-      <span className="min-w-[2.25rem] text-right text-[10px] font-medium tabular-nums tracking-wide text-white/80" aria-hidden>
-        {display}
-      </span>
       {footer ? (
-        <span className="max-w-[4.5rem] text-[9px] leading-tight text-white/40">
+        <span className="max-w-[5.5rem] text-center text-[9px] leading-tight text-white/40">
           {footer}
         </span>
       ) : null}
@@ -359,17 +309,17 @@ export function SeekPreviewCard({
   const previewW = Math.round(tileW * scale);
   const previewH = Math.round(tileH * scale);
   // Half-width clamp keeps the card inside the bar at both edges.
-  const halfW = Math.max(24, Math.round(previewW / 2));
+  const halfW = show ? Math.max(24, Math.round(previewW / 2)) : 36;
 
   return (
     <div
-      className="pointer-events-none absolute bottom-full z-10 mb-2"
+      className="pointer-events-none absolute bottom-full z-10 mb-3"
       style={{
         left: `clamp(${halfW}px, ${leftPct.toFixed(2)}%, calc(100% - ${halfW}px))`,
         transform: "translateX(-50%)",
       }}
     >
-      <div className="flex flex-col items-center gap-1.5">
+      <div className="flex flex-col items-center gap-1">
         {show ? (
           <div
             className="relative overflow-hidden rounded-md border border-white/[0.14] bg-zinc-950"
@@ -392,19 +342,36 @@ export function SeekPreviewCard({
                   : undefined
               }
             />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-1.5 pb-1 pt-5">
+              <p className="text-center text-[10px] font-medium tabular-nums tracking-wide text-white">
+                {formatPlayerTime(time)}
+                {skipKind ? (
+                  <span className="ml-1.5 text-white/55">
+                    {skipKind === "intro" ? "Intro" : "Outro"}
+                  </span>
+                ) : null}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md border border-white/[0.12] bg-zinc-950/92 px-2 py-0.5 text-[10px] font-medium tabular-nums tracking-wide text-white backdrop-blur-md">
+            {formatPlayerTime(time)}
+            {skipKind ? (
+              <span className="ml-1.5 text-white/55">
+                {skipKind === "intro" ? "Intro" : "Outro"}
+              </span>
+            ) : null}
+            {bufferAheadSecs != null ? (
+              <span className="ml-1.5 text-white/35">· {bufferAheadSecs}s</span>
+            ) : null}
+          </div>
+        )}
+        {show && bufferAheadSecs != null ? (
+          <div className="rounded-md border border-white/[0.1] bg-zinc-950/88 px-1.5 py-0.5 text-[9px] tabular-nums tracking-wide text-white/45 backdrop-blur-md">
+            {bufferAheadSecs}s buffered
           </div>
         ) : null}
-        <div className="rounded-md border border-white/[0.1] bg-zinc-950/92 px-2 py-0.5 text-[10px] font-medium tabular-nums tracking-wide text-white backdrop-blur-md">
-          {formatPlayerTime(time)}
-          {skipKind ? (
-            <span className="ml-1.5 text-white/55">
-              {skipKind === "intro" ? "Intro" : "Outro"}
-            </span>
-          ) : null}
-          {bufferAheadSecs != null ? (
-            <span className="ml-1.5 text-white/35">· {bufferAheadSecs}s</span>
-          ) : null}
-        </div>
+        <div className="h-1.5 w-px bg-white/30" aria-hidden />
       </div>
     </div>
   );

@@ -57,20 +57,19 @@ import {
 import {
   AirPlayConnectedIcon,
   AirPlayIcon,
-  CaptionsIcon,
   CastConnectedIcon,
   CastIcon,
   EpisodeNextIcon,
   EpisodePrevIcon,
   FullscreenExitIcon,
   FullscreenIcon,
-  MoreIcon,
   PauseIcon,
   PipIcon,
   PlayIcon,
   PlayOutlineIcon,
   SeekBackIcon,
   SeekForwardIcon,
+  SettingsIcon,
   VolumeIcon,
   VolumeLowIcon,
   VolumeMuteIcon,
@@ -83,7 +82,6 @@ import {
 } from "@/lib/player/anime4k";
 import { useSettingsStore } from "@/store/settings-store";
 import {
-  HorizontalVolumeRail,
   IconButton,
   MenuItem,
   MenuSection,
@@ -3425,27 +3423,6 @@ export function AniKittyPlayer({
         </div>
       </div>
 
-      {/* Episode title chip — sparse top chrome */}
-      {title && chromeVisible && !playbackIssue ? (
-        <div
-          className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 z-30 transition-[opacity,transform] duration-300 ease-out",
-            chromeVisible
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-1 opacity-0",
-            reduceMotion && "transition-none",
-          )}
-        >
-          <div
-            className="bg-gradient-to-b from-black/70 via-black/30 to-transparent pt-[max(0.55rem,env(safe-area-inset-top))] pb-9"
-          >
-            <p className="truncate px-3.5 text-[12px] font-medium tracking-wide text-white/85 sm:px-4 sm:text-[13px]">
-              {title}
-            </p>
-          </div>
-        </div>
-      ) : null}
-
       {/* Buffering / source-loading spinner */}
       <div
         className={cn(
@@ -3487,7 +3464,7 @@ export function AniKittyPlayer({
         </div>
       </div>
 
-      {/* Center play overlay — smooth scale-in when paused */}
+      {/* Center play overlay — optically centered over the video */}
       <button
         type="button"
         aria-label="Play"
@@ -3503,7 +3480,7 @@ export function AniKittyPlayer({
             : "pointer-events-none scale-90 opacity-0",
         )}
       >
-        <PlayOutlineIcon className="h-7 w-7 translate-x-0.5" />
+        <PlayOutlineIcon className="h-7 w-7" />
       </button>
 
       {/* Next episode + skip intro/outro overlays */}
@@ -3846,22 +3823,26 @@ export function AniKittyPlayer({
                   )}
                 </IconButton>
                 <IconButton
-                  label="Seek back"
+                  label={`Seek back ${seekStepSeconds || SEEK_STEP} seconds`}
                   onClick={() => {
                     seekBy(-(seekStepSeconds || SEEK_STEP));
                   }}
                   className="hidden min-[400px]:inline-flex"
                 >
-                  <SeekBackIcon className="h-5 w-5" />
+                  <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
+                    −{seekStepSeconds || SEEK_STEP}
+                  </span>
                 </IconButton>
                 <IconButton
-                  label="Seek forward"
+                  label={`Seek forward ${seekStepSeconds || SEEK_STEP} seconds`}
                   onClick={() => {
                     seekBy(seekStepSeconds || SEEK_STEP);
                   }}
                   className="hidden min-[400px]:inline-flex"
                 >
-                  <SeekForwardIcon className="h-5 w-5" />
+                  <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
+                    +{seekStepSeconds || SEEK_STEP}
+                  </span>
                 </IconButton>
                 {onPrevEpisode || onNextEpisode ? (
                   <>
@@ -3936,10 +3917,13 @@ export function AniKittyPlayer({
                       ariaPressed={Boolean(selectedCaptionId)}
                       onClick={onCaptionsClick}
                       className={cn(
+                        "min-w-10 font-semibold tracking-wide",
                         !selectedCaptionId && "text-white/45 hover:text-white/80",
                       )}
                     >
-                      <CaptionsIcon className="h-[18px] w-[18px]" />
+                      <span className="select-none text-[11px] leading-none" aria-hidden>
+                        CC
+                      </span>
                     </IconButton>
                     {captionsOpen ? (
                       <div
@@ -4289,45 +4273,30 @@ export function AniKittyPlayer({
                       <VolumeIcon className="h-[18px] w-[18px]" />
                     )}
                   </IconButton>
-                  {volumeOpen &&
-                    (prefersCoarsePointer() ? (
-                      <VerticalSliderPopover
-                        label="Volume"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={effectiveVolume}
-                        display={`${Math.round(effectiveVolume * 100)}%`}
-                        onChange={(v) => setVolumeLevel(v, { hint: true })}
-                        footer={
-                          iosVolumeLocked && !casting
-                            ? "iOS uses system volume"
-                            : casting
-                              ? "Cast volume"
-                              : undefined
-                        }
-                      />
-                    ) : (
-                      <HorizontalVolumeRail
-                        label="Volume"
-                        value={effectiveVolume}
-                        display={`${Math.round(effectiveVolume * 100)}%`}
-                        onChange={(v) => setVolumeLevel(v, { hint: true })}
-                        footer={
-                          iosVolumeLocked && !casting
-                            ? "iOS uses system volume"
-                            : casting
-                              ? "Cast volume"
-                              : undefined
-                        }
-                      />
-                    ))}
+                  {volumeOpen ? (
+                    <VerticalSliderPopover
+                      label="Volume"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={effectiveVolume}
+                      display={`${Math.round(effectiveVolume * 100)}%`}
+                      onChange={(v) => setVolumeLevel(v, { hint: true })}
+                      footer={
+                        iosVolumeLocked && !casting
+                          ? "iOS uses system volume"
+                          : casting
+                            ? "Cast volume"
+                            : undefined
+                      }
+                    />
+                  ) : null}
                 </div>
 
                 <div className="relative">
                   <IconButton
                     buttonRef={moreTriggerRef}
-                    label="More options"
+                    label="Settings"
                     ariaExpanded={moreOpen}
                     ariaHasPopup="menu"
                     onClick={() => {
@@ -4340,13 +4309,13 @@ export function AniKittyPlayer({
                       bumpControls();
                     }}
                   >
-                    <MoreIcon className="h-[18px] w-[18px]" />
+                    <SettingsIcon className="h-[18px] w-[18px]" />
                   </IconButton>
                   {moreOpen && (
                     <div
                       ref={moreMenuRef}
                       role="menu"
-                      aria-label="Player options"
+                      aria-label="Settings"
                       className={cn(
                         "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,420px)] min-w-[180px] overflow-y-auto py-1",
                         PLAYER_POPOVER_CLASS,
