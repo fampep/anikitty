@@ -58,6 +58,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniWaves",
+  "MKissa",
   "AniKuro",
   "Anikoto",
   "AniWatch",
@@ -65,7 +66,6 @@ export const KITTY_PROVIDERS = [
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "MKissa",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -104,6 +104,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "MKissa",
+    label: "Echo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · hard subs · mirrors",
   },
   {
     id: "AniKuro",
@@ -185,24 +197,13 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB · soft EN subs",
   },
-  {
-    id: "MKissa",
-    label: "Echo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · DUB · hard subs · mirrors",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniWaves",
+  "MKissa",
   "AniKuro",
   "Anikoto",
   "AniWatch",
@@ -210,7 +211,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "MKissa",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
