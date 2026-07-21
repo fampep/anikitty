@@ -1316,7 +1316,8 @@ html[data-user-theme] .dark ::selection {
   object-fit: contain !important;
 }
 
-/* Keep custom chrome above the video layer in document / CSS fullscreen. */
+/* Keep custom chrome above the video layer in document / CSS fullscreen.
+   Do not force opacity/visibility — idle auto-hide must still work. */
 .anikitty-fs-host:fullscreen [data-ak-chrome],
 .anikitty-fs-host:-webkit-full-screen [data-ak-chrome],
 .anikitty-fs-host:-moz-full-screen [data-ak-chrome],
@@ -1325,10 +1326,6 @@ html[data-user-theme] .dark ::selection {
 .anikitty-player:-webkit-full-screen [data-ak-chrome],
 .anikitty-player:-moz-full-screen [data-ak-chrome] {
   z-index: 2147483647 !important;
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  transform: none !important;
-  visibility: visible !important;
 }
 
 /* Ensure the player (and its overlays) stay in the fullscreen layer. */

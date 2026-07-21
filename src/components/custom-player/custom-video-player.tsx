@@ -1145,14 +1145,7 @@ export function AniKittyPlayer({
     : muted
       ? 0
       : volume;
-  const chromeVisible =
-    controlsVisible ||
-    seeking ||
-    !effectivePlaying ||
-    // Keep chrome up in immersive modes — phones often fail to re-show it after
-    // document fullscreen if the first idle hide wins the race.
-    fullscreen ||
-    cssFullscreen;
+  const chromeVisible = controlsVisible || seeking || !effectivePlaying;
 
 
   // Keep local <video> quiet + frozen while Chromecast owns playback (incl. remount).
