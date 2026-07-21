@@ -274,10 +274,10 @@ export function isFirefoxMobile(): boolean {
 
 /**
  * Prefer fixed CSS fullscreen over the document Fullscreen API when custom
- * controls would otherwise disappear (iOS Safari, Firefox Android).
+ * controls would otherwise disappear (iOS Safari, Firefox/Android mobile, etc.).
  */
 export function prefersCssFullscreen(): boolean {
-  return isAppleTouchDevice() || isFirefoxMobile();
+  return isAppleTouchDevice() || isFirefoxMobile() || prefersCoarsePointer();
 }
 
 export function canPlayNativeHls(video: HTMLVideoElement): boolean {

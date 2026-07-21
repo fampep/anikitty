@@ -511,6 +511,7 @@ export function AniKittyPlayer({
   /** iOS / fallback: fixed-viewport FS that keeps custom chrome (no native <video> FS). */
   const [cssFullscreen, setCssFullscreen] = useState(false);
   const cssFullscreenRef = useRef(false);
+  const wasFsRef = useRef(false);
   const [pipSupported, setPipSupported] = useState(false);
   const [pipBlocked, setPipBlocked] = useState(false);
   const [inPip, setInPip] = useState(false);
@@ -699,6 +700,11 @@ export function AniKittyPlayer({
     clearIdleTimer();
     if (seekingRef.current) return;
     if (chromePinnedRef.current || popoverOpenRef.current) return;
+    const immersiveFs = fullscreen || cssFullscreenRef.current;
+    const coarse =
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none), (pointer: coarse)").matches;
+    const idleMs = immersiveFs && coarse ? 8000 : IDLE_MS;
     if (castingRef.current) {
       if (!castRemotePlayingRef.current) return;
       idleTimerRef.current = setTimeout(() => {
@@ -706,7 +712,7 @@ export function AniKittyPlayer({
         if (popoverOpenRef.current || chromePinnedRef.current) return;
         setControlsVisible(false);
         closePopovers();
-      }, IDLE_MS);
+      }, idleMs);
       return;
     }
     const video = videoRef.current;
@@ -715,17 +721,20 @@ export function AniKittyPlayer({
       if (popoverOpenRef.current || chromePinnedRef.current) return;
       setControlsVisible(false);
       closePopovers();
-    }, IDLE_MS);
-  }, [clearIdleTimer, closePopovers]);
+    }, idleMs);
+  }, [clearIdleTimer, closePopovers, fullscreen]);
 
   const revealControlsFromTouch = useCallback(() => {
     const wasHidden = !controlsVisibleRef.current;
     bumpControls();
     // touchstart shows chrome; the delayed single-tap must not immediately hide it.
     if (wasHidden) {
-      revealGuardUntilRef.current = Date.now() + TOUCH_DOUBLE_TAP_MS + 120;
+      const immersiveFs = fullscreen || cssFullscreenRef.current;
+      const guardMs =
+        TOUCH_DOUBLE_TAP_MS + 120 + (immersiveFs ? 800 : 0);
+      revealGuardUntilRef.current = Date.now() + guardMs;
     }
-  }, [bumpControls]);
+  }, [bumpControls, fullscreen]);
 
   const hideControls = useCallback(() => {
     if (popoverOpenRef.current || seekingRef.current) return;
@@ -742,6 +751,14 @@ export function AniKittyPlayer({
     revealGuardUntilRef.current = Date.now() + 2500;
     bumpControls();
   }, [bumpControls]);
+
+  // Phone fullscreen: show controls on entry and keep them tappable.
+  useEffect(() => {
+    if (!fullscreen && !cssFullscreen) return;
+    setControlsVisible(true);
+    revealGuardUntilRef.current = Date.now() + 3500;
+    bumpControls();
+  }, [fullscreen, cssFullscreen, bumpControls]);
 
   const showSeekFlash = useCallback((side: "left" | "right", secs?: number) => {
     const fromAccum =
@@ -1622,9 +1639,15 @@ export function AniKittyPlayer({
       const target = getFullscreenTarget();
       const hostFs = isElementFullscreen(target) || isElementFullscreen(rootRef.current);
       const wk = video as WebkitVideo;
-      setFullscreen(
-        hostFs || Boolean(wk.webkitDisplayingFullscreen) || cssFullscreenRef.current,
-      );
+      const nowFs =
+        hostFs || Boolean(wk.webkitDisplayingFullscreen) || cssFullscreenRef.current;
+      if (nowFs && !wasFsRef.current && prefersCoarsePointer()) {
+        setControlsVisible(true);
+        revealGuardUntilRef.current = Date.now() + 3500;
+        bumpControlsRef.current();
+      }
+      wasFsRef.current = nowFs;
+      setFullscreen(nowFs);
     };
     const onVideoEnded = () => {
       beginEndedFlowRef.current();
@@ -3245,7 +3268,10 @@ export function AniKittyPlayer({
       )}
       style={cueStyle}
       onMouseMove={bumpControls}
-      onPointerDown={() => {
+      onPointerDown={(e) => {
+        if (e.pointerType === "touch" || e.pointerType === "pen") {
+          revealControlsFromTouch();
+        }
         rootRef.current?.focus({ preventScroll: true });
       }}
       onMouseLeave={() => {
@@ -3296,7 +3322,12 @@ export function AniKittyPlayer({
         aria-hidden={casting || castConnecting || undefined}
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}
-        onPointerDown={surfaceGestures.onPointerDown}
+        onPointerDown={(e) => {
+          if (e.pointerType === "touch" || e.pointerType === "pen") {
+            revealControlsFromTouch();
+          }
+          surfaceGestures.onPointerDown(e);
+        }}
         onPointerMove={surfaceGestures.onPointerMove}
         onPointerUp={surfaceGestures.onPointerUp}
         onPointerCancel={surfaceGestures.onPointerCancel}

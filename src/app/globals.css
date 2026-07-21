@@ -1225,7 +1225,11 @@ html[data-user-theme] .dark ::selection {
 .anikitty-fs-host:fullscreen .anikitty-player,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player,
 .anikitty-fs-host:-moz-full-screen .anikitty-player,
-.anikitty-fs-host--active .anikitty-player {
+.anikitty-fs-host--active .anikitty-player,
+.anikitty-player:fullscreen,
+.anikitty-player:-webkit-full-screen,
+.anikitty-player:-moz-full-screen {
+  position: relative !important;
   flex: 1 1 auto !important;
   width: 100% !important;
   height: 100% !important;
@@ -1233,9 +1237,9 @@ html[data-user-theme] .dark ::selection {
   max-height: none !important;
   aspect-ratio: auto !important;
   border-radius: 0 !important;
+  overflow: hidden !important;
 }
 
-/* Keep <video> under custom chrome — Gecko fullscreen can promote media layers. */
 .anikitty-fs-host:fullscreen .anikitty-player-video,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player-video,
 .anikitty-fs-host:-moz-full-screen .anikitty-player-video,
@@ -1243,7 +1247,10 @@ html[data-user-theme] .dark ::selection {
 .anikitty-player:fullscreen .anikitty-player-video,
 .anikitty-player:-webkit-full-screen .anikitty-player-video,
 .anikitty-player:-moz-full-screen .anikitty-player-video {
-  position: relative !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   z-index: 0 !important;
 }
 
@@ -1254,8 +1261,13 @@ html[data-user-theme] .dark ::selection {
 .anikitty-player:fullscreen [data-ak-chrome],
 .anikitty-player:-webkit-full-screen [data-ak-chrome],
 .anikitty-player:-moz-full-screen [data-ak-chrome] {
+  position: absolute !important;
+  inset-inline: 0 !important;
+  bottom: 0 !important;
   z-index: 2147483647 !important;
   pointer-events: none;
+  opacity: 1;
+  visibility: visible;
 }
 
 .anikitty-fs-host:fullscreen [data-ak-chrome] .pointer-events-auto,
