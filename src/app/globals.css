@@ -1193,112 +1193,54 @@ html[data-user-theme] .dark ::selection {
   height: 100%;
 }
 
-/* Watch-page host (wrapper) — document fullscreen + CSS fullscreen fallback */
+/* Watch-page host (wrapper) — document fullscreen + CSS fullscreen fallback (iOS) */
 .anikitty-fs-host:fullscreen,
 .anikitty-fs-host:-webkit-full-screen,
 .anikitty-fs-host:-moz-full-screen,
 .anikitty-fs-host--active {
-  display: block !important;
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  width: 100dvw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  height: 100% !important;
   max-width: none !important;
-  max-height: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
   background: #000 !important;
   border-radius: 0 !important;
-  overflow: hidden !important;
-  isolation: isolate !important;
+}
+
+.anikitty-fs-host--active {
+  position: fixed !important;
+  inset: 0 !important;
   z-index: 2147483646 !important;
-  box-sizing: border-box !important;
+  margin: 0 !important;
 }
 
 .anikitty-fs-host:fullscreen .anikitty-player,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player,
 .anikitty-fs-host:-moz-full-screen .anikitty-player,
-.anikitty-fs-host--active .anikitty-player,
-.anikitty-player.anikitty-player--immersive,
-.anikitty-player:fullscreen,
-.anikitty-player:-webkit-full-screen,
-.anikitty-player:-moz-full-screen {
-  position: absolute !important;
-  inset: 0 !important;
-  display: block !important;
-  flex: none !important;
+.anikitty-fs-host--active .anikitty-player {
   width: 100% !important;
   height: 100% !important;
-  min-width: 100% !important;
-  min-height: 100% !important;
-  max-width: none !important;
   max-height: none !important;
   aspect-ratio: auto !important;
   border-radius: 0 !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
 }
 
-.anikitty-fs-host:fullscreen .anikitty-player-video,
-.anikitty-fs-host:-webkit-full-screen .anikitty-player-video,
-.anikitty-fs-host:-moz-full-screen .anikitty-player-video,
-.anikitty-fs-host--active .anikitty-player-video,
-.anikitty-player.anikitty-player--immersive .anikitty-player-video,
-.anikitty-player:fullscreen .anikitty-player-video,
-.anikitty-player:-webkit-full-screen .anikitty-player-video,
-.anikitty-player:-moz-full-screen .anikitty-player-video {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: contain !important;
-  z-index: 0 !important;
-}
-
+/* Keep custom chrome above the video layer in document fullscreen. */
 .anikitty-fs-host:fullscreen [data-ak-chrome],
 .anikitty-fs-host:-webkit-full-screen [data-ak-chrome],
 .anikitty-fs-host:-moz-full-screen [data-ak-chrome],
 .anikitty-fs-host--active [data-ak-chrome],
-.anikitty-player.anikitty-player--immersive [data-ak-chrome],
 .anikitty-player:fullscreen [data-ak-chrome],
 .anikitty-player:-webkit-full-screen [data-ak-chrome],
 .anikitty-player:-moz-full-screen [data-ak-chrome] {
-  position: absolute !important;
-  inset-inline: 0 !important;
-  bottom: 0 !important;
   z-index: 2147483647 !important;
-  pointer-events: none;
-  opacity: 1;
-  visibility: visible;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-.anikitty-fs-host:fullscreen [data-ak-chrome] .pointer-events-auto,
-.anikitty-fs-host:-webkit-full-screen [data-ak-chrome] .pointer-events-auto,
-.anikitty-fs-host:-moz-full-screen [data-ak-chrome] .pointer-events-auto,
-.anikitty-fs-host--active [data-ak-chrome] .pointer-events-auto,
-.anikitty-player:fullscreen [data-ak-chrome] .pointer-events-auto,
-.anikitty-player:-webkit-full-screen [data-ak-chrome] .pointer-events-auto,
-.anikitty-player:-moz-full-screen [data-ak-chrome] .pointer-events-auto {
-  pointer-events: auto !important;
 }
 
 html.anikitty-css-fs,
 html.anikitty-css-fs body {
   overflow: hidden !important;
   overscroll-behavior: none;
-}
-
-html.anikitty-css-fs .watch-player-stack,
-html.anikitty-css-fs .watch-player-stage,
-html.anikitty-css-fs #watch-player-root {
-  overflow: visible !important;
 }
 
 .anikitty-player .anikitty-player-video::cue {

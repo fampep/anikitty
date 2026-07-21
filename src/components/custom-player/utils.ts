@@ -265,19 +265,18 @@ export function isAppleTouchDevice(): boolean {
 export function isFirefoxMobile(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
-  const isGecko = /Firefox|FxiOS|Gecko\//.test(ua);
-  if (!isGecko) return false;
-  // Android Firefox, Firefox iOS, or any touch-first viewport.
-  if (/Android|Mobile|Tablet|iPhone|iPad/i.test(ua)) return true;
+  if (!/Firefox/i.test(ua)) return false;
+  if (/Android|Mobile|Tablet/i.test(ua)) return true;
   return prefersCoarsePointer();
 }
 
 /**
- * Prefer fixed CSS fullscreen over the document Fullscreen API when custom
- * controls would otherwise disappear (iOS Safari, Firefox/Android mobile, etc.).
+ * Prefer fixed CSS fullscreen only on iOS Safari — native <video> FS hides
+ * custom chrome there. Android (incl. Firefox) uses the document Fullscreen API
+ * like the working July 20 build.
  */
 export function prefersCssFullscreen(): boolean {
-  return isAppleTouchDevice() || isFirefoxMobile() || prefersCoarsePointer();
+  return isAppleTouchDevice();
 }
 
 export function canPlayNativeHls(video: HTMLVideoElement): boolean {

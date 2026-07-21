@@ -15,7 +15,6 @@ import Hls from "hls.js";
 import { pickHlsAudioTrack } from "@/lib/kitty/hls-audio";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import {
-  applyCssFullscreenDom,
   exitElementFullscreen,
   elementSupportsFullscreenRequest,
   getFullscreenElement,
@@ -511,7 +510,6 @@ export function AniKittyPlayer({
   /** iOS / fallback: fixed-viewport FS that keeps custom chrome (no native <video> FS). */
   const [cssFullscreen, setCssFullscreen] = useState(false);
   const cssFullscreenRef = useRef(false);
-  const wasFsRef = useRef(false);
   const [pipSupported, setPipSupported] = useState(false);
   const [pipBlocked, setPipBlocked] = useState(false);
   const [inPip, setInPip] = useState(false);
@@ -599,12 +597,17 @@ export function AniKittyPlayer({
     cssFullscreenRef.current = cssFullscreen;
   }, [cssFullscreen]);
 
-  // CSS fullscreen — portal host to body so overflow-hidden ancestors can't clip it.
+  // CSS fullscreen host class + scroll lock (iOS fallback only).
   useEffect(() => {
     const host = getFullscreenTarget();
-    applyCssFullscreenDom(host, cssFullscreen);
+    if (!host) return;
+    host.classList.toggle("anikitty-fs-host--active", cssFullscreen);
+    document.documentElement.classList.toggle("anikitty-css-fs", cssFullscreen);
+    document.body.classList.toggle("anikitty-css-fs", cssFullscreen);
     return () => {
-      applyCssFullscreenDom(host, false);
+      host.classList.remove("anikitty-fs-host--active");
+      document.documentElement.classList.remove("anikitty-css-fs");
+      document.body.classList.remove("anikitty-css-fs");
     };
   }, [cssFullscreen, getFullscreenTarget]);
 
@@ -700,11 +703,6 @@ export function AniKittyPlayer({
     clearIdleTimer();
     if (seekingRef.current) return;
     if (chromePinnedRef.current || popoverOpenRef.current) return;
-    const immersiveFs = fullscreen || cssFullscreenRef.current;
-    const coarse =
-      typeof window !== "undefined" &&
-      window.matchMedia("(hover: none), (pointer: coarse)").matches;
-    const idleMs = immersiveFs && coarse ? 8000 : IDLE_MS;
     if (castingRef.current) {
       if (!castRemotePlayingRef.current) return;
       idleTimerRef.current = setTimeout(() => {
@@ -712,7 +710,7 @@ export function AniKittyPlayer({
         if (popoverOpenRef.current || chromePinnedRef.current) return;
         setControlsVisible(false);
         closePopovers();
-      }, idleMs);
+      }, IDLE_MS);
       return;
     }
     const video = videoRef.current;
@@ -721,20 +719,17 @@ export function AniKittyPlayer({
       if (popoverOpenRef.current || chromePinnedRef.current) return;
       setControlsVisible(false);
       closePopovers();
-    }, idleMs);
-  }, [clearIdleTimer, closePopovers, fullscreen]);
+    }, IDLE_MS);
+  }, [clearIdleTimer, closePopovers]);
 
   const revealControlsFromTouch = useCallback(() => {
     const wasHidden = !controlsVisibleRef.current;
     bumpControls();
     // touchstart shows chrome; the delayed single-tap must not immediately hide it.
     if (wasHidden) {
-      const immersiveFs = fullscreen || cssFullscreenRef.current;
-      const guardMs =
-        TOUCH_DOUBLE_TAP_MS + 120 + (immersiveFs ? 800 : 0);
-      revealGuardUntilRef.current = Date.now() + guardMs;
+      revealGuardUntilRef.current = Date.now() + TOUCH_DOUBLE_TAP_MS + 120;
     }
-  }, [bumpControls, fullscreen]);
+  }, [bumpControls]);
 
   const hideControls = useCallback(() => {
     if (popoverOpenRef.current || seekingRef.current) return;
@@ -748,17 +743,8 @@ export function AniKittyPlayer({
     setFullscreen(true);
     void tryLockLandscapeOrientation();
     setControlsVisible(true);
-    revealGuardUntilRef.current = Date.now() + 2500;
     bumpControls();
   }, [bumpControls]);
-
-  // Phone fullscreen: show controls on entry and keep them tappable.
-  useEffect(() => {
-    if (!fullscreen && !cssFullscreen) return;
-    setControlsVisible(true);
-    revealGuardUntilRef.current = Date.now() + 3500;
-    bumpControls();
-  }, [fullscreen, cssFullscreen, bumpControls]);
 
   const showSeekFlash = useCallback((side: "left" | "right", secs?: number) => {
     const fromAccum =
@@ -1639,15 +1625,9 @@ export function AniKittyPlayer({
       const target = getFullscreenTarget();
       const hostFs = isElementFullscreen(target) || isElementFullscreen(rootRef.current);
       const wk = video as WebkitVideo;
-      const nowFs =
-        hostFs || Boolean(wk.webkitDisplayingFullscreen) || cssFullscreenRef.current;
-      if (nowFs && !wasFsRef.current && prefersCoarsePointer()) {
-        setControlsVisible(true);
-        revealGuardUntilRef.current = Date.now() + 3500;
-        bumpControlsRef.current();
-      }
-      wasFsRef.current = nowFs;
-      setFullscreen(nowFs);
+      setFullscreen(
+        hostFs || Boolean(wk.webkitDisplayingFullscreen) || cssFullscreenRef.current,
+      );
     };
     const onVideoEnded = () => {
       beginEndedFlowRef.current();
@@ -2325,7 +2305,8 @@ export function AniKittyPlayer({
         return;
       }
 
-      // iOS + Firefox mobile: document FS hides / covers custom chrome — CSS FS instead.
+      // iOS: native <video> fullscreen hides our control bar — CSS FS instead.
+      // Android (Chrome/Firefox) uses document Fullscreen API (working July 20 path).
       if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
         enterCssFullscreen();
         return;
@@ -3263,7 +3244,6 @@ export function AniKittyPlayer({
         seeking && "touch-none overscroll-none",
         anime4kActive && "anime4k-active",
         reduceMotion && "anikitty-player--reduce-motion",
-        (fullscreen || cssFullscreen) && "anikitty-player--immersive",
         orientClass,
         className,
       )}
@@ -3765,9 +3745,7 @@ export function AniKittyPlayer({
           "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-[opacity,transform] duration-300 ease-out",
           chromeVisible
             ? "translate-y-0 opacity-100"
-            : fullscreen || cssFullscreen
-              ? "translate-y-0 opacity-0"
-              : "translate-y-1.5 opacity-0",
+            : "translate-y-1.5 opacity-0",
           reduceMotion && "transition-none",
         )}
         aria-hidden={!chromeVisible}
