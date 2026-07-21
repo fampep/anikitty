@@ -30,8 +30,8 @@ export async function GET(req: Request) {
   }
 
   try {
+    const state = await signOAuthStateFor("discord_login");
     const redirectUri = getDiscordRedirectUri(req);
-    const state = await signOAuthStateFor("discord_login", undefined, { redirectUri });
     const url = buildDiscordAuthorizeUrl(state, redirectUri);
     return NextResponse.redirect(url);
   } catch {
@@ -51,8 +51,8 @@ export async function POST(req: Request) {
   }
 
   try {
+    const state = await signOAuthStateFor("discord_link", payload.userId);
     const redirectUri = getDiscordRedirectUri(req);
-    const state = await signOAuthStateFor("discord_link", payload.userId, { redirectUri });
     const url = buildDiscordAuthorizeUrl(state, redirectUri);
     return NextResponse.json({ url });
   } catch {
