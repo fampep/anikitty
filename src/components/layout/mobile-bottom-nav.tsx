@@ -90,7 +90,7 @@ export default function MobileBottomNav() {
   return (
     <>
       <div className="h-[var(--mobile-nav-total)] shrink-0" aria-hidden />
-      <nav aria-label={t("nav.aria.mobileBottomNav")} className="fixed inset-x-0 bottom-0 z-[95] pointer-events-none">
+      <nav aria-label={t("nav.aria.mobileBottomNav")} className="site-mobile-nav fixed inset-x-0 bottom-0 z-[95] pointer-events-none">
         <div className="mx-auto max-w-md px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:max-w-lg">
           <div className="site-bottom-nav pointer-events-auto flex items-center justify-between gap-1 px-2 py-1.5">
             {PRIMARY_TABS.map(({ href, icon, labelKey, match }) => (

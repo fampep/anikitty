@@ -1306,6 +1306,28 @@ html.anikitty-css-fs body {
   overscroll-behavior: none;
   height: 100% !important;
   touch-action: none;
+  background: #000 !important;
+}
+
+/* Hide site chrome — player host lives under main.site-page (z-1), below nav. */
+html.anikitty-css-fs .site-header,
+html.anikitty-css-fs .site-mobile-nav,
+html.anikitty-css-fs .site-scroll-top {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Host is portaled to body — keep it above everything. */
+body > .anikitty-fs-host--active {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483646 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  background: #000 !important;
 }
 
 .anikitty-player .anikitty-player-video::cue {

@@ -597,17 +597,43 @@ export function AniKittyPlayer({
     cssFullscreenRef.current = cssFullscreen;
   }, [cssFullscreen]);
 
-  // CSS fullscreen host class + scroll lock (iOS fallback only).
+  // CSS fullscreen: cover the real viewport (escape .site-page z-1 under nav).
   useEffect(() => {
     const host = getFullscreenTarget();
     if (!host) return;
-    host.classList.toggle("anikitty-fs-host--active", cssFullscreen);
-    document.documentElement.classList.toggle("anikitty-css-fs", cssFullscreen);
-    document.body.classList.toggle("anikitty-css-fs", cssFullscreen);
+
+    const root = document.documentElement;
+    const body = document.body;
+
+    if (!cssFullscreen) {
+      host.classList.remove("anikitty-fs-host--active");
+      root.classList.remove("anikitty-css-fs");
+      body.classList.remove("anikitty-css-fs");
+      return;
+    }
+
+    host.classList.add("anikitty-fs-host--active");
+    root.classList.add("anikitty-css-fs");
+    body.classList.add("anikitty-css-fs");
+
+    // Reparent to <body> so fixed inset escapes main.site-page (z-1) and
+    // actually covers the navbar / bottom nav / rest of the watch page.
+    let marker: Comment | null = null;
+    const homeParent = host.parentNode;
+    if (homeParent && homeParent !== body) {
+      marker = document.createComment("anikitty-fs-home");
+      homeParent.insertBefore(marker, host);
+      body.appendChild(host);
+    }
+
     return () => {
       host.classList.remove("anikitty-fs-host--active");
-      document.documentElement.classList.remove("anikitty-css-fs");
-      document.body.classList.remove("anikitty-css-fs");
+      root.classList.remove("anikitty-css-fs");
+      body.classList.remove("anikitty-css-fs");
+      if (marker?.parentNode) {
+        marker.parentNode.insertBefore(host, marker);
+        marker.parentNode.removeChild(marker);
+      }
     };
   }, [cssFullscreen, getFullscreenTarget]);
 
