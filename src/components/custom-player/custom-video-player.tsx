@@ -1623,10 +1623,28 @@ export function AniKittyPlayer({
     const onLeavePip = () => setInPip(false);
     const syncFs = () => {
       const target = getFullscreenTarget();
+      const video = videoRef.current as WebkitVideo | null;
+      const fsEl = getFullscreenElement();
+      // Browser promoted bare <video> — custom chrome is gone. Bail to CSS FS.
+      if (
+        video &&
+        (fsEl === video || Boolean(video.webkitDisplayingFullscreen)) &&
+        prefersCssFullscreen()
+      ) {
+        void (async () => {
+          try {
+            if (fsEl === video) await exitElementFullscreen();
+            else if (video.webkitExitFullscreen) video.webkitExitFullscreen();
+          } catch {
+            /* ignore */
+          }
+          enterCssFullscreen();
+        })();
+        return;
+      }
       const hostFs = isElementFullscreen(target) || isElementFullscreen(rootRef.current);
-      const wk = video as WebkitVideo;
       setFullscreen(
-        hostFs || Boolean(wk.webkitDisplayingFullscreen) || cssFullscreenRef.current,
+        hostFs || Boolean(video?.webkitDisplayingFullscreen) || cssFullscreenRef.current,
       );
     };
     const onVideoEnded = () => {
@@ -1671,6 +1689,16 @@ export function AniKittyPlayer({
       }
     };
     const onWebkitBeginFs = () => {
+      // iOS native video FS hides our chrome — swap to CSS FS immediately.
+      if (prefersCssFullscreen()) {
+        try {
+          video.webkitExitFullscreen?.();
+        } catch {
+          /* ignore */
+        }
+        enterCssFullscreen();
+        return;
+      }
       setFullscreen(true);
     };
     const onWebkitEndFs = () => {
@@ -2305,8 +2333,7 @@ export function AniKittyPlayer({
         return;
       }
 
-      // iOS: native <video> fullscreen hides our control bar — CSS FS instead.
-      // Android (Chrome/Firefox) uses document Fullscreen API (working July 20 path).
+      // Phones/tablets: CSS FS keeps our control bar (native <video> FS hides it).
       if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
         enterCssFullscreen();
         return;

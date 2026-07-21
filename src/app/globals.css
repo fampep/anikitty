@@ -1193,7 +1193,7 @@ html[data-user-theme] .dark ::selection {
   height: 100%;
 }
 
-/* Watch-page host (wrapper) — document fullscreen + CSS fullscreen fallback (iOS) */
+/* Watch-page host — document fullscreen + CSS fullscreen (phones keep custom chrome) */
 .anikitty-fs-host:fullscreen,
 .anikitty-fs-host:-webkit-full-screen,
 .anikitty-fs-host:-moz-full-screen,
@@ -1202,17 +1202,31 @@ html[data-user-theme] .dark ::selection {
   align-items: center;
   justify-content: center;
   width: 100% !important;
-  height: 100% !important;
   max-width: none !important;
   background: #000 !important;
   border-radius: 0 !important;
 }
 
+.anikitty-fs-host:fullscreen,
+.anikitty-fs-host:-webkit-full-screen,
+.anikitty-fs-host:-moz-full-screen {
+  height: 100% !important;
+}
+
+/* Fixed CSS FS must fill the visual viewport (esp. Android Firefox/Chrome). */
 .anikitty-fs-host--active {
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483646 !important;
   margin: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-height: none !important;
+  box-sizing: border-box !important;
 }
 
 .anikitty-fs-host:fullscreen .anikitty-player,
@@ -1226,7 +1240,16 @@ html[data-user-theme] .dark ::selection {
   border-radius: 0 !important;
 }
 
-/* Keep custom chrome above the video layer in document fullscreen. */
+.anikitty-fs-host:fullscreen .anikitty-player-video,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player-video,
+.anikitty-fs-host:-moz-full-screen .anikitty-player-video,
+.anikitty-fs-host--active .anikitty-player-video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+/* Keep custom chrome above the video layer in document / CSS fullscreen. */
 .anikitty-fs-host:fullscreen [data-ak-chrome],
 .anikitty-fs-host:-webkit-full-screen [data-ak-chrome],
 .anikitty-fs-host:-moz-full-screen [data-ak-chrome],
@@ -1235,12 +1258,15 @@ html[data-user-theme] .dark ::selection {
 .anikitty-player:-webkit-full-screen [data-ak-chrome],
 .anikitty-player:-moz-full-screen [data-ak-chrome] {
   z-index: 2147483647 !important;
+  pointer-events: auto;
 }
 
 html.anikitty-css-fs,
 html.anikitty-css-fs body {
   overflow: hidden !important;
   overscroll-behavior: none;
+  height: 100% !important;
+  touch-action: none;
 }
 
 .anikitty-player .anikitty-player-video::cue {
