@@ -1199,13 +1199,18 @@ html[data-user-theme] .dark ::selection {
 .anikitty-fs-host:-moz-full-screen,
 .anikitty-fs-host--active {
   display: flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 100% !important;
-  height: 100% !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
   max-width: none !important;
   background: #000 !important;
   border-radius: 0 !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
 }
 
 .anikitty-fs-host--active {
@@ -1213,14 +1218,18 @@ html[data-user-theme] .dark ::selection {
   inset: 0 !important;
   z-index: 2147483646 !important;
   margin: 0 !important;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px) !important;
 }
 
 .anikitty-fs-host:fullscreen .anikitty-player,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player,
 .anikitty-fs-host:-moz-full-screen .anikitty-player,
 .anikitty-fs-host--active .anikitty-player {
+  flex: 1 1 auto !important;
   width: 100% !important;
   height: 100% !important;
+  min-height: 0 !important;
   max-height: none !important;
   aspect-ratio: auto !important;
   border-radius: 0 !important;
@@ -1246,12 +1255,29 @@ html[data-user-theme] .dark ::selection {
 .anikitty-player:-webkit-full-screen [data-ak-chrome],
 .anikitty-player:-moz-full-screen [data-ak-chrome] {
   z-index: 2147483647 !important;
+  pointer-events: none;
+}
+
+.anikitty-fs-host:fullscreen [data-ak-chrome] .pointer-events-auto,
+.anikitty-fs-host:-webkit-full-screen [data-ak-chrome] .pointer-events-auto,
+.anikitty-fs-host:-moz-full-screen [data-ak-chrome] .pointer-events-auto,
+.anikitty-fs-host--active [data-ak-chrome] .pointer-events-auto,
+.anikitty-player:fullscreen [data-ak-chrome] .pointer-events-auto,
+.anikitty-player:-webkit-full-screen [data-ak-chrome] .pointer-events-auto,
+.anikitty-player:-moz-full-screen [data-ak-chrome] .pointer-events-auto {
+  pointer-events: auto !important;
 }
 
 html.anikitty-css-fs,
 html.anikitty-css-fs body {
   overflow: hidden !important;
   overscroll-behavior: none;
+}
+
+html.anikitty-css-fs .watch-player-stack,
+html.anikitty-css-fs .watch-player-stage,
+html.anikitty-css-fs #watch-player-root {
+  overflow: visible !important;
 }
 
 .anikitty-player .anikitty-player-video::cue {

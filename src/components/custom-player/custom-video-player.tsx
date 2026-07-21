@@ -15,6 +15,7 @@ import Hls from "hls.js";
 import { pickHlsAudioTrack } from "@/lib/kitty/hls-audio";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import {
+  applyCssFullscreenDom,
   exitElementFullscreen,
   elementSupportsFullscreenRequest,
   getFullscreenElement,
@@ -597,17 +598,12 @@ export function AniKittyPlayer({
     cssFullscreenRef.current = cssFullscreen;
   }, [cssFullscreen]);
 
-  // CSS fullscreen host class + scroll lock (iOS / API fallback).
+  // CSS fullscreen — portal host to body so overflow-hidden ancestors can't clip it.
   useEffect(() => {
     const host = getFullscreenTarget();
-    if (!host) return;
-    host.classList.toggle("anikitty-fs-host--active", cssFullscreen);
-    document.documentElement.classList.toggle("anikitty-css-fs", cssFullscreen);
-    document.body.classList.toggle("anikitty-css-fs", cssFullscreen);
+    applyCssFullscreenDom(host, cssFullscreen);
     return () => {
-      host.classList.remove("anikitty-fs-host--active");
-      document.documentElement.classList.remove("anikitty-css-fs");
-      document.body.classList.remove("anikitty-css-fs");
+      applyCssFullscreenDom(host, false);
     };
   }, [cssFullscreen, getFullscreenTarget]);
 
@@ -737,6 +733,15 @@ export function AniKittyPlayer({
     setControlsVisible(false);
     closePopovers();
   }, [clearIdleTimer, closePopovers]);
+
+  const enterCssFullscreen = useCallback(() => {
+    setCssFullscreen(true);
+    setFullscreen(true);
+    void tryLockLandscapeOrientation();
+    setControlsVisible(true);
+    revealGuardUntilRef.current = Date.now() + 2500;
+    bumpControls();
+  }, [bumpControls]);
 
   const showSeekFlash = useCallback((side: "left" | "right", secs?: number) => {
     const fromAccum =
@@ -1589,10 +1594,7 @@ export function AniKittyPlayer({
         // Keep custom chrome — never fall back to native <video> FS on phones
         // (iOS Safari + Firefox Android promote <video> and hide our controls).
         if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
-          setCssFullscreen(true);
-          setFullscreen(true);
-          void tryLockLandscapeOrientation();
-          bumpControlsRef.current();
+          enterCssFullscreen();
           return;
         }
         void requestElementFullscreen(target)
@@ -1600,10 +1602,7 @@ export function AniKittyPlayer({
             void tryLockLandscapeOrientation();
           })
           .catch(() => {
-            setCssFullscreen(true);
-            setFullscreen(true);
-            void tryLockLandscapeOrientation();
-            bumpControlsRef.current();
+            enterCssFullscreen();
           });
       }
     };
@@ -1749,7 +1748,7 @@ export function AniKittyPlayer({
       if (seekFlashTimerRef.current) clearTimeout(seekFlashTimerRef.current);
       if (gestureHintTimerRef.current) clearTimeout(gestureHintTimerRef.current);
     };
-  }, [bumpControls, clearIdleTimer, activeSrc, playbackIssueHint, reportW2g, getFullscreenTarget]);
+  }, [bumpControls, clearIdleTimer, activeSrc, enterCssFullscreen, playbackIssueHint, reportW2g, getFullscreenTarget]);
 
   // Attach progressive / HLS source (prefer hls.js when MSE works).
   useEffect(() => {
@@ -2303,13 +2302,9 @@ export function AniKittyPlayer({
         return;
       }
 
-      // iOS + Firefox Android: document FS hides / covers custom chrome — CSS FS instead.
+      // iOS + Firefox mobile: document FS hides / covers custom chrome — CSS FS instead.
       if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
-        setCssFullscreen(true);
-        setFullscreen(true);
-        void tryLockLandscapeOrientation();
-        setControlsVisible(true);
-        bumpControls();
+        enterCssFullscreen();
         return;
       }
 
@@ -2319,16 +2314,13 @@ export function AniKittyPlayer({
         setFullscreen(true);
         setControlsVisible(true);
       } catch {
-        setCssFullscreen(true);
-        setFullscreen(true);
-        void tryLockLandscapeOrientation();
-        setControlsVisible(true);
+        enterCssFullscreen();
       }
     } catch {
       /* browser may deny fullscreen without gesture */
     }
     bumpControls();
-  }, [bumpControls, getFullscreenTarget]);
+  }, [bumpControls, enterCssFullscreen, getFullscreenTarget]);
 
   const exitFullscreen = useCallback(async () => {
     const video = videoRef.current as WebkitVideo | null;

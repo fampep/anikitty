@@ -265,9 +265,10 @@ export function isAppleTouchDevice(): boolean {
 export function isFirefoxMobile(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
-  if (!/Firefox/i.test(ua)) return false;
-  // Android Firefox, Firefox iOS (Fenix-like), or Firefox + coarse pointer.
-  if (/Android|Mobile|Tablet/i.test(ua)) return true;
+  const isGecko = /Firefox|FxiOS|Gecko\//.test(ua);
+  if (!isGecko) return false;
+  // Android Firefox, Firefox iOS, or any touch-first viewport.
+  if (/Android|Mobile|Tablet|iPhone|iPad/i.test(ua)) return true;
   return prefersCoarsePointer();
 }
 

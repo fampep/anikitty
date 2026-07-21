@@ -81,3 +81,47 @@ export function onFullscreenChange(handler: () => void): () => void {
     }
   };
 }
+
+type CssFullscreenMount = {
+  host: HTMLElement;
+  parent: Node;
+  nextSibling: ChildNode | null;
+};
+
+let cssFullscreenMountState: CssFullscreenMount | null = null;
+
+/** Move the player host to `document.body` so CSS fullscreen is not clipped. */
+export function mountCssFullscreenHost(host: HTMLElement): void {
+  if (typeof document === "undefined") return;
+  if (host.parentNode === document.body) return;
+  cssFullscreenMountState = {
+    host,
+    parent: host.parentNode!,
+    nextSibling: host.nextSibling,
+  };
+  document.body.appendChild(host);
+}
+
+/** Restore the player host after CSS fullscreen. */
+export function unmountCssFullscreenHost(host: HTMLElement): void {
+  const state = cssFullscreenMountState;
+  if (!state || state.host !== host) return;
+  if (host.parentNode === document.body) {
+    state.parent.insertBefore(host, state.nextSibling);
+  }
+  cssFullscreenMountState = null;
+}
+
+/** Toggle CSS-fullscreen scroll lock + host mount. */
+export function applyCssFullscreenDom(host: HTMLElement | null, active: boolean): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.classList.toggle("anikitty-css-fs", active);
+  document.body.classList.toggle("anikitty-css-fs", active);
+  if (!host) return;
+  host.classList.toggle("anikitty-fs-host--active", active);
+  if (active) {
+    mountCssFullscreenHost(host);
+  } else {
+    unmountCssFullscreenHost(host);
+  }
+}
