@@ -1297,7 +1297,21 @@ html[data-user-theme] .dark ::selection {
 .anikitty-player:-webkit-full-screen [data-ak-chrome],
 .anikitty-player:-moz-full-screen [data-ak-chrome] {
   z-index: 2147483647 !important;
-  pointer-events: auto;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+}
+
+/* Ensure the player (and its overlays) stay in the fullscreen layer. */
+.anikitty-fs-host:fullscreen .anikitty-player,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player,
+.anikitty-fs-host:-moz-full-screen .anikitty-player {
+  position: relative !important;
+  transform: none !important;
+  inset: auto !important;
+  top: auto !important;
+  left: auto !important;
 }
 
 html.anikitty-css-fs,

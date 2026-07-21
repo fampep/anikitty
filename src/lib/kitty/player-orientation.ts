@@ -58,16 +58,19 @@ export function resolvePlayerOrientClass(opts: {
   const touch = opts.touchDevice ?? isTouchLikeDevice();
   if (!touch) return "";
 
-  // Phone sideways + OS rotation lock kept the layout portrait.
+  const docFs = Boolean(opts.isFullscreen && !opts.cssFullscreen);
+
+  // Document fullscreen: never apply fixed+rotate — Chromium can composite the
+  // video layer alone and drop our control bar. Use orientation.lock instead.
+  if (docFs) return "";
+
+  // Phone sideways + OS rotation lock kept the layout portrait (inline / CSS FS).
   if (isRotationLockLandscape()) {
     return playerOrientClassForAngle(getOrientationAngle());
   }
 
-  // Immersive / CSS fullscreen while the viewport is still portrait:
-  // force a landscape layout (Screen Orientation lock needs document FS and
-  // often fails; CSS FS can never lock).
-  const immersive = Boolean(opts.cssFullscreen || opts.isFullscreen);
-  if (immersive && isViewportPortrait()) {
+  // CSS-only immersive (iOS): force landscape layout while still portrait.
+  if (opts.cssFullscreen && isViewportPortrait()) {
     return "kitty-orient-landscape";
   }
 
