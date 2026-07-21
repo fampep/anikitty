@@ -51,14 +51,15 @@ export function playerOrientClassForAngle(angle: number): PlayerOrientClass {
 }
 
 export function resolvePlayerOrientClass(opts: {
-  isFullscreen: boolean;
+  isFullscreen?: boolean;
+  cssFullscreen?: boolean;
   touchDevice?: boolean;
 }): PlayerOrientClass {
   const touch = opts.touchDevice ?? isTouchLikeDevice();
+  // Only when the device is sideways but the layout stayed portrait
+  // (OS rotation lock). If document FS actually rotated the viewport,
+  // this is false — no double-rotate.
   if (!isRotationLockLandscape()) return "";
-  // Document / CSS fullscreen already fills the screen — applying a CSS
-  // rotate on top breaks touch targeting and hides the control bar.
-  if (opts.isFullscreen) return "";
   if (!touch) return "";
   return playerOrientClassForAngle(getOrientationAngle());
 }

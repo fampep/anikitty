@@ -1350,6 +1350,7 @@ export function AniKittyPlayer({
             cssFullscreen ||
             isElementFullscreen(getFullscreenTarget()) ||
             isElementFullscreen(rootRef.current),
+          cssFullscreen,
         }),
       );
     };
@@ -2333,7 +2334,8 @@ export function AniKittyPlayer({
         return;
       }
 
-      // Phones/tablets: CSS FS keeps our control bar (native <video> FS hides it).
+      // iOS / Firefox Android: CSS FS keeps our chrome (native <video> FS hides it).
+      // Chrome Android: document FS so the OS can rotate / lock landscape.
       if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
         enterCssFullscreen();
         return;

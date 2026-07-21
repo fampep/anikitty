@@ -1240,6 +1240,45 @@ html[data-user-theme] .dark ::selection {
   border-radius: 0 !important;
 }
 
+/* CSS FS / document FS + OS rotation lock: keep landscape rotate
+   (host child 100% rules would cancel the swapped vh/vw sizing). */
+.anikitty-fs-host--active .anikitty-player.kitty-orient-landscape,
+.anikitty-fs-host--active .anikitty-player.kitty-orient-landscape-reverse,
+.anikitty-fs-host--active .custom-kitty-player.kitty-orient-landscape,
+.anikitty-fs-host--active .custom-kitty-player.kitty-orient-landscape-reverse,
+.anikitty-fs-host:fullscreen .anikitty-player.kitty-orient-landscape,
+.anikitty-fs-host:fullscreen .anikitty-player.kitty-orient-landscape-reverse,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player.kitty-orient-landscape,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player.kitty-orient-landscape-reverse {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 100vh !important;
+  width: 100dvh !important;
+  height: 100vw !important;
+  height: 100dvw !important;
+  max-width: none !important;
+  max-height: none !important;
+  aspect-ratio: unset !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  z-index: 2147483646 !important;
+}
+
+.anikitty-fs-host--active .anikitty-player.kitty-orient-landscape,
+.anikitty-fs-host--active .custom-kitty-player.kitty-orient-landscape,
+.anikitty-fs-host:fullscreen .anikitty-player.kitty-orient-landscape,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player.kitty-orient-landscape {
+  transform: translate(-50%, -50%) rotate(90deg) !important;
+}
+
+.anikitty-fs-host--active .anikitty-player.kitty-orient-landscape-reverse,
+.anikitty-fs-host--active .custom-kitty-player.kitty-orient-landscape-reverse,
+.anikitty-fs-host:fullscreen .anikitty-player.kitty-orient-landscape-reverse,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player.kitty-orient-landscape-reverse {
+  transform: translate(-50%, -50%) rotate(-90deg) !important;
+}
+
 .anikitty-fs-host:fullscreen .anikitty-player-video,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player-video,
 .anikitty-fs-host:-moz-full-screen .anikitty-player-video,
