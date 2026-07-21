@@ -1369,7 +1369,7 @@ export function AniKittyPlayer({
       video.textTracks.removeEventListener("change", apply);
       trackEls.forEach((el) => el.removeEventListener("load", apply));
     };
-  }, [captionOptions, selectedCaptionId, activeSrc, captionOffset, captionPosition]);
+  }, [captionOptions, selectedCaptionId, activeSrc, captionOffset, captionPosition, fullscreen, cssFullscreen]);
 
   // Re-apply preferDub when the watch page toggles SUB/DUB.
   useEffect(() => {

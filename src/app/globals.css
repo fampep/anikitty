@@ -1198,28 +1198,26 @@ html[data-user-theme] .dark ::selection {
 /*
  * Industry fix (CSS-Tricks / Chromium): even without the `controls` attribute,
  * <video>'s shadow media-controls layer can paint over custom UI and steal
- * hit-tests. Force it off so document-fullscreen custom chrome stays visible.
+ * hit-tests. Hide the control chrome only — never the text-track container.
  */
-.anikitty-player-video::-webkit-media-controls,
-.anikitty-player-video::-webkit-media-controls-enclosure,
 .anikitty-player-video::-webkit-media-controls-panel,
 .anikitty-player-video::-webkit-media-controls-overlay-enclosure,
-.anikitty-player-video::-webkit-media-controls-start-playback-button {
+.anikitty-player-video::-webkit-media-controls-start-playback-button,
+.anikitty-player-video::-webkit-media-controls-overlay-play-button {
   display: none !important;
   opacity: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
   pointer-events: none !important;
   -webkit-appearance: none !important;
 }
 
-/* Isolate the video paint layer from absolute custom chrome (CSS-Tricks pattern). */
+/* Isolate the video paint layer from absolute custom chrome (CSS-Tricks pattern).
+   Keep overflow visible so native ::cue / text-track overlays are not clipped. */
 .anikitty-player [data-ak-video-layer] {
   position: absolute;
   inset: 0;
   z-index: 0;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: auto;
 }
 
@@ -1383,13 +1381,42 @@ body > .anikitty-fs-host--active {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
+/* Keep WebKit/Blink text tracks visible (esp. phone fullscreen / CSS FS). */
+.anikitty-player .anikitty-player-video::-webkit-media-text-track-container {
+  display: block !important;
+  overflow: visible !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+}
+
 /* Pin native cues to the bottom. WebKit sets `top` from VTT `line`
    (often 0 = top of frame); without clearing it, `bottom` alone leaves
    captions stuck at the top. */
 .anikitty-player .anikitty-player-video::-webkit-media-text-track-display {
+  display: block !important;
   top: auto !important;
   bottom: var(--ak-cue-bottom) !important;
   margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Immersive: lift cues above the control bar + force track container on. */
+.anikitty-player:fullscreen,
+.anikitty-player:-webkit-full-screen,
+.anikitty-player:-moz-full-screen,
+.anikitty-fs-host:fullscreen .anikitty-player,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player,
+.anikitty-fs-host:-moz-full-screen .anikitty-player,
+.anikitty-fs-host--active .anikitty-player {
+  --ak-cue-bottom: max(18%, calc(4.5rem + env(safe-area-inset-bottom, 0px)));
+}
+
+.anikitty-player:fullscreen .anikitty-player-video::-webkit-media-text-track-container,
+.anikitty-player:-webkit-full-screen .anikitty-player-video::-webkit-media-text-track-container,
+.anikitty-fs-host:fullscreen .anikitty-player-video::-webkit-media-text-track-container,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player-video::-webkit-media-text-track-container,
+.anikitty-fs-host--active .anikitty-player-video::-webkit-media-text-track-container {
+  display: block !important;
+  z-index: 20 !important;
 }
 
 .anikitty-player.anikitty-player--reduce-motion,
