@@ -35,7 +35,12 @@ export async function GET(req: Request) {
         result.recoveryCodes,
       );
     }
-    return discordLoginSuccessRedirect(req, result.token, { recoveryClaim });
+    const { signSessionHandoff } = await import("@/lib/auth/auth-jwt");
+    const handoff = await signSessionHandoff(result.token);
+    return discordLoginSuccessRedirect(req, result.token, {
+      recoveryClaim,
+      handoff,
+    });
   }
   if (result.type === "2fa") {
     // Codes claim isn't applied on 2FA path — regenerate from settings if needed.

@@ -3263,6 +3263,7 @@ export function AniKittyPlayer({
         seeking && "touch-none overscroll-none",
         anime4kActive && "anime4k-active",
         reduceMotion && "anikitty-player--reduce-motion",
+        (fullscreen || cssFullscreen) && "anikitty-player--immersive",
         orientClass,
         className,
       )}
@@ -3764,7 +3765,9 @@ export function AniKittyPlayer({
           "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-[opacity,transform] duration-300 ease-out",
           chromeVisible
             ? "translate-y-0 opacity-100"
-            : "translate-y-1.5 opacity-0",
+            : fullscreen || cssFullscreen
+              ? "translate-y-0 opacity-0"
+              : "translate-y-1.5 opacity-0",
           reduceMotion && "transition-none",
         )}
         aria-hidden={!chromeVisible}

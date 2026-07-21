@@ -1198,52 +1198,56 @@ html[data-user-theme] .dark ::selection {
 .anikitty-fs-host:-webkit-full-screen,
 .anikitty-fs-host:-moz-full-screen,
 .anikitty-fs-host--active {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  justify-content: center !important;
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
   width: 100vw !important;
   width: 100dvw !important;
   height: 100vh !important;
   height: 100dvh !important;
   max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   background: #000 !important;
   border-radius: 0 !important;
   overflow: hidden !important;
   isolation: isolate !important;
-}
-
-.anikitty-fs-host--active {
-  position: fixed !important;
-  inset: 0 !important;
   z-index: 2147483646 !important;
-  margin: 0 !important;
-  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
-    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px) !important;
+  box-sizing: border-box !important;
 }
 
 .anikitty-fs-host:fullscreen .anikitty-player,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player,
 .anikitty-fs-host:-moz-full-screen .anikitty-player,
 .anikitty-fs-host--active .anikitty-player,
+.anikitty-player.anikitty-player--immersive,
 .anikitty-player:fullscreen,
 .anikitty-player:-webkit-full-screen,
 .anikitty-player:-moz-full-screen {
-  position: relative !important;
-  flex: 1 1 auto !important;
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  flex: none !important;
   width: 100% !important;
   height: 100% !important;
-  min-height: 0 !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
   max-height: none !important;
   aspect-ratio: auto !important;
   border-radius: 0 !important;
   overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .anikitty-fs-host:fullscreen .anikitty-player-video,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player-video,
 .anikitty-fs-host:-moz-full-screen .anikitty-player-video,
 .anikitty-fs-host--active .anikitty-player-video,
+.anikitty-player.anikitty-player--immersive .anikitty-player-video,
 .anikitty-player:fullscreen .anikitty-player-video,
 .anikitty-player:-webkit-full-screen .anikitty-player-video,
 .anikitty-player:-moz-full-screen .anikitty-player-video {
@@ -1251,6 +1255,9 @@ html[data-user-theme] .dark ::selection {
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
   z-index: 0 !important;
 }
 
@@ -1258,6 +1265,7 @@ html[data-user-theme] .dark ::selection {
 .anikitty-fs-host:-webkit-full-screen [data-ak-chrome],
 .anikitty-fs-host:-moz-full-screen [data-ak-chrome],
 .anikitty-fs-host--active [data-ak-chrome],
+.anikitty-player.anikitty-player--immersive [data-ak-chrome],
 .anikitty-player:fullscreen [data-ak-chrome],
 .anikitty-player:-webkit-full-screen [data-ak-chrome],
 .anikitty-player:-moz-full-screen [data-ak-chrome] {
@@ -1268,6 +1276,7 @@ html[data-user-theme] .dark ::selection {
   pointer-events: none;
   opacity: 1;
   visibility: visible;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .anikitty-fs-host:fullscreen [data-ak-chrome] .pointer-events-auto,

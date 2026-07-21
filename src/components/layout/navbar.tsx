@@ -138,7 +138,27 @@ const NavBar = () => {
 
     if (discord === "welcome") {
       toast.success(t("auth.discordWelcome"));
-      void anisurgeAuth.me().then((me) => setAuth(authFromMeResponse(me))).catch(() => {});
+      const handoff = params.get("handoff");
+      void (async () => {
+        if (handoff) {
+          try {
+            await fetch("/api/account/auth/session/handoff", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ handoff }),
+            });
+          } catch {
+            /* cookie redirect may already have worked */
+          }
+        }
+        try {
+          const me = await anisurgeAuth.me();
+          setAuth(authFromMeResponse(me));
+        } catch {
+          /* ignore */
+        }
+      })();
       const wantsRecovery = params.get("recovery") === "1";
       if (wantsRecovery) {
         void fetch("/api/account/auth/recovery-codes/claim", withAuth())
@@ -157,6 +177,7 @@ const NavBar = () => {
 
     params.delete("discord");
     params.delete("recovery");
+    params.delete("handoff");
     const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
     window.history.replaceState({}, "", next);
   }, [setAuth, t]);

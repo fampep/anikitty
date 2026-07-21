@@ -120,8 +120,30 @@ export function applyCssFullscreenDom(host: HTMLElement | null, active: boolean)
   if (!host) return;
   host.classList.toggle("anikitty-fs-host--active", active);
   if (active) {
+    // Inline fallback — Firefox Android sometimes ignores stylesheet sizing
+    // when the host is portaled mid-gesture.
+    host.style.setProperty("position", "fixed", "important");
+    host.style.setProperty("inset", "0", "important");
+    host.style.setProperty("width", "100dvw", "important");
+    host.style.setProperty("height", "100dvh", "important");
+    host.style.setProperty("max-width", "none", "important");
+    host.style.setProperty("max-height", "none", "important");
+    host.style.setProperty("margin", "0", "important");
+    host.style.setProperty("padding", "0", "important");
+    host.style.setProperty("z-index", "2147483646", "important");
+    host.style.setProperty("background", "#000", "important");
     mountCssFullscreenHost(host);
   } else {
+    host.style.removeProperty("position");
+    host.style.removeProperty("inset");
+    host.style.removeProperty("width");
+    host.style.removeProperty("height");
+    host.style.removeProperty("max-width");
+    host.style.removeProperty("max-height");
+    host.style.removeProperty("margin");
+    host.style.removeProperty("padding");
+    host.style.removeProperty("z-index");
+    host.style.removeProperty("background");
     unmountCssFullscreenHost(host);
   }
 }

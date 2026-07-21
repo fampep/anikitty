@@ -363,11 +363,12 @@ export function discordLoginErrorRedirect(req: Request, reason: string) {
 export function discordLoginSuccessRedirect(
   req: Request,
   token: string,
-  opts?: { recoveryClaim?: string },
+  opts?: { recoveryClaim?: string; handoff?: string },
 ) {
-  const url = opts?.recoveryClaim
-    ? `${appOrigin(req)}/home?discord=welcome&recovery=1`
-    : `${appOrigin(req)}/home?discord=welcome`;
+  const params = new URLSearchParams({ discord: "welcome" });
+  if (opts?.recoveryClaim) params.set("recovery", "1");
+  if (opts?.handoff) params.set("handoff", opts.handoff);
+  const url = `${appOrigin(req)}/home?${params.toString()}`;
   return redirectWithAuthCookie(url, token, {
     recoveryClaim: opts?.recoveryClaim,
   });

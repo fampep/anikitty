@@ -163,6 +163,34 @@ export async function verify2faPendingToken(token: string): Promise<string | nul
   }
 }
 
+/**
+ * Short-lived wrapper around a session JWT for OAuth redirects.
+ * Firefox/Safari iOS often drop Set-Cookie on cross-site → same-site redirects;
+ * the client POSTs this handoff on the home page to establish the session.
+ */
+export async function signSessionHandoff(sessionToken: string): Promise<string> {
+  return new SignJWT({ purpose: "session_handoff", sessionToken })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("2m")
+    .sign(await secret());
+}
+
+export async function verifySessionHandoff(
+  handoff: string,
+): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(handoff, await secret());
+    if (payload.purpose !== "session_handoff") return null;
+    const sessionToken = payload.sessionToken;
+    return typeof sessionToken === "string" && sessionToken.length > 0
+      ? sessionToken
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export type PasskeyChallengePurpose = "passkey_register" | "passkey_login";
 
 export async function signPasskeyChallengeToken(payload: {
