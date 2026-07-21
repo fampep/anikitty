@@ -347,10 +347,6 @@ export function resolveStreamAttachMode(opts: {
   if (!url) return "unsupported";
 
   const declared = resolveDeclaredStreamType(url, qualities);
-  const clearlyHls = isHlsStreamUrl(url) || sniffedHls === true;
-  const clearlyMp4 =
-    sniffedHls === false ||
-    (isMp4StreamUrl(url) && !isHlsStreamUrl(url) && sniffedHls !== true);
 
   const pickHls = (): StreamAttachMode => {
     if (hlsJsSupported) return "hls-js";
@@ -358,7 +354,14 @@ export function resolveStreamAttachMode(opts: {
     return "unsupported";
   };
 
-  if (clearlyMp4 && !clearlyHls) return "progressive";
+  // Byte sniff wins over path heuristics — opaque `/api/kitty/hls?t=` often wraps MP4.
+  if (sniffedHls === false) return "progressive";
+  if (sniffedHls === true) return pickHls();
+
+  const clearlyHls = isHlsStreamUrl(url);
+  const clearlyMp4 = isMp4StreamUrl(url) && !clearlyHls;
+
+  if (clearlyMp4) return "progressive";
   if (clearlyHls || declared === "m3u8") return pickHls();
   if (declared === "mp4") return "progressive";
 

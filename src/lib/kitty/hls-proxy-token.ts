@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { isAllowedMediaProxyUrl, sanitizeHeaderValue } from "@/lib/security/security";
+import { inferKittyStreamTypeFromUpstream } from "@/lib/kitty/stream-format";
 import { APP_URL } from "@/lib/seo/site-seo";
 
 const ALGO = "aes-256-gcm";
@@ -181,7 +182,11 @@ export function mintKittyHlsProxyUrl(
     e: exp,
     c: cast ? 1 : undefined,
   });
-  return `/api/kitty/hls?t=${token}`;
+  // Tell the player whether this opaque proxy wraps HLS or progressive MP4.
+  // Without `f=`, `/api/kitty/hls` was always treated as HLS and Echo MP4s stalled.
+  const format = inferKittyStreamTypeFromUpstream(url);
+  const formatQ = format ? `&f=${format}` : "";
+  return `/api/kitty/hls?t=${token}${formatQ}`;
 }
 
 export function extractKittyHlsProxyToken(proxyUrl: string): string | null {

@@ -2086,15 +2086,14 @@ export function AniKittyPlayer({
           return;
         }
 
-        // Extensionless / mis-detected URL: soft-fall back to progressive once.
+        // Mis-detected progressive (often Echo MP4 behind `/api/kitty/hls?t=`): soft-fall back once.
         const looksManifestFail =
           data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
           data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR;
         if (
           looksManifestFail &&
           !progressiveFallbackTried &&
-          !isHlsStreamUrl(activeSrc) &&
-          !activeSrc.includes("/api/kitty/hls")
+          !isHlsStreamUrl(activeSrc)
         ) {
           progressiveFallbackTried = true;
           hls?.destroy();
@@ -2151,13 +2150,17 @@ export function AniKittyPlayer({
     };
 
     const run = async () => {
+      // Opaque kitty tokens without `f=` hide mp4 vs m3u8 — always sniff those.
+      const hasFormatHint = /[?&]f=(mp4|m4v|m3u8|hls)\b/i.test(activeSrc);
+      const opaqueKitty =
+        activeSrc.includes("/api/kitty/hls") &&
+        /[?&]t=/.test(activeSrc) &&
+        !hasFormatHint;
       const clearlyTyped =
-        isHlsStreamUrl(activeSrc) ||
-        isMp4StreamUrl(activeSrc) ||
-        activeSrc.includes("/api/kitty/hls");
+        !opaqueKitty && (isHlsStreamUrl(activeSrc) || isMp4StreamUrl(activeSrc));
 
       let sniffed: boolean | null = null;
-      if (!clearlyTyped) {
+      if (!clearlyTyped || opaqueKitty) {
         sniffed = await sniffIsHlsPlaylist(activeSrc, abortSniff.signal);
         if (cancelled) return;
       }
