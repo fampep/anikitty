@@ -419,9 +419,31 @@ export function useGoogleCast(
     }
 
     setLastError(null);
+
+    // requestSession must run in the same user-gesture turn as the tap/click.
+    let sessionPromise: Promise<void>;
+    try {
+      sessionPromise = ctx.requestSession();
+    } catch (err) {
+      const cancelled =
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        String((err as { code?: unknown }).code).toLowerCase() === "cancel";
+      if (!cancelled) {
+        reportCastError(
+          err instanceof Error
+            ? err.message
+            : "Could not connect to Cast device",
+        );
+      }
+      setConnection(mapCastState(ctx.getCastState()));
+      return;
+    }
+
     setConnection("connecting");
     try {
-      await ctx.requestSession();
+      await sessionPromise;
       wasConnectedRef.current = true;
       setConnection("connected");
       const name = getCastDeviceName();

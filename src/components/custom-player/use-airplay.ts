@@ -57,93 +57,118 @@ export function useAirPlay({
       return;
     }
 
-    const video = videoRef.current as WebkitAirPlayVideo | null;
-    if (!video || !supportsWebkitAirPlay(video)) {
-      setAvailable(false);
-      setConnected(false);
-      return;
-    }
+    let detach: (() => void) | undefined;
 
-    // Older iOS Safari still keys off the webkit attribute.
-    video.setAttribute("x-webkit-airplay", "allow");
-    try {
-      video.disableRemotePlayback = false;
-    } catch {
-      /* ignore */
-    }
+    const attach = () => {
+      detach?.();
+      detach = undefined;
 
-    const syncWireless = () => {
-      const wireless = Boolean(video.webkitCurrentPlaybackTargetIsWireless);
-      setConnected(wireless);
-      // Already routing wirelessly — keep the control visible even if the
-      // availability event has not fired yet this session.
-      if (wireless) setAvailable(true);
-    };
-    syncWireless();
+      const video = videoRef.current as WebkitAirPlayVideo | null;
+      if (!video || !supportsWebkitAirPlay(video)) {
+        setAvailable(false);
+        setConnected(false);
+        return;
+      }
 
-    const onAvailability = (event: Event) => {
-      const e = event as WebKitPlaybackTargetAvailabilityEvent;
-      setAvailable(e.availability === "available");
-    };
-
-    video.addEventListener(
-      "webkitplaybacktargetavailabilitychanged",
-      onAvailability,
-    );
-    video.addEventListener(
-      "webkitcurrentplaybacktargetiswirelesschanged",
-      syncWireless,
-    );
-
-    // Secondary signal on WebKit when Remote Playback is present.
-    let cancelWatch: (() => void) | undefined;
-    const remote = video.remote;
-    const onRemoteState = () => {
-      if (!remote) return;
-      setConnected(remote.state === "connected");
-    };
-
-    if (remote && typeof remote.watchAvailability === "function") {
+      // Older iOS Safari still keys off the webkit attribute.
+      video.setAttribute("x-webkit-airplay", "allow");
+      video.setAttribute("webkit-airplay", "allow");
       try {
-        const watchResult = remote.watchAvailability((isAvailable) => {
-          setAvailable(isAvailable);
-        });
-        void Promise.resolve(watchResult)
-          .then((id) => {
-            cancelWatch = () => {
-              try {
-                remote.cancelWatchAvailability(id);
-              } catch {
-                /* ignore */
-              }
-            };
-          })
-          .catch(() => {
-            /* NotSupportedError — fall back to webkit availability only */
-          });
-        remote.addEventListener("connect", onRemoteState);
-        remote.addEventListener("connecting", onRemoteState);
-        remote.addEventListener("disconnect", onRemoteState);
+        video.disableRemotePlayback = false;
       } catch {
         /* ignore */
       }
-    }
 
-    return () => {
-      video.removeEventListener(
+      const syncWireless = () => {
+        const wireless = Boolean(video.webkitCurrentPlaybackTargetIsWireless);
+        setConnected(wireless);
+        if (wireless) setAvailable(true);
+      };
+      syncWireless();
+
+      const onAvailability = (event: Event) => {
+        const e = event as WebKitPlaybackTargetAvailabilityEvent;
+        setAvailable(e.availability === "available");
+      };
+
+      video.addEventListener(
         "webkitplaybacktargetavailabilitychanged",
         onAvailability,
       );
-      video.removeEventListener(
+      video.addEventListener(
         "webkitcurrentplaybacktargetiswirelesschanged",
         syncWireless,
       );
-      cancelWatch?.();
-      if (remote) {
-        remote.removeEventListener("connect", onRemoteState);
-        remote.removeEventListener("connecting", onRemoteState);
-        remote.removeEventListener("disconnect", onRemoteState);
+
+      let cancelWatch: (() => void) | undefined;
+      const remote = video.remote;
+      const onRemoteState = () => {
+        if (!remote) return;
+        setConnected(remote.state === "connected");
+      };
+
+      if (remote && typeof remote.watchAvailability === "function") {
+        try {
+          const watchResult = remote.watchAvailability((isAvailable) => {
+            setAvailable(isAvailable);
+          });
+          void Promise.resolve(watchResult)
+            .then((id) => {
+              cancelWatch = () => {
+                try {
+                  remote.cancelWatchAvailability(id);
+                } catch {
+                  /* ignore */
+                }
+              };
+            })
+            .catch(() => {
+              /* NotSupportedError — fall back to webkit availability only */
+            });
+          remote.addEventListener("connect", onRemoteState);
+          remote.addEventListener("connecting", onRemoteState);
+          remote.addEventListener("disconnect", onRemoteState);
+        } catch {
+          /* ignore */
+        }
       }
+
+      detach = () => {
+        video.removeEventListener(
+          "webkitplaybacktargetavailabilitychanged",
+          onAvailability,
+        );
+        video.removeEventListener(
+          "webkitcurrentplaybacktargetiswirelesschanged",
+          syncWireless,
+        );
+        cancelWatch?.();
+        if (remote) {
+          remote.removeEventListener("connect", onRemoteState);
+          remote.removeEventListener("connecting", onRemoteState);
+          remote.removeEventListener("disconnect", onRemoteState);
+        }
+      };
+    };
+
+    attach();
+    // Re-attach when the <video> node appears after src swap / remount.
+    const video = videoRef.current;
+    if (!video) {
+      const id = window.setInterval(() => {
+        if (videoRef.current) {
+          window.clearInterval(id);
+          attach();
+        }
+      }, 100);
+      return () => {
+        window.clearInterval(id);
+        detach?.();
+      };
+    }
+
+    return () => {
+      detach?.();
     };
   }, [enabled, videoRef]);
 

@@ -4293,10 +4293,7 @@ export function AniKittyPlayer({
                       showAirPlayPicker();
                       bumpControls();
                     }}
-                    className={cn(
-                      "hidden sm:inline-flex",
-                      airPlayConnected && "text-white",
-                    )}
+                    className={cn(airPlayConnected && "text-white")}
                   >
                     {airPlayConnected ? (
                       <AirPlayConnectedIcon className="h-[18px] w-[18px]" />
@@ -4324,7 +4321,6 @@ export function AniKittyPlayer({
                       bumpControls();
                     }}
                     className={cn(
-                      "hidden sm:inline-flex",
                       casting && "text-white",
                       castConnecting && "opacity-70",
                     )}
@@ -4894,9 +4890,9 @@ export function AniKittyPlayer({
                             <MenuItem
                               active={airPlayConnected}
                               onClick={() => {
-                                setMoreOpen(false);
                                 showAirPlayPicker();
                                 bumpControls();
+                                setMoreOpen(false);
                               }}
                             >
                               {airPlayConnected
@@ -4908,9 +4904,9 @@ export function AniKittyPlayer({
                             <MenuItem
                               active={casting || castConnecting}
                               onClick={() => {
-                                setMoreOpen(false);
                                 void toggleCast();
                                 bumpControls();
+                                setMoreOpen(false);
                               }}
                             >
                               {casting
