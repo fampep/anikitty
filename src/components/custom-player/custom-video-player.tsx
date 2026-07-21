@@ -98,6 +98,7 @@ import {
   UpNextCountdown,
   VerticalSliderPopover,
 } from "./player-chrome";
+import { PlayerSubtitleOverlay } from "./player-subtitle-overlay";
 import { useAirPlay } from "./use-airplay";
 import { isLikelyCastWebVttUrl } from "./google-cast";
 import {
@@ -1350,7 +1351,9 @@ export function AniKittyPlayer({
         );
         const id = match?.id ?? null;
         if (selectedCaptionId && id === selectedCaptionId) {
-          tt.mode = "showing";
+          // "hidden" = cues still fire / activeCues update, but the UA does not
+          // paint native ::cue (broken in phone fullscreen). We render HTML.
+          tt.mode = "hidden";
           layoutCues(tt);
           shiftCues(tt, captionOffset);
         } else {
@@ -3424,6 +3427,15 @@ export function AniKittyPlayer({
           ))}
         </video>
       </div>
+
+      <PlayerSubtitleOverlay
+        videoRef={videoRef}
+        selectedCaptionId={selectedCaptionId}
+        captionOptions={captionOptions}
+        captionSize={captionSize}
+        captionPosition={captionPosition}
+        immersive={fullscreen || cssFullscreen}
+      />
 
       {/* Chromecast surface — poster + live remote status; local video stays mounted but invisible */}
       {casting || castConnecting ? (
