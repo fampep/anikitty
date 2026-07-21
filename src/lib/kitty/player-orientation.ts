@@ -56,23 +56,41 @@ export function resolvePlayerOrientClass(opts: {
   touchDevice?: boolean;
 }): PlayerOrientClass {
   const touch = opts.touchDevice ?? isTouchLikeDevice();
-  // Only when the device is sideways but the layout stayed portrait
-  // (OS rotation lock). If document FS actually rotated the viewport,
-  // this is false — no double-rotate.
-  if (!isRotationLockLandscape()) return "";
   if (!touch) return "";
-  return playerOrientClassForAngle(getOrientationAngle());
+
+  // Phone sideways + OS rotation lock kept the layout portrait.
+  if (isRotationLockLandscape()) {
+    return playerOrientClassForAngle(getOrientationAngle());
+  }
+
+  // Immersive / CSS fullscreen while the viewport is still portrait:
+  // force a landscape layout (Screen Orientation lock needs document FS and
+  // often fails; CSS FS can never lock).
+  const immersive = Boolean(opts.cssFullscreen || opts.isFullscreen);
+  if (immersive && isViewportPortrait()) {
+    return "kitty-orient-landscape";
+  }
+
+  return "";
 }
 
 export async function tryLockLandscapeOrientation(): Promise<void> {
   if (typeof screen === "undefined") return;
+  const orient = screen.orientation as ScreenOrientation & {
+    lock?: (orientation: string) => Promise<void>;
+  };
+  if (!orient?.lock) return;
+  // Prefer generic "landscape" (either primary/secondary); fall back.
   try {
-    const orient = screen.orientation as ScreenOrientation & {
-      lock?: (orientation: string) => Promise<void>;
-    };
-    await orient?.lock?.("landscape-primary");
+    await orient.lock("landscape");
+    return;
   } catch {
-    // Unsupported, rotation lock on, or not fullscreen — CSS fallback handles it.
+    /* try primary */
+  }
+  try {
+    await orient.lock("landscape-primary");
+  } catch {
+    // Unsupported, not document-fullscreen, or OS rotation lock — CSS handles it.
   }
 }
 

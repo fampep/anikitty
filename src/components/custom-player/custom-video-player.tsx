@@ -1595,15 +1595,14 @@ export function AniKittyPlayer({
         autoFsRef.current = false;
         const target = getFullscreenTarget();
         if (!target) return;
-        // Keep custom chrome — never fall back to native <video> FS on phones
-        // (iOS Safari + Firefox Android promote <video> and hide our controls).
+        // Keep custom chrome — CSS FS on phones (native <video> FS hides controls).
         if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
           enterCssFullscreen();
           return;
         }
         void requestElementFullscreen(target)
-          .then(() => {
-            void tryLockLandscapeOrientation();
+          .then(async () => {
+            await tryLockLandscapeOrientation();
           })
           .catch(() => {
             enterCssFullscreen();
@@ -2334,8 +2333,8 @@ export function AniKittyPlayer({
         return;
       }
 
-      // iOS / Firefox Android: CSS FS keeps our chrome (native <video> FS hides it).
-      // Chrome Android: document FS so the OS can rotate / lock landscape.
+      // Phones: CSS FS keeps custom controls. Landscape via CSS rotate when
+      // the viewport is still portrait (orientation.lock needs document FS).
       if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
         enterCssFullscreen();
         return;
@@ -2343,7 +2342,7 @@ export function AniKittyPlayer({
 
       try {
         await requestElementFullscreen(target);
-        void tryLockLandscapeOrientation();
+        await tryLockLandscapeOrientation();
         setFullscreen(true);
         setControlsVisible(true);
       } catch {
