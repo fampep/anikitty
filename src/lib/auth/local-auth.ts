@@ -7,6 +7,25 @@ const USERNAME_RE = /^[a-zA-Z0-9_]{3,25}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LEN = 8;
 
+/** Synthetic emails for Discord-only accounts — not usable for password reset. */
+export function isPlaceholderEmail(email: string | null | undefined): boolean {
+  if (!email) return true;
+  const normalized = email.trim().toLowerCase();
+  return (
+    normalized.endsWith("@discord.account") ||
+    normalized.endsWith("@anikitty.local") ||
+    /^discord_\d+@/.test(normalized)
+  );
+}
+
+export function canReceiveAccountEmail(
+  email: string | null | undefined,
+  emailVerifiedAt: Date | string | null | undefined,
+): boolean {
+  if (!email || isPlaceholderEmail(email)) return false;
+  return !!emailVerifiedAt;
+}
+
 export function validateUsername(username: string): string | null {
   const trimmed = username.trim();
   if (!USERNAME_RE.test(trimmed)) {

@@ -10,8 +10,9 @@ import { useT } from "@/providers/i18n-provider";
 import { DiscordIcon } from "@/components/auth/discord-connect";
 import { useDiscordAuthEnabled } from "@/hooks/use-discord-auth-enabled";
 import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
+import { RecoveryCodesReveal } from "@/components/auth/recovery-codes-reveal";
 
-type Tab = "login" | "signup" | "2fa";
+type Tab = "login" | "signup" | "2fa" | "recover";
 
 function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode } = {}) {
   const t = useT();
@@ -28,6 +29,10 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
   const [pendingToken, setPendingToken] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [passkeySupported, setPasskeySupported] = useState(false);
+  const [recoverIdentifier, setRecoverIdentifier] = useState("");
+  const [recoverCode, setRecoverCode] = useState("");
+  const [recoverPassword, setRecoverPassword] = useState("");
+  const [issuedCodes, setIssuedCodes] = useState<string[] | null>(null);
 
   useEffect(() => {
     setPasskeySupported(browserSupportsWebAuthn());
@@ -41,6 +46,10 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     setSignupPassword("");
     setPendingToken("");
     setTotpCode("");
+    setRecoverIdentifier("");
+    setRecoverCode("");
+    setRecoverPassword("");
+    setIssuedCodes(null);
     setLoading(false);
   };
 
@@ -109,9 +118,17 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
     try {
       const data = await anisurgeAuth.signup(username.trim(), email.trim(), signupPassword);
       syncAuth(data);
+      const codes = Array.isArray((data as { recoveryCodes?: string[] }).recoveryCodes)
+        ? (data as { recoveryCodes: string[] }).recoveryCodes
+        : null;
       toast.success(t("auth.accountCreated"));
-      setOpen(false);
-      reset();
+      if (codes?.length) {
+        setIssuedCodes(codes);
+        setTab("login");
+      } else {
+        setOpen(false);
+        reset();
+      }
     } catch (e: any) {
       const msg = e?.body?.error ?? t("auth.signupFailed");
       toast.error(
@@ -119,6 +136,42 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
           ? t("auth.usernameTaken")
           : msg,
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecover = async () => {
+    if (!recoverIdentifier.trim() || !recoverCode.trim() || !recoverPassword) {
+      toast.error(t("auth.recoverFillAll"));
+      return;
+    }
+    if (recoverPassword.length < 8) {
+      toast.error(t("auth.passwordMin"));
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/account/auth/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: recoverIdentifier.trim(),
+          code: recoverCode.trim(),
+          password: recoverPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? t("auth.recoverFailed"));
+        return;
+      }
+      syncAuth(data);
+      toast.success(t("auth.recoverSuccess"));
+      setOpen(false);
+      reset();
+    } catch {
+      toast.error(t("auth.recoverFailed"));
     } finally {
       setLoading(false);
     }
@@ -182,7 +235,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
           <p className="text-muted-foreground dark:text-white/50 text-xs font-mono">{t("auth.accountHint")}</p>
 
           {/* Tabs */}
-          {tab !== "2fa" && (
+          {tab !== "2fa" && tab !== "recover" && !issuedCodes && (
           <div className="flex rounded-lg bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 p-0.5">
             <button
               onClick={() => setTab("login")}
@@ -245,7 +298,7 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
         )}
 
         {/* Login form */}
-        {tab === "login" && (
+        {tab === "login" && !issuedCodes && (
           <div className="p-5 flex flex-col gap-3.5">
             <Field
               label={t("auth.usernameOrEmail")}
@@ -262,6 +315,16 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
               type="password"
               onEnter={handleLogin}
             />
+            <button
+              type="button"
+              onClick={() => {
+                setRecoverIdentifier(identifier);
+                setTab("recover");
+              }}
+              className="self-start -mt-1 text-[11px] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 transition-colors"
+            >
+              {t("auth.useRecoveryCode")}
+            </button>
             <button
               onClick={handleLogin}
               disabled={loading}
@@ -304,8 +367,66 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
           </div>
         )}
 
+        {issuedCodes ? (
+          <div className="p-5 flex flex-col gap-3.5">
+            <RecoveryCodesReveal
+              codes={issuedCodes}
+              onDismiss={() => {
+                setIssuedCodes(null);
+                setOpen(false);
+                reset();
+              }}
+            />
+          </div>
+        ) : null}
+
+        {tab === "recover" && !issuedCodes && (
+          <div className="p-5 flex flex-col gap-3.5">
+            <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
+              {t("auth.recoverHint")}
+            </p>
+            <Field
+              label={t("auth.usernameOrEmail")}
+              value={recoverIdentifier}
+              onChange={setRecoverIdentifier}
+              placeholder={t("auth.usernamePlaceholder")}
+              onEnter={handleRecover}
+            />
+            <Field
+              label={t("auth.recoveryCode")}
+              value={recoverCode}
+              onChange={setRecoverCode}
+              placeholder="XXXX-XXXX"
+              onEnter={handleRecover}
+            />
+            <Field
+              label={t("settings.newPassword")}
+              value={recoverPassword}
+              onChange={setRecoverPassword}
+              placeholder="••••••••"
+              type="password"
+              onEnter={handleRecover}
+            />
+            <button
+              onClick={handleRecover}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {t("auth.recoverSubmit")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("login")}
+              className="text-xs text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:hover:text-white/70 transition-colors"
+            >
+              {t("auth.backToSignIn")}
+            </button>
+          </div>
+        )}
+
         {/* Signup form */}
-        {tab === "signup" && (
+        {tab === "signup" && !issuedCodes && (
           <div className="p-5 flex flex-col gap-3.5">
             <Field
               label={t("auth.username")}

@@ -41,6 +41,10 @@ export const users = pgTable("users", {
   discordUsername: varchar("discord_username", { length: 100 }),
   /** Last Discord level-up announcement level — avoids spam / re-announce on bootstrap. */
   lastAnnouncedDiscordLevel: integer("last_announced_discord_level"),
+  /** When the current email was verified (Discord verified email or recovery link). */
+  emailVerifiedAt: timestamp("email_verified_at"),
+  /** When the user last set a password they know (null = Discord SSO-only random hash). */
+  passwordSetAt: timestamp("password_set_at"),
   totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   profilePrivate: boolean("profile_private").notNull().default(false),
@@ -122,6 +126,24 @@ export const userPasskeys = pgTable(
   },
   (t) => ({
     userIdx: index("user_passkeys_user_id_idx").on(t.userId),
+  }),
+);
+
+/** One-time account recovery codes (hashed). Plaintext shown only at issue time. */
+export const userRecoveryCodes = pgTable(
+  "user_recovery_codes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: varchar("code_hash", { length: 64 }).notNull(),
+    usedAt: timestamp("used_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("user_recovery_codes_user_idx").on(t.userId),
+    hashIdx: index("user_recovery_codes_hash_idx").on(t.codeHash),
   }),
 );
 

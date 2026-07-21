@@ -52,7 +52,10 @@ export async function PATCH(
 
     const passwordHash = await hashPassword(password);
     const now = new Date();
-    await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ passwordHash, passwordSetAt: now })
+      .where(eq(users.id, userId));
     await db
       .update(userSessions)
       .set({ revokedAt: now })

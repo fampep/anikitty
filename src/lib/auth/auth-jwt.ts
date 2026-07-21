@@ -34,8 +34,13 @@ export type OAuthPurpose = "anilist_oauth" | "discord_login" | "discord_link";
 export async function signOAuthStateFor(
   purpose: OAuthPurpose,
   userId?: string,
+  extra?: { redirectUri?: string },
 ): Promise<string> {
-  return new SignJWT({ purpose, ...(userId ? { userId } : {}) })
+  return new SignJWT({
+    purpose,
+    ...(userId ? { userId } : {}),
+    ...(extra?.redirectUri ? { redirectUri: extra.redirectUri } : {}),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("10m")
@@ -45,12 +50,87 @@ export async function signOAuthStateFor(
 export async function verifyOAuthStateFor(
   state: string,
   expectedPurpose: OAuthPurpose,
-): Promise<{ userId?: string } | null> {
+): Promise<{ userId?: string; redirectUri?: string } | null> {
   try {
     const { payload } = await jwtVerify(state, await secret());
     if (payload.purpose !== expectedPurpose) return null;
     const userId = payload.userId as string | undefined;
-    return userId ? { userId } : {};
+    const redirectUri =
+      typeof payload.redirectUri === "string" ? payload.redirectUri : undefined;
+    return {
+      ...(userId ? { userId } : {}),
+      ...(redirectUri ? { redirectUri } : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function signEmailVerifyToken(userId: string, email: string): Promise<string> {
+  return new SignJWT({ purpose: "email_verify", userId, email })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30m")
+    .sign(await secret());
+}
+
+export async function verifyEmailVerifyToken(
+  token: string,
+): Promise<{ userId: string; email: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, await secret());
+    if (payload.purpose !== "email_verify") return null;
+    const userId = payload.userId as string | undefined;
+    const email = payload.email as string | undefined;
+    if (!userId || !email) return null;
+    return { userId, email };
+  } catch {
+    return null;
+  }
+}
+
+export async function signPasswordResetToken(userId: string): Promise<string> {
+  return new SignJWT({ purpose: "password_reset", userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30m")
+    .sign(await secret());
+}
+
+export async function verifyPasswordResetToken(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, await secret());
+    if (payload.purpose !== "password_reset") return null;
+    return (payload.userId as string) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Short-lived claim so Discord signup can show plaintext recovery codes once. */
+export async function signRecoveryCodesClaim(
+  userId: string,
+  codes: string[],
+): Promise<string> {
+  return new SignJWT({ purpose: "recovery_codes_claim", userId, codes })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("15m")
+    .sign(await secret());
+}
+
+export async function verifyRecoveryCodesClaim(
+  token: string,
+): Promise<{ userId: string; codes: string[] } | null> {
+  try {
+    const { payload } = await jwtVerify(token, await secret());
+    if (payload.purpose !== "recovery_codes_claim") return null;
+    const userId = payload.userId as string | undefined;
+    const codes = payload.codes;
+    if (!userId || !Array.isArray(codes) || codes.some((c) => typeof c !== "string")) {
+      return null;
+    }
+    return { userId, codes: codes as string[] };
   } catch {
     return null;
   }

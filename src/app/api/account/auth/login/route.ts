@@ -4,6 +4,8 @@ import { buildAuthResponse } from "@/lib/auth/auth-response";
 import { jsonWithAuthCookie } from "@/lib/auth/auth-cookie";
 import { grantDailyLoginKittycoins } from "@/lib/shop/kittycoins";
 import { getDb } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import {
   findUserByIdentifier,
   verifyUserPassword,
@@ -36,8 +38,31 @@ export async function POST(req: Request) {
     }
 
     const user = await findUserByIdentifier(identifier);
-    if (!user || !(await verifyUserPassword(user, password))) {
+    if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    // Discord SSO-only accounts (random hash, never set a password).
+    if (!user.passwordSetAt && user.discordId) {
+      return NextResponse.json(
+        {
+            error:
+              "This account uses Discord sign-in. Continue with Discord, or recover with a recovery code from signup.",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (!(await verifyUserPassword(user, password))) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    // Backfill for legacy email/password accounts created before passwordSetAt existed.
+    if (!user.passwordSetAt) {
+      void getDb()
+        .update(users)
+        .set({ passwordSetAt: new Date() })
+        .where(eq(users.id, user.id));
     }
 
     if (isUserBanned(user)) {

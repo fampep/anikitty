@@ -6,7 +6,7 @@ import {
   discordLoginSuccessRedirect,
   discordSettingsRedirect,
 } from "@/lib/oauth/discord-oauth";
-import { verifyOAuthStateFor } from "@/lib/auth/auth-jwt";
+import { signRecoveryCodesClaim, verifyOAuthStateFor } from "@/lib/auth/auth-jwt";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -28,9 +28,29 @@ export async function GET(req: Request) {
 
   const result = await completeDiscordLogin(code, state, req);
   if (result.type === "success") {
-    return discordLoginSuccessRedirect(req, result.token);
+    let recoveryClaim: string | undefined;
+    if (result.recoveryCodes?.length) {
+      recoveryClaim = await signRecoveryCodesClaim(
+        result.userId,
+        result.recoveryCodes,
+      );
+    }
+    return discordLoginSuccessRedirect(req, result.token, { recoveryClaim });
   }
   if (result.type === "2fa") {
+    // Codes claim isn't applied on 2FA path — regenerate from settings if needed.
+    // Prefer showing codes after 2FA by attaching claim to 2FA cookie redirect if present.
+    if (result.recoveryCodes?.length) {
+      const claim = await signRecoveryCodesClaim(
+        result.userId,
+        result.recoveryCodes,
+      );
+      const res = discord2faRedirect(req, result.pendingToken);
+      const { RECOVERY_CODES_CLAIM_COOKIE, recoveryClaimCookieOptions } =
+        await import("@/lib/auth/auth-cookie");
+      res.cookies.set(RECOVERY_CODES_CLAIM_COOKIE, claim, recoveryClaimCookieOptions());
+      return res;
+    }
     return discord2faRedirect(req, result.pendingToken);
   }
   return discordLoginErrorRedirect(req, result.reason);

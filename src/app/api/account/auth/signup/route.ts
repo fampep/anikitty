@@ -72,14 +72,21 @@ export async function POST(req: Request) {
         username: normalizedUsername,
         email: normalizedEmail,
         passwordHash,
+        passwordSetAt: new Date(),
       })
       .returning();
 
     const { grantWelcomeKittycoins } = await import("@/lib/shop/kittycoins");
     await grantWelcomeKittycoins(db, user.id);
 
+    const { issueRecoveryCodes } = await import("@/lib/auth/recovery-codes");
+    const recoveryCodes = await issueRecoveryCodes(user.id);
+
     const authData = await buildAuthResponse(user, req);
-    return jsonWithAuthCookie(authData, authData.anisurgeToken);
+    return jsonWithAuthCookie(
+      { ...authData, recoveryCodes },
+      authData.anisurgeToken,
+    );
   } catch (e) {
     console.error("[signup]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

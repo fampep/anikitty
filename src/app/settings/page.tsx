@@ -51,6 +51,7 @@ import { withAuth } from "@/lib/auth/auth-fetch";
 import TwoFactorSection from "@/components/auth/two-factor-section";
 import PasskeysSection from "@/components/auth/passkeys-section";
 import ActiveSessionsSection from "@/components/auth/active-sessions-section";
+import AccountRecoverySection from "@/components/auth/account-recovery-section";
 import ProfilePrivacySection from "@/components/profile/profile-privacy-section";
 import ProfileSectionsSettings from "@/components/profile/profile-sections-settings";
 import BlockedUsersSection from "@/components/profile/blocked-users-section";
@@ -279,7 +280,9 @@ function AccountCard() {
     <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/10">
       <Avatar className="w-14 h-14 shrink-0" username={auth.username} url={auth.avatar ?? undefined} />
       <div className="min-w-0 flex-1">
-        <p className="text-base font-bold text-foreground dark:text-white leading-tight">@{auth.username}</p>
+        <p className="text-base font-bold text-foreground dark:text-white leading-tight flex items-center gap-1.5">
+          @{auth.username}
+        </p>
         <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30 mt-0.5 truncate">{auth.email ?? "—"}</p>
         {auth.role && auth.role !== "user" && (
           <div className="mt-2">
@@ -1187,6 +1190,10 @@ export default function SettingsPage() {
                   />
                   <SectionBody className="flex flex-col gap-6">
                     <div>
+                      <SubSectionTitle>{t("settings.accountRecovery")}</SubSectionTitle>
+                      <AccountRecoverySection />
+                    </div>
+                    <div className="border-t border-border dark:border-white/6 pt-6">
                       <SubSectionTitle>{t("settings.passkeys")}</SubSectionTitle>
                       <PasskeysSection />
                     </div>

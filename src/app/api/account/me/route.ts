@@ -9,6 +9,7 @@ import { isValidThemeColor, normalizeThemeColor } from "@/lib/core/theme-color";
 import { getRolePermissions } from "@/lib/security/permissions";
 import { expireSupporterIfNeeded } from "@/lib/social/supporter-access";
 import { getUserCosmetics } from "@/lib/shop/kittycoins";
+import { isPlaceholderEmail } from "@/lib/auth/local-auth";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -43,6 +44,7 @@ export async function GET(req: Request) {
       createdAt: users.createdAt,
       lastOnlineAt: users.lastOnlineAt,
       activityStatus: users.activityStatus,
+      passwordSetAt: users.passwordSetAt,
     })
     .from(users)
     .where(eq(users.id, payload.userId))
@@ -69,12 +71,14 @@ export async function GET(req: Request) {
     anisurgeLinked: !!safeUser.anisurgeUsername,
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,
-      anilistUsername: safeUser.anilistUsername ?? null,
-      discordLinked: !!safeUser.discordId,
-      discordUsername: safeUser.discordUsername ?? null,
-      totpEnabled: safeUser.totpEnabled ?? false,
-      profilePrivate: safeUser.profilePrivate ?? false,
-      user: {
+    anilistUsername: safeUser.anilistUsername ?? null,
+    discordLinked: !!safeUser.discordId,
+    discordUsername: safeUser.discordUsername ?? null,
+    totpEnabled: safeUser.totpEnabled ?? false,
+    profilePrivate: safeUser.profilePrivate ?? false,
+    passwordSet: !!safeUser.passwordSetAt,
+    placeholderEmail: isPlaceholderEmail(safeUser.email),
+    user: {
       id: safeUser.id,
       username: safeUser.username,
       email: safeUser.email,
@@ -90,6 +94,8 @@ export async function GET(req: Request) {
       equippedFrame: cosmetics.equipped.frame,
       equippedSticker: cosmetics.equipped.sticker,
       equippedIcon: cosmetics.equipped.icon,
+      passwordSet: !!safeUser.passwordSetAt,
+      placeholderEmail: isPlaceholderEmail(safeUser.email),
     },
   });
 }
