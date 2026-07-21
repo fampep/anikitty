@@ -18,7 +18,7 @@ import { formatPlayerTime } from "./utils";
 
 /** Shared menu / tip surface — hairline border, soft blur, no heavy shadow. */
 export const PLAYER_POPOVER_CLASS =
-  "rounded-lg border border-white/[0.12] bg-zinc-950/92 text-xs text-white backdrop-blur-xl supports-[backdrop-filter]:bg-zinc-950/80";
+  "rounded-xl border border-white/[0.14] bg-zinc-950/94 text-xs text-white shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/85";
 
 /** Open animation for player popovers / panels. */
 export const PLAYER_POPOVER_MOTION_CLASS =
@@ -26,7 +26,7 @@ export const PLAYER_POPOVER_MOTION_CLASS =
 
 /** Mobile bottom-sheet surface inside the player / fullscreen host. */
 export const PLAYER_SHEET_CLASS =
-  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(72dvh,440px)] w-full overflow-y-auto overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/96 py-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white backdrop-blur-xl supports-[backdrop-filter]:bg-zinc-950/90";
+  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(72dvh,440px)] w-full overflow-y-auto overscroll-contain rounded-t-[1.25rem] border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92";
 
 /**
  * Portal overlays into the player host (or fullscreen wrapper) so sheets stay
@@ -332,14 +332,14 @@ export function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-white/70",
-        "transition-[color,opacity,background-color,transform] duration-150 ease-out",
-        "hover:bg-white/[0.06] hover:text-white",
-        "active:scale-[0.92] active:bg-white/[0.1] active:opacity-90",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
-        "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/70 disabled:active:scale-100",
-        "aria-pressed:text-white aria-expanded:text-white",
-        "sm:h-9 sm:w-9",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/75",
+        "transition-[color,opacity,background-color,transform,box-shadow] duration-150 ease-out",
+        "hover:bg-white/[0.1] hover:text-white",
+        "active:scale-[0.9] active:bg-white/[0.14] active:opacity-95",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
+        "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/75 disabled:active:scale-100",
+        "aria-pressed:bg-white/[0.1] aria-pressed:text-white aria-expanded:bg-white/[0.1] aria-expanded:text-white",
+        "sm:h-9 sm:w-9 sm:rounded-lg",
         className,
       )}
     >

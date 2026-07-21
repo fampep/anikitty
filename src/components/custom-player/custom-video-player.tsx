@@ -3610,11 +3610,11 @@ export function AniKittyPlayer({
             seekFlash === "left" ? "scale-100" : "scale-90",
           )}
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/75 text-white backdrop-blur-md sm:rounded-xl">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/80 text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-xl">
             <SeekBackIcon className="h-7 w-7" />
           </div>
           {seekFlashSecs > 0 ? (
-            <span className="rounded-lg border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
+            <span className="rounded-full border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white shadow-lg sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
               −{seekFlashSecs}s
             </span>
           ) : null}
@@ -3635,11 +3635,11 @@ export function AniKittyPlayer({
             seekFlash === "right" ? "scale-100" : "scale-90",
           )}
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/75 text-white backdrop-blur-md sm:rounded-xl">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/80 text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-xl">
             <SeekForwardIcon className="h-7 w-7" />
           </div>
           {seekFlashSecs > 0 ? (
-            <span className="rounded-lg border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
+            <span className="rounded-full border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white shadow-lg sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
               +{seekFlashSecs}s
             </span>
           ) : null}
@@ -3737,9 +3737,9 @@ export function AniKittyPlayer({
         aria-label="Play"
         onClick={togglePlay}
         className={cn(
-          "absolute left-1/2 top-1/2 z-20 flex h-[4.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.05rem] border border-white/25 bg-zinc-950/55 text-white backdrop-blur-md",
-          "transition-[opacity,transform,border-color,background-color] duration-300 ease-out",
-          "hover:border-white/40 hover:bg-zinc-950/70",
+          "absolute left-1/2 top-1/2 z-20 flex h-[4.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-zinc-950/60 text-white shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md",
+          "transition-[opacity,transform,border-color,background-color,box-shadow] duration-300 ease-out",
+          "hover:border-white/40 hover:bg-zinc-950/75 hover:shadow-[0_16px_48px_rgba(0,0,0,0.55)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
           "sm:h-[4.25rem] sm:w-[4.25rem]",
           showCenterPlay
@@ -3824,12 +3824,12 @@ export function AniKittyPlayer({
       {/* Netflix-style mini progress while chrome is hidden */}
       {showMiniProgress ? (
         <div
-          className="pointer-events-none absolute inset-x-0 z-20 h-[3px] bg-white/[0.1] bottom-[max(0px,env(safe-area-inset-bottom))]"
+          className="pointer-events-none absolute inset-x-0 z-20 h-[2.5px] bg-white/[0.08] bottom-[max(0px,env(safe-area-inset-bottom))]"
           aria-hidden
         >
           {bufferedAheadRatio != null ? (
             <div
-              className="absolute inset-y-0 left-0 origin-left bg-white/30"
+              className="absolute inset-y-0 left-0 origin-left bg-white/25"
               style={{
                 width: "100%",
                 transform: `scaleX(${bufferedAheadRatio})`,
@@ -3837,11 +3837,38 @@ export function AniKittyPlayer({
             />
           ) : null}
           <div
-            className="absolute inset-y-0 left-0 origin-left bg-white"
+            className="absolute inset-y-0 left-0 origin-left bg-white shadow-[0_0_6px_rgba(255,255,255,0.4)]"
             style={{ transform: `scaleX(${progressRatio})` }}
           />
         </div>
       ) : null}
+
+      {/* Top title strip — fades with chrome */}
+      {(title || seriesTitle) && (
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 z-30 bg-gradient-to-b from-black/70 via-black/25 to-transparent pt-[max(0.65rem,env(safe-area-inset-top))] transition-[opacity,transform] duration-300 ease-out",
+            chromeVisible
+              ? "translate-y-0 opacity-100"
+              : "-translate-y-1 opacity-0",
+            reduceMotion && "transition-none",
+          )}
+          aria-hidden={!chromeVisible}
+        >
+          <div className="px-3.5 pb-8 sm:px-4">
+            {seriesTitle ? (
+              <p className="truncate text-[11px] font-medium tracking-wide text-white/55">
+                {seriesTitle}
+              </p>
+            ) : null}
+            {title ? (
+              <p className="mt-0.5 truncate text-[13px] font-semibold tracking-wide text-white/95 sm:text-[14px]">
+                {title}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* Bottom chrome — sparse ArtPlayer-like bar */}
       <div
@@ -3858,8 +3885,8 @@ export function AniKittyPlayer({
       >
         <div
           className={cn(
-            "group/chrome pointer-events-auto bg-gradient-to-t from-black/55 via-black/20 to-transparent pt-8 transition-[background] duration-200",
-            "hover:from-black/80 hover:via-black/40",
+            "group/chrome pointer-events-auto bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-12 transition-[background] duration-300",
+            "hover:from-black/90 hover:via-black/50",
             !chromeVisible && "pointer-events-none",
           )}
           onMouseEnter={() => {
@@ -3876,11 +3903,11 @@ export function AniKittyPlayer({
         >
           <div
             className={cn(
-              "w-full min-w-0 bg-black/10 backdrop-blur-[3px] supports-[backdrop-filter]:bg-black/[0.06]",
-              "transition-[background-color,backdrop-filter,-webkit-backdrop-filter] duration-200 ease-out",
-              "group-hover/chrome:bg-black/40 group-hover/chrome:backdrop-blur-[12px]",
-              "group-hover/chrome:supports-[backdrop-filter]:bg-black/25",
-              "pb-[max(0.65rem,env(safe-area-inset-bottom))] pl-[max(0.35rem,env(safe-area-inset-left))] pr-[max(0.35rem,env(safe-area-inset-right))] pt-[max(0.15rem,env(safe-area-inset-top))]",
+              "w-full min-w-0 border-t border-white/[0.06] bg-black/25 backdrop-blur-md supports-[backdrop-filter]:bg-black/15",
+              "transition-[background-color,backdrop-filter,-webkit-backdrop-filter,border-color] duration-250 ease-out",
+              "group-hover/chrome:border-white/[0.1] group-hover/chrome:bg-black/45 group-hover/chrome:backdrop-blur-xl",
+              "group-hover/chrome:supports-[backdrop-filter]:bg-black/30",
+              "pb-[max(0.7rem,env(safe-area-inset-bottom))] pl-[max(0.4rem,env(safe-area-inset-left))] pr-[max(0.4rem,env(safe-area-inset-right))] pt-1.5",
             )}
           >
             {/* Progress — full content width; tall touch target; thin visual line */}
@@ -3994,8 +4021,8 @@ export function AniKittyPlayer({
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
               <div className={cn(
-                "pointer-events-none absolute left-0 right-0 top-1/2 h-[5px] w-full -mt-[2.5px] overflow-visible rounded-full bg-white/[0.18] transition-[height,margin] duration-150 sm:h-[2.5px] sm:-mt-[1.25px] group-hover/seek:h-[4.5px] group-hover/seek:-mt-[2.25px]",
-                seeking && "h-[6px] -mt-[3px] sm:h-[4.5px] sm:-mt-[2.25px]",
+                "pointer-events-none absolute left-0 right-0 top-1/2 h-[5px] w-full -mt-[2.5px] overflow-visible rounded-full bg-white/[0.14] ring-1 ring-inset ring-white/[0.06] transition-[height,margin] duration-150 sm:h-[3px] sm:-mt-[1.5px] group-hover/seek:h-[5px] group-hover/seek:-mt-[2.5px]",
+                seeking && "h-[6px] -mt-[3px] sm:h-[5px] sm:-mt-[2.5px]",
               )}>
                 {/* Buffered ranges — muted ahead-of-playhead fill */}
                 {effectiveDuration > 0 && !casting
@@ -4007,7 +4034,7 @@ export function AniKittyPlayer({
                         <div
                           key={`${range.start}-${range.end}-${i}`}
                           aria-hidden
-                          className="absolute inset-y-0 z-[2] rounded-full bg-white/30"
+                          className="absolute inset-y-0 z-[2] rounded-full bg-white/25"
                           style={{
                             left: `${left}%`,
                             width: `${Math.max(width, 0)}%`,
@@ -4017,14 +4044,14 @@ export function AniKittyPlayer({
                     })
                   : null}
                 <div
-                  className="absolute inset-y-0 left-0 z-[3] w-full origin-left rounded-full bg-white"
+                  className="absolute inset-y-0 left-0 z-[3] w-full origin-left rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.35)]"
                   style={{ transform: `scaleX(${progressRatio})` }}
                 />
                 {/* Playhead tip — tiny bright tick for scrub clarity */}
                 {effectiveDuration > 0 ? (
                   <div
                     aria-hidden
-                    className="absolute top-1/2 z-[5] h-2 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-90 group-hover/seek:opacity-0"
+                    className="absolute top-1/2 z-[5] h-2.5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-90 group-hover/seek:opacity-0"
                     style={{ left: `${progressRatio * 100}%` }}
                   />
                 ) : null}
@@ -4044,8 +4071,8 @@ export function AniKittyPlayer({
                             "h-[5px] group-hover/seek:h-[7px]",
                             seeking && "h-[7px]",
                             seg.kind === "intro"
-                              ? "bg-white/40"
-                              : "bg-amber-400/55",
+                              ? "bg-white/35"
+                              : "bg-amber-400/60",
                           )}
                           style={{
                             left: `${left}%`,
@@ -4059,7 +4086,7 @@ export function AniKittyPlayer({
               {/* Scrub knob — outside overflow:hidden track so it stays visible */}
               <div
                 className={cn(
-                  "pointer-events-none absolute top-1/2 z-[5] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white ring-2 ring-black/40 transition-[opacity,transform,width,height] duration-150",
+                  "pointer-events-none absolute top-1/2 z-[5] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.45)] transition-[opacity,transform,width,height] duration-150",
                   seeking
                     ? "h-[18px] w-[18px] scale-100 opacity-100 sm:h-4 sm:w-4"
                     : coarsePointer || hoverPreview
@@ -4070,7 +4097,7 @@ export function AniKittyPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-0 px-1 py-0.5 sm:gap-0.5 sm:px-2.5 sm:py-2">
+            <div className="flex w-full min-w-0 items-center gap-0.5 px-1.5 py-1 sm:gap-1 sm:px-2.5 sm:py-2">
               {/* Left cluster */}
               <div className="flex min-w-0 shrink items-center gap-0 sm:gap-0.5">
                 <IconButton
@@ -4083,7 +4110,7 @@ export function AniKittyPlayer({
                   onPointerDown={onPlayPointerDown}
                   onPointerUp={onPlayPointerUp}
                   onPointerCancel={onPlayPointerUp}
-                  className="text-white"
+                  className="bg-white/[0.08] text-white hover:bg-white/[0.14] sm:bg-transparent sm:hover:bg-white/[0.1]"
                 >
                   {effectivePlaying ? (
                     <PauseIcon className="h-[18px] w-[18px]" />
@@ -4142,7 +4169,7 @@ export function AniKittyPlayer({
                 ) : null}
 
                 <span
-                  className="ml-0.5 select-none whitespace-nowrap text-[11px] tabular-nums tracking-wide text-white/85 sm:ml-2 sm:text-[12px]"
+                  className="ml-1 select-none whitespace-nowrap rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[11px] tabular-nums tracking-wide text-white/90 ring-1 ring-inset ring-white/[0.06] sm:ml-2 sm:bg-transparent sm:px-0 sm:py-0 sm:text-[12px] sm:ring-0"
                   aria-hidden
                 >
                   {formatPlayerTime(displayTime)}
@@ -4157,8 +4184,8 @@ export function AniKittyPlayer({
                       </>
                     ) : null}
                   </span>
-                  <span className="hidden text-white/35 sm:inline">
-                    <span className="inline-block w-1.5 sm:w-2.5" />
+                  <span className="hidden text-white/40 sm:inline">
+                    <span className="mx-1.5 text-white/25">/</span>
                     {formatPlayerTime(effectiveDuration)}
                   </span>
                 </span>

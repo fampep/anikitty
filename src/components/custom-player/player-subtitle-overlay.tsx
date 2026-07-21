@@ -146,8 +146,8 @@ export function PlayerSubtitleOverlay({
     >
       <div
         className={cn(
-          "max-w-[min(92%,42rem)] rounded px-2.5 py-1 text-center font-medium leading-snug text-[#fafafa]",
-          "whitespace-pre-line bg-[rgba(9,9,11,0.78)] shadow-[0_1px_2px_rgba(0,0,0,0.55)]",
+          "max-w-[min(92%,42rem)] rounded-lg px-3 py-1.5 text-center font-medium leading-snug text-[#fafafa]",
+          "whitespace-pre-line bg-[rgba(9,9,11,0.82)] shadow-[0_4px_20px_rgba(0,0,0,0.4)] ring-1 ring-white/[0.08]",
         )}
       >
         {text}
