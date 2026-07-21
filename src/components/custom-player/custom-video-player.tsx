@@ -89,6 +89,9 @@ import {
   NextEpisodeChip,
   PLAYER_POPOVER_CLASS,
   PLAYER_POPOVER_MOTION_CLASS,
+  PLAYER_SHEET_CLASS,
+  PLAYER_SHEET_LAYER_CLASS,
+  PlayerOverlayPortal,
   SeekPreviewCard,
   SegmentedChoice,
   ShortcutsPanel,
@@ -2856,6 +2859,14 @@ export function AniKittyPlayer({
       togglePlay();
     },
     onVolumeDelta: (delta) => {
+      // iOS ignores HTMLMediaElement.volume — don't fake a working slider gesture.
+      if (iosVolumeLocked && !castingRef.current) {
+        showGestureHint({
+          label: "System volume",
+          detail: "Use side buttons",
+        });
+        return;
+      }
       const video = videoRef.current;
       const base = video ? (video.muted ? 0 : video.volume) : volume;
       setVolumeLevel(base + delta, { hint: true });
@@ -3477,24 +3488,24 @@ export function AniKittyPlayer({
       {/* Double-click / double-tap seek flash — zone wash + accumulated seconds */}
       <div
           className={cn(
-            "pointer-events-none absolute inset-y-0 left-0 z-20 w-1/3 transition-[opacity,transform] duration-300 ease-out",
+            "pointer-events-none absolute inset-y-0 left-0 z-20 w-[42%] transition-[opacity,transform] duration-300 ease-out sm:w-1/3",
             seekFlash === "left" ? "opacity-100" : "opacity-0",
             reduceMotion && "transition-none",
           )}
         aria-hidden
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-white/[0.1] via-white/[0.03] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/[0.22] via-white/[0.08] to-transparent" />
         <div
           className={cn(
-            "absolute left-[14%] top-1/2 flex -translate-y-1/2 flex-col items-center gap-1.5 transition-transform duration-300",
+            "absolute left-[12%] top-1/2 flex -translate-y-1/2 flex-col items-center gap-2 transition-transform duration-300",
             seekFlash === "left" ? "scale-100" : "scale-90",
           )}
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/15 bg-zinc-950/70 text-white backdrop-blur-md sm:h-16 sm:w-16">
-            <SeekBackIcon className="h-6 w-6 sm:h-7 sm:w-7" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/75 text-white backdrop-blur-md sm:rounded-xl">
+            <SeekBackIcon className="h-7 w-7" />
           </div>
           {seekFlashSecs > 0 ? (
-            <span className="rounded-md border border-white/10 bg-zinc-950/85 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums tracking-wide text-white">
+            <span className="rounded-lg border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
               −{seekFlashSecs}s
             </span>
           ) : null}
@@ -3502,24 +3513,24 @@ export function AniKittyPlayer({
       </div>
       <div
           className={cn(
-            "pointer-events-none absolute inset-y-0 right-0 z-20 w-1/3 transition-[opacity,transform] duration-300 ease-out",
+            "pointer-events-none absolute inset-y-0 right-0 z-20 w-[42%] transition-[opacity,transform] duration-300 ease-out sm:w-1/3",
             seekFlash === "right" ? "opacity-100" : "opacity-0",
             reduceMotion && "transition-none",
           )}
         aria-hidden
       >
-        <div className="absolute inset-0 bg-gradient-to-l from-white/[0.1] via-white/[0.03] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-l from-white/[0.22] via-white/[0.08] to-transparent" />
         <div
           className={cn(
-            "absolute right-[14%] top-1/2 flex -translate-y-1/2 flex-col items-center gap-1.5 transition-transform duration-300",
+            "absolute right-[12%] top-1/2 flex -translate-y-1/2 flex-col items-center gap-2 transition-transform duration-300",
             seekFlash === "right" ? "scale-100" : "scale-90",
           )}
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/15 bg-zinc-950/70 text-white backdrop-blur-md sm:h-16 sm:w-16">
-            <SeekForwardIcon className="h-6 w-6 sm:h-7 sm:w-7" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/75 text-white backdrop-blur-md sm:rounded-xl">
+            <SeekForwardIcon className="h-7 w-7" />
           </div>
           {seekFlashSecs > 0 ? (
-            <span className="rounded-md border border-white/10 bg-zinc-950/85 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums tracking-wide text-white">
+            <span className="rounded-lg border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
               +{seekFlashSecs}s
             </span>
           ) : null}
@@ -3704,7 +3715,7 @@ export function AniKittyPlayer({
       {/* Netflix-style mini progress while chrome is hidden */}
       {showMiniProgress ? (
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[2px] bg-white/[0.1]"
+          className="pointer-events-none absolute inset-x-0 z-20 h-[3px] bg-white/[0.1] bottom-[max(0px,env(safe-area-inset-bottom))]"
           aria-hidden
         >
           {bufferedAheadRatio != null ? (
@@ -3759,7 +3770,7 @@ export function AniKittyPlayer({
               "transition-[background-color,backdrop-filter,-webkit-backdrop-filter] duration-200 ease-out",
               "group-hover/chrome:bg-black/40 group-hover/chrome:backdrop-blur-[12px]",
               "group-hover/chrome:supports-[backdrop-filter]:bg-black/25",
-              "pb-[max(0.35rem,env(safe-area-inset-bottom))] pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))]",
+              "pb-[max(0.65rem,env(safe-area-inset-bottom))] pl-[max(0.35rem,env(safe-area-inset-left))] pr-[max(0.35rem,env(safe-area-inset-right))] pt-[max(0.15rem,env(safe-area-inset-top))]",
             )}
           >
             {/* Progress — full content width; tall touch target; thin visual line */}
@@ -3772,7 +3783,7 @@ export function AniKittyPlayer({
               aria-valuenow={Math.floor(displayTime)}
               aria-valuetext={`${formatPlayerTime(displayTime)} of ${formatPlayerTime(effectiveDuration)}`}
               tabIndex={0}
-              className="group/seek relative h-6 w-full min-w-0 cursor-pointer touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3.5"
+              className="group/seek relative h-10 w-full min-w-0 cursor-pointer touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3.5"
               onPointerDown={(e) => {
                 e.preventDefault();
                 e.currentTarget.setPointerCapture(e.pointerId);
@@ -3873,8 +3884,8 @@ export function AniKittyPlayer({
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
               <div className={cn(
-                "pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] overflow-visible rounded-full bg-white/[0.16] transition-[height,margin] duration-150 sm:h-[2.5px] sm:-mt-[1.25px] group-hover/seek:h-[4.5px] group-hover/seek:-mt-[2.25px]",
-                seeking && "h-[4.5px] -mt-[2.25px] sm:h-[4.5px] sm:-mt-[2.25px]",
+                "pointer-events-none absolute left-0 right-0 top-1/2 h-[5px] w-full -mt-[2.5px] overflow-visible rounded-full bg-white/[0.18] transition-[height,margin] duration-150 sm:h-[2.5px] sm:-mt-[1.25px] group-hover/seek:h-[4.5px] group-hover/seek:-mt-[2.25px]",
+                seeking && "h-[6px] -mt-[3px] sm:h-[4.5px] sm:-mt-[2.25px]",
               )}>
                 {/* Buffered ranges — muted ahead-of-playhead fill */}
                 {effectiveDuration > 0 && !casting
@@ -3940,9 +3951,9 @@ export function AniKittyPlayer({
                 className={cn(
                   "pointer-events-none absolute top-1/2 z-[5] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white ring-2 ring-black/40 transition-[opacity,transform,width,height] duration-150",
                   seeking
-                    ? "h-3.5 w-3.5 scale-100 opacity-100"
-                    : hoverPreview
-                      ? "h-3 w-3 scale-100 opacity-100"
+                    ? "h-[18px] w-[18px] scale-100 opacity-100 sm:h-4 sm:w-4"
+                    : coarsePointer || hoverPreview
+                      ? "h-4 w-4 scale-100 opacity-100"
                       : "h-3 w-3 scale-90 opacity-0 group-hover/seek:scale-100 group-hover/seek:opacity-100",
                 )}
                 style={{ left: `${knobRatio * 100}%` }}
@@ -4048,7 +4059,7 @@ export function AniKittyPlayer({
               {/* Right cluster — CC · AirPlay · Cast · Quality · Speed · Audio · volume · more · fullscreen */}
               <div className="flex shrink-0 items-center gap-0 sm:gap-0.5">
                 {showCaptionsMenu ? (
-                  <div className="relative">
+                  <div className={cn(!coarsePointer && "relative")}>
                     <IconButton
                       buttonRef={captionsTriggerRef}
                       label={
@@ -4074,91 +4085,208 @@ export function AniKittyPlayer({
                       </span>
                     </IconButton>
                     {captionsOpen ? (
-                      <div
-                        ref={captionsMenuRef}
-                        role="dialog"
-                        aria-label="Captions"
-                        className={cn(
-                          "absolute bottom-full right-0 z-50 mb-2.5 w-[min(calc(100vw-1.5rem),240px)] overflow-hidden",
-                          PLAYER_POPOVER_CLASS,
-                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
-                        )}
+                      <PlayerOverlayPortal
+                        host={
+                          coarsePointer
+                            ? (getFullscreenTarget() ?? rootRef.current)
+                            : undefined
+                        }
                       >
-                        <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
-                          <p className="text-[11px] font-semibold tracking-wide text-white">
-                            Captions
-                          </p>
-                          <span className="text-[10px] tabular-nums text-white/35">
-                            {selectedCaptionId
-                              ? captionOptions.find((c) => c.id === selectedCaptionId)
-                                  ?.label ?? "On"
-                              : "Off"}
-                          </span>
-                        </div>
-                        <div className="max-h-[min(52vh,320px)] overflow-y-auto">
-                          <MenuSection title="Language">
-                            <MenuItem
-                              active={selectedCaptionId == null}
-                              onClick={() => selectCaption(null)}
+                        {coarsePointer ? (
+                          <div className={PLAYER_SHEET_LAYER_CLASS}>
+                            <button
+                              type="button"
+                              aria-label="Close captions"
+                              className="absolute inset-0 bg-black/55"
+                              onClick={() => setCaptionsOpen(false)}
+                            />
+                            <div
+                              ref={captionsMenuRef}
+                              role="dialog"
+                              aria-label="Captions"
+                              className={cn(
+                                PLAYER_SHEET_CLASS,
+                                !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                              )}
                             >
-                              Off
-                            </MenuItem>
-                            {captionOptions.map((track) => (
-                              <MenuItem
-                                key={track.id}
-                                active={selectedCaptionId === track.id}
-                                onClick={() => selectCaption(track.id)}
+                              <div
+                                className="flex justify-center pb-1 pt-2.5"
+                                aria-hidden
                               >
-                                {track.label}
-                              </MenuItem>
-                            ))}
-                          </MenuSection>
-                          <div className="border-t border-white/[0.08] py-0.5">
-                            <p className="px-3 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
-                              Appearance
-                            </p>
-                            <SegmentedChoice
-                              label="Size"
-                              value={captionSize}
-                              onChange={applyCaptionSize}
-                              options={
-                                [
-                                  { label: "S", value: "sm" },
-                                  { label: "M", value: "md" },
-                                  { label: "L", value: "lg" },
-                                ] as const
-                              }
-                            />
-                            <SegmentedChoice
-                              label="Position"
-                              value={captionPosition}
-                              onChange={applyCaptionPosition}
-                              options={
-                                [
-                                  { label: "Bottom", value: "low" },
-                                  { label: "Mid", value: "mid" },
-                                  { label: "High", value: "high" },
-                                ] as const
-                              }
-                            />
+                                <div className="h-1 w-10 rounded-full bg-white/25" />
+                              </div>
+                              <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
+                                <p className="text-[11px] font-semibold tracking-wide text-white">
+                                  Captions
+                                </p>
+                                <span className="text-[10px] tabular-nums text-white/35">
+                                  {selectedCaptionId
+                                    ? captionOptions.find(
+                                        (c) => c.id === selectedCaptionId,
+                                      )?.label ?? "On"
+                                    : "Off"}
+                                </span>
+                              </div>
+                              <div className="max-h-[min(58dvh,380px)] overflow-y-auto overscroll-contain">
+                                <MenuSection title="Language">
+                                  <MenuItem
+                                    active={selectedCaptionId == null}
+                                    onClick={() => selectCaption(null)}
+                                  >
+                                    Off
+                                  </MenuItem>
+                                  {captionOptions.map((track) => (
+                                    <MenuItem
+                                      key={track.id}
+                                      active={selectedCaptionId === track.id}
+                                      onClick={() => selectCaption(track.id)}
+                                    >
+                                      {track.label}
+                                    </MenuItem>
+                                  ))}
+                                </MenuSection>
+                                <div className="border-t border-white/[0.08] py-0.5">
+                                  <p className="px-3 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
+                                    Appearance
+                                  </p>
+                                  <SegmentedChoice
+                                    label="Size"
+                                    value={captionSize}
+                                    onChange={applyCaptionSize}
+                                    options={
+                                      [
+                                        { label: "S", value: "sm" },
+                                        { label: "M", value: "md" },
+                                        { label: "L", value: "lg" },
+                                      ] as const
+                                    }
+                                  />
+                                  <SegmentedChoice
+                                    label="Position"
+                                    value={captionPosition}
+                                    onChange={applyCaptionPosition}
+                                    options={
+                                      [
+                                        { label: "Bottom", value: "low" },
+                                        { label: "Mid", value: "mid" },
+                                        { label: "High", value: "high" },
+                                      ] as const
+                                    }
+                                  />
+                                </div>
+                                <MenuSection title="Timing">
+                                  {CAPTION_OFFSET_OPTIONS.map((offset) => (
+                                    <MenuItem
+                                      key={offset}
+                                      active={
+                                        Math.abs(captionOffset - offset) < 0.001
+                                      }
+                                      onClick={() =>
+                                        applyCaptionOffset(offset)
+                                      }
+                                    >
+                                      {offset === 0
+                                        ? "On time"
+                                        : offset > 0
+                                          ? `+${offset}s`
+                                          : `${offset}s`}
+                                    </MenuItem>
+                                  ))}
+                                </MenuSection>
+                              </div>
+                            </div>
                           </div>
-                          <MenuSection title="Timing">
-                            {CAPTION_OFFSET_OPTIONS.map((offset) => (
-                              <MenuItem
-                                key={offset}
-                                active={Math.abs(captionOffset - offset) < 0.001}
-                                onClick={() => applyCaptionOffset(offset)}
-                              >
-                                {offset === 0
-                                  ? "On time"
-                                  : offset > 0
-                                    ? `+${offset}s`
-                                    : `${offset}s`}
-                              </MenuItem>
-                            ))}
-                          </MenuSection>
-                        </div>
-                      </div>
+                        ) : (
+                          <div
+                            ref={captionsMenuRef}
+                            role="dialog"
+                            aria-label="Captions"
+                            className={cn(
+                              "absolute bottom-full right-0 z-50 mb-2.5 w-[min(calc(100vw-1.5rem),240px)] overflow-hidden",
+                              PLAYER_POPOVER_CLASS,
+                              !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                            )}
+                          >
+                            <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
+                              <p className="text-[11px] font-semibold tracking-wide text-white">
+                                Captions
+                              </p>
+                              <span className="text-[10px] tabular-nums text-white/35">
+                                {selectedCaptionId
+                                  ? captionOptions.find(
+                                      (c) => c.id === selectedCaptionId,
+                                    )?.label ?? "On"
+                                  : "Off"}
+                              </span>
+                            </div>
+                            <div className="max-h-[min(52vh,320px)] overflow-y-auto">
+                              <MenuSection title="Language">
+                                <MenuItem
+                                  active={selectedCaptionId == null}
+                                  onClick={() => selectCaption(null)}
+                                >
+                                  Off
+                                </MenuItem>
+                                {captionOptions.map((track) => (
+                                  <MenuItem
+                                    key={track.id}
+                                    active={selectedCaptionId === track.id}
+                                    onClick={() => selectCaption(track.id)}
+                                  >
+                                    {track.label}
+                                  </MenuItem>
+                                ))}
+                              </MenuSection>
+                              <div className="border-t border-white/[0.08] py-0.5">
+                                <p className="px-3 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
+                                  Appearance
+                                </p>
+                                <SegmentedChoice
+                                  label="Size"
+                                  value={captionSize}
+                                  onChange={applyCaptionSize}
+                                  options={
+                                    [
+                                      { label: "S", value: "sm" },
+                                      { label: "M", value: "md" },
+                                      { label: "L", value: "lg" },
+                                    ] as const
+                                  }
+                                />
+                                <SegmentedChoice
+                                  label="Position"
+                                  value={captionPosition}
+                                  onChange={applyCaptionPosition}
+                                  options={
+                                    [
+                                      { label: "Bottom", value: "low" },
+                                      { label: "Mid", value: "mid" },
+                                      { label: "High", value: "high" },
+                                    ] as const
+                                  }
+                                />
+                              </div>
+                              <MenuSection title="Timing">
+                                {CAPTION_OFFSET_OPTIONS.map((offset) => (
+                                  <MenuItem
+                                    key={offset}
+                                    active={
+                                      Math.abs(captionOffset - offset) < 0.001
+                                    }
+                                    onClick={() => applyCaptionOffset(offset)}
+                                  >
+                                    {offset === 0
+                                      ? "On time"
+                                      : offset > 0
+                                        ? `+${offset}s`
+                                        : `${offset}s`}
+                                  </MenuItem>
+                                ))}
+                              </MenuSection>
+                            </div>
+                          </div>
+                        )}
+                      </PlayerOverlayPortal>
                     ) : null}
                   </div>
                 ) : null}
@@ -4173,7 +4301,10 @@ export function AniKittyPlayer({
                       showAirPlayPicker();
                       bumpControls();
                     }}
-                    className={cn(airPlayConnected && "text-white")}
+                    className={cn(
+                      "hidden sm:inline-flex",
+                      airPlayConnected && "text-white",
+                    )}
                   >
                     {airPlayConnected ? (
                       <AirPlayConnectedIcon className="h-[18px] w-[18px]" />
@@ -4201,6 +4332,7 @@ export function AniKittyPlayer({
                       bumpControls();
                     }}
                     className={cn(
+                      "hidden sm:inline-flex",
                       casting && "text-white",
                       castConnecting && "opacity-70",
                     )}
@@ -4384,7 +4516,7 @@ export function AniKittyPlayer({
                 ) : null}
 
                 <div
-                  className="relative"
+                  className={cn(!coarsePointer && "relative")}
                   onMouseEnter={() => {
                     if (prefersCoarsePointer()) return;
                     setVolumeOpen(true);
@@ -4422,43 +4554,119 @@ export function AniKittyPlayer({
                     )}
                   </IconButton>
                   {volumeOpen ? (
-                    <VerticalSliderPopover
-                      label="Volume"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={effectiveVolume}
-                      display={`${Math.round(effectiveVolume * 100)}%`}
-                      onChange={(v) => setVolumeLevel(v, { hint: true })}
-                      secondary={
-                        casting
-                          ? undefined
-                          : {
-                              label: "Sound boost",
-                              caption: "Boost",
-                              min: VOLUME_BOOST_MIN,
-                              max: VOLUME_BOOST_MAX,
-                              step: 0.05,
-                              value: volumeBoost,
-                              display: formatVolumeBoost(volumeBoost),
-                              onChange: (v) =>
-                                setVolumeBoostLevel(v, { hint: true }),
-                            }
+                    <PlayerOverlayPortal
+                      host={
+                        coarsePointer
+                          ? (getFullscreenTarget() ?? rootRef.current)
+                          : undefined
                       }
-                      footer={
-                        iosVolumeLocked && !casting
-                          ? "iOS uses system volume"
-                          : casting
-                            ? "Cast volume"
-                            : volumeBoost > 1
-                              ? "Boost amplifies local audio"
-                              : undefined
-                      }
-                    />
+                    >
+                      {coarsePointer ? (
+                        <div className={PLAYER_SHEET_LAYER_CLASS}>
+                          <button
+                            type="button"
+                            aria-label="Close volume"
+                            className="absolute inset-0 bg-black/55"
+                            onClick={() => setVolumeOpen(false)}
+                          />
+                          <div
+                            className={cn(
+                              PLAYER_SHEET_CLASS,
+                              "px-4 py-4",
+                              !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                            )}
+                          >
+                            <div
+                              className="flex justify-center pb-2 pt-1"
+                              aria-hidden
+                            >
+                              <div className="h-1 w-10 rounded-full bg-white/25" />
+                            </div>
+                            <p className="mb-3 text-center text-[11px] font-semibold tracking-wide text-white">
+                              Volume
+                            </p>
+                            <div className="flex justify-center gap-8 pb-2">
+                              <VerticalSliderPopover
+                                embedded
+                                label="Volume"
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                value={effectiveVolume}
+                                display={`${Math.round(effectiveVolume * 100)}%`}
+                                onChange={(v) =>
+                                  setVolumeLevel(v, { hint: true })
+                                }
+                                secondary={
+                                  casting
+                                    ? undefined
+                                    : {
+                                        label: "Sound boost",
+                                        caption: "Boost",
+                                        min: VOLUME_BOOST_MIN,
+                                        max: VOLUME_BOOST_MAX,
+                                        step: 0.05,
+                                        value: volumeBoost,
+                                        display: formatVolumeBoost(volumeBoost),
+                                        onChange: (v) =>
+                                          setVolumeBoostLevel(v, {
+                                            hint: true,
+                                          }),
+                                      }
+                                }
+                                footer={
+                                  iosVolumeLocked && !casting
+                                    ? "iOS uses system volume"
+                                    : casting
+                                      ? "Cast volume"
+                                      : volumeBoost > 1
+                                        ? "Boost amplifies local audio"
+                                        : undefined
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <VerticalSliderPopover
+                          label="Volume"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={effectiveVolume}
+                          display={`${Math.round(effectiveVolume * 100)}%`}
+                          onChange={(v) => setVolumeLevel(v, { hint: true })}
+                          secondary={
+                            casting
+                              ? undefined
+                              : {
+                                  label: "Sound boost",
+                                  caption: "Boost",
+                                  min: VOLUME_BOOST_MIN,
+                                  max: VOLUME_BOOST_MAX,
+                                  step: 0.05,
+                                  value: volumeBoost,
+                                  display: formatVolumeBoost(volumeBoost),
+                                  onChange: (v) =>
+                                    setVolumeBoostLevel(v, { hint: true }),
+                                }
+                          }
+                          footer={
+                            iosVolumeLocked && !casting
+                              ? "iOS uses system volume"
+                              : casting
+                                ? "Cast volume"
+                                : volumeBoost > 1
+                                  ? "Boost amplifies local audio"
+                                  : undefined
+                          }
+                        />
+                      )}
+                    </PlayerOverlayPortal>
                   ) : null}
                 </div>
 
-                <div className="relative">
+                <div className={cn(!coarsePointer && "relative")}>
                   <IconButton
                     buttonRef={moreTriggerRef}
                     label="Settings"
@@ -4476,28 +4684,47 @@ export function AniKittyPlayer({
                   >
                     <SettingsIcon className="h-[18px] w-[18px]" />
                   </IconButton>
-                  {moreOpen && (
-                    <>
-                      {coarsePointer ? (
-                        <button
-                          type="button"
-                          aria-label="Close settings"
-                          className="absolute inset-0 z-[55] bg-black/50"
-                          onClick={() => setMoreOpen(false)}
-                        />
-                      ) : null}
+                  {moreOpen ? (
+                    <PlayerOverlayPortal
+                      host={
+                        coarsePointer
+                          ? (getFullscreenTarget() ?? rootRef.current)
+                          : undefined
+                      }
+                    >
                       <div
-                        ref={moreMenuRef}
-                        role="menu"
-                        aria-label="Settings"
-                        className={cn(
-                          coarsePointer
-                            ? "absolute inset-x-0 bottom-0 z-[60] max-h-[min(70dvh,420px)] w-full overflow-y-auto overscroll-contain rounded-t-xl border-x-0 border-b-0 py-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-                            : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,420px)] min-w-[180px] overflow-y-auto py-1",
-                          PLAYER_POPOVER_CLASS,
-                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
-                        )}
+                        className={
+                          coarsePointer ? PLAYER_SHEET_LAYER_CLASS : undefined
+                        }
                       >
+                        {coarsePointer ? (
+                          <button
+                            type="button"
+                            aria-label="Close settings"
+                            className="absolute inset-0 bg-black/55"
+                            onClick={() => setMoreOpen(false)}
+                          />
+                        ) : null}
+                        <div
+                          ref={moreMenuRef}
+                          role="menu"
+                          aria-label="Settings"
+                          className={cn(
+                            coarsePointer
+                              ? PLAYER_SHEET_CLASS
+                              : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,420px)] min-w-[180px] overflow-y-auto py-1",
+                            !coarsePointer && PLAYER_POPOVER_CLASS,
+                            !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                          )}
+                        >
+                          {coarsePointer ? (
+                            <div
+                              className="flex justify-center pb-1 pt-2.5"
+                              aria-hidden
+                            >
+                              <div className="h-1 w-10 rounded-full bg-white/25" />
+                            </div>
+                          ) : null}
                       <MenuSection title="Volume" className="sm:hidden">
                         <MenuItem
                           active={!effectiveMuted}
@@ -4669,6 +4896,43 @@ export function AniKittyPlayer({
                         </MenuSection>
                       ) : null}
 
+                      {airPlayAvailable || castAvailable ? (
+                        <MenuSection title="Cast" className="sm:hidden">
+                          {airPlayAvailable ? (
+                            <MenuItem
+                              active={airPlayConnected}
+                              onClick={() => {
+                                setMoreOpen(false);
+                                showAirPlayPicker();
+                                bumpControls();
+                              }}
+                            >
+                              {airPlayConnected
+                                ? "AirPlay connected"
+                                : "AirPlay"}
+                            </MenuItem>
+                          ) : null}
+                          {castAvailable ? (
+                            <MenuItem
+                              active={casting || castConnecting}
+                              onClick={() => {
+                                setMoreOpen(false);
+                                void toggleCast();
+                                bumpControls();
+                              }}
+                            >
+                              {casting
+                                ? castDeviceName
+                                  ? `Stop cast · ${castDeviceName}`
+                                  : "Stop casting"
+                                : castConnecting
+                                  ? "Connecting…"
+                                  : "Cast to device"}
+                            </MenuItem>
+                          ) : null}
+                        </MenuSection>
+                      ) : null}
+
                       <MenuSection title="Help">
                         <MenuItem
                           onClick={() => {
@@ -4681,9 +4945,10 @@ export function AniKittyPlayer({
                           Keyboard shortcuts (?)
                         </MenuItem>
                       </MenuSection>
-                    </div>
-                    </>
-                  )}
+                        </div>
+                      </div>
+                    </PlayerOverlayPortal>
+                  ) : null}
                 </div>
 
                 {pipSupported && !pipBlocked ? (

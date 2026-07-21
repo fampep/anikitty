@@ -9,6 +9,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/core/utils";
 import type { StoryboardCue } from "@/lib/player/storyboard-vtt";
@@ -22,6 +23,31 @@ export const PLAYER_POPOVER_CLASS =
 /** Open animation for player popovers / panels. */
 export const PLAYER_POPOVER_MOTION_CLASS =
   "animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-200";
+
+/** Mobile bottom-sheet surface inside the player / fullscreen host. */
+export const PLAYER_SHEET_CLASS =
+  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(72dvh,440px)] w-full overflow-y-auto overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/96 py-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white backdrop-blur-xl supports-[backdrop-filter]:bg-zinc-950/90";
+
+/**
+ * Portal overlays into the player host (or fullscreen wrapper) so sheets stay
+ * visible under document / CSS fullscreen — never `document.body`.
+ * When `host` is null/undefined, children render in place (desktop popovers).
+ */
+export function PlayerOverlayPortal({
+  host,
+  children,
+}: {
+  host?: HTMLElement | null;
+  children: ReactNode;
+}) {
+  if (typeof document === "undefined") return null;
+  if (!host) return <>{children}</>;
+  return createPortal(children, host);
+}
+
+/** Full-bleed layer for mobile bottom sheets inside the FS / player host. */
+export const PLAYER_SHEET_LAYER_CLASS =
+  "absolute inset-0 z-[90] flex flex-col justify-end";
 
 export function MenuSection({
   title,
@@ -57,7 +83,7 @@ export function MenuItem({
       role="menuitemradio"
       aria-checked={active}
       className={cn(
-        "relative block w-full px-3 py-2.5 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:py-2",
+        "relative block w-full px-3.5 py-3 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:px-3 sm:py-2",
         active && "bg-white/[0.09] font-medium text-white",
       )}
       onClick={onClick}
@@ -191,6 +217,7 @@ export function VerticalSliderPopover({
   onChange,
   footer,
   secondary,
+  embedded,
 }: {
   label: string;
   min: number;
@@ -211,13 +238,20 @@ export function VerticalSliderPopover({
     display: string;
     onChange: (value: number) => void;
   };
+  /** In-sheet layout — no floating popover chrome. */
+  embedded?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "absolute bottom-full left-1/2 z-40 mb-2.5 flex -translate-x-1/2 flex-col items-center gap-2.5 px-3.5 py-3",
-        PLAYER_POPOVER_CLASS,
-        PLAYER_POPOVER_MOTION_CLASS,
+        "flex flex-col items-center gap-2.5",
+        embedded
+          ? "relative px-1 py-1"
+          : cn(
+              "absolute bottom-full left-1/2 z-40 mb-2.5 -translate-x-1/2 px-3.5 py-3",
+              PLAYER_POPOVER_CLASS,
+              PLAYER_POPOVER_MOTION_CLASS,
+            ),
       )}
     >
       <div className={cn("flex items-end", secondary ? "gap-4" : "")}>
@@ -298,7 +332,7 @@ export function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-white/70",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-white/70",
         "transition-[color,opacity,background-color,transform] duration-150 ease-out",
         "hover:bg-white/[0.06] hover:text-white",
         "active:scale-[0.92] active:bg-white/[0.1] active:opacity-90",
