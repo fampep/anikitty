@@ -332,7 +332,7 @@ export function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/75",
+        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/75",
         "transition-[color,opacity,background-color,transform,box-shadow] duration-150 ease-out",
         "hover:bg-white/[0.1] hover:text-white",
         "active:scale-[0.9] active:bg-white/[0.14] active:opacity-95",

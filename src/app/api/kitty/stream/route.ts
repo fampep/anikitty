@@ -105,6 +105,7 @@ import {
 } from "@/lib/subtitles/subtitle-track-utils";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
+import { isLikelyMediaStreamUrl } from "@/lib/kitty/stream-url-guard";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_PIPE = /^[a-z]{2,12}$/;
@@ -442,6 +443,13 @@ export async function GET(req: Request) {
     raceMs?: number,
   ) {
     if (!payload?.file) return null;
+    if (!isLikelyMediaStreamUrl(payload.file)) {
+      console.warn(
+        `[kitty/stream] Rejected non-media stream from ${providerName}:`,
+        String(payload.file).slice(0, 120),
+      );
+      return null;
+    }
     const nodeId = wonNode ?? getKittyRequestNodeId();
     const raceMeta = raceMs != null ? { raceMs } : undefined;
     if (nodeId && nodeId !== getKittyRequestNodeId()) {

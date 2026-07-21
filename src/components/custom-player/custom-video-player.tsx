@@ -385,6 +385,8 @@ export function AniKittyPlayer({
   /** Pointer is over the bottom chrome — keep controls pinned. */
   const chromePinnedRef = useRef(false);
   const hlsRef = useRef<Hls | null>(null);
+  /** Kick HLS when `waiting` sticks after resume / buffer stall. */
+  const stallWatchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1517,6 +1519,16 @@ export function AniKittyPlayer({
       setSourceLoading(false);
       bumpControls();
       void audioBoostRef.current?.resume();
+      // After pause, some CDNs stop feeding until load resumes.
+      try {
+        hlsRef.current?.startLoad(-1);
+      } catch {
+        try {
+          hlsRef.current?.startLoad();
+        } catch {
+          /* ignore */
+        }
+      }
       if (!startedRef.current) {
         startedRef.current = true;
         onStartRef.current?.();
@@ -1619,12 +1631,52 @@ export function AniKittyPlayer({
         volumeBeforeMuteRef.current = video.volume;
       }
     };
-    const onWaiting = () => setBuffering(true);
+    const clearStallWatch = () => {
+      if (stallWatchRef.current) {
+        clearTimeout(stallWatchRef.current);
+        stallWatchRef.current = null;
+      }
+    };
+    const kickHlsLoad = () => {
+      const hls = hlsRef.current;
+      if (!hls) return;
+      try {
+        // -1 = resume from current position (hls.js)
+        hls.startLoad(-1);
+      } catch {
+        try {
+          hls.startLoad();
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    const armStallWatch = () => {
+      clearStallWatch();
+      stallWatchRef.current = setTimeout(() => {
+        stallWatchRef.current = null;
+        const v = videoRef.current;
+        if (!v || v.paused || v.readyState >= 3) return;
+        kickHlsLoad();
+        try {
+          hlsRef.current?.recoverMediaError();
+        } catch {
+          /* ignore */
+        }
+        void v.play().catch(() => {});
+      }, 2500);
+    };
+    const onWaiting = () => {
+      setBuffering(true);
+      armStallWatch();
+    };
     const onPlaying = () => {
+      clearStallWatch();
       setBuffering(false);
       setSourceLoading(false);
     };
     const onCanPlay = () => {
+      clearStallWatch();
       setBuffering(false);
       setSourceLoading(false);
       if (autoFsRef.current) {
@@ -1799,6 +1851,10 @@ export function AniKittyPlayer({
 
     return () => {
       exitPictureInPictureSafe(video);
+      if (stallWatchRef.current) {
+        clearTimeout(stallWatchRef.current);
+        stallWatchRef.current = null;
+      }
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("timeupdate", onTimeUpdate);
@@ -2002,7 +2058,25 @@ export function AniKittyPlayer({
         setHlsAudioIndex(data.id);
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (!data.fatal || cancelled) return;
+        if (cancelled) return;
+        // Non-fatal stalls are common on proxied anime CDNs after pause/seek.
+        if (!data.fatal) {
+          if (
+            data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
+            data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE
+          ) {
+            try {
+              hls?.startLoad(-1);
+            } catch {
+              try {
+                hls?.startLoad();
+              } catch {
+                /* ignore */
+              }
+            }
+          }
+          return;
+        }
         const status = (data.response as { code?: number } | undefined)?.code;
         if (status === 401 || status === 403) {
           fail("hls-auth", data.details, status);
@@ -2136,8 +2210,35 @@ export function AniKittyPlayer({
     }
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) void video.play();
-    else video.pause();
+    if (video.paused) {
+      // Resume AudioContext first — a suspended Web Audio graph can freeze frames.
+      void (async () => {
+        try {
+          await audioBoostRef.current?.resume();
+        } catch {
+          /* ignore */
+        }
+        const hls = hlsRef.current;
+        if (hls) {
+          try {
+            hls.startLoad(-1);
+          } catch {
+            try {
+              hls.startLoad();
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+        try {
+          await video.play();
+        } catch {
+          /* autoplay / gesture policies */
+        }
+      })();
+    } else {
+      video.pause();
+    }
     bumpControls();
   }, [bumpControls, castPlayOrPause]);
 
@@ -4097,9 +4198,9 @@ export function AniKittyPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-0.5 px-1.5 py-1 sm:gap-1 sm:px-2.5 sm:py-2">
-              {/* Left cluster */}
-              <div className="flex min-w-0 shrink items-center gap-0 sm:gap-0.5">
+            <div className="flex w-full min-w-0 items-center gap-1.5 px-1 py-1 sm:gap-2 sm:px-2.5 sm:py-2">
+              {/* Left — may shrink; time truncates so it never covers cast / right icons */}
+              <div className="flex min-w-0 flex-1 items-center gap-0 overflow-hidden sm:gap-0.5">
                 <IconButton
                   label={
                     effectivePlaying
@@ -4110,12 +4211,12 @@ export function AniKittyPlayer({
                   onPointerDown={onPlayPointerDown}
                   onPointerUp={onPlayPointerUp}
                   onPointerCancel={onPlayPointerUp}
-                  className="bg-white/[0.08] text-white hover:bg-white/[0.14] sm:bg-transparent sm:hover:bg-white/[0.1]"
+                  className="shrink-0 bg-white/[0.08] text-white hover:bg-white/[0.14] sm:bg-transparent sm:hover:bg-white/[0.1]"
                 >
                   {effectivePlaying ? (
-                    <PauseIcon className="h-[18px] w-[18px]" />
+                    <PauseIcon className="h-[17px] w-[17px]" />
                   ) : (
-                    <PlayIcon className="h-[17px] w-[17px] translate-x-px" />
+                    <PlayIcon className="h-4 w-4 translate-x-px" />
                   )}
                 </IconButton>
                 <IconButton
@@ -4123,7 +4224,7 @@ export function AniKittyPlayer({
                   onClick={() => {
                     seekBy(-(seekStepSeconds || SEEK_STEP));
                   }}
-                  className="hidden min-[400px]:inline-flex"
+                  className="hidden shrink-0 min-[480px]:inline-flex"
                 >
                   <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
                     −{seekStepSeconds || SEEK_STEP}
@@ -4134,7 +4235,7 @@ export function AniKittyPlayer({
                   onClick={() => {
                     seekBy(seekStepSeconds || SEEK_STEP);
                   }}
-                  className="hidden min-[400px]:inline-flex"
+                  className="hidden shrink-0 min-[480px]:inline-flex"
                 >
                   <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
                     +{seekStepSeconds || SEEK_STEP}
@@ -4150,9 +4251,9 @@ export function AniKittyPlayer({
                       }
                       disabled={!prevEpisode || !onPrevEpisode}
                       onClick={() => goToPrevEpisode()}
-                      className="hidden min-[360px]:inline-flex"
+                      className="hidden shrink-0 min-[420px]:inline-flex"
                     >
-                      <EpisodePrevIcon className="h-[18px] w-[18px]" />
+                      <EpisodePrevIcon className="h-[17px] w-[17px]" />
                     </IconButton>
                     <IconButton
                       label={
@@ -4162,39 +4263,27 @@ export function AniKittyPlayer({
                       }
                       disabled={!nextEpisode || !onNextEpisode}
                       onClick={() => goToNextEpisode()}
+                      className="shrink-0"
                     >
-                      <EpisodeNextIcon className="h-[18px] w-[18px]" />
+                      <EpisodeNextIcon className="h-[17px] w-[17px]" />
                     </IconButton>
                   </>
                 ) : null}
 
                 <span
-                  className="ml-1 select-none whitespace-nowrap rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[11px] tabular-nums tracking-wide text-white/90 ring-1 ring-inset ring-white/[0.06] sm:ml-2 sm:bg-transparent sm:px-0 sm:py-0 sm:text-[12px] sm:ring-0"
+                  className="ml-0.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/90 sm:ml-1.5 sm:text-[12px]"
                   aria-hidden
                 >
                   {formatPlayerTime(displayTime)}
-                  <span className="text-white/35 sm:hidden">
-                    {effectiveDuration > 0 ? (
-                      <>
-                        <span className="inline-block w-1" />
-                        −
-                        {formatPlayerTime(
-                          Math.max(0, effectiveDuration - displayTime),
-                        )}
-                      </>
-                    ) : null}
-                  </span>
-                  <span className="hidden text-white/40 sm:inline">
-                    <span className="mx-1.5 text-white/25">/</span>
+                  <span className="hidden text-white/40 min-[360px]:inline">
+                    <span className="mx-0.5 text-white/25 sm:mx-1">/</span>
                     {formatPlayerTime(effectiveDuration)}
                   </span>
                 </span>
               </div>
 
-              <div className="min-w-2 flex-1 sm:min-w-3" />
-
-              {/* Right cluster — CC · AirPlay · Cast · Quality · Speed · Audio · volume · more · fullscreen */}
-              <div className="flex shrink-0 items-center gap-0 sm:gap-0.5">
+              {/* Right — never shrinks; stays above the time label */}
+              <div className="relative z-[1] flex shrink-0 items-center gap-0 sm:gap-0.5">
                 {showCaptionsMenu ? (
                   <div className={cn(!coarsePointer && "relative")}>
                     <IconButton
@@ -4213,7 +4302,7 @@ export function AniKittyPlayer({
                       ariaPressed={Boolean(selectedCaptionId)}
                       onClick={onCaptionsClick}
                       className={cn(
-                        "min-w-10 font-semibold tracking-wide",
+                        "font-semibold tracking-wide",
                         !selectedCaptionId && "text-white/45 hover:text-white/80",
                       )}
                     >
