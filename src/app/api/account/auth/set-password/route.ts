@@ -64,6 +64,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, passwordSet: true });
   } catch (e) {
     console.error("[set-password]", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/password_set_at|does not exist/i.test(msg)) {
+      return NextResponse.json(
+        {
+          error:
+            "Database is missing password columns. Redeploy the site so auto-migrate can add them, then try again.",
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
