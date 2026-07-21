@@ -1,8 +1,9 @@
 export const THEME_COLOR_PRESETS: { name: string; hex: string }[] = [
   { name: "Default", hex: "" },
+  { name: "White", hex: "#ffffff" },
+  { name: "Zinc", hex: "#a1a1aa" },
   { name: "Sakura", hex: "#f472b6" },
   { name: "Sky", hex: "#38bdf8" },
-  { name: "Zinc", hex: "#a1a1aa" },
   { name: "Violet", hex: "#a78bfa" },
   { name: "Emerald", hex: "#34d399" },
   { name: "Amber", hex: "#fbbf24" },

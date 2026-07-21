@@ -155,7 +155,7 @@ body {
 
   .dark .watch-chrome {
     @apply border-white/[0.08];
-    background-image: linear-gradient(to bottom, #0c0c0e, #09090b);
+    background-image: linear-gradient(to bottom, #0a0a0a, #000000);
   }
 
   /* Player stage: keep chrome flush under the video plane */
@@ -170,7 +170,7 @@ body {
   }
 
   .dark .watch-player-stack .watch-episode-strip {
-    @apply border-white/[0.07] bg-[#0a0a0c];
+    @apply border-white/[0.07] bg-black;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
   }
 
@@ -303,65 +303,65 @@ body {
 }
 
 @layer base {
-  /* Zinc/neutral tokens aligned with AniKittyPlayer chrome */
+  /* Brand default: monochrome black / white (matches site icon) */
   :root {
     --background: 0 0% 98%;
-    --foreground: 240 10% 8%;
+    --foreground: 0 0% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 8%;
+    --card-foreground: 0 0% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 8%;
-    --primary: 240 6% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 5% 94%;
-    --secondary-foreground: 240 6% 10%;
-    --muted: 240 5% 94%;
-    --muted-foreground: 240 4% 42%;
-    --accent: 240 5% 92%;
-    --accent-foreground: 240 6% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 6% 88%;
-    --input: 240 6% 88%;
-    --ring: 240 5% 34%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 6%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 6%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 20%;
     --radius: 0.75rem;
-    --chart-1: 240 5% 34%;
-    --chart-2: 240 4% 46%;
-    --chart-3: 200 50% 45%;
-    --chart-4: 160 40% 42%;
-    --chart-5: 30 60% 50%;
-    --brand: 240 6% 10%;
-    --brand-muted: 240 5% 94%;
+    --chart-1: 0 0% 25%;
+    --chart-2: 0 0% 45%;
+    --chart-3: 0 0% 55%;
+    --chart-4: 0 0% 65%;
+    --chart-5: 0 0% 75%;
+    --brand: 0 0% 0%;
+    --brand-muted: 0 0% 94%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 6% 7%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 4%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 10% 3.9%;
-    --secondary: 240 4% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 4% 10%;
-    --muted-foreground: 240 5% 64%;
-    --accent: 240 4% 14%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 45%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 4% 16%;
-    --input: 240 4% 14%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 7%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 0 0% 10%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 14%;
+    --input: 0 0% 12%;
     --ring: 0 0% 100%;
     --radius: 0.5rem;
-    --brand: 0 0% 98%;
-    --brand-muted: 240 4% 14%;
-    --chart-1: 0 0% 90%;
-    --chart-2: 240 5% 64%;
-    --chart-3: 200 50% 55%;
-    --chart-4: 160 40% 50%;
-    --chart-5: 30 60% 55%;
+    --brand: 0 0% 100%;
+    --brand-muted: 0 0% 10%;
+    --chart-1: 0 0% 92%;
+    --chart-2: 0 0% 70%;
+    --chart-3: 0 0% 55%;
+    --chart-4: 0 0% 40%;
+    --chart-5: 0 0% 28%;
   }
 }
 
@@ -373,14 +373,14 @@ body {
   body {
     @apply bg-background text-foreground antialiased;
     background:
-      radial-gradient(ellipse 120% 70% at 50% -20%, rgba(24, 24, 27, 0.04), transparent 52%),
+      radial-gradient(ellipse 120% 70% at 50% -20%, rgba(0, 0, 0, 0.03), transparent 52%),
       hsl(var(--background));
   }
 
   .dark body {
     background:
-      radial-gradient(ellipse 110% 70% at 50% -24%, rgba(255, 255, 255, 0.04), transparent 55%),
-      hsl(var(--background));
+      radial-gradient(ellipse 110% 70% at 50% -24%, rgba(255, 255, 255, 0.05), transparent 55%),
+      #000000;
   }
 
   .dark body::before {
@@ -389,10 +389,10 @@ body {
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.45;
+    opacity: 0.4;
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
     background-size: 72px 72px;
     mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 15%, transparent 72%);
   }
@@ -1135,7 +1135,7 @@ html[data-user-theme] .art-kitty-player .art-setting-panel .art-setting-item.art
 
 html[data-user-theme] .site-brand-btn {
   background: rgb(var(--user-accent-rgb) / 1) !important;
-  color: #09090b !important;
+  color: #000000 !important;
   box-shadow: 0 8px 28px rgb(var(--user-accent-rgb) / 0.28) !important;
 }
 

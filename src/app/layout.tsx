@@ -34,6 +34,7 @@ import {
   APP_URL,
   SITE_APPLE_ICON,
   SITE_FAVICON,
+  SITE_ICON,
   SITE_LOGO,
 } from "@/lib/seo/site-seo";
 
@@ -60,10 +61,13 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
       { url: SITE_FAVICON, type: "image/png", sizes: "96x96" },
-      { url: SITE_LOGO, type: "image/png" },
+      { url: SITE_ICON, type: "image/png", sizes: "192x192" },
+      { url: SITE_LOGO, type: "image/png", sizes: "512x512" },
     ],
-    apple: SITE_APPLE_ICON,
+    apple: [{ url: SITE_APPLE_ICON, sizes: "180x180", type: "image/png" }],
+    shortcut: SITE_FAVICON,
   },
   appleWebApp: {
     capable: true,
@@ -103,7 +107,7 @@ export const viewport = {
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 
@@ -145,8 +149,10 @@ export default async function RootLayout({
         <PublicEnvScript />
         {/* Adcash lib — high in <head> per publisher install guide; popunder calls runPop after load. */}
         <script id="aclib" type="text/javascript" src="https://acscdn.com/script/aclib.js" async />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
-        <link rel="apple-touch-icon" href={SITE_APPLE_ICON} />
+        <link rel="icon" href={SITE_ICON} type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href={SITE_APPLE_ICON} sizes="180x180" />
         {/* Poster/artwork CDNs — warm the connection so images load a round-trip sooner. */}
         <link rel="preconnect" href="https://s4.anilist.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />

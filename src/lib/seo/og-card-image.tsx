@@ -1,10 +1,10 @@
 import { ImageResponse } from "next/og";
-import { APP_URL, SITE_FAVICON } from "@/lib/seo/site-seo";
+import { APP_URL, SITE_ICON } from "@/lib/seo/site-seo";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
-const SITE_ICON_URL = `${APP_URL}${SITE_FAVICON}`;
+const SITE_ICON_URL = `${APP_URL}${SITE_ICON}`;
 
 export type OgAccent = "violet" | "teal" | "sky" | "emerald" | "rose";
 
@@ -13,10 +13,10 @@ const ACCENT_STYLES: Record<
   { glow: string; badge: string; badgeText: string; chip: string }
 > = {
   violet: {
-    glow: "radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255, 255, 255, 0.22), transparent)",
-    badge: "rgba(255, 255, 255, 0.18)",
-    badgeText: "rgba(196,181,253,0.95)",
-    chip: "rgba(255, 255, 255, 0.12)",
+    glow: "radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255, 255, 255, 0.18), transparent)",
+    badge: "rgba(255, 255, 255, 0.14)",
+    badgeText: "rgba(255,255,255,0.92)",
+    chip: "rgba(255, 255, 255, 0.1)",
   },
   teal: {
     glow: "radial-gradient(ellipse 70% 55% at 50% 40%, rgba(20,184,166,0.22), transparent)",

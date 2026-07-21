@@ -208,7 +208,7 @@ const HeroCarouselItem = ({
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent z-10" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent dark:from-[#09090b] dark:via-[#09090b]/50 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent dark:from-black dark:via-black/50 z-10" />
 
       <div className="absolute inset-0 z-20 flex items-end">
         <Container className="w-full pb-16 sm:pb-20 pointer-events-none">

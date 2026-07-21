@@ -1,13 +1,13 @@
 import { ImageResponse } from "next/og";
 import { getAnimeSeoData } from "@/lib/seo/anime-seo-data";
 import { loadNightTokyoFont, OG_SIZE, OG_CONTENT_TYPE } from "@/lib/seo/og-card-image";
-import { APP_URL, SITE_FAVICON } from "@/lib/seo/site-seo";
+import { APP_URL, SITE_ICON } from "@/lib/seo/site-seo";
 
 export const alt = "Anime | AniKitty";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 
-const SITE_ICON_URL = `${APP_URL}${SITE_FAVICON}`;
+const SITE_ICON_URL = `${APP_URL}${SITE_ICON}`;
 
 function scoreColor(score: number): string {
   if (score >= 80) return "#22d3ee";
