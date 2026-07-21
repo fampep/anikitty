@@ -1187,10 +1187,40 @@ html[data-user-theme] .dark ::selection {
 .anikitty-player:fullscreen,
 .anikitty-player:-webkit-full-screen,
 .anikitty-player:-moz-full-screen {
-  border-radius: 0;
-  aspect-ratio: auto;
-  width: 100%;
-  height: 100%;
+  border-radius: 0 !important;
+  aspect-ratio: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  background: #000 !important;
+}
+
+/*
+ * Industry fix (CSS-Tricks / Chromium): even without the `controls` attribute,
+ * <video>'s shadow media-controls layer can paint over custom UI and steal
+ * hit-tests. Force it off so document-fullscreen custom chrome stays visible.
+ */
+.anikitty-player-video::-webkit-media-controls,
+.anikitty-player-video::-webkit-media-controls-enclosure,
+.anikitty-player-video::-webkit-media-controls-panel,
+.anikitty-player-video::-webkit-media-controls-overlay-enclosure,
+.anikitty-player-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* Isolate the video paint layer from absolute custom chrome (CSS-Tricks pattern). */
+.anikitty-player [data-ak-video-layer] {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  pointer-events: auto;
 }
 
 /* Watch-page host — document fullscreen + CSS fullscreen (phones keep custom chrome) */

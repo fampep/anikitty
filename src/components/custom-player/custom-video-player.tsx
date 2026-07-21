@@ -590,9 +590,13 @@ export function AniKittyPlayer({
     if (autoFullscreen) autoFsRef.current = true;
   }, [autoFullscreen]);
 
-  /** Prefer persistent watch-page wrapper so next-episode remounts keep FS. */
+  /**
+   * Fullscreen the player root (direct parent of <video> + custom chrome).
+   * web.dev / Video.js / CSS-Tricks all require this — not the bare <video>.
+   * Fall back to the watch-page host so episode remounts can keep FS.
+   */
   const getFullscreenTarget = useCallback((): HTMLElement | null => {
-    return fullscreenContainerRef?.current ?? rootRef.current;
+    return rootRef.current ?? fullscreenContainerRef?.current ?? null;
   }, [fullscreenContainerRef]);
 
   useEffect(() => {
@@ -2388,8 +2392,8 @@ export function AniKittyPlayer({
         return;
       }
 
-      // iOS: CSS FS (no host Fullscreen API). Android: real document FS so the
-      // browser address / search bar hides like other video players.
+      // iOS: CSS FS (no reliable host Fullscreen API).
+      // Android: document FS on the player container (video + chrome together).
       if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
         enterCssFullscreen();
         return;
@@ -2397,7 +2401,17 @@ export function AniKittyPlayer({
 
       try {
         await requestElementFullscreen(target);
+        // If the UA promoted bare <video>, reclaim the container (keeps chrome).
+        const videoEl = videoRef.current;
+        if (videoEl && getFullscreenElement() === videoEl) {
+          await exitElementFullscreen();
+          await requestElementFullscreen(target);
+        }
         await tryLockLandscapeOrientation();
+        if (videoEl && getFullscreenElement() === videoEl) {
+          await exitElementFullscreen();
+          await requestElementFullscreen(target);
+        }
         setFullscreen(true);
         setControlsVisible(true);
       } catch {
@@ -3366,47 +3380,50 @@ export function AniKittyPlayer({
           : ""}
       </div>
 
-      <video
-        ref={videoRef}
-        poster={poster}
-        playsInline
-        preload="metadata"
-        controlsList="nodownload"
-        className={cn(
-          "h-full w-full object-contain anikitty-player-video",
-          // Hide local frames while Chromecast is active (AirPlay keeps the video).
-          (casting || castConnecting) && "opacity-0",
-        )}
-        style={{
-          filter:
-            casting || castConnecting
-              ? undefined
-              : `brightness(${brightness})`,
-        }}
-        aria-hidden={casting || castConnecting || undefined}
-        onClick={handleVideoClick}
-        onDoubleClick={handleVideoDoubleClick}
-        onPointerDown={(e) => {
-          if (e.pointerType === "touch" || e.pointerType === "pen") {
-            revealControlsFromTouch();
-          }
-          surfaceGestures.onPointerDown(e);
-        }}
-        onPointerMove={surfaceGestures.onPointerMove}
-        onPointerUp={surfaceGestures.onPointerUp}
-        onPointerCancel={surfaceGestures.onPointerCancel}
-      >
-        {captionOptions.map((track) => (
-          <track
-            key={track.id}
-            kind="subtitles"
-            src={track.src}
-            srcLang={track.language}
-            label={track.label}
-            default={preferSubtitles && track.id === selectedCaptionId}
-          />
-        ))}
-      </video>
+      {/* Video in its own stacking layer so shadow media-controls can't cover chrome. */}
+      <div data-ak-video-layer="">
+        <video
+          ref={videoRef}
+          poster={poster}
+          playsInline
+          preload="metadata"
+          controlsList="nodownload noplaybackrate noremoteplayback"
+          className={cn(
+            "h-full w-full object-contain anikitty-player-video",
+            // Hide local frames while Chromecast is active (AirPlay keeps the video).
+            (casting || castConnecting) && "opacity-0",
+          )}
+          style={{
+            filter:
+              casting || castConnecting
+                ? undefined
+                : `brightness(${brightness})`,
+          }}
+          aria-hidden={casting || castConnecting || undefined}
+          onClick={handleVideoClick}
+          onDoubleClick={handleVideoDoubleClick}
+          onPointerDown={(e) => {
+            if (e.pointerType === "touch" || e.pointerType === "pen") {
+              revealControlsFromTouch();
+            }
+            surfaceGestures.onPointerDown(e);
+          }}
+          onPointerMove={surfaceGestures.onPointerMove}
+          onPointerUp={surfaceGestures.onPointerUp}
+          onPointerCancel={surfaceGestures.onPointerCancel}
+        >
+          {captionOptions.map((track) => (
+            <track
+              key={track.id}
+              kind="subtitles"
+              src={track.src}
+              srcLang={track.language}
+              label={track.label}
+              default={preferSubtitles && track.id === selectedCaptionId}
+            />
+          ))}
+        </video>
+      </div>
 
       {/* Chromecast surface — poster + live remote status; local video stays mounted but invisible */}
       {casting || castConnecting ? (
@@ -3826,6 +3843,7 @@ export function AniKittyPlayer({
         data-ak-chrome="1"
         className={cn(
           "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-[opacity,transform] duration-300 ease-out",
+          (fullscreen || cssFullscreen) && "z-[2147483647]",
           chromeVisible
             ? "translate-y-0 opacity-100"
             : "translate-y-1.5 opacity-0",
