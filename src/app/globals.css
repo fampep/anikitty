@@ -1185,7 +1185,8 @@ html[data-user-theme] .dark ::selection {
 }
 
 .anikitty-player:fullscreen,
-.anikitty-player:-webkit-full-screen {
+.anikitty-player:-webkit-full-screen,
+.anikitty-player:-moz-full-screen {
   border-radius: 0;
   aspect-ratio: auto;
   width: 100%;
@@ -1195,6 +1196,7 @@ html[data-user-theme] .dark ::selection {
 /* Watch-page host (wrapper) — document fullscreen + CSS fullscreen fallback */
 .anikitty-fs-host:fullscreen,
 .anikitty-fs-host:-webkit-full-screen,
+.anikitty-fs-host:-moz-full-screen,
 .anikitty-fs-host--active {
   display: flex !important;
   align-items: center;
@@ -1215,12 +1217,35 @@ html[data-user-theme] .dark ::selection {
 
 .anikitty-fs-host:fullscreen .anikitty-player,
 .anikitty-fs-host:-webkit-full-screen .anikitty-player,
+.anikitty-fs-host:-moz-full-screen .anikitty-player,
 .anikitty-fs-host--active .anikitty-player {
   width: 100% !important;
   height: 100% !important;
   max-height: none !important;
   aspect-ratio: auto !important;
   border-radius: 0 !important;
+}
+
+/* Keep <video> under custom chrome — Gecko fullscreen can promote media layers. */
+.anikitty-fs-host:fullscreen .anikitty-player-video,
+.anikitty-fs-host:-webkit-full-screen .anikitty-player-video,
+.anikitty-fs-host:-moz-full-screen .anikitty-player-video,
+.anikitty-fs-host--active .anikitty-player-video,
+.anikitty-player:fullscreen .anikitty-player-video,
+.anikitty-player:-webkit-full-screen .anikitty-player-video,
+.anikitty-player:-moz-full-screen .anikitty-player-video {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+.anikitty-fs-host:fullscreen [data-ak-chrome],
+.anikitty-fs-host:-webkit-full-screen [data-ak-chrome],
+.anikitty-fs-host:-moz-full-screen [data-ak-chrome],
+.anikitty-fs-host--active [data-ak-chrome],
+.anikitty-player:fullscreen [data-ak-chrome],
+.anikitty-player:-webkit-full-screen [data-ak-chrome],
+.anikitty-player:-moz-full-screen [data-ak-chrome] {
+  z-index: 2147483647 !important;
 }
 
 html.anikitty-css-fs,

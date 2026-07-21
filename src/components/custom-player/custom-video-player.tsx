@@ -122,6 +122,7 @@ import {
   loadCustomPlayerPrefs,
   nextCustomPlayerSpeed,
   prefersCoarsePointer,
+  prefersCssFullscreen,
   pulsePlayerHaptic,
   resolveStreamAttachMode,
   saveCustomPlayerPrefs,
@@ -1582,8 +1583,9 @@ export function AniKittyPlayer({
         autoFsRef.current = false;
         const target = getFullscreenTarget();
         if (!target) return;
-        // Keep custom chrome — never fall back to native <video> FS on phones.
-        if (isAppleTouchDevice() || !elementSupportsFullscreenRequest(target)) {
+        // Keep custom chrome — never fall back to native <video> FS on phones
+        // (iOS Safari + Firefox Android promote <video> and hide our controls).
+        if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
           setCssFullscreen(true);
           setFullscreen(true);
           void tryLockLandscapeOrientation();
@@ -2298,11 +2300,12 @@ export function AniKittyPlayer({
         return;
       }
 
-      // iOS native <video> fullscreen hides our control bar — use CSS FS instead.
-      if (isAppleTouchDevice() || !elementSupportsFullscreenRequest(target)) {
+      // iOS + Firefox Android: document FS hides / covers custom chrome — CSS FS instead.
+      if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
         setCssFullscreen(true);
         setFullscreen(true);
         void tryLockLandscapeOrientation();
+        setControlsVisible(true);
         bumpControls();
         return;
       }
@@ -2311,10 +2314,12 @@ export function AniKittyPlayer({
         await requestElementFullscreen(target);
         void tryLockLandscapeOrientation();
         setFullscreen(true);
+        setControlsVisible(true);
       } catch {
         setCssFullscreen(true);
         setFullscreen(true);
         void tryLockLandscapeOrientation();
+        setControlsVisible(true);
       }
     } catch {
       /* browser may deny fullscreen without gesture */
@@ -3720,6 +3725,7 @@ export function AniKittyPlayer({
 
       {/* Bottom chrome — sparse ArtPlayer-like bar */}
       <div
+        data-ak-chrome="1"
         className={cn(
           "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-[opacity,transform] duration-300 ease-out",
           chromeVisible

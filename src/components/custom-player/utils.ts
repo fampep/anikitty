@@ -261,6 +261,24 @@ export function isAppleTouchDevice(): boolean {
   );
 }
 
+/** Gecko mobile Fullscreen API often promotes <video> and hides custom chrome. */
+export function isFirefoxMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (!/Firefox/i.test(ua)) return false;
+  // Android Firefox, Firefox iOS (Fenix-like), or Firefox + coarse pointer.
+  if (/Android|Mobile|Tablet/i.test(ua)) return true;
+  return prefersCoarsePointer();
+}
+
+/**
+ * Prefer fixed CSS fullscreen over the document Fullscreen API when custom
+ * controls would otherwise disappear (iOS Safari, Firefox Android).
+ */
+export function prefersCssFullscreen(): boolean {
+  return isAppleTouchDevice() || isFirefoxMobile();
+}
+
 export function canPlayNativeHls(video: HTMLVideoElement): boolean {
   return Boolean(
     video.canPlayType("application/vnd.apple.mpegurl") ||
