@@ -35,7 +35,12 @@ export function isElementFullscreen(el: Element | null | undefined): boolean {
 /** Request fullscreen on an element (standard + vendor prefixes). */
 export function requestElementFullscreen(el: HTMLElement): Promise<void> {
   const target = el as FullscreenElement;
-  if (target.requestFullscreen) return target.requestFullscreen();
+  // navigationUI: "hide" asks the UA to hide the browser address / search bar.
+  if (target.requestFullscreen) {
+    return target
+      .requestFullscreen({ navigationUI: "hide" })
+      .catch(() => target.requestFullscreen!());
+  }
   if (target.webkitRequestFullscreen) return target.webkitRequestFullscreen();
   if (target.mozRequestFullScreen) return target.mozRequestFullScreen();
   if (target.msRequestFullscreen) return target.msRequestFullscreen();

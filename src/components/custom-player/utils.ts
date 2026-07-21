@@ -271,13 +271,11 @@ export function isFirefoxMobile(): boolean {
 }
 
 /**
- * Prefer fixed CSS fullscreen on phones/tablets.
- * Document / native <video> fullscreen drops our control bar on mobile browsers.
- * Landscape is handled with CSS rotate (orientation.lock needs document FS).
+ * Prefer fixed CSS fullscreen only on iOS — Safari has no reliable host
+ * Fullscreen API (needed to hide the browser chrome). Android uses document FS.
  */
 export function prefersCssFullscreen(): boolean {
-  if (isAppleTouchDevice() || isFirefoxMobile()) return true;
-  return prefersCoarsePointer();
+  return isAppleTouchDevice();
 }
 
 export function canPlayNativeHls(video: HTMLVideoElement): boolean {

@@ -510,6 +510,8 @@ export function AniKittyPlayer({
   /** iOS / fallback: fixed-viewport FS that keeps custom chrome (no native <video> FS). */
   const [cssFullscreen, setCssFullscreen] = useState(false);
   const cssFullscreenRef = useRef(false);
+  /** Avoid reclaim loops when the UA keeps promoting bare <video> fullscreen. */
+  const reclaimHostFsRef = useRef(false);
   const [pipSupported, setPipSupported] = useState(false);
   const [pipBlocked, setPipBlocked] = useState(false);
   const [inPip, setInPip] = useState(false);
@@ -1621,7 +1623,7 @@ export function AniKittyPlayer({
         autoFsRef.current = false;
         const target = getFullscreenTarget();
         if (!target) return;
-        // Keep custom chrome — CSS FS on phones (native <video> FS hides controls).
+        // iOS: CSS FS. Android: document FS (hides browser chrome).
         if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
           enterCssFullscreen();
           return;
@@ -1651,12 +1653,11 @@ export function AniKittyPlayer({
       const target = getFullscreenTarget();
       const video = videoRef.current as WebkitVideo | null;
       const fsEl = getFullscreenElement();
-      // Browser promoted bare <video> — custom chrome is gone. Bail to CSS FS.
-      if (
-        video &&
-        (fsEl === video || Boolean(video.webkitDisplayingFullscreen)) &&
-        prefersCssFullscreen()
-      ) {
+      // Browser promoted bare <video> (drops our chrome). Reclaim host FS on
+      // Android so the address bar stays hidden; iOS falls back to CSS FS.
+      if (video && (fsEl === video || Boolean(video.webkitDisplayingFullscreen))) {
+        if (reclaimHostFsRef.current) return;
+        reclaimHostFsRef.current = true;
         void (async () => {
           try {
             if (fsEl === video) await exitElementFullscreen();
@@ -1664,8 +1665,28 @@ export function AniKittyPlayer({
           } catch {
             /* ignore */
           }
+          const host = getFullscreenTarget();
+          if (
+            host &&
+            !prefersCssFullscreen() &&
+            elementSupportsFullscreenRequest(host)
+          ) {
+            try {
+              await requestElementFullscreen(host);
+              await tryLockLandscapeOrientation();
+              setFullscreen(true);
+              setControlsVisible(true);
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
           enterCssFullscreen();
-        })();
+        })().finally(() => {
+          window.setTimeout(() => {
+            reclaimHostFsRef.current = false;
+          }, 800);
+        });
         return;
       }
       const hostFs = isElementFullscreen(target) || isElementFullscreen(rootRef.current);
@@ -2359,8 +2380,8 @@ export function AniKittyPlayer({
         return;
       }
 
-      // Phones: CSS FS keeps custom controls. Landscape via CSS rotate when
-      // the viewport is still portrait (orientation.lock needs document FS).
+      // iOS: CSS FS (no host Fullscreen API). Android: real document FS so the
+      // browser address / search bar hides like other video players.
       if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
         enterCssFullscreen();
         return;
