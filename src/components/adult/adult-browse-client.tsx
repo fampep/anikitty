@@ -72,7 +72,17 @@ export default function AdultBrowseClient() {
         ? `/api/adult/search?adult=1&q=${encodeURIComponent(q)}`
         : `/api/adult/browse?adult=1&page=${page}`;
       const res = await fetch(path, { credentials: "include" });
-      const json = (await res.json()) as BrowsePage;
+      const text = await res.text();
+      let json: BrowsePage;
+      try {
+        json = JSON.parse(text) as BrowsePage;
+      } catch {
+        throw new Error(
+          res.status === 404
+            ? "Adult API not deployed yet — wait for site rebuild."
+            : `Adult API returned non-JSON (${res.status}).`,
+        );
+      }
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
       setData(json);
     } catch (err) {

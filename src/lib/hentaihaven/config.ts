@@ -1,6 +1,5 @@
 /**
- * HentaiHaven adult catalog — AniKitty only talks to KittyAPI (Anikoto-api).
- * Scraping / api.hentaihaven.app lives on the API nodes, not this website.
+ * Adult section: AniList for catalog/metadata; HentaiHaven (KittyAPI) for streams only.
  */
 import "server-only";
 

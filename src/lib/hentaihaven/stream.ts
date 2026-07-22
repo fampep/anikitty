@@ -24,7 +24,8 @@ type KittyStreamPayload = {
 };
 
 /**
- * Resolve playback via KittyAPI `/provider/HentaiHaven/stream` (API scrapes HH).
+ * Catalog/metadata comes from AniList; HentaiHaven is only used here for the m3u8
+ * via KittyAPI stream-direct (title match).
  */
 export async function resolveHhEpisodeStream(
   req: Request,
@@ -56,10 +57,14 @@ export async function resolveHhEpisodeStream(
       ? series.episodes[0]
       : undefined);
 
-  if (!episode?.dataIds) throw new Error("Episode not found");
+  if (!episode) throw new Error("Episode not found");
 
-  const stream = await hhKittyGet<KittyStreamPayload>("stream", {
-    linkId: episode.dataIds,
+  const stream = await hhKittyGet<KittyStreamPayload>("stream-direct", {
+    anilistId: series.id,
+    episode: episode.number,
+    audio: "sub",
+    title: series.title,
+    backend: `title:${series.title}`,
   });
   const streamUrl = (stream.file ?? "").trim();
   if (!streamUrl) throw new Error(stream.error || "No stream available");
