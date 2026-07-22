@@ -23,6 +23,8 @@ export const ROUTES = {
   TIMESTAMPS: "/timestamps",
   VOICE_ACTOR: "/voice-actor",
   VOICE_ACTORS: "/voice-actors",
+  ADULT: "/adult",
+  ADULT_WATCH: "/adult/watch",
   profile: (username: string) => `/profile/${encodeURIComponent(username)}`,
   profileComments: (username: string) => `/profile/${encodeURIComponent(username)}/comments`,
 };
