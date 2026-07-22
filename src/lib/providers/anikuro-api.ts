@@ -1,7 +1,10 @@
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import { kittyStreamHeaders } from "@/lib/kitty/kitty-api-core";
 import { resolveKittyNamedStream } from "@/lib/kitty/kitty-provider-stream-resolve";
-import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
+import {
+  isSubtitleTrack,
+  type StreamTrack,
+} from "@/lib/subtitles/subtitle-track-utils";
 import {
   ANIKURO_SERVERS,
   anikuroServerDisplayLabel,
@@ -28,6 +31,59 @@ function anikuroDataIds(
   const payload: Record<string, unknown> = { anilistId, episode };
   if (title?.trim()) payload.title = title.trim();
   return JSON.stringify(payload);
+}
+
+/** Single-call stream linkId — API resolves the named backend directly. */
+function buildAnikuroLinkId(opts: {
+  anilistId: number;
+  episode: number;
+  audio: "sub" | "dub";
+  serverId: AnikuroServerId;
+}): string {
+  return JSON.stringify({
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    backend: opts.serverId,
+    audio: opts.audio,
+  });
+}
+
+function countAnikuroSubtitleTracks(tracks: StreamTrack[] | undefined): number {
+  if (!tracks?.length) return 0;
+  return tracks.filter(isSubtitleTrack).length;
+}
+
+function withServerLabel(
+  result: AnikuroStreamResult,
+  serverId: AnikuroServerId,
+): AnikuroStreamResult {
+  return { ...result, server: result.server ?? anikuroServerDisplayLabel(serverId) };
+}
+
+/**
+ * Prefer a stream that already has soft-sub tracks; otherwise keep the working
+ * video URL and attach tracks from the other candidate when present.
+ */
+function pickAnikuroStream(
+  linked: AnikuroStreamResult | null,
+  direct: AnikuroStreamResult | null,
+  serverId: AnikuroServerId,
+): AnikuroStreamResult | null {
+  const linkedSubs = countAnikuroSubtitleTracks(linked?.tracks);
+  const directSubs = countAnikuroSubtitleTracks(direct?.tracks);
+
+  if (linked?.file && linkedSubs > 0) return withServerLabel(linked, serverId);
+  if (direct?.file && directSubs > 0) return withServerLabel(direct, serverId);
+
+  if (linked?.file) {
+    if (directSubs > 0 && direct?.tracks?.length) {
+      return withServerLabel({ ...linked, tracks: direct.tracks }, serverId);
+    }
+    return withServerLabel(linked, serverId);
+  }
+
+  if (direct?.file) return withServerLabel(direct, serverId);
+  return null;
 }
 
 function normalizeServerToken(value: string): string {
@@ -205,16 +261,43 @@ export async function fetchAnikuroVideoStream(opts: {
   title?: string | null;
 }): Promise<AnikuroStreamResult | null> {
   const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
+  const linkId = buildAnikuroLinkId({ ...opts, serverId });
 
-  // stream-direct first — constructed linkId often returns video without soft-sub tracks[].
+  const linkedPromise = fetchAnikuroStreamByLinkId(linkId).catch(() => null);
+  const directPromise = fetchAnikuroStreamDirect(opts).catch(() => null);
+
+  const linked = await linkedPromise;
+
+  // Fast path: linkId with soft subs already present.
+  if (linked?.file && countAnikuroSubtitleTracks(linked.tracks) > 0) {
+    return withServerLabel(linked, serverId);
+  }
+
+  if (linked?.file) {
+    // Video works — wait briefly for stream-direct tracks, never stall on it.
+    const direct = await Promise.race([
+      directPromise,
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 4_000);
+      }),
+    ]);
+    return pickAnikuroStream(linked, direct, serverId);
+  }
+
+  // linkId failed — fall back to stream-direct, then servers list.
+  const direct = await directPromise;
+  if (direct?.file) return withServerLabel(direct, serverId);
+
+  const listed = await streamAnikuroViaServers({ ...opts, serverId });
+  if (listed?.file) return withServerLabel(listed, serverId);
+
   const result = await resolveKittyNamedStream({
+    builtLinkId: linkId,
     streamByLinkId: fetchAnikuroStreamByLinkId,
     streamDirect: () => fetchAnikuroStreamDirect(opts),
     streamViaServers: () => streamAnikuroViaServers({ ...opts, serverId }),
   });
 
-  if (result?.file) {
-    return { ...result, server: result.server ?? anikuroServerDisplayLabel(serverId) };
-  }
+  if (result?.file) return withServerLabel(result, serverId);
   return result;
 }
