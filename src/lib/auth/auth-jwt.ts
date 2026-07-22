@@ -34,13 +34,8 @@ export type OAuthPurpose = "anilist_oauth" | "discord_login" | "discord_link";
 export async function signOAuthStateFor(
   purpose: OAuthPurpose,
   userId?: string,
-  extra?: { redirectUri?: string },
 ): Promise<string> {
-  return new SignJWT({
-    purpose,
-    ...(userId ? { userId } : {}),
-    ...(extra?.redirectUri ? { redirectUri: extra.redirectUri } : {}),
-  })
+  return new SignJWT({ purpose, ...(userId ? { userId } : {}) })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("10m")
@@ -50,17 +45,12 @@ export async function signOAuthStateFor(
 export async function verifyOAuthStateFor(
   state: string,
   expectedPurpose: OAuthPurpose,
-): Promise<{ userId?: string; redirectUri?: string } | null> {
+): Promise<{ userId?: string } | null> {
   try {
     const { payload } = await jwtVerify(state, await secret());
     if (payload.purpose !== expectedPurpose) return null;
     const userId = payload.userId as string | undefined;
-    const redirectUri =
-      typeof payload.redirectUri === "string" ? payload.redirectUri : undefined;
-    return {
-      ...(userId ? { userId } : {}),
-      ...(redirectUri ? { redirectUri } : {}),
-    };
+    return userId ? { userId } : {};
   } catch {
     return null;
   }
@@ -158,34 +148,6 @@ export async function verify2faPendingToken(token: string): Promise<string | nul
     const { payload } = await jwtVerify(token, await secret());
     if (payload.purpose !== "2fa_pending") return null;
     return payload.userId as string;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Short-lived wrapper around a session JWT for OAuth redirects.
- * Firefox/Safari iOS often drop Set-Cookie on cross-site → same-site redirects;
- * the client POSTs this handoff on the home page to establish the session.
- */
-export async function signSessionHandoff(sessionToken: string): Promise<string> {
-  return new SignJWT({ purpose: "session_handoff", sessionToken })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("2m")
-    .sign(await secret());
-}
-
-export async function verifySessionHandoff(
-  handoff: string,
-): Promise<string | null> {
-  try {
-    const { payload } = await jwtVerify(handoff, await secret());
-    if (payload.purpose !== "session_handoff") return null;
-    const sessionToken = payload.sessionToken;
-    return typeof sessionToken === "string" && sessionToken.length > 0
-      ? sessionToken
-      : null;
   } catch {
     return null;
   }

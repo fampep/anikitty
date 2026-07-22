@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { isProduction } from "@/lib/security/security";
 
 export const AUTH_COOKIE_NAME = "ak_session";
-/** Readable companion flag so the client can detect HttpOnly sessions (Safari/TV). */
-export const AUTH_FLAG_COOKIE_NAME = "ak_logged_in";
-/** One-time claim JWT with plaintext recovery codes after Discord signup. */
+/** One-time claim JWT with plaintext recovery codes (email signup / settings). */
 export const RECOVERY_CODES_CLAIM_COOKIE = "ak_rc_claim";
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -12,16 +10,6 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 export function authCookieOptions() {
   return {
     httpOnly: true,
-    secure: isProduction(),
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: SESSION_MAX_AGE,
-  };
-}
-
-export function authFlagCookieOptions() {
-  return {
-    httpOnly: false,
     secure: isProduction(),
     sameSite: "lax" as const,
     path: "/",
@@ -37,12 +25,6 @@ export function recoveryClaimCookieOptions() {
     path: "/",
     maxAge: 60 * 15,
   };
-}
-
-function applyAuthCookies(res: NextResponse, token: string) {
-  res.cookies.set(AUTH_COOKIE_NAME, token, authCookieOptions());
-  res.cookies.set(AUTH_FLAG_COOKIE_NAME, "1", authFlagCookieOptions());
-  return res;
 }
 
 export function readAuthCookie(req: Request): string | null {
@@ -82,28 +64,19 @@ export function readCookie(req: Request, name: string): string | null {
 }
 
 export function jsonWithAuthCookie(body: unknown, token: string, init?: ResponseInit) {
-  return applyAuthCookies(NextResponse.json(body, init), token);
+  const res = NextResponse.json(body, init);
+  res.cookies.set(AUTH_COOKIE_NAME, token, authCookieOptions());
+  return res;
 }
 
 export function clearAuthCookie(res: NextResponse) {
   res.cookies.set(AUTH_COOKIE_NAME, "", { ...authCookieOptions(), maxAge: 0 });
-  res.cookies.set(AUTH_FLAG_COOKIE_NAME, "", { ...authFlagCookieOptions(), maxAge: 0 });
   return res;
 }
 
-export function redirectWithAuthCookie(
-  url: string,
-  token: string,
-  extra?: { recoveryClaim?: string },
-) {
-  const res = applyAuthCookies(NextResponse.redirect(url), token);
-  if (extra?.recoveryClaim) {
-    res.cookies.set(
-      RECOVERY_CODES_CLAIM_COOKIE,
-      extra.recoveryClaim,
-      recoveryClaimCookieOptions(),
-    );
-  }
+export function redirectWithAuthCookie(url: string, token: string) {
+  const res = NextResponse.redirect(url);
+  res.cookies.set(AUTH_COOKIE_NAME, token, authCookieOptions());
   return res;
 }
 

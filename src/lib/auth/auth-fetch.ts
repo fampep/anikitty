@@ -5,12 +5,10 @@ export function hasLikelyAuthSession(): boolean {
   if (typeof window === "undefined") return false;
   // Legacy Anisurge localStorage token — cookie session is preferred.
   if (localStorage.getItem("anisurgeToken") || localStorage.getItem("ak_token")) return true;
-  // `ak_session` is HttpOnly (invisible here). `ak_logged_in` is the client-readable flag.
+  // `ak_session` is HttpOnly (invisible here); kept for non-HttpOnly edge cases.
   return document.cookie.split(";").some((c) => {
     const trimmed = c.trim();
-    return (
-      trimmed.startsWith("ak_logged_in=") || trimmed.startsWith("ak_session=")
-    );
+    return trimmed.startsWith("ak_session=");
   });
 }
 

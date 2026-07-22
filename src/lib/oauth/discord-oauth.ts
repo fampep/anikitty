@@ -35,34 +35,18 @@ export function isDiscordOAuthConfigured(): boolean {
   return !!(getDiscordClientId() && getDiscordClientSecret());
 }
 
-/** Canonical site origin — prefer env, then forwarded host (Coolify/proxies), never Origin alone. */
+/** App origin for email links and redirects (env first, then request). */
 export function getCanonicalAppOrigin(req?: Request): string {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-
-  if (req) {
-    const forwardedHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-    const host = forwardedHost || req.headers.get("host")?.trim();
-    if (host) {
-      const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-      const proto =
-        forwardedProto ||
-        (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-      return `${proto}://${host}`.replace(/\/$/, "");
-    }
-    try {
-      return new URL(req.url).origin;
-    } catch {
-      /* fall through */
-    }
-  }
-
-  return "http://localhost:3000";
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ??
+    req?.headers.get("origin") ??
+    (req ? new URL(req.url).origin : null) ??
+    "http://localhost:3000"
+  ).replace(/\/$/, "");
 }
 
 export function getDiscordRedirectUri(req?: Request): string {
-  const pinned = process.env.DISCORD_REDIRECT_URI?.trim();
-  if (pinned) return pinned;
+  if (process.env.DISCORD_REDIRECT_URI) return process.env.DISCORD_REDIRECT_URI;
   return `${getCanonicalAppOrigin(req)}/api/account/auth/discord/callback`;
 }
 
@@ -76,6 +60,7 @@ export function buildDiscordAuthorizeUrl(state: string, redirectUri: string): st
     response_type: "code",
     scope: DISCORD_SCOPES,
     state,
+    prompt: "consent",
   });
   return `${DISCORD_AUTHORIZE}?${params.toString()}`;
 }
@@ -246,7 +231,7 @@ export async function completeDiscordLink(
   if (!linkState?.userId) return "error";
 
   try {
-    const redirectUri = linkState.redirectUri || getDiscordRedirectUri(req);
+    const redirectUri = getDiscordRedirectUri(req);
     const accessToken = await exchangeDiscordCode(code, redirectUri);
     if (!accessToken) return "error";
 
@@ -293,15 +278,15 @@ export async function completeDiscordLogin(
   state: string,
   req: Request,
 ): Promise<
-  | { type: "success"; token: string; userId: string; recoveryCodes?: string[] }
-  | { type: "2fa"; pendingToken: string; userId: string; recoveryCodes?: string[] }
+  | { type: "success"; token: string }
+  | { type: "2fa"; pendingToken: string }
   | { type: "error"; reason: string }
 > {
   const loginState = await verifyOAuthStateFor(state, "discord_login");
   if (loginState === null) return { type: "error", reason: "invalid_state" };
 
   try {
-    const redirectUri = loginState.redirectUri || getDiscordRedirectUri(req);
+    const redirectUri = getDiscordRedirectUri(req);
     const accessToken = await exchangeDiscordCode(code, redirectUri);
     if (!accessToken) return { type: "error", reason: "token_exchange" };
 
@@ -313,13 +298,7 @@ export async function completeDiscordLogin(
       return { type: "error", reason: "email_conflict" };
     }
 
-    const { user, created } = result;
-
-    let recoveryCodes: string[] | undefined;
-    if (created) {
-      const { issueRecoveryCodes } = await import("@/lib/auth/recovery-codes");
-      recoveryCodes = await issueRecoveryCodes(user.id);
-    }
+    const { user } = result;
 
     if (isUserBanned(user)) {
       return { type: "error", reason: "banned" };
@@ -327,16 +306,11 @@ export async function completeDiscordLogin(
 
     if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {
       const pendingToken = await sign2faPendingToken(user.id);
-      return { type: "2fa", pendingToken, userId: user.id, recoveryCodes };
+      return { type: "2fa", pendingToken };
     }
 
     const authData = await buildAuthResponse(user, req);
-    return {
-      type: "success",
-      token: authData.anisurgeToken,
-      userId: user.id,
-      recoveryCodes,
-    };
+    return { type: "success", token: authData.anisurgeToken };
   } catch (e) {
     console.error("[discord oauth login]", e);
     return { type: "error", reason: "server" };
@@ -360,18 +334,8 @@ export function discordLoginErrorRedirect(req: Request, reason: string) {
   return NextResponse.redirect(`${appOrigin(req)}/home?discord=${reason}`);
 }
 
-export function discordLoginSuccessRedirect(
-  req: Request,
-  token: string,
-  opts?: { recoveryClaim?: string; handoff?: string },
-) {
-  const params = new URLSearchParams({ discord: "welcome" });
-  if (opts?.recoveryClaim) params.set("recovery", "1");
-  if (opts?.handoff) params.set("handoff", opts.handoff);
-  const url = `${appOrigin(req)}/home?${params.toString()}`;
-  return redirectWithAuthCookie(url, token, {
-    recoveryClaim: opts?.recoveryClaim,
-  });
+export function discordLoginSuccessRedirect(req: Request, token: string) {
+  return redirectWithAuthCookie(`${appOrigin(req)}/home?discord=welcome`, token);
 }
 
 export function discord2faRedirect(req: Request, pendingToken: string) {

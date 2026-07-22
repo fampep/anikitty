@@ -12,14 +12,13 @@ import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import NotificationBell from "./notification-bell";
 import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/oauth/anisurge";
-import { hasLikelyAuthSession, withAuth } from "@/lib/auth/auth-fetch";
+import { hasLikelyAuthSession } from "@/lib/auth/auth-fetch";
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import Image from "next/image";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 import { useKittycoins } from "@/hooks/use-kittycoins";
-import { RecoveryCodesReveal } from "@/components/auth/recovery-codes-reveal";
 
 function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
   const t = useT();
@@ -74,7 +73,6 @@ const NavBar = () => {
   const pathname = usePathname();
   const isLanding = pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
-  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const authBag = React.useMemo(
     () => ({ auth: user, setAuth, clearAuth }),
     [user, setAuth, clearAuth],
@@ -93,8 +91,7 @@ const NavBar = () => {
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void (async () => {
-        // Always probe once — HttpOnly session cookies are invisible to JS;
-        // ak_logged_in is a hint but cookie may exist without it on older sessions.
+        // Always probe once — HttpOnly session cookies are invisible to JS.
         try {
           const me = await anisurgeAuth.me();
           if (!cancelled) setAuth(authFromMeResponse(me));
@@ -138,46 +135,16 @@ const NavBar = () => {
 
     if (discord === "welcome") {
       toast.success(t("auth.discordWelcome"));
-      const handoff = params.get("handoff");
-      void (async () => {
-        if (handoff) {
-          try {
-            await fetch("/api/account/auth/session/handoff", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ handoff }),
-            });
-          } catch {
-            /* cookie redirect may already have worked */
-          }
-        }
-        try {
-          const me = await anisurgeAuth.me();
-          setAuth(authFromMeResponse(me));
-        } catch {
-          /* ignore */
-        }
-      })();
-      const wantsRecovery = params.get("recovery") === "1";
-      if (wantsRecovery) {
-        void fetch("/api/account/auth/recovery-codes/claim", withAuth())
-          .then((r) => (r.ok ? r.json() : null))
-          .then((data) => {
-            if (Array.isArray(data?.codes) && data.codes.length) {
-              setRecoveryCodes(data.codes);
-            }
-          })
-          .catch(() => {});
-      }
+      void anisurgeAuth
+        .me()
+        .then((me) => setAuth(authFromMeResponse(me)))
+        .catch(() => {});
     } else {
       const key = errorKeys[discord] ?? "auth.discordLoginFailed";
       toast.error(t(key));
     }
 
     params.delete("discord");
-    params.delete("recovery");
-    params.delete("handoff");
     const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
     window.history.replaceState({}, "", next);
   }, [setAuth, t]);
@@ -197,16 +164,6 @@ const NavBar = () => {
 
   return (
     <header className="site-header fixed left-0 right-0 top-0 z-[100] pt-safe">
-      {recoveryCodes ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border dark:border-white/12 bg-background dark:bg-[#0a0a0c] p-4 shadow-2xl">
-            <RecoveryCodesReveal
-              codes={recoveryCodes}
-              onDismiss={() => setRecoveryCodes(null)}
-            />
-          </div>
-        </div>
-      ) : null}
       <Container className="relative">
         {searchOpen && (
           <div className="site-search-overlay absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl dark:border-white/[0.05] dark:bg-[#050508]/98">
