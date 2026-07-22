@@ -72,5 +72,6 @@ export const fetchAnikotoStreamDirect = (opts: {
   audio: "sub" | "dub";
   title?: string | null;
   timeoutMs?: number;
+  refresh?: boolean;
 }): Promise<KittyStreamPayload | null> =>
   fetchAnilistSiteStreamDirect({ provider: ANIKOTO, ...opts });

@@ -195,6 +195,7 @@ async function fetchAnikuroStreamDirect(opts: {
   episode: number;
   audio: "sub" | "dub";
   title?: string | null;
+  refresh?: boolean;
 }): Promise<AnikuroStreamResult | null> {
   const params = new URLSearchParams({
     anilistId: String(opts.anilistId),
@@ -202,6 +203,7 @@ async function fetchAnikuroStreamDirect(opts: {
     audio: opts.audio,
   });
   if (opts.title?.trim()) params.set("title", opts.title.trim());
+  if (opts.refresh) params.set("refresh", "1");
 
   const res = await kittyApiFetch(
     `/provider/AniKuro/stream-direct?${params.toString()}`,
@@ -259,6 +261,7 @@ export async function fetchAnikuroVideoStream(opts: {
   audio: "sub" | "dub";
   serverId?: AnikuroServerId | null;
   title?: string | null;
+  refresh?: boolean;
 }): Promise<AnikuroStreamResult | null> {
   const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
   const linkId = buildAnikuroLinkId({ ...opts, serverId });
@@ -274,11 +277,11 @@ export async function fetchAnikuroVideoStream(opts: {
   }
 
   if (linked?.file) {
-    // Video works — wait briefly for stream-direct tracks, never stall on it.
+    // Video works — wait for stream-direct tracks, never stall forever on it.
     const direct = await Promise.race([
       directPromise,
       new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 4_000);
+        setTimeout(() => resolve(null), 8_000);
       }),
     ]);
     return pickAnikuroStream(linked, direct, serverId);

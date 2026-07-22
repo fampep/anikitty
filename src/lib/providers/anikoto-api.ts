@@ -29,6 +29,7 @@ export async function fetchAnikotoVideoStream(opts: {
   title?: string | null;
   preferHardSub?: boolean;
   linkId?: string | null;
+  refresh?: boolean;
 }): Promise<KittyStreamPayload | null> {
   const provider = ANIKOTO_PROVIDER_ID;
 
@@ -59,6 +60,7 @@ export async function fetchAnikotoVideoStream(opts: {
         episode: opts.episode,
         audio: opts.audio,
         title: opts.title,
+        refresh: opts.refresh,
       }),
   });
 }

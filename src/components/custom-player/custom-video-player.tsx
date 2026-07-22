@@ -455,6 +455,7 @@ export function AniKittyPlayer({
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
   const liteMode = useSettingsStore((s) => s.liteMode);
   const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
+  const subtitleDelayOffset = useSettingsStore((s) => s.subtitleSettings.delayOffset);
   const autoSkipRef = useRef(autoSkipIntro);
   const autoNextRef = useRef(autoPlay);
   const seekStepRef = useRef(seekStepSeconds);
@@ -1350,7 +1351,7 @@ export function AniKittyPlayer({
           // paint native ::cue (broken in phone fullscreen). We render HTML.
           tt.mode = "hidden";
           layoutCues(tt);
-          shiftCues(tt, captionOffset);
+          shiftCues(tt, captionOffset + subtitleDelayOffset);
         } else {
           tt.mode = "disabled";
         }
@@ -1367,7 +1368,16 @@ export function AniKittyPlayer({
       video.textTracks.removeEventListener("change", apply);
       trackEls.forEach((el) => el.removeEventListener("load", apply));
     };
-  }, [captionOptions, selectedCaptionId, activeSrc, captionOffset, captionPosition, fullscreen, cssFullscreen]);
+  }, [
+    captionOptions,
+    selectedCaptionId,
+    activeSrc,
+    captionOffset,
+    subtitleDelayOffset,
+    captionPosition,
+    fullscreen,
+    cssFullscreen,
+  ]);
 
   // Re-apply preferDub when the watch page toggles SUB/DUB.
   useEffect(() => {

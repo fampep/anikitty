@@ -123,6 +123,13 @@ export function captionSizeCss(size: CaptionSizePref): string {
   return "1.05em";
 }
 
+/** Multiplier for site subtitle fontSize when the in-player size preset changes. */
+export function captionSizeScale(size: CaptionSizePref): number {
+  if (size === "sm") return 0.85;
+  if (size === "lg") return 1.25;
+  return 1;
+}
+
 /** WebKit text-track display bottom inset (higher = raised on screen). */
 export function captionPositionCss(position: CaptionPositionPref): string {
   if (position === "high") return "28%";

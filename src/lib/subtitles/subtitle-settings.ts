@@ -317,10 +317,7 @@ export function subtitleSettingsToInlineStyles(
     fontFamily: getSubtitleFontFamilyStack(settings.fontFamily),
     backgroundColor: boxedLines ? "transparent" : getSubtitleBackgroundRgba(settings),
     borderRadius: boxedLines ? "0" : `${settings.borderRadius}px`,
-    padding:
-      !boxedLines && (settings.backgroundOpacity > 0 || settings.borderRadius > 0)
-        ? "2px 8px"
-        : "0",
+    padding: !boxedLines && settings.backgroundOpacity > 0 ? "2px 10px" : "0",
     textTransform: settings.textTransform === "uppercase" ? "uppercase" : "none",
     maxWidth: `${Math.min(100, Math.max(60, settings.maxWidthPercent))}%`,
   };

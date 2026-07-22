@@ -138,6 +138,8 @@ const STREAM_DEDICATED_AFTER_RACE = new Set<string>([
   "AniSnatch",
   "Lunar",
   "Animo",
+  "AniKuro",
+  "AniWaves",
 ]);
 
 type StreamPayload = {
@@ -395,7 +397,9 @@ export async function GET(req: Request) {
       fetchedSubs = await Promise.race([
         ensurePlaybackSubtitleCache(subWarm),
         new Promise<StreamTrack[]>((resolve) => {
-          setTimeout(() => resolve([]), 2_000);
+          // Alpha often needs a bit longer for Kitty /subs when embed tracks are empty.
+          const waitMs = providerName === "AniKuro" ? 4_000 : 2_000;
+          setTimeout(() => resolve([]), waitMs);
         }),
       ]);
       if (fetchedSubs.length === 0) {
@@ -524,26 +528,43 @@ export async function GET(req: Request) {
 
   // kittyNode=auto: race stream-direct across healthy static-IP nodes first.
   // Dedicated handlers below are fallbacks (linkId / servers / mirrors).
+  // For Alpha (AniKuro), a track-less race hit is deferred so soft-sub linkId
+  // resolution can run; race result is kept as last-resort video.
+  let deferredRaceAttempt: Awaited<
+    ReturnType<typeof fetchStreamDirectPlayback>
+  > | null = null;
+
   if (raceMode && !STREAM_RACE_SKIP.has(provider)) {
     const racedAttempt = await fetchStreamDirectPlayback(provider);
-    const racedResponse = await respondWithStream(
-      racedAttempt.result,
-      provider,
-      racedAttempt.servedAudio,
-      racedAttempt.audioFallback,
-      racedAttempt.nodeId,
-      racedAttempt.raceMs,
-    );
-    if (racedResponse) return racedResponse;
+    const racedNativeSubs = (racedAttempt.result?.tracks ?? []).filter(isSubtitleTrack);
+    const deferForSoftSubs =
+      provider === "AniKuro" &&
+      Boolean(racedAttempt.result?.file) &&
+      racedNativeSubs.length === 0 &&
+      STREAM_DEDICATED_AFTER_RACE.has(provider);
 
-    if (!STREAM_DEDICATED_AFTER_RACE.has(provider)) {
-      return Response.json(
-        {
-          file: null,
-          error: "Provider unavailable",
-        },
-        { status: 200 },
+    if (deferForSoftSubs) {
+      deferredRaceAttempt = racedAttempt;
+    } else {
+      const racedResponse = await respondWithStream(
+        racedAttempt.result,
+        provider,
+        racedAttempt.servedAudio,
+        racedAttempt.audioFallback,
+        racedAttempt.nodeId,
+        racedAttempt.raceMs,
       );
+      if (racedResponse) return racedResponse;
+
+      if (!STREAM_DEDICATED_AFTER_RACE.has(provider)) {
+        return Response.json(
+          {
+            file: null,
+            error: "Provider unavailable",
+          },
+          { status: 200 },
+        );
+      }
     }
   }
 
@@ -637,6 +658,7 @@ export async function GET(req: Request) {
             title: titleParam,
             preferHardSub,
             linkId: linkIdParam,
+            refresh: refreshStream,
           });
 
           if (!anikoto?.file) return null;
@@ -1024,6 +1046,7 @@ export async function GET(req: Request) {
             audio: streamAudio,
             serverId: anikuroServer as AnikuroServerId,
             title: titleParam,
+            refresh: refreshStream,
           });
 
           if (!anikuro?.file) return null;
@@ -1128,6 +1151,18 @@ export async function GET(req: Request) {
     } catch (e) {
       console.error("[kitty/stream] Animo server failed:", e);
     }
+  }
+
+  if (deferredRaceAttempt) {
+    const deferredResponse = await respondWithStream(
+      deferredRaceAttempt.result,
+      provider,
+      deferredRaceAttempt.servedAudio,
+      deferredRaceAttempt.audioFallback,
+      deferredRaceAttempt.nodeId,
+      deferredRaceAttempt.raceMs,
+    );
+    if (deferredResponse) return deferredResponse;
   }
 
   const genericAttempt = await fetchStreamDirectPlayback(provider);

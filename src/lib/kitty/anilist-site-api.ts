@@ -47,6 +47,7 @@ export function buildAnilistSiteStreamDirectPath(opts: {
   episode: number;
   audio: "sub" | "dub";
   title?: string | null;
+  refresh?: boolean;
 }): string {
   return buildKittyStreamDirectPath({
     provider: opts.provider,
@@ -54,6 +55,7 @@ export function buildAnilistSiteStreamDirectPath(opts: {
     episode: opts.episode,
     audio: opts.audio,
     title: opts.title,
+    refresh: opts.refresh,
   });
 }
 
@@ -164,6 +166,7 @@ export async function fetchAnilistSiteStreamDirect(opts: {
   audio: "sub" | "dub";
   title?: string | null;
   timeoutMs?: number;
+  refresh?: boolean;
 }): Promise<KittyStreamPayload | null> {
   try {
     const res = await kittyApiFetch(buildAnilistSiteStreamDirectPath(opts), {
