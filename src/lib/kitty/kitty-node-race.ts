@@ -15,6 +15,12 @@ import type { KittyStreamPayload } from "@/lib/kitty/kitty-api-core";
 /** Skip nodes that recently failed health / race for this long. */
 export const KITTY_NODE_DEAD_COOLDOWN_MS = 45_000;
 
+/**
+ * Provider-specific skip after stream-direct hang/empty.
+ * Keeps a node available for other providers (e.g. AniWaves-dead primary still races Echo).
+ */
+export const KITTY_PROVIDER_NODE_COOLDOWN_MS = 90_000;
+
 /** Parallel /health budget before stream-direct race. */
 export const KITTY_HEALTH_PREFILTER_MS = 800;
 
@@ -27,7 +33,16 @@ export const KITTY_RACE_ATTEMPT_TIMEOUT_MS = 12_000;
 /** Hard wall-clock budget for the whole race (health + first win). */
 export const KITTY_RACE_DEADLINE_MS = 16_000;
 
+/**
+ * Max peers in one stream-direct race. Must cover the full cluster: AniWaves
+ * often only succeeds on NL/CA while SE/BG/SG hang past the race deadline.
+ */
+export const KITTY_RACE_MAX_NODES = KITTY_API_NODES.length;
+
 const deadUntil = new Map<KittyApiNodeId, number>();
+
+/** provider → node → cool-until ms */
+const providerDeadUntil = new Map<string, Map<KittyApiNodeId, number>>();
 
 type ProviderNodeStat = {
   score: number;
@@ -71,6 +86,47 @@ export function isKittyNodeCoolingDown(nodeId: KittyApiNodeId, now = Date.now())
   return true;
 }
 
+function getProviderDeadMap(provider: string): Map<KittyApiNodeId, number> {
+  const key = normalizeProviderKey(provider);
+  let map = providerDeadUntil.get(key);
+  if (!map) {
+    map = new Map();
+    providerDeadUntil.set(key, map);
+  }
+  return map;
+}
+
+export function markKittyProviderNodeCooling(
+  provider: string | null | undefined,
+  nodeId: KittyApiNodeId,
+  cooldownMs = KITTY_PROVIDER_NODE_COOLDOWN_MS,
+): void {
+  const map = getProviderDeadMap(provider ?? "");
+  map.set(nodeId, Date.now() + cooldownMs);
+}
+
+export function clearKittyProviderNodeCooling(
+  provider: string | null | undefined,
+  nodeId: KittyApiNodeId,
+): void {
+  getProviderDeadMap(provider ?? "").delete(nodeId);
+}
+
+export function isKittyProviderNodeCoolingDown(
+  provider: string | null | undefined,
+  nodeId: KittyApiNodeId,
+  now = Date.now(),
+): boolean {
+  const map = getProviderDeadMap(provider ?? "");
+  const until = map.get(nodeId);
+  if (until == null) return false;
+  if (until <= now) {
+    map.delete(nodeId);
+    return false;
+  }
+  return true;
+}
+
 function getProviderStats(provider: string): Map<KittyApiNodeId, ProviderNodeStat> {
   const key = normalizeProviderKey(provider);
   let map = providerNodeScores.get(key);
@@ -96,17 +152,23 @@ export function recordKittyProviderNodeWin(
   const prev = currentScore(map.get(nodeId), now);
   map.set(nodeId, { score: prev + WIN_BOOST, updatedAt: now });
   clearKittyNodeDead(nodeId);
+  clearKittyProviderNodeCooling(provider, nodeId);
 }
 
 /** Soft-penalize a node that returned empty / errored for this provider. */
 export function recordKittyProviderNodeFail(
   provider: string | null | undefined,
   nodeId: KittyApiNodeId,
+  opts?: { coolDown?: boolean },
 ): void {
   const now = Date.now();
   const map = getProviderStats(provider ?? "");
   const prev = currentScore(map.get(nodeId), now);
   map.set(nodeId, { score: Math.max(0, prev - FAIL_PENALTY), updatedAt: now });
+  // Hang / empty stream-direct: skip this provider→node on the next race.
+  if (opts?.coolDown !== false) {
+    markKittyProviderNodeCooling(provider, nodeId);
+  }
 }
 
 /**
@@ -184,7 +246,12 @@ export function orderKittyNodesForRace(
     (id) => !skip.has(id),
   );
 
-  const available = base.filter((id) => !isKittyNodeCoolingDown(id, now));
+  const available = base.filter(
+    (id) =>
+      !isKittyNodeCoolingDown(id, now) &&
+      !isKittyProviderNodeCoolingDown(provider, id, now),
+  );
+  // Prefer non-cooled peers; if every node is cooling for this provider, retry all.
   const pool = available.length > 0 ? available : base;
   if (pool.length <= 1) return pool;
 

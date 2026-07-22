@@ -21,8 +21,8 @@ import {
   isValidKittyStreamWin,
   KITTY_RACE_ATTEMPT_TIMEOUT_MS,
   KITTY_RACE_DEADLINE_MS,
+  KITTY_RACE_MAX_NODES,
   KITTY_RACE_STAGGER_MS,
-  markKittyNodeDead,
   orderKittyNodesForRace,
   prefilterHealthyKittyNodes,
   recordKittyProviderNodeFail,
@@ -223,15 +223,17 @@ export async function raceKittyProviderStream(
     });
     if (!isValidKittyStreamWin(stream)) {
       recordKittyProviderNodeFail(provider, nodeId);
-      markKittyNodeDead(nodeId);
       return null;
     }
     recordKittyProviderNodeWin(provider, nodeId);
     return { stream: stream!, nodeId, raceMs: Date.now() - raceStarted };
   }
 
-  // Prefer the top scored healthy peers — racing every node overloads scrapers.
-  if (candidates.length > 3) candidates = candidates.slice(0, 3);
+  // Race the full healthy cluster. AniWaves often only succeeds on NL/CA while
+  // SE/BG/SG hang — a top-3 slice left working peers out of the race.
+  if (candidates.length > KITTY_RACE_MAX_NODES) {
+    candidates = candidates.slice(0, KITTY_RACE_MAX_NODES);
+  }
 
   // Per-node budget: stream-direct often needs 8–12s; fail faster than a hung peer.
   const attemptTimeoutMs = Math.min(
@@ -301,9 +303,9 @@ export async function raceKittyProviderStream(
         })
         .catch(() => {
           if (settled) return;
-          // Transport hang / abort on this peer — short cooldown so failover skips it.
+          // Transport hang / abort on this peer — provider-scoped cooldown only
+          // (node may still be fine for other scrapers).
           if (!controller.signal.aborted) {
-            markKittyNodeDead(nodeId);
             recordKittyProviderNodeFail(provider, nodeId);
           }
           pending -= 1;
