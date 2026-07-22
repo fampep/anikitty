@@ -9,8 +9,8 @@ import {
 
 /**
  * Normalize a saved / remote provider order into a complete active list.
- * Unknown / retired ids are dropped; missing active providers are appended
- * in site-default priority order.
+ * Unknown / retired ids are dropped; missing active providers are inserted
+ * near their {@link DEFAULT_PROVIDER_PRIORITY} neighbors (not dumped at the end).
  */
 export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
   const seen = new Set<KittyProvider>();
@@ -48,7 +48,22 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
     }
   }
 
-  for (const id of DEFAULT_PROVIDER_PRIORITY) push(id);
+  // Insert missing defaults at their preferred index relative to neighbors.
+  for (const id of DEFAULT_PROVIDER_PRIORITY) {
+    if (seen.has(id)) continue;
+    const prefIdx = DEFAULT_PROVIDER_PRIORITY.indexOf(id);
+    let insertAt = out.length;
+    for (let i = prefIdx - 1; i >= 0; i--) {
+      const neighbor = DEFAULT_PROVIDER_PRIORITY[i]!;
+      const at = out.indexOf(neighbor);
+      if (at >= 0) {
+        insertAt = at + 1;
+        break;
+      }
+    }
+    out.splice(insertAt, 0, id);
+    seen.add(id);
+  }
   for (const id of KITTY_PROVIDERS) push(id);
 
   return out;

@@ -432,7 +432,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 57,
+      version: 58,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -767,6 +767,22 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 57) {
           // Sierra (AniSnatch) joins featured list after Alpha.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "AniSnatch");
+          const alphaAt = without.indexOf("AniKuro");
+          const insertAt = alphaAt >= 0 ? alphaAt + 1 : Math.min(3, without.length);
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "AniSnatch",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniWaves",
+            next.providerOrder,
+          );
+        }
+        if (version < 58) {
+          // Ensure Sierra stays directly after Alpha (not appended at the end).
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
           const without = order.filter((id) => id !== "AniSnatch");
           const alphaAt = without.indexOf("AniKuro");
