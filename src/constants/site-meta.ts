@@ -3,7 +3,7 @@ import packageJson from "../../package.json";
 /** App version from package.json — shown in the site version badge. */
 export const SITE_VERSION = packageJson.version;
 
-export const SITE_IS_BETA = true;
+export const SITE_IS_BETA = false;
 
 export const DISCORD_INVITE_URL = "https://discord.gg/qn55BfU5Ur";
 
@@ -17,4 +17,4 @@ export const OFFICIAL_DOMAINS = [
 ] as const;
 
 /** ISO date for the FAQ & privacy page — update when content changes. */
-export const FAQ_LAST_UPDATED = "2026-07-14";
+export const FAQ_LAST_UPDATED = "2026-07-22";
