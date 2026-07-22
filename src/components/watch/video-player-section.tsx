@@ -104,6 +104,10 @@ import {
   isElementFullscreen,
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
+import {
+  isCssFullscreenActive,
+  markPersistCssFullscreen,
+} from "@/lib/kitty/fullscreen-persist";
 
 const AniKittyPlayer = dynamic(
   () =>
@@ -460,21 +464,24 @@ const VideoPlayerSection = () => {
       const wrapper = playerWrapperRef.current;
       const fsEl = getFullscreenElement();
       const wrapperAlreadyFs = isElementFullscreen(wrapper);
+      const inCssFs = isCssFullscreenActive();
       // If FS is on the player root (legacy), hoist it onto the persistent
       // wrapper before React remounts the keyed player child.
       if (fsEl && wrapper && !wrapperAlreadyFs) {
         void requestElementFullscreen(wrapper).catch(() => {});
       }
-      const keepFs = Boolean(fsEl) || wrapperAlreadyFs;
+      const keepFs = Boolean(fsEl) || wrapperAlreadyFs || inCssFs;
+      if (inCssFs) markPersistCssFullscreen(true);
       progressEpisodeIdRef.current = null;
       liveTimeRef.current = 0;
       setSavedResumeTime(0);
-      // Only re-request FS after remount when the wrapper is not already FS
-      // (e.g. iOS video-element FS, or hoist failed).
-      setAutoFullscreen(keepFs && !isElementFullscreen(wrapper));
+      // Re-assert FS after any remount (document FS on wrapper usually survives;
+      // CSS FS needs autoFullscreen because player state resets).
+      setAutoFullscreen(keepFs);
       setResumeChoice(null);
       setSelectedEpisode(ep.episodeId);
-      setPlaybackToken((n) => n + 1);
+      // Do not bump playbackToken — episode-only swaps keep the player shell
+      // mounted so fullscreen does not drop.
       if (w2g.isHost && w2gCode) {
         w2g.syncEpisode(
           ep.episodeId,
@@ -967,12 +974,19 @@ const VideoPlayerSection = () => {
     setStreamKittyNode("auto");
   }, [streamQueryAudio, provider, urlAnimeId, anilistId]);
 
+  // Episode change: clear failover state but keep the player shell mounted.
   useEffect(() => {
-    setPlaybackToken((n) => n + 1);
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
     setStreamKittyNode("auto");
   }, [episodeId]);
+
+  // Clear auto-fullscreen after the new episode stream is up (one-shot restore).
+  useEffect(() => {
+    if (!autoFullscreen || !streamReady) return;
+    const timer = window.setTimeout(() => setAutoFullscreen(false), 2_500);
+    return () => window.clearTimeout(timer);
+  }, [autoFullscreen, streamReady, episodeId]);
 
   // Proxy node switch from mid-play failover remount: keep resume time.
   // Soft sync from race winner is ignored when playback already matches the new URL.
@@ -1127,8 +1141,9 @@ const VideoPlayerSection = () => {
     [w2gCode, w2g.isMember, w2g.isHost, w2g.syncState, w2g.onPlaybackSync],
   );
 
-  // Do not include kittyNode — race-winner updates must not remount the player mid-play.
-  const playerKey = `${anilistId}-${episodeNo}-${provider}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
+  // Do not include episode or kittyNode — episode src swaps must not remount
+  // the player (drops fullscreen). Race-winner node updates must not either.
+  const playerKey = `${anilistId}-${provider}-${audioMode}-${streamQueryAudio}-${playbackToken}`;
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);

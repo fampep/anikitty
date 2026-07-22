@@ -22,6 +22,12 @@ import {
   onFullscreenChange,
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
+import {
+  consumePersistCssFullscreen,
+  isCssFullscreenActive,
+  markPersistCssFullscreen,
+  peekPersistCssFullscreen,
+} from "@/lib/kitty/fullscreen-persist";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
 import {
@@ -595,12 +601,12 @@ export function AniKittyPlayer({
   }, [autoFullscreen]);
 
   /**
-   * Fullscreen the player root (direct parent of <video> + custom chrome).
-   * web.dev / Video.js / CSS-Tricks all require this — not the bare <video>.
-   * Fall back to the watch-page host so episode remounts can keep FS.
+   * Fullscreen the persistent watch-page host when provided so episode
+   * changes (player remount / src swap) do not drop document fullscreen.
+   * Fall back to the player root only when no host is wired.
    */
   const getFullscreenTarget = useCallback((): HTMLElement | null => {
-    return rootRef.current ?? fullscreenContainerRef?.current ?? null;
+    return fullscreenContainerRef?.current ?? rootRef.current ?? null;
   }, [fullscreenContainerRef]);
 
   useEffect(() => {
@@ -614,8 +620,13 @@ export function AniKittyPlayer({
 
     const root = document.documentElement;
     const body = document.body;
+    const persistentHost = fullscreenContainerRef?.current === host;
 
     if (!cssFullscreen) {
+      // Episode remount: leave the persistent host in CSS FS for the next mount.
+      if (persistentHost && peekPersistCssFullscreen()) {
+        return;
+      }
       host.classList.remove("anikitty-fs-host--active");
       root.classList.remove("anikitty-css-fs");
       body.classList.remove("anikitty-css-fs");
@@ -625,6 +636,7 @@ export function AniKittyPlayer({
     host.classList.add("anikitty-fs-host--active");
     root.classList.add("anikitty-css-fs");
     body.classList.add("anikitty-css-fs");
+    markPersistCssFullscreen(false);
 
     // Reparent to <body> so fixed inset escapes main.site-page (z-1) and
     // actually covers the navbar / bottom nav / rest of the watch page.
@@ -637,6 +649,10 @@ export function AniKittyPlayer({
     }
 
     return () => {
+      // Keep CSS FS chrome on the persistent wrapper across player remounts.
+      if (persistentHost && peekPersistCssFullscreen()) {
+        return;
+      }
       host.classList.remove("anikitty-fs-host--active");
       root.classList.remove("anikitty-css-fs");
       body.classList.remove("anikitty-css-fs");
@@ -645,7 +661,7 @@ export function AniKittyPlayer({
         marker.parentNode.removeChild(marker);
       }
     };
-  }, [cssFullscreen, getFullscreenTarget]);
+  }, [cssFullscreen, getFullscreenTarget, fullscreenContainerRef]);
 
   useEffect(() => {
     introAutoSkippedRef.current = false;
@@ -781,6 +797,14 @@ export function AniKittyPlayer({
     setControlsVisible(true);
     bumpControls();
   }, [bumpControls]);
+
+  // Reclaim sticky CSS fullscreen after an episode remount (iOS / CSS FS path).
+  useEffect(() => {
+    if (!autoFullscreen) return;
+    if (!(consumePersistCssFullscreen() || isCssFullscreenActive())) return;
+    if (!(prefersCssFullscreen() || isCssFullscreenActive())) return;
+    enterCssFullscreen();
+  }, [autoFullscreen, enterCssFullscreen]);
 
   const showSeekFlash = useCallback((side: "left" | "right", secs?: number) => {
     const fromAccum =
@@ -1438,31 +1462,44 @@ export function AniKittyPlayer({
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
-  // Anime4K WebGPU upscale overlay.
+  // Anime4K WebGPU upscale overlay (player-only; must detach RVFC loop on cleanup).
   useEffect(() => {
     const video = videoRef.current;
-    const root = rootRef.current;
-    const effective = anime4kEnabled && !liteMode && isWebGpuSupported();
+    const layer =
+      rootRef.current?.querySelector<HTMLElement>("[data-ak-video-layer]") ??
+      null;
+    const effective =
+      anime4kEnabled &&
+      !liteMode &&
+      !casting &&
+      !castConnecting &&
+      isWebGpuSupported();
     let cancelled = false;
 
     anime4kDetachRef.current?.();
     anime4kDetachRef.current = null;
     setAnime4kActive(false);
 
-    if (!effective || !video || !root) return;
+    if (!effective || !video || !layer) return;
 
     void attachAnime4k({
       video,
-      videoContainer: root,
+      videoContainer: layer,
       mode: anime4kMode,
-    }).then((attachment) => {
-      if (cancelled) {
-        attachment.detach();
-        return;
-      }
-      anime4kDetachRef.current = attachment.detach;
-      setAnime4kActive(true);
-    });
+    })
+      .then((attachment) => {
+        if (cancelled) {
+          attachment.detach();
+          return;
+        }
+        anime4kDetachRef.current = attachment.detach;
+        setAnime4kActive(true);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn("[anime4k] attach failed:", err);
+        setAnime4kActive(false);
+      });
 
     return () => {
       cancelled = true;
@@ -1470,7 +1507,15 @@ export function AniKittyPlayer({
       anime4kDetachRef.current = null;
       setAnime4kActive(false);
     };
-  }, [anime4kEnabled, anime4kMode, liteMode, src, attachNonce]);
+  }, [
+    anime4kEnabled,
+    anime4kMode,
+    liteMode,
+    casting,
+    castConnecting,
+    src,
+    attachNonce,
+  ]);
 
   useEffect(() => {
     if (fullscreen || cssFullscreen) {
@@ -2536,6 +2581,7 @@ export function AniKittyPlayer({
   const exitFullscreen = useCallback(async () => {
     const video = videoRef.current as WebkitVideo | null;
     try {
+      markPersistCssFullscreen(false);
       if (cssFullscreenRef.current) {
         setCssFullscreen(false);
         setFullscreen(false);
@@ -3491,7 +3537,7 @@ export function AniKittyPlayer({
       </div>
 
       {/* Video in its own stacking layer so shadow media-controls can't cover chrome. */}
-      <div data-ak-video-layer="">
+      <div data-ak-video-layer="" className="absolute inset-0 z-0 overflow-hidden">
         <video
           ref={videoRef}
           poster={poster}
