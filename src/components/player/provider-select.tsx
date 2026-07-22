@@ -94,6 +94,7 @@ export default function ProviderSelect({
   const t = useT();
   const providerOrder = useSettingsStore((s) => s.providerOrder);
   const defaultProvider = useSettingsStore((s) => s.defaultProvider);
+  const showAdultContent = useSettingsStore((s) => s.showAdultContent);
 
   return (
     <Select value={value} onValueChange={(v) => onChange(v as KittyProvider)} disabled={disabled}>
@@ -115,10 +116,13 @@ export default function ProviderSelect({
       </SelectTrigger>
       <SelectContent className="bg-[#0c0c0c] border-border dark:border-white/10 max-h-[min(22rem,70vh)]">
         {(["featured", "other"] as const).map((group) => {
-          const items = sortProvidersForPicker(kittyProvidersByGroup(group), {
-            priorityOrder: providerOrder,
-            defaultProvider,
-          });
+          const items = sortProvidersForPicker(
+            kittyProvidersByGroup(group).filter((p) => showAdultContent || !p.adultOnly),
+            {
+              priorityOrder: providerOrder,
+              defaultProvider,
+            },
+          );
           if (items.length === 0) return null;
 
           return (
@@ -260,7 +264,7 @@ export function ProviderGrid({
   streamCaps,
 }: ProviderGridProps) {
   const t = useT();
-  const { providerSectionHidden, toggleProviderSectionHidden, providerOrder, defaultProvider } = useSettingsStore();
+  const { providerSectionHidden, toggleProviderSectionHidden, providerOrder, defaultProvider, showAdultContent } = useSettingsStore();
   const visibleRows = rows ?? PROVIDER_GRID_ROWS;
   const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
 
@@ -282,7 +286,7 @@ export function ProviderGrid({
         </p>
       )}
       {visibleRows.map((mode) => {
-        const baseItems = kittyProvidersForAudioMode(mode);
+        const baseItems = kittyProvidersForAudioMode(mode, { includeAdult: showAdultContent });
         const items = sortProvidersForPicker(baseItems, {
           priorityOrder: providerOrder,
           defaultProvider,

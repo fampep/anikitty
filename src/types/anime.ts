@@ -40,6 +40,7 @@ export interface IAnime {
   score?: number | null;
   year?: number | null;
   status?: string | null;
+  isAdult?: boolean;
 }
 
 export interface IAnimeSearch {

@@ -20,13 +20,11 @@ import {
   Mic,
   Scale,
   Search,
-  ShieldAlert,
   Timer,
   Tv2,
   Users,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
-import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 
 export type MenuGroup = "browse" | "watch" | "community" | "site" | "account";
@@ -39,14 +37,6 @@ export const MENU_DEFS = [
   { href: ROUTES.SCHEDULE, icon: CalendarDays, titleKey: "nav.schedule", shortKey: "nav.short.schedule", group: "browse" as MenuGroup },
   { href: ROUTES.NEW, icon: Tv2, titleKey: "nav.newReleases", shortKey: "nav.short.newReleases", group: "browse" as MenuGroup },
   { href: ROUTES.SEARCH, icon: Search, titleKey: "nav.search", shortKey: "nav.short.search", group: "browse" as MenuGroup },
-  {
-    href: ROUTES.ADULT,
-    icon: ShieldAlert,
-    titleKey: "nav.adult",
-    shortKey: "nav.short.adult",
-    group: "browse" as MenuGroup,
-    adultOnly: true,
-  },
   { href: ROUTES.COMMUNITY, icon: MessageSquare, titleKey: "nav.community", shortKey: "nav.short.community", group: "browse" as MenuGroup },
   { href: ROUTES.VOICE_ACTORS, icon: Mic, titleKey: "nav.voiceActors", shortKey: "nav.short.voiceActors", group: "browse" as MenuGroup },
   { href: ROUTES.SUBTITLES, icon: Captions, titleKey: "nav.subtitles", shortKey: "nav.short.subtitles", group: "watch" as MenuGroup },
@@ -75,7 +65,6 @@ export function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === ROUTES.HOME) return false;
   if (href === ROUTES.SEARCH) return pathname.startsWith("/search");
-  if (href === ROUTES.ADULT) return pathname.startsWith("/adult");
   if (href === ROUTES.FORUM) return pathname.startsWith("/forum");
   if (href === ROUTES.MESSAGES) return pathname.startsWith("/messages");
   if (href === ROUTES.VOICE_ACTORS) return pathname.startsWith("/voice-actor");
@@ -86,10 +75,8 @@ export function isNavActive(pathname: string, href: string): boolean {
 export function useMenuItems(): MenuItem[] {
   const t = useT();
   const auth = useAuthStore((s) => s.auth);
-  const showAdult = useSettingsStore((s) => s.showAdultContent);
   return MENU_DEFS.filter((item) => {
     if ("authOnly" in item && item.authOnly && !auth) return false;
-    if ("adultOnly" in item && item.adultOnly && !showAdult) return false;
     return true;
   }).map((item) => ({
     href: item.href,

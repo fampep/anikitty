@@ -20,7 +20,7 @@ const CRITICAL_QUERY = `
     }
     trending: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: TRENDING_DESC) {
-        id title { english romaji } coverImage { extraLarge } episodes format trending averageScore seasonYear status
+        id title { english romaji } coverImage { extraLarge } episodes format trending averageScore seasonYear status isAdult
       }
     }
     recentlyAired: Page(page: 1, perPage: 50) {
@@ -34,7 +34,7 @@ const CRITICAL_QUERY = `
     }
     recentlyAdded: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: START_DATE_DESC, status: RELEASING) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
         nextAiringEpisode { episode airingAt }
       }
     }
@@ -45,27 +45,27 @@ const DISCOVERY_QUERY = `
   query {
     favorite: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: FAVOURITES_DESC) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
       }
     }
     rated: Page(page: 1, perPage: 18) {
       media(type: ANIME, sort: SCORE_DESC, averageScore_greater: 60) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
       }
     }
     popular: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
       }
     }
     latest: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: END_DATE_DESC, status: FINISHED) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
       }
     }
     upcoming: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
       }
     }
   }
@@ -95,6 +95,7 @@ export function toAnime(m: {
   averageScore?: number | null;
   seasonYear?: number | null;
   status?: string | null;
+  isAdult?: boolean | null;
   nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
 }) {
   return {
@@ -114,6 +115,7 @@ export function toAnime(m: {
     score: m.averageScore ?? null,
     year: m.seasonYear ?? null,
     status: m.status ?? null,
+    isAdult: Boolean(m.isAdult),
   };
 }
 
@@ -174,14 +176,14 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
   };
   const seenAired = new Set<string>();
   const latestEpisodeAnimes = ((raw.recentlyAired?.airingSchedules ?? []) as AiringSchedule[])
-    .filter((s) => s.media && s.media.type === "ANIME" && !s.media.isAdult)
+    .filter((s) => s.media && s.media.type === "ANIME")
     .filter((s) => {
       const id = String(s.media!.id);
       if (seenAired.has(id)) return false;
       seenAired.add(id);
       return true;
     })
-    .slice(0, 15)
+    .slice(0, 40)
     .map((s) =>
       toAnime({
         ...s.media!,
@@ -272,15 +274,15 @@ async function fetchHomeDataUncached(): Promise<IAnimeData> {
   };
 }
 
-export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v1"], {
+export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v2"], {
   revalidate: 300,
 });
 
-export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v1"], {
+export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v2"], {
   revalidate: 300,
 });
 
-export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v3"], {
+export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v4"], {
   revalidate: 300,
 });
 

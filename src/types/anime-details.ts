@@ -23,6 +23,8 @@ export interface Info {
   id: string;
   anilistId: number;
   malId: number;
+  /** AniList adult flag — gate UI when settings hide 18+. */
+  isAdult?: boolean;
   name: string;
   poster: string;
   banner: string;

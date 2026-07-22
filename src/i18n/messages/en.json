@@ -20,7 +20,6 @@
     "status": "Status",
     "more": "More",
     "search": "Search",
-    "adult": "18+",
     "login": "Log in",
     "menu": "Menu",
     "groups": {
@@ -49,7 +48,6 @@
       "dmca": "DMCA",
       "status": "Status",
       "search": "Search",
-      "adult": "18+",
       "voiceActors": "VAs",
       "watchHistory": "History"
     },
@@ -90,18 +88,8 @@
     "learn": "Details"
   },
   "adult": {
-    "title": "18+ catalog",
-    "subtitle": "Adult titles from HentaiHaven (via KittyAPI)",
-    "search": "Search",
-    "searchPlaceholder": "Search titles…",
-    "loading": "Loading…",
-    "empty": "No results",
-    "notFound": "Title not found",
-    "episodes": "Episodes",
-    "backToSeries": "Back to series",
-    "streamFailed": "Could not load stream",
-    "gateTitle": "Adult content is off",
-    "gateDesc": "Turn on Show adult content (18+) in Settings to browse this section.",
+    "title": "18+",
+    "gateDesc": "Turn on Show adult content (18+) in Settings to include adult titles on the site.",
     "openSettings": "Open Settings"
   },
   "banner": {
@@ -807,7 +795,9 @@
     "content": "Content",
     "contentDesc": "Control what kinds of titles appear across the site",
     "showAdultContent": "Show adult content (18+)",
-    "showAdultContentDesc": "Include adult AniList titles in search, and unlock the separate 18+ catalog",
+    "showAdultContentDesc": "Include adult AniList titles in search, anime pages, and watch",
+    "adultLocked": "This title is marked 18+. Enable Show adult content in Settings to view it.",
+    "openSettings": "Open Settings",
     "preferDub": "Prefer Dub",
     "preferDubDesc": "Default to English dub when available",
     "providerOrder": "Provider order",

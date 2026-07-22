@@ -12,6 +12,7 @@ const DETAIL_QUERY = `
     Media(id: $id, type: ANIME) {
       id
       idMal
+      isAdult
       title { english romaji native }
       description(asHtml: false)
       coverImage { extraLarge large }
@@ -62,6 +63,7 @@ const MINIMAL_DETAIL_QUERY = `
     Media(id: $id, type: ANIME) {
       id
       idMal
+      isAdult
       title { english romaji native }
       description(asHtml: false)
       coverImage { extraLarge large }
@@ -175,6 +177,7 @@ export async function GET(
           id: String(m.id),
           anilistId: m.id,
           malId: m.idMal ?? 0,
+          isAdult: Boolean(m.isAdult),
           name: toTitle(m.title),
           poster: m.coverImage?.extraLarge ?? "",
           banner: m.bannerImage ?? m.coverImage?.extraLarge ?? "",

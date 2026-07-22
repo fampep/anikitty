@@ -274,6 +274,7 @@ export function isCastUrlReachableFromDevice(url: string): boolean {
 /**
  * Absolute HTTPS URL for the AniKitty wordmark the Chromecast can fetch.
  * Prefers the current origin when public; otherwise production anikitty.moe.
+ * Used as MediaInfo image art on the free Default Media Receiver (no Cast Console app).
  */
 export function getCastBrandLogoUrl(): string {
   const production = `${APP_URL.replace(/\/$/, "")}${SITE_LOGO}`;
@@ -300,7 +301,7 @@ function buildCastImage(url: string, width?: number, height?: number): chrome.ca
 }
 
 /**
- * Rich MediaInfo metadata for Default Media Receiver loading/idle art:
+ * MediaInfo metadata for Default Media Receiver:
  * poster (when available) + AniKitty logo, title, and brand subtitle.
  */
 export function buildCastMediaMetadata(

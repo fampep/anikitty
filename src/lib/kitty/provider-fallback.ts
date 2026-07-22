@@ -12,13 +12,16 @@ export function getNextFallbackProvider(
   tried: ReadonlySet<KittyProvider>,
   customOrder?: KittyProvider[] | null,
   defaultProvider?: KittyProvider | null,
+  opts?: { includeAdult?: boolean },
 ): KittyProvider | null {
   const order =
     customOrder && customOrder.length > 0
-      ? buildProviderFallbackOrder(customOrder, defaultProvider)
+      ? buildProviderFallbackOrder(customOrder, defaultProvider, opts)
       : defaultProvider
-        ? buildProviderFallbackOrder(null, defaultProvider)
-        : PROVIDER_FALLBACK_ORDER;
+        ? buildProviderFallbackOrder(null, defaultProvider, opts)
+        : opts?.includeAdult
+          ? buildProviderFallbackOrder(null, null, opts)
+          : PROVIDER_FALLBACK_ORDER;
 
   const startIdx = order.indexOf(current);
   const searchFrom = startIdx >= 0 ? startIdx + 1 : 0;

@@ -319,6 +319,8 @@ export function buildKittyStreamDirectPath(opts: {
   title?: string | null;
   /** Bust persistent stream_links row and re-resolve. */
   refresh?: boolean;
+  /** Provider-specific backend hint (e.g. HentaiHaven `title:…`). */
+  backend?: string | null;
 }): string {
   const params = new URLSearchParams({
     anilistId: String(opts.anilistId),
@@ -329,6 +331,11 @@ export function buildKittyStreamDirectPath(opts: {
   const title = opts.title?.trim();
   if (title) params.set("title", title);
   if (opts.refresh) params.set("refresh", "1");
+
+  const backend =
+    opts.backend?.trim() ||
+    (opts.provider === "HentaiHaven" && title ? `title:${title}` : "");
+  if (backend) params.set("backend", backend);
 
   return `/provider/${encodeURIComponent(opts.provider)}/stream-direct?${params.toString()}`;
 }

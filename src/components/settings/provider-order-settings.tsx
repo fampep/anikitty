@@ -22,8 +22,11 @@ export default function ProviderOrderSettings() {
   const setProviderOrder = useSettingsStore((s) => s.setProviderOrder);
   const setDefaultProvider = useSettingsStore((s) => s.setDefaultProvider);
   const resetProviderOrder = useSettingsStore((s) => s.resetProviderOrder);
+  const showAdultContent = useSettingsStore((s) => s.showAdultContent);
 
-  const order = resolveProviderOrder(providerOrder);
+  const order = resolveProviderOrder(providerOrder).filter(
+    (id) => showAdultContent || !getKittyProviderMeta(id).adultOnly,
+  );
   const preferred = sanitizeDefaultProvider(defaultProvider, order);
   const isDefault = isSiteDefaultProviderOrder(order, preferred);
 

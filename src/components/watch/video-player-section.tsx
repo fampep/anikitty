@@ -258,11 +258,17 @@ const VideoPlayerSection = () => {
   const episodesAnimeId = animeMatchesUrl ? (animeSlug ?? "") : (urlAnimeId ?? "");
 
   // New anime → Settings default + order (session picker choice does not persist).
+  // Adult titles prefer HentaiHaven when 18+ is enabled.
   useEffect(() => {
     if (!anilistId) return;
     const s = useSettingsStore.getState();
+    const isAdult = Boolean(anime?.anime?.info?.isAdult);
+    if (isAdult && s.showAdultContent) {
+      setProvider("HentaiHaven");
+      return;
+    }
     setProvider(getPreferredDefaultProvider(s.providerOrder, s.defaultProvider));
-  }, [anilistId]);
+  }, [anilistId, anime?.anime?.info?.isAdult]);
 
   // Episode list for next-episode navigation (also resolves episode number for stream API)
   const { data: allEpisodes, isLoading: episodesLoading } = useGetAllEpisodes(episodesAnimeId);
@@ -1326,7 +1332,9 @@ const VideoPlayerSection = () => {
     const tried = triedProvidersRef.current;
     if (!tried.has(provider)) tried.add(provider);
 
-    const next = getNextFallbackProvider(provider, tried, providerOrder, defaultProvider);
+    const next = getNextFallbackProvider(provider, tried, providerOrder, defaultProvider, {
+      includeAdult: Boolean(anime?.anime?.info?.isAdult) && useSettingsStore.getState().showAdultContent,
+    });
     if (!next) return false;
 
     tried.add(next);
@@ -1345,13 +1353,21 @@ const VideoPlayerSection = () => {
       fallbackBusyRef.current = false;
     }, 1200);
     return true;
-  }, [providerAutoFallback, provider, audioMode, t, handleProviderGridSelect, providerOrder, defaultProvider]);
+  }, [providerAutoFallback, provider, audioMode, t, handleProviderGridSelect, providerOrder, defaultProvider, anime?.anime?.info?.isAdult]);
 
   const handleTryAnotherServer = useCallback(() => {
     if (!triedProvidersRef.current.has(provider)) {
       triedProvidersRef.current.add(provider);
     }
-    const next = getNextFallbackProvider(provider, triedProvidersRef.current, providerOrder, defaultProvider);
+    const includeAdult =
+      Boolean(anime?.anime?.info?.isAdult) && useSettingsStore.getState().showAdultContent;
+    const next = getNextFallbackProvider(
+      provider,
+      triedProvidersRef.current,
+      providerOrder,
+      defaultProvider,
+      { includeAdult },
+    );
     if (!next) {
       toast.error(t("watch.noMoreProviders"));
       return;
@@ -1380,8 +1396,12 @@ const VideoPlayerSection = () => {
   const peekNextFallbackProvider = useCallback(() => {
     const tried = new Set(triedProvidersRef.current);
     tried.add(provider);
-    return getNextFallbackProvider(provider, tried, providerOrder, defaultProvider);
-  }, [provider, providerOrder, defaultProvider]);
+    const includeAdult =
+      Boolean(anime?.anime?.info?.isAdult) && useSettingsStore.getState().showAdultContent;
+    return getNextFallbackProvider(provider, tried, providerOrder, defaultProvider, {
+      includeAdult,
+    });
+  }, [provider, providerOrder, defaultProvider, anime?.anime?.info?.isAdult]);
 
   // Stream fetch failed → try another healthy node on infra errors, then providers.
   useEffect(() => {

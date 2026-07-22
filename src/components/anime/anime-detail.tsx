@@ -30,6 +30,7 @@ import {
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import QueryRetryPanel from "@/components/shared/query-retry-panel";
 import { useAuthStore } from "@/store/auth-store";
+import { useSettingsStore } from "@/store/settings-store";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { toast } from "sonner";
 import useBookMarks from "@/hooks/use-get-bookmark";
@@ -105,6 +106,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const bookmarkOptions = useBookmarkLabels();
+  const showAdultContent = useSettingsStore((s) => s.showAdultContent);
   const { data: anime, isLoading, isError, isFetching, refetch } = useGetAnimeDetails(slug);
   const { auth } = useAuthStore();
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
@@ -265,6 +267,23 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const stats    = info.stats;
   const hasDub   = (stats?.episodes?.dub ?? 0) > 0;
   const isAiring = moreInfo.status === "Currently Airing";
+
+  // Adult titles stay on the normal anime page — hide unless setting is on.
+  if (info.isAdult && !showAdultContent) {
+    return (
+      <Container className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+        <p className="text-sm text-muted-foreground max-w-md">
+          {t("settings.adultLocked")}
+        </p>
+        <Link
+          href={ROUTES.SETTINGS}
+          className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background"
+        >
+          {t("settings.openSettings")}
+        </Link>
+      </Container>
+    );
+  }
 
   const mappings  = mappingData?.mappings;
   const mapImages = mappingData?.images;

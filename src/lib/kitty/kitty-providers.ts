@@ -48,6 +48,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "KickAssAnime",
   "KuroHost",
   "Zenkai",
+  "HentaiHaven",
 ] as const;
 
 export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
@@ -67,6 +68,7 @@ export const KITTY_PROVIDERS = [
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
+  "HentaiHaven",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -89,6 +91,8 @@ export type KittyProviderMeta = {
   kittySubs?: boolean;
   /** Dual-audio / in-player HLS track switch (Miruro pipes, Animex Zen, etc.). */
   supportsMulti?: boolean;
+  /** Only offered when adult content is enabled / title is adult. */
+  adultOnly?: boolean;
   hint?: string;
 };
 
@@ -209,6 +213,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB · soft EN subs",
   },
+  {
+    id: "HentaiHaven",
+    label: "Haven",
+    group: "other",
+    supportsSub: true,
+    supportsDub: false,
+    softSub: false,
+    nativeSubs: false,
+    kittySubs: false,
+    adultOnly: true,
+    hint: "18+ · SUB · HLS",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -290,6 +306,11 @@ export function isDefaultProvider(id: KittyProvider): boolean {
   return id === DEFAULT_KITTY_PROVIDER;
 }
 
+export function isAdultOnlyKittyProvider(id: string | null | undefined): boolean {
+  if (!id || !isKittyProvider(id)) return false;
+  return getKittyProviderMeta(id).adultOnly === true;
+}
+
 export function kittyProvidersByGroup(group: KittyProviderGroup): KittyProviderMeta[] {
   return KITTY_PROVIDER_META.filter((p) => p.group === group);
 }
@@ -332,7 +353,10 @@ export function normalizeProviderAudioMode(
   return fallback;
 }
 
-export function kittyProvidersForAudioMode(mode: ProviderAudioMode): KittyProviderMeta[] {
+export function kittyProvidersForAudioMode(
+  mode: ProviderAudioMode,
+  opts?: { includeAdult?: boolean },
+): KittyProviderMeta[] {
   void mode;
-  return KITTY_PROVIDER_META;
+  return KITTY_PROVIDER_META.filter((p) => opts?.includeAdult || !p.adultOnly);
 }

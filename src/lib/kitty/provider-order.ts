@@ -64,7 +64,11 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
     out.splice(insertAt, 0, id);
     seen.add(id);
   }
-  for (const id of KITTY_PROVIDERS) push(id);
+  for (const id of KITTY_PROVIDERS) {
+    // Adult-only providers stay out of the default order unless already saved.
+    if (KITTY_PROVIDER_META.find((p) => p.id === id)?.adultOnly) continue;
+    push(id);
+  }
 
   return out;
 }
@@ -109,6 +113,7 @@ export function getPreferredDefaultProvider(
 export function buildProviderFallbackOrder(
   custom?: KittyProvider[] | null,
   defaultProvider?: KittyProvider | null,
+  opts?: { includeAdult?: boolean },
 ): KittyProvider[] {
   const featured = KITTY_PROVIDER_META.filter((p) => p.group === "featured").map((p) => p.id);
   const ordered: KittyProvider[] = [
@@ -116,9 +121,14 @@ export function buildProviderFallbackOrder(
     ...featured,
     ...KITTY_PROVIDERS,
   ];
+  if (opts?.includeAdult) {
+    ordered.unshift("HentaiHaven");
+  }
   const seen = new Set<KittyProvider>();
   return ordered.filter((p) => {
     if (seen.has(p)) return false;
+    const adultOnly = KITTY_PROVIDER_META.find((m) => m.id === p)?.adultOnly;
+    if (adultOnly && !opts?.includeAdult) return false;
     seen.add(p);
     return true;
   });
