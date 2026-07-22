@@ -583,8 +583,8 @@ export function NextEpisodeChip({
         "active:scale-[0.98]",
         "right-[max(0.75rem,env(safe-area-inset-right))]",
         stacked
-          ? "bottom-[7.25rem] sm:bottom-[6.75rem]"
-          : "bottom-[4.85rem] sm:bottom-[4.35rem]",
+          ? "bottom-[max(10.75rem,calc(env(safe-area-inset-bottom)+9.5rem))] sm:bottom-[max(10.25rem,calc(env(safe-area-inset-bottom)+9rem))]"
+          : "bottom-[max(8.25rem,calc(env(safe-area-inset-bottom)+7rem))] sm:bottom-[max(7.75rem,calc(env(safe-area-inset-bottom)+6.5rem))]",
       )}
     >
       {imageUrl ? (

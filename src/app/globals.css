@@ -661,8 +661,8 @@ html.density-compact .site-bottom-nav {
 .art-kitty-player {
   --kitty-dock-offset: 0px;
   --kitty-dock-height: 46px;
-  --kitty-overlay-bottom: 72px;
-  --kitty-overlay-stacked: 130px;
+  --kitty-overlay-bottom: 132px;
+  --kitty-overlay-stacked: 180px;
   --kitty-player-accent: #fafafa;
   --kitty-player-accent-soft: rgba(255, 255, 255, 0.18);
   --kitty-player-surface: rgba(9, 9, 11, 0.95);
@@ -1000,8 +1000,8 @@ html.density-compact .site-bottom-nav {
 
 @media (max-width: 640px) {
   .art-kitty-player {
-    --kitty-overlay-bottom: 52px;
-    --kitty-overlay-stacked: 100px;
+    --kitty-overlay-bottom: 88px;
+    --kitty-overlay-stacked: 140px;
     --art-bottom-height: 44px;
     --art-bottom-offset: 6px;
     --art-bottom-gap: 6px;

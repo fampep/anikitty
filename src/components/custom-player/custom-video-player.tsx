@@ -3885,15 +3885,16 @@ export function AniKittyPlayer({
             });
           }}
           className={cn(
-            "absolute z-40 inline-flex items-center gap-2 rounded-md border border-white/40 bg-white px-3.5 py-2",
-            "text-[12px] font-semibold tracking-wide text-zinc-950",
+            "absolute z-40 inline-flex min-h-11 items-center gap-2 rounded-md border border-white/40 bg-white px-4 py-2.5",
+            "text-[13px] font-semibold tracking-wide text-zinc-950",
             "transition-[transform,opacity,background-color] duration-200",
             "hover:bg-white/95 active:scale-[0.98]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
             "right-[max(0.75rem,env(safe-area-inset-right))]",
+            // Sit well above the control bar + TV overscan so remotes can focus it.
             skipStackClass === "kitty-overlay--stacked"
-              ? "bottom-[7.25rem] sm:bottom-[6.75rem]"
-              : "bottom-[4.85rem] sm:bottom-[4.35rem]",
+              ? "bottom-[max(10.75rem,calc(env(safe-area-inset-bottom)+9.5rem))] sm:bottom-[max(10.25rem,calc(env(safe-area-inset-bottom)+9rem))]"
+              : "bottom-[max(8.25rem,calc(env(safe-area-inset-bottom)+7rem))] sm:bottom-[max(7.75rem,calc(env(safe-area-inset-bottom)+6.5rem))]",
             !reduceMotion &&
               "animate-in fade-in zoom-in-95 slide-in-from-right-2 duration-200",
           )}

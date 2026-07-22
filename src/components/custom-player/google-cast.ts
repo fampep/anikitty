@@ -667,9 +667,14 @@ export function buildCastLoadRequest(
   mediaInfo.contentUrl = contentId;
   mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
 
-  // Anime Kitty HLS is typically MPEG-TS; CAF defaults to TS when unset, but
-  // setting content type explicitly helps Default Media Receiver pick HLS.
-  const isHls = /mpegurl|m3u8/i.test(contentType) || contentId.includes(".m3u8");
+  // Prefer explicit MIME / `f=` mint hint — opaque `/api/kitty/hls?t=` alone is not HLS.
+  const forcedMp4 =
+    /video\/mp4/i.test(contentType) || /[?&]f=mp4\b/i.test(contentId);
+  const isHls =
+    !forcedMp4 &&
+    (/mpegurl|m3u8/i.test(contentType) ||
+      /[?&]f=m3u8\b/i.test(contentId) ||
+      contentId.includes(".m3u8"));
   if (isHls) {
     // Leave segment format unset → receiver assumes TS (most Kitty sources).
     // fMP4 sources still work when the playlist signals CMAF clearly.

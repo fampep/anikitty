@@ -215,6 +215,7 @@ export function remintKittyHlsAsCastProxyUrl(
   if (!token) return null;
   const resolved = resolveKittyHlsProxyToken(token, sessionId);
   if (!resolved) return null;
+  // Always remint so `f=mp4|m3u8` (and cast TTL / CORS flag) stay correct for TV.
   return mintKittyHlsProxyUrl(
     resolved.url,
     {
