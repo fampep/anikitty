@@ -234,6 +234,7 @@ export async function migrateDb() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_private BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(32)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_username VARCHAR(100)`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_boosting BOOLEAN NOT NULL DEFAULT FALSE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_by UUID REFERENCES users(id) ON DELETE SET NULL`,
@@ -663,6 +664,22 @@ export async function migrateDb() {
       `CREATE INDEX IF NOT EXISTS discord_role_map_discord_role_id_idx
         ON discord_role_map (discord_role_id)`,
       // One-time Discord /link codes (bot creates, logged-in user consumes).
+      // Older deploys had a different shape (user_id + short code, no discord_id).
+      // Drop that leftover so CREATE TABLE can install the current schema.
+      `DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'discord_link_codes'
+        ) AND NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'discord_link_codes'
+            AND column_name = 'discord_id'
+        ) THEN
+          DROP TABLE discord_link_codes;
+        END IF;
+      END $$`,
       `CREATE TABLE IF NOT EXISTS discord_link_codes (
         code VARCHAR(64) PRIMARY KEY,
         discord_id VARCHAR(32) NOT NULL,
@@ -735,6 +752,14 @@ export async function migrateDb() {
       VALUES ('timestamp_helper', '#38bdf8', '[]'::jsonb)
       ON CONFLICT (name) DO NOTHING
     `.catch((e: unknown) => console.error("[migrate] timestamp_helper role seed failed:", e));
+
+    await client`
+      INSERT INTO roles (name, color, permissions)
+      VALUES ('booster', '#ff73fa', '[]'::jsonb)
+      ON CONFLICT (name) DO UPDATE SET
+        color = EXCLUDED.color,
+        permissions = '[]'::jsonb
+    `.catch((e: unknown) => console.error("[migrate] booster role seed failed:", e));
 
     // Ensure the site owner always has admin role
     await client`UPDATE users SET role = 'admin' WHERE username = 'fampep' AND role != 'admin'`;

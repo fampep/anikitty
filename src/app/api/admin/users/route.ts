@@ -26,6 +26,7 @@ export async function GET(req: Request) {
         totpEnabled: users.totpEnabled,
         kittycoinBalance: users.kittycoinBalance,
         supporterUntil: users.supporterUntil,
+        discordBoosting: users.discordBoosting,
         bannedAt: users.bannedAt,
         banReason: users.banReason,
         mutedUntil: users.mutedUntil,
@@ -67,6 +68,7 @@ export async function GET(req: Request) {
           u.supporterUntil instanceof Date
             ? u.supporterUntil.toISOString()
             : u.supporterUntil ?? null,
+        discordBoosting: !!u.discordBoosting,
         lastActiveAt: lastActiveMap.get(u.id) ?? null,
         moderation: toModerationStatus(u),
       })),
@@ -84,6 +86,7 @@ export async function GET(req: Request) {
       u.totp_enabled AS "totpEnabled",
       u.kittycoin_balance AS "kittycoinBalance",
       u.supporter_until AS "supporterUntil",
+      u.discord_boosting AS "discordBoosting",
       u.banned_at AS "bannedAt",
       u.ban_reason AS "banReason",
       u.muted_until AS "mutedUntil",
@@ -110,6 +113,7 @@ export async function GET(req: Request) {
         u.supporterUntil instanceof Date
           ? u.supporterUntil.toISOString()
           : u.supporterUntil ?? null,
+      discordBoosting: Boolean(u.discordBoosting),
       lastActiveAt: u.lastActiveAt instanceof Date ? u.lastActiveAt.toISOString() : (u.lastActiveAt ?? null),
       moderation: toModerationStatus({
         bannedAt: u.bannedAt instanceof Date ? u.bannedAt : (u.bannedAt ? new Date(String(u.bannedAt)) : null),

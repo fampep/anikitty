@@ -19,6 +19,7 @@ export type ChatMessage = {
   avatarUrl: string | null;
   role: string;
   roleColor: string | null;
+  discordBoosting?: boolean;
   level: number;
   levelRole: string;
   levelRoleColor: string;

@@ -78,6 +78,7 @@ export async function PATCH(
       avatarUrl: users.avatarUrl,
       role: users.role,
       roleColor: roles.color,
+      discordBoosting: users.discordBoosting,
     })
     .from(users)
     .leftJoin(roles, eq(roles.name, users.role))
@@ -93,6 +94,7 @@ export async function PATCH(
       avatarUrl: user?.avatarUrl ?? null,
       role: user?.role ?? "user",
       roleColor: user?.roleColor ?? null,
+      discordBoosting: user?.discordBoosting ?? false,
     },
     xpStatsMap,
   );

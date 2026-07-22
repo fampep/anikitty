@@ -32,6 +32,7 @@ type MessageRow = {
   avatarUrl: string | null;
   role: string;
   roleColor: string | null;
+  discordBoosting?: boolean | null;
   replyToId: string | null;
   replyBody: string | null;
   replyGifUrl: string | null;
@@ -50,6 +51,7 @@ function messageSelect() {
     avatarUrl: users.avatarUrl,
     role: users.role,
     roleColor: roles.color,
+    discordBoosting: users.discordBoosting,
     replyToId: chatMessages.replyToId,
     replyBody: replyMessages.body,
     replyGifUrl: replyMessages.gifUrl,
@@ -205,6 +207,7 @@ export async function POST(req: Request) {
       avatarUrl: users.avatarUrl,
       role: users.role,
       roleColor: roles.color,
+      discordBoosting: users.discordBoosting,
     })
     .from(users)
     .leftJoin(roles, eq(roles.name, users.role))
@@ -235,6 +238,7 @@ export async function POST(req: Request) {
       avatarUrl: user?.avatarUrl ?? null,
       role: user?.role ?? "user",
       roleColor: user?.roleColor ?? null,
+      discordBoosting: user?.discordBoosting ?? false,
       replyToId: row.replyToId,
       replyBody: replyBodyRaw,
       replyGifUrl,

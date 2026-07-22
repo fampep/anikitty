@@ -285,8 +285,16 @@ function AccountCard() {
         </p>
         <p className="text-[11px] font-mono text-muted-foreground dark:text-white/30 mt-0.5 truncate">{auth.email ?? "—"}</p>
         {auth.role && auth.role !== "user" && (
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <RoleBadge role={auth.role} size="sm" />
+            {auth.discordBoosting && auth.role !== "booster" && (
+              <RoleBadge role="booster" size="sm" />
+            )}
+          </div>
+        )}
+        {auth.role === "user" && auth.discordBoosting && (
+          <div className="mt-2">
+            <RoleBadge role="booster" size="sm" />
           </div>
         )}
       </div>
@@ -961,7 +969,17 @@ function SettingsHero({
             <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 justify-center sm:justify-start">
               <StatPill label={layoutLabel} accent />
               <StatPill label={preferDub ? t("settings.preferDub") : t("card.sub")} />
-              {auth?.role && auth.role !== "user" && <RoleBadge role={auth.role} size="sm" />}
+              {auth?.role && auth.role !== "user" && (
+                <span className="inline-flex items-center gap-1.5 flex-wrap">
+                  <RoleBadge role={auth.role} size="sm" />
+                  {auth.discordBoosting && auth.role !== "booster" && (
+                    <RoleBadge role="booster" size="sm" />
+                  )}
+                </span>
+              )}
+              {auth?.role === "user" && auth.discordBoosting && (
+                <RoleBadge role="booster" size="sm" />
+              )}
             </div>
           </div>
         </div>

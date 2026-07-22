@@ -13,6 +13,8 @@ type Props = {
   levelRole?: string | null;
   levelRoleColor?: string | null;
   levelTierIcon?: string | null;
+  /** Show Booster badge alongside a different primary role (e.g. donator + boost). */
+  discordBoosting?: boolean | null;
   size?: "xs" | "sm";
 };
 
@@ -58,7 +60,7 @@ function LevelRoleBadge({
   );
 }
 
-/** Staff/custom role + computed level tier badge. */
+/** Staff/custom role + computed level tier badge (+ Discord booster when stacked). */
 export function UserBadges({
   role,
   roleColor,
@@ -66,9 +68,12 @@ export function UserBadges({
   levelRole,
   levelRoleColor,
   levelTierIcon,
+  discordBoosting,
   size = "xs",
 }: Props) {
   const showRole = role && role !== "user";
+  const showBooster =
+    !!discordBoosting && role !== "booster";
 
   return (
     <span className="inline-flex items-center gap-1 flex-wrap">
@@ -80,6 +85,7 @@ export function UserBadges({
         size={size}
       />
       {showRole && <RoleBadge role={role!} color={roleColor} size={size} />}
+      {showBooster && <RoleBadge role="booster" size={size} />}
     </span>
   );
 }

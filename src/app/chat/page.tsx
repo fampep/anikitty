@@ -149,6 +149,7 @@ function ChatBubble({
             levelRole={message.levelRole}
             levelRoleColor={message.levelRoleColor}
             levelTierIcon={message.levelTierIcon}
+            discordBoosting={message.discordBoosting}
           />
         </div>
 

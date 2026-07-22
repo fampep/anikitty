@@ -106,6 +106,7 @@ type ProfileData = {
   themeColor: string | null;
   role: string;
   roleColor: string | null;
+  discordBoosting?: boolean;
   createdAt: string | null;
   presenceStatus?: PublicPresenceStatus;
   lastOnlineAt?: string | null;
@@ -787,6 +788,9 @@ function ProfilePage() {
                 <div className="mt-2.5 flex flex-wrap items-center justify-center md:justify-start gap-1.5">
                   {profile.role && profile.role !== "user" && (
                     <RoleBadge role={profile.role} color={profile.roleColor} size="sm" />
+                  )}
+                  {profile.discordBoosting && profile.role !== "booster" && (
+                    <RoleBadge role="booster" size="sm" />
                   )}
                   {!isOwn && follow?.followsYou && (
                     <span className="inline-flex items-center px-2 py-1 rounded-md border border-border dark:border-white/12 bg-muted/40 dark:bg-white/5 text-muted-foreground dark:text-white/40 text-[10px] font-mono">

@@ -126,6 +126,7 @@ interface AdminUser {
   totpEnabled?: boolean;
   kittycoinBalance?: number;
   supporterUntil?: string | null;
+  discordBoosting?: boolean;
   moderation?: {
     banned: boolean;
     banReason: string | null;
@@ -1302,7 +1303,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       setUsers((prev) =>
         prev.map((u) =>
           u.id === user.id
-            ? { ...u, supporterUntil: null, role: u.role === "donator" ? "user" : u.role }
+            ? { ...u, supporterUntil: null, role: u.role === "donator" ? (u.discordBoosting ? "booster" : "user") : u.role }
             : u,
         ),
       );

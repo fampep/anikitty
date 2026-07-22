@@ -35,6 +35,7 @@ const BASE_SELECT = {
   avatarUrl: users.avatarUrl,
   role: users.role,
   roleColor: roles.color,
+  discordBoosting: users.discordBoosting,
   equippedFrame: users.equippedFrame,
   equippedIcon: users.equippedIcon,
 } as const;
@@ -57,6 +58,7 @@ type RawRow = {
   avatarUrl: string | null;
   role: string | null;
   roleColor: string | null;
+  discordBoosting?: boolean | null;
   equippedFrame?: string | null;
   equippedIcon?: string | null;
   level?: number;
@@ -340,6 +342,7 @@ export async function POST(
       avatarUrl: users.avatarUrl,
       role: users.role,
       roleColor: roles.color,
+      discordBoosting: users.discordBoosting,
     })
     .from(users)
     .leftJoin(roles, eq(roles.name, users.role))
@@ -370,6 +373,7 @@ export async function POST(
       avatarUrl: user?.avatarUrl,
       role: user?.role,
       roleColor: user?.roleColor,
+      discordBoosting: user?.discordBoosting ?? false,
       level: levelFields.level,
       levelRole: levelFields.levelRole,
       levelRoleColor: levelFields.levelRoleColor,

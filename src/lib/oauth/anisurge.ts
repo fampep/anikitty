@@ -36,6 +36,12 @@ export function authFromMeResponse(data: Record<string, unknown>): IAuth {
         : typeof user.supporterUntil === "string"
           ? user.supporterUntil
           : null,
+    discordBoosting:
+      typeof data.discordBoosting === "boolean"
+        ? data.discordBoosting
+        : typeof user.discordBoosting === "boolean"
+          ? user.discordBoosting
+          : false,
     kittycoinBalance:
       typeof data.kittycoinBalance === "number"
         ? data.kittycoinBalance

@@ -13,6 +13,7 @@ export type PublicUserRow = {
   themeColor: string | null;
   role: string;
   roleColor: string | null;
+  discordBoosting: boolean;
   createdAt: Date | null;
   lastOnlineAt: Date | null;
   activityStatus: string;
@@ -37,6 +38,7 @@ export async function getUserByUsername(
       themeColor: users.themeColor,
       role: users.role,
       roleColor: roles.color,
+      discordBoosting: users.discordBoosting,
       createdAt: users.createdAt,
       lastOnlineAt: users.lastOnlineAt,
       activityStatus: users.activityStatus,

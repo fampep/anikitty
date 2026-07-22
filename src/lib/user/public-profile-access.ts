@@ -71,6 +71,7 @@ export function publicUserFields(user: PublicUserRow, viewerId: string | null = 
     themeColor: user.themeColor,
     role: user.role,
     roleColor: user.roleColor,
+    discordBoosting: !!user.discordBoosting,
     createdAt: user.createdAt?.toISOString() ?? null,
     profilePrivate: user.profilePrivate,
     equippedFrame: user.equippedFrame,

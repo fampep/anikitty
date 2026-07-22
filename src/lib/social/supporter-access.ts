@@ -114,22 +114,40 @@ export function messageClaimsSupporter(body: string, senderUsername: string): bo
 /** Demote expired donators; returns updated role if changed. */
 export async function expireSupporterIfNeeded(
   db: Db,
-  user: { id: string; role: string; supporterUntil: Date | null },
+  user: {
+    id: string;
+    role: string;
+    supporterUntil: Date | null;
+    discordBoosting?: boolean | null;
+  },
 ): Promise<string> {
   if (user.role !== DONATOR_ROLE) return user.role;
   if (!user.supporterUntil || user.supporterUntil.getTime() > Date.now()) {
     return user.role;
   }
 
+  let boosting = user.discordBoosting;
+  if (boosting == null) {
+    const [row] = await db
+      .select({ discordBoosting: users.discordBoosting })
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+    boosting = row?.discordBoosting ?? false;
+  }
+
+  const { roleAfterLosingDonator } = await import("@/lib/social/booster-access");
+  const nextRole = roleAfterLosingDonator(!!boosting);
+
   await db
     .update(users)
-    .set({ role: "user", supporterUntil: null })
+    .set({ role: nextRole, supporterUntil: null })
     .where(eq(users.id, user.id));
 
   const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
   notifyDiscordRoleSync("supporter_expired");
 
-  return "user";
+  return nextRole;
 }
 
 async function loadClaimedPaymentIds(db: Db): Promise<Set<string>> {
@@ -515,7 +533,11 @@ export async function adminSetSupporterUntil(
 /** Admin panel: remove supporter perks immediately. */
 export async function adminRevokeSupporter(db: Db, userId: string): Promise<void> {
   const [user] = await db
-    .select({ id: users.id, role: users.role })
+    .select({
+      id: users.id,
+      role: users.role,
+      discordBoosting: users.discordBoosting,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -523,11 +545,17 @@ export async function adminRevokeSupporter(db: Db, userId: string): Promise<void
   if (!user) throw new Error("User not found");
   if (user.role === "admin") throw new Error("Cannot revoke admin supporter perks");
 
+  const { roleAfterLosingDonator } = await import("@/lib/social/booster-access");
+  const nextRole =
+    user.role === DONATOR_ROLE
+      ? roleAfterLosingDonator(!!user.discordBoosting)
+      : user.role;
+
   await db
     .update(users)
     .set({
       supporterUntil: null,
-      ...(user.role === DONATOR_ROLE ? { role: "user" } : {}),
+      ...(user.role === DONATOR_ROLE ? { role: nextRole } : {}),
     })
     .where(eq(users.id, userId));
 

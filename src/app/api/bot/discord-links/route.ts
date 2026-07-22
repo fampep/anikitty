@@ -4,6 +4,8 @@ import { users } from "@/db/schema";
 import { isNotNull } from "drizzle-orm";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";
 import { DONATOR_ROLE, STAFF_ROLES } from "@/lib/social/donation-config";
+import { BOOSTER_ROLE } from "@/lib/social/booster-config";
+import { hasDiscordBoosterStatus } from "@/lib/social/booster-access";
 import { getUsersXpStats } from "@/lib/user/user-xp";
 import { levelTierDiscordKey } from "@/lib/bot/discord-sync-roles";
 
@@ -23,6 +25,7 @@ function hasActiveSupporterWindow(
 function effectiveStaffRoles(
   role: string,
   supporterUntil: Date | string | null,
+  discordBoosting: boolean,
 ): string[] {
   const roles = new Set<string>();
 
@@ -30,15 +33,16 @@ function effectiveStaffRoles(
     if (hasActiveDonatorStatus(role, supporterUntil)) {
       roles.add(DONATOR_ROLE);
     }
-    return [...roles];
-  }
-
-  if (role && role !== "user") {
+  } else if (role && role !== "user") {
     roles.add(role);
   }
 
   if (STAFF_ROLES.has(role) && hasActiveSupporterWindow(supporterUntil)) {
     roles.add(DONATOR_ROLE);
+  }
+
+  if (hasDiscordBoosterStatus(discordBoosting, role)) {
+    roles.add(BOOSTER_ROLE);
   }
 
   return [...roles];
@@ -63,6 +67,7 @@ export async function GET(req: Request) {
         siteUsername: users.username,
         role: users.role,
         supporterUntil: users.supporterUntil,
+        discordBoosting: users.discordBoosting,
         bannedAt: users.bannedAt,
       })
       .from(users)
@@ -75,7 +80,11 @@ export async function GET(req: Request) {
     );
 
     const linked = active.map((r) => {
-      const roles = effectiveStaffRoles(r.role, r.supporterUntil);
+      const roles = effectiveStaffRoles(
+        r.role,
+        r.supporterUntil,
+        !!r.discordBoosting,
+      );
       const stats = statsMap.get(r.id);
       const levelKey = levelTierDiscordKey(stats?.levelRole ?? "Newcomer");
       roles.push(levelKey);
@@ -85,6 +94,7 @@ export async function GET(req: Request) {
         discordUsername: r.discordUsername ?? null,
         siteUsername: r.siteUsername,
         role: r.role,
+        discordBoosting: !!r.discordBoosting,
         level: stats?.level ?? 1,
         levelRole: stats?.levelRole ?? "Newcomer",
         roles,

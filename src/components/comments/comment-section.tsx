@@ -122,6 +122,7 @@ interface Comment {
   avatarUrl?: string | null;
   role?: string | null;
   roleColor?: string | null;
+  discordBoosting?: boolean | null;
   level?: number;
   levelRole?: string;
   levelRoleColor?: string;
@@ -1468,6 +1469,7 @@ export default function CommentSection({
                       levelRole={c.levelRole}
                       levelRoleColor={c.levelRoleColor}
                       levelTierIcon={c.levelTierIcon}
+                      discordBoosting={c.discordBoosting}
                     />
                     {c.pinnedAt && (
                       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono bg-primary/10 border border-primary/25 text-zinc-300/80">
@@ -1754,6 +1756,7 @@ export default function CommentSection({
                                       levelRole={reply.levelRole}
                                       levelRoleColor={reply.levelRoleColor}
                                       levelTierIcon={reply.levelTierIcon}
+                                      discordBoosting={reply.discordBoosting}
                                       size="xs"
                                     />
                                     {reply.isSpoiler && (

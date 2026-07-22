@@ -12,6 +12,7 @@ export type IAuth = {
   role?: string | null;
   permissions?: string[];
   supporterUntil?: string | null;
+  discordBoosting?: boolean;
   kittycoinBalance?: number;
   equippedFrame?: string | null;
   equippedSticker?: string | null;

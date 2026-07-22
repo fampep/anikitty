@@ -2,6 +2,11 @@ import {
   ROLE_BUILTIN_COLORS,
   ROLE_DISPLAY_NAMES,
 } from "@/lib/user/role-icons";
+import {
+  BOOSTER_COLOR,
+  BOOSTER_DISPLAY,
+  BOOSTER_ROLE,
+} from "@/lib/social/booster-config";
 import { DONATOR_ROLE } from "@/lib/social/donation-config";
 import {
   TIMESTAMP_HELPER_COLOR,
@@ -47,6 +52,12 @@ const STAFF_DEFS: Omit<DiscordSyncRoleDef, "rank">[] = [
     key: DONATOR_ROLE,
     name: ROLE_DISPLAY_NAMES.donator ?? "Donator",
     color: ROLE_BUILTIN_COLORS.donator ?? "#f472b6",
+    kind: "staff",
+  },
+  {
+    key: BOOSTER_ROLE,
+    name: ROLE_DISPLAY_NAMES.booster ?? BOOSTER_DISPLAY,
+    color: ROLE_BUILTIN_COLORS.booster ?? BOOSTER_COLOR,
     kind: "staff",
   },
   {

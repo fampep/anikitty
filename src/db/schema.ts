@@ -39,6 +39,8 @@ export const users = pgTable("users", {
   malUsername: varchar("mal_username", { length: 100 }),
   discordId: varchar("discord_id", { length: 32 }),
   discordUsername: varchar("discord_username", { length: 100 }),
+  /** True while the linked Discord account is boosting the guild (badge only — not ad-free). */
+  discordBoosting: boolean("discord_boosting").notNull().default(false),
   /** Last Discord level-up announcement level — avoids spam / re-announce on bootstrap. */
   lastAnnouncedDiscordLevel: integer("last_announced_discord_level"),
   /** When the current email was verified (Discord verified email or recovery link). */

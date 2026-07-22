@@ -30,6 +30,7 @@ export async function GET(req: Request) {
       themeColor: users.themeColor,
       role: users.role,
       supporterUntil: users.supporterUntil,
+      discordBoosting: users.discordBoosting,
       anisurgeUsername: users.anisurgeUsername,
       anilistUsername: users.anilistUsername,
       anilistAccessToken: users.anilistAccessToken,
@@ -56,6 +57,7 @@ export async function GET(req: Request) {
     id: user.id,
     role: user.role ?? "user",
     supporterUntil: user.supporterUntil,
+    discordBoosting: user.discordBoosting,
   });
 
   const permissions = await getRolePermissions(db, effectiveRole);
@@ -67,6 +69,7 @@ export async function GET(req: Request) {
     anisurgeUserId: safeUser.id,
     permissions,
     supporterUntil: user.supporterUntil?.toISOString() ?? null,
+    discordBoosting: !!user.discordBoosting,
     kittycoinBalance: cosmetics.balance,
     anisurgeLinked: !!safeUser.anisurgeUsername,
     anisurgeUsername: safeUser.anisurgeUsername ?? null,
@@ -88,6 +91,7 @@ export async function GET(req: Request) {
       themeColor: safeUser.themeColor ?? null,
       role: effectiveRole,
       supporterUntil: user.supporterUntil?.toISOString() ?? null,
+      discordBoosting: !!user.discordBoosting,
       createdAt: safeUser.createdAt?.toISOString() ?? null,
       lastOnlineAt: safeUser.lastOnlineAt?.toISOString() ?? null,
       activityStatus: safeUser.activityStatus ?? "online",
