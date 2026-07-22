@@ -188,7 +188,7 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** Site ads preference — always forced on (users cannot disable). Popunders only; banners removed. */
+  /** Site ads preference — only honored for active tip / donator (or admin). */
   showBannerAds: boolean;
   setShowBannerAds: (val: boolean) => void;
 
@@ -410,8 +410,7 @@ export const useSettingsStore = create<ISettingsStore>()(
       setNotifyFollows: (notifyFollows) => set({ notifyFollows }),
 
       showBannerAds: true,
-      // Ads cannot be turned off — keep the setter for sync/API compatibility.
-      setShowBannerAds: () => set({ showBannerAds: true }),
+      setShowBannerAds: (showBannerAds) => set({ showBannerAds }),
 
       seekStepSeconds: DEFAULT_PLAYER_SEEK_STEP,
       setSeekStepSeconds: (seekStepSeconds) => set({ seekStepSeconds: sanitizeSeekStepSeconds(seekStepSeconds) }),

@@ -9,7 +9,7 @@ import {
   sanitizeSyncedPreferences,
   type SyncedUserPreferences,
 } from "@/lib/account/user-preferences";
-import { sanitizeSeekStepSeconds } from "@/lib/player/seek-step";
+import { hasAdFreeAccess } from "@/lib/social/supporter-access";
 import { sanitizeAnime4kMode } from "@/lib/player/anime4k";
 import { ensureCustomSubtitleFontLoaded } from "@/lib/subtitles/custom-subtitle-font";
 
@@ -86,8 +86,12 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.notifyMentions !== undefined) patch.notifyMentions = prefs.notifyMentions;
   if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;
   if (prefs.notifyFollows !== undefined) patch.notifyFollows = prefs.notifyFollows;
-  // Ads are required — never apply a remote "off" preference.
-  patch.showBannerAds = true;
+  // Tip / donator may sync ads off; everyone else stays on.
+  if (hasAdFreeAccess(useAuthStore.getState().auth?.role, useAuthStore.getState().auth?.supporterUntil)) {
+    if (prefs.showBannerAds !== undefined) patch.showBannerAds = prefs.showBannerAds;
+  } else {
+    patch.showBannerAds = true;
+  }
   if (prefs.seekStepSeconds !== undefined) {
     patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
   }

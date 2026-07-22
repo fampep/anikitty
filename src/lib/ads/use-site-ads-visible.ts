@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSettingsStore } from "@/store/settings-store";
+import { useAuthStore } from "@/store/auth-store";
 import { getAdcashPopZoneId } from "@/lib/ads/ad-config";
 import { isAdPlacementAllowed } from "@/lib/ads/ad-placement";
+import { hasAdFreeAccess } from "@/lib/social/supporter-access";
 
 /** Cache longer when ads are on; keep kill-switch responsive when off. */
 const ADS_ENABLED_CACHE_MS = 120_000;
@@ -50,6 +52,8 @@ async function fetchGlobalAdsEnabled(): Promise<boolean> {
 /** Whether site ads (popunders) may run on the current page for this user. */
 export function useSiteAdsVisible(): boolean {
   const pathname = usePathname();
+  const showBannerAds = useSettingsStore((s) => s.showBannerAds);
+  const auth = useAuthStore((s) => s.auth);
   const [hydrated, setHydrated] = useState(false);
   const [globalEnabled, setGlobalEnabled] = useState<boolean | null>(null);
 
@@ -79,6 +83,10 @@ export function useSiteAdsVisible(): boolean {
   if (!isAdPlacementAllowed(pathname)) return false;
   if (!getAdcashPopZoneId()) return false;
   if (globalEnabled !== true) return false;
-  // User preference cannot disable ads — only the admin kill-switch can.
+
+  // Active tip / donator (or admin) may turn ads off in Settings.
+  if (hasAdFreeAccess(auth?.role, auth?.supporterUntil) && !showBannerAds) {
+    return false;
+  }
   return true;
 }

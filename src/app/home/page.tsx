@@ -6,7 +6,6 @@ import HomeRecentUpdates from "@/components/home/home-recent-updates";
 import HomeSchedulePanel from "@/components/home/home-schedule-panel";
 import HomeSeasonBrowser from "@/components/home/home-season-browser";
 import HomeTrendingRail from "@/components/home/home-trending-rail";
-import HomeAdsNotice from "@/components/home/home-ads-notice";
 import HomeSocialBanner from "@/components/home/home-social-banner";
 import Container from "@/components/layout/container";
 import LazyMount from "@/components/shared/lazy-mount";
@@ -100,7 +99,6 @@ export default function Home() {
         onActivePosterChange={setBackdropPoster}
       />
 
-      <HomeAdsNotice className="relative z-[5] py-1 sm:py-1.5" />
       <HomeSocialBanner />
 
       <HomeQuickNav />

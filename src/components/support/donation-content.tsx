@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
+  Check,
   Coffee,
   ExternalLink,
   Heart,
   Loader2,
-  Megaphone,
   MessageCircle,
-  Settings,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -56,28 +55,20 @@ export default function DonationContent() {
     ? kofiDonationUrlForUsername(username)
     : kofiDonationUrl();
 
-  const perks = [
-    {
-      icon: Heart,
-      accent: "text-pink-300/90",
-      ring: "ring-pink-400/20 bg-pink-500/10",
-      title: t("donate.perks.donatorBadge"),
-      desc: t("donate.perks.donatorBadgeDesc"),
-    },
-    {
-      icon: Zap,
-      accent: "text-amber-300/90",
-      ring: "ring-amber-400/20 bg-amber-500/10",
-      title: t("donate.perks.uptime"),
-      desc: t("donate.perks.uptimeDesc"),
-    },
-    {
-      icon: Coffee,
-      accent: "text-zinc-300/90",
-      ring: "ring-primary/20 bg-primary/10",
-      title: t("donate.perks.community"),
-      desc: t("donate.perks.communityDesc"),
-    },
+  const freeFeatures = [
+    t("donate.free.featurePlayback"),
+    t("donate.free.featureManga"),
+    t("donate.free.featureMei"),
+    t("donate.free.featureParties"),
+    t("donate.free.featureThemes"),
+    t("donate.free.featureSync"),
+  ];
+
+  const tipPerks = [
+    t("donate.tip.perkAds"),
+    t("donate.tip.perkBadge"),
+    t("donate.tip.perkEarly"),
+    t("donate.tip.perkTeam"),
   ];
 
   const steps = [
@@ -146,14 +137,17 @@ export default function DonationContent() {
           title={t("donate.title")}
           subtitle={t("donate.subtitle")}
         >
+          <Link href={ROUTES.HOME} className="site-ghost-btn px-4 py-2.5 text-sm">
+            {t("donate.free.cta")}
+          </Link>
           <a
             href={kofiPayUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="site-brand-btn px-4 py-2.5 text-sm hover:bg-primary/90"
           >
-            <Coffee className="w-4 h-4" />
-            {t("donate.donateCta")}
+            <Heart className="w-4 h-4" />
+            {t("donate.tip.cta")}
             <ExternalLink className="w-3.5 h-3.5 opacity-70" />
           </a>
         </CommunityHero>
@@ -162,22 +156,110 @@ export default function DonationContent() {
           {t("donate.body")}
         </p>
 
-        <section className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] px-4 py-4 sm:px-5 sm:py-5">
-          <div className="flex items-start gap-3">
-            <Megaphone className="w-4 h-4 shrink-0 mt-0.5 text-amber-300/80" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground/90 dark:text-white/85">{t("donate.sorryTitle")}</p>
-              <p className="mt-2 text-sm text-muted-foreground dark:text-white/50 leading-relaxed">{t("donate.sorryBody")}</p>
+        <section className="grid gap-4 lg:grid-cols-2">
+          {/* Free forever */}
+          <div className="site-panel overflow-hidden flex flex-col">
+            <div className="px-5 pt-5 pb-4 border-b border-border/60 dark:border-white/[0.06]">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="site-label">{t("donate.free.label")}</p>
+                <span className="rounded-full border border-border/70 dark:border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground dark:text-white/55">
+                  {t("donate.free.badge")}
+                </span>
+              </div>
+              <p className="text-3xl font-bold tracking-tight text-foreground dark:text-white tabular-nums">
+                {t("donate.free.price")}
+                <span className="ml-1 text-sm font-medium text-muted-foreground dark:text-white/45">
+                  {t("donate.free.priceSuffix")}
+                </span>
+              </p>
+              <p className="mt-3 text-sm text-muted-foreground dark:text-white/55 leading-relaxed">
+                {t("donate.free.desc")}
+              </p>
+            </div>
+            <ul className="flex-1 px-5 py-4 space-y-2.5">
+              {freeFeatures.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm text-foreground/85 dark:text-white/75">
+                  <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400/90" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="px-5 pb-5">
+              <Link href={ROUTES.HOME} className="site-brand-btn w-full justify-center py-2.5 text-sm">
+                {t("donate.free.cta")}
+              </Link>
+              <p className="mt-3 text-xs text-center text-muted-foreground dark:text-white/40 leading-relaxed">
+                {t("donate.free.footnote")}
+              </p>
+            </div>
+          </div>
+
+          {/* Tip jar */}
+          <div className="site-panel overflow-hidden flex flex-col border-pink-500/20">
+            <div className="relative px-5 pt-5 pb-4 border-b border-pink-500/15">
+              <div
+                className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-pink-500/10 blur-3xl"
+                aria-hidden
+              />
+              <div className="relative flex items-center justify-between gap-3 mb-3">
+                <p className="site-label text-pink-300/80">{t("donate.tip.label")}</p>
+                <span className="rounded-full border border-pink-500/25 bg-pink-500/10 px-2.5 py-0.5 text-[11px] font-medium text-pink-200/85">
+                  {t("donate.tip.badge")}
+                </span>
+              </div>
+              <p className="relative text-3xl font-bold tracking-tight text-foreground dark:text-white">
+                {t("donate.tip.price")}
+                <span className="ml-1 text-sm font-medium text-muted-foreground dark:text-white/45">
+                  {t("donate.tip.priceSuffix")}
+                </span>
+              </p>
+              <p className="relative mt-3 text-sm text-muted-foreground dark:text-white/55 leading-relaxed">
+                {t("donate.tip.desc")}
+              </p>
+              <p className="relative mt-2 text-xs text-pink-200/70">
+                {t("donate.rateLine", {
+                  amount: KOFI_DONATION_UNIT_EUR,
+                  days: KOFI_DONATION_UNIT_DAYS,
+                })}
+              </p>
+            </div>
+            <ul className="flex-1 px-5 py-4 space-y-2.5">
+              {tipPerks.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm text-foreground/85 dark:text-white/75">
+                  <Zap className="w-4 h-4 shrink-0 mt-0.5 text-pink-300/90" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="px-5 pb-5 flex flex-col gap-2">
+              <a
+                href={kofiPayUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="site-brand-btn w-full justify-center py-2.5 text-sm"
+              >
+                <Heart className="w-4 h-4" />
+                {t("donate.tip.cta")}
+              </a>
+              <button
+                type="button"
+                onClick={handleClaim}
+                disabled={claiming}
+                className="site-ghost-btn w-full justify-center py-2.5 disabled:opacity-50"
+              >
+                {claiming ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                {t("donate.claimCta")}
+              </button>
             </div>
           </div>
         </section>
 
         <section className="site-panel overflow-hidden border-pink-500/15">
           <div className="relative px-5 py-6 sm:px-6 sm:py-7">
-            <div
-              className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-pink-500/10 blur-3xl"
-              aria-hidden
-            />
             <div className="relative flex flex-col gap-5">
               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-500/15 ring-1 ring-pink-400/25">
@@ -185,13 +267,7 @@ export default function DonationContent() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="site-label mb-2">{t("donate.donationTitle")}</p>
-                  <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground dark:text-white tabular-nums">
-                    {t("donate.rateLine", {
-                      amount: KOFI_DONATION_UNIT_EUR,
-                      days: KOFI_DONATION_UNIT_DAYS,
-                    })}
-                  </p>
-                  <p className="mt-3 text-sm text-muted-foreground dark:text-white/55 leading-relaxed max-w-lg">
+                  <p className="text-sm text-muted-foreground dark:text-white/55 leading-relaxed max-w-lg">
                     {t("donate.donationDesc")}
                   </p>
                 </div>
@@ -224,7 +300,9 @@ export default function DonationContent() {
                         : t("donate.activeDonator")}
                     </p>
                   </div>
-                  <RoleBadge role={DONATOR_ROLE} size="sm" />
+                  <Link href={ROUTES.SETTINGS} className="site-ghost-btn py-2 text-xs shrink-0">
+                    {t("donate.adsSettingsCta")}
+                  </Link>
                 </div>
               ) : (
                 <div className="rounded-xl border border-border/80 dark:border-white/10 bg-muted/20 dark:bg-white/[0.02] px-4 py-4 flex flex-col gap-3">
@@ -252,19 +330,6 @@ export default function DonationContent() {
                   <Heart className="w-4 h-4" />
                   {t("donate.donateCta")}
                 </a>
-                <button
-                  type="button"
-                  onClick={handleClaim}
-                  disabled={claiming}
-                  className="site-ghost-btn py-2.5 disabled:opacity-50"
-                >
-                  {claiming ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  {t("donate.claimCta")}
-                </button>
                 <Link href={siteOwnerDmHref()} className="site-ghost-btn py-2.5">
                   <MessageCircle className="w-4 h-4" />
                   {t("donate.dmCta", { username: SITE_OWNER_USERNAME })}
@@ -281,28 +346,6 @@ export default function DonationContent() {
               </div>
             </div>
           </div>
-        </section>
-
-        <section className="rounded-xl border border-border/80 dark:border-white/10 bg-muted/15 dark:bg-white/[0.02] px-4 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-start gap-3 min-w-0 flex-1">
-            <Settings className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground dark:text-white/40" />
-            <p className="text-sm text-muted-foreground dark:text-white/50 leading-relaxed">{t("donate.adsNote")}</p>
-          </div>
-          <Link href={ROUTES.SETTINGS} className="site-ghost-btn py-2 text-xs shrink-0">
-            {t("donate.adsSettingsCta")}
-          </Link>
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-3">
-          {perks.map(({ icon: Icon, accent, ring, title, desc }) => (
-            <div key={title} className="site-panel-hover p-4 sm:p-5">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-xl ring-1 mb-3 ${ring}`}>
-                <Icon className={`w-4 h-4 ${accent}`} />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground dark:text-white/90">{title}</h3>
-              <p className="mt-1.5 text-xs text-muted-foreground dark:text-white/45 leading-relaxed">{desc}</p>
-            </div>
-          ))}
         </section>
 
         <section className="site-panel p-5 sm:p-6">
@@ -335,10 +378,6 @@ export default function DonationContent() {
               <Heart className="w-4 h-4" />
               {t("donate.supportOnKofi")}
             </a>
-            <Link href={siteOwnerDmHref()} className="site-ghost-btn py-2.5">
-              <MessageCircle className="w-4 h-4" />
-              {t("donate.dmCta", { username: SITE_OWNER_USERNAME })}
-            </Link>
             <Link href={ROUTES.FAQ} className="site-ghost-btn py-2.5">
               {t("donate.readFaq")}
             </Link>

@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Megaphone } from "lucide-react";
+import Link from "next/link";
+import { Heart, Megaphone } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { useSettingsStore } from "@/store/settings-store";
+import { useAuthStore } from "@/store/auth-store";
+import { hasAdFreeAccess, hasActiveDonatorStatus } from "@/lib/social/supporter-access";
+import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 import {
   Dialog,
@@ -49,11 +53,13 @@ function ToggleRow({
   description,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   description: string;
   value: boolean;
   onChange: (next: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3.5 px-5">
@@ -65,10 +71,12 @@ function ToggleRow({
         type="button"
         role="switch"
         aria-checked={value}
+        disabled={disabled}
         onClick={() => onChange(!value)}
         className={cn(
           "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors",
           value ? "bg-emerald-500" : "bg-muted dark:bg-white/15",
+          disabled && "opacity-60 cursor-not-allowed",
         )}
       >
         <span
@@ -82,17 +90,31 @@ function ToggleRow({
   );
 }
 
+function formatUntil(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
 export default function AdsSettingsSection() {
   const t = useT();
+  const auth = useAuthStore((s) => s.auth);
+  const showBannerAds = useSettingsStore((s) => s.showBannerAds);
   const setShowBannerAds = useSettingsStore((s) => s.setShowBannerAds);
   const [cannotDisableOpen, setCannotDisableOpen] = useState(false);
 
+  const canDisable = hasAdFreeAccess(auth?.role, auth?.supporterUntil);
+  const isDonator = hasActiveDonatorStatus(auth?.role, auth?.supporterUntil);
+  const untilLabel = formatUntil(auth?.supporterUntil);
+
   const handleToggle = (next: boolean) => {
-    // Always keep site ads on — explain why if the user tries to turn them off.
-    setShowBannerAds(true);
-    if (!next) {
-      setCannotDisableOpen(true);
+    if (!canDisable) {
+      setShowBannerAds(true);
+      if (!next) setCannotDisableOpen(true);
+      return;
     }
+    setShowBannerAds(next);
   };
 
   return (
@@ -105,10 +127,35 @@ export default function AdsSettingsSection() {
         />
         <ToggleRow
           label={t("settings.ads.showAds")}
-          description={t("settings.ads.showAdsDesc")}
-          value={true}
+          description={
+            canDisable
+              ? t("settings.ads.showAdsDescDonator")
+              : t("settings.ads.showAdsDesc")
+          }
+          value={canDisable ? showBannerAds : true}
           onChange={handleToggle}
         />
+        {canDisable ? (
+          <div className="px-5 pb-4">
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3.5 py-3 flex items-start gap-2.5">
+              <Heart className="w-3.5 h-3.5 shrink-0 mt-0.5 text-pink-300" />
+              <p className="text-xs leading-relaxed text-emerald-100/85">
+                {isDonator && untilLabel
+                  ? t("settings.ads.donatorActiveUntil", { date: untilLabel })
+                  : t("settings.ads.donatorActive")}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="px-5 pb-4">
+            <p className="text-xs text-muted-foreground dark:text-white/45 leading-relaxed">
+              {t("settings.ads.optionalSupportHint")}{" "}
+              <Link href={ROUTES.DONATE} className="text-primary underline-offset-2 hover:underline">
+                {t("settings.ads.optionalSupportLink")}
+              </Link>
+            </p>
+          </div>
+        )}
       </SectionCard>
 
       <Dialog open={cannotDisableOpen} onOpenChange={setCannotDisableOpen}>
@@ -137,6 +184,13 @@ export default function AdsSettingsSection() {
           </div>
 
           <DialogFooter className="gap-2 px-5 py-4 border-t border-border/60 dark:border-white/[0.06] sm:justify-end">
+            <Link
+              href={ROUTES.DONATE}
+              className="site-brand-btn py-2.5 text-sm"
+              onClick={() => setCannotDisableOpen(false)}
+            >
+              {t("settings.ads.optionalSupportLink")}
+            </Link>
             <button
               type="button"
               onClick={() => setCannotDisableOpen(false)}

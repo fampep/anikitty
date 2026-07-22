@@ -9,6 +9,7 @@ import { grantKittycoins } from "@/lib/shop/kittycoins";
 import {
   adminGrantSupporterDays,
   adminRevokeSupporter,
+  adminSetSupporterUntil,
 } from "@/lib/social/supporter-access";
 import { and, eq, isNull } from "drizzle-orm";
 
@@ -86,6 +87,29 @@ export async function PATCH(
     } catch (e) {
       return NextResponse.json(
         { error: e instanceof Error ? e.message : "Failed to grant supporter" },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (action === "setSupporterUntil") {
+    const raw =
+      typeof body.until === "string"
+        ? body.until.trim()
+        : typeof body.supporterUntil === "string"
+          ? body.supporterUntil.trim()
+          : "";
+    if (!raw) {
+      return NextResponse.json({ error: "until date required (ISO or YYYY-MM-DD)" }, { status: 400 });
+    }
+    try {
+      // Date-only → end of that UTC day so "2026-08-22" means full day ad-free.
+      const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T23:59:59.000Z` : raw;
+      const result = await adminSetSupporterUntil(db, userId, normalized);
+      return NextResponse.json({ ok: true, ...result });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Failed to set supporter until" },
         { status: 400 },
       );
     }

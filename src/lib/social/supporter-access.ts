@@ -69,6 +69,23 @@ export function hasActiveDonatorStatus(
   return until.getTime() > Date.now();
 }
 
+/**
+ * Donators (and staff with an active tip window) can turn site ads off.
+ * Admins always can. Everyone else keeps ads on.
+ */
+export function hasAdFreeAccess(
+  role?: string | null,
+  supporterUntil?: Date | string | null,
+): boolean {
+  if (role === "admin") return true;
+  if (hasActiveDonatorStatus(role, supporterUntil)) return true;
+  if (role && STAFF_ROLES.has(role)) {
+    const until = parseSupporterUntil(supporterUntil);
+    return !!until && until.getTime() > Date.now();
+  }
+  return false;
+}
+
 export function extendSupporterUntilByDays(
   current: Date | null | undefined,
   days: number,
@@ -448,6 +465,51 @@ export async function adminGrantSupporterDays(
   const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
   notifyDiscordRoleSync("admin_supporter_grant");
   return { supporterUntil: until.toISOString(), daysAdded: Math.floor(days) };
+}
+
+/**
+ * Admin fallback when Ko-fi auto-claim fails: set an absolute ad-free end date
+ * (does not stack — replaces the current window).
+ */
+export async function adminSetSupporterUntil(
+  db: Db,
+  userId: string,
+  untilInput: Date | string,
+): Promise<{ supporterUntil: string }> {
+  const until = parseSupporterUntil(untilInput);
+  if (!until || until.getTime() <= Date.now()) {
+    throw new Error("End date must be a future date/time");
+  }
+  // Cap ~10 years out
+  if (until.getTime() > Date.now() + 3650 * 24 * 60 * 60 * 1000) {
+    throw new Error("End date too far in the future (max ~10 years)");
+  }
+
+  const [user] = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      role: users.role,
+      supporterUntil: users.supporterUntil,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) throw new Error("User not found");
+
+  if (STAFF_ROLES.has(user.role)) {
+    await db.update(users).set({ supporterUntil: until }).where(eq(users.id, user.id));
+  } else {
+    await db
+      .update(users)
+      .set({ role: DONATOR_ROLE, supporterUntil: until })
+      .where(eq(users.id, user.id));
+  }
+
+  const { notifyDiscordRoleSync } = await import("@/lib/bot/notify-discord-sync");
+  notifyDiscordRoleSync("admin_supporter_set");
+  return { supporterUntil: until.toISOString() };
 }
 
 /** Admin panel: remove supporter perks immediately. */

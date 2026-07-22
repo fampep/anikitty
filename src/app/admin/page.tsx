@@ -1236,37 +1236,60 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   };
 
   const handleGrantSupporter = async (user: AdminUser) => {
-    const raw = prompt(`Grant supporter days to @${user.username}:`, "30");
+    const current = formatSupporterUntil(user.supporterUntil);
+    const raw = prompt(
+      [
+        `Manual ad-free for @${user.username} (Ko-fi fallback)`,
+        current !== "—" ? `Current until: ${current}` : "No active tip window",
+        "",
+        "Enter days to ADD (30 = €4 / 1 month),",
+        "or a date YYYY-MM-DD to SET until that day:",
+      ].join("\n"),
+      "30",
+    );
     if (raw == null) return;
-    const days = parseInt(raw, 10);
-    if (!Number.isFinite(days) || days <= 0) {
-      toast.error("Enter a positive number of days");
-      return;
-    }
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+
     setGrantingUserId(user.id);
     try {
+      const isDate = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: adminHeaders(),
-        body: JSON.stringify({ action: "grantSupporter", days }),
+        body: JSON.stringify(
+          isDate
+            ? { action: "setSupporterUntil", until: trimmed }
+            : { action: "grantSupporter", days: parseInt(trimmed, 10) },
+        ),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed");
       setUsers((prev) =>
         prev.map((u) =>
-          u.id === user.id ? { ...u, supporterUntil: data.supporterUntil, role: u.role === "user" ? "donator" : u.role } : u,
+          u.id === user.id
+            ? {
+                ...u,
+                supporterUntil: data.supporterUntil,
+                role: u.role === "user" ? "donator" : u.role,
+              }
+            : u,
         ),
       );
-      toast.success(`Supporter until ${formatSupporterUntil(data.supporterUntil)}`);
+      toast.success(
+        isDate
+          ? `Ad-free set until ${formatSupporterUntil(data.supporterUntil)}`
+          : `Added ${data.daysAdded} days — until ${formatSupporterUntil(data.supporterUntil)}`,
+      );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to grant supporter");
+      toast.error(e instanceof Error ? e.message : "Failed to set ad-free");
     } finally {
       setGrantingUserId(null);
     }
   };
 
   const handleRevokeSupporter = async (user: AdminUser) => {
-    if (!confirm(`Revoke supporter perks for @${user.username}?`)) return;
+    if (!confirm(`Revoke ad-free / donator perks for @${user.username}?`)) return;
     setGrantingUserId(user.id);
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
@@ -1487,7 +1510,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground dark:text-white/85">Global site ads</p>
                   <p className="text-[11px] text-muted-foreground dark:text-white/35 mt-1 leading-relaxed max-w-xl">
-                    Turn site ads (popunders) on or off for everyone. Saved in the database — survives redeploys. Users cannot disable ads in Settings.
+                    Turn site ads (popunders) on or off for everyone. Saved in the database — survives redeploys. Active tip / donator users can still turn ads off in Settings.
                   </p>
                   <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
                     Status:{" "}
@@ -1662,6 +1685,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 )}
               </div>
             )}
+
+            <div className="rounded-xl border border-pink-500/20 bg-pink-500/[0.04] px-4 py-3 text-[12px] leading-relaxed text-muted-foreground dark:text-white/50">
+              <span className="font-semibold text-pink-200/80">Ko-fi fallback: </span>
+              If auto-claim fails, search the user → sparkles button → enter{" "}
+              <span className="font-mono text-foreground/80 dark:text-white/70">30</span> to add 1 month
+              ad-free (€4), or a date like{" "}
+              <span className="font-mono text-foreground/80 dark:text-white/70">2026-08-22</span> to set
+              the end day. X clears perks.
+            </div>
 
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 rounded-xl px-4 py-2.5 max-w-sm flex-1">
@@ -1873,17 +1905,22 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 type="button"
                                 onClick={() => handleGrantSupporter(u)}
                                 disabled={grantingUserId === u.id}
-                                title="Grant supporter days"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-primary/20 text-zinc-300/70 text-[11px] hover:bg-primary/10 disabled:opacity-40 transition-all"
+                                title="Manual ad-free (Ko-fi fallback): add days or set end date"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-pink-500/25 text-pink-200/80 text-[11px] hover:bg-pink-500/10 disabled:opacity-40 transition-all"
                               >
-                                <Sparkles className="w-3 h-3" />
+                                {grantingUserId === u.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-3 h-3" />
+                                )}
+                                <span className="hidden xl:inline">Ad-free</span>
                               </button>
                               {(u.supporterUntil || u.role === "donator") && u.role !== "admin" && (
                                 <button
                                   type="button"
                                   onClick={() => handleRevokeSupporter(u)}
                                   disabled={grantingUserId === u.id}
-                                  title="Revoke supporter"
+                                  title="Revoke ad-free / donator"
                                   className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-border dark:border-white/15 text-muted-foreground dark:text-white/40 text-[11px] hover:bg-accent dark:bg-white/8 disabled:opacity-40 transition-all"
                                 >
                                   <X className="w-3 h-3" />
