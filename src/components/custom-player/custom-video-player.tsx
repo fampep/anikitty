@@ -601,12 +601,13 @@ export function AniKittyPlayer({
   }, [autoFullscreen]);
 
   /**
-   * Fullscreen the persistent watch-page host when provided so episode
-   * changes (player remount / src swap) do not drop document fullscreen.
-   * Fall back to the player root only when no host is wired.
+   * Fullscreen the player root (video + chrome). Preferring the outer watch
+   * host broke the control bar in FS — chrome must live on the FS element.
+   * Episode transitions keep this root mounted (stable shell key), so FS stays.
+   * Fall back to the persistent host only when the root is unavailable.
    */
   const getFullscreenTarget = useCallback((): HTMLElement | null => {
-    return fullscreenContainerRef?.current ?? rootRef.current ?? null;
+    return rootRef.current ?? fullscreenContainerRef?.current ?? null;
   }, [fullscreenContainerRef]);
 
   useEffect(() => {
@@ -614,6 +615,8 @@ export function AniKittyPlayer({
   }, [cssFullscreen]);
 
   // CSS fullscreen: cover the real viewport (escape .site-page z-1 under nav).
+  // Prefer the player root so chrome stays in the fullscreen layer; when the
+  // persistent host is used (fallback), keep sticky teardown guards.
   useEffect(() => {
     const host = getFullscreenTarget();
     if (!host) return;
@@ -628,6 +631,7 @@ export function AniKittyPlayer({
         return;
       }
       host.classList.remove("anikitty-fs-host--active");
+      // Player root also uses this class when it is the CSS FS host.
       root.classList.remove("anikitty-css-fs");
       body.classList.remove("anikitty-css-fs");
       return;
