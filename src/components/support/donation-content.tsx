@@ -57,8 +57,6 @@ export default function DonationContent() {
 
   const freeFeatures = [
     t("donate.free.featurePlayback"),
-    t("donate.free.featureManga"),
-    t("donate.free.featureMei"),
     t("donate.free.featureParties"),
     t("donate.free.featureThemes"),
     t("donate.free.featureSync"),

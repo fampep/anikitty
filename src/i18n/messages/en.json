@@ -81,6 +81,12 @@
     "readMore": "Read more",
     "learnMore": "Learn more"
   },
+  "supportBanner": {
+    "title": "€{amount} tip ≈ {days} days ad-free",
+    "body": "Optional Ko-fi tip with your @username unlocks ad-free in Settings plus a donator badge.",
+    "cta": "Tip on Ko-fi",
+    "learn": "Details"
+  },
   "banner": {
     "adsPromoGuestTitle": "Want ad-free?",
     "adsPromoGuestBody": "Ads help cover servers. Tip €4 on Ko-fi with your @username for about 1 month ad-free.",
@@ -260,6 +266,14 @@
     "featuresLabel": "Why AniKitty",
     "featuresTitle": "The essentials",
     "freeForever": "Free to use — Ko-fi support is optional",
+    "supportLabel": "Optional support",
+    "supportTitle": "Tip perks",
+    "supportDesc": "Watching stays free. A €{amount} tip unlocks about {days} days ad-free plus the donator badge — put your @username in the Ko-fi message.",
+    "supportRate": "€{amount} ≈ {days} days ad-free",
+    "supportBadgeLabel": "Donator badge",
+    "supportBadgeHint": "Shows on your profile and comments while your tip is active.",
+    "supportCta": "Tip on Ko-fi",
+    "supportFootnote": "Signed in? Activate ad-free from Settings → Ads after tipping.",
     "features": {
       "stream": { "title": "HD streams", "desc": "Sub and dub across multiple sources." },
       "fast": { "title": "Sync when you want", "desc": "Resume across devices after you sign in." },
@@ -2299,8 +2313,6 @@
       "priceSuffix": "/ with ads",
       "desc": "The whole platform to use anytime. Light ads help keep it online.",
       "featurePlayback": "1080p+ playback",
-      "featureManga": "Manga & novels",
-      "featureMei": "Mei AI recs",
       "featureParties": "Watch parties",
       "featureThemes": "Themes & badges",
       "featureSync": "Cross-device sync",

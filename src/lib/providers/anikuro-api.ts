@@ -30,21 +30,6 @@ function anikuroDataIds(
   return JSON.stringify(payload);
 }
 
-/** Single-call stream linkId — API resolves the named backend directly. */
-function buildAnikuroLinkId(opts: {
-  anilistId: number;
-  episode: number;
-  audio: "sub" | "dub";
-  serverId: AnikuroServerId;
-}): string {
-  return JSON.stringify({
-    anilistId: opts.anilistId,
-    episode: opts.episode,
-    backend: opts.serverId,
-    audio: opts.audio,
-  });
-}
-
 function normalizeServerToken(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -221,8 +206,8 @@ export async function fetchAnikuroVideoStream(opts: {
 }): Promise<AnikuroStreamResult | null> {
   const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
 
+  // stream-direct first — constructed linkId often returns video without soft-sub tracks[].
   const result = await resolveKittyNamedStream({
-    builtLinkId: buildAnikuroLinkId({ ...opts, serverId }),
     streamByLinkId: fetchAnikuroStreamByLinkId,
     streamDirect: () => fetchAnikuroStreamDirect(opts),
     streamViaServers: () => streamAnikuroViaServers({ ...opts, serverId }),

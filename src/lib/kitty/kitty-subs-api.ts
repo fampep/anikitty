@@ -230,6 +230,9 @@ function prioritizeProviderOrder(
 ): string[] {
   const prefer = preferProvider?.trim();
   if (!prefer) return order;
+  // Only promote providers Kitty `/subs` actually serves — otherwise we burn
+  // the first slot (and the stream route's 2s race) on a guaranteed miss.
+  if (!order.includes(prefer)) return order;
   return [prefer, ...order.filter((p) => p !== prefer)];
 }
 

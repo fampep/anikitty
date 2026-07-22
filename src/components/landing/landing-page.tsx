@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/analytics";
 import LandingTrendingRow from "@/components/landing/landing-trending-row";
 import LandingWatchYourWay from "@/components/landing/landing-watch-your-way";
 import LandingCompactFeatures from "@/components/landing/landing-compact-features";
+import LandingSupportPerks from "@/components/landing/landing-support-perks";
 import LandingFooter from "@/components/landing/landing-footer";
 import LandingFinalCta from "@/components/landing/landing-final-cta";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -153,6 +154,7 @@ export default function LandingPage() {
       <LandingWatchYourWay />
       <LandingTrendingRow anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
       <LandingCompactFeatures />
+      <LandingSupportPerks />
       <LandingFinalCta />
       <LandingFooter />
     </div>

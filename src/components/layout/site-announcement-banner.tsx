@@ -9,6 +9,7 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { ANNOUNCEMENT_STYLES, PRIORITY_ANNOUNCEMENT_SEVERITIES } from "@/lib/announcements/announcement-styles";
 import { cn } from "@/lib/core/utils";
+import SiteSupportBanner from "@/components/layout/site-support-banner";
 
 interface Announcement {
   id: string;
@@ -85,11 +86,11 @@ export default function SiteAnnouncementBanner() {
     return filtered.filter((a) => PRIORITY_ANNOUNCEMENT_SEVERITIES.has(a.severity));
   }, [hydrated, showAnnouncementBanner, isRestrictedPage, items, dismissed]);
 
-  const hideOnPage = !hydrated || !showAnnouncementBanner || visible.length === 0;
-
   const visibleKey = useMemo(() => visible.map((a) => a.id).join(","), [visible]);
 
   useLayoutEffect(() => {
+    if (!hydrated) return;
+
     const applyOffset = (rawHeight: number) => {
       const offset = rawHeight > 0 ? rawHeight + 8 : 0;
       if (offset === lastOffsetRef.current) return;
@@ -99,11 +100,6 @@ export default function SiteAnnouncementBanner() {
         spacerRef.current.style.height = `${offset}px`;
       }
     };
-
-    if (visible.length === 0) {
-      applyOffset(0);
-      return;
-    }
 
     const measure = () => {
       applyOffset(bannerRef.current?.offsetHeight ?? 0);
@@ -122,9 +118,9 @@ export default function SiteAnnouncementBanner() {
       document.documentElement.style.setProperty("--banner-offset", "0px");
       if (spacerRef.current) spacerRef.current.style.height = "0px";
     };
-  }, [visibleKey, visible.length]);
+  }, [hydrated, visibleKey, visible.length, pathname]);
 
-  if (hideOnPage) return null;
+  if (!hydrated) return null;
 
   return (
     <>
@@ -133,6 +129,7 @@ export default function SiteAnnouncementBanner() {
         ref={bannerRef}
         className="pointer-events-none fixed left-0 right-0 top-[var(--nav-height)] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4"
       >
+        <SiteSupportBanner />
         {visible.map((a) => {
           const style = STYLES[a.severity] ?? STYLES.info;
           const Icon = style.icon;
@@ -174,6 +171,7 @@ export default function SiteAnnouncementBanner() {
               )}
               {a.dismissible && (
                 <button
+                  type="button"
                   onClick={() => handleDismiss(a.id)}
                   className="shrink-0 p-1 rounded-md text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white hover:bg-accent dark:hover:bg-white/8 transition-colors"
                   aria-label={t("common.dismiss")}

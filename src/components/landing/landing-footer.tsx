@@ -41,7 +41,7 @@ export default function LandingFooter() {
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-medium">
             <Link href={ROUTES.FAQ} className={FOOTER_LINK}>{t("nav.faq")}</Link>
             <Link href={ROUTES.COMMUNITY} className={FOOTER_LINK}>{t("nav.community")}</Link>
-            <Link href={ROUTES.DONATE} className={FOOTER_LINK}>{t("nav.donate")}</Link>
+            <a href="/#support" className={FOOTER_LINK}>{t("nav.donate")}</a>
             <Link href={ROUTES.FORUM} className={FOOTER_LINK}>{t("nav.forum")}</Link>
             <Link href={ROUTES.STATUS} className={FOOTER_LINK}>{t("nav.status")}</Link>
             <a
