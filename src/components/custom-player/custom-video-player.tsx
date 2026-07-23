@@ -728,7 +728,10 @@ export function AniKittyPlayer({
 
   const serverQualities = useMemo(() => {
     const deduped = dedupeStreamQualities(qualities);
+    // Prefer resolution ladders, but still expose named allServers mirrors
+    // (Default / Mp4 / Ok, etc.) when multiple distinct URLs exist.
     if (deduped.length > 1 && isResolutionQualityLadder(deduped)) return deduped;
+    if (deduped.length > 1) return deduped;
     return [];
   }, [qualities]);
 
@@ -3603,6 +3606,7 @@ export function AniKittyPlayer({
         captionSize={captionSize}
         captionPosition={captionPosition}
         immersive={fullscreen || cssFullscreen}
+        chromeVisible={chromeVisible}
       />
 
       {/* Chromecast surface — poster + live remote status; local video stays mounted but invisible */}

@@ -37,6 +37,8 @@ type PlayerSubtitleOverlayProps = {
   captionPosition: CaptionPositionPref;
   /** Lift cues above the pinned control bar in immersive modes. */
   immersive?: boolean;
+  /** Player chrome (timeline / controls) currently visible — lift cues clear of it. */
+  chromeVisible?: boolean;
 };
 
 function cuePlainText(cue: TextTrackCue): string {
@@ -74,9 +76,21 @@ export function PlayerSubtitleOverlay({
   captionSize,
   captionPosition,
   immersive = false,
+  chromeVisible = false,
 }: PlayerSubtitleOverlayProps) {
   const [text, setText] = useState("");
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
+  // Hold lift briefly after chrome hides so cues don't drop under the fading bar.
+  const [chromeLift, setChromeLift] = useState(chromeVisible);
+
+  useEffect(() => {
+    if (chromeVisible) {
+      setChromeLift(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setChromeLift(false), 480);
+    return () => window.clearTimeout(timer);
+  }, [chromeVisible]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -168,8 +182,15 @@ export function PlayerSubtitleOverlay({
 
   const settingsBottom = `${subtitleSettings.bottomOffset}rem`;
   const positionBottom = captionPositionCss(captionPosition);
-  const bottom = immersive
-    ? `max(${settingsBottom}, ${positionBottom}, calc(4.75rem + env(safe-area-inset-bottom, 0px)))`
+  // Keep dialogue above the timeline while chrome is up (and briefly after play
+  // before fade). Immersive / fullscreen gets a similar floor for TV overscan.
+  const chromeClearance = chromeLift
+    ? "calc(5.85rem + env(safe-area-inset-bottom, 0px))"
+    : immersive
+      ? "calc(4.75rem + env(safe-area-inset-bottom, 0px))"
+      : null;
+  const bottom = chromeClearance
+    ? `max(${settingsBottom}, ${positionBottom}, ${chromeClearance})`
     : `max(${settingsBottom}, ${positionBottom})`;
 
   const shellStyle = {

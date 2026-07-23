@@ -3,6 +3,7 @@ import {
   EMPTY_STREAM_CAPABILITIES,
   capabilitiesFromProbes,
   mergeEpisodeStreamCapabilities,
+  mergeStreamCapabilities,
   type EpisodeStreamCapabilities,
   type StreamCapabilities,
   type StreamCapabilityTarget,
@@ -46,6 +47,7 @@ import {
   getKittyProviderMeta,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
+import { raceKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 
 const EMPTY_MULTI_SERVER_FIELDS = {
@@ -58,12 +60,21 @@ const EMPTY_MULTI_SERVER_FIELDS = {
 const PROBE_TIMEOUT_MS = 16_000;
 const DIRECT_PROBE_CONCURRENCY = 6;
 
-/** Providers that often only succeed on non-primary KittyAPI nodes. */
-const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>([
-  "AniWaves",
-  "AniWatch",
-  "AniSnatch",
-]);
+/**
+ * Multi-server providers are probed via `/servers` (mirrors / site lines).
+ * Direct stream-direct often false-negatives (Echo needs a mirror) and used to
+ * overwrite good multi results in featured merge.
+ */
+const MULTI_SERVER_PROBE_PROVIDERS = new Set<KittyProvider>(["MKissa", "AniSnatch"]);
+
+/**
+ * Match `/api/kitty/stream`: parallel node race. Sequential primary→failover
+ * under a 16s parent often burns the budget on a hung peer (Whiskey/Alpha).
+ */
+const RACE_PROBE_PROVIDERS = new Set<KittyProvider>(["AniWaves", "AniKuro"]);
+
+/** Providers that often only succeed on non-primary KittyAPI nodes (sequential). */
+const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["AniWatch"]);
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -98,6 +109,19 @@ function countSubtitleTracks(tracks: unknown): number {
   return tracks.filter((t) => isSubtitleTrack(t as StreamTrack)).length;
 }
 
+function probeResultFromPayload(
+  parsed: { file?: string; tracks?: unknown } | null,
+  multiAudio?: boolean,
+): StreamProbeResult {
+  if (!parsed?.file) return { hasFile: false, subtitleTracks: 0 };
+  return {
+    hasFile: true,
+    file: parsed.file,
+    subtitleTracks: countSubtitleTracks(parsed.tracks),
+    multiAudio: Boolean(multiAudio),
+  };
+}
+
 async function probeStreamDirect(
   provider: KittyProvider,
   anilistId: number,
@@ -105,6 +129,24 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
+  // Parallel race — same strategy as live playback for Whiskey/Alpha.
+  if (RACE_PROBE_PROVIDERS.has(provider)) {
+    try {
+      const raced = await raceKittyProviderStream({
+        provider,
+        anilistId,
+        episode,
+        audio,
+        title,
+        timeoutMs: PROBE_TIMEOUT_MS,
+        directOnly: true,
+      });
+      return probeResultFromPayload(raced?.stream ?? null);
+    } catch {
+      return { hasFile: false, subtitleTracks: 0 };
+    }
+  }
+
   const path = buildKittyStreamDirectPath({
     provider,
     anilistId,
@@ -121,27 +163,39 @@ async function probeStreamDirect(
         signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
         headers: kittyStreamHeaders(),
       },
-      // AniWaves/Byse often only succeed on NL/CA — primary-only probes false-negative.
       { failover: PROBE_FAILOVER_PROVIDERS.has(provider) },
     );
 
     const data = await res.json();
     const parsed = parseKittyStreamJson(data, res.ok);
-    if (!parsed?.file) return { hasFile: false, subtitleTracks: 0 };
-
-    return {
-      hasFile: true,
-      file: parsed.file,
-      subtitleTracks: countSubtitleTracks(parsed.tracks),
-      multiAudio: Boolean(
+    return probeResultFromPayload(
+      parsed,
+      Boolean(
         (data as Record<string, unknown>).multiAudio ??
           (data as Record<string, unknown>).dualAudio ??
           (data as Record<string, unknown>).hasMultiAudio,
       ),
-    };
+    );
   } catch {
     return { hasFile: false, subtitleTracks: 0 };
   }
+}
+
+/** OR-merge provider maps so a failed direct probe cannot wipe a good /servers hit. */
+function mergeProviderCapabilityMaps(
+  ...maps: Array<Partial<Record<KittyProvider, StreamCapabilities>> | undefined>
+): Partial<Record<KittyProvider, StreamCapabilities>> {
+  const out: Partial<Record<KittyProvider, StreamCapabilities>> = {};
+  for (const map of maps) {
+    if (!map) continue;
+    for (const key of Object.keys(map) as KittyProvider[]) {
+      const caps = map[key];
+      if (!caps) continue;
+      const prev = out[key];
+      out[key] = prev ? mergeStreamCapabilities(prev, caps) : caps;
+    }
+  }
+  return out;
 }
 
 async function probeDirectProviderCapabilities(
@@ -158,7 +212,9 @@ async function probeDirectProviderCapabilities(
   return caps;
 }
 
-const DIRECT_PROBE_PROVIDERS = [...KITTY_PROVIDERS];
+const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(
+  (p) => !MULTI_SERVER_PROBE_PROVIDERS.has(p),
+);
 
 const FEATURED_DIRECT_PROBE_PROVIDERS = DIRECT_PROBE_PROVIDERS.filter(
   (p) => getKittyProviderMeta(p).group === "featured",
@@ -222,7 +278,11 @@ export async function fetchFeaturedEpisodeStreamCapabilities(
     probeDirectProviderBatch(FEATURED_DIRECT_PROBE_PROVIDERS, anilistId, episode, title),
   ]);
 
-  return mergeEpisodeStreamCapabilities(multi, { providers: featuredDirect });
+  const providers = mergeProviderCapabilityMaps(multi.providers, featuredDirect);
+  return mergeEpisodeStreamCapabilities(
+    { ...multi, providers: {} },
+    { providers },
+  );
 }
 
 /** Remaining non-featured direct providers. */

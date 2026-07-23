@@ -958,7 +958,7 @@ const VideoPlayerSection = () => {
   const streamReady = hasStreamFile && !streamStale && audioMatchesRequest;
   const streamPending = streamQueryEnabled && (isLoading || (isFetching && !streamReady));
   const showStreamLoading = streamQueryEnabled && !streamReady && streamPending;
-  const loadingStuck = useStreamLoadingStuck(showStreamLoading, 14_000);
+  const loadingStuck = useStreamLoadingStuck(showStreamLoading, 8_000);
 
   const togglePip = useCallback(() => {
     const video = playerRef.current?.video;
@@ -1423,17 +1423,24 @@ const VideoPlayerSection = () => {
     attemptProviderFallback,
   ]);
 
-  // Still spinning with no file — don't wait for the full 45s client timeout.
+  // Still spinning with no file — don't wait for the full client timeout.
   useEffect(() => {
     if (!loadingStuck || !showStreamLoading || streamReady) return;
-    if (!providerAutoFallback) return;
-    // Auto race already probes multiple nodes — switch providers instead of re-racing.
-    if (streamKittyNode === "auto") {
+    if (providerAutoFallback) {
+      // Auto race already probes multiple nodes — switch providers instead of re-racing.
+      if (streamKittyNode === "auto") {
+        attemptProviderFallback();
+        return;
+      }
+      if (attemptNodeFailover()) return;
       attemptProviderFallback();
       return;
     }
-    if (attemptNodeFailover()) return;
-    attemptProviderFallback();
+    // Manual provider picks: still try another CDN node once so a hung peer
+    // doesn't leave a silent skeleton until the 22s client abort.
+    if (streamKittyNode !== "auto") {
+      attemptNodeFailover();
+    }
   }, [
     loadingStuck,
     showStreamLoading,

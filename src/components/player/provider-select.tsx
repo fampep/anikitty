@@ -23,6 +23,7 @@ import { getPreferredDefaultProvider } from "@/lib/kitty/provider-order";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import {
   providerCapabilityBadges,
+  resolveProviderBadgeCaps,
 } from "@/lib/kitty/provider-picker-utils";
 import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
 import { getProviderAccent, providerPillClass as providerPillAccentClass } from "@/lib/kitty/provider-ui-styles";
@@ -310,7 +311,7 @@ export function ProviderGrid({
 
         const providerPills = visibleItems.map((p) => {
           const isActive = provider === p.id && audioMode === mode;
-          const rowCaps = streamCaps?.providers?.[p.id] ?? null;
+          const rowCaps = resolveProviderBadgeCaps(streamCaps, p.id);
           const badges = providerCapabilityBadges(rowCaps);
 
           return (
