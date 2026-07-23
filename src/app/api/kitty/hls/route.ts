@@ -139,6 +139,29 @@ function buildProxyUrl(
   );
 }
 
+/**
+ * Keep nested KittyAPI `/proxy` playlist lines on the same node origin that
+ * successfully served the parent playlist. KittyAPI rewrites with
+ * PROXY_PUBLIC_ORIGIN (CF hostname); Coolify fetching those nested CF URLs
+ * often gets sticky 502 HTML while the IP-pinned master hop worked.
+ */
+function pinKittyProxyToParentOrigin(childUrl: string, parentProxyUrl: string): string {
+  try {
+    const parent = new URL(parentProxyUrl);
+    const child = new URL(childUrl);
+    const parentPath = parent.pathname.replace(/\/+$/, "") || "/";
+    const childPath = child.pathname.replace(/\/+$/, "") || "/";
+    if (parentPath !== "/proxy" && !parentPath.endsWith("/proxy")) return childUrl;
+    if (childPath !== "/proxy" && !childPath.endsWith("/proxy")) return childUrl;
+    if (parent.host === child.host && parent.protocol === child.protocol) return childUrl;
+    child.protocol = parent.protocol;
+    child.host = parent.host;
+    return child.toString();
+  } catch {
+    return childUrl;
+  }
+}
+
 function rewriteUriInTag(
   line: string,
   manifestUrl: string,
@@ -147,14 +170,23 @@ function rewriteUriInTag(
   cookie: string,
   sessionId: string,
   cast: boolean,
+  parentProxyUrl?: string,
 ): string {
   const base = new URL(manifestUrl);
+
+  const wrap = (abs: string) => {
+    const pinned =
+      parentProxyUrl && abs.includes("/proxy?")
+        ? pinKittyProxyToParentOrigin(abs, parentProxyUrl)
+        : abs;
+    return buildProxyUrl(pinned, referer, origin, cookie, sessionId, cast);
+  };
 
   return line
     .replace(/URI="([^"]+)"/gi, (_, uri) => {
       try {
         const abs = absolutizePlaylistUri(uri, base);
-        return `URI="${buildProxyUrl(abs, referer, origin, cookie, sessionId, cast)}"`;
+        return `URI="${wrap(abs)}"`;
       } catch {
         return `URI="${uri}"`;
       }
@@ -162,7 +194,7 @@ function rewriteUriInTag(
     .replace(/URI='([^']+)'/gi, (_, uri) => {
       try {
         const abs = absolutizePlaylistUri(uri, base);
-        return `URI='${buildProxyUrl(abs, referer, origin, cookie, sessionId, cast)}'`;
+        return `URI='${wrap(abs)}'`;
       } catch {
         return `URI='${uri}'`;
       }
@@ -177,6 +209,7 @@ function rewriteManifest(
   cookie: string,
   sessionId: string,
   cast: boolean,
+  parentProxyUrl?: string,
 ): string {
   const base = new URL(manifestUrl);
 
@@ -196,13 +229,17 @@ function rewriteManifest(
           cookie,
           sessionId,
           cast,
+          parentProxyUrl,
         );
       }
 
       try {
         // Absolute KittyAPI /proxy lines: wrap as-is (never re-join against CDN).
         if (/^https?:\/\//i.test(trimmed) && trimmed.includes("/proxy?")) {
-          return buildProxyUrl(trimmed, referer, origin, cookie, sessionId, cast);
+          const pinned = parentProxyUrl
+            ? pinKittyProxyToParentOrigin(trimmed, parentProxyUrl)
+            : trimmed;
+          return buildProxyUrl(pinned, referer, origin, cookie, sessionId, cast);
         }
         const abs = absolutizePlaylistUri(trimmed, base);
         return buildProxyUrl(abs, referer, origin, cookie, sessionId, cast);
@@ -380,6 +417,7 @@ export async function GET(req: Request) {
         cookie,
         sessionId,
         cast,
+        mediaUrl,
       );
       return new Response(rewritten, {
         status: 200,
@@ -489,6 +527,7 @@ export async function GET(req: Request) {
         cookie,
         sessionId,
         cast,
+        mediaUrl,
       );
       return new Response(rewritten, {
         status: 200,
@@ -531,6 +570,7 @@ export async function GET(req: Request) {
       cookie,
       sessionId,
       cast,
+      mediaUrl,
     );
     return new Response(rewritten, {
       status: 200,
