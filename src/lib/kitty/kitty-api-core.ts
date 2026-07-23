@@ -39,8 +39,8 @@ export function isKittyPublicPath(path: string): boolean {
 }
 
 /**
- * Signed KittyAPI media proxy (`/proxy?token=…` or `/proxy?url=…`).
- * Auth is embedded in the query string — never send Bearer / X-API-Key on these.
+ * KittyAPI media proxy path (`/proxy?url=…&sig=…` or relative `/proxy?…`).
+ * Browser clients never call this directly — AniKitty `/api/kitty/hls` does.
  */
 export function isKittySignedProxyPath(pathOrUrl: string): boolean {
   try {
@@ -55,7 +55,46 @@ export function isKittySignedProxyPath(pathOrUrl: string): boolean {
   }
 }
 
+/**
+ * True when `url` is an absolute KittyAPI cluster `/proxy` media URL.
+ * Used so server-side HLS/subtitle fetches can attach `KITTY_API_KEY`.
+ */
+export function isKittyMediaProxyUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = trimmed.includes("://")
+      ? new URL(trimmed)
+      : new URL(trimmed, "https://kittyapi.local");
+    if (trimmed.includes("://") && !isKittyApiHost(parsed.hostname)) return false;
+    const pathOnly = parsed.pathname.replace(/\/+$/, "") || "/";
+    return pathOnly === "/proxy";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Merge KittyAPI auth into upstream headers when fetching a cluster `/proxy` URL.
+ * Server-only — never mint these into browser-visible playback URLs.
+ */
+export function withKittyProxyAuthHeaders(
+  targetUrl: string,
+  headers: Record<string, string>,
+): Record<string, string> {
+  if (!isKittyMediaProxyUrl(targetUrl)) return headers;
+  const auth = kittyAuthHeaders();
+  const next = { ...headers };
+  for (const [name, value] of Object.entries(auth)) {
+    if (value && !next[name]) next[name] = value;
+  }
+  return next;
+}
+
 function isKittyNoApiKeyPath(path: string): boolean {
+  // Benchmark/speedtest stay public. Media `/proxy` is signed *and* may carry
+  // server-side X-API-Key from AniKitty HLS — still skip auto-auth here so
+  // accidental browser/client fetches never attach the key via kittyApiFetch.
   return isKittyPublicPath(path) || isKittySignedProxyPath(path);
 }
 
@@ -302,7 +341,9 @@ export async function kittyApiFetch(
   throw lastError instanceof Error ? lastError : new Error("KittyAPI unreachable on all nodes");
 }
 
-/** API key headers for KittyAPI JSON routes (search, stream-direct, etc.) — not for signed `/proxy?token=…` playback URLs. */
+/** API key headers for KittyAPI JSON routes (search, stream-direct, etc.).
+ * Media `/proxy` playback goes through AniKitty `/api/kitty/hls`, which attaches
+ * {@link withKittyProxyAuthHeaders} server-side — never put the key in browser URLs. */
 export function kittyStreamHeaders(): HeadersInit {
   return kittyAuthHeaders();
 }

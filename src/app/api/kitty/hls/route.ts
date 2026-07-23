@@ -1,4 +1,5 @@
 import { isAllowedMediaProxyUrl } from "@/lib/security/security";
+import { withKittyProxyAuthHeaders } from "@/lib/kitty/kitty-api-core";
 import {
   HLS_SESSION_COOKIE,
   isAllowedHlsClientRequest,
@@ -238,11 +239,18 @@ export async function GET(req: Request) {
 
   const range = req.headers.get("range");
 
+  // When upstream is KittyAPI `/proxy?…`, attach KITTY_API_KEY server-side.
+  // Browser only ever sees `/api/kitty/hls?t=…` — the key never leaves Next.
+  const fetchHeaders = withKittyProxyAuthHeaders(
+    decoded,
+    upstreamHeaders(referer, origin, cookie, range) as Record<string, string>,
+  );
+
   let upstream: Response;
   try {
     upstream = await fetch(decoded, {
       cache: "no-store",
-      headers: upstreamHeaders(referer, origin, cookie, range),
+      headers: fetchHeaders,
       signal: AbortSignal.timeout(30_000),
     });
   } catch {

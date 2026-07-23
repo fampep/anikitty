@@ -1,4 +1,5 @@
 import { isAllowedMediaProxyUrl, sanitizeHeaderValue } from "@/lib/security/security";
+import { withKittyProxyAuthHeaders } from "@/lib/kitty/kitty-api-core";
 import { detectSubtitleFormat, subtitleContentType } from "@/lib/subtitles/subtitle-track-utils";
 import { sanitizeVttOrSrtContent } from "@/lib/subtitles/vtt-parse";
 
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
     const res = await fetch(url, {
       cache: "no-store",
       signal: AbortSignal.timeout(12_000),
-      headers,
+      headers: withKittyProxyAuthHeaders(url, headers),
     });
 
     if (!res.ok) {
