@@ -15,6 +15,14 @@ export function buildAvailableProviderSet(
   for (const [id, row] of Object.entries(caps.providers)) {
     if (supportsStreamAudioMode(row, audio)) {
       out.add(id as KittyProvider);
+      continue;
+    }
+    // MKissa provider-level caps can lag mirrors — treat any playable mirror as available.
+    if (id === "MKissa" && caps.mkissaServers) {
+      const mirrorHit = Object.values(caps.mkissaServers).some((m) =>
+        supportsStreamAudioMode(m, audio),
+      );
+      if (mirrorHit) out.add(id as KittyProvider);
     }
   }
   return out.size > 0 ? out : null;
@@ -36,8 +44,12 @@ export function isProviderAvailableForMode(
   caps: EpisodeStreamCapabilities | undefined,
 ): boolean {
   if (!caps?.providers) return true;
-  const row = caps.providers[provider];
-  if (!row) return false;
   const audio = mode === "dub" ? "dub" : "sub";
+  const row = caps.providers[provider];
+  if (row && supportsStreamAudioMode(row, audio)) return true;
+  if (provider === "MKissa" && caps.mkissaServers) {
+    return Object.values(caps.mkissaServers).some((m) => supportsStreamAudioMode(m, audio));
+  }
+  if (!row) return false;
   return supportsStreamAudioMode(row, audio);
 }

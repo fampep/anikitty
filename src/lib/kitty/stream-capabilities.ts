@@ -1,5 +1,4 @@
 import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
-import { isVideoVibProvider, videoVibStreamPaths } from "@/lib/kitty/videovib-provider";
 import {
   EMPTY_STREAM_CAPABILITIES,
   capabilitiesFromProbes,
@@ -27,12 +26,6 @@ export {
   type StreamCapabilityTarget,
 } from "@/lib/kitty/stream-capabilities-shared";
 import {
-  DEFAULT_LUNAR_SERVER,
-  isLunarServerId,
-  probeLunarServerCapabilities,
-  type LunarServerId,
-} from "@/lib/providers/lunar-api";
-import {
   isAllanimeMirrorId,
   probeAllanimeEpisodeCapabilities,
   type AllanimeKittyServer,
@@ -45,36 +38,8 @@ import {
   type AnisnatchServerId,
 } from "@/lib/providers/anisnatch-api";
 import {
-  DEFAULT_ANIMEX_SERVER,
-  isAnimexServerId,
-  probeAnimexServerCapabilities,
-  type AnimexServerId,
-} from "@/lib/providers/animex-api";
-import {
-  DEFAULT_ANIMO_SERVER,
-  isAnimoServerId,
-  probeAnimoServerCapabilities,
-  type AnimoServerId,
-} from "@/lib/providers/animo-api";
-import {
-  DEFAULT_MIRURO_PIPE_PROVIDER,
-  isMiruroPipeProviderId,
-  probeMiruroEpisodeCapabilities,
-  probeMiruroPipeCapabilities,
-  type MiruroPipeProviderId,
-} from "@/lib/providers/miruro-api";
-import {
-  probeAnimexEpisodeCapabilities,
-} from "@/lib/providers/animex-api";
-import {
   probeAnisnatchEpisodeCapabilities,
 } from "@/lib/providers/anisnatch-api";
-import {
-  probeLunarEpisodeCapabilities,
-} from "@/lib/providers/lunar-api";
-import {
-  probeAnimoEpisodeCapabilities,
-} from "@/lib/providers/animo-api";
 import {
   isKittyProvider,
   KITTY_PROVIDERS,
@@ -90,8 +55,15 @@ const EMPTY_MULTI_SERVER_FIELDS = {
   mkissaServerRows: [] as AllanimeKittyServer[],
 };
 
-const PROBE_TIMEOUT_MS = 4_000;
+const PROBE_TIMEOUT_MS = 16_000;
 const DIRECT_PROBE_CONCURRENCY = 6;
+
+/** Providers that often only succeed on non-primary KittyAPI nodes. */
+const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>([
+  "AniWaves",
+  "AniWatch",
+  "AniSnatch",
+]);
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -133,50 +105,43 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
-  const paths = isVideoVibProvider(provider)
-    ? videoVibStreamPaths({ anilistId, episode, audio, title })
-    : [
-        buildKittyStreamDirectPath({
-          provider,
-          anilistId,
-          episode,
-          audio,
-          title,
-        }),
-      ];
+  const path = buildKittyStreamDirectPath({
+    provider,
+    anilistId,
+    episode,
+    audio,
+    title,
+  });
 
-  for (const path of paths) {
-    try {
-      const res = await kittyApiFetch(
-        path,
-        {
-          cache: "no-store",
-          signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-          headers: kittyStreamHeaders(),
-        },
-        { failover: false },
-      );
+  try {
+    const res = await kittyApiFetch(
+      path,
+      {
+        cache: "no-store",
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+        headers: kittyStreamHeaders(),
+      },
+      // AniWaves/Byse often only succeed on NL/CA — primary-only probes false-negative.
+      { failover: PROBE_FAILOVER_PROVIDERS.has(provider) },
+    );
 
-      const data = await res.json();
-      const parsed = parseKittyStreamJson(data, res.ok);
-      if (!parsed?.file) continue;
+    const data = await res.json();
+    const parsed = parseKittyStreamJson(data, res.ok);
+    if (!parsed?.file) return { hasFile: false, subtitleTracks: 0 };
 
-      return {
-        hasFile: true,
-        file: parsed.file,
-        subtitleTracks: countSubtitleTracks(parsed.tracks),
-        multiAudio: Boolean(
-          (data as Record<string, unknown>).multiAudio ??
-            (data as Record<string, unknown>).dualAudio ??
-            (data as Record<string, unknown>).hasMultiAudio,
-        ),
-      };
-    } catch {
-      continue;
-    }
+    return {
+      hasFile: true,
+      file: parsed.file,
+      subtitleTracks: countSubtitleTracks(parsed.tracks),
+      multiAudio: Boolean(
+        (data as Record<string, unknown>).multiAudio ??
+          (data as Record<string, unknown>).dualAudio ??
+          (data as Record<string, unknown>).hasMultiAudio,
+      ),
+    };
+  } catch {
+    return { hasFile: false, subtitleTracks: 0 };
   }
-
-  return { hasFile: false, subtitleTracks: 0 };
 }
 
 async function probeDirectProviderCapabilities(
@@ -208,29 +173,17 @@ async function probeMultiProviderEpisodeCapabilities(
   episode: number,
   title?: string | null,
 ) {
-  const [miruro, animex, anisnatch, lunar, mkissa, animo] = await Promise.all([
-    probeMiruroEpisodeCapabilities(anilistId, episode),
-    probeAnimexEpisodeCapabilities(anilistId, episode, title),
+  const [anisnatch, mkissa] = await Promise.all([
     probeAnisnatchEpisodeCapabilities(anilistId, episode, title),
-    probeLunarEpisodeCapabilities(anilistId, episode, title),
     probeAllanimeEpisodeCapabilities("MKissa", anilistId, episode, title),
-    probeAnimoEpisodeCapabilities(anilistId, episode, title),
   ]);
 
   return {
     providers: {
-      Miruro: miruro.provider,
-      Animex: animex.provider,
       AniSnatch: anisnatch.provider,
-      Lunar: lunar.provider,
       MKissa: mkissa.provider,
-      Animo: animo.provider,
     } satisfies Partial<Record<KittyProvider, StreamCapabilities>>,
-    miruroPipes: miruro.pipes,
-    animexServers: animex.servers,
-    animoServers: animo.servers,
     anisnatchServers: anisnatch.servers,
-    lunarServers: lunar.servers,
     allanimeServers: {},
     mkissaServers: mkissa.servers,
     allanimeServerRows: [],
@@ -309,58 +262,12 @@ export async function fetchActiveProviderStreamCapabilities(
 ): Promise<EpisodeStreamCapabilities> {
   const { provider } = target;
 
-  if (provider === "Miruro") {
-    const pipe = target.miruroPipe ?? DEFAULT_MIRURO_PIPE_PROVIDER;
-    const caps = await probeMiruroPipeCapabilities(anilistId, episode, pipe);
-    return {
-      providers: { Miruro: caps },
-      miruroPipes: { [pipe]: caps },
-      animexServers: {},
-      animoServers: {},
-      anisnatchServers: {},
-      lunarServers: {},
-      ...EMPTY_MULTI_SERVER_FIELDS,
-    };
-  }
-
-  if (provider === "Animex") {
-    const server = target.animexServer ?? DEFAULT_ANIMEX_SERVER;
-    const caps = await probeAnimexServerCapabilities(anilistId, episode, server);
-    return {
-      providers: { Animex: caps },
-      miruroPipes: {},
-      animexServers: { [server]: caps },
-      animoServers: {},
-      anisnatchServers: {},
-      lunarServers: {},
-      ...EMPTY_MULTI_SERVER_FIELDS,
-    };
-  }
-
   if (provider === "AniSnatch") {
     const server = target.anisnatchServer ?? DEFAULT_ANISNATCH_SERVER;
     const caps = await probeAnisnatchServerCapabilities(anilistId, episode, server, title);
     return {
       providers: { AniSnatch: caps },
-      miruroPipes: {},
-      animexServers: {},
-      animoServers: {},
       anisnatchServers: { [server]: caps },
-      lunarServers: {},
-      ...EMPTY_MULTI_SERVER_FIELDS,
-    };
-  }
-
-  if (provider === "Lunar") {
-    const server = target.lunarServer ?? DEFAULT_LUNAR_SERVER;
-    const caps = await probeLunarServerCapabilities(anilistId, episode, server, title);
-    return {
-      providers: { Lunar: caps },
-      miruroPipes: {},
-      animexServers: {},
-      animoServers: {},
-      anisnatchServers: {},
-      lunarServers: { [server]: caps },
       ...EMPTY_MULTI_SERVER_FIELDS,
     };
   }
@@ -374,11 +281,7 @@ export async function fetchActiveProviderStreamCapabilities(
     );
     return {
       providers: { MKissa: episodeCaps.provider },
-      miruroPipes: {},
-      animexServers: {},
-      animoServers: {},
       anisnatchServers: {},
-      lunarServers: {},
       allanimeServers: {},
       mkissaServers: episodeCaps.servers,
       allanimeServerRows: [],
@@ -386,28 +289,10 @@ export async function fetchActiveProviderStreamCapabilities(
     };
   }
 
-  if (provider === "Animo") {
-    const server = target.animoServer ?? DEFAULT_ANIMO_SERVER;
-    const caps = await probeAnimoServerCapabilities(anilistId, episode, server, title);
-    return {
-      providers: { Animo: caps },
-      miruroPipes: {},
-      animexServers: {},
-      animoServers: { [server]: caps },
-      anisnatchServers: {},
-      lunarServers: {},
-      ...EMPTY_MULTI_SERVER_FIELDS,
-    };
-  }
-
   const caps = await probeDirectProviderCapabilities(provider, anilistId, episode, title);
   return {
     providers: { [provider]: caps },
-    miruroPipes: {},
-    animexServers: {},
-    animoServers: {},
     anisnatchServers: {},
-    lunarServers: {},
     ...EMPTY_MULTI_SERVER_FIELDS,
   };
 }
@@ -418,29 +303,9 @@ export function parseStreamCapabilityTarget(searchParams: URLSearchParams): Stre
 
   const target: StreamCapabilityTarget = { provider };
 
-  const miruroPipe = searchParams.get("miruroPipe");
-  if (miruroPipe && isMiruroPipeProviderId(miruroPipe)) {
-    target.miruroPipe = miruroPipe;
-  }
-
-  const animexServer = searchParams.get("animexServer");
-  if (animexServer && isAnimexServerId(animexServer)) {
-    target.animexServer = animexServer;
-  }
-
-  const animoServer = searchParams.get("animoServer");
-  if (animoServer && isAnimoServerId(animoServer)) {
-    target.animoServer = animoServer;
-  }
-
   const anisnatchServer = searchParams.get("anisnatchServer");
   if (anisnatchServer && isAnisnatchServerId(anisnatchServer)) {
     target.anisnatchServer = anisnatchServer;
-  }
-
-  const lunarServer = searchParams.get("lunarServer");
-  if (lunarServer && isLunarServerId(lunarServer)) {
-    target.lunarServer = lunarServer;
   }
 
   const mkissaMirror = searchParams.get("mkissaMirror");

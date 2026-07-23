@@ -20,6 +20,7 @@ import {
 } from "@/lib/kitty/kitty-providers";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import { providerCapabilityBadges } from "@/lib/kitty/provider-picker-utils";
+import { mergeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
 import { Captions, Mic, Server, Zap } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
@@ -113,7 +114,16 @@ export default function WatchSimpleProviderRow({
                     : t("watch.providerGroupOther")}
                 </SelectLabel>
                 {items.map((p) => {
-                  const badges = providerCapabilityBadges(streamCaps?.providers?.[p.id] ?? null);
+                  const providerCaps = streamCaps?.providers?.[p.id] ?? null;
+                  const mkissaCaps =
+                    p.id === "MKissa" && streamCaps?.mkissaServers
+                      ? mergeStreamCapabilities(...Object.values(streamCaps.mkissaServers))
+                      : null;
+                  const badges = providerCapabilityBadges(
+                    providerCaps && (providerCaps.sub || providerCaps.dub)
+                      ? providerCaps
+                      : (mkissaCaps ?? providerCaps),
+                  );
                   return (
                     <SelectItem
                       key={p.id}

@@ -85,6 +85,23 @@ function resolveRewriteBase(decoded: string): string {
   return decoded;
 }
 
+/**
+ * Absolutize a playlist URI. WHATWG `new URL(relative, base)` drops the base
+ * query string when the relative has none — Byse/SprintCDN put auth on the
+ * master URL only, so we copy it onto bare relatives.
+ */
+function absolutizePlaylistUri(raw: string, base: URL): string {
+  const t = raw.trim();
+  if (!t) return t;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (t.startsWith("//")) return `${base.protocol}${t}`;
+  const abs = new URL(t, base);
+  if (!abs.search && base.search && !t.includes("?")) {
+    abs.search = base.search;
+  }
+  return abs.toString();
+}
+
 function fixSegmentContentType(url: string, contentType: string): string {
   const ct = contentType.toLowerCase();
   if (!isSpoofedMediaContentType(ct)) {
@@ -136,7 +153,7 @@ function rewriteUriInTag(
   return line
     .replace(/URI="([^"]+)"/gi, (_, uri) => {
       try {
-        const abs = new URL(uri, base).toString();
+        const abs = absolutizePlaylistUri(uri, base);
         return `URI="${buildProxyUrl(abs, referer, origin, cookie, sessionId, cast)}"`;
       } catch {
         return `URI="${uri}"`;
@@ -144,7 +161,7 @@ function rewriteUriInTag(
     })
     .replace(/URI='([^']+)'/gi, (_, uri) => {
       try {
-        const abs = new URL(uri, base).toString();
+        const abs = absolutizePlaylistUri(uri, base);
         return `URI='${buildProxyUrl(abs, referer, origin, cookie, sessionId, cast)}'`;
       } catch {
         return `URI='${uri}'`;
@@ -183,7 +200,11 @@ function rewriteManifest(
       }
 
       try {
-        const abs = new URL(trimmed, base).toString();
+        // Absolute KittyAPI /proxy lines: wrap as-is (never re-join against CDN).
+        if (/^https?:\/\//i.test(trimmed) && trimmed.includes("/proxy?")) {
+          return buildProxyUrl(trimmed, referer, origin, cookie, sessionId, cast);
+        }
+        const abs = absolutizePlaylistUri(trimmed, base);
         return buildProxyUrl(abs, referer, origin, cookie, sessionId, cast);
       } catch {
         return line;
@@ -358,6 +379,16 @@ export async function GET(req: Request) {
 
     const nested = extractSingleNestedMediaUrl(peek, rewriteBase);
     if (!nested || !isAllowedMediaProxyUrl(nested)) {
+      // Advertised as m3u8 but body is HTML/garbage (Byse auth miss) — fail
+      // closed so the player can fall back instead of feeding proxy-wrapped HTML.
+      const looksHtml =
+        peek.startsWith("<!DOCTYPE") ||
+        peek.startsWith("<!doctype") ||
+        peek.startsWith("<html") ||
+        (peek.startsWith("https://") && peek.includes("/proxy?"));
+      if (treatAsPlaylist && looksHtml) {
+        return new Response("upstream playlist unavailable", { status: 502 });
+      }
       // Not a playlist — serve bytes as media (often mis-tagged Echo MP4).
       const segmentType = contentTypeForBufferedMedia(rewriteBase, contentType, buffer);
       const segmentHeaders = corsHeaders(segmentType, cast);
