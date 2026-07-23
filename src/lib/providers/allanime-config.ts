@@ -18,17 +18,18 @@ export const ALLANIME_MIRRORS = [
 ] as const;
 
 export const MKISSA_MIRRORS = [
+  { id: "Mp4", label: "Beam" },
   { id: "Ok", label: "Ridge" },
   { id: "Default", label: "Peak" },
   { id: "Uni", label: "Span" },
-  { id: "Mp4", label: "Beam" },
   { id: "Luf-Mp4", label: "Crest" },
   { id: "Sl-mp4", label: "Glide" },
   { id: "Ss-Hls", label: "Flow" },
 ] as const;
 
 export const DEFAULT_ALLANIME_MIRROR: AllanimeMirrorId = "Default";
-export const DEFAULT_MKISSA_MIRROR: AllanimeMirrorId = "Ok";
+/** Prefer progressive Mp4 — Ok often advertises `.m3u8` but isn't a playable playlist. */
+export const DEFAULT_MKISSA_MIRROR: AllanimeMirrorId = "Mp4";
 
 export const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
 

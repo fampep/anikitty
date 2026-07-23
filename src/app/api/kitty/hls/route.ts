@@ -23,6 +23,44 @@ function isSpoofedMediaContentType(ct: string): boolean {
   return lower.startsWith("image/") || lower.includes("text/html") || lower.includes("text/plain");
 }
 
+/** Bare nested media URL returned instead of a real `#EXTM3U` playlist body. */
+function extractSingleNestedMediaUrl(body: string, baseUrl: string): string | null {
+  const lines = body
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
+  if (lines.length !== 1) return null;
+  const only = lines[0]!;
+  try {
+    const abs = new URL(only, baseUrl).toString();
+    if (!/^https?:\/\//i.test(abs)) return null;
+    return abs;
+  } catch {
+    return null;
+  }
+}
+
+function looksLikeMp4Buffer(buf: ArrayBuffer): boolean {
+  if (buf.byteLength < 12) return false;
+  const bytes = new Uint8Array(buf);
+  // ....ftyp
+  return (
+    bytes[4] === 0x66 &&
+    bytes[5] === 0x74 &&
+    bytes[6] === 0x79 &&
+    bytes[7] === 0x70
+  );
+}
+
+function contentTypeForBufferedMedia(
+  rewriteBase: string,
+  contentType: string,
+  buffer: ArrayBuffer,
+): string {
+  if (looksLikeMp4Buffer(buffer)) return "video/mp4";
+  return fixSegmentContentType(rewriteBase, contentType);
+}
+
 /**
  * When upstream is an Anikoto `/proxy?url=…` URL, resolve relative playlist
  * paths against the real CDN URL — not the proxy host.
@@ -252,33 +290,101 @@ export async function GET(req: Request) {
       cache: "no-store",
       headers: fetchHeaders,
       signal: AbortSignal.timeout(30_000),
+      redirect: "follow",
     });
   } catch {
     return new Response("upstream fetch failed", { status: 502 });
+  }
+
+  // KittyAPI /proxy used to return bare 301 for wixstatic; follow once if needed.
+  if (
+    [301, 302, 303, 307, 308].includes(upstream.status) &&
+    upstream.headers.get("location")
+  ) {
+    try {
+      const loc = new URL(upstream.headers.get("location")!, decoded).toString();
+      if (isAllowedMediaProxyUrl(loc)) {
+        upstream = await fetch(loc, {
+          cache: "no-store",
+          headers: fetchHeaders,
+          signal: AbortSignal.timeout(30_000),
+          redirect: "follow",
+        });
+      }
+    } catch {
+      return new Response("upstream redirect failed", { status: 502 });
+    }
   }
 
   if (!upstream.ok && upstream.status !== 206) {
     return new Response(`upstream ${upstream.status}`, { status: upstream.status });
   }
 
-  const contentType = upstream.headers.get("content-type") ?? "";
-  const rewriteBase = resolveRewriteBase(decoded);
+  let contentType = upstream.headers.get("content-type") ?? "";
+  let rewriteBase = resolveRewriteBase(decoded);
+  let mediaUrl = decoded;
 
-  if (isM3u8ByUrl(decoded) || isM3u8ByContentType(contentType)) {
-    const text = await upstream.text();
-    const rewritten = rewriteManifest(
-      text,
-      rewriteBase,
-      referer,
-      origin,
-      cookie,
-      sessionId,
-      cast,
+  /**
+   * Echo/MKissa "Ok" (and some clock.json links) advertise `.m3u8` but upstream
+   * sometimes returns a bare nested URL or progressive MP4. Blindly rewriting
+   * that body as a playlist yields a single `/api/kitty/hls?t=…` line with no
+   * `#EXTM3U` — hls.js fails and the UI looks like Echo is broken.
+   */
+  const maxNestedUrlHops = 3;
+  for (let hop = 0; hop < maxNestedUrlHops; hop++) {
+    const treatAsPlaylist =
+      isM3u8ByUrl(mediaUrl) || isM3u8ByContentType(contentType);
+    if (!treatAsPlaylist) break;
+
+    const buffer = await upstream.arrayBuffer();
+    const text = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+    const peek = text.trimStart();
+
+    if (peek.startsWith("#EXTM3U")) {
+      const rewritten = rewriteManifest(
+        text,
+        rewriteBase,
+        referer,
+        origin,
+        cookie,
+        sessionId,
+        cast,
+      );
+      return new Response(rewritten, {
+        status: 200,
+        headers: corsHeaders("application/vnd.apple.mpegurl", cast),
+      });
+    }
+
+    const nested = extractSingleNestedMediaUrl(peek, rewriteBase);
+    if (!nested || !isAllowedMediaProxyUrl(nested)) {
+      // Not a playlist — serve bytes as media (often mis-tagged Echo MP4).
+      const segmentType = contentTypeForBufferedMedia(rewriteBase, contentType, buffer);
+      const segmentHeaders = corsHeaders(segmentType, cast);
+      const status = upstream.status === 206 ? 206 : 200;
+      return new Response(buffer, { status, headers: segmentHeaders });
+    }
+
+    mediaUrl = nested;
+    rewriteBase = resolveRewriteBase(nested);
+    const nestedHeaders = withKittyProxyAuthHeaders(
+      nested,
+      upstreamHeaders(referer, origin, cookie, range) as Record<string, string>,
     );
-    return new Response(rewritten, {
-      status: 200,
-      headers: corsHeaders("application/vnd.apple.mpegurl", cast),
-    });
+    try {
+      upstream = await fetch(nested, {
+        cache: "no-store",
+        headers: nestedHeaders,
+        signal: AbortSignal.timeout(30_000),
+        redirect: "follow",
+      });
+    } catch {
+      return new Response("upstream nested fetch failed", { status: 502 });
+    }
+    if (!upstream.ok && upstream.status !== 206) {
+      return new Response(`upstream ${upstream.status}`, { status: upstream.status });
+    }
+    contentType = upstream.headers.get("content-type") ?? "";
   }
 
   const segmentType = fixSegmentContentType(rewriteBase, contentType);
@@ -294,9 +400,9 @@ export async function GET(req: Request) {
   const status = upstream.status === 206 ? 206 : 200;
   const likelyMediaSegment =
     !isSpoofedMediaContentType(contentType) &&
-    (decoded.includes(".ts") ||
-      decoded.includes(".mp4") ||
-      decoded.includes(".m4s") ||
+    (mediaUrl.includes(".ts") ||
+      mediaUrl.includes(".mp4") ||
+      mediaUrl.includes(".m4s") ||
       contentType.includes("video") ||
       contentType.includes("octet-stream"));
 

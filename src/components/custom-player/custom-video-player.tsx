@@ -2146,14 +2146,11 @@ export function AniKittyPlayer({
         }
 
         // Mis-detected progressive (often Echo MP4 behind `/api/kitty/hls?t=`): soft-fall back once.
+        // Still try when `f=m3u8` was minted incorrectly — Ok/clock links are frequently mis-tagged.
         const looksManifestFail =
           data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
           data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR;
-        if (
-          looksManifestFail &&
-          !progressiveFallbackTried &&
-          !isHlsStreamUrl(activeSrc)
-        ) {
+        if (looksManifestFail && !progressiveFallbackTried) {
           progressiveFallbackTried = true;
           hls?.destroy();
           hls = null;
