@@ -203,24 +203,17 @@ async function fetchRecentAnimeList(url: string): Promise<SearchHit[]> {
     .filter((row): row is SearchHit => row != null);
 }
 
-/** Resolve catalog id via AniList / MAL ids (official Anikoto API). */
+/** Resolve catalog id via AniList id only (official Anikoto API). */
 async function lookupCatalogByIds(
   anilistId: number,
-  malId?: number | null,
+  _malId?: number | null,
 ): Promise<SearchHit | null> {
   const urls = [`${ANIKOTO_API_BASE}/recent-anime?ani_id=${anilistId}`];
-  if (malId && malId > 0) {
-    urls.push(`${ANIKOTO_API_BASE}/recent-anime?mal_id=${malId}`);
-  }
 
   for (const url of urls) {
     const hits = await fetchRecentAnimeList(url);
     // Unmatched queries often return the generic "recent" feed — never take hits[0].
-    const match = hits.find(
-      (hit) =>
-        hit.anilistId === anilistId ||
-        (malId != null && malId > 0 && hit.malId === malId),
-    );
+    const match = hits.find((hit) => hit.anilistId === anilistId);
     if (match) return match;
   }
   return null;
@@ -256,15 +249,10 @@ async function fetchSeriesAnime(catalogId: number): Promise<SeriesAnime | null> 
 function idsMatch(
   series: SeriesAnime,
   anilistId: number,
-  malId?: number | null,
+  _malId?: number | null,
 ): boolean {
   const ani = parseInt(String(series.ani_id ?? ""), 10);
-  if (ani === anilistId) return true;
-  if (malId && malId > 0) {
-    const mal = parseInt(String(series.mal_id ?? ""), 10);
-    if (mal === malId) return true;
-  }
-  return false;
+  return ani === anilistId;
 }
 
 function countsFromSeries(series: SeriesAnime, fallbackSub: number): FetchResult {
@@ -479,8 +467,8 @@ export async function getAnikotoSeriesSchedule(opts: {
     const episodeRows: Array<{ number?: number; title?: string; jp_title?: string }> =
       json?.data?.episodes ?? json?.episodes ?? [];
     if (!anime) return null;
-    // Reject catalog rows that don't actually belong to this AniList/MAL id.
-    if (!idsMatch(anime, opts.anilistId, opts.malId)) return null;
+    // Reject catalog rows that don't belong to this AniList id.
+    if (!idsMatch(anime, opts.anilistId)) return null;
 
     const episodesByNumber = new Map<number, AnikotoCatalogEpisode>();
     for (const ep of episodeRows) {

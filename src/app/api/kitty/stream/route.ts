@@ -39,24 +39,6 @@ import {
   type AnisnatchServerId,
 } from "@/lib/providers/anisnatch-api";
 import {
-  DEFAULT_ANIMEX_SERVER,
-  fetchAnimexVideoStream,
-  isAnimexServerId,
-  type AnimexServerId,
-} from "@/lib/providers/animex-api";
-import {
-  DEFAULT_ANIMO_SERVER,
-  fetchAnimoVideoStream,
-  isAnimoServerId,
-  type AnimoServerId,
-} from "@/lib/providers/animo-api";
-import {
-  DEFAULT_LUNAR_SERVER,
-  fetchLunarVideoStream,
-  isLunarServerId,
-  type LunarServerId,
-} from "@/lib/providers/lunar-api";
-import {
   handleKittyApiRequest,
   getKittyRequestNodeId,
   withKittyApiNodeAsync,
@@ -88,12 +70,7 @@ import {
   providerHasNativeSubs,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
-import {
-  DEFAULT_MIRURO_PIPE_PROVIDER,
-  fetchMiruroVideoStream,
-  isMiruroPipeProviderId,
-  type MiruroSkipTimes,
-} from "@/lib/providers/miruro-api";
+import type { MiruroSkipTimes } from "@/lib/providers/miruro-types";
 import {
   getTrackFile,
   isSubtitleTrack,
@@ -108,12 +85,8 @@ import { KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
 import { isLikelyMediaStreamUrl } from "@/lib/kitty/stream-url-guard";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
-const SAFE_PIPE = /^[a-z]{2,12}$/;
-const SAFE_ANIMEX_SERVER = /^[a-z]{2,12}$/;
 const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
-const SAFE_LUNAR_SERVER = /^[a-z0-9-]{2,12}$/;
 const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
-const SAFE_ANIMO_SERVER = /^hd-[1-3]$/;
 const SAFE_ANIKURO_SERVER = /^[a-z0-9-]{2,16}$/;
 const SAFE_ANIWAVES_SERVER = /^[0-9]{1,3}$/;
 const SAFE_ANINEKO_SERVER = /^hd-[1-3]$/;
@@ -124,7 +97,7 @@ const MAX_TITLE_LEN = 200;
  * Providers with their own race / mirror wiring — skip the shared auto race.
  * Everyone else races `stream-direct` across static-IP nodes when kittyNode=auto.
  */
-const STREAM_RACE_SKIP = new Set<string>(["Miruro"]);
+const STREAM_RACE_SKIP = new Set<string>();
 
 /**
  * After an auto race misses, still try dedicated linkId/servers/mirrors.
@@ -133,11 +106,7 @@ const STREAM_RACE_SKIP = new Set<string>(["Miruro"]);
 const STREAM_DEDICATED_AFTER_RACE = new Set<string>([
   "MKissa",
   "Anikoto",
-  "MegaPlay",
-  "Animex",
   "AniSnatch",
-  "Lunar",
-  "Animo",
   "AniKuro",
   "AniWaves",
 ]);
@@ -148,7 +117,6 @@ type StreamPayload = {
   tracks?: StreamTrack[];
   allServers?: KittyStreamQuality[];
   skipTimes?: MiruroSkipTimes;
-  miruroPipe?: string;
   server?: string | null;
   download?: string | null;
   /** Storyboard WebVTT URL (ReAnime `thumbnails` / FlixCloud `thumbnails_vtt`). */
@@ -184,15 +152,11 @@ export async function GET(req: Request) {
     searchParams.get("provider") || DEFAULT_KITTY_PROVIDER,
   );
   const preferHardSub = searchParams.get("preferHardSub") === "true";
-  const miruroPipeParam = searchParams.get("miruroPipe");
-  const animexServerParam = searchParams.get("animexServer");
   const anisnatchServerParam = searchParams.get("anisnatchServer");
-  const lunarServerParam = searchParams.get("lunarServer");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const anikuroServerParam = searchParams.get("anikuroServer");
   const aniwavesServerParam = searchParams.get("aniwavesServer");
   const aninekoServerParam = searchParams.get("aninekoServer");
-  const animoServerParam = searchParams.get("animoServer");
   const linkIdParam = searchParams.get("linkId")?.trim() || undefined;
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
   const refreshStream =
@@ -217,22 +181,6 @@ export async function GET(req: Request) {
     audio: audio as "sub" | "dub",
   };
 
-  const miruroPipe =
-    miruroPipeParam && SAFE_PIPE.test(miruroPipeParam) && isMiruroPipeProviderId(miruroPipeParam)
-      ? miruroPipeParam
-      : provider === "Miruro"
-        ? DEFAULT_MIRURO_PIPE_PROVIDER
-        : null;
-
-  const animexServer =
-    animexServerParam &&
-    SAFE_ANIMEX_SERVER.test(animexServerParam) &&
-    isAnimexServerId(animexServerParam)
-      ? animexServerParam
-      : provider === "Animex"
-        ? DEFAULT_ANIMEX_SERVER
-        : null;
-
   const anisnatchServer =
     anisnatchServerParam &&
     SAFE_ANISNATCH_SERVER.test(anisnatchServerParam) &&
@@ -240,15 +188,6 @@ export async function GET(req: Request) {
       ? anisnatchServerParam
       : provider === "AniSnatch"
         ? DEFAULT_ANISNATCH_SERVER
-        : null;
-
-  const lunarServer =
-    lunarServerParam &&
-    SAFE_LUNAR_SERVER.test(lunarServerParam) &&
-    isLunarServerId(lunarServerParam)
-      ? lunarServerParam
-      : provider === "Lunar"
-        ? DEFAULT_LUNAR_SERVER
         : null;
 
   const mkissaMirror =
@@ -287,15 +226,6 @@ export async function GET(req: Request) {
         ? DEFAULT_ANINEKO_SERVER
         : null;
 
-  const animoServer =
-    animoServerParam &&
-    SAFE_ANIMO_SERVER.test(animoServerParam) &&
-    isAnimoServerId(animoServerParam)
-      ? animoServerParam
-      : provider === "Animo"
-        ? DEFAULT_ANIMO_SERVER
-        : null;
-
   async function finalizeStreamResponse(
     data: StreamPayload,
     providerName: KittyProvider,
@@ -321,9 +251,6 @@ export async function GET(req: Request) {
           resolved: resolveKittyStreamUrl(entry.file, nodeId),
         }))
         .filter((entry) => entry.resolved.trim())
-        .filter(
-          (entry) => providerName !== "AniDB" || isKittyProxiedUrl(entry.resolved),
-        )
         .map((entry) => ({
           quality: entry.quality,
           file: mintKittyHlsProxyUrl(entry.resolved, streamHeaders, mintOpts),
@@ -834,131 +761,6 @@ export async function GET(req: Request) {
     }
   }
 
-  if (provider === "Miruro") {
-    try {
-      let miruroWonNode: KittyApiNodeId | undefined;
-      let miruroRaceMs: number | undefined;
-      const miruroAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          if (raceMode) {
-            const raced = await raceKittyProviderStream(
-              {
-                provider: "Miruro",
-                anilistId: subtitleCtx.anilistId,
-                episode: subtitleCtx.episode,
-                audio: streamAudio,
-                title: titleParam,
-                directOnly: true,
-              },
-              raceCandidates,
-            );
-            if (raced?.stream?.file) {
-              miruroWonNode = raced.nodeId;
-              miruroRaceMs = raced.raceMs;
-              return {
-                file: raced.stream.file,
-                headers: raced.stream.headers,
-                tracks: raced.stream.tracks,
-                allServers: raced.stream.allServers,
-                download: raced.stream.download,
-                server: raced.stream.server,
-              };
-            }
-          } else {
-            const direct = await fetchKittyProviderStream({
-              provider: "Miruro",
-              anilistId: subtitleCtx.anilistId,
-              episode: subtitleCtx.episode,
-              audio: streamAudio,
-              title: titleParam,
-              directOnly: true,
-            });
-
-            if (direct?.file) {
-              return {
-                file: direct.file,
-                headers: direct.headers,
-                tracks: direct.tracks,
-                allServers: direct.allServers,
-                download: direct.download,
-                server: direct.server,
-              };
-            }
-          }
-
-          const miruro = await fetchMiruroVideoStream({
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            pipeProvider: miruroPipe,
-          });
-
-          if (!miruro?.file) return null;
-
-          return {
-            file: miruro.file,
-            headers: miruro.headers,
-            tracks: miruro.tracks,
-            skipTimes: miruro.skipTimes,
-            miruroPipe: miruro.provider,
-            download: miruro.download,
-          };
-        },
-      );
-
-      const miruroResponse = await respondWithStream(
-        miruroAttempt.result,
-        "Miruro",
-        miruroAttempt.servedAudio,
-        miruroAttempt.audioFallback,
-        miruroWonNode,
-        miruroRaceMs,
-      );
-      if (miruroResponse) return miruroResponse;
-    } catch (e) {
-      console.error("[kitty/stream] Miruro pipe failed:", e);
-    }
-  }
-
-  if (provider === "Animex") {
-    try {
-      const animexAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          const animex = await fetchAnimexVideoStream({
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            serverId: animexServer as AnimexServerId,
-            title: titleParam,
-          });
-
-          if (!animex?.file) return null;
-
-          return {
-            file: animex.file,
-            headers: animex.headers,
-            tracks: animex.tracks,
-            skipTimes: animex.skipTimes,
-            server: animex.server,
-            download: animex.download,
-          };
-        },
-      );
-
-      const animexResponse = await respondWithStream(
-        animexAttempt.result,
-        "Animex",
-        animexAttempt.servedAudio,
-        animexAttempt.audioFallback,
-      );
-      if (animexResponse) return animexResponse;
-    } catch (e) {
-      console.error("[kitty/stream] Animex server failed:", e);
-    }
-  }
-
   if (provider === "AniSnatch") {
     try {
       const anisnatchAttempt = await fetchWithSubAudioFallback(
@@ -994,44 +796,6 @@ export async function GET(req: Request) {
       if (anisnatchResponse) return anisnatchResponse;
     } catch (e) {
       console.error("[kitty/stream] AniSnatch server failed:", e);
-    }
-  }
-
-  if (provider === "Lunar") {
-    try {
-      const lunarAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          const lunar = await fetchLunarVideoStream({
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            serverId: lunarServer as LunarServerId,
-            title: titleParam,
-          });
-
-          if (!lunar?.file) return null;
-
-          return {
-            file: lunar.file,
-            headers: lunar.headers,
-            tracks: lunar.tracks,
-            skipTimes: lunar.skipTimes,
-            server: lunar.server,
-            download: lunar.download,
-          };
-        },
-      );
-
-      const lunarResponse = await respondWithStream(
-        lunarAttempt.result,
-        "Lunar",
-        lunarAttempt.servedAudio,
-        lunarAttempt.audioFallback,
-      );
-      if (lunarResponse) return lunarResponse;
-    } catch (e) {
-      console.error("[kitty/stream] Lunar server failed:", e);
     }
   }
 
@@ -1112,44 +876,6 @@ export async function GET(req: Request) {
       if (mkissaResponse) return mkissaResponse;
     } catch (e) {
       console.error("[kitty/stream] MKissa mirror failed:", e);
-    }
-  }
-
-  if (provider === "Animo") {
-    try {
-      const animoAttempt = await fetchWithSubAudioFallback(
-        subtitleCtx.audio,
-        async (streamAudio) => {
-          const animo = await fetchAnimoVideoStream({
-            anilistId: subtitleCtx.anilistId,
-            episode: subtitleCtx.episode,
-            audio: streamAudio,
-            serverId: animoServer as AnimoServerId,
-            title: titleParam,
-          });
-
-          if (!animo?.file) return null;
-
-          return {
-            file: animo.file,
-            headers: animo.headers,
-            tracks: animo.tracks,
-            skipTimes: animo.skipTimes,
-            server: animo.server,
-            download: animo.download,
-          };
-        },
-      );
-
-      const animoResponse = await respondWithStream(
-        animoAttempt.result,
-        "Animo",
-        animoAttempt.servedAudio,
-        animoAttempt.audioFallback,
-      );
-      if (animoResponse) return animoResponse;
-    } catch (e) {
-      console.error("[kitty/stream] Animo server failed:", e);
     }
   }
 

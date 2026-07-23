@@ -4,51 +4,35 @@ import {
 } from "@/lib/kitty/megaplay-providers";
 
 /**
- * Every provider id AniKitty has ever known — kept only so historical,
- * provider-specific code paths still type-check. The *active* set that users
- * can actually select is {@link KITTY_PROVIDERS}. Anything not active is
- * normalized to the default provider at runtime.
+ * Active providers plus small alias/legacy set so saved settings still type-check.
+ * Runtime selection is {@link KITTY_PROVIDERS}; aliases normalize via
+ * {@link normalizeKittyProvider}.
  */
 export const ALL_KITTY_PROVIDER_IDS = [
-  "Miruro",
-  "MegaPlay",
-  "VideoVib",
-  "Animex",
-  "Animo",
-  "AniWatch",
-  "AniSnatch",
-  "Lunar",
-  "Anitaku",
-  "AniNeko",
-  "AniKuro",
-  "Anikage",
-  "AnimeHeaven",
-  "AnimeHub",
-  "ReAnime",
-  "2Dhive",
-  "KaaLt",
-  "AllAnime",
-  "MKissa",
-  "Senshi",
-  "Animetsu",
-  "Animeverse",
-  "AniZone",
-  "AnimeGG",
-  "AniDB",
-  "Anikoto",
-  "AniBD",
-  "Nyanime",
-  "AnimeOnsen",
-  "AnimeNexus",
-  "Animeya",
-  "Anizen",
+  // Active (live on KittyAPI)
   "AniWaves",
-  "AnimaxAnime",
-  "AnimeStream",
+  "MKissa",
+  "AniKuro",
+  "AniSnatch",
+  "Anikoto",
+  "AniWatch",
+  "Senshi",
+  "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "Zenkai",
   "HentaiHaven",
+  // Normalize-only aliases / legacy
+  "MegaPlay",
+  "AllAnime",
+  "ReAnime",
+  "Zenkai",
+  "AniZone",
+  "AnimeStream",
+  "KaaLt",
+  "AnimeSogo",
+  "Anix",
+  "HiAnime",
+  "Animepahe",
 ] as const;
 
 export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
@@ -286,8 +270,11 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
   if (value === "ReAnime") return "KuroHost";
   if (value === "Zenkai") return DEFAULT_KITTY_PROVIDER;
+  // MegaPlay + pre-unification ids → Anikoto (MegaPlay class removed from API).
+  if (value === MEGAPLAY_PROVIDER_ID || (value && LEGACY_MEGAPLAY_PROVIDERS.has(value))) {
+    return "Anikoto";
+  }
   if (value && isActiveKittyProvider(value)) return value;
-  if (value && LEGACY_MEGAPLAY_PROVIDERS.has(value)) return MEGAPLAY_PROVIDER_ID;
   // Any retired provider (or unknown value) falls back to the default.
   return DEFAULT_KITTY_PROVIDER;
 }

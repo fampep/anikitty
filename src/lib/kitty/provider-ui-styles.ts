@@ -23,13 +23,6 @@ const DEFAULT_ACCENT: ProviderAccent = {
 };
 
 const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
-  Anitaku: {
-    chip: "border-teal-400/30 bg-teal-500/10 text-teal-100/90",
-    pillActive: "border-teal-400/45 bg-teal-500/20 text-teal-50 shadow-[0_0_12px_-4px_rgba(45,212,191,0.35)]",
-    pillIdle: "border-transparent text-teal-300/45 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
-    dot: "bg-teal-400",
-    glow: "from-teal-500/20",
-  },
   Anikoto: {
     chip: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100/90",
     pillActive: "border-cyan-400/45 bg-cyan-500/20 text-cyan-50 shadow-[0_0_12px_-4px_rgba(34,211,238,0.35)]",
@@ -71,20 +64,6 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     pillIdle: "border-transparent text-indigo-300/45 hover:text-indigo-200/80 hover:bg-indigo-500/[0.06]",
     dot: "bg-indigo-400",
     glow: "from-indigo-500/20",
-  },
-  AniDB: {
-    chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
-    pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",
-    pillIdle: "border-transparent text-amber-300/45 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
-    dot: "bg-amber-400",
-    glow: "from-amber-500/20",
-  },
-  Miruro: {
-    chip: "border-orange-400/30 bg-orange-500/10 text-orange-100/90",
-    pillActive: "border-orange-400/45 bg-orange-500/20 text-orange-50 shadow-[0_0_12px_-4px_rgba(251,146,60,0.35)]",
-    pillIdle: "border-transparent text-orange-300/45 hover:text-orange-200/80 hover:bg-orange-500/[0.06]",
-    dot: "bg-orange-400",
-    glow: "from-orange-500/20",
   },
   AniWatch: {
     chip: "border-rose-400/30 bg-rose-500/10 text-rose-100/90",
@@ -134,13 +113,6 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     pillIdle: "border-transparent text-amber-300/45 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
     dot: "bg-amber-400",
     glow: "from-amber-500/20",
-  },
-  AniBD: {
-    chip: "border-slate-400/30 bg-slate-500/10 text-slate-200/90",
-    pillActive: "border-slate-400/40 bg-slate-500/15 text-slate-100 shadow-[0_0_12px_-4px_rgba(148,163,184,0.25)]",
-    pillIdle: "border-transparent text-slate-400/50 hover:text-slate-200/75 hover:bg-slate-500/[0.06]",
-    dot: "bg-slate-400",
-    glow: "from-slate-500/15",
   },
 };
 

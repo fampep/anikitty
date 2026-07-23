@@ -11,7 +11,6 @@ import {
   fetchAnilistSiteHardSubStream,
 } from "@/lib/kitty/anilist-site-api";
 import { isAnilistSiteProvider, type AnilistSiteProviderId } from "@/lib/kitty/anilist-site-providers";
-import { isVideoVibProvider, videoVibStreamPaths } from "@/lib/kitty/videovib-provider";
 import type { KittyProvider } from "@/lib/kitty/kitty-providers";
 import {
   kittyNodeRaceOrder,
@@ -112,19 +111,6 @@ export async function fetchKittyStreamDirect(
       }),
     );
     if (hardSub?.file) return hardSub;
-  }
-
-  if (isVideoVibProvider(provider)) {
-    for (const path of videoVibStreamPaths({
-      anilistId: opts.anilistId,
-      episode: opts.episode,
-      audio: opts.audio,
-      title: opts.title,
-    })) {
-      const result = await fetchKittyStreamPath(path, timeoutMs, fetchOpts);
-      if (result?.file) return result;
-    }
-    return null;
   }
 
   const path = buildKittyStreamDirectPath({

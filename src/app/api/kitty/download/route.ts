@@ -3,6 +3,10 @@ import { handleKittyApiRequest } from "@/lib/kitty/kitty-api-server";
 import { fetchSegment, resolveVideoDownload } from "@/lib/kitty/hls-download";
 import { buildVideoDownloadFilename } from "@/lib/kitty/video-download-utils";
 import { VIDEO_DOWNLOAD_ENABLED } from "@/lib/kitty/video-download-config";
+import {
+  DEFAULT_KITTY_PROVIDER,
+  normalizeKittyProvider,
+} from "@/lib/kitty/kitty-providers";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ID = /^\d{1,10}$/;
@@ -17,8 +21,9 @@ export async function GET(req: Request) {
   const anilistId = searchParams.get("anilistId");
   const episode = searchParams.get("episode");
   const audio = searchParams.get("audio") || "sub";
-  const provider = searchParams.get("provider") || "Miruro";
-  const miruroPipe = searchParams.get("miruroPipe");
+  const provider = normalizeKittyProvider(
+    searchParams.get("provider") || DEFAULT_KITTY_PROVIDER,
+  );
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
     return new Response("anilistId and episode are required", { status: 400 });
@@ -37,7 +42,6 @@ export async function GET(req: Request) {
     parseInt(anilistId, 10),
     parseInt(episode, 10),
     audio as "sub" | "dub",
-    miruroPipe,
   );
 
   if (!stream?.file) {

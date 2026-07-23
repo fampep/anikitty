@@ -1,9 +1,5 @@
 import type { AllanimeKittyServer, AllanimeMirrorId } from "@/lib/providers/allanime-config";
-import type { AnimoServerId } from "@/lib/providers/animo-config";
 import type { AnisnatchServerId } from "@/lib/providers/anisnatch-config";
-import type { AnimexServerId } from "@/lib/providers/animex-config";
-import type { LunarServerId } from "@/lib/providers/lunar-config";
-import type { MiruroPipeProviderId } from "@/lib/providers/miruro-types";
 import {
   normalizeProviderAudioMode,
   type KittyProvider,
@@ -20,11 +16,7 @@ export type StreamCapabilities = {
 
 export type EpisodeStreamCapabilities = {
   providers: Partial<Record<KittyProvider, StreamCapabilities>>;
-  miruroPipes: Partial<Record<MiruroPipeProviderId, StreamCapabilities>>;
-  animexServers: Partial<Record<AnimexServerId, StreamCapabilities>>;
-  animoServers: Partial<Record<AnimoServerId, StreamCapabilities>>;
   anisnatchServers: Partial<Record<AnisnatchServerId, StreamCapabilities>>;
-  lunarServers: Partial<Record<LunarServerId, StreamCapabilities>>;
   allanimeServers: Partial<Record<AllanimeMirrorId, StreamCapabilities>>;
   mkissaServers: Partial<Record<AllanimeMirrorId, StreamCapabilities>>;
   allanimeServerRows: AllanimeKittyServer[];
@@ -33,11 +25,7 @@ export type EpisodeStreamCapabilities = {
 
 export type StreamCapabilityTarget = {
   provider: KittyProvider;
-  miruroPipe?: MiruroPipeProviderId;
-  animexServer?: AnimexServerId;
-  animoServer?: AnimoServerId;
   anisnatchServer?: AnisnatchServerId;
-  lunarServer?: LunarServerId;
   allanimeMirror?: AllanimeMirrorId;
   mkissaMirror?: AllanimeMirrorId;
 };
@@ -91,11 +79,7 @@ export function mergeEpisodeStreamCapabilities(
 ): EpisodeStreamCapabilities {
   const merged: EpisodeStreamCapabilities = {
     providers: {},
-    miruroPipes: {},
-    animexServers: {},
-    animoServers: {},
     anisnatchServers: {},
-    lunarServers: {},
     allanimeServers: {},
     mkissaServers: {},
     allanimeServerRows: [],
@@ -105,11 +89,7 @@ export function mergeEpisodeStreamCapabilities(
   for (const part of parts) {
     if (!part) continue;
     Object.assign(merged.providers, part.providers);
-    Object.assign(merged.miruroPipes, part.miruroPipes);
-    Object.assign(merged.animexServers, part.animexServers);
-    Object.assign(merged.animoServers, part.animoServers);
     Object.assign(merged.anisnatchServers, part.anisnatchServers);
-    Object.assign(merged.lunarServers, part.lunarServers);
     Object.assign(merged.allanimeServers, part.allanimeServers);
     Object.assign(merged.mkissaServers, part.mkissaServers);
     if (part.allanimeServerRows?.length) merged.allanimeServerRows = part.allanimeServerRows;
@@ -152,22 +132,14 @@ export function providerVisibleInAudioMode(
 export function resolveActiveStreamCapabilities(
   caps: EpisodeStreamCapabilities | undefined,
   provider: KittyProvider,
-  audioMode: ProviderAudioMode,
-  animexServer?: AnimexServerId,
-  miruroPipe?: MiruroPipeProviderId,
-  animoServer?: AnimoServerId,
+  _audioMode: ProviderAudioMode,
   anisnatchServer?: AnisnatchServerId,
-  lunarServer?: LunarServerId,
-  allanimeMirror?: AllanimeMirrorId,
+  _allanimeMirror?: AllanimeMirrorId,
   mkissaMirror?: AllanimeMirrorId,
 ): StreamCapabilities | null | undefined {
   if (!caps) return undefined;
-  if (provider === "Miruro" && miruroPipe) return caps.miruroPipes[miruroPipe];
-  if (provider === "Animex" && animexServer) return caps.animexServers[animexServer];
   if (provider === "AniSnatch" && anisnatchServer) return caps.anisnatchServers[anisnatchServer];
-  if (provider === "Lunar" && lunarServer) return caps.lunarServers[lunarServer];
   if (provider === "MKissa" && mkissaMirror) return caps.mkissaServers[mkissaMirror];
-  if (provider === "Animo" && animoServer) return caps.animoServers[animoServer] ?? caps.providers[provider];
   return caps.providers[provider];
 }
 
@@ -190,11 +162,7 @@ export function selectionSupportsBothStreamAudioFromCaps(
   provider: KittyProvider,
   audioMode: ProviderAudioMode,
   caps: EpisodeStreamCapabilities | undefined,
-  animexServer?: AnimexServerId,
-  miruroPipe?: MiruroPipeProviderId,
-  animoServer?: AnimoServerId,
   anisnatchServer?: AnisnatchServerId,
-  lunarServer?: LunarServerId,
   allanimeMirror?: AllanimeMirrorId,
   mkissaMirror?: AllanimeMirrorId,
 ): boolean {
@@ -202,11 +170,7 @@ export function selectionSupportsBothStreamAudioFromCaps(
     caps,
     provider,
     audioMode,
-    animexServer,
-    miruroPipe,
-    animoServer,
     anisnatchServer,
-    lunarServer,
     allanimeMirror,
     mkissaMirror,
   );
