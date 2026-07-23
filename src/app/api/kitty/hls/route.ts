@@ -309,7 +309,13 @@ export async function GET(req: Request) {
   try {
     upstream = await fetch(decoded, {
       cache: "no-store",
-      headers: fetchHeaders,
+      headers: {
+        ...fetchHeaders,
+        // Cloudflare in front of KittyAPI can sticky-cache 502 HTML for /proxy
+        // variant URLs — never reuse those for playlist/segment pulls.
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
       signal: AbortSignal.timeout(30_000),
       redirect: "follow",
     });
