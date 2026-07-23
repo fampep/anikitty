@@ -333,7 +333,11 @@ export async function GET(req: Request) {
       if (isAllowedMediaProxyUrl(loc)) {
         upstream = await fetch(loc, {
           cache: "no-store",
-          headers: fetchHeaders,
+          headers: {
+            ...fetchHeaders,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
           signal: AbortSignal.timeout(30_000),
           redirect: "follow",
         });
@@ -411,7 +415,11 @@ export async function GET(req: Request) {
     try {
       upstream = await fetch(nested, {
         cache: "no-store",
-        headers: nestedHeaders,
+        headers: {
+          ...nestedHeaders,
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
         signal: AbortSignal.timeout(30_000),
         redirect: "follow",
       });
