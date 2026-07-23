@@ -11,6 +11,7 @@ import {
 export const ALL_KITTY_PROVIDER_IDS = [
   // Active (live on KittyAPI)
   "AniWaves",
+  "Miruro",
   "MKissa",
   "AniKuro",
   "AniSnatch",
@@ -43,6 +44,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniWaves",
+  "Miruro",
   "MKissa",
   "AniKuro",
   "AniSnatch",
@@ -95,8 +97,21 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "MKissa",
+    id: "Miruro",
     label: "Echo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    supportsMulti: true,
+    hint: "SUB · DUB · soft · hard · Miruro pipes",
+  },
+  {
+    id: "MKissa",
+    label: "MKissa",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -215,7 +230,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniWaves",
-  "MKissa",
+  "Miruro",
   "AniKuro",
   "AniSnatch",
   "Anikoto",
@@ -224,6 +239,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
+  "MKissa",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -243,6 +259,7 @@ export {
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
+  "Miruro",
   "AniKuro",
   "AniWaves",
   "AniSnatch",

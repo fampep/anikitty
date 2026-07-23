@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 58,
+      version: 59,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -793,6 +793,24 @@ export const useSettingsStore = create<ISettingsStore>()(
           ]);
           next.defaultProvider = sanitizeDefaultProvider(
             next.defaultProvider ?? "AniWaves",
+            next.providerOrder,
+          );
+        }
+        if (version < 59) {
+          // Echo backend is Miruro (was MKissa). Keep MKissa available under its own label.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const rest = order.filter(
+            (id) => id !== "AniWaves" && id !== "Miruro" && id !== "AniKuro" && id !== "MKissa",
+          );
+          next.providerOrder = sanitizeProviderOrder([
+            "AniWaves",
+            "Miruro",
+            "AniKuro",
+            ...rest,
+            "MKissa",
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider === "MKissa" ? "Miruro" : (next.defaultProvider ?? "AniWaves"),
             next.providerOrder,
           );
         }

@@ -52,6 +52,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     glow: "from-violet-500/20",
   },
   MKissa: {
+    chip: "border-violet-400/30 bg-violet-500/10 text-violet-100/90",
+    pillActive: "border-violet-400/45 bg-violet-500/20 text-violet-50 shadow-[0_0_12px_-4px_rgba(167,139,250,0.35)]",
+    pillIdle: "border-transparent text-violet-300/45 hover:text-violet-200/80 hover:bg-violet-500/[0.06]",
+    dot: "bg-violet-400",
+    glow: "from-violet-500/20",
+  },
+  Miruro: {
     chip: "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-100/90",
     pillActive: "border-fuchsia-400/45 bg-fuchsia-500/20 text-fuchsia-50 shadow-[0_0_12px_-4px_rgba(232,121,249,0.35)]",
     pillIdle: "border-transparent text-fuchsia-300/45 hover:text-fuchsia-200/80 hover:bg-fuchsia-500/[0.06]",
