@@ -180,7 +180,10 @@ function segmentAtTime(
 
 const SEEK_STEP = 10;
 const SEEK_STEP_FINE = 5;
-const IDLE_MS = 4000;
+/** Hide chrome after pointer idle while playing. */
+const IDLE_MS = 2000;
+/** Faster hide after play/resume so subtitles aren't blocked. */
+const IDLE_AFTER_PLAY_MS = 1000;
 const CLICK_DELAY_MS = 280;
 const SEEK_FLASH_MS = 780;
 const GESTURE_HINT_MS = 900;
@@ -691,7 +694,9 @@ export function AniKittyPlayer({
   const castRemotePlayingRef = useRef(false);
   /** True while Chromecast session is connecting or connected (not AirPlay). */
   const castOwnsSurfaceRef = useRef(false);
-  const bumpControlsRef = useRef<() => void>(() => {});
+  const bumpControlsRef = useRef<(opts?: { hideAfterMs?: number }) => void>(
+    () => {},
+  );
   const showGestureHintRef = useRef<(hint: GestureHint) => void>(() => {});
 
   const captionOptions = useMemo<CaptionOption[]>(() => {
@@ -754,11 +759,12 @@ export function AniKittyPlayer({
 
   controlsVisibleRef.current = controlsVisible;
 
-  const bumpControls = useCallback(() => {
+  const bumpControls = useCallback((opts?: { hideAfterMs?: number }) => {
     setControlsVisible(true);
     clearIdleTimer();
     if (seekingRef.current) return;
     if (chromePinnedRef.current || popoverOpenRef.current) return;
+    const hideAfterMs = opts?.hideAfterMs ?? IDLE_MS;
     if (castingRef.current) {
       if (!castRemotePlayingRef.current) return;
       idleTimerRef.current = setTimeout(() => {
@@ -766,7 +772,7 @@ export function AniKittyPlayer({
         if (popoverOpenRef.current || chromePinnedRef.current) return;
         setControlsVisible(false);
         closePopovers();
-      }, IDLE_MS);
+      }, hideAfterMs);
       return;
     }
     const video = videoRef.current;
@@ -775,7 +781,7 @@ export function AniKittyPlayer({
       if (popoverOpenRef.current || chromePinnedRef.current) return;
       setControlsVisible(false);
       closePopovers();
-    }, IDLE_MS);
+    }, hideAfterMs);
   }, [clearIdleTimer, closePopovers]);
 
   const revealControlsFromTouch = useCallback(() => {
@@ -1178,6 +1184,12 @@ export function AniKittyPlayer({
       : volume;
   const chromeVisible = controlsVisible || seeking || !effectivePlaying;
 
+  // Cast resume doesn't fire the local <video> "play" event — hide chrome promptly.
+  useEffect(() => {
+    if (!casting || !castRemotePlaying) return;
+    bumpControls({ hideAfterMs: IDLE_AFTER_PLAY_MS });
+  }, [casting, castRemotePlaying, bumpControls]);
+
 
   // Keep local <video> quiet + frozen while Chromecast owns playback (incl. remount).
   useEffect(() => {
@@ -1576,7 +1588,7 @@ export function AniKittyPlayer({
       setHasStarted(true);
       setBuffering(false);
       setSourceLoading(false);
-      bumpControls();
+      bumpControls({ hideAfterMs: IDLE_AFTER_PLAY_MS });
       void audioBoostRef.current?.resume();
       // After pause, some CDNs stop feeding until load resumes.
       try {
@@ -2264,7 +2276,7 @@ export function AniKittyPlayer({
   const togglePlay = useCallback(() => {
     if (castingRef.current) {
       castPlayOrPause();
-      bumpControls();
+      bumpControls({ hideAfterMs: IDLE_AFTER_PLAY_MS });
       return;
     }
     const video = videoRef.current;
@@ -2295,9 +2307,11 @@ export function AniKittyPlayer({
           /* autoplay / gesture policies */
         }
       })();
-    } else {
-      video.pause();
+      // Show chrome now; onPlay schedules the short post-resume hide.
+      setControlsVisible(true);
+      return;
     }
+    video.pause();
     bumpControls();
   }, [bumpControls, castPlayOrPause]);
 
@@ -4036,7 +4050,7 @@ export function AniKittyPlayer({
       <div
         data-ak-chrome="1"
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-[opacity,transform] duration-300 ease-out",
+          "pointer-events-none absolute inset-x-0 bottom-0 z-30 transition-[opacity,transform] duration-200 ease-out",
           (fullscreen || cssFullscreen) && "z-[2147483647]",
           chromeVisible
             ? "translate-y-0 opacity-100"
@@ -4047,8 +4061,9 @@ export function AniKittyPlayer({
       >
         <div
           className={cn(
-            "group/chrome pointer-events-auto bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-12 transition-[background] duration-300",
-            "hover:from-black/90 hover:via-black/50",
+            // Keep the scrim light so bottom subtitles stay readable while chrome is up.
+            "group/chrome pointer-events-auto bg-gradient-to-t from-black/35 via-black/10 to-transparent pt-5 transition-[background] duration-200",
+            "hover:from-black/45 hover:via-black/15",
             !chromeVisible && "pointer-events-none",
           )}
           onMouseEnter={() => {
