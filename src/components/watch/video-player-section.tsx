@@ -1640,10 +1640,26 @@ const VideoPlayerSection = () => {
     setManualStreamHeaders(streamData?.headers ?? playerHeaders);
   };
 
-  const handlePickSiteServer = (server: { id: string; name: string }) => {
+  const handlePickSiteServer = (
+    server: { id: string; name: string },
+    mode: "sub" | "hardsub" | "dub",
+  ) => {
     preservePlaybackPosition();
     setManualStreamFile(null);
     setManualStreamHeaders(null);
+    if (mode === "dub") {
+      setAudioMode("dub");
+      localStorage.setItem("kittyAudioMode", "dub");
+      applyStreamAudio("dub");
+    } else if (mode === "hardsub") {
+      setAudioMode("hardsub");
+      localStorage.setItem("kittyAudioMode", "hardsub");
+      applyStreamAudio("sub");
+    } else {
+      setAudioMode("sub");
+      localStorage.setItem("kittyAudioMode", "sub");
+      applyStreamAudio("sub");
+    }
     setStreamLinkId(server.id);
   };
 
@@ -1939,6 +1955,8 @@ const VideoPlayerSection = () => {
             <WatchServerPicker
               provider={provider}
               streamAudio={streamAudio}
+              audioMode={audioMode}
+              activeLinkId={streamLinkId}
               qualities={displayQualities}
               activeFile={displayFile}
               dataIds={siteEpisodeDataIds}

@@ -1,28 +1,57 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Captions, ChevronDown, Mic } from "lucide-react";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
 import {
   fetchAnilistSiteServers,
   type AnilistSiteServer,
 } from "@/lib/kitty/anilist-site-client";
-import { isAnilistSiteProvider, type AnilistSiteProviderId } from "@/lib/kitty/anilist-site-providers";
-import type { KittyProvider } from "@/lib/kitty/kitty-providers";
+import {
+  isAnilistSiteProvider,
+  isHardSubServerName,
+  type AnilistSiteProviderId,
+} from "@/lib/kitty/anilist-site-providers";
+import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 
+export type SiteServerPickMode = "sub" | "hardsub" | "dub";
+
 type Props = {
   provider: KittyProvider;
   streamAudio: "sub" | "dub";
+  audioMode?: ProviderAudioMode;
+  activeLinkId?: string | null;
   qualities?: KittyStreamQuality[];
   activeFile?: string;
   dataIds?: string | null;
   onPickQuality: (entry: KittyStreamQuality) => void;
-  onPickSiteServer: (server: AnilistSiteServer) => void;
+  onPickSiteServer: (server: AnilistSiteServer, mode: SiteServerPickMode) => void;
   className?: string;
+};
+
+const SECTION_STYLES: Record<
+  SiteServerPickMode,
+  { label: string; active: string; idle: string }
+> = {
+  sub: {
+    label: "text-teal-300/70",
+    active: "border-teal-400/45 bg-teal-500/25 text-teal-100",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+  },
+  hardsub: {
+    label: "text-sky-300/70",
+    active: "border-sky-400/45 bg-sky-500/25 text-sky-100",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
+  },
+  dub: {
+    label: "text-amber-300/70",
+    active: "border-amber-400/45 bg-amber-500/25 text-amber-100",
+    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+  },
 };
 
 function QualityChip({
@@ -52,9 +81,73 @@ function QualityChip({
   );
 }
 
+function ServerSection({
+  mode,
+  label,
+  icon,
+  servers,
+  provider,
+  activeLinkId,
+  sectionActive,
+  onPick,
+}: {
+  mode: SiteServerPickMode;
+  label: string;
+  icon: ReactNode;
+  servers: AnilistSiteServer[];
+  provider: KittyProvider;
+  activeLinkId?: string | null;
+  sectionActive: boolean;
+  onPick: (server: AnilistSiteServer, mode: SiteServerPickMode) => void;
+}) {
+  if (servers.length === 0) return null;
+  const styles = SECTION_STYLES[mode];
+
+  return (
+    <div className="rounded-xl border border-border dark:border-white/[0.06] bg-muted/20 dark:bg-white/[0.015] px-2.5 py-2 flex items-start gap-2 min-w-0">
+      <div
+        className={cn(
+          "flex items-center gap-1 w-[4.75rem] shrink-0 pt-1.5 text-[10px] font-bold font-mono uppercase tracking-wide",
+          styles.label,
+        )}
+      >
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
+        {servers.map((s, index) => {
+          const codename =
+            resolveServerCodename(provider, s.name) ??
+            resolveServerCodename(provider, s.id);
+          const stripped = s.name.replace(/^HS:\s*/i, "").trim();
+          const displayName = codename || stripped || `Line ${index + 1}`;
+          const isActive = sectionActive && activeLinkId === s.id;
+          return (
+            <button
+              key={`${mode}-${s.id}`}
+              type="button"
+              onClick={() => onPick(s, mode)}
+              aria-pressed={isActive}
+              title={s.name}
+              className={cn(
+                "px-2.5 py-1.5 rounded-md text-[11px] font-mono font-semibold border transition-colors touch-manipulation",
+                isActive ? styles.active : styles.idle,
+              )}
+            >
+              {displayName}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function WatchServerPicker({
   provider,
   streamAudio,
+  audioMode = "sub",
+  activeLinkId,
   qualities = [],
   activeFile,
   dataIds,
@@ -63,8 +156,9 @@ export default function WatchServerPicker({
   className,
 }: Props) {
   const t = useT();
-  const [open, setOpen] = useState(false);
-  const [siteServers, setSiteServers] = useState<AnilistSiteServer[]>([]);
+  const [open, setOpen] = useState(true);
+  const [subServers, setSubServers] = useState<AnilistSiteServer[]>([]);
+  const [dubServers, setDubServers] = useState<AnilistSiteServer[]>([]);
   const [loadingSite, setLoadingSite] = useState(false);
 
   const uniqueQualities = useMemo(
@@ -75,22 +169,41 @@ export default function WatchServerPicker({
   const hasQualities = uniqueQualities.length > 1;
   const activeQuality = uniqueQualities.find((q) => q.file === activeFile);
 
-  useEffect(() => {
-    setOpen(false);
-    setSiteServers([]);
-  }, [provider, streamAudio]);
+  const softSubServers = useMemo(
+    () => subServers.filter((s) => !isHardSubServerName(s.name)),
+    [subServers],
+  );
+  const hardSubServers = useMemo(
+    () => subServers.filter((s) => isHardSubServerName(s.name)),
+    [subServers],
+  );
 
   useEffect(() => {
-    if (!open || !canFetchSite || !dataIds) return;
+    setSubServers([]);
+    setDubServers([]);
+    setOpen(true);
+  }, [provider, dataIds]);
+
+  useEffect(() => {
+    if (!canFetchSite || !dataIds) return;
     let cancelled = false;
     setLoadingSite(true);
-    void fetchAnilistSiteServers({
-      provider: provider as AnilistSiteProviderId,
-      dataIds,
-      audio: streamAudio,
-    })
-      .then((rows) => {
-        if (!cancelled) setSiteServers(rows);
+    void Promise.all([
+      fetchAnilistSiteServers({
+        provider: provider as AnilistSiteProviderId,
+        dataIds,
+        audio: "sub",
+      }),
+      fetchAnilistSiteServers({
+        provider: provider as AnilistSiteProviderId,
+        dataIds,
+        audio: "dub",
+      }),
+    ])
+      .then(([subRows, dubRows]) => {
+        if (cancelled) return;
+        setSubServers(subRows);
+        setDubServers(dubRows);
       })
       .finally(() => {
         if (!cancelled) setLoadingSite(false);
@@ -98,9 +211,13 @@ export default function WatchServerPicker({
     return () => {
       cancelled = true;
     };
-  }, [open, canFetchSite, dataIds, provider, streamAudio]);
+  }, [canFetchSite, dataIds, provider]);
+
+  const hasServerSections =
+    softSubServers.length > 0 || hardSubServers.length > 0 || dubServers.length > 0;
 
   if (!hasQualities && !canFetchSite) return null;
+  if (!hasQualities && canFetchSite && !loadingSite && !hasServerSections) return null;
 
   const qualityChips = hasQualities && (
     <div className="flex flex-wrap gap-1.5">
@@ -134,12 +251,19 @@ export default function WatchServerPicker({
 
   const headerHint = activeQuality
     ? formatStreamQualityLabel(activeQuality.quality)
-    : canFetchSite
-      ? t("watch.serverPickerTitle")
-      : null;
+    : audioMode === "hardsub"
+      ? t("watch.hardSubsSection")
+      : streamAudio === "dub"
+        ? t("card.dub")
+        : t("watch.softSubBadge");
 
   return (
-    <div className={cn("rounded-lg border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02]", className)}>
+    <div
+      className={cn(
+        "rounded-lg border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02]",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -158,38 +282,48 @@ export default function WatchServerPicker({
       {open && (
         <div className="border-t border-border dark:border-white/[0.06] px-2 py-2 space-y-2">
           {qualityChips}
-          {canFetchSite && (
-            <div className="space-y-1.5">
-              {loadingSite && (
-                <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 px-1">
-                  {t("watch.serverPickerLoading")}
-                </p>
-              )}
-              {!loadingSite && siteServers.length === 0 && (
-                <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 px-1">
-                  {t("watch.serverPickerEmpty")}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-1.5">
-                {siteServers.map((s, index) => {
-                  const displayName =
-                    resolveServerCodename(provider, s.name) ??
-                    resolveServerCodename(provider, s.id) ??
-                    `Line ${index + 1}`;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => onPickSiteServer(s)}
-                      className="px-2 py-1 rounded-md text-[10px] font-mono font-semibold border border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-primary/25 hover:text-zinc-100/90 touch-manipulation"
-                    >
-                      {displayName}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          {loadingSite && (
+            <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 px-1">
+              {t("watch.serverPickerLoading")}
+            </p>
           )}
+          {!loadingSite && canFetchSite && !hasServerSections && (
+            <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 px-1">
+              {t("watch.serverPickerEmpty")}
+            </p>
+          )}
+          <div className="flex flex-col gap-2">
+            <ServerSection
+              mode="sub"
+              label={t("watch.softSubBadge")}
+              icon={<Captions className="w-3 h-3 shrink-0" />}
+              servers={softSubServers}
+              provider={provider}
+              activeLinkId={activeLinkId}
+              sectionActive={audioMode !== "hardsub" && streamAudio === "sub"}
+              onPick={onPickSiteServer}
+            />
+            <ServerSection
+              mode="hardsub"
+              label={t("watch.hardSubsSection")}
+              icon={<Captions className="w-3 h-3 shrink-0" />}
+              servers={hardSubServers}
+              provider={provider}
+              activeLinkId={activeLinkId}
+              sectionActive={audioMode === "hardsub"}
+              onPick={onPickSiteServer}
+            />
+            <ServerSection
+              mode="dub"
+              label={t("card.dub")}
+              icon={<Mic className="w-3 h-3 shrink-0" />}
+              servers={dubServers}
+              provider={provider}
+              activeLinkId={activeLinkId}
+              sectionActive={streamAudio === "dub"}
+              onPick={onPickSiteServer}
+            />
+          </div>
         </div>
       )}
     </div>
