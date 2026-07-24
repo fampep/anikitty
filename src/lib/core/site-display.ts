@@ -13,7 +13,8 @@ export const INTERFACE_DENSITY_CLASS: Record<InterfaceDensity, string> = {
 };
 
 export function uiFontScaleToCss(uiFontScale: UiFontScale): string | undefined {
-  if (uiFontScale === "small") return "87.5%";
-  if (uiFontScale === "large") return "112.5%";
+  // Absolute px so Chrome default/accessibility font size can't inflate rem UI.
+  if (uiFontScale === "small") return "14px";
+  if (uiFontScale === "large") return "18px";
   return undefined;
 }

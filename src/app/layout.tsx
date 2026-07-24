@@ -104,6 +104,7 @@ export const metadata: Metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
+  // Keep user pinch-zoom; do not set maximumScale (a11y). Fit covers notches.
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fafafa" },
@@ -161,7 +162,7 @@ export default async function RootLayout({
         <meta name="referrer" content="no-referrer-when-downgrade" />
       </head>
       <body
-        className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-screen`}
+        className={`${geistSans.className} antialiased max-w-[100vw] overflow-x-hidden min-h-dvh`}
       >
         <PwaRegister />
         <DisableDevtoolGuard />
