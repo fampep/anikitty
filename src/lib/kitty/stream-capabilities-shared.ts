@@ -2,6 +2,7 @@ import type { AllanimeKittyServer, AllanimeMirrorId } from "@/lib/providers/alla
 import type { AnisnatchServerId } from "@/lib/providers/anisnatch-config";
 import {
   normalizeProviderAudioMode,
+  providerHasHardSub,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -120,11 +121,19 @@ export function providerVisibleInAudioMode(
 ): boolean {
   const normalized = normalizeProviderAudioMode(mode);
 
+  if (normalized === "hardsub") {
+    if (!providerHasHardSub(provider)) return false;
+    if (!caps) return true;
+    return supportsStreamAudioMode(caps, "sub");
+  }
+
   if (!caps) return true;
 
-  if (normalized === "hardsub") return Boolean(caps.hardSub && caps.sub);
   if (normalized === "dub") return supportsStreamAudioMode(caps, "dub");
-  if (normalized === "sub") return supportsStreamAudioMode(caps, "sub") && !caps.hardSub;
+  if (normalized === "sub") {
+    // Soft sub row: playable sub that is not hard-only for this episode.
+    return supportsStreamAudioMode(caps, "sub") && !(caps.hardSub && !caps.softSub);
+  }
 
   return false;
 }

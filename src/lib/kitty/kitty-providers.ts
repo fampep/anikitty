@@ -103,7 +103,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: false,
     kittySubs: false,
-    hint: "SUB · DUB · VOE HLS",
+    hint: "SUB · DUB · hard subs · VOE HLS",
   },
   {
     id: "AnimeGG",
@@ -115,7 +115,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: false,
     kittySubs: false,
-    hint: "SUB · DUB · AnimeGG MP4",
+    hint: "SUB · DUB · hard subs · AnimeGG MP4",
   },
   {
     id: "Yenime",
@@ -412,20 +412,40 @@ export function providerSupportsMulti(provider: KittyProvider): boolean {
   return getKittyProviderMeta(provider).supportsMulti === true;
 }
 
-/** Maps legacy saved modes (e.g. removed MULTI / HARDSUB rows) to sub or dub. */
+/** Maps legacy MULTI to sub; keeps sub / dub / hardsub as distinct picker rows. */
 export function normalizeProviderAudioMode(
   mode: string | null | undefined,
   fallback: ProviderAudioMode = "sub",
 ): ProviderAudioMode {
-  if (mode === "dub") return "dub";
-  if (mode === "sub" || mode === "hardsub" || mode === "multi") return "sub";
+  if (mode === "sub" || mode === "dub" || mode === "hardsub") return mode;
+  if (mode === "multi") return "sub";
   return fallback;
 }
 
+/** Burned-in only — no soft tracks (GG, HQ, MKissa, …). */
+export function providerIsHardSubOnly(provider: KittyProvider): boolean {
+  return providerHasHardSub(provider) && !providerHasSoftSub(provider);
+}
+
+/**
+ * Soft sub · Hard Subs · Dub rows.
+ * Hard-only providers list under Hard Subs only; dual soft+hard (Kilo, Guard, …) appear in both Sub and Hard Subs.
+ */
 export function kittyProvidersForAudioMode(
   mode: ProviderAudioMode,
   opts?: { includeAdult?: boolean },
 ): KittyProviderMeta[] {
-  void mode;
-  return KITTY_PROVIDER_META.filter((p) => opts?.includeAdult || !p.adultOnly);
+  const normalized = normalizeProviderAudioMode(mode);
+  return KITTY_PROVIDER_META.filter((p) => {
+    if (!opts?.includeAdult && p.adultOnly) return false;
+    if (normalized === "dub") return p.supportsDub === true;
+    if (normalized === "hardsub") return p.hardSub === true;
+    if (normalized === "sub") {
+      if (p.supportsSub === false) return false;
+      // Hard-only encodes belong in Hard Subs, not Soft sub.
+      if (p.hardSub === true && p.softSub !== true) return false;
+      return true;
+    }
+    return false;
+  });
 }

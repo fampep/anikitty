@@ -28,7 +28,9 @@ import {
   getKittyProviderLabel,
   normalizeKittyProvider,
   normalizeProviderAudioMode,
+  providerHasHardSub,
   providerHasNativeSubs,
+  providerIsHardSubOnly,
   providerSupportsDub,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -217,6 +219,14 @@ const VideoPlayerSection = () => {
     applyStreamAudio("dub");
   }, [dubSearchParam, applyStreamAudio]);
 
+  // Default / restored hard-only providers (GG, HQ, …) highlight under Hard Subs.
+  useEffect(() => {
+    if (streamAudio === "dub" || audioMode === "dub" || audioMode === "hardsub") return;
+    if (!providerIsHardSubOnly(provider)) return;
+    setAudioMode("hardsub");
+    localStorage.setItem("kittyAudioMode", "hardsub");
+  }, [provider, audioMode, streamAudio]);
+
   // Settings → prefer dub toggle (do not bounce back through streamAudio effects).
   useEffect(() => {
     return useSettingsStore.subscribe((state, prevState) => {
@@ -236,7 +246,16 @@ const VideoPlayerSection = () => {
   }, []);
 
   const resolveProviderAudioMode = useCallback(
-    (_p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => normalizeProviderAudioMode(mode),
+    (p: KittyProvider, mode: ProviderAudioMode): ProviderAudioMode => {
+      const normalized = normalizeProviderAudioMode(mode);
+      if (normalized === "dub") return "dub";
+      if (normalized === "hardsub") {
+        return providerHasHardSub(p) ? "hardsub" : "sub";
+      }
+      // Soft-sub row → hard-only providers (GG, HQ, …) still land on Hard Subs.
+      if (providerIsHardSubOnly(p)) return "hardsub";
+      return "sub";
+    },
     [],
   );
 
@@ -306,13 +325,14 @@ const VideoPlayerSection = () => {
   }, [currentEpisodeInfo?.number, episodeId]);
 
   const streamQueryAudio: "sub" | "dub" = streamAudio;
+  const preferHardSub = audioMode === "hardsub" && providerHasHardSub(provider);
 
   useEffect(() => {
     setStreamLinkId(null);
     setManualStreamFile(null);
     setManualStreamHeaders(null);
     setSiteEpisodeDataIds(null);
-  }, [anilistId, episodeNo, provider, streamAudio]);
+  }, [anilistId, episodeNo, provider, streamAudio, preferHardSub]);
 
   useEffect(() => {
     if (!isAnilistSiteProvider(provider) || !anilistId || !episodeNo) return;
@@ -794,7 +814,7 @@ const VideoPlayerSection = () => {
         provider,
         animeTitle,
         streamKittyNode,
-        false,
+        preferHardSub,
         streamLinkId,
         excludeKittyNodes,
         streamRefreshNonce,
@@ -810,6 +830,7 @@ const VideoPlayerSection = () => {
     streamQueryAudio,
     provider,
     animeTitle,
+    preferHardSub,
     streamLinkId,
     streamKittyNode,
     excludeKittyNodes,
@@ -925,7 +946,7 @@ const VideoPlayerSection = () => {
     provider,
     animeTitle,
     streamKittyNode,
-    false,
+    preferHardSub,
     streamLinkId,
     excludeKittyNodes,
     streamRefreshNonce,
@@ -978,7 +999,7 @@ const VideoPlayerSection = () => {
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
     setStreamKittyNode("auto");
-  }, [streamQueryAudio, provider, urlAnimeId, anilistId]);
+  }, [streamQueryAudio, provider, urlAnimeId, anilistId, preferHardSub]);
 
   // Episode change: clear failover state but keep the player shell mounted.
   useEffect(() => {
@@ -1013,9 +1034,12 @@ const VideoPlayerSection = () => {
     if (!streamData?.audioFallback) return;
     if (streamAudio !== "dub") return;
     applyStreamAudio("sub");
-    setAudioMode("sub");
+    setAudioMode((mode) => {
+      if (mode === "hardsub") return mode;
+      return providerIsHardSubOnly(provider) ? "hardsub" : "sub";
+    });
     toast.info(t("watch.dubUnavailableSub"));
-  }, [streamData?.audioFallback, streamAudio, applyStreamAudio, t]);
+  }, [streamData?.audioFallback, streamAudio, applyStreamAudio, t, provider]);
 
   // Only persist progress once the stream for this episode is loaded (avoids cross-episode leaks).
   useEffect(() => {
@@ -1041,6 +1065,7 @@ const VideoPlayerSection = () => {
         provider,
         animeTitle,
         "auto",
+        preferHardSub,
       ),
       queryFn: () =>
         getKittyStream(
@@ -1050,6 +1075,8 @@ const VideoPlayerSection = () => {
           provider,
           animeTitle,
           "auto",
+          undefined,
+          preferHardSub,
         ),
       staleTime: KITTY_STREAM_STALE_MS,
     });
@@ -1063,6 +1090,7 @@ const VideoPlayerSection = () => {
     streamQueryAudio,
     provider,
     animeTitle,
+    preferHardSub,
     queryClient,
   ]);
   const streamFailed =

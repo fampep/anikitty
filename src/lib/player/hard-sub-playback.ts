@@ -20,5 +20,6 @@ export type HardSubPlaybackContext = {
 export function isHardSubPlayback(ctx: HardSubPlaybackContext): boolean {
   if (ctx.streamAudio === "dub") return false;
   if (ctx.serverName && isHardSubServerName(ctx.serverName)) return true;
+  if (ctx.audioMode === "hardsub" && providerHasHardSub(ctx.provider)) return true;
   return providerHasHardSub(ctx.provider) && !providerHasSoftSub(ctx.provider);
 }
