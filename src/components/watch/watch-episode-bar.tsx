@@ -212,7 +212,7 @@ export default function WatchEpisodeBar({
               <button
                 type="button"
                 onClick={onNext}
-                className="mt-1.5 hidden sm:flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/30 hover:text-foreground dark:hover:text-white/60 transition-colors truncate max-w-full"
+                className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/30 hover:text-foreground dark:hover:text-white/60 transition-colors truncate max-w-full"
               >
                 <span className="shrink-0">{t("watch.nextEpisode")}:</span>
                 <span className="truncate text-muted-foreground dark:text-white/45">

@@ -137,7 +137,7 @@ export function getProviderAccent(id: KittyProvider): ProviderAccent {
 export function providerPillClass(id: KittyProvider, isActive: boolean): string {
   const accent = getProviderAccent(id);
   return cn(
-    "inline-flex items-center gap-1 font-mono font-semibold border transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none shrink-0 touch-manipulation",
+    "inline-flex items-center gap-1.5 font-mono font-semibold tracking-wide border transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none shrink-0 touch-manipulation",
     isActive ? accent.pillActive : accent.pillIdle,
   );
 }

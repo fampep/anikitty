@@ -100,12 +100,12 @@ function ToolbarAudioToggle({
         aria-pressed={value === "sub"}
         onClick={() => onChange("sub")}
         className={cn(
-          "site-focus inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
+          "site-focus inline-flex items-center justify-center gap-1 h-7 min-w-[2.75rem] px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
           value === "sub" ? AUDIO_SEGMENT.subActive : AUDIO_SEGMENT.subIdle,
         )}
       >
-        <Captions className="w-3 h-3 shrink-0 opacity-80" />
-        <span className="hidden sm:inline">{subLabel}</span>
+        <Captions className="w-3 h-3 shrink-0 opacity-80 sm:hidden" />
+        <span>{subLabel}</span>
       </button>
       <button
         type="button"
@@ -113,13 +113,13 @@ function ToolbarAudioToggle({
         disabled={!dubEnabled}
         onClick={() => dubEnabled && onChange("dub")}
         className={cn(
-          "site-focus inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
+          "site-focus inline-flex items-center justify-center gap-1 h-7 min-w-[2.75rem] px-2 rounded-md text-[10px] font-mono font-bold uppercase tracking-wide transition-all touch-manipulation",
           value === "dub" ? AUDIO_SEGMENT.dubActive : AUDIO_SEGMENT.dubIdle,
           !dubEnabled && AUDIO_SEGMENT.dubDisabled,
         )}
       >
-        <Mic className="w-3 h-3 shrink-0 opacity-80" />
-        <span className="hidden sm:inline">{dubLabel}</span>
+        <Mic className="w-3 h-3 shrink-0 opacity-80 sm:hidden" />
+        <span>{dubLabel}</span>
       </button>
     </div>
   );

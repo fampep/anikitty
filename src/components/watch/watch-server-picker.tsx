@@ -38,14 +38,16 @@ function QualityChip({
     <button
       type="button"
       onClick={onPick}
+      aria-pressed={active}
       className={cn(
-        "px-2 py-1 rounded-md text-[10px] font-mono font-semibold border transition-colors touch-manipulation",
+        "inline-flex items-center gap-1 px-2.5 py-1.5 min-h-8 rounded-md text-[11px] font-mono font-semibold border transition-colors touch-manipulation",
         active
-          ? "border-zinc-400/35 bg-zinc-500/15 text-zinc-100"
-          : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-zinc-400/25",
+          ? "border-zinc-400/40 bg-zinc-500/20 text-zinc-50"
+          : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-zinc-400/25 hover:text-foreground/80 dark:hover:text-white/70",
       )}
     >
       {formatStreamQualityLabel(q.quality)}
+      {active ? <span className="text-[10px] opacity-70" aria-hidden>✓</span> : null}
     </button>
   );
 }

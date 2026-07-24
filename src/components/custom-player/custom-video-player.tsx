@@ -3887,23 +3887,29 @@ export function AniKittyPlayer({
             : undefined
         }
       >
-        <div className="flex flex-col items-center gap-2">
-          <div
-            className={cn(
-              "h-10 w-10 rounded-full border-2 border-white/20 border-t-white/90",
-              !reduceMotion && "animate-spin",
-            )}
-          />
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/[0.1] bg-black/50 px-4 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md">
+          <div className="relative h-10 w-10">
+            <div
+              className="absolute inset-0 rounded-full border-2 border-white/15"
+              aria-hidden
+            />
+            <div
+              className={cn(
+                "absolute inset-0 rounded-full border-2 border-transparent border-t-white",
+                !reduceMotion && "animate-spin",
+              )}
+            />
+          </div>
           {sourceLoading && !hasStarted && !playbackIssue ? (
-            <span className="text-[11px] font-medium tracking-wide text-white/60">
+            <span className="text-[11px] font-medium tracking-wide text-white/70">
               Loading stream…
             </span>
           ) : mediaSeeking && hasStarted ? (
-            <span className="text-[11px] font-medium tracking-wide text-white/45">
+            <span className="text-[11px] font-medium tracking-wide text-white/55">
               Seeking…
             </span>
           ) : buffering && hasStarted ? (
-            <span className="text-[11px] font-medium tracking-wide text-white/45">
+            <span className="text-[11px] font-medium tracking-wide text-white/55">
               Buffering…
             </span>
           ) : null}
@@ -4675,13 +4681,14 @@ export function AniKittyPlayer({
                         role="menu"
                         aria-label="Quality"
                         className={cn(
-                          "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(50vh,280px)] min-w-[136px] overflow-y-auto py-1",
+                          "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(50vh,300px)] min-w-[152px] overflow-y-auto py-1",
                           PLAYER_POPOVER_CLASS,
                           !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                         )}
                       >
-                        {serverQualities.length > 1
-                          ? serverQualities.map((entry) => (
+                        {serverQualities.length > 1 ? (
+                          <MenuSection title="Source">
+                            {serverQualities.map((entry) => (
                               <MenuItem
                                 key={entry.file}
                                 active={activeSrc === entry.file}
@@ -4689,10 +4696,11 @@ export function AniKittyPlayer({
                               >
                                 {formatStreamQualityLabel(entry.quality)}
                               </MenuItem>
-                            ))
-                          : null}
+                            ))}
+                          </MenuSection>
+                        ) : null}
                         {showHlsQualityMenu ? (
-                          <>
+                          <MenuSection title="Quality">
                             <MenuItem
                               active={hlsLevelIndex < 0}
                               onClick={() => selectHlsLevel(-1)}
@@ -4712,7 +4720,7 @@ export function AniKittyPlayer({
                                   {level.label}
                                 </MenuItem>
                               ))}
-                          </>
+                          </MenuSection>
                         ) : null}
                       </div>
                     ) : null}
@@ -5080,7 +5088,7 @@ export function AniKittyPlayer({
 
                       {showQualityPicker ? (
                         <MenuSection
-                          title="Quality"
+                          title={serverQualities.length > 1 ? "Source" : "Quality"}
                           className="min-[520px]:hidden"
                         >
                           {serverQualities.length > 1

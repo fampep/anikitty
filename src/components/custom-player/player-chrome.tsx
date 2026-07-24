@@ -83,7 +83,7 @@ export function MenuItem({
       role="menuitemradio"
       aria-checked={active}
       className={cn(
-        "relative block w-full px-3.5 py-3 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:px-3 sm:py-2",
+        "relative flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:px-3 sm:py-2",
         active && "bg-white/[0.09] font-medium text-white",
       )}
       onClick={onClick}
@@ -94,7 +94,12 @@ export function MenuItem({
           aria-hidden
         />
       ) : null}
-      {children}
+      <span className="min-w-0 truncate">{children}</span>
+      {active ? (
+        <span className="shrink-0 text-[11px] text-white/70" aria-hidden>
+          ✓
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -583,8 +588,8 @@ export function NextEpisodeChip({
         "active:scale-[0.98]",
         "right-[max(0.75rem,env(safe-area-inset-right))]",
         stacked
-          ? "bottom-[max(10.75rem,calc(env(safe-area-inset-bottom)+9.5rem))] sm:bottom-[max(10.25rem,calc(env(safe-area-inset-bottom)+9rem))]"
-          : "bottom-[max(8.25rem,calc(env(safe-area-inset-bottom)+7rem))] sm:bottom-[max(7.75rem,calc(env(safe-area-inset-bottom)+6.5rem))]",
+          ? "bottom-[max(11.25rem,calc(env(safe-area-inset-bottom)+10rem))] sm:bottom-[max(10.5rem,calc(env(safe-area-inset-bottom)+9.25rem))]"
+          : "bottom-[max(8.75rem,calc(env(safe-area-inset-bottom)+7.5rem))] sm:bottom-[max(8rem,calc(env(safe-area-inset-bottom)+6.75rem))]",
       )}
     >
       {imageUrl ? (

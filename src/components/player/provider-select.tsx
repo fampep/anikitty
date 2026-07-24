@@ -42,20 +42,37 @@ type Props = {
 export function ProviderCapabilityBadge({
   caps,
   compact,
+  loading,
 }: {
   caps: { sub: boolean; dub: boolean };
   compact?: boolean;
+  /** Soft pulse while episode caps are still probing. */
+  loading?: boolean;
 }) {
+  if (loading && !caps.sub && !caps.dub) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-0.5 font-mono text-muted-foreground/50 dark:text-white/25 animate-pulse",
+          compact ? "text-[8px]" : "text-[9px]",
+        )}
+        aria-hidden
+      >
+        ··
+      </span>
+    );
+  }
   if (!caps.sub && !caps.dub) return null;
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 font-mono opacity-80",
+        "inline-flex items-center gap-0.5 font-mono font-bold tracking-tight",
         compact ? "text-[8px]" : "text-[9px]",
       )}
+      title={[caps.sub ? "SUB" : null, caps.dub ? "DUB" : null].filter(Boolean).join(" · ")}
     >
-      {caps.sub && <span className="text-teal-300/80">S</span>}
-      {caps.dub && <span className="text-amber-300/80">D</span>}
+      {caps.sub && <span className="text-teal-300/90">S</span>}
+      {caps.dub && <span className="text-amber-300/90">D</span>}
     </span>
   );
 }
@@ -166,6 +183,7 @@ export function ProviderQuickPick({
   className,
   compact,
   streamCaps,
+  capsLoading,
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
@@ -173,6 +191,7 @@ export function ProviderQuickPick({
   className?: string;
   compact?: boolean;
   streamCaps?: EpisodeStreamCapabilities;
+  capsLoading?: boolean;
 }) {
   return (
     <ProviderGrid
@@ -182,6 +201,7 @@ export function ProviderQuickPick({
       onSelect={onSelect}
       className={className}
       streamCaps={streamCaps}
+      capsLoading={capsLoading}
     />
   );
 }
@@ -223,6 +243,7 @@ type ProviderGridProps = {
   rows?: ProviderAudioMode[];
   compact?: boolean;
   streamCaps?: EpisodeStreamCapabilities;
+  capsLoading?: boolean;
 };
 
 function ProviderScrollRow({
@@ -236,8 +257,14 @@ function ProviderScrollRow({
     return <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">{children}</div>;
   }
   return (
-    <div className="overflow-x-auto overscroll-x-contain px-2.5 pb-2.5 pt-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex flex-nowrap gap-1.5 w-max min-w-full">{children}</div>
+    <div className="relative">
+      <div className="overflow-x-auto overscroll-x-contain px-2.5 pb-2.5 pt-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex flex-nowrap gap-1.5 w-max min-w-full pr-6">{children}</div>
+      </div>
+      <div
+        className="pointer-events-none absolute inset-y-0.5 right-0 w-7 bg-gradient-to-l from-[#0c0c0c]/90 via-[#0c0c0c]/40 to-transparent dark:from-black/70"
+        aria-hidden
+      />
     </div>
   );
 }
@@ -250,7 +277,9 @@ function providerPillClass(
 ) {
   return cn(
     providerPillAccentClass(providerId, isActive),
-    compact ? "min-h-9 px-3 py-2 text-xs rounded-lg" : "px-2.5 py-1.5 text-[11px] rounded-md",
+    compact
+      ? "min-h-10 px-3.5 py-2 text-[13px] rounded-lg"
+      : "px-2.5 py-1.5 text-[12px] rounded-md",
   );
 }
 
@@ -263,6 +292,7 @@ export function ProviderGrid({
   rows,
   compact,
   streamCaps,
+  capsLoading,
 }: ProviderGridProps) {
   const t = useT();
   const { providerSectionHidden, toggleProviderSectionHidden, providerOrder, defaultProvider, showAdultContent } = useSettingsStore();
@@ -320,11 +350,12 @@ export function ProviderGrid({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(p.id, mode)}
-              title={p.hint}
+              title={p.hint ?? p.label}
+              aria-pressed={isActive}
               className={providerPillClass(compact, isActive, styles, p.id)}
             >
-              <span className="truncate max-w-[8.5rem] sm:max-w-none">{p.label}</span>
-              <ProviderCapabilityBadge caps={badges} compact />
+              <span className="truncate max-w-[9.5rem] sm:max-w-none">{p.label}</span>
+              <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
               <ProviderDefaultBadge id={p.id} compact />
             </button>
           );

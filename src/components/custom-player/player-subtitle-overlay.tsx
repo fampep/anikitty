@@ -182,12 +182,12 @@ export function PlayerSubtitleOverlay({
 
   const settingsBottom = `${subtitleSettings.bottomOffset}rem`;
   const positionBottom = captionPositionCss(captionPosition);
-  // Keep dialogue above the timeline while chrome is up (and briefly after play
-  // before fade). Immersive / fullscreen gets a similar floor for TV overscan.
+  // Keep dialogue above the timeline / next-ep chip while chrome is up (and
+  // briefly after fade). Immersive / fullscreen gets a similar floor for overscan.
   const chromeClearance = chromeLift
-    ? "calc(5.85rem + env(safe-area-inset-bottom, 0px))"
+    ? "calc(6.75rem + env(safe-area-inset-bottom, 0px))"
     : immersive
-      ? "calc(4.75rem + env(safe-area-inset-bottom, 0px))"
+      ? "calc(5.35rem + env(safe-area-inset-bottom, 0px))"
       : null;
   const bottom = chromeClearance
     ? `max(${settingsBottom}, ${positionBottom}, ${chromeClearance})`
@@ -215,7 +215,7 @@ export function PlayerSubtitleOverlay({
   return (
     <div
       data-ak-subs=""
-      className="pointer-events-none absolute inset-x-0 z-[25] flex justify-center px-3 sm:px-4"
+      className="pointer-events-none absolute inset-x-0 z-[25] flex justify-center px-[max(0.75rem,env(safe-area-inset-left))] sm:px-4 pr-[max(0.75rem,env(safe-area-inset-right))]"
       style={shellStyle}
       aria-hidden
     >

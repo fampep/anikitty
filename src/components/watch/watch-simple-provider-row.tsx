@@ -21,6 +21,7 @@ import {
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import { providerCapabilityBadges, resolveProviderBadgeCaps } from "@/lib/kitty/provider-picker-utils";
 import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
+import { AUDIO_SEGMENT } from "@/lib/kitty/provider-ui-styles";
 import { Captions, Mic, Server, Zap } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
@@ -32,6 +33,7 @@ type Props = {
   onAudioChange?: (audio: "sub" | "dub") => void;
   onProviderChange: (provider: KittyProvider) => void;
   streamCaps?: EpisodeStreamCapabilities;
+  capsLoading?: boolean;
   className?: string;
 };
 
@@ -72,8 +74,11 @@ function LangBadges({ id }: { id: KittyProvider }) {
 
 export default function WatchSimpleProviderRow({
   provider,
+  streamAudio,
+  onAudioChange,
   onProviderChange,
   streamCaps,
+  capsLoading,
   className,
 }: Props) {
   const t = useT();
@@ -81,65 +86,104 @@ export default function WatchSimpleProviderRow({
   const defaultProvider = useSettingsStore((s) => s.defaultProvider);
   const showAdultContent = useSettingsStore((s) => s.showAdultContent);
   const serverCount = KITTY_PROVIDER_META.filter((p) => showAdultContent || !p.adultOnly).length;
+  const dubEnabled = providerSupportsDub(provider);
 
   return (
-    <div className={cn("min-w-0", className)}>
-      <FieldLabel icon={<Server className="w-3 h-3" />}>
-        {t("watch.providerSelect")}
-        <span className="text-muted-foreground/60 dark:text-white/20">({serverCount})</span>
-      </FieldLabel>
-      <Select value={provider} onValueChange={(v) => onProviderChange(v as KittyProvider)}>
-        <SelectTrigger className={TRIGGER_CLASS}>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Zap className="w-3.5 h-3.5 shrink-0 opacity-60" />
-            <SelectValue>{getKittyProviderLabel(provider)}</SelectValue>
+    <div className={cn("min-w-0 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end", className)}>
+      <div className="min-w-0">
+        <FieldLabel icon={<Server className="w-3 h-3" />}>
+          {t("watch.providerSelect")}
+          <span className="text-muted-foreground/60 dark:text-white/20">({serverCount})</span>
+        </FieldLabel>
+        <Select value={provider} onValueChange={(v) => onProviderChange(v as KittyProvider)}>
+          <SelectTrigger className={TRIGGER_CLASS}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Zap className="w-3.5 h-3.5 shrink-0 opacity-60" />
+              <SelectValue>{getKittyProviderLabel(provider)}</SelectValue>
+            </div>
+          </SelectTrigger>
+          <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
+            {(["featured", "other"] as const).map((group) => {
+              const items = sortProvidersForPicker(
+                kittyProvidersByGroup(group).filter((p) => showAdultContent || !p.adultOnly),
+                {
+                  priorityOrder: providerOrder,
+                  defaultProvider,
+                },
+              );
+              if (items.length === 0) return null;
+              return (
+                <SelectGroup key={group}>
+                  <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30 px-2 py-1.5">
+                    {group === "featured"
+                      ? t("watch.providerGroupFeatured")
+                      : t("watch.providerGroupOther")}
+                  </SelectLabel>
+                  {items.map((p) => {
+                    const badges = providerCapabilityBadges(
+                      resolveProviderBadgeCaps(streamCaps, p.id),
+                    );
+                    return (
+                      <SelectItem
+                        key={p.id}
+                        value={p.id}
+                        textValue={p.label}
+                        className="text-xs text-foreground/90 dark:text-white/80"
+                      >
+                        <span className="flex w-full items-center gap-2 min-w-0">
+                          <span className="font-semibold truncate">{p.label}</span>
+                          <ProviderDefaultBadge id={p.id} />
+                          {streamCaps || capsLoading ? (
+                            <ProviderCapabilityBadge caps={badges} loading={capsLoading} />
+                          ) : (
+                            <LangBadges id={p.id} />
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {onAudioChange && (
+        <div className="min-w-0 sm:w-[9.5rem]">
+          <FieldLabel icon={<Captions className="w-3 h-3" />}>
+            {t("card.sub")} / {t("card.dub")}
+          </FieldLabel>
+          <div className={AUDIO_SEGMENT.track} role="group" aria-label="Audio">
+            <button
+              type="button"
+              aria-pressed={streamAudio === "sub"}
+              onClick={() => onAudioChange("sub")}
+              className={cn(
+                AUDIO_SEGMENT.btn,
+                streamAudio === "sub" ? AUDIO_SEGMENT.subActive : AUDIO_SEGMENT.subIdle,
+              )}
+            >
+              <Captions className="w-3 h-3 shrink-0 opacity-80" />
+              {t("card.sub")}
+            </button>
+            <button
+              type="button"
+              aria-pressed={streamAudio === "dub"}
+              disabled={!dubEnabled}
+              onClick={() => dubEnabled && onAudioChange("dub")}
+              className={cn(
+                AUDIO_SEGMENT.btn,
+                streamAudio === "dub" ? AUDIO_SEGMENT.dubActive : AUDIO_SEGMENT.dubIdle,
+                !dubEnabled && AUDIO_SEGMENT.dubDisabled,
+              )}
+            >
+              <Mic className="w-3 h-3 shrink-0 opacity-80" />
+              {t("card.dub")}
+            </button>
           </div>
-        </SelectTrigger>
-        <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
-          {(["featured", "other"] as const).map((group) => {
-            const items = sortProvidersForPicker(
-              kittyProvidersByGroup(group).filter((p) => showAdultContent || !p.adultOnly),
-              {
-                priorityOrder: providerOrder,
-                defaultProvider,
-              },
-            );
-            if (items.length === 0) return null;
-            return (
-              <SelectGroup key={group}>
-                <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30 px-2 py-1.5">
-                  {group === "featured"
-                    ? t("watch.providerGroupFeatured")
-                    : t("watch.providerGroupOther")}
-                </SelectLabel>
-                {items.map((p) => {
-                  const badges = providerCapabilityBadges(
-                    resolveProviderBadgeCaps(streamCaps, p.id),
-                  );
-                  return (
-                    <SelectItem
-                      key={p.id}
-                      value={p.id}
-                      textValue={p.label}
-                      className="text-xs text-foreground/90 dark:text-white/80"
-                    >
-                      <span className="flex w-full items-center gap-2 min-w-0">
-                        <span className="font-semibold truncate">{p.label}</span>
-                        <ProviderDefaultBadge id={p.id} />
-                        {streamCaps ? (
-                          <ProviderCapabilityBadge caps={badges} />
-                        ) : (
-                          <LangBadges id={p.id} />
-                        )}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectGroup>
-            );
-          })}
-        </SelectContent>
-      </Select>
+        </div>
+      )}
     </div>
   );
 }
