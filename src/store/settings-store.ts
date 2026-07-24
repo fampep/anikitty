@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 62,
+      version: 63,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -859,6 +859,23 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.providerOrder = sanitizeProviderOrder([
             ...without.slice(0, insertAt),
             "AnimeGG",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
+        }
+        if (version < 63) {
+          // Yenime (Yen) sits right after GG.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "Yenime");
+          const ggAt = without.indexOf("AnimeGG");
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt = ggAt >= 0 ? ggAt + 1 : hqAt >= 0 ? hqAt + 1 : 1;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "Yenime",
             ...without.slice(insertAt),
           ]);
           next.defaultProvider = sanitizeDefaultProvider(

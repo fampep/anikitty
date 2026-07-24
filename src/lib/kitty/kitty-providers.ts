@@ -12,6 +12,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   // Active (live on KittyAPI) — site priority first
   "AniHQ",
   "AnimeGG",
+  "Yenime",
   "AniWaves",
   "Miruro",
   "Animex",
@@ -48,6 +49,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
 export const KITTY_PROVIDERS = [
   "AniHQ",
   "AnimeGG",
+  "Yenime",
   "AniWaves",
   "Miruro",
   "Animex",
@@ -114,6 +116,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: false,
     kittySubs: false,
     hint: "SUB · DUB · AnimeGG MP4",
+  },
+  {
+    id: "Yenime",
+    label: "Yen",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · TryEmbed (no MegaPlay)",
   },
   {
     id: "AniWaves",
@@ -274,6 +288,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniHQ",
   "AnimeGG",
+  "Yenime",
   "AniWaves",
   "Miruro",
   "Animex",
@@ -316,6 +331,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
+  "Yenime",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
