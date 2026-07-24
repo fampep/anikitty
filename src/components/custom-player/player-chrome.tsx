@@ -337,14 +337,14 @@ export function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/75",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/80",
         "transition-[color,opacity,background-color,transform,box-shadow] duration-150 ease-out",
         "hover:bg-white/[0.1] hover:text-white",
         "active:scale-[0.9] active:bg-white/[0.14] active:opacity-95",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
         "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/75 disabled:active:scale-100",
         "aria-pressed:bg-white/[0.1] aria-pressed:text-white aria-expanded:bg-white/[0.1] aria-expanded:text-white",
-        "sm:h-9 sm:w-9 sm:rounded-lg",
+        "sm:h-8 sm:w-8 sm:rounded-md",
         className,
       )}
     >

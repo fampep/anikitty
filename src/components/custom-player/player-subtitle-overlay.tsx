@@ -185,9 +185,9 @@ export function PlayerSubtitleOverlay({
   // Keep dialogue above the timeline / next-ep chip while chrome is up (and
   // briefly after fade). Immersive / fullscreen gets a similar floor for overscan.
   const chromeClearance = chromeLift
-    ? "calc(6.75rem + env(safe-area-inset-bottom, 0px))"
+    ? "calc(5.75rem + env(safe-area-inset-bottom, 0px))"
     : immersive
-      ? "calc(5.35rem + env(safe-area-inset-bottom, 0px))"
+      ? "calc(4.85rem + env(safe-area-inset-bottom, 0px))"
       : null;
   const bottom = chromeClearance
     ? `max(${settingsBottom}, ${positionBottom}, ${chromeClearance})`

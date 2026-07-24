@@ -4071,9 +4071,8 @@ export function AniKittyPlayer({
       >
         <div
           className={cn(
-            // Keep the scrim light so bottom subtitles stay readable while chrome is up.
-            "group/chrome pointer-events-auto bg-gradient-to-t from-black/35 via-black/10 to-transparent pt-5 transition-[background] duration-200",
-            "hover:from-black/45 hover:via-black/15",
+            // Near-transparent fade — no solid plate; icons use drop-shadow for contrast.
+            "group/chrome pointer-events-auto bg-gradient-to-t from-black/15 via-transparent to-transparent pt-3 transition-[background] duration-200",
             !chromeVisible && "pointer-events-none",
           )}
           onMouseEnter={() => {
@@ -4090,14 +4089,12 @@ export function AniKittyPlayer({
         >
           <div
             className={cn(
-              "w-full min-w-0 border-t border-white/[0.06] bg-black/25 backdrop-blur-md supports-[backdrop-filter]:bg-black/15",
-              "transition-[background-color,backdrop-filter,-webkit-backdrop-filter,border-color] duration-250 ease-out",
-              "group-hover/chrome:border-white/[0.1] group-hover/chrome:bg-black/45 group-hover/chrome:backdrop-blur-xl",
-              "group-hover/chrome:supports-[backdrop-filter]:bg-black/30",
-              "pb-[max(0.7rem,env(safe-area-inset-bottom))] pl-[max(0.4rem,env(safe-area-inset-left))] pr-[max(0.4rem,env(safe-area-inset-right))] pt-1.5",
+              "w-full min-w-0 bg-transparent",
+              "pb-[max(0.4rem,env(safe-area-inset-bottom))] pl-[max(0.35rem,env(safe-area-inset-left))] pr-[max(0.35rem,env(safe-area-inset-right))] pt-0.5",
+              "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
             )}
           >
-            {/* Progress — full content width; tall touch target; thin visual line */}
+            {/* Progress — full content width; compact hit target; thin visual line */}
             <div
               ref={progressRef}
               role="slider"
@@ -4107,7 +4104,7 @@ export function AniKittyPlayer({
               aria-valuenow={Math.floor(displayTime)}
               aria-valuetext={`${formatPlayerTime(displayTime)} of ${formatPlayerTime(effectiveDuration)}`}
               tabIndex={0}
-              className="group/seek relative h-10 w-full min-w-0 cursor-pointer touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3.5"
+              className="group/seek relative h-7 w-full min-w-0 cursor-pointer touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 sm:h-3"
               onPointerDown={(e) => {
                 e.preventDefault();
                 e.currentTarget.setPointerCapture(e.pointerId);
@@ -4208,8 +4205,8 @@ export function AniKittyPlayer({
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
               <div className={cn(
-                "pointer-events-none absolute left-0 right-0 top-1/2 h-[5px] w-full -mt-[2.5px] overflow-visible rounded-full bg-white/[0.14] ring-1 ring-inset ring-white/[0.06] transition-[height,margin] duration-150 sm:h-[3px] sm:-mt-[1.5px] group-hover/seek:h-[5px] group-hover/seek:-mt-[2.5px]",
-                seeking && "h-[6px] -mt-[3px] sm:h-[5px] sm:-mt-[2.5px]",
+                "pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] overflow-visible rounded-full bg-white/[0.14] ring-1 ring-inset ring-white/[0.06] transition-[height,margin] duration-150 sm:h-[2.5px] sm:-mt-[1.25px] group-hover/seek:h-[4px] group-hover/seek:-mt-[2px]",
+                seeking && "h-[5px] -mt-[2.5px] sm:h-[4px] sm:-mt-[2px]",
               )}>
                 {/* Buffered ranges — muted ahead-of-playhead fill */}
                 {effectiveDuration > 0 && !casting
@@ -4255,8 +4252,8 @@ export function AniKittyPlayer({
                           aria-hidden
                           className={cn(
                             "absolute top-1/2 z-[1] -translate-y-1/2 rounded-sm transition-[height] duration-150",
-                            "h-[5px] group-hover/seek:h-[7px]",
-                            seeking && "h-[7px]",
+                            "h-[3px] group-hover/seek:h-[5px]",
+                            seeking && "h-[5px]",
                             seg.kind === "intro"
                               ? "bg-white/35"
                               : "bg-amber-400/60",
@@ -4284,7 +4281,7 @@ export function AniKittyPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-1.5 px-1 py-1 sm:gap-2 sm:px-2.5 sm:py-2">
+            <div className="flex w-full min-w-0 items-center gap-1 px-0.5 py-0.5 sm:gap-1.5 sm:px-2 sm:py-1">
               {/* Left — may shrink; time truncates so it never covers cast / right icons */}
               <div className="flex min-w-0 flex-1 items-center gap-0 overflow-hidden sm:gap-0.5">
                 <IconButton
