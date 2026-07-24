@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 60,
+      version: 61,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -834,6 +834,19 @@ export const useSettingsStore = create<ISettingsStore>()(
             ...rest,
           ]);
           next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
+        }
+        if (version < 61) {
+          // WCO (WCOStream) — English cartoon/anime VHS HLS.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "WCOStream");
+          const mkissaAt = without.indexOf("MKissa");
+          const insertAt = mkissaAt >= 0 ? mkissaAt + 1 : without.length;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "WCOStream",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(next.defaultProvider, next.providerOrder);
         }
         return next as ISettingsStore;
       },

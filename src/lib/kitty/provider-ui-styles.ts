@@ -128,6 +128,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-teal-400",
     glow: "from-teal-500/20",
   },
+  WCOStream: {
+    chip: "border-yellow-400/30 bg-yellow-500/10 text-yellow-100/90",
+    pillActive: "border-yellow-400/45 bg-yellow-500/20 text-yellow-50 shadow-[0_0_12px_-4px_rgba(250,204,21,0.35)]",
+    pillIdle: "border-transparent text-yellow-300/45 hover:text-yellow-200/80 hover:bg-yellow-500/[0.06]",
+    dot: "bg-yellow-400",
+    glow: "from-yellow-500/20",
+  },
   Zenkai: {
     chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
     pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",

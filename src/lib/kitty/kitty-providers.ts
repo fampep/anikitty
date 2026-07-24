@@ -23,6 +23,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "KickAssAnime",
   "KuroHost",
   "MKissa",
+  "WCOStream",
   "HentaiHaven",
   // Normalize-only aliases / legacy
   "MegaPlay",
@@ -58,6 +59,7 @@ export const KITTY_PROVIDERS = [
   "KickAssAnime",
   "KuroHost",
   "MKissa",
+  "WCOStream",
   "HentaiHaven",
 ] as const;
 
@@ -242,6 +244,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · hard subs · mirrors",
   },
   {
+    id: "WCOStream",
+    label: "WCO",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · VHS HLS · soft subs",
+  },
+  {
     id: "HentaiHaven",
     label: "Haven",
     group: "other",
@@ -271,6 +285,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "KickAssAnime",
   "KuroHost",
   "MKissa",
+  "WCOStream",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
