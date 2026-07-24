@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Captions, ChevronDown, Mic } from "lucide-react";
+import { Captions, Mic } from "lucide-react";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
 import {
@@ -30,6 +30,8 @@ type Props = {
   dataIds?: string | null;
   onPickQuality: (entry: KittyStreamQuality) => void;
   onPickSiteServer: (server: AnilistSiteServer, mode: SiteServerPickMode) => void;
+  /** Compact rows for AniDap-style split panel (no outer chrome). */
+  embedded?: boolean;
   className?: string;
 };
 
@@ -38,19 +40,19 @@ const SECTION_STYLES: Record<
   { label: string; active: string; idle: string }
 > = {
   sub: {
-    label: "text-teal-300/70",
+    label: "text-teal-300/80",
     active: "border-teal-400/45 bg-teal-500/25 text-teal-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+    idle: "border-white/8 bg-[#131313] text-white/55 hover:bg-[#1b1b1b] hover:text-white/80",
   },
   hardsub: {
-    label: "text-sky-300/70",
+    label: "text-sky-300/80",
     active: "border-sky-400/45 bg-sky-500/25 text-sky-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
+    idle: "border-white/8 bg-[#131313] text-white/55 hover:bg-[#1b1b1b] hover:text-white/80",
   },
   dub: {
-    label: "text-amber-300/70",
+    label: "text-amber-300/80",
     active: "border-amber-400/45 bg-amber-500/25 text-amber-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    idle: "border-white/8 bg-[#131313] text-white/55 hover:bg-[#1b1b1b] hover:text-white/80",
   },
 };
 
@@ -69,19 +71,18 @@ function QualityChip({
       onClick={onPick}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-1 px-2.5 py-1.5 min-h-8 rounded-md text-[11px] font-mono font-semibold border transition-colors touch-manipulation",
+        "inline-flex min-h-8 min-w-[4.5rem] items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors touch-manipulation",
         active
           ? "border-zinc-400/40 bg-zinc-500/20 text-zinc-50"
-          : "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-zinc-400/25 hover:text-foreground/80 dark:hover:text-white/70",
+          : "border-white/8 bg-[#131313] text-white/55 hover:bg-[#1b1b1b] hover:text-white/80",
       )}
     >
       {formatStreamQualityLabel(q.quality)}
-      {active ? <span className="text-[10px] opacity-70" aria-hidden>✓</span> : null}
     </button>
   );
 }
 
-function ServerSection({
+function ServerRow({
   mode,
   label,
   icon,
@@ -104,17 +105,17 @@ function ServerSection({
   const styles = SECTION_STYLES[mode];
 
   return (
-    <div className="rounded-xl border border-border dark:border-white/[0.06] bg-muted/20 dark:bg-white/[0.015] px-2.5 py-2 flex items-start gap-2 min-w-0">
+    <div className="flex items-center gap-2.5 min-w-0">
       <div
         className={cn(
-          "flex items-center gap-1 w-[4.75rem] shrink-0 pt-1.5 text-[10px] font-bold font-mono uppercase tracking-wide",
+          "flex w-[4.25rem] shrink-0 items-center gap-1 text-[11px] font-bold font-mono uppercase tracking-wide",
           styles.label,
         )}
       >
         {icon}
         <span className="truncate">{label}</span>
       </div>
-      <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-1.5 sm:justify-start">
         {servers.map((s, index) => {
           const codename =
             resolveServerCodename(provider, s.name) ??
@@ -130,11 +131,12 @@ function ServerSection({
               aria-pressed={isActive}
               title={s.name}
               className={cn(
-                "px-2.5 py-1.5 rounded-md text-[11px] font-mono font-semibold border transition-colors touch-manipulation",
+                "inline-flex min-h-8 min-w-[5.5rem] items-center justify-between gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors touch-manipulation",
                 isActive ? styles.active : styles.idle,
               )}
             >
-              {displayName}
+              <span className="truncate">{displayName}</span>
+              {isActive ? <span className="text-[10px] opacity-70" aria-hidden>✓</span> : null}
             </button>
           );
         })}
@@ -153,10 +155,10 @@ export default function WatchServerPicker({
   dataIds,
   onPickQuality,
   onPickSiteServer,
+  embedded = false,
   className,
 }: Props) {
   const t = useT();
-  const [open, setOpen] = useState(true);
   const [subServers, setSubServers] = useState<AnilistSiteServer[]>([]);
   const [dubServers, setDubServers] = useState<AnilistSiteServer[]>([]);
   const [loadingSite, setLoadingSite] = useState(false);
@@ -167,7 +169,6 @@ export default function WatchServerPicker({
   );
   const canFetchSite = isAnilistSiteProvider(provider) && Boolean(dataIds);
   const hasQualities = uniqueQualities.length > 1;
-  const activeQuality = uniqueQualities.find((q) => q.file === activeFile);
 
   const softSubServers = useMemo(
     () => subServers.filter((s) => !isHardSubServerName(s.name)),
@@ -181,7 +182,6 @@ export default function WatchServerPicker({
   useEffect(() => {
     setSubServers([]);
     setDubServers([]);
-    setOpen(true);
   }, [provider, dataIds]);
 
   useEffect(() => {
@@ -219,113 +219,82 @@ export default function WatchServerPicker({
   if (!hasQualities && !canFetchSite) return null;
   if (!hasQualities && canFetchSite && !loadingSite && !hasServerSections) return null;
 
-  const qualityChips = hasQualities && (
-    <div className="flex flex-wrap gap-1.5">
-      {uniqueQualities.map((q) => (
-        <QualityChip
-          key={q.file}
-          q={q}
-          active={activeFile === q.file}
-          onPick={() => onPickQuality(q)}
-        />
-      ))}
+  const qualityRow = hasQualities && (
+    <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex w-[4.25rem] shrink-0 items-center text-[11px] font-bold font-mono uppercase tracking-wide text-zinc-300/70">
+        {t("watch.serverPickerTitle")}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+        {uniqueQualities.map((q) => (
+          <QualityChip
+            key={q.file}
+            q={q}
+            active={activeFile === q.file}
+            onPick={() => onPickQuality(q)}
+          />
+        ))}
+      </div>
     </div>
   );
 
-  // Qualities only — show inline, no collapse.
-  if (hasQualities && !canFetchSite) {
-    return (
-      <div
-        className={cn(
-          "rounded-lg border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02] px-3 py-2",
-          className,
-        )}
-      >
-        <p className="mb-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35">
-          {t("watch.serverPickerTitle")}
+  const body = (
+    <div className={cn("flex flex-col gap-2", !embedded && "space-y-0")}>
+      {qualityRow}
+      {loadingSite && (
+        <p className="px-0.5 text-[10px] font-mono text-muted-foreground dark:text-white/35">
+          {t("watch.serverPickerLoading")}
         </p>
-        {qualityChips}
-      </div>
-    );
-  }
+      )}
+      {!loadingSite && canFetchSite && !hasServerSections && (
+        <p className="px-0.5 text-[10px] font-mono text-muted-foreground dark:text-white/35">
+          {t("watch.serverPickerEmpty")}
+        </p>
+      )}
+      <ServerRow
+        mode="sub"
+        label={t("watch.softSubBadge")}
+        icon={<Captions className="h-3 w-3 shrink-0" />}
+        servers={softSubServers}
+        provider={provider}
+        activeLinkId={activeLinkId}
+        sectionActive={audioMode !== "hardsub" && streamAudio === "sub"}
+        onPick={onPickSiteServer}
+      />
+      <ServerRow
+        mode="hardsub"
+        label={t("watch.hardSubsShort")}
+        icon={<Captions className="h-3 w-3 shrink-0" />}
+        servers={hardSubServers}
+        provider={provider}
+        activeLinkId={activeLinkId}
+        sectionActive={audioMode === "hardsub"}
+        onPick={onPickSiteServer}
+      />
+      <ServerRow
+        mode="dub"
+        label={t("card.dub")}
+        icon={<Mic className="h-3 w-3 shrink-0" />}
+        servers={dubServers}
+        provider={provider}
+        activeLinkId={activeLinkId}
+        sectionActive={streamAudio === "dub"}
+        onPick={onPickSiteServer}
+      />
+    </div>
+  );
 
-  const headerHint = activeQuality
-    ? formatStreamQualityLabel(activeQuality.quality)
-    : audioMode === "hardsub"
-      ? t("watch.hardSubsSection")
-      : streamAudio === "dub"
-        ? t("card.dub")
-        : t("watch.softSubBadge");
+  if (embedded) {
+    return <div className={cn("min-w-0", className)}>{body}</div>;
+  }
 
   return (
     <div
       className={cn(
-        "rounded-lg border border-border dark:border-white/10 bg-muted/20 dark:bg-white/[0.02]",
+        "rounded-xl border border-border/60 dark:border-white/[0.08] bg-muted/20 dark:bg-[#0c0c0c]/80 px-3 py-2.5",
         className,
       )}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[11px] font-mono text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white/80"
-      >
-        <span className="flex items-center gap-2 min-w-0">
-          <span>{t("watch.serverPickerTitle")}</span>
-          {headerHint && (
-            <span className="truncate rounded-md border border-teal-400/25 bg-teal-500/10 px-1.5 py-px text-[9px] font-bold text-teal-200/90">
-              {headerHint}
-            </span>
-          )}
-        </span>
-        <ChevronDown className={cn("w-3.5 h-3.5 shrink-0 transition-transform", open && "rotate-180")} />
-      </button>
-      {open && (
-        <div className="border-t border-border dark:border-white/[0.06] px-2 py-2 space-y-2">
-          {qualityChips}
-          {loadingSite && (
-            <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 px-1">
-              {t("watch.serverPickerLoading")}
-            </p>
-          )}
-          {!loadingSite && canFetchSite && !hasServerSections && (
-            <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 px-1">
-              {t("watch.serverPickerEmpty")}
-            </p>
-          )}
-          <div className="flex flex-col gap-2">
-            <ServerSection
-              mode="sub"
-              label={t("watch.softSubBadge")}
-              icon={<Captions className="w-3 h-3 shrink-0" />}
-              servers={softSubServers}
-              provider={provider}
-              activeLinkId={activeLinkId}
-              sectionActive={audioMode !== "hardsub" && streamAudio === "sub"}
-              onPick={onPickSiteServer}
-            />
-            <ServerSection
-              mode="hardsub"
-              label={t("watch.hardSubsSection")}
-              icon={<Captions className="w-3 h-3 shrink-0" />}
-              servers={hardSubServers}
-              provider={provider}
-              activeLinkId={activeLinkId}
-              sectionActive={audioMode === "hardsub"}
-              onPick={onPickSiteServer}
-            />
-            <ServerSection
-              mode="dub"
-              label={t("card.dub")}
-              icon={<Mic className="w-3 h-3 shrink-0" />}
-              servers={dubServers}
-              provider={provider}
-              activeLinkId={activeLinkId}
-              sectionActive={streamAudio === "dub"}
-              onPick={onPickSiteServer}
-            />
-          </div>
-        </div>
-      )}
+      {body}
     </div>
   );
 }

@@ -472,15 +472,16 @@ const Layout = (props: Props) => {
           "grid grid-cols-1 gap-3 sm:gap-4",
           isCompactLayout && "gap-2 sm:gap-2.5",
           showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:gap-5 xl:gap-6",
-          // Miruro-like: wider episode rail (~28%) next to a large player.
+          // AniDap-like: ~2/3 player column + ~1/3 episode rail.
           isDefaultLayout &&
-            "lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:gap-4 xl:gap-5",
+            "lg:grid-cols-3 lg:gap-4 xl:gap-6",
           isCompactLayout && showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:gap-3 xl:gap-4",
         )}
       >
-        {/* Left: player + episode info + tabs */}
+        {/* Left: player + episode info + tabs (AniDap: span 2 of 3) */}
         <div className={cn(
           "flex flex-col gap-2.5 sm:gap-3.5 min-w-0",
+          isDefaultLayout && "lg:col-span-2",
           isCompactLayout && "gap-1.5 sm:gap-2",
         )}>
           <div
@@ -739,10 +740,10 @@ const Layout = (props: Props) => {
         {/* Right sidebar: episodes (desktop) — Default & Compact */}
         {showSideSidebar && (
           <aside className={cn(
-            "watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#09090b]/90 backdrop-blur-sm",
+            "watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
             isCompactLayout && "watch-sidebar--compact",
-            // Miruro: episode rail fills the column; now-playing lives under the player.
-            isDefaultLayout && "rounded-2xl border-border/50 dark:border-white/[0.07]",
+            // AniDap: episode rail fills the third column; now-playing lives under the player.
+            isDefaultLayout && "rounded-xl border-border/50 dark:border-white/[0.07] lg:col-span-1",
           )}>
             {!isDefaultLayout && (
               <WatchNowPlayingCard

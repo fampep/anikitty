@@ -258,7 +258,7 @@ const EpisodeCard = ({
           "group flex gap-0 mx-1 mb-px rounded-lg transition-colors relative overflow-hidden",
           playable ? "cursor-pointer" : "cursor-not-allowed opacity-50",
           isActive
-            ? "bg-zinc-500/15 ring-1 ring-zinc-400/25"
+            ? "bg-teal-500/12 ring-1 ring-teal-400/35"
             : props.episode.isFiller
               ? "bg-amber-500/[0.06] ring-1 ring-amber-500/18 hover:bg-amber-500/[0.1]"
               : playable && "hover:bg-accent dark:hover:bg-white/[0.05]",
@@ -267,7 +267,7 @@ const EpisodeCard = ({
       >
         {/* Active / filler accent bar */}
         {isActive ? (
-          <span className="absolute inset-y-0 left-0 w-[2px] bg-zinc-300/90 z-10" />
+          <span className="absolute inset-y-0 left-0 w-[2px] bg-teal-300/90 z-10" />
         ) : props.episode.isFiller ? (
           <span className="absolute inset-y-0 left-0 w-[2px] bg-amber-400/70 z-10" />
         ) : null}

@@ -81,7 +81,7 @@ export default function WatchEpisodeBar({
   const total = episodes.episodes.length || episodes.totalEpisodes || 0;
 
   return (
-    <div className="watch-episode-strip overflow-visible animate-in fade-in duration-300">
+    <div className="watch-episode-strip overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-muted/20 dark:bg-[#0c0c0c]/90 animate-in fade-in duration-300">
       <div className="flex items-stretch min-h-[3.25rem] sm:min-h-[4.25rem]">
         <button
           type="button"

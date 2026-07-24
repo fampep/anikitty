@@ -4071,8 +4071,8 @@ export function AniKittyPlayer({
       >
         <div
           className={cn(
-            // Near-transparent fade — no solid plate; icons use drop-shadow for contrast.
-            "group/chrome pointer-events-auto bg-gradient-to-t from-black/15 via-transparent to-transparent pt-3 transition-[background] duration-200",
+            // AniDap-like translucent plate — thin dark fade, icons stay readable.
+            "group/chrome pointer-events-auto bg-gradient-to-t from-black/70 via-black/35 to-transparent pt-4 transition-[background] duration-200",
             !chromeVisible && "pointer-events-none",
           )}
           onMouseEnter={() => {
@@ -4090,7 +4090,7 @@ export function AniKittyPlayer({
           <div
             className={cn(
               "w-full min-w-0 bg-transparent",
-              "pb-[max(0.4rem,env(safe-area-inset-bottom))] pl-[max(0.35rem,env(safe-area-inset-left))] pr-[max(0.35rem,env(safe-area-inset-right))] pt-0.5",
+              "pb-[max(0.35rem,env(safe-area-inset-bottom))] pl-[max(0.35rem,env(safe-area-inset-left))] pr-[max(0.35rem,env(safe-area-inset-right))] pt-0.5",
               "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
             )}
           >
@@ -4282,8 +4282,19 @@ export function AniKittyPlayer({
             </div>
 
             <div className="flex w-full min-w-0 items-center gap-1 px-0.5 py-0.5 sm:gap-1.5 sm:px-2 sm:py-1">
-              {/* Left — may shrink; time truncates so it never covers cast / right icons */}
+              {/* Left — AniDap order: seek back, play, seek forward, next, time */}
               <div className="flex min-w-0 flex-1 items-center gap-0 overflow-hidden sm:gap-0.5">
+                <IconButton
+                  label={`Seek back ${seekStepSeconds || SEEK_STEP} seconds`}
+                  onClick={() => {
+                    seekBy(-(seekStepSeconds || SEEK_STEP));
+                  }}
+                  className="hidden shrink-0 min-[480px]:inline-flex"
+                >
+                  <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
+                    −{seekStepSeconds || SEEK_STEP}
+                  </span>
+                </IconButton>
                 <IconButton
                   label={
                     effectivePlaying
@@ -4301,17 +4312,6 @@ export function AniKittyPlayer({
                   ) : (
                     <PlayIcon className="h-4 w-4 translate-x-px" />
                   )}
-                </IconButton>
-                <IconButton
-                  label={`Seek back ${seekStepSeconds || SEEK_STEP} seconds`}
-                  onClick={() => {
-                    seekBy(-(seekStepSeconds || SEEK_STEP));
-                  }}
-                  className="hidden shrink-0 min-[480px]:inline-flex"
-                >
-                  <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
-                    −{seekStepSeconds || SEEK_STEP}
-                  </span>
                 </IconButton>
                 <IconButton
                   label={`Seek forward ${seekStepSeconds || SEEK_STEP} seconds`}

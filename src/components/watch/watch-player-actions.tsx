@@ -39,7 +39,7 @@ export default function WatchPlayerActions({
 
   return (
     <div className={className}>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
         {anilistId && Number.isFinite(epNum) && episodes && episodes.length > 0 && (
           <WatchDownloadPanel
             anilistId={anilistId}
@@ -51,7 +51,7 @@ export default function WatchPlayerActions({
         )}
 
         {w2gCode && w2gIsMember ? (
-          <span className="inline-flex items-center h-8 px-2.5 rounded-lg text-[10px] font-mono bg-primary/10 border border-primary/25 text-zinc-300/80">
+          <span className="inline-flex h-9 items-center rounded-lg border border-primary/25 bg-primary/10 px-3 text-[11px] font-semibold text-zinc-300/85">
             {t("watch.room", { code: w2gCode })}
           </span>
         ) : auth && onCreateW2g ? (
@@ -59,24 +59,24 @@ export default function WatchPlayerActions({
             type="button"
             onClick={onCreateW2g}
             disabled={creatingW2g}
-            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-primary/30 bg-primary/10 text-zinc-300 hover:bg-primary/15 transition-colors disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-[#161616] px-3 text-[12px] font-semibold text-white/80 transition-colors hover:bg-[#1d1d1d] disabled:opacity-50"
           >
             {creatingW2g ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Users className="w-3 h-3" />
+              <Users className="w-3.5 h-3.5" />
             )}
-            <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
+            <span>{t("watch.watchTogether")}</span>
           </button>
         ) : (
           <LoginPopoverButton
             customTrigger={
               <button
                 type="button"
-                className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/70 transition-colors"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-[#161616] px-3 text-[12px] font-semibold text-white/70 transition-colors hover:bg-[#1d1d1d] hover:text-white/90"
               >
-                <Users className="w-3 h-3" />
-                <span className="hidden sm:inline">{t("watch.watchTogether")}</span>
+                <Users className="w-3.5 h-3.5" />
+                <span>{t("watch.watchTogether")}</span>
               </button>
             }
           />

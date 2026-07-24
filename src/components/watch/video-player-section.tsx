@@ -21,7 +21,6 @@ import {
   type KittyProvider,
   type KittyTrack,
   type KittyStreamNodeParam,
-  type KittyStreamQuality,
 } from "@/query/stream/get-kitty-stream";
 import {
   DEFAULT_KITTY_PROVIDER,
@@ -99,6 +98,7 @@ import WatchStreamInfoBar from "@/components/watch/watch-stream-info-bar";
 import WatchStuckLoadingBanner from "@/components/watch/watch-stuck-loading-banner";
 import WatchAutoFallbackHint from "@/components/watch/watch-auto-fallback-hint";
 import WatchServerPicker from "@/components/watch/watch-server-picker";
+import WatchNowWatchingCard from "@/components/watch/watch-now-watching-card";
 import { getProviderAccent, PROVIDER_PANEL, providerChipClass } from "@/lib/kitty/provider-ui-styles";
 import { cn } from "@/lib/core/utils";
 import {
@@ -1808,13 +1808,13 @@ const VideoPlayerSection = () => {
         malId={malId}
         animeTitle={animeTitle ?? `Anime #${anilistId}`}
         episode={episodeNumberParsed}
-      />
+        />
     )}
 
-    {/* Player + under-chrome + episode strip as one composition */}
+    {/* Player + under-chrome as one composition (AniDap-style stack) */}
     <div className={cn(
       "watch-player-stack flex flex-col overflow-hidden rounded-none sm:rounded-xl ring-0 sm:ring-1 ring-border dark:ring-white/[0.09] shadow-none sm:shadow-[0_28px_80px_-24px_rgba(0,0,0,0.8)] bg-black",
-      watchLayout === "default" && "sm:rounded-2xl",
+      watchLayout === "default" && "sm:rounded-xl",
     )}>
     <div className="watch-player-stage flex flex-col overflow-hidden bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold
@@ -1893,97 +1893,123 @@ const VideoPlayerSection = () => {
       </>
       )}
       </div>
+    </div>
+    </div>
 
-      <WatchPlayerToolbar
+    {/* Title + actions row (AniDap: sits outside the black player frame) */}
+    <div className="flex flex-wrap items-start justify-between gap-2.5 sm:gap-3">
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate text-[15px] sm:text-[17px] font-semibold tracking-tight text-foreground dark:text-white/95">
+          {animeName ?? t("watch.selectEpisode")}
+        </h2>
+        {currentEpisodeInfo && (
+          <p className="mt-0.5 truncate text-[12px] text-muted-foreground dark:text-white/40">
+            {t("watch.episode", { n: currentEpisodeInfo.number })}
+            {currentEpisodeInfo.title &&
+            currentEpisodeInfo.title.toLowerCase() !== `episode ${currentEpisodeInfo.number}`
+              ? ` · ${currentEpisodeInfo.title}`
+              : ""}
+          </p>
+        )}
+      </div>
+      <WatchPlayerActions
+        anilistId={anilistId}
+        episodeNo={episodeNo}
+        episodes={allEpisodes?.episodes}
+        streamAudio={streamAudio}
         provider={provider}
+        w2gCode={w2gCode}
+        w2gIsMember={w2g.isMember}
+        auth={Boolean(auth)}
+        creatingW2g={creatingW2g}
+        onCreateW2g={handleCreateW2g}
+        className="shrink-0"
+      />
+    </div>
+
+    <WatchPlayerToolbar
+      provider={provider}
+      providerLabel={getKittyProviderLabel(provider)}
+      streamAudio={streamAudio}
+      dubEnabled={providerSupportsDub(provider)}
+      onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
+      showProviderControls={showPlayerControls}
+      hasPrev={Boolean(prevEpisode)}
+      hasNext={Boolean(nextEpisode)}
+      prevEpisodeNumber={prevEpisode?.number}
+      nextEpisodeNumber={nextEpisode?.number}
+      onPrev={handlePrevEpisode}
+      onNext={handleNextEpisode}
+      onShowShortcuts={() => setShortcutsOpen(true)}
+      onShowProviders={revealProviderControls}
+      onTogglePip={togglePip}
+      pipSupported={pipSupported}
+      onOpenComments={watchPage ? () => watchPage.openComments("episode") : undefined}
+      onShare={copyShareLink}
+      onSubmitSkipTimes={
+        anilistId && episodeNumberParsed != null
+          ? () => setSkipSubmitOpen(true)
+          : undefined
+      }
+    />
+
+    {!showPlayerControls && (
+      <WatchStreamInfoBar
         providerLabel={getKittyProviderLabel(provider)}
         streamAudio={streamAudio}
-        dubEnabled={providerSupportsDub(provider)}
-        onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
-        showProviderControls={showPlayerControls}
-        hasPrev={Boolean(prevEpisode)}
-        hasNext={Boolean(nextEpisode)}
-        prevEpisodeNumber={prevEpisode?.number}
-        nextEpisodeNumber={nextEpisode?.number}
-        onPrev={handlePrevEpisode}
-        onNext={handleNextEpisode}
-        onShowShortcuts={() => setShortcutsOpen(true)}
-        onShowProviders={revealProviderControls}
-        onTogglePip={togglePip}
-        pipSupported={pipSupported}
-        onOpenComments={watchPage ? () => watchPage.openComments("episode") : undefined}
-        onShare={copyShareLink}
-        onSubmitSkipTimes={
-          anilistId && episodeNumberParsed != null
-            ? () => setSkipSubmitOpen(true)
-            : undefined
-        }
+        serverName={streamData?.server}
+        provider={provider}
+        qualityLabel={activeQualityLabel}
+        proxyNodeLabel={proxyNodeLabel}
+        raceMs={raceMs}
       />
+    )}
 
-      {!showPlayerControls && (
-        <WatchStreamInfoBar
-          providerLabel={getKittyProviderLabel(provider)}
-          streamAudio={streamAudio}
-          serverName={streamData?.server}
-          provider={provider}
-          qualityLabel={activeQualityLabel}
-          proxyNodeLabel={proxyNodeLabel}
-          raceMs={raceMs}
+    {showFallbackHint && !providerAutoFallback && (
+      <WatchAutoFallbackHint
+        onEnable={() => {
+          setProviderAutoFallback(true);
+          markAutoFallbackHintSeen();
+          setShowFallbackHint(false);
+        }}
+        onDismiss={() => {
+          markAutoFallbackHintSeen();
+          setShowFallbackHint(false);
+        }}
+      />
+    )}
+
+    {showPlayerControls && (
+      <div id="watch-provider-controls" className="space-y-2.5">
+        <WatchNowWatchingCard
+          episodeNumber={currentEpisodeInfo?.number}
+          episodeTitle={currentEpisodeInfo?.title}
+          animeName={animeName}
+          servers={
+            <div className="space-y-2.5">
+              {providerControlsBlock}
+              <WatchServerPicker
+                provider={provider}
+                streamAudio={streamAudio}
+                audioMode={audioMode}
+                activeLinkId={streamLinkId}
+                qualities={displayQualities}
+                activeFile={displayFile}
+                dataIds={siteEpisodeDataIds}
+                onPickQuality={handlePickQuality}
+                onPickSiteServer={handlePickSiteServer}
+                embedded
+              />
+            </div>
+          }
         />
-      )}
+      </div>
+    )}
 
-      {/* Controls bar */}
-      <div className="watch-chrome px-2.5 py-2 sm:px-3 sm:py-2.5 border-t space-y-2">
-        {showFallbackHint && !providerAutoFallback && (
-          <WatchAutoFallbackHint
-            onEnable={() => {
-              setProviderAutoFallback(true);
-              markAutoFallbackHintSeen();
-              setShowFallbackHint(false);
-            }}
-            onDismiss={() => {
-              markAutoFallbackHintSeen();
-              setShowFallbackHint(false);
-            }}
-          />
-        )}
+    <div className="space-y-2">
+      <PlayerSettingsBar watchingHardSub={watchingHardSub && streamAudio === "sub"} />
 
-        {showPlayerControls && (
-          <>
-            <div id="watch-provider-controls">{providerControlsBlock}</div>
-
-            <WatchServerPicker
-              provider={provider}
-              streamAudio={streamAudio}
-              audioMode={audioMode}
-              activeLinkId={streamLinkId}
-              qualities={displayQualities}
-              activeFile={displayFile}
-              dataIds={siteEpisodeDataIds}
-              onPickQuality={handlePickQuality}
-              onPickSiteServer={handlePickSiteServer}
-            />
-          </>
-        )}
-
-        <PlayerSettingsBar watchingHardSub={watchingHardSub && streamAudio === "sub"} />
-
-        <WatchPlayerActions
-          anilistId={anilistId}
-          episodeNo={episodeNo}
-          episodes={allEpisodes?.episodes}
-          streamAudio={streamAudio}
-          provider={provider}
-          w2gCode={w2gCode}
-          w2gIsMember={w2g.isMember}
-          auth={Boolean(auth)}
-          creatingW2g={creatingW2g}
-          onCreateW2g={handleCreateW2g}
-        />
-
-        {showPlayerControls && (
-          <>
-        {/* Stream meta badges */}
+      {showPlayerControls && (
         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             {(communitySkipTimes?.intro || communitySkipTimes?.outro) && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 text-sky-300/90">
@@ -2031,15 +2057,11 @@ const VideoPlayerSection = () => {
                 )}
               </div>
             )}
-          </div>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
 
     {episodeBar}
-
-    </div>
 
     {w2gCode && w2g.isMember && (
       <W2gPanel

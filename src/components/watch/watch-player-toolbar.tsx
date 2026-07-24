@@ -159,7 +159,7 @@ export default function WatchPlayerToolbar({
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
 
   return (
-    <div className="watch-chrome flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2.5 py-2 sm:px-3 border-b">
+    <div className="watch-chrome flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-border/50 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.025] px-2.5 py-2 sm:px-3">
       <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1 basis-[min(100%,18rem)]">
         <ToolbarToggle
           active={autoPlay}

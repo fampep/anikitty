@@ -116,15 +116,15 @@ export default function WatchDownloadPanel({
         <button
           type="button"
           disabled={busy}
-          className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 text-zinc-300 hover:bg-primary/15 transition-colors disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-[#161616] px-3 text-[12px] font-semibold text-white/80 transition-colors hover:bg-[#1d1d1d] disabled:opacity-50"
           title={t("watch.downloadEpisode")}
         >
           {busy ? (
             <Loader2 className="w-3 h-3 animate-spin" />
           ) : (
-            <Download className="w-3 h-3" />
+            <Download className="w-3.5 h-3.5" />
           )}
-          <span className="hidden sm:inline">{t("watch.downloadEpisode")}</span>
+          <span>{t("watch.downloadEpisode")}</span>
         </button>
       </PopoverTrigger>
 

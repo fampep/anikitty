@@ -301,7 +301,7 @@ export function ProviderGrid({
 
   const rowLabels: Partial<Record<ProviderAudioMode, string>> = {
     sub: t("watch.softSubBadge"),
-    hardsub: t("watch.hardSubsSection"),
+    hardsub: t("watch.hardSubsShort"),
     dub: t("card.dub"),
   };
 
@@ -439,7 +439,7 @@ export function ProviderGrid({
         return (
           <div
             key={mode}
-            className="rounded-xl border border-border dark:border-white/[0.06] bg-muted/20 dark:bg-white/[0.015] px-2.5 py-2 flex items-start gap-2 min-w-0"
+            className="flex min-w-0 items-start gap-2.5 px-0.5 py-0.5"
           >
             <button
               type="button"
@@ -450,7 +450,7 @@ export function ProviderGrid({
                   : t("watch.hideProviderSection", { section: sectionLabel })
               }
               className={cn(
-                "flex items-center gap-1 w-14 shrink-0 pt-1.5 text-[10px] font-bold font-mono uppercase tracking-wide transition-opacity hover:opacity-100 touch-manipulation",
+                "flex w-[4.25rem] shrink-0 items-center gap-1 pt-1.5 text-[11px] font-bold font-mono uppercase tracking-wide transition-opacity hover:opacity-100 touch-manipulation",
                 styles.label,
                 isHidden && "opacity-60",
               )}
@@ -461,11 +461,6 @@ export function ProviderGrid({
                 sectionIcon
               )}
               <span className="truncate">{sectionLabel}</span>
-              {isHidden ? (
-                <EyeOff className="w-2.5 h-2.5 shrink-0 opacity-70" />
-              ) : (
-                <Eye className="w-2.5 h-2.5 shrink-0 opacity-40" />
-              )}
             </button>
             {!isHidden ? (
               <ProviderScrollRow compact={false}>
@@ -473,10 +468,10 @@ export function ProviderGrid({
                 {moreToggle}
               </ProviderScrollRow>
             ) : activeItem ? (
-              <div className="flex flex-wrap gap-1.5 min-w-0 flex-1 pt-0.5">
+              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 pt-0.5">
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-mono font-semibold border",
+                    "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold",
                     styles.active,
                   )}
                 >

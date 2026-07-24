@@ -288,12 +288,12 @@ const EpisodePlaylist = ({
           <>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="text-[13px] font-semibold text-foreground dark:text-white leading-none">
+                <h3 className="text-[14px] font-semibold tracking-tight text-foreground dark:text-white leading-none">
                   {t("watch.playlist.title")}
+                  <span className="ml-1.5 font-mono text-[12px] font-medium text-muted-foreground dark:text-white/40">
+                    ({total})
+                  </span>
                 </h3>
-                <p className="text-[11px] text-muted-foreground dark:text-white/30 mt-1 font-mono leading-none">
-                  {total} {total === 1 ? t("watch.playlist.episode") : t("watch.playlist.episodes")}
-                </p>
               </div>
 
               <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-lg p-0.5 border border-border dark:border-white/8 shrink-0">
@@ -306,7 +306,7 @@ const EpisodePlaylist = ({
                     className={cn(
                       "p-1.5 rounded-md transition-all duration-150",
                       episodeLayout === opt.value
-                        ? "bg-muted dark:bg-white/15 text-foreground dark:text-white"
+                        ? "bg-teal-500/20 text-teal-100"
                         : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55",
                     )}
                   >
