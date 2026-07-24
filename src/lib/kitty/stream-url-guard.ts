@@ -13,7 +13,10 @@ const STATIC_ASSET_RE =
   /\.(?:js|css|map|png|jpe?g|gif|svg|ico|woff2?|ttf|eot|webp)(?:\?|$)/i;
 
 const MEDIA_HINT_RE =
-  /\.(?:m3u8|mp4|mkv|webm|m4v|ts)(?:\?|$)|\/(?:cdn|hls|playlist|master|stream|manifest|video|media)\b/i;
+  /\.(?:m3u8|mp4|mkv|webm|m4v|ts)(?:\?|$)|\/(?:cdn|hls|playlist|master|stream|video|media)\b/i;
+
+/** DASH manifests — AniKitty HLS player cannot play these (Animex hawk Vee, etc.). */
+const DASH_URL_RE = /\.mpd(?:\?|$)|mp4-dash|\/dash\//i;
 
 function unwrapProxyTarget(url: string): string {
   try {
@@ -47,6 +50,7 @@ export function isLikelyMediaStreamUrl(url: string | null | undefined): boolean 
   }
 
   if (JUNK_HOST_RE.test(host) || JUNK_PATH_RE.test(path)) return false;
+  if (DASH_URL_RE.test(path) || DASH_URL_RE.test(target)) return false;
   if (STATIC_ASSET_RE.test(path) && !MEDIA_HINT_RE.test(path)) return false;
   return true;
 }

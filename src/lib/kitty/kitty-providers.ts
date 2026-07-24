@@ -314,6 +314,8 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 }
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
+  // UI label mistaken as provider id.
+  if (value === "Xray") return "Animex";
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
