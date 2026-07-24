@@ -11,6 +11,7 @@ import {
 export const ALL_KITTY_PROVIDER_IDS = [
   // Active (live on KittyAPI)
   "AniWaves",
+  "Animex",
   "Miruro",
   "MKissa",
   "AniKuro",
@@ -44,6 +45,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniWaves",
+  "Animex",
   "Miruro",
   "MKissa",
   "AniKuro",
@@ -95,6 +97,19 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "Animex",
+    label: "Xray",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    supportsMulti: true,
+    hint: "SUB · DUB · Koto · hawk CDNs · soft/hard",
   },
   {
     id: "Miruro",
@@ -230,6 +245,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniWaves",
+  "Animex",
   "Miruro",
   "AniKuro",
   "AniSnatch",
@@ -262,6 +278,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Miruro",
   "AniKuro",
   "AniWaves",
+  "Animex",
   "AniSnatch",
   "Anikoto",
   "AniWatch",

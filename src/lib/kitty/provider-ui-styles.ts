@@ -93,6 +93,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-sky-400",
     glow: "from-sky-500/20",
   },
+  Animex: {
+    chip: "border-orange-400/30 bg-orange-500/10 text-orange-100/90",
+    pillActive: "border-orange-400/45 bg-orange-500/20 text-orange-50 shadow-[0_0_12px_-4px_rgba(251,146,60,0.35)]",
+    pillIdle: "border-transparent text-orange-300/45 hover:text-orange-200/80 hover:bg-orange-500/[0.06]",
+    dot: "bg-orange-400",
+    glow: "from-orange-500/20",
+  },
   KickAssAnime: {
     chip: "border-red-400/30 bg-red-500/10 text-red-100/90",
     pillActive: "border-red-400/45 bg-red-500/20 text-red-50 shadow-[0_0_12px_-4px_rgba(248,113,113,0.35)]",
