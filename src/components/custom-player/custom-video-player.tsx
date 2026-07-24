@@ -105,6 +105,7 @@ import {
   VerticalSliderPopover,
 } from "./player-chrome";
 import { PlayerSubtitleOverlay } from "./player-subtitle-overlay";
+import PlayerSettingsMenu from "./player-settings-menu";
 import { useAirPlay } from "./use-airplay";
 import { isLikelyCastWebVttUrl } from "./google-cast";
 import {
@@ -320,6 +321,8 @@ export type AniKittyPlayerProps = {
   };
   /** Optional copy for the HLS / decode failure banner. */
   playbackIssueHint?: string;
+  /** Soft-sub overlay on hard-sub streams (watch settings). */
+  watchingHardSub?: boolean;
 };
 
 /** @deprecated Use AniKittyPlayerProps */
@@ -376,6 +379,7 @@ export function AniKittyPlayer({
   onPlayerReady,
   w2g,
   playbackIssueHint,
+  watchingHardSub = false,
 }: AniKittyPlayerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -5018,8 +5022,8 @@ export function AniKittyPlayer({
                           aria-label="Settings"
                           className={cn(
                             coarsePointer
-                              ? PLAYER_SHEET_CLASS
-                              : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,420px)] min-w-[180px] overflow-y-auto py-1",
+                              ? "absolute inset-x-0 bottom-0 z-[80] max-h-[min(88%,72dvh,32rem)] w-full overflow-y-auto overscroll-contain rounded-t-[1.25rem] border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92"
+                              : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(75vh,520px)] w-[min(92vw,22rem)] overflow-hidden py-0",
                             !coarsePointer && PLAYER_POPOVER_CLASS,
                             !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                           )}
@@ -5032,226 +5036,241 @@ export function AniKittyPlayer({
                               <div className="h-1 w-10 rounded-full bg-white/25" />
                             </div>
                           ) : null}
-                      <MenuSection title="Volume" className="sm:hidden">
-                        <MenuItem
-                          active={!effectiveMuted}
-                          onClick={() => {
-                            toggleMute();
-                            setMoreOpen(false);
-                          }}
-                        >
-                          {effectiveMuted ? "Unmute" : "Mute"}
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            setMoreOpen(false);
-                            setVolumeOpen(true);
-                            bumpControls();
-                          }}
-                        >
-                          Volume slider
-                        </MenuItem>
-                        {!casting ? (
-                          <MenuItem
-                            active={volumeBoost > 1}
-                            onClick={() => {
-                              setMoreOpen(false);
-                              setVolumeOpen(true);
-                              bumpControls();
-                            }}
-                          >
-                            Sound boost
-                            {volumeBoost > 1
-                              ? ` · ${formatVolumeBoost(volumeBoost)}`
-                              : ""}
-                          </MenuItem>
-                        ) : null}
-                      </MenuSection>
-
-                      <MenuSection title="Speed" className="min-[480px]:hidden">
-                        {CUSTOM_PLAYER_SPEEDS.map((rate) => (
-                          <MenuItem
-                            key={rate}
-                            active={playbackRate === rate}
-                            onClick={() => {
-                              applyPlaybackRate(rate, { hint: true });
-                              setMoreOpen(false);
-                            }}
-                          >
-                            {rate === 1 ? "Normal" : `${rate}×`}
-                          </MenuItem>
-                        ))}
-                      </MenuSection>
-
-                      {showQualityPicker ? (
-                        <MenuSection
-                          title={serverQualities.length > 1 ? "Source" : "Quality"}
-                          className="min-[520px]:hidden"
-                        >
-                          {serverQualities.length > 1
-                            ? serverQualities.map((entry) => (
-                                <MenuItem
-                                  key={entry.file}
-                                  active={activeSrc === entry.file}
-                                  onClick={() => {
-                                    selectServerQuality(entry);
+                          <PlayerSettingsMenu
+                            watchingHardSub={watchingHardSub}
+                            showQualityTab={showQualityPicker}
+                            captionsTrackLabel={
+                              selectedCaptionId
+                                ? `Tracks · ${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "On"}`
+                                : "Tracks · Off"
+                            }
+                            onOpenCaptionsTracks={
+                              showCaptionsMenu
+                                ? () => {
                                     setMoreOpen(false);
-                                  }}
-                                >
-                                  {formatStreamQualityLabel(entry.quality)}
-                                </MenuItem>
-                              ))
-                            : null}
-                          {showHlsQualityMenu ? (
-                            <>
-                              <MenuItem
-                                active={hlsLevelIndex < 0}
-                                onClick={() => {
-                                  selectHlsLevel(-1);
-                                  setMoreOpen(false);
-                                }}
-                              >
-                                Auto
-                              </MenuItem>
-                              {[...hlsLevels]
-                                .sort(
-                                  (a, b) => (b.height ?? 0) - (a.height ?? 0),
-                                )
-                                .map((level) => (
+                                    openCaptionsPicker();
+                                    bumpControls();
+                                  }
+                                : undefined
+                            }
+                            qualityPanel={
+                              showQualityPicker ? (
+                                <>
+                                  {serverQualities.length > 1 ? (
+                                    <MenuSection title="Source">
+                                      {serverQualities.map((entry) => (
+                                        <MenuItem
+                                          key={entry.file}
+                                          active={activeSrc === entry.file}
+                                          onClick={() => {
+                                            selectServerQuality(entry);
+                                            setMoreOpen(false);
+                                          }}
+                                        >
+                                          {formatStreamQualityLabel(entry.quality)}
+                                        </MenuItem>
+                                      ))}
+                                    </MenuSection>
+                                  ) : null}
+                                  {showHlsQualityMenu ? (
+                                    <MenuSection title="Quality">
+                                      <MenuItem
+                                        active={hlsLevelIndex < 0}
+                                        onClick={() => {
+                                          selectHlsLevel(-1);
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        Auto
+                                      </MenuItem>
+                                      {[...hlsLevels]
+                                        .sort(
+                                          (a, b) => (b.height ?? 0) - (a.height ?? 0),
+                                        )
+                                        .map((level) => (
+                                          <MenuItem
+                                            key={level.index}
+                                            active={hlsLevelIndex === level.index}
+                                            onClick={() => {
+                                              selectHlsLevel(level.index);
+                                              setMoreOpen(false);
+                                            }}
+                                          >
+                                            {level.label}
+                                          </MenuItem>
+                                        ))}
+                                    </MenuSection>
+                                  ) : null}
+                                  {!serverQualities.length && !showHlsQualityMenu ? (
+                                    <p className="px-3 py-4 text-center text-[11px] text-white/40">
+                                      No alternate qualities for this stream
+                                    </p>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <p className="px-3 py-4 text-center text-[11px] text-white/40">
+                                  No alternate qualities for this stream
+                                </p>
+                              )
+                            }
+                            speedPanel={
+                              <MenuSection title="Speed">
+                                {CUSTOM_PLAYER_SPEEDS.map((rate) => (
                                   <MenuItem
-                                    key={level.index}
-                                    active={hlsLevelIndex === level.index}
+                                    key={rate}
+                                    active={playbackRate === rate}
                                     onClick={() => {
-                                      selectHlsLevel(level.index);
+                                      applyPlaybackRate(rate, { hint: true });
                                       setMoreOpen(false);
                                     }}
                                   >
-                                    {level.label}
+                                    {rate === 1 ? "Normal" : `${rate}×`}
                                   </MenuItem>
                                 ))}
-                            </>
-                          ) : null}
-                        </MenuSection>
-                      ) : null}
+                              </MenuSection>
+                            }
+                            displayExtras={
+                              <>
+                                <MenuSection title="Brightness">
+                                  {[
+                                    { label: "Dim", value: 0.7 },
+                                    { label: "Normal", value: 1 },
+                                    { label: "Bright", value: 1.35 },
+                                  ].map((opt) => (
+                                    <MenuItem
+                                      key={opt.label}
+                                      active={Math.abs(brightness - opt.value) < 0.05}
+                                      onClick={() => {
+                                        setBrightnessLevel(opt.value, { hint: true });
+                                        setMoreOpen(false);
+                                      }}
+                                    >
+                                      {opt.label}
+                                    </MenuItem>
+                                  ))}
+                                </MenuSection>
 
-                      {showAudioMenu ? (
-                        <MenuSection
-                          title="Audio"
-                          className="min-[560px]:hidden"
-                        >
-                          {hlsAudioOptions.map((track) => (
-                            <MenuItem
-                              key={track.index}
-                              active={hlsAudioIndex === track.index}
-                              onClick={() => {
-                                selectHlsAudio(track.index);
-                                setMoreOpen(false);
-                              }}
-                            >
-                              {track.label}
-                            </MenuItem>
-                          ))}
-                        </MenuSection>
-                      ) : null}
+                                {showAudioMenu ? (
+                                  <MenuSection title="Audio">
+                                    {hlsAudioOptions.map((track) => (
+                                      <MenuItem
+                                        key={track.index}
+                                        active={hlsAudioIndex === track.index}
+                                        onClick={() => {
+                                          selectHlsAudio(track.index);
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {track.label}
+                                      </MenuItem>
+                                    ))}
+                                  </MenuSection>
+                                ) : null}
 
-                      <MenuSection title="Brightness">
-                        {[
-                          { label: "Dim", value: 0.7 },
-                          { label: "Normal", value: 1 },
-                          { label: "Bright", value: 1.35 },
-                        ].map((opt) => (
-                          <MenuItem
-                            key={opt.label}
-                            active={Math.abs(brightness - opt.value) < 0.05}
-                            onClick={() => {
-                              setBrightnessLevel(opt.value, { hint: true });
-                              setMoreOpen(false);
-                            }}
-                          >
-                            {opt.label}
-                          </MenuItem>
-                        ))}
-                      </MenuSection>
+                                <MenuSection title="Volume" className="sm:hidden">
+                                  <MenuItem
+                                    active={!effectiveMuted}
+                                    onClick={() => {
+                                      toggleMute();
+                                      setMoreOpen(false);
+                                    }}
+                                  >
+                                    {effectiveMuted ? "Unmute" : "Mute"}
+                                  </MenuItem>
+                                  <MenuItem
+                                    onClick={() => {
+                                      setMoreOpen(false);
+                                      setVolumeOpen(true);
+                                      bumpControls();
+                                    }}
+                                  >
+                                    Volume slider
+                                  </MenuItem>
+                                  {!casting ? (
+                                    <MenuItem
+                                      active={volumeBoost > 1}
+                                      onClick={() => {
+                                        setMoreOpen(false);
+                                        setVolumeOpen(true);
+                                        bumpControls();
+                                      }}
+                                    >
+                                      Sound boost
+                                      {volumeBoost > 1
+                                        ? ` · ${formatVolumeBoost(volumeBoost)}`
+                                        : ""}
+                                    </MenuItem>
+                                  ) : null}
+                                </MenuSection>
 
-                      {pipSupported && !pipBlocked ? (
-                        <MenuSection title="Display">
-                          <MenuItem
-                            active={inPip}
-                            onClick={() => {
-                              void togglePip();
-                              setMoreOpen(false);
-                            }}
-                          >
-                            {inPip ? "Exit picture-in-picture" : "Picture-in-picture"}
-                          </MenuItem>
-                        </MenuSection>
-                      ) : null}
+                                {pipSupported && !pipBlocked ? (
+                                  <MenuSection title="Picture-in-picture">
+                                    <MenuItem
+                                      active={inPip}
+                                      onClick={() => {
+                                        void togglePip();
+                                        setMoreOpen(false);
+                                      }}
+                                    >
+                                      {inPip
+                                        ? "Exit picture-in-picture"
+                                        : "Picture-in-picture"}
+                                    </MenuItem>
+                                  </MenuSection>
+                                ) : null}
 
-                      {showCaptionsMenu ? (
-                        <MenuSection title="Captions">
-                          <MenuItem
-                            onClick={() => {
-                              setMoreOpen(false);
-                              openCaptionsPicker();
-                              bumpControls();
-                            }}
-                          >
-                            {selectedCaptionId
-                              ? `Tracks · ${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "On"}`
-                              : "Tracks · Off"}
-                          </MenuItem>
-                        </MenuSection>
-                      ) : null}
+                                {airPlayAvailable || castAvailable ? (
+                                  <MenuSection title="Cast" className="sm:hidden">
+                                    {airPlayAvailable ? (
+                                      <MenuItem
+                                        active={airPlayConnected}
+                                        onClick={() => {
+                                          showAirPlayPicker();
+                                          bumpControls();
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {airPlayConnected
+                                          ? "AirPlay connected"
+                                          : "AirPlay"}
+                                      </MenuItem>
+                                    ) : null}
+                                    {castAvailable ? (
+                                      <MenuItem
+                                        active={casting || castConnecting}
+                                        onClick={() => {
+                                          void toggleCast();
+                                          bumpControls();
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {casting
+                                          ? castDeviceName
+                                            ? `Stop cast · ${castDeviceName}`
+                                            : "Stop casting"
+                                          : castConnecting
+                                            ? "Connecting…"
+                                            : "Cast to device"}
+                                      </MenuItem>
+                                    ) : null}
+                                  </MenuSection>
+                                ) : null}
 
-                      {airPlayAvailable || castAvailable ? (
-                        <MenuSection title="Cast" className="sm:hidden">
-                          {airPlayAvailable ? (
-                            <MenuItem
-                              active={airPlayConnected}
-                              onClick={() => {
-                                showAirPlayPicker();
-                                bumpControls();
-                                setMoreOpen(false);
-                              }}
-                            >
-                              {airPlayConnected
-                                ? "AirPlay connected"
-                                : "AirPlay"}
-                            </MenuItem>
-                          ) : null}
-                          {castAvailable ? (
-                            <MenuItem
-                              active={casting || castConnecting}
-                              onClick={() => {
-                                void toggleCast();
-                                bumpControls();
-                                setMoreOpen(false);
-                              }}
-                            >
-                              {casting
-                                ? castDeviceName
-                                  ? `Stop cast · ${castDeviceName}`
-                                  : "Stop casting"
-                                : castConnecting
-                                  ? "Connecting…"
-                                  : "Cast to device"}
-                            </MenuItem>
-                          ) : null}
-                        </MenuSection>
-                      ) : null}
-
-                      <MenuSection title="Help">
-                        <MenuItem
-                          onClick={() => {
-                            setMoreOpen(false);
-                            popoverOpenRef.current = true;
-                            setHelpOpen(true);
-                            bumpControls();
-                          }}
-                        >
-                          Keyboard shortcuts (?)
-                        </MenuItem>
-                      </MenuSection>
+                                <MenuSection title="Help">
+                                  <MenuItem
+                                    onClick={() => {
+                                      setMoreOpen(false);
+                                      popoverOpenRef.current = true;
+                                      setHelpOpen(true);
+                                      bumpControls();
+                                    }}
+                                  >
+                                    Keyboard shortcuts (?)
+                                  </MenuItem>
+                                </MenuSection>
+                              </>
+                            }
+                          />
                         </div>
                       </div>
                     </PlayerOverlayPortal>

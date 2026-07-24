@@ -869,12 +869,9 @@ function WatchNowPlayingCard({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground/65 dark:text-white/28">
-            {t("watch.nowWatching")}
-          </p>
           <p
             className={cn(
-              "mt-0.5 font-semibold leading-snug text-foreground/90 dark:text-white/88 line-clamp-2",
+              "font-semibold leading-snug text-foreground/90 dark:text-white/88 line-clamp-2",
               compact ? "text-[11px]" : "text-[12px]",
             )}
           >
@@ -910,9 +907,6 @@ function WatchNowPlayingCard({
 
       {currentEpisode.title && !compact && (
         <p className="text-[11px] leading-snug text-foreground/70 dark:text-white/48 line-clamp-2">
-          <span className="mr-1 font-mono tabular-nums text-muted-foreground/55 dark:text-white/28">
-            {currentEpisode.number}.
-          </span>
           {currentEpisode.title}
         </p>
       )}

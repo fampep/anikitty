@@ -40,9 +40,9 @@ export type EpisodeLayout = "list" | "compact" | "thumbnail";
 /** Watch page structure: player + playlist arrangement (not theatre chrome). */
 export type WatchLayout = "default" | "theater" | "compact" | "focus";
 
-export const DEFAULT_WATCH_LAYOUT: WatchLayout = "default";
+/** Compact: tighter gaps and a narrower playlist column. */
+export const DEFAULT_WATCH_LAYOUT: WatchLayout = "compact";
 
-/** Miruro-style default: wide player + sticky episode rail on desktop. */
 export function sanitizeWatchLayout(value: unknown): WatchLayout {
   if (value === "default" || value === "theater" || value === "compact" || value === "focus") {
     return value;
@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 63,
+      version: 64,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -882,6 +882,11 @@ export const useSettingsStore = create<ISettingsStore>()(
             next.defaultProvider ?? "AniHQ",
             next.providerOrder,
           );
+        }
+        if (version < 64) {
+          // Compact watch layout is the new default (tighter gaps / narrower rail).
+          next.watchLayout = "compact";
+          next.theatreMode = false;
         }
         return next as ISettingsStore;
       },

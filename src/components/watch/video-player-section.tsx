@@ -54,7 +54,6 @@ import {
   Cat,
 } from "lucide-react";
 import WatchPlayerActions from "@/components/watch/watch-player-actions";
-import PlayerSettingsBar from "@/components/watch/player-settings-bar";
 import WatchPlayerToolbar from "@/components/watch/watch-player-toolbar";
 import SkipTimesSubmitDialog from "@/components/watch/skip-times-submit-dialog";
 import WatchResumePrompt from "@/components/watch/watch-resume-prompt";
@@ -152,7 +151,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider, watchLayout } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, setSimpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider, watchLayout } = useSettingsStore();
   // Lightweight health probes — used only to skip known-dead nodes on failover, not for geo/ping routing.
   const { nodes: proxyNodes } = useKittyNodePing({
     enabled: true,
@@ -162,6 +161,16 @@ const VideoPlayerSection = () => {
   /** `auto` races; pin to a node for HLS remints / quality stickiness on the same episode. */
   const [streamKittyNode, setStreamKittyNode] = useState<KittyStreamNodeParam>("auto");
   const compactProviderPicker = simpleProviderPicker;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem("kitty-watch-mobile-defaults-v4")) return;
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    setPlayerSettingsOpen(false);
+    setShowPlayerControls(false);
+    setSimpleProviderPicker(true);
+    localStorage.setItem("kitty-watch-mobile-defaults-v4", "1");
+  }, [setPlayerSettingsOpen, setShowPlayerControls, setSimpleProviderPicker]);
 
   const [audioMode, setAudioMode] = useState<ProviderAudioMode>(() => {
     if (typeof window !== "undefined") {
@@ -1850,6 +1859,7 @@ const VideoPlayerSection = () => {
         }
         seriesTitle={animeName ?? undefined}
         episodeNumber={currentEpisodeInfo?.number}
+        watchingHardSub={watchingHardSub && streamAudio === "sub"}
         className="rounded-none"
         startTime={
           w2gCode && w2g.isMember && !w2g.isHost && w2g.syncState
@@ -1982,9 +1992,6 @@ const VideoPlayerSection = () => {
     {showPlayerControls && (
       <div id="watch-provider-controls" className="space-y-2.5">
         <WatchNowWatchingCard
-          episodeNumber={currentEpisodeInfo?.number}
-          episodeTitle={currentEpisodeInfo?.title}
-          animeName={animeName}
           servers={
             <div className="space-y-2.5">
               {providerControlsBlock}
@@ -2006,60 +2013,56 @@ const VideoPlayerSection = () => {
       </div>
     )}
 
-    <div className="space-y-2">
-      <PlayerSettingsBar watchingHardSub={watchingHardSub && streamAudio === "sub"} />
-
-      {showPlayerControls && (
-        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-            {(communitySkipTimes?.intro || communitySkipTimes?.outro) && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 text-sky-300/90">
-                {t("watch.communitySkip")}
+    {showPlayerControls && (
+      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+        {(communitySkipTimes?.intro || communitySkipTimes?.outro) && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 text-sky-300/90">
+            {t("watch.communitySkip")}
+          </span>
+        )}
+        {(skipTimes?.intro || skipTimes?.outro) && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-muted-foreground dark:text-white/70">
+            {t("watch.chapters")}
+          </span>
+        )}
+        {streamData?.miruroPipe && provider === "Miruro" && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-primary/10 border border-primary/20 text-zinc-300/90">
+            {streamData.miruroPipe}
+          </span>
+        )}
+        {providerHasNativeSubs(provider) &&
+          resolveServerCodename(provider, streamData?.server) && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-zinc-500/10 border border-zinc-400/20 text-zinc-300/90">
+              {resolveServerCodename(provider, streamData?.server)}
+            </span>
+          )}
+        {watchingHardSub && streamAudio === "sub" && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-300/90">
+            {t("watch.hardSubBadge")}
+            {hardSubSoftSubs ? ` · ${t("watch.hardSubSoftSubsOn")}` : ""}
+          </span>
+        )}
+        {subtitlesEnabled && subtitleTracks.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 max-w-full">
+            {subtitleTracks.slice(0, 3).map((track, i) => (
+              <span
+                key={`${track.label ?? "sub"}-${i}`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-500/10 border border-zinc-400/20 text-zinc-200/90 truncate max-w-[120px]"
+                title={track.label}
+              >
+                <Captions className="w-2.5 h-2.5 shrink-0" />
+                {track.label}
+              </span>
+            ))}
+            {subtitleTracks.length > 3 && (
+              <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25">
+                +{subtitleTracks.length - 3}
               </span>
             )}
-            {(skipTimes?.intro || skipTimes?.outro) && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/10 text-muted-foreground dark:text-white/70">
-                {t("watch.chapters")}
-              </span>
-            )}
-            {streamData?.miruroPipe && provider === "Miruro" && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-primary/10 border border-primary/20 text-zinc-300/90">
-                {streamData.miruroPipe}
-              </span>
-            )}
-            {providerHasNativeSubs(provider) &&
-              resolveServerCodename(provider, streamData?.server) && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-zinc-500/10 border border-zinc-400/20 text-zinc-300/90">
-                  {resolveServerCodename(provider, streamData?.server)}
-                </span>
-              )}
-            {watchingHardSub && streamAudio === "sub" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-300/90">
-                {t("watch.hardSubBadge")}
-                {hardSubSoftSubs ? ` · ${t("watch.hardSubSoftSubsOn")}` : ""}
-              </span>
-            )}
-            {subtitlesEnabled && subtitleTracks.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1 max-w-full">
-                {subtitleTracks.slice(0, 3).map((track, i) => (
-                  <span
-                    key={`${track.label ?? "sub"}-${i}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-500/10 border border-zinc-400/20 text-zinc-200/90 truncate max-w-[120px]"
-                    title={track.label}
-                  >
-                    <Captions className="w-2.5 h-2.5 shrink-0" />
-                    {track.label}
-                  </span>
-                ))}
-                {subtitleTracks.length > 3 && (
-                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25">
-                    +{subtitleTracks.length - 3}
-                  </span>
-                )}
-              </div>
-            )}
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    )}
 
     {episodeBar}
 

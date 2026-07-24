@@ -38,14 +38,22 @@ type Props = {
   showPlaylistToggleOnDesktop?: boolean;
 };
 
-function episodeTitle(ep: Episode, animeName: string | undefined, t: (key: string, vars?: Record<string, string | number>) => string) {
+function episodeAriaTitle(
+  ep: Episode,
+  animeName: string | undefined,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
   const meaningful =
     ep.title && ep.title.toLowerCase() !== `episode ${ep.number}`;
-  if (meaningful) return ep.title;
+  if (meaningful) return ep.title!;
   if (animeName) return t("watch.episodeTitle", { name: animeName, n: ep.number });
   return t("watch.episode", { n: ep.number });
 }
 
+/**
+ * Prev/next + playlist strip. Title/episode copy lives under the player —
+ * this bar stays navigation-focused.
+ */
 export default function WatchEpisodeBar({
   currentEpisode,
   episodes,
@@ -76,13 +84,13 @@ export default function WatchEpisodeBar({
   const inProgress = progressPct > 2 && progressPct < 95;
   const completed = progressPct >= 95;
 
-  const title = episodeTitle(currentEpisode, animeName, t);
+  const title = episodeAriaTitle(currentEpisode, animeName, t);
   const thumb = currentEpisode.image || animePoster || null;
   const total = episodes.episodes.length || episodes.totalEpisodes || 0;
 
   return (
     <div className="watch-episode-strip overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-muted/20 dark:bg-[#0c0c0c]/90 animate-in fade-in duration-300">
-      <div className="flex items-stretch min-h-[3.25rem] sm:min-h-[4.25rem]">
+      <div className="flex items-stretch min-h-[3.25rem] sm:min-h-[3.75rem]">
         <button
           type="button"
           onClick={onPrev}
@@ -131,15 +139,15 @@ export default function WatchEpisodeBar({
           </EpisodeThumbPreview>
 
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <p className="text-[11px] sm:text-[12px] font-mono font-bold tabular-nums tracking-tight text-zinc-200/95">
                 EP {currentEpisode.number}
+                {total > 1 ? (
+                  <span className="ml-1 font-medium text-muted-foreground/70 dark:text-white/28">
+                    / {total}
+                  </span>
+                ) : null}
               </p>
-              {total > 1 && (
-                <p className="text-[10px] font-mono tabular-nums text-muted-foreground/70 dark:text-white/28">
-                  / {total}
-                </p>
-              )}
               {currentEpisode.isFiller && (
                 <span className="px-1.5 py-px text-[9px] rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/70 uppercase tracking-wide">
                   {t("watch.filler")}
@@ -153,14 +161,10 @@ export default function WatchEpisodeBar({
               )}
             </div>
 
-            <p className="text-[13px] sm:text-[14px] font-medium tracking-tight text-foreground/90 dark:text-white/80 leading-snug line-clamp-1 sm:line-clamp-2">
-              {title}
-            </p>
-
             {onJumpToEpisode && total > 1 && (
               <form
                 className={cn(
-                  "mt-2 items-center gap-1.5 max-w-[11rem]",
+                  "mt-1.5 items-center gap-1.5 max-w-[11rem]",
                   theatreMode ? "flex" : "hidden sm:flex",
                 )}
                 onSubmit={(e) => {
@@ -190,7 +194,7 @@ export default function WatchEpisodeBar({
             )}
 
             {animeId && (
-              <div className="mt-2 hidden sm:block">
+              <div className="mt-1.5 hidden sm:block">
                 <WatchMarkEpisodeButton
                   animeId={animeId}
                   episodeId={currentEpisode.episodeId}
@@ -200,26 +204,12 @@ export default function WatchEpisodeBar({
             )}
 
             {inProgress && (
-              <div className="mt-2 h-1 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden max-w-xs">
+              <div className="mt-1.5 h-1 rounded-full bg-accent dark:bg-white/[0.06] overflow-hidden max-w-xs">
                 <div
                   className="h-full rounded-full bg-zinc-400/80 transition-all duration-300"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
-            )}
-
-            {nextEpisode && (
-              <button
-                type="button"
-                onClick={onNext}
-                className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-muted-foreground/80 dark:text-white/30 hover:text-foreground dark:hover:text-white/60 transition-colors truncate max-w-full"
-              >
-                <span className="shrink-0">{t("watch.nextEpisode")}:</span>
-                <span className="truncate text-muted-foreground dark:text-white/45">
-                  {episodeTitle(nextEpisode, animeName, t)}
-                </span>
-                <ChevronRight className="w-3 h-3 shrink-0 opacity-60" />
-              </button>
             )}
           </div>
         </div>

@@ -6,53 +6,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Command,
-  Lightbulb,
   Link2,
   MessageSquare,
   Mic,
   PictureInPicture,
-  Play,
   Server,
   SkipForward,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { getKittyProviderLabel, type KittyProvider } from "@/lib/kitty/kitty-providers";
 import { AUDIO_SEGMENT, getProviderAccent, providerChipClass } from "@/lib/kitty/provider-ui-styles";
-import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
-
-function ToolbarToggle({
-  active,
-  icon,
-  label,
-  onClick,
-  className,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      aria-label={label}
-      className={cn(
-        "site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-150 shrink-0",
-        active
-          ? "border-teal-400/30 bg-teal-500/12 text-teal-50/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-          : "border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-border dark:hover:border-white/18",
-        className,
-      )}
-    >
-      {active ? <Check className="w-3 h-3 shrink-0" /> : icon}
-      <span className="inline max-w-[4.75rem] truncate sm:max-w-none">{label}</span>
-    </button>
-  );
-}
 
 type Props = {
   provider: KittyProvider;
@@ -125,6 +89,10 @@ function ToolbarAudioToggle({
   );
 }
 
+/**
+ * Slim watch chrome: comments / share / nav. Playback toggles live in the
+ * player settings gear (auto-next, auto-skip, lights, etc.).
+ */
 export default function WatchPlayerToolbar({
   provider,
   providerLabel,
@@ -147,12 +115,6 @@ export default function WatchPlayerToolbar({
   onShare,
 }: Props) {
   const t = useT();
-  const autoPlay = useSettingsStore((s) => s.autoPlay);
-  const setAutoPlay = useSettingsStore((s) => s.setAutoPlay);
-  const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
-  const setAutoSkipIntro = useSettingsStore((s) => s.setAutoSkipIntro);
-  const toggleTheatreMode = useSettingsStore((s) => s.toggleTheatreMode);
-  const theatreMode = useSettingsStore((s) => s.theatreMode);
 
   const displayProvider = providerLabel ?? getKittyProviderLabel(provider);
   const accent = getProviderAccent(provider);
@@ -161,18 +123,6 @@ export default function WatchPlayerToolbar({
   return (
     <div className="watch-chrome flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-border/50 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.025] px-2.5 py-2 sm:px-3">
       <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1 basis-[min(100%,18rem)]">
-        <ToolbarToggle
-          active={autoPlay}
-          icon={<Play className="w-3 h-3 shrink-0" />}
-          label={t("watch.toolbar.autoNext")}
-          onClick={() => setAutoPlay(!autoPlay)}
-        />
-        <ToolbarToggle
-          active={autoSkipIntro}
-          icon={<SkipForward className="w-3 h-3 shrink-0" />}
-          label={t("watch.toolbar.autoSkip")}
-          onClick={() => setAutoSkipIntro(!autoSkipIntro)}
-        />
         <button
           type="button"
           onClick={onShowShortcuts}
@@ -182,13 +132,6 @@ export default function WatchPlayerToolbar({
           <Command className="w-3 h-3 shrink-0" />
           <span className="hidden sm:inline">{t("watch.toolbar.shortcuts")}</span>
         </button>
-        <ToolbarToggle
-          active={theatreMode}
-          icon={<Lightbulb className="w-3 h-3 shrink-0" />}
-          label={t("watch.toolbar.lightsOff")}
-          onClick={toggleTheatreMode}
-          className="min-w-0"
-        />
         {pipSupported && onTogglePip && (
           <button
             type="button"
