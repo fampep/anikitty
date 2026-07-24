@@ -11,6 +11,7 @@ import {
 export const ALL_KITTY_PROVIDER_IDS = [
   // Active (live on KittyAPI) — site priority first
   "AniHQ",
+  "AnimeGG",
   "AniWaves",
   "Miruro",
   "Animex",
@@ -23,7 +24,6 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "KickAssAnime",
   "KuroHost",
   "MKissa",
-  "WCOStream",
   "HentaiHaven",
   // Normalize-only aliases / legacy
   "MegaPlay",
@@ -47,6 +47,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniHQ",
+  "AnimeGG",
   "AniWaves",
   "Miruro",
   "Animex",
@@ -59,7 +60,6 @@ export const KITTY_PROVIDERS = [
   "KickAssAnime",
   "KuroHost",
   "MKissa",
-  "WCOStream",
   "HentaiHaven",
 ] as const;
 
@@ -102,6 +102,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: false,
     kittySubs: false,
     hint: "SUB · DUB · VOE HLS",
+  },
+  {
+    id: "AnimeGG",
+    label: "GG",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · AnimeGG MP4",
   },
   {
     id: "AniWaves",
@@ -244,18 +256,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · hard subs · mirrors",
   },
   {
-    id: "WCOStream",
-    label: "WCO",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · VHS HLS · soft subs",
-  },
-  {
     id: "HentaiHaven",
     label: "Haven",
     group: "other",
@@ -273,6 +273,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniHQ",
+  "AnimeGG",
   "AniWaves",
   "Miruro",
   "Animex",
@@ -285,7 +286,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "KickAssAnime",
   "KuroHost",
   "MKissa",
-  "WCOStream",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];

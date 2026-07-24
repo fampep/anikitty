@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 61,
+      version: 62,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -836,17 +836,35 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
         }
         if (version < 61) {
-          // WCO (WCOStream) — English cartoon/anime VHS HLS.
+          // Drop abandoned WCOStream / GogoAnime leftovers from saved orders.
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
-          const without = order.filter((id) => id !== "WCOStream");
-          const mkissaAt = without.indexOf("MKissa");
-          const insertAt = mkissaAt >= 0 ? mkissaAt + 1 : without.length;
+          next.providerOrder = sanitizeProviderOrder(
+            order.filter((id) => id !== "WCOStream" && id !== "GogoAnime"),
+          );
+          next.defaultProvider = sanitizeDefaultProvider(
+            ["WCOStream", "GogoAnime"].includes(String(next.defaultProvider ?? ""))
+              ? "AniHQ"
+              : (next.defaultProvider ?? "AniHQ"),
+            next.providerOrder,
+          );
+        }
+        if (version < 62) {
+          // AnimeGG (GG) sits right after HQ.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter(
+            (id) => id !== "AnimeGG" && id !== "WCOStream" && id !== "GogoAnime",
+          );
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt = hqAt >= 0 ? hqAt + 1 : 1;
           next.providerOrder = sanitizeProviderOrder([
             ...without.slice(0, insertAt),
-            "WCOStream",
+            "AnimeGG",
             ...without.slice(insertAt),
           ]);
-          next.defaultProvider = sanitizeDefaultProvider(next.defaultProvider, next.providerOrder);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },
