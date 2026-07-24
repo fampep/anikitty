@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 59,
+      version: 60,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -813,6 +813,27 @@ export const useSettingsStore = create<ISettingsStore>()(
             next.defaultProvider === "MKissa" ? "Miruro" : (next.defaultProvider ?? "AniWaves"),
             next.providerOrder,
           );
+        }
+        if (version < 60) {
+          // HQ (AniHQ) is the new site default; Whiskey → Echo → Xray → Kilo follow.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const rest = order.filter(
+            (id) =>
+              id !== "AniHQ" &&
+              id !== "AniWaves" &&
+              id !== "Miruro" &&
+              id !== "Animex" &&
+              id !== "Anikoto",
+          );
+          next.providerOrder = sanitizeProviderOrder([
+            "AniHQ",
+            "AniWaves",
+            "Miruro",
+            "Animex",
+            "Anikoto",
+            ...rest,
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
         }
         return next as ISettingsStore;
       },

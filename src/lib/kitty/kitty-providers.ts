@@ -9,20 +9,20 @@ import {
  * {@link normalizeKittyProvider}.
  */
 export const ALL_KITTY_PROVIDER_IDS = [
-  // Active (live on KittyAPI)
+  // Active (live on KittyAPI) — site priority first
+  "AniHQ",
   "AniWaves",
-  "Animex",
   "Miruro",
-  "MKissa",
+  "Animex",
+  "Anikoto",
   "AniKuro",
   "AniSnatch",
-  "Anikoto",
   "AniWatch",
   "Senshi",
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "AniHQ",
+  "MKissa",
   "HentaiHaven",
   // Normalize-only aliases / legacy
   "MegaPlay",
@@ -45,19 +45,19 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
 export const KITTY_PROVIDERS = [
+  "AniHQ",
   "AniWaves",
-  "Animex",
   "Miruro",
-  "MKissa",
+  "Animex",
+  "Anikoto",
   "AniKuro",
   "AniSnatch",
-  "Anikoto",
   "AniWatch",
   "Senshi",
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "AniHQ",
+  "MKissa",
   "HentaiHaven",
 ] as const;
 
@@ -90,6 +90,18 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
+    id: "AniHQ",
+    label: "HQ",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · VOE HLS",
+  },
+  {
     id: "AniWaves",
     label: "Whiskey",
     group: "featured",
@@ -99,19 +111,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "Animex",
-    label: "Xray",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: false,
-    supportsMulti: true,
-    hint: "SUB · DUB · Koto · hawk CDNs · soft/hard",
   },
   {
     id: "Miruro",
@@ -127,16 +126,29 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft · hard · Miruro pipes",
   },
   {
-    id: "MKissa",
-    label: "MKissa",
+    id: "Animex",
+    label: "Xray",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
-    softSub: false,
+    softSub: true,
     hardSub: true,
-    nativeSubs: false,
+    nativeSubs: true,
     kittySubs: false,
-    hint: "SUB · DUB · hard subs · mirrors",
+    supportsMulti: true,
+    hint: "SUB · DUB · Koto · hawk CDNs · soft/hard",
+  },
+  {
+    id: "Anikoto",
+    label: "Kilo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · soft · hard subs",
   },
   {
     id: "AniKuro",
@@ -159,18 +171,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs · AniVibe",
-  },
-  {
-    id: "Anikoto",
-    label: "Kilo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft · hard subs",
   },
   {
     id: "AniWatch",
@@ -230,8 +230,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · soft EN subs",
   },
   {
-    id: "AniHQ",
-    label: "HQ",
+    id: "MKissa",
+    label: "MKissa",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -239,7 +239,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: false,
     kittySubs: false,
-    hint: "SUB · DUB · VOE HLS",
+    hint: "SUB · DUB · hard subs · mirrors",
   },
   {
     id: "HentaiHaven",
@@ -258,18 +258,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
+  "AniHQ",
   "AniWaves",
-  "Animex",
   "Miruro",
+  "Animex",
+  "Anikoto",
   "AniKuro",
   "AniSnatch",
-  "Anikoto",
   "AniWatch",
   "Senshi",
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "AniHQ",
   "MKissa",
 ];
 
