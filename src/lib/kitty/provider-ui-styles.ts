@@ -121,6 +121,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-violet-400",
     glow: "from-violet-500/20",
   },
+  AniHQ: {
+    chip: "border-teal-400/30 bg-teal-500/10 text-teal-100/90",
+    pillActive: "border-teal-400/45 bg-teal-500/20 text-teal-50 shadow-[0_0_12px_-4px_rgba(45,212,191,0.35)]",
+    pillIdle: "border-transparent text-teal-300/45 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+    dot: "bg-teal-400",
+    glow: "from-teal-500/20",
+  },
   Zenkai: {
     chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
     pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",

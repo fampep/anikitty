@@ -22,6 +22,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
+  "AniHQ",
   "HentaiHaven",
   // Normalize-only aliases / legacy
   "MegaPlay",
@@ -56,6 +57,7 @@ export const KITTY_PROVIDERS = [
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
+  "AniHQ",
   "HentaiHaven",
 ] as const;
 
@@ -228,6 +230,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · soft EN subs",
   },
   {
+    id: "AniHQ",
+    label: "HQ",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · VOE HLS",
+  },
+  {
     id: "HentaiHaven",
     label: "Haven",
     group: "other",
@@ -255,6 +269,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniNeko",
   "KickAssAnime",
   "KuroHost",
+  "AniHQ",
   "MKissa",
 ];
 
