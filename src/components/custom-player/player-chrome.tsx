@@ -83,7 +83,7 @@ export function MenuItem({
       role="menuitemradio"
       aria-checked={active}
       className={cn(
-        "relative flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:px-3 sm:py-2",
+        "relative flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:px-3 sm:py-2",
         active && "bg-white/[0.09] font-medium text-white",
       )}
       onClick={onClick}
@@ -337,13 +337,13 @@ export function IconButton({
       onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/80",
+        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85",
         "transition-[color,opacity,background-color,transform,box-shadow] duration-150 ease-out",
-        "hover:bg-white/[0.1] hover:text-white",
-        "active:scale-[0.9] active:bg-white/[0.14] active:opacity-95",
+        "hover:bg-white/[0.12] hover:text-white",
+        "active:scale-[0.9] active:bg-white/[0.16] active:opacity-95",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
         "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/75 disabled:active:scale-100",
-        "aria-pressed:bg-white/[0.1] aria-pressed:text-white aria-expanded:bg-white/[0.1] aria-expanded:text-white",
+        "aria-pressed:bg-white/[0.12] aria-pressed:text-white aria-expanded:bg-white/[0.12] aria-expanded:text-white",
         "sm:h-8 sm:w-8 sm:rounded-md",
         className,
       )}

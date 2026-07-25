@@ -2,14 +2,13 @@
 
 import {
   Captions,
-  Check,
   ChevronLeft,
   ChevronRight,
-  Command,
+  Keyboard,
   Link2,
   MessageSquare,
   Mic,
-  PictureInPicture,
+  PictureInPicture2,
   Server,
   SkipForward,
 } from "lucide-react";
@@ -129,7 +128,7 @@ export default function WatchPlayerToolbar({
           aria-label={t("watch.toolbar.shortcuts")}
           className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
         >
-          <Command className="w-3 h-3 shrink-0" />
+          <Keyboard className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">{t("watch.toolbar.shortcuts")}</span>
         </button>
         {pipSupported && onTogglePip && (
@@ -139,7 +138,7 @@ export default function WatchPlayerToolbar({
             aria-label={t("watch.toolbar.pip")}
             className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0 lg:hidden"
           >
-            <PictureInPicture className="w-3 h-3 shrink-0" />
+            <PictureInPicture2 className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.pip")}</span>
           </button>
         )}
@@ -149,7 +148,7 @@ export default function WatchPlayerToolbar({
             onClick={onSubmitSkipTimes}
             className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-teal-400/25 transition-colors shrink-0"
           >
-            <SkipForward className="w-3 h-3 shrink-0" />
+            <SkipForward className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.submitSkip")}</span>
           </button>
         )}
@@ -159,7 +158,7 @@ export default function WatchPlayerToolbar({
             onClick={onOpenComments}
             className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.05] text-muted-foreground dark:text-white/70 hover:text-foreground dark:hover:text-white hover:bg-muted/60 dark:hover:bg-white/[0.08] transition-colors shrink-0"
           >
-            <MessageSquare className="w-3 h-3 shrink-0" />
+            <MessageSquare className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.comments")}</span>
           </button>
         )}
@@ -171,7 +170,7 @@ export default function WatchPlayerToolbar({
             title={t("watch.toolbar.share")}
             className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
           >
-            <Link2 className="w-3 h-3 shrink-0" />
+            <Link2 className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.share")}</span>
           </button>
         )}

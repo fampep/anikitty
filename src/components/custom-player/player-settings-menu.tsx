@@ -2,19 +2,20 @@
 
 import { useState, type ReactNode } from "react";
 import {
+  AudioLines,
   Captions,
-  Gauge,
-  Lightbulb,
-  List,
-  Mic,
-  Monitor,
-  MoveHorizontal,
-  Play,
-  RefreshCw,
-  Server,
-  SkipForward,
-  Sparkles,
+  ChevronsRight,
   Clapperboard,
+  Gauge,
+  LayoutList,
+  ListVideo,
+  Monitor,
+  Moon,
+  MoveHorizontal,
+  PanelTop,
+  Shuffle,
+  Sparkles,
+  Subtitles,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
@@ -49,15 +50,24 @@ function ToggleRow({
       type="button"
       role="switch"
       aria-checked={value}
-      className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
+      className="flex w-full items-center justify-between gap-2.5 px-2.5 py-2 text-left transition-colors hover:bg-white/[0.06] sm:gap-3 sm:px-3 sm:py-2.5"
       onClick={() => onChange(!value)}
     >
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span className="shrink-0 text-white/40">{icon}</span>
+      <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8",
+            value ? "bg-teal-500/20 text-teal-200" : "bg-white/[0.05] text-white/40",
+          )}
+        >
+          {icon}
+        </span>
         <div className="min-w-0">
-          <p className="text-[12px] font-medium text-white/85">{label}</p>
+          <p className="text-[12px] font-medium leading-tight text-white/85">{label}</p>
           {description ? (
-            <p className="mt-0.5 text-[10px] leading-snug text-white/35">{description}</p>
+            <p className="mt-0.5 hidden text-[10px] leading-snug text-white/35 sm:block">
+              {description}
+            </p>
           ) : null}
         </div>
       </div>
@@ -133,8 +143,8 @@ export default function PlayerSettingsMenu({
 
   const webGpuReady = isWebGpuSupported();
 
-  const tabs: { id: PlayerSettingsTabId; label: string; icon: typeof Play; hidden?: boolean }[] = [
-    { id: "playback", label: t("watch.playerSettings.tabPlayback"), icon: Play },
+  const tabs: { id: PlayerSettingsTabId; label: string; icon: typeof ListVideo; hidden?: boolean }[] = [
+    { id: "playback", label: t("watch.playerSettings.tabPlayback"), icon: ListVideo },
     { id: "captions", label: t("watch.playerSettings.tabCaptions"), icon: Captions },
     {
       id: "quality",
@@ -151,66 +161,68 @@ export default function PlayerSettingsMenu({
     visibleTabs.some((entry) => entry.id === tab) ? tab : (visibleTabs[0]?.id ?? "playback");
 
   return (
-    <div className={cn("flex flex-col", className)}>
-      <div className="sticky top-0 z-[1] flex gap-0.5 overflow-x-auto border-b border-white/[0.08] bg-zinc-950/95 px-1.5 py-1.5 backdrop-blur-md">
+    <div className={cn("flex min-h-0 flex-col", className)}>
+      <div className="sticky top-0 z-[1] flex gap-0.5 overflow-x-auto border-b border-white/[0.08] bg-zinc-950/95 px-1 py-1 backdrop-blur-md sm:px-1.5 sm:py-1.5">
         {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
+            aria-label={label}
             aria-pressed={activeTab === id}
+            title={label}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-colors",
+              "inline-flex shrink-0 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-colors",
               activeTab === id
                 ? "bg-white text-zinc-950"
                 : "text-white/45 hover:bg-white/[0.06] hover:text-white/80",
             )}
           >
-            <Icon className="h-3 w-3 shrink-0" aria-hidden />
-            <span>{label}</span>
+            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span className="hidden min-[380px]:inline">{label}</span>
           </button>
         ))}
       </div>
 
-      <div className="max-h-[min(55vh,22rem)] overflow-y-auto overscroll-contain sm:max-h-[min(60vh,26rem)]">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain max-h-[min(42vh,16rem)] sm:max-h-[min(60vh,26rem)] sm:flex-none">
         {activeTab === "playback" && (
-          <div className="divide-y divide-white/[0.06] py-1">
+          <div className="divide-y divide-white/[0.06] py-0.5 sm:py-1">
             <ToggleRow
-              icon={<Play className="h-3.5 w-3.5" />}
+              icon={<ListVideo className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.autoNext")}
               description={t("settings.autoPlayDesc")}
               value={autoPlay}
               onChange={setAutoPlay}
             />
             <ToggleRow
-              icon={<SkipForward className="h-3.5 w-3.5" />}
+              icon={<ChevronsRight className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.autoSkip")}
               description={t("settings.autoSkipIntroDesc")}
               value={autoSkipIntro}
               onChange={setAutoSkipIntro}
             />
             <ToggleRow
-              icon={<Mic className="h-3.5 w-3.5" />}
+              icon={<AudioLines className="h-3.5 w-3.5" />}
               label={t("settings.preferDub")}
               description={t("settings.preferDubDesc")}
               value={preferDub}
               onChange={setPreferDub}
             />
             <ToggleRow
-              icon={<RefreshCw className="h-3.5 w-3.5" />}
+              icon={<Shuffle className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.autoFallback")}
               description={t("watch.playerSettings.autoFallbackDesc")}
               value={providerAutoFallback}
               onChange={setProviderAutoFallback}
             />
             <ToggleRow
-              icon={<List className="h-3.5 w-3.5" />}
+              icon={<LayoutList className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.simplePicker")}
               description={t("watch.playerSettings.simplePickerDesc")}
               value={simpleProviderPicker}
               onChange={setSimpleProviderPicker}
             />
-            <div className="px-2 py-2 [&_div]:border-white/10 [&_div]:bg-white/[0.04] [&_p]:text-white/80 [&_span]:text-white/35">
+            <div className="px-2 py-1.5 sm:py-2 [&_div]:border-white/10 [&_div]:bg-white/[0.04] [&_p]:text-white/80 [&_span]:text-white/35">
               <SeekStepSetting value={seekStepSeconds} onChange={setSeekStepSeconds} compact />
             </div>
             <ToggleRow
@@ -232,7 +244,7 @@ export default function PlayerSettingsMenu({
                   onChange={setAnime4kEnabled}
                 />
                 {anime4kEnabled && !liteMode ? (
-                  <div className="flex flex-wrap gap-1.5 px-3 pb-2.5">
+                  <div className="flex flex-wrap gap-1.5 px-2.5 pb-2 sm:px-3 sm:pb-2.5">
                     {ANIME4K_MODES.map((mode) => (
                       <button
                         key={mode}
@@ -264,7 +276,7 @@ export default function PlayerSettingsMenu({
               {t("watch.playerSettings.subtitlesDubHint")}
             </div>
           ) : (
-            <div className="space-y-1 py-1">
+            <div className="space-y-0.5 py-0.5 sm:space-y-1 sm:py-1">
               <ToggleRow
                 icon={<Captions className="h-3.5 w-3.5" />}
                 label={t("watch.playerSettings.autoEnableSubtitles")}
@@ -274,7 +286,7 @@ export default function PlayerSettingsMenu({
               />
               {watchingHardSub ? (
                 <ToggleRow
-                  icon={<Captions className="h-3.5 w-3.5" />}
+                  icon={<Subtitles className="h-3.5 w-3.5" />}
                   label={t("watch.playerSettings.hardSubSoftSubs")}
                   description={t("watch.playerSettings.hardSubSoftSubsDesc")}
                   value={hardSubSoftSubs}
@@ -288,7 +300,7 @@ export default function PlayerSettingsMenu({
                   </MenuItem>
                 </MenuSection>
               ) : null}
-              <div className="border-t border-white/[0.06] px-2 py-2 [&_*]:border-white/10">
+              <div className="border-t border-white/[0.06] px-1.5 py-1.5 sm:px-2 sm:py-2 [&_*]:border-white/10">
                 <SubtitleSettingsPanel compact />
               </div>
             </div>
@@ -299,16 +311,16 @@ export default function PlayerSettingsMenu({
         {activeTab === "speed" && (speedPanel ?? null)}
 
         {activeTab === "display" && (
-          <div className="divide-y divide-white/[0.06] py-1">
+          <div className="divide-y divide-white/[0.06] py-0.5 sm:py-1">
             <ToggleRow
-              icon={<Lightbulb className="h-3.5 w-3.5" />}
+              icon={<Moon className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.lightsOff")}
               description={t("watch.playerSettings.theatre")}
               value={theatreMode}
               onChange={() => toggleTheatreMode()}
             />
             <ToggleRow
-              icon={<Server className="h-3.5 w-3.5" />}
+              icon={<PanelTop className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.showProvidersShort")}
               description={t("watch.playerSettings.providersToggleDesc")}
               value={showPlayerControls}

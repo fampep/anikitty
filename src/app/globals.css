@@ -1193,8 +1193,23 @@ html[data-user-theme] .dark ::selection {
   --ak-player-surface: rgba(9, 9, 11, 0.92);
   --ak-player-border: rgba(255, 255, 255, 0.12);
   --ak-player-track: rgba(255, 255, 255, 0.16);
-  --ak-player-buffer: rgba(255, 255, 255, 0.3);
-  --ak-player-played: #fafafa;
+  --ak-player-buffer: rgba(255, 255, 255, 0.28);
+  --ak-player-accent: #a78bfa;
+  --ak-player-accent-soft: rgba(167, 139, 250, 0.35);
+  --ak-player-played: linear-gradient(90deg, #7c3aed 0%, #a78bfa 55%, #c4b5fd 100%);
+  --ak-player-knob: #ede9fe;
+}
+
+html[data-user-theme] .anikitty-player {
+  --ak-player-accent: rgb(var(--user-accent-rgb) / 1);
+  --ak-player-accent-soft: rgb(var(--user-accent-rgb) / 0.35);
+  --ak-player-played: linear-gradient(
+    90deg,
+    rgb(var(--user-accent-rgb) / 0.85),
+    rgb(var(--user-accent-rgb) / 1),
+    rgb(var(--user-accent-rgb) / 0.7)
+  );
+  --ak-player-knob: #fff;
 }
 
 .anikitty-player:fullscreen,

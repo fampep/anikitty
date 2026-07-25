@@ -2,11 +2,11 @@ import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
-/** Shared stroke — light optical weight for sparse zinc chrome. */
+/** Shared stroke — slightly heavier for clearer controls on phone screens. */
 const stroke = {
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.5,
+  strokeWidth: 1.75,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
@@ -169,11 +169,11 @@ export function MoreIcon(props: IconProps) {
 export function SettingsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <circle {...stroke} cx="12" cy="12" r="3" />
       <path
         {...stroke}
-        d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
       />
-      <circle {...stroke} cx="12" cy="12" r="3" />
     </svg>
   );
 }
@@ -193,8 +193,9 @@ export function ShareIcon(props: IconProps) {
 export function CaptionsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
-      <rect {...stroke} x="3.5" y="5.75" width="17" height="12.5" rx="2" />
-      <path {...stroke} d="M7.5 12.5h3M13.5 12.5h3" />
+      <rect {...stroke} x="3.25" y="5.5" width="17.5" height="13" rx="2.25" />
+      <path {...stroke} d="M7.25 12.25h2.75M8.6 10.35v3.8" />
+      <path {...stroke} d="M13.5 12.25h3.25M15.1 10.35v3.8" />
     </svg>
   );
 }

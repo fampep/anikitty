@@ -73,10 +73,10 @@ import {
   PauseIcon,
   PipIcon,
   PlayIcon,
-  PlayOutlineIcon,
   SeekBackIcon,
   SeekForwardIcon,
   SettingsIcon,
+  CaptionsIcon,
   VolumeIcon,
   VolumeLowIcon,
   VolumeMuteIcon,
@@ -3926,17 +3926,20 @@ export function AniKittyPlayer({
         aria-label="Play"
         onClick={togglePlay}
         className={cn(
-          "absolute left-1/2 top-1/2 z-20 flex h-[4.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-zinc-950/60 text-white shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md",
+          "absolute left-1/2 top-1/2 z-20 flex h-[4.75rem] w-[4.75rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
+          "border border-white/30 bg-white/[0.12] text-white shadow-[0_12px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-xl",
           "transition-[opacity,transform,border-color,background-color,box-shadow] duration-300 ease-out",
-          "hover:border-white/40 hover:bg-zinc-950/75 hover:shadow-[0_16px_48px_rgba(0,0,0,0.55)]",
+          "hover:border-white/45 hover:bg-white/[0.18] hover:shadow-[0_16px_48px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.22)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
-          "sm:h-[4.25rem] sm:w-[4.25rem]",
+          "active:scale-95",
+          "sm:h-[4.35rem] sm:w-[4.35rem]",
           showCenterPlay
             ? "pointer-events-auto scale-100 opacity-100"
             : "pointer-events-none scale-90 opacity-0",
         )}
       >
-        <PlayOutlineIcon className="h-7 w-7" />
+        <span className="absolute inset-[3px] rounded-full bg-gradient-to-b from-white/[0.12] to-transparent" aria-hidden />
+        <PlayIcon className="relative h-7 w-7 translate-x-0.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]" />
       </button>
 
       {/* Next episode + skip intro/outro overlays */}
@@ -3970,10 +3973,10 @@ export function AniKittyPlayer({
             });
           }}
           className={cn(
-            "absolute z-40 inline-flex min-h-11 items-center gap-2 rounded-md border border-white/40 bg-white px-4 py-2.5",
-            "text-[13px] font-semibold tracking-wide text-zinc-950",
-            "transition-[transform,opacity,background-color] duration-200",
-            "hover:bg-white/95 active:scale-[0.98]",
+            "absolute z-40 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/20 bg-zinc-950/80 px-3.5 py-2 backdrop-blur-xl",
+            "text-[12px] font-semibold tracking-wide text-white shadow-[0_10px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]",
+            "transition-[transform,opacity,background-color,border-color] duration-200",
+            "hover:border-white/35 hover:bg-zinc-950/90 active:scale-[0.98]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
             "right-[max(0.75rem,env(safe-area-inset-right))]",
             // Sit well above the control bar + TV overscan so remotes can focus it.
@@ -3984,9 +3987,10 @@ export function AniKittyPlayer({
               "animate-in fade-in zoom-in-95 slide-in-from-right-2 duration-200",
           )}
         >
+          <SeekForwardIcon className="h-3.5 w-3.5 opacity-80" aria-hidden />
           <span>{activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}</span>
           {skipRemainingSecs > 0 ? (
-            <span className="rounded bg-zinc-950/8 px-1.5 py-0.5 tabular-nums text-[11px] font-medium text-zinc-950/55">
+            <span className="rounded-md bg-white/10 px-1.5 py-0.5 tabular-nums text-[11px] font-medium text-white/70">
               {formatPlayerTime(skipRemainingSecs)}
             </span>
           ) : null}
@@ -4014,7 +4018,7 @@ export function AniKittyPlayer({
       {/* Netflix-style mini progress while chrome is hidden */}
       {showMiniProgress ? (
         <div
-          className="pointer-events-none absolute inset-x-0 z-20 h-[2.5px] bg-white/[0.08] bottom-[max(0px,env(safe-area-inset-bottom))]"
+          className="pointer-events-none absolute inset-x-0 z-20 h-[3px] bg-white/[0.1] bottom-[max(0px,env(safe-area-inset-bottom))]"
           aria-hidden
         >
           {bufferedAheadRatio != null ? (
@@ -4027,8 +4031,11 @@ export function AniKittyPlayer({
             />
           ) : null}
           <div
-            className="absolute inset-y-0 left-0 origin-left bg-white shadow-[0_0_6px_rgba(255,255,255,0.4)]"
-            style={{ transform: `scaleX(${progressRatio})` }}
+            className="absolute inset-y-0 left-0 origin-left shadow-[0_0_8px_var(--ak-player-accent-soft)]"
+            style={{
+              transform: `scaleX(${progressRatio})`,
+              background: "var(--ak-player-played)",
+            }}
           />
         </div>
       ) : null}
@@ -4045,14 +4052,14 @@ export function AniKittyPlayer({
           )}
           aria-hidden={!chromeVisible}
         >
-          <div className="px-3.5 pb-8 sm:px-4">
+          <div className="px-3.5 pb-9 sm:px-5">
             {seriesTitle ? (
-              <p className="truncate text-[11px] font-medium tracking-wide text-white/55">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
                 {seriesTitle}
               </p>
             ) : null}
             {title ? (
-              <p className="mt-0.5 truncate text-[13px] font-semibold tracking-wide text-white/95 sm:text-[14px]">
+              <p className="mt-1 truncate text-[13px] font-semibold tracking-wide text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.65)] sm:text-[15px]">
                 {title}
               </p>
             ) : null}
@@ -4075,8 +4082,8 @@ export function AniKittyPlayer({
       >
         <div
           className={cn(
-            // AniDap-like translucent plate — thin dark fade, icons stay readable.
-            "group/chrome pointer-events-auto bg-gradient-to-t from-black/70 via-black/35 to-transparent pt-4 transition-[background] duration-200",
+            // Soft violet-tinted dock — keeps icons readable without heavy chrome.
+            "group/chrome pointer-events-auto bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-5 transition-[background] duration-200",
             !chromeVisible && "pointer-events-none",
           )}
           onMouseEnter={() => {
@@ -4209,7 +4216,7 @@ export function AniKittyPlayer({
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
               <div className={cn(
-                "pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] overflow-visible rounded-full bg-white/[0.14] ring-1 ring-inset ring-white/[0.06] transition-[height,margin] duration-150 sm:h-[2.5px] sm:-mt-[1.25px] group-hover/seek:h-[4px] group-hover/seek:-mt-[2px]",
+                "pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] overflow-visible rounded-full bg-white/[0.16] ring-1 ring-inset ring-white/[0.06] transition-[height,margin] duration-150 sm:h-[2.5px] sm:-mt-[1.25px] group-hover/seek:h-[4px] group-hover/seek:-mt-[2px]",
                 seeking && "h-[5px] -mt-[2.5px] sm:h-[4px] sm:-mt-[2px]",
               )}>
                 {/* Buffered ranges — muted ahead-of-playhead fill */}
@@ -4232,15 +4239,21 @@ export function AniKittyPlayer({
                     })
                   : null}
                 <div
-                  className="absolute inset-y-0 left-0 z-[3] w-full origin-left rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.35)]"
-                  style={{ transform: `scaleX(${progressRatio})` }}
+                  className="absolute inset-y-0 left-0 z-[3] w-full origin-left rounded-full shadow-[0_0_12px_var(--ak-player-accent-soft)]"
+                  style={{
+                    transform: `scaleX(${progressRatio})`,
+                    background: "var(--ak-player-played)",
+                  }}
                 />
                 {/* Playhead tip — tiny bright tick for scrub clarity */}
                 {effectiveDuration > 0 ? (
                   <div
                     aria-hidden
-                    className="absolute top-1/2 z-[5] h-2.5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-90 group-hover/seek:opacity-0"
-                    style={{ left: `${progressRatio * 100}%` }}
+                    className="absolute top-1/2 z-[5] h-2.5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-90 group-hover/seek:opacity-0"
+                    style={{
+                      left: `${progressRatio * 100}%`,
+                      background: "var(--ak-player-knob)",
+                    }}
                   />
                 ) : null}
                 {/* Skip segment ranges — filled colored bars (intro / outro) */}
@@ -4259,8 +4272,8 @@ export function AniKittyPlayer({
                             "h-[3px] group-hover/seek:h-[5px]",
                             seeking && "h-[5px]",
                             seg.kind === "intro"
-                              ? "bg-white/35"
-                              : "bg-amber-400/60",
+                              ? "bg-violet-300/45"
+                              : "bg-amber-400/65",
                           )}
                           style={{
                             left: `${left}%`,
@@ -4274,14 +4287,18 @@ export function AniKittyPlayer({
               {/* Scrub knob — outside overflow:hidden track so it stays visible */}
               <div
                 className={cn(
-                  "pointer-events-none absolute top-1/2 z-[5] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.45)] transition-[opacity,transform,width,height] duration-150",
+                  "pointer-events-none absolute top-1/2 z-[5] -translate-x-1/2 -translate-y-1/2 rounded-full transition-[opacity,transform,width,height] duration-150",
+                  "shadow-[0_0_0_2px_rgba(0,0,0,0.35),0_0_0_4px_var(--ak-player-accent-soft),0_2px_10px_rgba(0,0,0,0.45)]",
                   seeking
                     ? "h-[18px] w-[18px] scale-100 opacity-100 sm:h-4 sm:w-4"
                     : coarsePointer || hoverPreview
                       ? "h-4 w-4 scale-100 opacity-100"
                       : "h-3 w-3 scale-90 opacity-0 group-hover/seek:scale-100 group-hover/seek:opacity-100",
                 )}
-                style={{ left: `${knobRatio * 100}%` }}
+                style={{
+                  left: `${knobRatio * 100}%`,
+                  background: "var(--ak-player-knob)",
+                }}
               />
             </div>
 
@@ -4309,7 +4326,7 @@ export function AniKittyPlayer({
                   onPointerDown={onPlayPointerDown}
                   onPointerUp={onPlayPointerUp}
                   onPointerCancel={onPlayPointerUp}
-                  className="shrink-0 bg-white/[0.08] text-white hover:bg-white/[0.14] sm:bg-transparent sm:hover:bg-white/[0.1]"
+                  className="shrink-0 bg-white text-zinc-950 hover:bg-white/90 sm:bg-white/[0.1] sm:text-white sm:hover:bg-white/[0.16]"
                 >
                   {effectivePlaying ? (
                     <PauseIcon className="h-[17px] w-[17px]" />
@@ -4358,12 +4375,12 @@ export function AniKittyPlayer({
                 ) : null}
 
                 <span
-                  className="ml-0.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/90 sm:ml-1.5 sm:text-[12px]"
+                  className="ml-0.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/95 sm:ml-1.5 sm:text-[12px]"
                   aria-hidden
                 >
-                  {formatPlayerTime(displayTime)}
+                  <span className="font-medium">{formatPlayerTime(displayTime)}</span>
                   <span className="hidden text-white/40 min-[360px]:inline">
-                    <span className="mx-0.5 text-white/25 sm:mx-1">/</span>
+                    <span className="mx-0.5 text-white/20 sm:mx-1">/</span>
                     {formatPlayerTime(effectiveDuration)}
                   </span>
                 </span>
@@ -4389,13 +4406,10 @@ export function AniKittyPlayer({
                       ariaPressed={Boolean(selectedCaptionId)}
                       onClick={onCaptionsClick}
                       className={cn(
-                        "font-semibold tracking-wide",
                         !selectedCaptionId && "text-white/45 hover:text-white/80",
                       )}
                     >
-                      <span className="select-none text-[11px] leading-none" aria-hidden>
-                        CC
-                      </span>
+                      <CaptionsIcon className="h-[17px] w-[17px]" />
                     </IconButton>
                     {captionsOpen ? (
                       <PlayerOverlayPortal
@@ -4440,7 +4454,7 @@ export function AniKittyPlayer({
                                     : "Off"}
                                 </span>
                               </div>
-                              <div className="max-h-[min(58dvh,380px)] overflow-y-auto overscroll-contain">
+                              <div className="max-h-[min(42dvh,280px)] overflow-y-auto overscroll-contain sm:max-h-[min(58dvh,380px)]">
                                 <MenuSection title="Language">
                                   <MenuItem
                                     active={selectedCaptionId == null}
@@ -5022,8 +5036,8 @@ export function AniKittyPlayer({
                           aria-label="Settings"
                           className={cn(
                             coarsePointer
-                              ? "absolute inset-x-0 bottom-0 z-[80] max-h-[min(88%,72dvh,32rem)] w-full overflow-y-auto overscroll-contain rounded-t-[1.25rem] border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92"
-                              : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(75vh,520px)] w-[min(92vw,22rem)] overflow-hidden py-0",
+                              ? "absolute inset-x-0 bottom-0 z-[80] max-h-[min(78%,52dvh,24rem)] w-full overflow-hidden overscroll-contain rounded-t-[1.25rem] border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92 flex flex-col"
+                              : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,22rem)] overflow-hidden py-0",
                             !coarsePointer && PLAYER_POPOVER_CLASS,
                             !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                           )}
@@ -5037,6 +5051,7 @@ export function AniKittyPlayer({
                             </div>
                           ) : null}
                           <PlayerSettingsMenu
+                            className={coarsePointer ? "min-h-0 flex-1" : undefined}
                             watchingHardSub={watchingHardSub}
                             showQualityTab={showQualityPicker}
                             captionsTrackLabel={

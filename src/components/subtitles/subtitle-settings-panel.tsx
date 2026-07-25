@@ -66,9 +66,9 @@ function SliderRow({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5 sm:gap-2">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-muted-foreground dark:text-white/70">{label}</span>
+        <span className="text-[12px] sm:text-sm text-muted-foreground dark:text-white/70">{label}</span>
         <span className="text-[11px] font-mono text-muted-foreground dark:text-white/35 tabular-nums">
           {valueLabel}
         </span>
@@ -80,7 +80,7 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-1.5 rounded-full appearance-none bg-accent dark:bg-white/10 accent-zinc-300 cursor-pointer"
+        className="w-full h-1.5 rounded-full appearance-none bg-accent dark:bg-white/10 accent-zinc-300 cursor-pointer touch-manipulation"
       />
     </div>
   );
@@ -259,28 +259,36 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
   ];
 
   return (
-    <div className={cn("flex flex-col", compact ? "gap-4" : "gap-5")}>
-      <div className="flex items-center gap-1 rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-1 overflow-x-auto scrollbar-hide">
+    <div className={cn("flex flex-col", compact ? "gap-3" : "gap-5")}>
+      <div
+        className={cn(
+          "flex items-center gap-1 rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] p-1 overflow-x-auto scrollbar-hide",
+          compact && "rounded-lg",
+        )}
+      >
         {tabs.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
             aria-pressed={tab === id}
+            aria-label={label}
+            title={label}
             className={cn(
-              "flex-1 inline-flex min-w-max items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold transition-colors",
+              "flex-1 inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg text-[11px] font-semibold transition-colors",
+              compact ? "h-7 px-1.5" : "h-8 min-w-max px-2.5",
               tab === id
                 ? "bg-foreground text-background dark:bg-white dark:text-black"
                 : "text-muted-foreground dark:text-white/50 hover:text-foreground dark:hover:text-white/80",
             )}
           >
-            <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
-            <span>{label}</span>
+            <Icon className={cn("shrink-0", compact ? "w-3.5 h-3.5" : "w-3.5 h-3.5")} aria-hidden />
+            <span className={cn(compact && "sr-only sm:not-sr-only sm:inline")}>{label}</span>
           </button>
         ))}
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div className={cn("flex flex-col", compact ? "gap-3" : "gap-5")}>
         {tab === "presets" && (
           <div className="flex flex-col gap-2">
             <span className="text-sm text-muted-foreground dark:text-white/70">
@@ -615,10 +623,15 @@ export default function SubtitleSettingsPanel({ compact = false }: Props) {
         )}
       </div>
 
-      <div className="rounded-xl border border-border dark:border-white/10 bg-gradient-to-b from-zinc-900/90 to-black/70 p-4 relative min-h-[112px] overflow-hidden">
+      <div
+        className={cn(
+          "rounded-xl border border-border dark:border-white/10 bg-gradient-to-b from-zinc-900/90 to-black/70 relative overflow-hidden",
+          compact ? "p-3 min-h-[88px]" : "p-4 min-h-[112px]",
+        )}
+      >
         <div
           className="absolute inset-x-0 flex justify-center px-3"
-          style={{ bottom: `${Math.min(subtitleSettings.bottomOffset, 3)}rem` }}
+          style={{ bottom: `${Math.min(subtitleSettings.bottomOffset, compact ? 2 : 3)}rem` }}
         >
           {subtitleSettings.displayMode === "boxedLines" ? (
             <div
