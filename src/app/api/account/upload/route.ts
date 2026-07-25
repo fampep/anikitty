@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { uploads } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
+import { publicErrorMessage } from "@/lib/security/public-error";
 import { sql } from "drizzle-orm";
 
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB
@@ -95,8 +96,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ url });
   } catch (e) {
     console.error("[account/upload]", e);
-    const message = e instanceof Error ? e.message : "Upload failed";
-    return NextResponse.json({ error: `Upload failed: ${message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: publicErrorMessage(e, "Upload failed") },
+      { status: 500 },
+    );
   }
 }
 

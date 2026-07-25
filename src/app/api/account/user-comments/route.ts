@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { comments } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { desc, eq } from "drizzle-orm";
+import { decryptStoredText } from "@/lib/security/ugc-crypto";
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -24,5 +25,7 @@ export async function GET(req: Request) {
     .orderBy(desc(comments.createdAt))
     .limit(50);
 
-  return Response.json({ comments: rows });
+  return Response.json({
+    comments: rows.map((r) => ({ ...r, body: decryptStoredText(r.body ?? "") })),
+  });
 }

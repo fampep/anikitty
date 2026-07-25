@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isProtectedContentApi } from "@/lib/security/anti-scrape";
+import {
+  ADMIN_INTERNAL_PATH,
+  getAdminPanelPath,
+} from "@/lib/security/admin-panel-path";
 
 const BLOCKED_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 const isProd = process.env.NODE_ENV === "production";
@@ -27,14 +31,49 @@ export function middleware(req: NextRequest) {
     }
   }
 
+  const pathname = req.nextUrl.pathname;
+  const panelPath = getAdminPanelPath();
+
+  // Hide the predictable /admin URL — rewrite the secret panel path instead.
+  if (pathname === ADMIN_INTERNAL_PATH || pathname.startsWith(`${ADMIN_INTERNAL_PATH}/`)) {
+    if (panelPath !== ADMIN_INTERNAL_PATH) {
+      return new NextResponse(null, { status: 404 });
+    }
+  }
+
+  if (panelPath !== ADMIN_INTERNAL_PATH) {
+    if (pathname === panelPath || pathname.startsWith(`${panelPath}/`)) {
+      const url = req.nextUrl.clone();
+      url.pathname =
+        pathname === panelPath
+          ? ADMIN_INTERNAL_PATH
+          : `${ADMIN_INTERNAL_PATH}${pathname.slice(panelPath.length)}`;
+      const res = NextResponse.rewrite(url);
+      res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return res;
+    }
+  }
+
+  // Never expose DB / infra probes via common scanner paths.
+  if (
+    pathname === "/.env" ||
+    pathname.startsWith("/.env.") ||
+    pathname === "/wp-admin" ||
+    pathname === "/phpmyadmin" ||
+    pathname === "/server-status"
+  ) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const res = NextResponse.next();
 
-  if (PRIVATE_API_PREFIXES.some((p) => req.nextUrl.pathname.startsWith(p))) {
+  if (PRIVATE_API_PREFIXES.some((p) => pathname.startsWith(p))) {
     res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.headers.set("Pragma", "no-cache");
   }
 
-  if (isProtectedContentApi(req.nextUrl.pathname)) {
+  if (isProtectedContentApi(pathname)) {
     res.headers.set("Cache-Control", "private, no-store");
   }
 

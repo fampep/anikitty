@@ -3,6 +3,7 @@ import { forumPosts } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { sanitizeBody } from "@/lib/social/comment-helpers";
 import { roleHasPermission } from "@/lib/security/permissions";
+import { encryptStoredText } from "@/lib/security/ugc-crypto";
 import { and, eq } from "drizzle-orm";
 
 export async function PATCH(
@@ -21,7 +22,7 @@ export async function PATCH(
   const db = getDb();
   const result = await db
     .update(forumPosts)
-    .set({ body, updatedAt: new Date() })
+    .set({ body: encryptStoredText(body), updatedAt: new Date() })
     .where(
       and(
         eq(forumPosts.id, postId),

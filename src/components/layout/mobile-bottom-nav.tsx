@@ -16,6 +16,7 @@ import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 import MoreNavMenu from "@/components/layout/more-nav-menu";
 import { isNavActive, useMenuItems } from "@/components/layout/site-nav-menu";
+import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
 
 const PRIMARY_TABS = [
   { href: ROUTES.HOME, icon: Home, labelKey: "nav.short.home", match: (p: string) => p === ROUTES.HOME },
@@ -28,7 +29,7 @@ const PRIMARY_TABS = [
 function shouldHideBottomNav(pathname: string): boolean {
   if (pathname === "/") return true;
   if (pathname.startsWith("/anime/watch")) return true;
-  if (pathname.startsWith("/admin")) return true;
+  if (isPublicAdminUiPath(pathname)) return true;
   return false;
 }
 

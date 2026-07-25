@@ -4,6 +4,7 @@ import {
   airedCountFromAnilist,
   resolveEffectiveNextAiringEpisode,
 } from "@/lib/anime/episode-availability";
+import { publicErrorMessage } from "@/lib/security/public-error";
 
 export const revalidate = 3600;
 
@@ -284,7 +285,9 @@ export async function GET(
     });
   } catch (err) {
     console.error("AniList details error:", err);
-    const message = err instanceof Error ? err.message : "Failed to fetch anime details";
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: publicErrorMessage(err, "Failed to fetch anime details") },
+      { status: 500 },
+    );
   }
 }

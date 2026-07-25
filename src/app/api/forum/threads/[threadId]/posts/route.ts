@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/social/comment-helpers";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
+import { decryptStoredText, encryptStoredText } from "@/lib/security/ugc-crypto";
 
 export async function POST(
   req: Request,
@@ -37,7 +38,7 @@ export async function POST(
 
   const [row] = await db
     .insert(forumPosts)
-    .values({ threadId, userId: payload.userId, body })
+    .values({ threadId, userId: payload.userId, body: encryptStoredText(body) })
     .returning({
       id: forumPosts.id,
       body: forumPosts.body,
@@ -68,6 +69,7 @@ export async function POST(
   const message = attachLevelRole(
     {
       ...row,
+      body: decryptStoredText(row.body ?? ""),
       createdAt: row.createdAt?.toISOString() ?? null,
       updatedAt: row.updatedAt?.toISOString() ?? null,
       username: user?.username ?? "",

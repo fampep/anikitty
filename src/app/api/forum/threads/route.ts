@@ -1,12 +1,13 @@
 import { getDb } from "@/db";
 import { forumThreads, forumPosts, forumThreadVotes, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
-import { and, eq, desc, sql, inArray, ilike, or } from "drizzle-orm";
+import { and, eq, desc, sql, inArray, ilike } from "drizzle-orm";
 import { sanitizeBody, rateLimit, maybeSweep, COMMENT_RATE } from "@/lib/social/comment-helpers";
 import { isValidCategory, isStaffOnlyCategory } from "@/constants/forum";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
 import { roleHasPermission } from "@/lib/security/permissions";
+import { decryptStoredText, encryptStoredText } from "@/lib/security/ugc-crypto";
 
 const PAGE_SIZE = 20;
 const MAX_TITLE = 200;
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
 
   const filters = [];
   if (category && isValidCategory(category)) filters.push(eq(forumThreads.category, category));
-  if (q) filters.push(or(ilike(forumThreads.title, `%${q}%`), ilike(forumThreads.body, `%${q}%`)));
+  if (q) filters.push(ilike(forumThreads.title, `%${q}%`));
   if (mine) {
     if (!payload) return Response.json({ error: "Unauthorized" }, { status: 401 });
     filters.push(eq(forumThreads.userId, payload.userId));
@@ -144,6 +145,7 @@ export async function GET(req: Request) {
     attachLevelRole(
       {
         ...r,
+        body: decryptStoredText(r.body ?? ""),
         createdAt: r.createdAt?.toISOString() ?? null,
         updatedAt: r.updatedAt?.toISOString() ?? null,
         lastActivityAt: r.lastActivityAt?.toISOString() ?? null,
@@ -193,7 +195,7 @@ export async function POST(req: Request) {
 
   const [row] = await db
     .insert(forumThreads)
-    .values({ userId: payload.userId, title, body, category })
+    .values({ userId: payload.userId, title, body: encryptStoredText(body), category })
     .returning({
       id: forumThreads.id,
       title: forumThreads.title,
@@ -223,6 +225,7 @@ export async function POST(req: Request) {
   const enriched = attachLevelRole(
     {
       ...row,
+      body: decryptStoredText(row.body ?? ""),
       createdAt: row.createdAt?.toISOString() ?? null,
       updatedAt: row.updatedAt?.toISOString() ?? null,
       lastActivityAt: row.lastActivityAt?.toISOString() ?? null,

@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { forumThreads, forumPosts, forumThreadVotes, users, roles } from "@/db/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
+import { decryptStoredText } from "@/lib/security/ugc-crypto";
 
 const LIMIT = 5;
 
@@ -65,6 +66,7 @@ export async function GET() {
     attachLevelRole(
       {
         ...r,
+        body: decryptStoredText(r.body ?? ""),
         createdAt: r.createdAt?.toISOString() ?? null,
         updatedAt: r.updatedAt?.toISOString() ?? null,
         lastActivityAt: r.lastActivityAt?.toISOString() ?? null,

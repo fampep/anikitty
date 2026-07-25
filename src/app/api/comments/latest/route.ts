@@ -3,6 +3,7 @@ import { comments, users, roles } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { queryAniList, toTitle } from "@/lib/oauth/anilist";
+import { decryptStoredText } from "@/lib/security/ugc-crypto";
 
 const TITLES_QUERY = `
   query ($ids: [Int], $perPage: Int) {
@@ -68,7 +69,9 @@ export async function GET() {
     .limit(8);
 
   const xpStatsMap = await getUsersXpStats(db, rows.map((r) => r.userId));
-  const enriched = rows.map((r) => attachLevelRole(r, xpStatsMap));
+  const enriched = rows.map((r) =>
+    attachLevelRole({ ...r, body: decryptStoredText(r.body ?? "") }, xpStatsMap),
+  );
 
   const uniqueIds = [...new Set(rows.map((r) => parseAnilistId(r.animeId)).filter((id): id is number => id !== null))];
   const titleMap = await fetchAnimeTitles(uniqueIds);

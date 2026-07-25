@@ -8,9 +8,9 @@ import {
   writeDiscordPromptDismissed,
 } from "@/lib/site/discord-prompt-storage";
 import { useSettingsStore } from "@/store/settings-store";
+import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
 
 const SHOW_DELAY_MS = 1400;
-const SKIP_PATH_PREFIXES = ["/admin"];
 
 export default function DiscordWelcomePrompt() {
   const pathname = usePathname();
@@ -25,7 +25,7 @@ export default function DiscordWelcomePrompt() {
   useEffect(() => {
     if (liteMode) return;
     if (!ready || !pathname) return;
-    if (SKIP_PATH_PREFIXES.some((p) => pathname.startsWith(p))) return;
+    if (isPublicAdminUiPath(pathname)) return;
     if (readDiscordPromptDismissed()) return;
 
     const timer = window.setTimeout(() => {

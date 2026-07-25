@@ -7,7 +7,8 @@ import {
   formatAnimeIdLabel,
   parseAnilistId,
 } from "@/lib/comments/anime-titles";
-import { and, asc, count, desc, eq, ilike, isNull } from "drizzle-orm";
+import { decryptStoredText } from "@/lib/security/ugc-crypto";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
@@ -26,19 +27,14 @@ export async function GET(
     MAX_LIMIT,
     Math.max(1, Number.parseInt(url.searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
   );
-  const q = url.searchParams.get("q")?.trim() ?? "";
+  const q = url.searchParams.get("q")?.trim().toLowerCase() ?? "";
   const sort = url.searchParams.get("sort") === "oldest" ? "oldest" : "newest";
   const offset = (page - 1) * limit;
 
   const db = getDb();
   const baseFilters = and(eq(comments.userId, userOrResponse.id), isNull(comments.parentId));
-  const filters = q ? and(baseFilters, ilike(comments.body, `%${q}%`)) : baseFilters;
 
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(comments)
-    .where(filters);
-
+  // Bodies are encrypted at rest — load then filter/decrypt in memory.
   const rows = await db
     .select({
       id: comments.id,
@@ -51,17 +47,26 @@ export async function GET(
       createdAt: comments.createdAt,
     })
     .from(comments)
-    .where(filters)
+    .where(baseFilters)
     .orderBy(sort === "oldest" ? asc(comments.createdAt) : desc(comments.createdAt))
-    .limit(limit)
-    .offset(offset);
+    .limit(500);
+
+  const decrypted = rows.map((r) => ({
+    ...r,
+    body: decryptStoredText(r.body ?? ""),
+  }));
+  const filtered = q
+    ? decrypted.filter((r) => r.body.toLowerCase().includes(q))
+    : decrypted;
+  const total = filtered.length;
+  const pageRows = filtered.slice(offset, offset + limit);
 
   const uniqueIds = [
-    ...new Set(rows.map((r) => parseAnilistId(r.animeId)).filter((id): id is number => id !== null)),
+    ...new Set(pageRows.map((r) => parseAnilistId(r.animeId)).filter((id): id is number => id !== null)),
   ];
   const titleMap = await fetchAnimeTitles(uniqueIds);
 
-  const enriched = rows.map((r) => {
+  const enriched = pageRows.map((r) => {
     const numId = parseAnilistId(r.animeId);
     const animeTitle = numId ? titleMap.get(numId) ?? null : null;
     return {

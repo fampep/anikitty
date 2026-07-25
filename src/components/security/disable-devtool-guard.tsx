@@ -2,12 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 
 /** Paths where devtools should stay available (admin panel, etc.). */
 function isExemptPath(pathname: string): boolean {
-  return pathname.startsWith("/admin");
+  return isPublicAdminUiPath(pathname);
 }
 
 type DisableDevtoolApi = {

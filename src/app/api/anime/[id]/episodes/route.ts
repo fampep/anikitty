@@ -1,3 +1,4 @@
+import { publicErrorMessage } from "@/lib/security/public-error";
 import { queryAniList } from "@/lib/oauth/anilist";
 import {
   fetchAllEpisodeImageSources,
@@ -187,7 +188,9 @@ export async function GET(
     );
   } catch (err) {
     console.error("Episodes fetch error:", err);
-    const message = err instanceof Error ? err.message : "Failed to fetch episodes";
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: publicErrorMessage(err, "Failed to fetch episodes") },
+      { status: 500 },
+    );
   }
 }

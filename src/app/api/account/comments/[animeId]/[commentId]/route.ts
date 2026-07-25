@@ -4,6 +4,7 @@ import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
 import { roleHasPermission } from "@/lib/security/permissions";
 import { recordAudit } from "@/lib/security/audit-log";
 import { and, eq } from "drizzle-orm";
+import { encryptStoredText } from "@/lib/security/ugc-crypto";
 
 export async function PATCH(
   req: Request,
@@ -21,7 +22,7 @@ export async function PATCH(
   const db = getDb();
   await db
     .update(comments)
-    .set({ body: trimmed, updatedAt: new Date() })
+    .set({ body: encryptStoredText(trimmed), updatedAt: new Date() })
     .where(and(eq(comments.id, commentId), eq(comments.userId, payload.userId)));
 
   return Response.json({ ok: true });

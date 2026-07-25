@@ -14,6 +14,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
+import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
 
 /** Bump to re-show the banner after copy changes. */
 const DISMISS_KEY = "anikitty:support-banner-v1";
@@ -59,7 +60,7 @@ export default function SiteSupportBanner({ className }: Props) {
     pathname === "/" ||
     pathname === ROUTES.DONATE ||
     pathname?.startsWith("/anime/watch") ||
-    pathname?.startsWith("/admin") ||
+    isPublicAdminUiPath(pathname) ||
     pathname?.startsWith("/auth");
 
   const adFree = hasAdFreeAccess(auth?.role, auth?.supporterUntil);

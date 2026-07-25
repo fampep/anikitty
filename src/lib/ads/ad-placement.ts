@@ -1,3 +1,5 @@
+import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
+
 /** Routes where site ads (popunders) should never run. */
 export const AD_EXCLUDED_PATH_PREFIXES = [
   "/profile",
@@ -12,6 +14,7 @@ export const AD_EXCLUDED_PATH_PREFIXES = [
 
 export function isAdPlacementAllowed(pathname: string): boolean {
   if (pathname === "/") return false;
+  if (isPublicAdminUiPath(pathname)) return false;
   return !AD_EXCLUDED_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

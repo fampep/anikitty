@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { comments, userReports, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/admin-auth";
 import { recordAudit } from "@/lib/security/audit-log";
+import { decryptStoredText } from "@/lib/security/ugc-crypto";
 import { alias } from "drizzle-orm/pg-core";
 import { and, desc, eq, sql } from "drizzle-orm";
 
@@ -40,7 +41,12 @@ export async function GET(req: Request) {
     .orderBy(desc(userReports.createdAt))
     .limit(200);
 
-  return NextResponse.json({ reports: rows });
+  return NextResponse.json({
+    reports: rows.map((r) => ({
+      ...r,
+      commentBody: r.commentBody != null ? decryptStoredText(r.commentBody) : null,
+    })),
+  });
 }
 
 export async function PATCH(req: Request) {

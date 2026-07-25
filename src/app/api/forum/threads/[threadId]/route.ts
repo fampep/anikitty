@@ -6,6 +6,7 @@ import { sanitizeBody } from "@/lib/social/comment-helpers";
 import { isValidCategory, isStaffOnlyCategory } from "@/constants/forum";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { roleHasPermission } from "@/lib/security/permissions";
+import { decryptStoredText, encryptStoredText } from "@/lib/security/ugc-crypto";
 
 const THREAD_SELECT = {
   id: forumThreads.id,
@@ -140,6 +141,7 @@ export async function GET(
 
   const enrichedPosts = posts.map((p) => ({
     ...p,
+    body: decryptStoredText(p.body ?? ""),
     createdAt: p.createdAt?.toISOString() ?? null,
     updatedAt: p.updatedAt?.toISOString() ?? null,
     score: postScoreMap.get(p.id) ?? 0,
@@ -154,6 +156,7 @@ export async function GET(
     thread: attachLevelRole(
       {
         ...thread,
+        body: decryptStoredText(thread.body ?? ""),
         createdAt: thread.createdAt?.toISOString() ?? null,
         updatedAt: thread.updatedAt?.toISOString() ?? null,
         lastActivityAt: thread.lastActivityAt?.toISOString() ?? null,
@@ -199,7 +202,7 @@ export async function PATCH(
     if (typeof raw.body === "string") {
       const body = sanitizeBody(raw.body);
       if (!body) return Response.json({ error: "Body cannot be empty" }, { status: 400 });
-      updates.body = body;
+      updates.body = encryptStoredText(body);
     }
     if (isValidCategory(raw.category)) {
       if (isStaffOnlyCategory(raw.category)) {

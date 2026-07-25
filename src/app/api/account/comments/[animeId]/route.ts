@@ -14,6 +14,7 @@ import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { grantCommentKittycoins } from "@/lib/shop/kittycoins";
 import { blockIfCannotInteract } from "@/lib/security/moderation";
 import { notifyCommentTargets } from "@/lib/social/comment-notifications";
+import { decryptStoredText, encryptStoredText } from "@/lib/security/ugc-crypto";
 
 const PAGE_SIZE = 20;
 
@@ -128,21 +129,24 @@ export async function GET(
 
     return Response.json({
       total,
-      previews: previewRows.map((row) => ({
-        id: row.id,
-        username: row.username,
-        avatarUrl: row.avatarUrl,
-        equippedFrame: row.equippedFrame,
-        isSpoiler: row.isSpoiler,
-        body: row.isSpoiler
-          ? null
-          : row.body?.trim()
-            ? row.body.trim().slice(0, 96)
-            : row.gifUrl
-              ? null
-              : "",
-        gifUrl: row.isSpoiler ? null : row.gifUrl,
-      })),
+      previews: previewRows.map((row) => {
+        const plain = decryptStoredText(row.body ?? "");
+        return {
+          id: row.id,
+          username: row.username,
+          avatarUrl: row.avatarUrl,
+          equippedFrame: row.equippedFrame,
+          isSpoiler: row.isSpoiler,
+          body: row.isSpoiler
+            ? null
+            : plain.trim()
+              ? plain.trim().slice(0, 96)
+              : row.gifUrl
+                ? null
+                : "",
+          gifUrl: row.isSpoiler ? null : row.gifUrl,
+        };
+      }),
     });
   }
 
@@ -262,6 +266,7 @@ export async function GET(
     const withLevel = attachLevelRole(row, xpStatsMap);
     return {
       ...withLevel,
+      body: decryptStoredText(row.body ?? ""),
       likes: row.likeCount ?? 0,
       dislikes: row.dislikeCount ?? 0,
       myVote: (myVoteMap.get(row.id) ?? 0) as 0 | 1 | -1,
@@ -345,7 +350,7 @@ export async function POST(
     .values({
       userId: payload.userId,
       animeId,
-      body,
+      body: encryptStoredText(body),
       gifUrl,
       isSpoiler,
       parentId,
@@ -406,6 +411,7 @@ export async function POST(
   return Response.json(
     {
       ...row,
+      body: decryptStoredText(row.body ?? ""),
       username: user?.username,
       avatarUrl: user?.avatarUrl,
       role: user?.role,
