@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 64,
+      version: 66,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -887,6 +887,26 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Compact watch layout is the new default (tighter gaps / narrower rail).
           next.watchLayout = "compact";
           next.theatreMode = false;
+        }
+        if (version < 65) {
+          // Site list: HQ → Juliet → Gamma → Whiskey → Guard → Bravo → Xray → Echo.
+          next.providerOrder = sanitizeProviderOrder([
+            "AniHQ",
+            "AniWatch",
+            "AniNeko",
+            "AniWaves",
+            "Senshi",
+            "MKissa",
+            "Animex",
+            "Miruro",
+            ...(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
+        }
+        if (version < 66) {
+          // Force the published site order for every saved profile.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
         }
         return next as ISettingsStore;
       },

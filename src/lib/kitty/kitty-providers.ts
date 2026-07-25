@@ -11,20 +11,20 @@ import {
 export const ALL_KITTY_PROVIDER_IDS = [
   // Active (live on KittyAPI) — site priority first
   "AniHQ",
+  "AniWatch",
+  "AniNeko",
+  "AniWaves",
+  "Senshi",
+  "MKissa",
+  "Animex",
+  "Miruro",
   "AnimeGG",
   "Yenime",
-  "AniWaves",
-  "Miruro",
-  "Animex",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
-  "AniWatch",
-  "Senshi",
-  "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "MKissa",
   "HentaiHaven",
   // Normalize-only aliases / legacy
   "MegaPlay",
@@ -48,20 +48,20 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniHQ",
+  "AniWatch",
+  "AniNeko",
+  "AniWaves",
+  "Senshi",
+  "MKissa",
+  "Animex",
+  "Miruro",
   "AnimeGG",
   "Yenime",
-  "AniWaves",
-  "Miruro",
-  "Animex",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
-  "AniWatch",
-  "Senshi",
-  "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "MKissa",
   "HentaiHaven",
 ] as const;
 
@@ -83,7 +83,7 @@ export type KittyProviderMeta = {
   nativeSubs?: boolean;
   /** Kitty `GET /subs` endpoint supports this provider. */
   kittySubs?: boolean;
-  /** Dual-audio / in-player HLS track switch (Miruro pipes, Animex Zen, etc.). */
+  /** Dual-audio / in-player HLS track switch. */
   supportsMulti?: boolean;
   /** Only offered when adult content is enabled / title is adult. */
   adultOnly?: boolean;
@@ -103,31 +103,30 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: true,
     nativeSubs: false,
     kittySubs: false,
-    hint: "SUB · DUB · hard subs · VOE HLS",
+    hint: "SUB · DUB · hard subs",
   },
   {
-    id: "AnimeGG",
-    label: "GG",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · DUB · hard subs · AnimeGG MP4",
-  },
-  {
-    id: "Yenime",
-    label: "Yen",
+    id: "AniWatch",
+    label: "Juliet",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
-    hardSub: false,
     nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · TryEmbed (no MegaPlay)",
+    kittySubs: true,
+    hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "AniNeko",
+    label: "Gamma",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · soft · hard subs",
   },
   {
     id: "AniWaves",
@@ -141,17 +140,28 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "Miruro",
-    label: "Echo",
+    id: "Senshi",
+    label: "Guard",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
     hardSub: true,
     nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · soft · hard subs",
+  },
+  {
+    id: "MKissa",
+    label: "Bravo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
     kittySubs: false,
-    supportsMulti: true,
-    hint: "SUB · DUB · soft · hard · Miruro pipes",
+    hint: "SUB · DUB · hard subs · mirrors",
   },
   {
     id: "Animex",
@@ -164,7 +174,44 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     supportsMulti: true,
-    hint: "SUB · DUB · Koto · hawk CDNs · soft/hard",
+    hint: "SUB · DUB · soft · hard · multi",
+  },
+  {
+    id: "Miruro",
+    label: "Echo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    supportsMulti: true,
+    hint: "SUB · DUB · soft · hard · pipes",
+  },
+  {
+    id: "AnimeGG",
+    label: "GG",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · hard subs",
+  },
+  {
+    id: "Yenime",
+    label: "Yen",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "Anikoto",
@@ -198,42 +245,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: false,
-    hint: "SUB · DUB · soft subs · AniVibe",
-  },
-  {
-    id: "AniWatch",
-    label: "Juliet",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
     hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "Senshi",
-    label: "Guard",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft · hard subs",
-  },
-  {
-    id: "AniNeko",
-    label: "Gamma",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft · hard subs",
   },
   {
     id: "KickAssAnime",
@@ -258,18 +270,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · soft EN subs",
   },
   {
-    id: "MKissa",
-    label: "MKissa",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · DUB · hard subs · mirrors",
-  },
-  {
     id: "HentaiHaven",
     label: "Haven",
     group: "other",
@@ -287,20 +287,20 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniHQ",
+  "AniWatch",
+  "AniNeko",
+  "AniWaves",
+  "Senshi",
+  "MKissa",
+  "Animex",
+  "Miruro",
   "AnimeGG",
   "Yenime",
-  "AniWaves",
-  "Miruro",
-  "Animex",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
-  "AniWatch",
-  "Senshi",
-  "AniNeko",
   "KickAssAnime",
   "KuroHost",
-  "MKissa",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -347,6 +347,7 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   // UI label mistaken as provider id.
   if (value === "Xray") return "Animex";
+  if (value === "Bravo") return "MKissa";
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
@@ -422,14 +423,14 @@ export function normalizeProviderAudioMode(
   return fallback;
 }
 
-/** Burned-in only — no soft tracks (GG, HQ, MKissa, …). */
+/** Burned-in only — no soft tracks (GG, HQ, Bravo, …). */
 export function providerIsHardSubOnly(provider: KittyProvider): boolean {
   return providerHasHardSub(provider) && !providerHasSoftSub(provider);
 }
 
 /**
  * Soft sub · Hard Subs · Dub rows.
- * Hard-only providers (GG, HQ, MKissa, …) list under Hard Subs only.
+ * Hard-only providers (GG, HQ, Bravo, …) list under Hard Subs only.
  * Dual soft+hard (Kilo, …) stay under Sub; their HS: lines appear in the server picker.
  */
 export function kittyProvidersForAudioMode(

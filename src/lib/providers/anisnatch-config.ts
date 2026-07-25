@@ -2,19 +2,19 @@ import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-types";
 
-/** Known AniSnatch mirrors (SUB list; DUB uses site-specific names matched the same way). */
+/** Known AniSnatch mirrors — UI labels/hints never use real site hostnames. */
 export const ANISNATCH_SERVERS = [
-  { id: "anivibe", label: "AniVibe", hint: "vivibebe.site · HLS · fastest", names: ["AniVibe"] },
-  { id: "nekovibe", label: "NekoVibe", hint: "bibiemb · alternate Vibe", names: ["NekoVibe"] },
-  { id: "kwik", label: "Kwik", hint: "kwik.cx · 360/720/1080", names: ["Kwik"] },
-  { id: "anibd", label: "AniBD", hint: "PlayEng · BD", names: ["AniBD"] },
-  { id: "aniyt", label: "AniYT", hint: "YouTube MP4", names: ["AniYT"] },
-  { id: "aniara", label: "AniAra", hint: "Video proxy", names: ["AniAra"] },
-  { id: "okcdn", label: "OkCdn", hint: "AllManga-style CDN", names: ["OkCdn", "Ok CDN"] },
+  { id: "anivibe", label: "Vibe", hint: "HLS · fastest", names: ["AniVibe", "Vibe"] },
+  { id: "nekovibe", label: "Neko", hint: "Alternate vibe", names: ["NekoVibe", "Neko"] },
+  { id: "kwik", label: "Kwik", hint: "360 / 720 / 1080", names: ["Kwik"] },
+  { id: "anibd", label: "BD", hint: "Blu-ray encode", names: ["AniBD", "BD"] },
+  { id: "aniyt", label: "Tube", hint: "Progressive MP4", names: ["AniYT", "Tube"] },
+  { id: "aniara", label: "Ara", hint: "Video proxy", names: ["AniAra", "Ara"] },
+  { id: "okcdn", label: "Ok", hint: "CDN mirror", names: ["OkCdn", "Ok CDN", "Ok"] },
   { id: "mp4", label: "MP4", hint: "Direct MP4", names: ["MP4"] },
-  { id: "megaplay", label: "Megaplay", hint: "Megaplay embed", names: ["Megaplay", "MegaPlay"] },
-  { id: "vidwish", label: "Vidwish", hint: "Vidwish embed", names: ["Vidwish"] },
-  { id: "onsen", label: "Onsen", hint: "Onsen embed", names: ["Onsen"] },
+  { id: "megaplay", label: "Mega", hint: "Embed relay", names: ["Megaplay", "MegaPlay", "Mega"] },
+  { id: "vidwish", label: "Wish", hint: "Embed relay", names: ["Vidwish", "Wish"] },
+  { id: "onsen", label: "Onsen", hint: "Embed relay", names: ["Onsen"] },
 ] as const;
 
 export type AnisnatchServerId = (typeof ANISNATCH_SERVERS)[number]["id"];
