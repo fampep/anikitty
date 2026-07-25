@@ -344,7 +344,6 @@ export function IconButton({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
         "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/75 disabled:active:scale-100",
         "aria-pressed:bg-white/[0.12] aria-pressed:text-white aria-expanded:bg-white/[0.12] aria-expanded:text-white",
-        "sm:h-8 sm:w-8 sm:rounded-md",
         className,
       )}
     >

@@ -3820,11 +3820,11 @@ export function AniKittyPlayer({
             seekFlash === "left" ? "scale-100" : "scale-90",
           )}
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/80 text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-xl">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/80 text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md">
             <SeekBackIcon className="h-7 w-7" />
           </div>
           {seekFlashSecs > 0 ? (
-            <span className="rounded-full border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white shadow-lg sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
+            <span className="rounded-full border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white shadow-lg">
               −{seekFlashSecs}s
             </span>
           ) : null}
@@ -3845,11 +3845,11 @@ export function AniKittyPlayer({
             seekFlash === "right" ? "scale-100" : "scale-90",
           )}
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/80 text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-xl">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-zinc-950/80 text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md">
             <SeekForwardIcon className="h-7 w-7" />
           </div>
           {seekFlashSecs > 0 ? (
-            <span className="rounded-full border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white shadow-lg sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[11px]">
+            <span className="rounded-full border border-white/15 bg-zinc-950/90 px-2.5 py-1 text-[13px] font-semibold tabular-nums tracking-wide text-white shadow-lg">
               +{seekFlashSecs}s
             </span>
           ) : null}
@@ -3959,7 +3959,6 @@ export function AniKittyPlayer({
           "hover:border-white/45 hover:bg-white/[0.18] hover:shadow-[0_16px_48px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.22)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45",
           "active:scale-95",
-          "sm:h-[4.35rem] sm:w-[4.35rem]",
           showCenterPlay
             ? "pointer-events-auto scale-100 opacity-100"
             : "pointer-events-none scale-90 opacity-0",
@@ -4317,10 +4316,10 @@ export function AniKittyPlayer({
                   "pointer-events-none absolute top-1/2 z-[5] -translate-x-1/2 -translate-y-1/2 rounded-full transition-[opacity,transform,width,height] duration-150",
                   "shadow-[0_0_0_2px_rgba(0,0,0,0.35),0_0_0_4px_var(--ak-player-accent-soft),0_2px_10px_rgba(0,0,0,0.45)]",
                   seeking
-                    ? "h-[18px] w-[18px] scale-100 opacity-100 sm:h-4 sm:w-4"
+                    ? "h-4 w-4 scale-100 opacity-100"
                     : coarsePointer || hoverPreview
                       ? "h-4 w-4 scale-100 opacity-100"
-                      : "h-3 w-3 scale-90 opacity-0 group-hover/seek:scale-100 group-hover/seek:opacity-100",
+                      : "h-3.5 w-3.5 scale-90 opacity-0 group-hover/seek:scale-100 group-hover/seek:opacity-100",
                 )}
                 style={{
                   left: `${knobRatio * 100}%`,
@@ -4329,19 +4328,17 @@ export function AniKittyPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-1 px-0.5 py-0.5 sm:gap-1.5 sm:px-2 sm:py-1">
-              {/* Left — AniDap order: seek back, play, seek forward, next, time */}
-              <div className="flex min-w-0 flex-1 items-center gap-0 overflow-hidden sm:gap-0.5">
+            <div className="flex w-full min-w-0 items-center gap-0.5 px-0.5 py-0.5">
+              {/* Left — seek, play, seek, episode, time */}
+              <div className="flex min-w-0 flex-1 items-center gap-0 overflow-hidden">
                 <IconButton
                   label={`Seek back ${seekStepSeconds || SEEK_STEP} seconds`}
                   onClick={() => {
                     seekBy(-(seekStepSeconds || SEEK_STEP));
                   }}
-                  className="hidden shrink-0 min-[480px]:inline-flex"
+                  className="shrink-0"
                 >
-                  <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
-                    −{seekStepSeconds || SEEK_STEP}
-                  </span>
+                  <SeekBackIcon className="h-[17px] w-[17px]" />
                 </IconButton>
                 <IconButton
                   label={
@@ -4353,7 +4350,7 @@ export function AniKittyPlayer({
                   onPointerDown={onPlayPointerDown}
                   onPointerUp={onPlayPointerUp}
                   onPointerCancel={onPlayPointerUp}
-                  className="shrink-0 bg-white text-zinc-950 hover:bg-white/90 sm:bg-white/[0.1] sm:text-white sm:hover:bg-white/[0.16]"
+                  className="shrink-0 bg-white text-zinc-950 hover:bg-white/90"
                 >
                   {effectivePlaying ? (
                     <PauseIcon className="h-[17px] w-[17px]" />
@@ -4366,11 +4363,9 @@ export function AniKittyPlayer({
                   onClick={() => {
                     seekBy(seekStepSeconds || SEEK_STEP);
                   }}
-                  className="hidden shrink-0 min-[480px]:inline-flex"
+                  className="shrink-0"
                 >
-                  <span className="select-none text-[11px] font-semibold tabular-nums tracking-tight text-current">
-                    +{seekStepSeconds || SEEK_STEP}
-                  </span>
+                  <SeekForwardIcon className="h-[17px] w-[17px]" />
                 </IconButton>
                 {onPrevEpisode || onNextEpisode ? (
                   <>
@@ -4382,7 +4377,7 @@ export function AniKittyPlayer({
                       }
                       disabled={!prevEpisode || !onPrevEpisode}
                       onClick={() => goToPrevEpisode()}
-                      className="hidden shrink-0 min-[420px]:inline-flex"
+                      className="shrink-0"
                     >
                       <EpisodePrevIcon className="h-[17px] w-[17px]" />
                     </IconButton>
@@ -4402,19 +4397,19 @@ export function AniKittyPlayer({
                 ) : null}
 
                 <span
-                  className="ml-0.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/95 sm:ml-1.5 sm:text-[12px]"
+                  className="ml-0.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/95"
                   aria-hidden
                 >
                   <span className="font-medium">{formatPlayerTime(displayTime)}</span>
-                  <span className="hidden text-white/40 min-[360px]:inline">
-                    <span className="mx-0.5 text-white/20 sm:mx-1">/</span>
+                  <span className="text-white/40">
+                    <span className="mx-0.5 text-white/20">/</span>
                     {formatPlayerTime(effectiveDuration)}
                   </span>
                 </span>
               </div>
 
               {/* Right — never shrinks; stays above the time label */}
-              <div className="relative z-[1] flex shrink-0 items-center gap-0 sm:gap-0.5">
+              <div className="relative z-[1] flex shrink-0 items-center gap-0">
                 {showCaptionsMenu ? (
                   <div className={cn(!coarsePointer && "relative")}>
                     <IconButton
@@ -5330,10 +5325,7 @@ export function AniKittyPlayer({
                     onClick={() => {
                       void togglePip();
                     }}
-                    className={cn(
-                      "hidden sm:inline-flex",
-                      inPip && "text-white",
-                    )}
+                    className={cn(inPip && "text-white")}
                   >
                     <PipIcon className="h-[18px] w-[18px]" />
                   </IconButton>
