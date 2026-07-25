@@ -98,6 +98,8 @@ type Props = {
   onOpenCaptionsTracks?: () => void;
   captionsTrackLabel?: string;
   className?: string;
+  /** Phone bottom-sheet: denser layout + smaller scroll area. */
+  compact?: boolean;
 };
 
 export default function PlayerSettingsMenu({
@@ -109,6 +111,7 @@ export default function PlayerSettingsMenu({
   onOpenCaptionsTracks,
   captionsTrackLabel,
   className,
+  compact = false,
 }: Props) {
   const t = useT();
   const [tab, setTab] = useState<PlayerSettingsTabId>("playback");
@@ -162,7 +165,12 @@ export default function PlayerSettingsMenu({
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
-      <div className="sticky top-0 z-[1] flex gap-0.5 overflow-x-auto border-b border-white/[0.08] bg-zinc-950/95 px-1 py-1 backdrop-blur-md sm:px-1.5 sm:py-1.5">
+      <div
+        className={cn(
+          "sticky top-0 z-[1] flex gap-0.5 overflow-x-auto border-b border-white/[0.08] bg-zinc-950/95 backdrop-blur-md",
+          compact ? "px-1 py-1" : "px-1 py-1 sm:px-1.5 sm:py-1.5",
+        )}
+      >
         {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -172,19 +180,31 @@ export default function PlayerSettingsMenu({
             aria-pressed={activeTab === id}
             title={label}
             className={cn(
-              "inline-flex shrink-0 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-colors",
+              "inline-flex shrink-0 items-center justify-center gap-1 rounded-lg font-semibold transition-colors",
+              compact
+                ? "px-2 py-1 text-[10px]"
+                : "px-2 py-1.5 text-[10px]",
               activeTab === id
                 ? "bg-white text-zinc-950"
                 : "text-white/45 hover:bg-white/[0.06] hover:text-white/80",
             )}
           >
             <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            <span className="hidden min-[380px]:inline">{label}</span>
+            <span className={cn(compact ? "sr-only" : "hidden min-[380px]:inline")}>
+              {label}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain max-h-[min(42vh,16rem)] sm:max-h-[min(60vh,26rem)] sm:flex-none">
+      <div
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+          compact
+            ? "max-h-[9.75rem]"
+            : "max-h-[min(42vh,16rem)] sm:max-h-[min(60vh,26rem)] sm:flex-none",
+        )}
+      >
         {activeTab === "playback" && (
           <div className="divide-y divide-white/[0.06] py-0.5 sm:py-1">
             <ToggleRow

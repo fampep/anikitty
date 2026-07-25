@@ -5063,7 +5063,7 @@ export function AniKittyPlayer({
                           aria-label="Settings"
                           className={cn(
                             coarsePointer
-                              ? "absolute inset-x-0 bottom-0 z-[80] max-h-[min(78%,52dvh,24rem)] w-full overflow-hidden overscroll-contain rounded-t-[1.25rem] border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92 flex flex-col"
+                              ? "absolute inset-x-0 bottom-0 z-[80] max-h-[min(40%,12.75rem)] w-full overflow-hidden overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92 flex flex-col"
                               : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,22rem)] overflow-hidden py-0",
                             !coarsePointer && PLAYER_POPOVER_CLASS,
                             !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
@@ -5071,14 +5071,15 @@ export function AniKittyPlayer({
                         >
                           {coarsePointer ? (
                             <div
-                              className="flex justify-center pb-1 pt-2.5"
+                              className="flex justify-center pb-0.5 pt-1.5"
                               aria-hidden
                             >
-                              <div className="h-1 w-10 rounded-full bg-white/25" />
+                              <div className="h-1 w-8 rounded-full bg-white/25" />
                             </div>
                           ) : null}
                           <PlayerSettingsMenu
-                            className={coarsePointer ? "min-h-0 flex-1" : undefined}
+                            className={coarsePointer ? "min-h-0 flex-1 overflow-hidden" : undefined}
+                            compact={coarsePointer}
                             watchingHardSub={watchingHardSub}
                             showQualityTab={showQualityPicker}
                             captionsTrackLabel={

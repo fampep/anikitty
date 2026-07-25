@@ -26,7 +26,7 @@ export const PLAYER_POPOVER_MOTION_CLASS =
 
 /** Mobile bottom-sheet surface inside the player / fullscreen host. */
 export const PLAYER_SHEET_CLASS =
-  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(85%,38dvh,18rem)] w-full overflow-y-auto overscroll-contain rounded-t-[1.25rem] border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92";
+  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(48%,14rem)] w-full overflow-y-auto overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92";
 
 /**
  * Portal overlays into the player host (or fullscreen wrapper) so sheets stay
