@@ -7,10 +7,10 @@ const ALGO = "aes-256-gcm";
 const IV_LEN = 12;
 const TAG_LEN = 16;
 
-/** Master playlist / media URLs expire quickly so leaked tokens go stale. */
-export const HLS_TOKEN_TTL_SEC = 45 * 60;
+/** Browser playback tokens — cover a full long episode + some idle time. */
+export const HLS_TOKEN_TTL_SEC = 2 * 60 * 60;
 /** Playback session cookie lifetime (slightly longer than token TTL). */
-export const HLS_SESSION_TTL_SEC = 50 * 60;
+export const HLS_SESSION_TTL_SEC = 2 * 60 * 60 + 15 * 60;
 /**
  * Cast tokens must outlive a typical episode and cannot rely on browser cookies
  * (Chromecast fetches the URL itself with no `ak_pb` session cookie).

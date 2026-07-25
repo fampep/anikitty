@@ -1111,6 +1111,7 @@ const VideoPlayerSection = () => {
 
   useEffect(() => {
     if (!streamReady) return;
+    remintAttemptedRef.current = false;
     recordProviderOutcome(provider, true);
   }, [streamReady, provider]);
 

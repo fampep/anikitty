@@ -2141,9 +2141,19 @@ export function AniKittyPlayer({
         if (!data.fatal) {
           if (
             data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
-            data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE
+            data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE ||
+            data.details === Hls.ErrorDetails.BUFFER_NUDGE_ON_STALL
           ) {
             try {
+              // Drop to a safer ladder step, then resume loading from live edge of buffer.
+              if (hls && hls.levels.length > 1 && hls.currentLevel > 0) {
+                const safer = Math.max(0, hls.currentLevel - 1);
+                if (hls.autoLevelEnabled) {
+                  hls.nextLevel = safer;
+                } else {
+                  hls.currentLevel = safer;
+                }
+              }
               hls?.startLoad(-1);
             } catch {
               try {
@@ -2151,6 +2161,16 @@ export function AniKittyPlayer({
               } catch {
                 /* ignore */
               }
+            }
+          } else if (
+            data.details === Hls.ErrorDetails.FRAG_LOAD_TIMEOUT ||
+            data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR ||
+            data.details === Hls.ErrorDetails.LEVEL_LOAD_TIMEOUT
+          ) {
+            try {
+              hls?.startLoad(-1);
+            } catch {
+              /* ignore */
             }
           }
           return;
@@ -2178,12 +2198,19 @@ export function AniKittyPlayer({
           return;
         }
 
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveries < 3) {
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveries < 5) {
           networkRecoveries += 1;
-          hls?.startLoad();
+          try {
+            if (hls && hls.levels.length > 1 && hls.currentLevel > 0) {
+              hls.nextLevel = Math.max(0, hls.currentLevel - 1);
+            }
+            hls?.startLoad(-1);
+          } catch {
+            hls?.startLoad();
+          }
           return;
         }
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveries < 3) {
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveries < 5) {
           mediaRecoveries += 1;
           hls?.recoverMediaError();
           return;
