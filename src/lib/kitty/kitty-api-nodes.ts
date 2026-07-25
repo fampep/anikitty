@@ -3,7 +3,8 @@ export type KittyApiNodeId =
   | "third-choice"
   | "fourth-choice"
   | "fifth-choice"
-  | "sixth-choice";
+  | "sixth-choice"
+  | "seventh-choice";
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
@@ -42,6 +43,7 @@ export const KITTY_API_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
   "fourth-choice": "23.111.15.143",
   "fifth-choice": "94.75.223.124",
   "sixth-choice": "184.107.88.54",
+  "seventh-choice": "132.243.174.157",
 };
 
 /** True when a URL/host belongs to a removed KittyAPI node. */
@@ -106,6 +108,10 @@ const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, KITTY_API_NO
 const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, KITTY_API_NODE_ORIGIN_IPS["fourth-choice"]);
 const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, KITTY_API_NODE_ORIGIN_IPS["fifth-choice"]);
 const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, KITTY_API_NODE_ORIGIN_IPS["sixth-choice"]);
+const SEVENTH_URL = nodeUrl(
+  process.env.NEXT_PUBLIC_KITTY_NODE_SEVENTH,
+  KITTY_API_NODE_ORIGIN_IPS["seventh-choice"],
+);
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
@@ -153,6 +159,15 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     location: "Montreal, Canada",
     timezone: "America/Toronto",
   },
+  {
+    id: "seventh-choice",
+    index: 6,
+    label: "Switzerland",
+    url: SEVENTH_URL,
+    host: nodeHost(SEVENTH_URL),
+    location: "Switzerland",
+    timezone: "Europe/Zurich",
+  },
 ];
 
 /** Default preferred node when the user has not picked one (Stockholm). */
@@ -192,6 +207,7 @@ const API_NODE_ID_ALIASES: Record<string, KittyApiNodeId> = {
   "fourth-choice": "fourth-choice",
   "fifth-choice": "fifth-choice",
   "sixth-choice": "sixth-choice",
+  "seventh-choice": "seventh-choice",
 };
 
 export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined): KittyApiNodeId | null {
@@ -221,6 +237,9 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
   const aliased = LEGACY_KITTY_NODE_ALIASES[normalized];
   if (aliased) return aliased;
 
+  if (normalized === "seventh-choice" || normalized === "seventhchoice" || normalized === "7") {
+    return "seventh-choice";
+  }
   if (normalized === "sixth-choice" || normalized === "sixthchoice" || normalized === "6") {
     return "sixth-choice";
   }
