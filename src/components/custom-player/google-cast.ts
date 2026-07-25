@@ -428,7 +428,7 @@ export async function prepareCastMediaUrl(
       return {
         ok: false,
         error:
-          "Chromecast cannot reach this URL (localhost / non-HTTPS). Use a public HTTPS site.",
+          "AirPlay/Chromecast cannot reach this URL (localhost / non-HTTPS). Use a public HTTPS site.",
         contentId: data.url,
       };
     }

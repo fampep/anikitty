@@ -107,7 +107,7 @@ import {
 import { PlayerSubtitleOverlay } from "./player-subtitle-overlay";
 import PlayerSettingsMenu from "./player-settings-menu";
 import { useAirPlay } from "./use-airplay";
-import { isLikelyCastWebVttUrl } from "./google-cast";
+import { isLikelyCastWebVttUrl, prepareCastMediaUrl } from "./google-cast";
 import {
   buildCastMediaRequest,
   useGoogleCast,
@@ -582,6 +582,10 @@ export function AniKittyPlayer({
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
   const [iosVolumeLocked] = useState(() => isAppleTouchDevice());
   const [attachNonce, setAttachNonce] = useState(0);
+  /** Cookie-free absolute URL for AirPlay native HLS (MSE cannot be AirPlayed). */
+  const [airPlayNativeUrl, setAirPlayNativeUrl] = useState<string | null>(null);
+  const airPlayNativeUrlRef = useRef<string | null>(null);
+  const airPlayRemintCacheRef = useRef<{ src: string; url: string } | null>(null);
   const [activeSkip, setActiveSkip] = useState<SkipSegmentKind | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [anime4kActive, setAnime4kActive] = useState(false);
@@ -1170,11 +1174,143 @@ export function AniKittyPlayer({
   const {
     available: airPlayAvailable,
     connected: airPlayConnected,
+    preparing: airPlayPreparing,
     showPicker: showAirPlayPicker,
   } = useAirPlay({
     videoRef,
     enabled: Boolean(activeSrc),
+    beforeShowPicker: async () => {
+      const video = videoRef.current;
+      const src = activeSrc;
+      if (!video || !src) return false;
+
+      let reminted = airPlayRemintCacheRef.current?.src === src
+        ? airPlayRemintCacheRef.current.url
+        : null;
+      if (!reminted) {
+        const prepared = await prepareCastMediaUrl(src);
+        if (!prepared.ok || !prepared.url) {
+          showGestureHintRef.current({
+            label: "AirPlay failed",
+            detail: prepared.error ?? "Could not prepare stream",
+          });
+          return false;
+        }
+        reminted = prepared.url;
+        airPlayRemintCacheRef.current = { src, url: reminted };
+      }
+
+      const resume = video.currentTime > 0.5 ? video.currentTime : 0;
+      qualityResumeRef.current = resume > 0 ? resume : qualityResumeRef.current;
+      airPlayNativeUrlRef.current = reminted;
+      setAirPlayNativeUrl(reminted);
+
+      // Tear down MSE immediately so WebKit has a real networkable src.
+      try {
+        hlsRef.current?.destroy();
+      } catch {
+        /* ignore */
+      }
+      hlsRef.current = null;
+      setHlsLevels([]);
+      setHlsAudioOptions([]);
+      video.src = reminted;
+
+      const ready = await new Promise<boolean>((resolve) => {
+        if (video.readyState >= 2) {
+          resolve(true);
+          return;
+        }
+        const timeout = window.setTimeout(() => {
+          cleanup();
+          resolve(video.readyState >= 1);
+        }, 10_000);
+        const onReady = () => {
+          cleanup();
+          resolve(true);
+        };
+        const onErr = () => {
+          cleanup();
+          resolve(false);
+        };
+        const cleanup = () => {
+          window.clearTimeout(timeout);
+          video.removeEventListener("loadeddata", onReady);
+          video.removeEventListener("canplay", onReady);
+          video.removeEventListener("error", onErr);
+        };
+        video.addEventListener("loadeddata", onReady);
+        video.addEventListener("canplay", onReady);
+        video.addEventListener("error", onErr);
+      });
+
+      if (!ready) {
+        showGestureHintRef.current({
+          label: "AirPlay failed",
+          detail: "Stream not ready for Apple TV",
+        });
+        airPlayNativeUrlRef.current = null;
+        setAirPlayNativeUrl(null);
+        setAttachNonce((n) => n + 1);
+        return false;
+      }
+
+      if (resume > 0.5) {
+        try {
+          video.currentTime = resume;
+        } catch {
+          /* ignore */
+        }
+      }
+
+      // If the user dismisses the picker without connecting, restore MSE later.
+      window.setTimeout(() => {
+        const el = videoRef.current as
+          | (HTMLVideoElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })
+          | null;
+        if (!airPlayNativeUrlRef.current) return;
+        if (el?.webkitCurrentPlaybackTargetIsWireless) return;
+        airPlayNativeUrlRef.current = null;
+        setAirPlayNativeUrl(null);
+        if (el && el.currentTime > 0.5) {
+          qualityResumeRef.current = el.currentTime;
+        }
+        setAttachNonce((n) => n + 1);
+      }, 25_000);
+
+      return true;
+    },
+    onWirelessChange: (connected) => {
+      if (connected) return;
+      if (!airPlayNativeUrlRef.current) return;
+      // Restore credentialed hls.js / progressive after AirPlay ends.
+      airPlayNativeUrlRef.current = null;
+      setAirPlayNativeUrl(null);
+      const video = videoRef.current;
+      if (video && video.currentTime > 0.5) {
+        qualityResumeRef.current = video.currentTime;
+      }
+      setAttachNonce((n) => n + 1);
+    },
   });
+
+  // Prefetch a cast-style remint while AirPlay is available so the picker stays snappy.
+  useEffect(() => {
+    if (!airPlayAvailable || !activeSrc) return;
+    if (airPlayRemintCacheRef.current?.src === activeSrc) return;
+    let cancelled = false;
+    void prepareCastMediaUrl(activeSrc).then((prepared) => {
+      if (cancelled || !prepared.ok || !prepared.url) return;
+      airPlayRemintCacheRef.current = { src: activeSrc, url: prepared.url };
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [airPlayAvailable, activeSrc]);
+
+  useEffect(() => {
+    airPlayRemintCacheRef.current = null;
+  }, [activeSrc]);
 
   const effectivePlaying = casting ? castRemotePlaying : playing;
   const effectiveDuration =
@@ -1971,10 +2107,12 @@ export function AniKittyPlayer({
   }, [bumpControls, clearIdleTimer, activeSrc, enterCssFullscreen, playbackIssueHint, reportW2g, getFullscreenTarget]);
 
   // Attach progressive / HLS source (prefer hls.js when MSE works).
+  // AirPlay uses a reminted native URL — MSE object URLs black-screen on Apple TV.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeSrc) return;
 
+    const airPlayUrl = airPlayNativeUrl;
     let hls: Hls | null = null;
     let cancelled = false;
     let networkRecoveries = 0;
@@ -1988,10 +2126,13 @@ export function AniKittyPlayer({
     startAppliedRef.current = false;
     startedRef.current = false;
     setPlaybackIssue(null);
-    setCurrentTime(0);
-    setDuration(0);
-    setBufferedRanges([]);
-    setHasStarted(false);
+    // Keep timeline when swapping into/out of AirPlay native handoff.
+    if (!airPlayUrl) {
+      setCurrentTime(0);
+      setDuration(0);
+      setBufferedRanges([]);
+      setHasStarted(false);
+    }
     setBuffering(true);
     setSourceLoading(true);
     setHlsLevels([]);
@@ -2237,9 +2378,9 @@ export function AniKittyPlayer({
       });
     };
 
-    const attachNativeHls = () => {
+    const attachNativeHls = (url: string = activeSrc) => {
       if (cancelled) return;
-      video.src = activeSrc;
+      video.src = url;
       restorePlaybackPrefs();
       const onLoaded = () => {
         if (cancelled) return;
@@ -2252,6 +2393,22 @@ export function AniKittyPlayer({
     };
 
     const run = async () => {
+      // AirPlay handoff: force native HTTP(S) media — never MSE.
+      if (airPlayUrl) {
+        const already =
+          video.currentSrc === airPlayUrl ||
+          video.src === airPlayUrl ||
+          video.getAttribute("src") === airPlayUrl;
+        if (already && video.readyState >= 2) {
+          setBuffering(false);
+          setSourceLoading(false);
+          applyResumeTime();
+          return;
+        }
+        attachNativeHls(airPlayUrl);
+        return;
+      }
+
       // Opaque kitty tokens without `f=` hide mp4 vs m3u8 — always sniff those.
       const hasFormatHint = /[?&]f=(mp4|m4v|m3u8|hls)\b/i.test(activeSrc);
       const opaqueKitty =
@@ -2301,11 +2458,14 @@ export function AniKittyPlayer({
       hls?.destroy();
       hls = null;
       hlsRef.current = null;
-      video.removeAttribute("src");
-      video.load();
+      // Don't wipe AirPlay native src on transient cleanups while handoff is active.
+      if (!airPlayNativeUrlRef.current) {
+        video.removeAttribute("src");
+        video.load();
+      }
     };
     // qualities intentionally omitted — unstable [] / ladder updates must not tear down HLS mid-play.
-  }, [activeSrc, playbackIssueHint, attachNonce]);
+  }, [activeSrc, playbackIssueHint, attachNonce, airPlayNativeUrl]);
 
   const togglePlay = useCallback(() => {
     if (castingRef.current) {
@@ -4648,14 +4808,22 @@ export function AniKittyPlayer({
                 {airPlayAvailable ? (
                   <IconButton
                     label={
-                      airPlayConnected ? "AirPlay connected" : "AirPlay"
+                      airPlayPreparing
+                        ? "Preparing AirPlay…"
+                        : airPlayConnected
+                          ? "AirPlay connected"
+                          : "AirPlay"
                     }
                     ariaPressed={airPlayConnected}
+                    disabled={airPlayPreparing}
                     onClick={() => {
                       showAirPlayPicker();
                       bumpControls();
                     }}
-                    className={cn(airPlayConnected && "text-white")}
+                    className={cn(
+                      airPlayConnected && "text-white",
+                      airPlayPreparing && "opacity-60",
+                    )}
                   >
                     {airPlayConnected ? (
                       <AirPlayConnectedIcon className="h-[18px] w-[18px]" />
@@ -5266,16 +5434,19 @@ export function AniKittyPlayer({
                                   <MenuSection title="Cast" className="sm:hidden">
                                     {airPlayAvailable ? (
                                       <MenuItem
-                                        active={airPlayConnected}
+                                        active={airPlayConnected || airPlayPreparing}
                                         onClick={() => {
+                                          if (airPlayPreparing) return;
                                           showAirPlayPicker();
                                           bumpControls();
                                           setMoreOpen(false);
                                         }}
                                       >
-                                        {airPlayConnected
-                                          ? "AirPlay connected"
-                                          : "AirPlay"}
+                                        {airPlayPreparing
+                                          ? "Preparing AirPlay…"
+                                          : airPlayConnected
+                                            ? "AirPlay connected"
+                                            : "AirPlay"}
                                       </MenuItem>
                                     ) : null}
                                     {castAvailable ? (

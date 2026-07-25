@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type RefObject,
 } from "react";
@@ -10,6 +11,10 @@ import {
 /**
  * WebKit AirPlay helpers for the AniKitty player.
  * Uses Safari/iOS-only APIs so the button stays hidden on Chrome (Cast).
+ *
+ * AirPlay needs a real HTTP(S) media URL on `<video>` — hls.js MSE / cookie-bound
+ * proxy tokens black-screen on Apple TV. Callers remint a cast-style URL and
+ * switch to native playback via `beforeShowPicker` / `onWirelessChange`.
  */
 
 type WebkitAirPlayVideo = HTMLVideoElement & {
@@ -25,6 +30,13 @@ export type UseAirPlayOptions = {
   videoRef: RefObject<HTMLVideoElement | null>;
   /** When false, skip listeners (e.g. SSR / disabled). Default true. */
   enabled?: boolean;
+  /**
+   * Remint / switch to a TV-fetchable native URL before opening the picker.
+   * Return false to abort (e.g. remint failed).
+   */
+  beforeShowPicker?: () => Promise<boolean>;
+  /** Fired when wireless AirPlay connect/disconnect changes. */
+  onWirelessChange?: (connected: boolean) => void;
 };
 
 export type UseAirPlayResult = {
@@ -32,7 +44,9 @@ export type UseAirPlayResult = {
   available: boolean;
   /** Currently routing to a wireless AirPlay target. */
   connected: boolean;
-  /** Open the system AirPlay picker. */
+  /** True while reminting / swapping to native before the picker. */
+  preparing: boolean;
+  /** Open the system AirPlay picker (after optional prepare). */
   showPicker: () => void;
 };
 
@@ -46,14 +60,23 @@ function supportsWebkitAirPlay(video: HTMLVideoElement): boolean {
 export function useAirPlay({
   videoRef,
   enabled = true,
+  beforeShowPicker,
+  onWirelessChange,
 }: UseAirPlayOptions): UseAirPlayResult {
   const [available, setAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const connectedRef = useRef(false);
+  const onWirelessChangeRef = useRef(onWirelessChange);
+  const beforeShowPickerRef = useRef(beforeShowPicker);
+  onWirelessChangeRef.current = onWirelessChange;
+  beforeShowPickerRef.current = beforeShowPicker;
 
   useEffect(() => {
     if (!enabled) {
       setAvailable(false);
       setConnected(false);
+      connectedRef.current = false;
       return;
     }
 
@@ -67,6 +90,7 @@ export function useAirPlay({
       if (!video || !supportsWebkitAirPlay(video)) {
         setAvailable(false);
         setConnected(false);
+        connectedRef.current = false;
         return;
       }
 
@@ -81,8 +105,13 @@ export function useAirPlay({
 
       const syncWireless = () => {
         const wireless = Boolean(video.webkitCurrentPlaybackTargetIsWireless);
+        const prev = connectedRef.current;
+        connectedRef.current = wireless;
         setConnected(wireless);
         if (wireless) setAvailable(true);
+        if (prev !== wireless) {
+          onWirelessChangeRef.current?.(wireless);
+        }
       };
       syncWireless();
 
@@ -104,7 +133,13 @@ export function useAirPlay({
       const remote = video.remote;
       const onRemoteState = () => {
         if (!remote) return;
-        setConnected(remote.state === "connected");
+        const wireless = remote.state === "connected";
+        const prev = connectedRef.current;
+        connectedRef.current = wireless;
+        setConnected(wireless);
+        if (prev !== wireless) {
+          onWirelessChangeRef.current?.(wireless);
+        }
       };
 
       if (remote && typeof remote.watchAvailability === "function") {
@@ -177,12 +212,30 @@ export function useAirPlay({
     if (!video || typeof video.webkitShowPlaybackTargetPicker !== "function") {
       return;
     }
-    try {
-      video.webkitShowPlaybackTargetPicker();
-    } catch {
-      /* ignore user-gesture / unsupported errors */
+
+    const open = () => {
+      try {
+        video.webkitShowPlaybackTargetPicker();
+      } catch {
+        /* ignore user-gesture / unsupported errors */
+      }
+    };
+
+    const prepare = beforeShowPickerRef.current;
+    if (!prepare) {
+      open();
+      return;
     }
+
+    setPreparing(true);
+    void prepare()
+      .then((ok) => {
+        if (ok) open();
+      })
+      .finally(() => {
+        setPreparing(false);
+      });
   }, [videoRef]);
 
-  return { available, connected, showPicker };
+  return { available, connected, preparing, showPicker };
 }
