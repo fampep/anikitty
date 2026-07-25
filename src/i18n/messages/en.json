@@ -2155,9 +2155,9 @@
       "focusSheetTitle": "Episodes",
       "focusSheetDesc": "Pick an episode — layout stays player-first"
     },
-    "commentsPreview": "EP {ep} · {count} comments · Tap to join the discussion",
-    "commentsPreviewEmpty": "EP {ep} · No comments yet · Tap to start the discussion",
-    "commentsPreviewLoading": "EP {ep} · Loading comments…",
+    "commentsPreview": "EP {ep} · {count} comments",
+    "commentsPreviewEmpty": "EP {ep} · Be the first to comment",
+    "commentsPreviewLoading": "EP {ep} · Loading…",
     "w2g": {
       "title": "Watch Together",
       "host": "Host",
@@ -2193,6 +2193,9 @@
     "noComments": "No comments yet",
     "noCommentsEpisode": "No comments for this episode yet",
     "firstComment": "Be the first to share your thoughts",
+    "firstTakeEpisode": "First take on Ep {n}?",
+    "timestampTip": "Tip: type 1:23 to link a timestamp",
+    "moreActions": "More",
     "allEpisodes": "All episodes",
     "episodePicker": "Episode comments",
     "episodeShort": "Ep {n}",

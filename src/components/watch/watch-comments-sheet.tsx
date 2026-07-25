@@ -92,18 +92,18 @@ export default function WatchCommentsSheet({
         hideCloseButton
         style={keyboardStyle}
         className={cn(
-          "flex flex-col gap-0 p-0 border-border dark:border-white/10 bg-[#0a0a0a]",
-          "h-[min(92dvh,820px)] max-h-[92dvh] rounded-t-2xl",
+          "flex flex-col gap-0 p-0 border-border/60 dark:border-white/[0.1] bg-zinc-950/98 supports-[backdrop-filter]:bg-zinc-950/92 backdrop-blur-xl",
+          "h-[min(92dvh,820px)] max-h-[92dvh] rounded-t-[1.25rem]",
           "data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
         )}
       >
         <SheetTitle className="sr-only">{t("watch.tabs.comments")}</SheetTitle>
 
         <div className="shrink-0 flex justify-center pt-2.5 pb-1">
-          <div className="w-10 h-1 rounded-full bg-white/25" aria-hidden />
+          <div className="w-10 h-1 rounded-full bg-white/20" aria-hidden />
         </div>
 
-        <div className="shrink-0 flex items-center gap-2 px-3 pb-3 border-b border-border dark:border-white/[0.08]">
+        <div className="shrink-0 flex items-center gap-2 px-3 pb-3 border-b border-border/50 dark:border-white/[0.07]">
           <CommentScopeTabs
             scope={scope}
             onScopeChange={onScopeChange}
@@ -113,7 +113,7 @@ export default function WatchCommentsSheet({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="ml-auto flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:text-white/80 hover:bg-accent dark:hover:bg-white/8 transition-colors"
+            className="ml-auto flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground dark:text-white/40 hover:text-foreground/90 dark:hover:text-white/85 hover:bg-accent dark:hover:bg-white/8 transition-colors"
             aria-label={t("common.close")}
           >
             <X className="h-5 w-5" />

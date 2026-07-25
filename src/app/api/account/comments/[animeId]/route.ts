@@ -106,7 +106,44 @@ export async function GET(
   const total = countRow?.count ?? 0;
 
   if (url.searchParams.get("countOnly") === "1") {
-    return Response.json({ total });
+    if (url.searchParams.get("preview") !== "1") {
+      return Response.json({ total });
+    }
+
+    const previewRows = await db
+      .select({
+        id: comments.id,
+        body: comments.body,
+        gifUrl: comments.gifUrl,
+        isSpoiler: comments.isSpoiler,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+        equippedFrame: users.equippedFrame,
+      })
+      .from(comments)
+      .innerJoin(users, eq(users.id, comments.userId))
+      .where(topLevelWhere)
+      .orderBy(desc(comments.createdAt))
+      .limit(2);
+
+    return Response.json({
+      total,
+      previews: previewRows.map((row) => ({
+        id: row.id,
+        username: row.username,
+        avatarUrl: row.avatarUrl,
+        equippedFrame: row.equippedFrame,
+        isSpoiler: row.isSpoiler,
+        body: row.isSpoiler
+          ? null
+          : row.body?.trim()
+            ? row.body.trim().slice(0, 96)
+            : row.gifUrl
+              ? null
+              : "",
+        gifUrl: row.isSpoiler ? null : row.gifUrl,
+      })),
+    });
   }
 
   // Pinned comments always sort above the rest.

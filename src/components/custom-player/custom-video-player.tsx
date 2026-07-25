@@ -4078,14 +4078,14 @@ export function AniKittyPlayer({
           )}
           aria-hidden={!chromeVisible}
         >
-          <div className="px-3.5 pb-9 sm:px-5">
+          <div className="px-3.5 pb-10 sm:px-5">
             {seriesTitle ? (
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
                 {seriesTitle}
               </p>
             ) : null}
             {title ? (
-              <p className="mt-1 truncate text-[13px] font-semibold tracking-wide text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.65)] sm:text-[15px]">
+              <p className="mt-1 truncate text-[13px] font-semibold tracking-wide text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.7)] sm:text-[15px]">
                 {title}
               </p>
             ) : null}
@@ -4108,8 +4108,8 @@ export function AniKittyPlayer({
       >
         <div
           className={cn(
-            // Soft violet-tinted dock — keeps icons readable without heavy chrome.
-            "group/chrome pointer-events-auto bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-5 transition-[background] duration-200",
+            // Soft dock fade + light glass strip so icons stay readable on bright frames.
+            "group/chrome pointer-events-auto bg-gradient-to-t from-black/88 via-black/48 to-transparent pt-6 transition-[background] duration-200",
             !chromeVisible && "pointer-events-none",
           )}
           onMouseEnter={() => {
@@ -4126,8 +4126,9 @@ export function AniKittyPlayer({
         >
           <div
             className={cn(
-              "w-full min-w-0 bg-transparent",
-              "pb-[max(0.35rem,env(safe-area-inset-bottom))] pl-[max(0.35rem,env(safe-area-inset-left))] pr-[max(0.35rem,env(safe-area-inset-right))] pt-0.5",
+              "relative w-full min-w-0",
+              "pb-[max(0.4rem,env(safe-area-inset-bottom))] pl-[max(0.4rem,env(safe-area-inset-left))] pr-[max(0.4rem,env(safe-area-inset-right))] pt-1",
+              "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-0 before:h-[4.75rem] before:bg-zinc-950/30 before:backdrop-blur-[6px] before:supports-[backdrop-filter]:bg-zinc-950/20",
               "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
             )}
           >
@@ -4242,9 +4243,11 @@ export function AniKittyPlayer({
                 Center with top + margin instead; use scaleX for played/buffered.
               */}
               <div className={cn(
-                "pointer-events-none absolute left-0 right-0 top-1/2 h-[3px] w-full -mt-[1.5px] overflow-visible rounded-full bg-white/[0.16] ring-1 ring-inset ring-white/[0.06] transition-[height,margin] duration-150 sm:h-[2.5px] sm:-mt-[1.25px] group-hover/seek:h-[4px] group-hover/seek:-mt-[2px]",
-                seeking && "h-[5px] -mt-[2.5px] sm:h-[4px] sm:-mt-[2px]",
-              )}>
+                "pointer-events-none absolute left-0 right-0 top-1/2 h-[3.5px] w-full -mt-[1.75px] overflow-visible rounded-full ring-1 ring-inset ring-white/[0.07] transition-[height,margin] duration-150 sm:h-[3px] sm:-mt-[1.5px] group-hover/seek:h-[5px] group-hover/seek:-mt-[2.5px]",
+                seeking && "h-[5.5px] -mt-[2.75px] sm:h-[4.5px] sm:-mt-[2.25px]",
+              )}
+                style={{ background: "var(--ak-player-track)" }}
+              >
                 {/* Buffered ranges — muted ahead-of-playhead fill */}
                 {effectiveDuration > 0 && !casting
                   ? bufferedRanges.map((range, i) => {
@@ -4255,10 +4258,11 @@ export function AniKittyPlayer({
                         <div
                           key={`${range.start}-${range.end}-${i}`}
                           aria-hidden
-                          className="absolute inset-y-0 z-[2] rounded-full bg-white/25"
+                          className="absolute inset-y-0 z-[2] rounded-full"
                           style={{
                             left: `${left}%`,
                             width: `${Math.max(width, 0)}%`,
+                            background: "var(--ak-player-buffer)",
                           }}
                         />
                       );
@@ -4314,12 +4318,12 @@ export function AniKittyPlayer({
               <div
                 className={cn(
                   "pointer-events-none absolute top-1/2 z-[5] -translate-x-1/2 -translate-y-1/2 rounded-full transition-[opacity,transform,width,height] duration-150",
-                  "shadow-[0_0_0_2px_rgba(0,0,0,0.35),0_0_0_4px_var(--ak-player-accent-soft),0_2px_10px_rgba(0,0,0,0.45)]",
+                  "shadow-[0_0_0_2px_rgba(0,0,0,0.4),0_0_0_5px_var(--ak-player-accent-soft),0_2px_12px_rgba(0,0,0,0.5)]",
                   seeking
-                    ? "h-4 w-4 scale-100 opacity-100"
+                    ? "h-[1.125rem] w-[1.125rem] scale-100 opacity-100"
                     : coarsePointer || hoverPreview
                       ? "h-4 w-4 scale-100 opacity-100"
-                      : "h-3.5 w-3.5 scale-90 opacity-0 group-hover/seek:scale-100 group-hover/seek:opacity-100",
+                      : "h-3.5 w-3.5 scale-95 opacity-70 group-hover/seek:h-4 group-hover/seek:w-4 group-hover/seek:scale-100 group-hover/seek:opacity-100",
                 )}
                 style={{
                   left: `${knobRatio * 100}%`,
@@ -4328,9 +4332,9 @@ export function AniKittyPlayer({
               />
             </div>
 
-            <div className="flex w-full min-w-0 items-center gap-0.5 px-0.5 py-0.5">
+            <div className="relative z-[1] flex w-full min-w-0 items-center gap-1 px-0.5 py-1">
               {/* Left — seek, play, seek, episode, time */}
-              <div className="flex min-w-0 flex-1 items-center gap-0 overflow-hidden">
+              <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden sm:gap-1">
                 <IconButton
                   label={`Seek back ${seekStepSeconds || SEEK_STEP} seconds`}
                   onClick={() => {
@@ -4350,7 +4354,7 @@ export function AniKittyPlayer({
                   onPointerDown={onPlayPointerDown}
                   onPointerUp={onPlayPointerUp}
                   onPointerCancel={onPlayPointerUp}
-                  className="shrink-0 bg-white text-zinc-950 hover:bg-white/90"
+                  className="shrink-0 bg-white text-zinc-950 shadow-[0_2px_14px_rgba(0,0,0,0.35)] hover:bg-white/95"
                 >
                   {effectivePlaying ? (
                     <PauseIcon className="h-[17px] w-[17px]" />
@@ -4369,6 +4373,7 @@ export function AniKittyPlayer({
                 </IconButton>
                 {onPrevEpisode || onNextEpisode ? (
                   <>
+                    <span className="mx-0.5 hidden h-4 w-px shrink-0 bg-white/15 sm:block" aria-hidden />
                     <IconButton
                       label={
                         prevEpisode
@@ -4397,10 +4402,10 @@ export function AniKittyPlayer({
                 ) : null}
 
                 <span
-                  className="ml-0.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/95"
+                  className="ml-1.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/95 sm:ml-2 sm:text-[12px]"
                   aria-hidden
                 >
-                  <span className="font-medium">{formatPlayerTime(displayTime)}</span>
+                  <span className="font-semibold">{formatPlayerTime(displayTime)}</span>
                   <span className="text-white/40">
                     <span className="mx-0.5 text-white/20">/</span>
                     {formatPlayerTime(effectiveDuration)}
@@ -4409,7 +4414,7 @@ export function AniKittyPlayer({
               </div>
 
               {/* Right — never shrinks; stays above the time label */}
-              <div className="relative z-[1] flex shrink-0 items-center gap-0">
+              <div className="relative z-[1] flex shrink-0 items-center gap-0.5">
                 {showCaptionsMenu ? (
                   <div className={cn(!coarsePointer && "relative")}>
                     <IconButton

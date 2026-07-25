@@ -18,6 +18,7 @@ import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import NextEpisodeCountdown from "@/components/anime/next-episode-countdown";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
+import HomeAmbientBackdrop from "@/components/home/home-ambient-backdrop";
 import Select from "@/components/common/select";
 import AnimeCarousel from "@/components/anime/anime-carousel";
 import dynamic from "next/dynamic";
@@ -429,13 +430,20 @@ const Layout = (props: Props) => {
       toggleMobilePlaylist={toggleMobilePlaylist}
       setMobilePlaylistOpen={setMobilePlaylistOpen}
     >
+    <div className="relative min-h-screen">
+    {!theatreMode ? (
+      <HomeAmbientBackdrop
+        imageUrl={info.poster || mappingData?.images?.poster}
+        variant="page"
+      />
+    ) : null}
     {theatreMode && (
       <div className="fixed inset-0 z-[35] bg-black pointer-events-none" aria-hidden />
     )}
     <Container
       data-watch-layout={theatreMode ? "theatre" : watchLayout}
       className={cn(
-      "pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
+      "relative z-[1] pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
       // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
       // Miruro-style default + theater: near full-bleed player column.
@@ -620,7 +628,7 @@ const Layout = (props: Props) => {
               )}
             </div>
             {currentAnimeId && currentEpisode && (
-              <div className="rounded-xl border border-border/50 dark:border-white/[0.06] bg-transparent p-3.5 sm:p-4">
+              <div className="rounded-xl border border-border/50 dark:border-white/[0.07] bg-muted/10 dark:bg-white/[0.015] p-3.5 sm:p-4">
                 <CommentSection
                   key={`${currentAnimeId}-${desktopCommentScope}-${episodeId ?? "none"}`}
                   animeId={currentAnimeId}
@@ -821,6 +829,7 @@ const Layout = (props: Props) => {
         />
       )}
     </Container>
+    </div>
     </WatchPageProvider>
   );
 };

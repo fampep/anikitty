@@ -46,6 +46,7 @@ import NextEpisodeCountdown from "@/components/anime/next-episode-countdown";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import { resolveAnimeBackdropUrl } from "@/lib/anime/resolve-backdrop";
 import { formatMalMemberCount } from "@/lib/anime/mal-metadata";
+import HomeAmbientBackdrop from "@/components/home/home-ambient-backdrop";
 import AnimeQuickNav from "@/components/anime/anime-quick-nav";
 import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
@@ -364,9 +365,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   ];
 
   return (
-    <div className="w-full min-h-screen">
+    <div className="relative w-full min-h-screen">
+      <HomeAmbientBackdrop
+        imageUrl={info.poster || mapImages?.poster || bannerSrc}
+        variant="page"
+      />
       {/* ── Banner ── */}
-      <div className="h-[40vh] sm:h-[44vh] md:h-[58vh] w-full relative">
+      <div className="h-[40vh] sm:h-[44vh] md:h-[58vh] w-full relative z-[1]">
         <Image
           src={bannerSrc}
           alt={info.name}
@@ -384,7 +389,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <Container className="pb-[calc(var(--mobile-nav-total)+1.5rem)] sm:pb-28">
+      <Container className="relative z-[1] pb-[calc(var(--mobile-nav-total)+1.5rem)] sm:pb-28">
         {/* ── Hero ── */}
         <div className="flex md:mt-[-14rem] mt-[-2rem] sm:mt-[-3.5rem] md:flex-row flex-col md:items-end gap-5 sm:gap-6 md:gap-8">
           {/* Poster: smaller on mobile, full-size on md+ */}

@@ -8,7 +8,7 @@ import { withAuth } from "@/lib/auth/auth-fetch";
 import {
   MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
   ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin, Flag,
-  Link2, Brackets,
+  Link2, Brackets, MoreHorizontal,
 } from "lucide-react";
 import CommentBody from "@/components/comments/comment-body";
 import { CommentFeedBody } from "@/components/comments/comment-feed-body";
@@ -379,6 +379,21 @@ export default function CommentSection({
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null);
+  const [moreMenuFor, setMoreMenuFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!moreMenuFor) return;
+    const close = () => setMoreMenuFor(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [moreMenuFor]);
 
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
@@ -915,7 +930,7 @@ export default function CommentSection({
     showReply = false,
     replyParentId?: string,
   ) => (
-    <div className={cn("flex items-center gap-0.5 flex-wrap", compact ? "mt-2" : "mt-2.5")}>
+    <div className={cn("flex items-center gap-0.5 flex-wrap", compact ? "mt-1.5" : "mt-2")}>
       <button
         onClick={() => auth && handleVote(c.id, 1)}
         disabled={!auth}
@@ -924,7 +939,7 @@ export default function CommentSection({
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === 1
             ? "text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20"
-            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5 disabled:hover:bg-transparent disabled:cursor-default",
+            : "text-muted-foreground/80 dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:hover:bg-white/5 disabled:hover:bg-transparent disabled:cursor-default",
         )}
       >
         <ThumbsUp className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -938,7 +953,7 @@ export default function CommentSection({
           "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all",
           c.myVote === -1
             ? "text-rose-400 bg-rose-500/10 ring-1 ring-rose-500/20"
-            : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5 disabled:hover:bg-transparent disabled:cursor-default",
+            : "text-muted-foreground/80 dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:hover:bg-white/5 disabled:hover:bg-transparent disabled:cursor-default",
         )}
       >
         <ThumbsDown className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -954,8 +969,11 @@ export default function CommentSection({
       {auth && (
         <div className="relative ml-0.5">
           <button
-            onClick={() => setReactionPickerFor(reactionPickerFor === c.id ? null : c.id)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5 transition-all"
+            onClick={() => {
+              setMoreMenuFor(null);
+              setReactionPickerFor(reactionPickerFor === c.id ? null : c.id);
+            }}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/70 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/60 hover:bg-muted/50 dark:hover:bg-white/5 transition-all"
             title={t("comments.addReaction")}
           >
             <SmilePlus className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -977,10 +995,10 @@ export default function CommentSection({
             startReply(parent, replyParentId ? c.username : undefined);
           }}
           className={cn(
-            "flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all ml-0.5",
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ml-0.5",
             replyingTo === (replyParentId ?? c.id)
-              ? "text-muted-foreground dark:text-white/70 bg-accent dark:bg-white/10 ring-1 ring-white/15"
-              : "text-muted-foreground/70 dark:text-white/20 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5",
+              ? "text-foreground dark:text-white/85 bg-accent dark:bg-white/10 ring-1 ring-white/15"
+              : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/75 hover:bg-muted/50 dark:hover:bg-white/5",
           )}
         >
           <Reply className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
@@ -988,26 +1006,54 @@ export default function CommentSection({
         </button>
       )}
 
-      <button
-        type="button"
-        onClick={() => copyCommentLink(c.id)}
-        title={t("comments.copyLink")}
-        aria-label={t("comments.copyLink")}
-        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/50 dark:text-white/15 hover:text-muted-foreground dark:hover:text-white/50 hover:bg-muted/50 dark:hover:bg-white/5 transition-all ml-0.5"
-      >
-        <Link2 className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
-      </button>
-
-      {auth && c.userId !== auth.id && (
+      <div className="relative ml-auto sm:ml-0.5">
         <button
-          onClick={() => handleReport(c.id)}
-          title={t("comments.report")}
-          aria-label={t("comments.report")}
-          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/50 dark:text-white/15 hover:text-rose-400/70 hover:bg-rose-500/5 transition-all ml-0.5"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setReactionPickerFor(null);
+            setMoreMenuFor(moreMenuFor === c.id ? null : c.id);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          title={t("comments.moreActions")}
+          aria-label={t("comments.moreActions")}
+          aria-expanded={moreMenuFor === c.id}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-muted-foreground/50 dark:text-white/20 hover:text-muted-foreground dark:hover:text-white/55 hover:bg-muted/50 dark:hover:bg-white/5 transition-all"
         >
-          <Flag className={cn(compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
+          <MoreHorizontal className={cn(compact ? "w-3.5 h-3.5" : "w-4 h-4")} />
         </button>
-      )}
+        {moreMenuFor === c.id ? (
+          <div
+            className="absolute right-0 bottom-full z-30 mb-1.5 min-w-[9.5rem] overflow-hidden rounded-xl border border-border dark:border-white/10 bg-popover dark:bg-[#111] shadow-xl shadow-black/50"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                copyCommentLink(c.id);
+                setMoreMenuFor(null);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              {t("comments.copyLink")}
+            </button>
+            {auth && c.userId !== auth.id ? (
+              <button
+                type="button"
+                onClick={() => {
+                  handleReport(c.id);
+                  setMoreMenuFor(null);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-rose-300/80 hover:bg-rose-500/10"
+              >
+                <Flag className="h-3.5 w-3.5" />
+                {t("comments.report")}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 
@@ -1115,13 +1161,18 @@ export default function CommentSection({
       <div
         className={cn(
           "flex items-center justify-between gap-3",
-          isSheet && "sticky top-0 z-10 bg-[#0a0a0a] py-1 -mx-0.5",
+          isSheet && "sticky top-0 z-10 bg-zinc-950/95 backdrop-blur-md py-1 -mx-0.5",
         )}
       >
-        {isSheet ? (
-          <p className="text-sm font-semibold text-foreground/90 dark:text-white/80">
-            {loading ? t("comments.loadingCount") : t("comments.count", { count: total })}
-          </p>
+        {isSheet || commentScope ? (
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground/90 dark:text-white/85">
+              {loading ? t("comments.loadingCount") : t("comments.count", { count: total })}
+            </p>
+            {headerLabel && !isSheet ? (
+              <p className="mt-0.5 text-[10px] font-mono text-sky-300/70 truncate">{headerLabel}</p>
+            ) : null}
+          </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
             <MessageSquare className="w-4 h-4 text-muted-foreground dark:text-white/40 shrink-0" />
@@ -1197,7 +1248,7 @@ export default function CommentSection({
         <div
           className={cn(
             "flex gap-3",
-            isSheet && "gap-2.5 sticky top-10 z-[9] -mx-1 px-1 py-2 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/[0.04]",
+            isSheet && "gap-2.5 sticky top-10 z-[9] -mx-1 px-1 py-2 bg-zinc-950/95 backdrop-blur-md border-b border-white/[0.06]",
           )}
         >
           {!isSheet && (
@@ -1384,10 +1435,12 @@ export default function CommentSection({
           </div>
         </div>
       ) : !auth ? (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 px-4 rounded-2xl bg-gradient-to-r from-white/[0.03] to-zinc-500/[0.04] border border-border dark:border-white/8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 px-4 rounded-xl bg-muted/20 dark:bg-white/[0.025] border border-border/60 dark:border-white/[0.08]">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <SmilePlus className="w-4 h-4 text-muted-foreground/70 dark:text-white/20 shrink-0" />
-            <p className="text-sm text-muted-foreground dark:text-white/30">{t("comments.signInToJoin")}</p>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 dark:border-white/[0.08] bg-muted/40 dark:bg-white/[0.04]">
+              <MessageSquare className="w-4 h-4 text-muted-foreground/70 dark:text-white/30" />
+            </div>
+            <p className="text-sm text-muted-foreground dark:text-white/40">{t("comments.signInToJoin")}</p>
           </div>
           <LoginPopoverButton />
         </div>
@@ -1416,15 +1469,22 @@ export default function CommentSection({
           {[...Array(4)].map((_, i) => <CommentSkeleton key={i} />)}
         </div>
       ) : comments.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-12 px-6 text-center rounded-2xl border border-dashed border-border dark:border-white/[0.08] bg-muted/20 dark:bg-white/[0.015]">
-          <div className="w-14 h-14 rounded-2xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/[0.08] flex items-center justify-center">
-            <MessageSquare className="w-6 h-6 text-muted-foreground/70 dark:text-white/20" />
+        <div className="flex flex-col items-center gap-3 py-11 px-6 text-center rounded-2xl border border-dashed border-border dark:border-white/[0.09] bg-gradient-to-b from-muted/30 dark:from-white/[0.03] to-transparent">
+          <div className="w-12 h-12 rounded-xl bg-muted/50 dark:bg-white/[0.045] border border-border dark:border-white/[0.08] flex items-center justify-center">
+            <MessageSquare className="w-5 h-5 text-muted-foreground/70 dark:text-white/25" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground dark:text-white/35 font-medium">
-              {activeEpisodeId ? t("comments.noCommentsEpisode") : t("comments.noComments")}
+            <p className="text-sm text-muted-foreground dark:text-white/45 font-medium">
+              {activeEpisodeId && activeEpisodeNumber
+                ? t("comments.firstTakeEpisode", { n: activeEpisodeNumber })
+                : activeEpisodeId
+                  ? t("comments.noCommentsEpisode")
+                  : t("comments.noComments")}
             </p>
-            <p className="text-xs text-muted-foreground/70 dark:text-white/20 mt-1">{t("comments.firstComment")}</p>
+            <p className="text-xs text-muted-foreground/70 dark:text-white/28 mt-1.5">{t("comments.firstComment")}</p>
+            <p className="mt-2.5 text-[10px] font-mono text-muted-foreground/60 dark:text-white/22">
+              {t("comments.timestampTip")}
+            </p>
           </div>
         </div>
       ) : (
@@ -1445,11 +1505,11 @@ export default function CommentSection({
                 id={`comment-${c.id}`}
                 key={c.id}
                 className={cn(
-                  "flex gap-3 py-4 px-3 -mx-1 rounded-2xl border border-transparent transition-colors group scroll-mt-24",
-                  index > 0 && "mt-1",
+                  "flex gap-3 py-3.5 px-3 -mx-1 rounded-xl border border-transparent transition-colors group scroll-mt-24",
+                  index > 0 && "mt-0.5",
                   isHighlighted
-                    ? "bg-muted/30 dark:bg-white/[0.025] hover:bg-muted/40 dark:hover:bg-white/[0.04] border-border/50 dark:border-white/[0.05]"
-                    : "hover:bg-muted/25 dark:hover:bg-white/[0.02] hover:border-border/40 dark:hover:border-white/[0.06]",
+                    ? "bg-muted/30 dark:bg-white/[0.03] hover:bg-muted/40 dark:hover:bg-white/[0.045] border-border/50 dark:border-white/[0.06]"
+                    : "hover:bg-muted/25 dark:hover:bg-white/[0.025] hover:border-border/40 dark:hover:border-white/[0.07]",
                   isOwn && "ring-1 ring-primary/10",
                   isDeepLinked && "ring-2 ring-sky-400/40 bg-sky-500/[0.06]",
                 )}
@@ -1687,13 +1747,13 @@ export default function CommentSection({
 
                   {/* Threaded replies */}
                   {c.replies.length > 0 && (
-                    <div className="mt-3 ml-1 sm:ml-2 pl-3 sm:pl-4 border-l-2 border-zinc-500/25 dark:border-white/12">
+                    <div className="mt-3 ml-0.5 sm:ml-1 pl-3 sm:pl-4 border-l-2 border-sky-500/20 dark:border-white/14 bg-gradient-to-r from-white/[0.02] to-transparent rounded-r-lg">
                       {!expandedReplies.has(c.id) ? (
                         <button
                           onClick={() =>
                             setExpandedReplies((prev) => new Set([...prev, c.id]))
                           }
-                          className="flex flex-col items-start gap-1 text-xs text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 py-1 transition-colors w-full text-left"
+                          className="flex flex-col items-start gap-1 text-xs text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:hover:text-white/65 py-2 transition-colors w-full text-left"
                         >
                           <span className="flex items-center gap-1.5 font-semibold">
                             <ChevronDown className="w-3.5 h-3.5" />
@@ -1711,8 +1771,8 @@ export default function CommentSection({
                                 : "";
                             if (!snippet) return null;
                             return (
-                              <span className="pl-5 text-[11px] text-muted-foreground/70 dark:text-white/25 line-clamp-1 font-normal">
-                                <span className="text-muted-foreground dark:text-white/40">{preview.username}</span>
+                              <span className="pl-5 text-[11px] text-muted-foreground/70 dark:text-white/28 line-clamp-1 font-normal">
+                                <span className="text-muted-foreground dark:text-white/45">{preview.username}</span>
                                 {": "}
                                 {snippet}
                                 {(preview.body?.length ?? 0) > 80 ? "…" : ""}
@@ -1728,13 +1788,14 @@ export default function CommentSection({
                             const replyOwn = auth?.id === reply.userId;
                             const replyEditing = editingId === reply.id;
                             const replyDeepLinked = highlightId === reply.id;
+                            const replyMention = reply.body?.trim().match(/^@([A-Za-z0-9_]{2,32})\b/);
 
                             return (
                               <div
                                 id={`comment-${reply.id}`}
                                 key={reply.id}
                                 className={cn(
-                                  "flex gap-2.5 py-3 group/reply border-t border-border dark:border-white/[0.04] first:border-t-0 scroll-mt-24 rounded-lg -mx-1 px-1",
+                                  "flex gap-2.5 py-3 group/reply border-t border-border dark:border-white/[0.05] first:border-t-0 scroll-mt-24 rounded-lg -mx-1 px-1.5",
                                   replyDeepLinked && "ring-2 ring-sky-400/40 bg-sky-500/[0.06]",
                                 )}
                               >
@@ -1759,6 +1820,11 @@ export default function CommentSection({
                                       discordBoosting={reply.discordBoosting}
                                       size="xs"
                                     />
+                                    {replyMention ? (
+                                      <span className="text-[10px] font-mono text-sky-300/55">
+                                        ↳ @{replyMention[1]}
+                                      </span>
+                                    ) : null}
                                     {reply.isSpoiler && (
                                       <span className="px-1.5 py-px rounded text-[9px] font-semibold uppercase tracking-wide bg-amber-500/12 text-amber-200/90 border border-amber-500/20">
                                         {t("comments.spoiler")}
