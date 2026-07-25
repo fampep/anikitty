@@ -1060,8 +1060,20 @@ const VideoPlayerSection = () => {
   }, [episodeId, streamReady]);
 
   // Prefetch the next episode stream after playback has settled (avoids competing with HLS).
+  // Skip on lite mode / low-memory devices — holds a full stream payload in React Query.
   useEffect(() => {
     if (!streamReady || !nextEpisode || !anilistId) return;
+    if (useSettingsStore.getState().liteMode) return;
+    const deviceMemory =
+      typeof navigator !== "undefined"
+        ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+        : undefined;
+    if (typeof deviceMemory === "number" && deviceMemory <= 4) return;
+    const saveData =
+      typeof navigator !== "undefined" &&
+      Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+    if (saveData) return;
+
     const nextEpNo = String(nextEpisode.number);
     if (parseInt(nextEpNo, 10) <= 0) return;
 

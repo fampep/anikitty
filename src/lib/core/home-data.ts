@@ -10,7 +10,7 @@ const CRITICAL_QUERY = `
       media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
         id
         title { english romaji }
-        coverImage { extraLarge }
+        coverImage { large }
         bannerImage
         description(asHtml: false)
         episodes
@@ -20,21 +20,21 @@ const CRITICAL_QUERY = `
     }
     trending: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: TRENDING_DESC) {
-        id title { english romaji } coverImage { extraLarge } episodes format trending averageScore seasonYear status isAdult
+        id title { english romaji } coverImage { large } episodes format trending averageScore seasonYear status isAdult
       }
     }
-    recentlyAired: Page(page: 1, perPage: 50) {
+    recentlyAired: Page(page: 1, perPage: 24) {
       airingSchedules(notYetAired: false, sort: TIME_DESC) {
         episode
         media {
-          id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status
+          id title { english romaji } coverImage { large } episodes format averageScore seasonYear status
           type isAdult
         }
       }
     }
     recentlyAdded: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: START_DATE_DESC, status: RELEASING) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
         nextAiringEpisode { episode airingAt }
       }
     }
@@ -45,27 +45,27 @@ const DISCOVERY_QUERY = `
   query {
     favorite: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: FAVOURITES_DESC) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
       }
     }
     rated: Page(page: 1, perPage: 18) {
       media(type: ANIME, sort: SCORE_DESC, averageScore_greater: 60) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
       }
     }
     popular: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
       }
     }
     latest: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: END_DATE_DESC, status: FINISHED) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
       }
     }
     upcoming: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) {
-        id title { english romaji } coverImage { extraLarge } episodes format averageScore seasonYear status isAdult
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
       }
     }
   }
@@ -88,7 +88,7 @@ function hasStreamableEpisodes(episodes: { sub: number | null; dub: number | nul
 export function toAnime(m: {
   id: number;
   title?: { english?: string | null; romaji?: string | null };
-  coverImage?: { extraLarge?: string | null };
+  coverImage?: { large?: string | null; extraLarge?: string | null };
   episodes?: number | null;
   format?: string | null;
   trending?: number | null;
@@ -102,7 +102,7 @@ export function toAnime(m: {
     id: String(m.id),
     name: toTitle(m.title ?? {}),
     jname: m.title?.romaji ?? "",
-    poster: m.coverImage?.extraLarge ?? "",
+    poster: m.coverImage?.large ?? m.coverImage?.extraLarge ?? "",
     episodes: {
       sub: airedCountFromAnilist(m.nextAiringEpisode, {
         status: m.status,
@@ -129,7 +129,7 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
       m: {
         id: number;
         title?: { english?: string | null; romaji?: string | null };
-        coverImage?: { extraLarge?: string | null };
+        coverImage?: { large?: string | null; extraLarge?: string | null };
         bannerImage?: string | null;
         description?: string | null;
         episodes?: number | null;
@@ -143,7 +143,7 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
       id: String(m.id),
       name: toTitle(m.title ?? {}),
       jname: m.title?.romaji ?? "",
-      poster: m.bannerImage ?? m.coverImage?.extraLarge ?? "",
+      poster: m.bannerImage ?? m.coverImage?.large ?? m.coverImage?.extraLarge ?? "",
       description: (m.description ?? "").replace(/<[^>]*>/g, ""),
       episodes: {
         sub: airedCountFromAnilist(m.nextAiringEpisode, {
@@ -164,7 +164,7 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
     media?: {
       id: number;
       title?: { english?: string | null; romaji?: string | null };
-      coverImage?: { extraLarge?: string | null };
+      coverImage?: { large?: string | null; extraLarge?: string | null };
       episodes?: number | null;
       format?: string | null;
       averageScore?: number | null;
@@ -183,7 +183,7 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
       seenAired.add(id);
       return true;
     })
-    .slice(0, 40)
+    .slice(0, 24)
     .map((s) =>
       toAnime({
         ...s.media!,
@@ -274,23 +274,23 @@ async function fetchHomeDataUncached(): Promise<IAnimeData> {
   };
 }
 
-export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v2"], {
+export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v3"], {
   revalidate: 300,
 });
 
-export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v2"], {
+export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v3"], {
   revalidate: 300,
 });
 
-export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v4"], {
+export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v5"], {
   revalidate: 300,
 });
 
 const POSTER_QUERY = `
   query {
-    trending: Page(page: 1, perPage: 24) {
+    trending: Page(page: 1, perPage: 18) {
       media(type: ANIME, sort: TRENDING_DESC) {
-        coverImage { extraLarge large }
+        coverImage { large }
       }
     }
   }
@@ -298,16 +298,16 @@ const POSTER_QUERY = `
 
 async function fetchHomePostersUncached(): Promise<string[]> {
   const raw = await queryAniList<{
-    trending?: { media: Array<{ coverImage?: { extraLarge?: string | null; large?: string | null } }> };
+    trending?: { media: Array<{ coverImage?: { large?: string | null } }> };
   }>(POSTER_QUERY);
 
   const imgs = (raw.trending?.media ?? [])
-    .map((m) => m.coverImage?.extraLarge ?? m.coverImage?.large ?? "")
+    .map((m) => m.coverImage?.large ?? "")
     .filter(Boolean);
 
   return [...new Set(imgs)].slice(0, 18);
 }
 
-export const getHomePosterUrls = unstable_cache(fetchHomePostersUncached, ["home-poster-urls-v1"], {
+export const getHomePosterUrls = unstable_cache(fetchHomePostersUncached, ["home-poster-urls-v2"], {
   revalidate: 3600,
 });

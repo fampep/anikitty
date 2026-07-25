@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/core/api";
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
@@ -7,6 +9,11 @@ import {
   type EpisodeStreamCapabilities,
   type StreamCapabilityTarget,
 } from "@/lib/kitty/stream-capabilities-shared";
+
+const CAPABILITIES_STALE_MS = 5 * 60 * 1000;
+const CAPABILITIES_GC_MS = 15 * 60 * 1000;
+/** Wait before long-tail probes so the active HLS session can settle. */
+const REST_PROBE_DELAY_MS = 10_000;
 
 const getEpisodeStreamCapabilities = async (
   anilistId: number,
@@ -58,23 +65,40 @@ export const useGetStreamCapabilities = (
 ) => {
   const enabled = !!anilistId && !!episode && parseInt(episode, 10) > 0;
   const baseKey = ["stream-capabilities", "episode", anilistId, episode, title ?? ""] as const;
+  const [restAllowed, setRestAllowed] = useState(false);
+
+  useEffect(() => {
+    setRestAllowed(false);
+    if (!enabled) return;
+  }, [enabled, anilistId, episode, title]);
 
   const featured = useQuery({
     queryKey: [...baseKey, "featured"],
     queryFn: () => getEpisodeStreamCapabilities(anilistId!, episode!, title, "featured"),
     enabled,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: CAPABILITIES_STALE_MS,
+    gcTime: CAPABILITIES_GC_MS,
     retry: 1,
   });
+
+  useEffect(() => {
+    if (!(featured.isSuccess || featured.isError)) {
+      setRestAllowed(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setRestAllowed(true), REST_PROBE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [featured.isSuccess, featured.isError, anilistId, episode]);
 
   const rest = useQuery({
     queryKey: [...baseKey, "rest"],
     queryFn: () => getEpisodeStreamCapabilities(anilistId!, episode!, title, "rest"),
     // Defer the long-tail probe so it doesn't compete with the active stream race.
-    enabled: enabled && (featured.isSuccess || featured.isError),
+    enabled: enabled && restAllowed,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: CAPABILITIES_STALE_MS,
+    gcTime: CAPABILITIES_GC_MS,
     retry: 1,
   });
 
@@ -117,7 +141,7 @@ export const useGetActiveProviderStreamCapabilities = (
       parseInt(episode, 10) > 0 &&
       !!target?.provider,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
+    staleTime: CAPABILITIES_STALE_MS,
+    gcTime: CAPABILITIES_GC_MS,
   });
 };

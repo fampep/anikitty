@@ -53,9 +53,9 @@ export interface KittyStreamResponse {
   raceMs?: number;
 }
 
-/** Keep resolved streams in the client — KittyAPI already persists the upstream link indefinitely. */
-export const KITTY_STREAM_STALE_MS = 24 * 60 * 60 * 1000;
-export const KITTY_STREAM_GC_MS = 7 * 24 * 60 * 60 * 1000;
+/** Keep resolved streams briefly — long GC stacks episode/provider payloads in RAM. */
+export const KITTY_STREAM_STALE_MS = 30 * 60 * 1000;
+export const KITTY_STREAM_GC_MS = 90 * 60 * 1000;
 
 export const getKittyStream = async (
   anilistId: number,

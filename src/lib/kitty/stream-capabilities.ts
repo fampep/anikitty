@@ -42,12 +42,11 @@ import {
   probeAnisnatchEpisodeCapabilities,
 } from "@/lib/providers/anisnatch-api";
 import {
+  DEFAULT_PROVIDER_PRIORITY,
   isKittyProvider,
   KITTY_PROVIDERS,
-  getKittyProviderMeta,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
-import { raceKittyProviderStream } from "@/lib/kitty/kitty-stream-api";
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 
 const EMPTY_MULTI_SERVER_FIELDS = {
@@ -58,7 +57,10 @@ const EMPTY_MULTI_SERVER_FIELDS = {
 };
 
 const PROBE_TIMEOUT_MS = 16_000;
-const DIRECT_PROBE_CONCURRENCY = 6;
+/** Keep capability fan-out light — each probe holds stream JSON in memory. */
+const DIRECT_PROBE_CONCURRENCY = 3;
+/** First-pass probes: top of site priority only (rest deferred to `tier=rest`). */
+const FEATURED_PROBE_LIMIT = 6;
 
 /**
  * Multi-server providers are probed via `/servers` (mirrors / site lines).
@@ -66,12 +68,6 @@ const DIRECT_PROBE_CONCURRENCY = 6;
  * overwrite good multi results in featured merge.
  */
 const MULTI_SERVER_PROBE_PROVIDERS = new Set<KittyProvider>(["MKissa", "AniSnatch"]);
-
-/**
- * Match `/api/kitty/stream`: parallel node race. Sequential primary→failover
- * under a 16s parent often burns the budget on a hung peer (Whiskey/Alpha).
- */
-const RACE_PROBE_PROVIDERS = new Set<KittyProvider>(["AniWaves", "AniKuro"]);
 
 /** Providers that often only succeed on non-primary KittyAPI nodes (sequential). */
 const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["AniWatch"]);
@@ -129,24 +125,7 @@ async function probeStreamDirect(
   audio: "sub" | "dub",
   title?: string | null,
 ): Promise<StreamProbeResult | null> {
-  // Parallel race — same strategy as live playback for Whiskey/Alpha.
-  if (RACE_PROBE_PROVIDERS.has(provider)) {
-    try {
-      const raced = await raceKittyProviderStream({
-        provider,
-        anilistId,
-        episode,
-        audio,
-        title,
-        timeoutMs: PROBE_TIMEOUT_MS,
-        directOnly: true,
-      });
-      return probeResultFromPayload(raced?.stream ?? null);
-    } catch {
-      return { hasFile: false, subtitleTracks: 0 };
-    }
-  }
-
+  // Capability probes stay single-node (no multi-peer race) to cut peak RAM/CPU.
   const path = buildKittyStreamDirectPath({
     provider,
     anilistId,
@@ -216,12 +195,14 @@ const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(
   (p) => !MULTI_SERVER_PROBE_PROVIDERS.has(p),
 );
 
-const FEATURED_DIRECT_PROBE_PROVIDERS = DIRECT_PROBE_PROVIDERS.filter(
-  (p) => getKittyProviderMeta(p).group === "featured",
-);
+const FEATURED_DIRECT_PROBE_PROVIDERS = DEFAULT_PROVIDER_PRIORITY.filter((p) =>
+  (DIRECT_PROBE_PROVIDERS as readonly KittyProvider[]).includes(p),
+).slice(0, FEATURED_PROBE_LIMIT);
+
+const FEATURED_DIRECT_SET = new Set<KittyProvider>(FEATURED_DIRECT_PROBE_PROVIDERS);
 
 const REST_DIRECT_PROBE_PROVIDERS = DIRECT_PROBE_PROVIDERS.filter(
-  (p) => getKittyProviderMeta(p).group !== "featured",
+  (p) => !FEATURED_DIRECT_SET.has(p),
 );
 
 async function probeMultiProviderEpisodeCapabilities(

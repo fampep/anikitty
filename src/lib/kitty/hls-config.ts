@@ -4,34 +4,35 @@ import type { HlsConfig } from "hls.js";
  * hls.js settings for AniKitty’s double-hop proxy path
  * (browser → /api/kitty/hls → KittyAPI /proxy → CDN).
  *
- * Conservative ABR defaults matter: an optimistic 2.5 Mbps start without a
- * bandwidth probe often starves through the proxy and looks like endless buffering.
+ * Keep buffers modest — every second of FHD ahead is megabytes of RAM in the tab.
  */
-export function createHlsConfig(opts?: { enableWebVTT?: boolean }): Partial<HlsConfig> {
+export function createHlsConfig(opts?: {
+  enableWebVTT?: boolean;
+  /** Smaller forward/back buffers for Lite Mode / low-memory devices. */
+  lite?: boolean;
+}): Partial<HlsConfig> {
+  const lite = Boolean(opts?.lite);
   return {
     enableWorker: true,
     lowLatencyMode: false,
-    backBufferLength: 30,
-    maxBufferLength: 45,
-    maxMaxBufferLength: 120,
-    // Keep enough ahead for proxy RTT without blowing mobile RAM on FHD.
-    maxBufferSize: 60 * 1000 * 1000,
+    backBufferLength: lite ? 6 : 12,
+    maxBufferLength: lite ? 18 : 30,
+    maxMaxBufferLength: lite ? 28 : 45,
+    // Cap forward media buffer so watch tabs stay lighter on phones/desktops.
+    maxBufferSize: (lite ? 16 : 28) * 1000 * 1000,
     maxBufferHole: 2.5,
     maxFragLookUpTolerance: 0.75,
-    // Give slow proxy fragments longer before declaring starvation.
     maxStarvationDelay: 12,
     maxLoadingDelay: 10,
     nudgeOffset: 0.2,
     nudgeMaxRetry: 8,
-    // Start at lowest level; climb after real throughput samples.
     startLevel: 0,
     capLevelToPlayerSize: true,
-    startFragPrefetch: true,
+    startFragPrefetch: false,
     testBandwidth: true,
     progressive: false,
     enableWebVTT: opts?.enableWebVTT ?? true,
     enableCEA708Captions: false,
-    // Assume ~1 Mbps through the proxy until measured — safer than 2.5 Mbps.
     abrEwmaDefaultEstimate: 1_000_000,
     abrEwmaFastLive: 3,
     abrEwmaSlowLive: 9,
@@ -48,7 +49,6 @@ export function createHlsConfig(opts?: { enableWebVTT?: boolean }): Partial<HlsC
     fragLoadingTimeOut: 30_000,
     fragLoadingMaxRetry: 8,
     fragLoadingRetryDelay: 750,
-    // Ensure HttpOnly playback session cookie is sent on segment requests.
     xhrSetup: (xhr) => {
       xhr.withCredentials = true;
     },

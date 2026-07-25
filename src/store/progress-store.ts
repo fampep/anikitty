@@ -3,8 +3,10 @@ import { invalidateUserLevel } from "@/hooks/use-user-level";
 
 const LS_KEY = "kitty:progress";
 const SAVE_DEBOUNCE_MS = 3000;
+/** Cap local progress entries so long-lived tabs don't grow unbounded. */
+const MAX_PROGRESS_ENTRIES = 150;
 
-type ProgressEntry = { current: number; duration: number };
+type ProgressEntry = { current: number; duration: number; updatedAt?: number };
 type ProgressCache = Record<string, ProgressEntry>;
 
 let memoryCache: ProgressCache | null = null;
@@ -21,6 +23,17 @@ function scheduleLocalBump(set: (partial: Partial<ProgressStore> | ((s: Progress
   }, LOCAL_BUMP_DEBOUNCE_MS);
 }
 
+function pruneCache(cache: ProgressCache): void {
+  const keys = Object.keys(cache);
+  if (keys.length <= MAX_PROGRESS_ENTRIES) return;
+  keys
+    .sort((a, b) => (cache[a]?.updatedAt ?? 0) - (cache[b]?.updatedAt ?? 0))
+    .slice(0, keys.length - MAX_PROGRESS_ENTRIES)
+    .forEach((key) => {
+      delete cache[key];
+    });
+}
+
 function loadCache(): ProgressCache {
   if (memoryCache) return memoryCache;
   if (typeof window === "undefined") {
@@ -29,6 +42,7 @@ function loadCache(): ProgressCache {
   }
   try {
     memoryCache = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") as ProgressCache;
+    pruneCache(memoryCache);
   } catch {
     memoryCache = {};
   }
@@ -37,6 +51,7 @@ function loadCache(): ProgressCache {
 
 function flushCache() {
   if (!memoryCache || typeof window === "undefined") return;
+  pruneCache(memoryCache);
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(memoryCache));
   } catch {
@@ -100,7 +115,8 @@ export const useProgressStore = create<ProgressStore>((set) => ({
     ) {
       return;
     }
-    cache[key] = { current, duration };
+    cache[key] = { current, duration, updatedAt: Date.now() };
+    pruneCache(cache);
     scheduleSave();
     scheduleLocalBump(set);
   },

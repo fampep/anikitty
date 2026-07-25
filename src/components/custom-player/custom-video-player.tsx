@@ -2102,7 +2102,7 @@ export function AniKittyPlayer({
         fail("hls-unsupported", "Browser cannot play HLS");
         return;
       }
-      hls = new Hls(createHlsConfig());
+      hls = new Hls(createHlsConfig({ lite: liteMode }));
       hlsRef.current = hls;
       hls.loadSource(activeSrc);
       hls.attachMedia(video);
