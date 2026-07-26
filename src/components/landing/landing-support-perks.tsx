@@ -13,7 +13,7 @@ import { trackEvent } from "@/lib/analytics";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/core/utils";
 
-const PERK_KEYS = ["perkAds", "perkBadge", "perkEarly", "perkTeam"] as const;
+const PERK_KEYS = ["perkBadge", "perkEarly", "perkTeam", "perkSupport"] as const;
 
 export default function LandingSupportPerks() {
   const t = useT();

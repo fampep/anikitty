@@ -58,7 +58,6 @@ import BlockedUsersSection from "@/components/profile/blocked-users-section";
 import AccountDeletionSection from "@/components/auth/account-deletion-section";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import SiteDisplaySettings from "@/components/settings/site-display-settings";
-import AdsSettingsSection from "@/components/settings/ads-settings-section";
 import SeekStepSetting from "@/components/settings/seek-step-setting";
 import type { PlayerSeekStep } from "@/lib/player/seek-step";
 import DiscordConnect from "@/components/auth/discord-connect";
@@ -1086,7 +1085,6 @@ export default function SettingsPage() {
             {activeTab === "general" && (
               <div className="space-y-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
                 {auth && <ShopSection />}
-                <AdsSettingsSection />
                 <PerformanceSection />
                 <WatchLayoutSection
                   watchLayouts={watchLayouts}

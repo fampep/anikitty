@@ -63,10 +63,10 @@ export default function DonationContent() {
   ];
 
   const tipPerks = [
-    t("donate.tip.perkAds"),
     t("donate.tip.perkBadge"),
     t("donate.tip.perkEarly"),
     t("donate.tip.perkTeam"),
+    t("donate.tip.perkSupport"),
   ];
 
   const steps = [
@@ -289,18 +289,13 @@ export default function DonationContent() {
               </div>
 
               {isDonator ? (
-                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <Heart className="w-4 h-4 shrink-0 mt-0.5 text-pink-300 fill-pink-300/20" />
-                    <p className="text-sm leading-relaxed text-emerald-100/90">
-                      {untilLabel
-                        ? t("donate.activeDonatorUntil", { date: untilLabel })
-                        : t("donate.activeDonator")}
-                    </p>
-                  </div>
-                  <Link href={ROUTES.SETTINGS} className="site-ghost-btn py-2 text-xs shrink-0">
-                    {t("donate.adsSettingsCta")}
-                  </Link>
+                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3.5 flex items-start gap-3">
+                  <Heart className="w-4 h-4 shrink-0 mt-0.5 text-pink-300 fill-pink-300/20" />
+                  <p className="text-sm leading-relaxed text-emerald-100/90">
+                    {untilLabel
+                      ? t("donate.activeDonatorUntil", { date: untilLabel })
+                      : t("donate.activeDonator")}
+                  </p>
                 </div>
               ) : (
                 <div className="rounded-xl border border-border/80 dark:border-white/10 bg-muted/20 dark:bg-white/[0.02] px-4 py-4 flex flex-col gap-3">
@@ -352,10 +347,6 @@ export default function DonationContent() {
             <div>
               <p className="font-medium text-foreground/90 dark:text-white/80 mb-1">{t("donate.faqDonatorQ")}</p>
               <p className="text-muted-foreground dark:text-white/50">{t("donate.faqDonatorA")}</p>
-            </div>
-            <div>
-              <p className="font-medium text-foreground/90 dark:text-white/80 mb-1">{t("donate.faqBannerQ")}</p>
-              <p className="text-muted-foreground dark:text-white/50">{t("donate.faqBannerA")}</p>
             </div>
             <div>
               <p className="font-medium text-foreground/90 dark:text-white/80 mb-1">{t("donate.faqKoFiQ")}</p>

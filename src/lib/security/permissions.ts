@@ -11,14 +11,13 @@ export type PermissionId =
   | "chat.moderate"
   | "forum.moderate"
   | "users.mute"
-  | "users.ban"
-  | "ads.ad_free";
+  | "users.ban";
 
 export type PermissionDef = {
   id: PermissionId;
   label: string;
   description: string;
-  group: "content" | "users" | "perks";
+  group: "content" | "users";
 };
 
 export const PERMISSION_DEFS: PermissionDef[] = [
@@ -51,12 +50,6 @@ export const PERMISSION_DEFS: PermissionDef[] = [
     label: "Ban users",
     description: "Permanently ban accounts",
     group: "users",
-  },
-  {
-    id: "ads.ad_free",
-    label: "Ad-free viewing",
-    description: "Site ads are not shown for this role",
-    group: "perks",
   },
 ];
 

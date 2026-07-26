@@ -209,7 +209,7 @@ export function renderOgCard(config: OgCardConfig) {
         }}
       >
         <span style={{ color: "rgba(255,255,255,0.18)", fontSize: 11, fontFamily: "monospace" }}>
-          Free anime · Sub &amp; dub · Ad-free player
+          Free anime · Sub &amp; dub · Ad-free
         </span>
         <span
           style={{

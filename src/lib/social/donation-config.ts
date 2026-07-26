@@ -2,10 +2,10 @@
 export const KOFI_URL = "https://ko-fi.com/fampep";
 export const KOFI_HANDLE = "fampep";
 
-/** Reference donation: this many EUR buys one unit of ad-free time. */
+/** Reference donation: this many EUR buys one unit of donator time. */
 export const KOFI_DONATION_UNIT_EUR = 4;
 
-/** Days of ad-free access per reference unit (€4 → 30 days). */
+/** Days of donator rank per reference unit (€4 → 30 days). */
 export const KOFI_DONATION_UNIT_DAYS = 30;
 
 /** Smallest Ko-fi tip we accept for auto-claim. */
@@ -29,7 +29,7 @@ export function siteOwnerDmHref(): string {
 export const STAFF_ROLES = new Set(["admin", "moderator"]);
 
 /**
- * Days of ad-free access for a Ko-fi donation (EUR).
+ * Days of donator rank for a Ko-fi donation (EUR).
  * Uses rounding so odd tips map cleanly — e.g. €2→15, €4→30, €8→60.
  */
 export function calculateSupporterDays(amountEur: number): number {

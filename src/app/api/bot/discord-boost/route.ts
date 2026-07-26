@@ -8,7 +8,7 @@ import { setDiscordBoostByDiscordId } from "@/lib/social/booster-access";
  * Body: { discordId: string, boosting: boolean }
  *
  * Discord bot reports guild boost status for a linked account.
- * Grants/clears the site Booster role (badge only — not ad-free).
+ * Grants/clears the site Booster role (badge only).
  */
 export async function POST(req: Request) {
   if (!authorizeBot(req)) {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const APP_NAME = "AniKitty";
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.moe";
-export const APP_DESCRIPTION = "Free anime streaming. Sub & dub. Player stays ad-free.";
+export const APP_DESCRIPTION = "Free anime streaming. Sub & dub. Ad-free.";
 export const APP_DEFAULT_TITLE = "AniKitty — Free Anime Streaming";
 
 /** Bump when brand assets change so browsers / PWA / OG refresh the icon. */
@@ -109,7 +109,7 @@ export const PAGE_SEO = {
   },
   donate: {
     title: "Support AniKitty | Donate",
-    description: "We're sorry about the ads — they help afford running costs. Optional Ko-fi tips support the site and grant the donator badge.",
+    description: "Optional Ko-fi tips support AniKitty and unlock the donator rank.",
     path: "/donate",
   },
 } as const satisfies Record<string, PageSeo>;
@@ -155,7 +155,7 @@ export function animeShareDescription(title: string): string {
 
 export function watchEpisodeDescription(animeName: string, epNum?: string | null): string {
   if (epNum) {
-    return `Watch ${animeName} Episode ${epNum} on AniKitty. Free streaming — player stays ad-free.`;
+    return `Watch ${animeName} Episode ${epNum} on AniKitty. Free ad-free streaming.`;
   }
   return animeShareDescription(animeName);
 }

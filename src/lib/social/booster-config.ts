@@ -1,4 +1,4 @@
-/** Discord Server Boost perk — badge/role only (not ad-free). */
+/** Discord Server Boost perk — badge/role only (separate from Ko-fi donator). */
 export const BOOSTER_ROLE = "booster" as const;
 
 export const BOOSTER_COLOR = "#ff73fa";

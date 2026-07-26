@@ -12,7 +12,7 @@ import {
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
-  VolumeX, Ban, Clock, Banknote, Coins, Sparkles, Calendar, Flag, ScrollText, SkipForward,
+  VolumeX, Ban, Clock, Coins, Sparkles, Calendar, Flag, ScrollText, SkipForward,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
@@ -140,7 +140,7 @@ interface PermissionDef {
   id: string;
   label: string;
   description: string;
-  group: "content" | "users" | "perks";
+  group: "content" | "users";
 }
 
 interface Role {
@@ -351,7 +351,6 @@ function RolePermissionEditor({
   const groups: Array<{ key: PermissionDef["group"]; label: string }> = [
     { key: "content", label: "Content" },
     { key: "users", label: "Users" },
-    { key: "perks", label: "Perks" },
   ];
 
   return (
@@ -501,10 +500,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [chatLoading, setChatLoading]   = useState(false);
   const [chatDeleting, setChatDeleting] = useState<string | null>(null);
   const [chatPurging, setChatPurging]   = useState<"expired" | "all" | null>(null);
-
-  // Site-wide click ads
-  const [globalClickAdsEnabled, setGlobalClickAdsEnabled] = useState<boolean | null>(null);
-  const [globalClickAdsSaving, setGlobalClickAdsSaving] = useState(false);
 
   // Re-validate admin token periodically (expired/revoked sessions log out)
   useEffect(() => {
@@ -687,47 +682,14 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     finally { setDeletionLoading(false); }
   }, [onLogout]);
 
-  const fetchGlobalClickAds = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/settings/click-ads", { headers: adminHeaders() });
-      if (res.status === 403) { onLogout(); return; }
-      if (!res.ok) return;
-      const data = (await res.json()) as { enabled?: boolean };
-      setGlobalClickAdsEnabled(data.enabled !== false);
-    } catch { toast.error("Failed to load click ads setting"); }
-  }, [onLogout]);
-
-  const saveGlobalClickAds = async (enabled: boolean) => {
-    setGlobalClickAdsSaving(true);
-    try {
-      const res = await fetch("/api/admin/settings/click-ads", {
-        method: "PATCH",
-        headers: adminHeaders(),
-        body: JSON.stringify({ enabled }),
-      });
-      if (res.status === 403) { onLogout(); return; }
-      if (!res.ok) {
-        toast.error("Failed to update click ads setting");
-        return;
-      }
-      setGlobalClickAdsEnabled(enabled);
-      toast.success(enabled ? "Site ads enabled site-wide" : "Site ads disabled site-wide");
-    } catch {
-      toast.error("Failed to update click ads setting");
-    } finally {
-      setGlobalClickAdsSaving(false);
-    }
-  };
-
   // Load only what the default (overview) tab needs on mount — the heavier
   // per-tab queries (users, roles, announcements, chat…) load when their tab is
   // opened, so they don't compete with the overview's stats/activity queries.
   useEffect(() => {
     fetchStats();
     fetchActivity();
-    fetchGlobalClickAds();
     fetchDeletionRequests();
-  }, [fetchStats, fetchActivity, fetchGlobalClickAds, fetchDeletionRequests]);
+  }, [fetchStats, fetchActivity, fetchDeletionRequests]);
 
   const refreshAll = async () => {
     setRefreshing(true);
@@ -740,7 +702,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         fetchAnnouncements(),
         fetchChat(),
         fetchDeletionRequests(),
-        fetchGlobalClickAds(),
       ]);
       toast.success("Dashboard refreshed");
     } finally {
@@ -1240,7 +1201,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     const current = formatSupporterUntil(user.supporterUntil);
     const raw = prompt(
       [
-        `Manual ad-free for @${user.username} (Ko-fi fallback)`,
+        `Manual donator for @${user.username} (Ko-fi fallback)`,
         current !== "—" ? `Current until: ${current}` : "No active tip window",
         "",
         "Enter days to ADD (30 = €4 / 1 month),",
@@ -1279,18 +1240,18 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       );
       toast.success(
         isDate
-          ? `Ad-free set until ${formatSupporterUntil(data.supporterUntil)}`
+          ? `Donator set until ${formatSupporterUntil(data.supporterUntil)}`
           : `Added ${data.daysAdded} days — until ${formatSupporterUntil(data.supporterUntil)}`,
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to set ad-free");
+      toast.error(e instanceof Error ? e.message : "Failed to set donator");
     } finally {
       setGrantingUserId(null);
     }
   };
 
   const handleRevokeSupporter = async (user: AdminUser) => {
-    if (!confirm(`Revoke ad-free / donator perks for @${user.username}?`)) return;
+    if (!confirm(`Revoke donator perks for @${user.username}?`)) return;
     setGrantingUserId(user.id);
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
@@ -1502,48 +1463,6 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               </div>
             )}
 
-            {/* Site-wide click ads */}
-            <div className="rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] p-5">
-              <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Banknote className="w-3.5 h-3.5" /> Site settings
-              </p>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground dark:text-white/85">Global site ads</p>
-                  <p className="text-[11px] text-muted-foreground dark:text-white/35 mt-1 leading-relaxed max-w-xl">
-                    Turn site ads (popunders) on or off for everyone. Saved in the database — survives redeploys. Active tip / donator users can still turn ads off in Settings.
-                  </p>
-                  <p className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 mt-2">
-                    Status:{" "}
-                    {globalClickAdsEnabled == null
-                      ? "Loading…"
-                      : globalClickAdsEnabled
-                        ? "Enabled site-wide"
-                        : "Disabled site-wide"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={globalClickAdsEnabled == null || globalClickAdsSaving}
-                  onClick={() => void saveGlobalClickAds(!globalClickAdsEnabled)}
-                  className={cn(
-                    "shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed",
-                    globalClickAdsEnabled
-                      ? "border-amber-400/25 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15"
-                      : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15",
-                  )}
-                >
-                  {globalClickAdsSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : globalClickAdsEnabled ? (
-                    "Turn off globally"
-                  ) : (
-                    "Turn on globally"
-                  )}
-                </button>
-              </div>
-            </div>
-
             {/* Top anime */}
             <div>
               <p className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1691,7 +1610,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               <span className="font-semibold text-pink-200/80">Ko-fi fallback: </span>
               If auto-claim fails, search the user → sparkles button → enter{" "}
               <span className="font-mono text-foreground/80 dark:text-white/70">30</span> to add 1 month
-              ad-free (€4), or a date like{" "}
+              donator (€4), or a date like{" "}
               <span className="font-mono text-foreground/80 dark:text-white/70">2026-08-22</span> to set
               the end day. X clears perks.
             </div>
@@ -1906,7 +1825,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 type="button"
                                 onClick={() => handleGrantSupporter(u)}
                                 disabled={grantingUserId === u.id}
-                                title="Manual ad-free (Ko-fi fallback): add days or set end date"
+                                title="Manual donator (Ko-fi fallback): add days or set end date"
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-pink-500/25 text-pink-200/80 text-[11px] hover:bg-pink-500/10 disabled:opacity-40 transition-all"
                               >
                                 {grantingUserId === u.id ? (
@@ -1914,14 +1833,14 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                                 ) : (
                                   <Sparkles className="w-3 h-3" />
                                 )}
-                                <span className="hidden xl:inline">Ad-free</span>
+                                <span className="hidden xl:inline">Donator</span>
                               </button>
                               {(u.supporterUntil || u.role === "donator") && u.role !== "admin" && (
                                 <button
                                   type="button"
                                   onClick={() => handleRevokeSupporter(u)}
                                   disabled={grantingUserId === u.id}
-                                  title="Revoke ad-free / donator"
+                                  title="Revoke donator"
                                   className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-border dark:border-white/15 text-muted-foreground dark:text-white/40 text-[11px] hover:bg-accent dark:bg-white/8 disabled:opacity-40 transition-all"
                                 >
                                   <X className="w-3 h-3" />

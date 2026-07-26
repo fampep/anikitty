@@ -22,8 +22,6 @@ import {
 import { grantKittycoins } from "@/lib/shop/kittycoins";
 import { KITTYCOIN_REWARDS } from "@/lib/shop/catalog";
 
-export const AD_FREE_PERMISSION = "ads.ad_free" as const;
-
 type Db = ReturnType<typeof getDb>;
 
 type SupporterUser = {
@@ -67,23 +65,6 @@ export function hasActiveDonatorStatus(
   const until = parseSupporterUntil(supporterUntil);
   if (!until) return true;
   return until.getTime() > Date.now();
-}
-
-/**
- * Donators (and staff with an active tip window) can turn site ads off.
- * Admins always can. Everyone else keeps ads on.
- */
-export function hasAdFreeAccess(
-  role?: string | null,
-  supporterUntil?: Date | string | null,
-): boolean {
-  if (role === "admin") return true;
-  if (hasActiveDonatorStatus(role, supporterUntil)) return true;
-  if (role && STAFF_ROLES.has(role)) {
-    const until = parseSupporterUntil(supporterUntil);
-    return !!until && until.getTime() > Date.now();
-  }
-  return false;
 }
 
 export function extendSupporterUntilByDays(
@@ -486,7 +467,7 @@ export async function adminGrantSupporterDays(
 }
 
 /**
- * Admin fallback when Ko-fi auto-claim fails: set an absolute ad-free end date
+ * Admin fallback when Ko-fi auto-claim fails: set an absolute donator end date
  * (does not stack — replaces the current window).
  */
 export async function adminSetSupporterUntil(

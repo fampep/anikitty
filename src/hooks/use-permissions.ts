@@ -1,6 +1,5 @@
 import { useAuthStore } from "@/store/auth-store";
 import { hasAnyPermission, hasPermission, type PermissionId } from "@/lib/security/permissions";
-import { hasAdFreeAccess } from "@/lib/social/supporter-access";
 
 const EMPTY_PERMISSIONS: string[] = [];
 
@@ -17,8 +16,6 @@ export function usePermissions() {
     canModerateForum: hasPermission(permissions, "forum.moderate"),
     canMuteUsers: hasPermission(permissions, "users.mute"),
     canBanUsers: hasPermission(permissions, "users.ban"),
-    /** Site ads off only for active tip / donator (or admin). */
-    adFree: hasAdFreeAccess(auth?.role, auth?.supporterUntil),
     isStaff: hasAnyPermission(permissions, [
       "comments.moderate",
       "chat.moderate",

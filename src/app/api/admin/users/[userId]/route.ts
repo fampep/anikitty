@@ -103,7 +103,7 @@ export async function PATCH(
       return NextResponse.json({ error: "until date required (ISO or YYYY-MM-DD)" }, { status: 400 });
     }
     try {
-      // Date-only → end of that UTC day so "2026-08-22" means full day ad-free.
+      // Date-only → end of that UTC day so "2026-08-22" means full day of donator.
       const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T23:59:59.000Z` : raw;
       const result = await adminSetSupporterUntil(db, userId, normalized);
       return NextResponse.json({ ok: true, ...result });

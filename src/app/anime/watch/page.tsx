@@ -30,7 +30,7 @@ export async function generateMetadata({
   if (isNaN(numId)) {
     return {
       title: "Watch | AniKitty",
-      description: "Watch anime free on AniKitty. Player stays ad-free.",
+      description: "Watch anime free on AniKitty. Ad-free streaming.",
     };
   }
 

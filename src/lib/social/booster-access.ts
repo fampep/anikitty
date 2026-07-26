@@ -40,7 +40,7 @@ function roleWhenGainingBoost(user: BoostUser): string {
 /**
  * Mark a linked user as currently boosting the Discord server.
  * Sets `discord_boosting` and promotes `user` → `booster` when safe.
- * Does not grant ad-free (donator / tip window only).
+ * Does not grant Ko-fi donator rank (tip window only).
  */
 export async function applyDiscordBoost(
   db: Db,

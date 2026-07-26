@@ -1,5 +1,4 @@
-// Former HilltopAds verification worker — unused after switching to Adcash banners.
-// Kept at /sw.js so old registrations do not 404; does not load any ad network.
+// Service worker stub — kept at /sw.js so old registrations do not 404.
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });

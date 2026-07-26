@@ -9,8 +9,8 @@ import {
   sanitizeSyncedPreferences,
   type SyncedUserPreferences,
 } from "@/lib/account/user-preferences";
-import { hasAdFreeAccess } from "@/lib/social/supporter-access";
 import { sanitizeAnime4kMode } from "@/lib/player/anime4k";
+import { sanitizeSeekStepSeconds } from "@/lib/player/seek-step";
 import { ensureCustomSubtitleFontLoaded } from "@/lib/subtitles/custom-subtitle-font";
 
 const SYNC_DEBOUNCE_MS = 900;
@@ -46,7 +46,6 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     notifyMentions: s.notifyMentions,
     notifyReplies: s.notifyReplies,
     notifyFollows: s.notifyFollows,
-    showBannerAds: s.showBannerAds,
     seekStepSeconds: s.seekStepSeconds,
     playerTouchSeekEnabled: s.playerTouchSeekEnabled,
     autoEnableSubtitles: s.autoEnableSubtitles,
@@ -86,12 +85,6 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.notifyMentions !== undefined) patch.notifyMentions = prefs.notifyMentions;
   if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;
   if (prefs.notifyFollows !== undefined) patch.notifyFollows = prefs.notifyFollows;
-  // Tip / donator may sync ads off; everyone else stays on.
-  if (hasAdFreeAccess(useAuthStore.getState().auth?.role, useAuthStore.getState().auth?.supporterUntil)) {
-    if (prefs.showBannerAds !== undefined) patch.showBannerAds = prefs.showBannerAds;
-  } else {
-    patch.showBannerAds = true;
-  }
   if (prefs.seekStepSeconds !== undefined) {
     patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
   }
@@ -152,7 +145,7 @@ export default function SettingsSync() {
         if (hasRemote) {
           applyRemotePreferences(remote);
         }
-        // Always push so coerced ads-on (and first-time prefs) land on the server.
+        // Always push so first-time prefs land on the server.
         await pushLocalPreferences();
         readyRef.current = true;
         lastPushedRef.current = JSON.stringify(pickLocalSyncedPreferences());

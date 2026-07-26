@@ -24,7 +24,7 @@ export const users = pgTable("users", {
   themeColor: varchar("theme_color", { length: 7 }),
   role: varchar("role", { length: 20 }).notNull().default("user"),
   supporterUntil: timestamp("supporter_until"),
-  /** Click ads preference — always true; users cannot disable ads. */
+  /** Legacy column — unused (site is ad-free). Kept for existing DB rows. */
   showAds: boolean("show_ads").notNull().default(true),
   /** Cross-device synced kitty-settings subset (json). */
   preferences: jsonb("preferences").$type<Record<string, unknown>>().notNull().default({}),
@@ -39,7 +39,7 @@ export const users = pgTable("users", {
   malUsername: varchar("mal_username", { length: 100 }),
   discordId: varchar("discord_id", { length: 32 }),
   discordUsername: varchar("discord_username", { length: 100 }),
-  /** True while the linked Discord account is boosting the guild (badge only — not ad-free). */
+  /** True while the linked Discord account is boosting the guild (badge only). */
   discordBoosting: boolean("discord_boosting").notNull().default(false),
   /** Last Discord level-up announcement level — avoids spam / re-announce on bootstrap. */
   lastAnnouncedDiscordLevel: integer("last_announced_discord_level"),

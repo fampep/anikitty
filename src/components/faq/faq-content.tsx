@@ -111,9 +111,8 @@ export default function FaqContent() {
         title: t("faq.sections.support"),
         icon: <Coffee className="w-4 h-4" />,
         items: [
-          { q: t("faq.support.adsQ"), a: t("faq.support.adsA") },
-          { q: t("faq.support.disableQ"), a: t("faq.support.disableA") },
           { q: t("faq.support.kofiQ"), a: t("faq.support.kofiA") },
+          { q: t("faq.support.donatorQ"), a: t("faq.support.donatorA") },
         ],
       },
       {

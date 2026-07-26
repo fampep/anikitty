@@ -9,7 +9,7 @@ import {
   KOFI_DONATION_UNIT_EUR,
   kofiDonationUrl,
 } from "@/lib/social/donation-config";
-import { hasAdFreeAccess } from "@/lib/social/supporter-access";
+import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";
 import { useAuthStore } from "@/store/auth-store";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
@@ -63,9 +63,9 @@ export default function SiteSupportBanner({ className }: Props) {
     isPublicAdminUiPath(pathname) ||
     pathname?.startsWith("/auth");
 
-  const adFree = hasAdFreeAccess(auth?.role, auth?.supporterUntil);
+  const isDonator = hasActiveDonatorStatus(auth?.role, auth?.supporterUntil);
 
-  if (!hydrated || dismissed || hidePath || adFree) return null;
+  if (!hydrated || dismissed || hidePath || isDonator) return null;
 
   return (
     <div

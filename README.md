@@ -77,8 +77,6 @@ See `.env.example` for the full list with comments. Minimum for local dev:
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/anikitty
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_ADCASH_BANNER_ZONE=11731546  # Adcash runBanner zone (optional; code default is the same)
-NEXT_PUBLIC_ADCASH_POP_ZONE=11731878     # Adcash runPop zone (optional; code default is the same)
 JWT_SECRET=                          # openssl rand -base64 48
 KITTY_API_KEY=akitty_…                 # KittyAPI key — sent as X-API-Key header (server-only)
 KLIPY_API_KEY=                         # KLIPY partner key for GIF search (https://partner.klipy.com)
@@ -102,7 +100,7 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 1. Set **Build Pack** to **Dockerfile**
 2. Expose port **3000**
 3. Add production env vars (`DATABASE_URL`, `JWT_SECRET`, `KITTY_API_KEY`, etc.) as **runtime** variables
-4. Only these need to be available at **build** time: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PROXY_URL`, `NEXT_PUBLIC_DONATION_RAISED_EUR`, `DISCORD_CLIENT_ID`, and (for Adcash) `NEXT_PUBLIC_ADCASH_BANNER_ZONE` / `NEXT_PUBLIC_ADCASH_POP_ZONE`
+4. Only these need to be available at **build** time: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PROXY_URL`, `NEXT_PUBLIC_DONATION_RAISED_EUR`, `DISCORD_CLIENT_ID`
 5. Do **not** pass `ADMIN_PASSWORD`, `DATABASE_URL`, or JWT secrets as build arguments — Coolify injects them into the Dockerfile and values with `#` break parsing
 
 **Discord bot APIs** (standalone bot repo talks to these):
@@ -114,8 +112,6 @@ Production deploys on Coolify support **Docker** or **Railpack**:
 | `DISCORD_BOT_LEVELUP_URL` | Optional | Bot `POST /levelup` URL for channel embeds. Default: derived from sync URL (`/sync` → `/levelup`), i.e. `http://discord-bot:8787/levelup`. |
 
 Protected routes: `/api/bot/online`, `/api/bot/search?q=`, `/api/bot/discord-links`, `GET/POST /api/bot/discord-role-map` (role keys: `admin`, `moderator`, `donator`, `timestamp_helper`, `level_*`), `GET/PUT /api/bot/guild-settings` (level-up channel), `POST /api/bot/discord-xp` (Discord chat XP for linked users; cooldown in `discord_chat_xp`). The bot creates Discord roles at runtime and persists snowflakes in `discord_role_map` — do not invent role IDs in config. Redeploy after merging so Coolify serves the new routes (otherwise production returns 404). Migrations for `discord_role_map` / `discord_guild_settings` / `discord_chat_xp` run via `migrateDb()` on site startup.
-
-**Adcash ads:** set `NEXT_PUBLIC_ADCASH_BANNER_ZONE` (banner, default `11731546`) and `NEXT_PUBLIC_ADCASH_POP_ZONE` (popunder, default `11731878`) from the publisher dashboard snippets (`aclib.runBanner` / `aclib.runPop`). If unset, the app falls back to those defaults so ads still work before Coolify rebuilds with the env set. Prefer build-time so the value is inlined; runtime via `PublicEnvScript` also works.
 
 **Railpack** (faster builds when the host is configured):
 1. Set **Build Pack** to **Railpack**

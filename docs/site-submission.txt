@@ -11,7 +11,7 @@ Subs: y — primarily English (VTT/ASS/SRT where upstream provides them); some p
 Dubs: y — English dub where available on the source
 Sub Types: soft, hard
 ---
-Ads: n (banner ads may be disabled site-wide while growing the user base). When ads are enabled: y — Adcash display/banner ads in fixed page slots outside the video player; no in-player video ads. Signed-in users can disable ads in Settings; guests always see them.
+Ads: n — site is fully ad-free (no banners, popunders, or in-player ads). Optional Ko-fi tips unlock the donator rank only.
 Adjustable Player Speed: y
 Comments: y (per-anime comments, forum, live chat, DMs)
 Downloads: n (download UI exists but episode downloads are currently disabled)

@@ -2,7 +2,7 @@
   "id": "/",
   "name": "AniKitty",
   "short_name": "AniKitty",
-  "description": "Free anime streaming. Sub & dub. Player stays ad-free.",
+  "description": "Free anime streaming. Sub & dub. Ad-free.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

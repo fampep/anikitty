@@ -188,10 +188,6 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** Site ads preference — only honored for active tip / donator (or admin). */
-  showBannerAds: boolean;
-  setShowBannerAds: (val: boolean) => void;
-
   /** Seconds to skip with keyboard shortcuts (← → / J L). */
   seekStepSeconds: PlayerSeekStep;
   setSeekStepSeconds: (seconds: PlayerSeekStep) => void;
@@ -409,9 +405,6 @@ export const useSettingsStore = create<ISettingsStore>()(
       notifyFollows: true,
       setNotifyFollows: (notifyFollows) => set({ notifyFollows }),
 
-      showBannerAds: true,
-      setShowBannerAds: (showBannerAds) => set({ showBannerAds }),
-
       seekStepSeconds: DEFAULT_PLAYER_SEEK_STEP,
       setSeekStepSeconds: (seekStepSeconds) => set({ seekStepSeconds: sanitizeSeekStepSeconds(seekStepSeconds) }),
 
@@ -431,7 +424,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 68,
+      version: 69,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -464,7 +457,6 @@ export const useSettingsStore = create<ISettingsStore>()(
         notifyMentions: state.notifyMentions,
         notifyReplies: state.notifyReplies,
         notifyFollows: state.notifyFollows,
-        showBannerAds: state.showBannerAds,
         seekStepSeconds: state.seekStepSeconds,
         playerTouchSeekEnabled: state.playerTouchSeekEnabled,
         autoEnableSubtitles: state.autoEnableSubtitles,
@@ -578,7 +570,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.interfaceDensity = "compact";
         }
         if (version < 29) {
-          next.showBannerAds = next.showBannerAds ?? true;
+          // Legacy ads pref — removed in v69.
         }
         if (version < 30) {
           next.seekStepSeconds = sanitizeSeekStepSeconds(next.seekStepSeconds);
@@ -648,8 +640,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           delete (next as Record<string, unknown>).watchPlayerEngine;
         }
         if (version < 43) {
-          // Ads are required site-wide — re-enable anyone who had them off.
-          next.showBannerAds = true;
+          // Legacy: ads preference forced on — removed in v69.
         }
         if (version < 44) {
           // Switzerland + Netherlands restored; Canada moves fifth → sixth again.
@@ -934,6 +925,11 @@ export const useSettingsStore = create<ISettingsStore>()(
             ...DEFAULT_SUBTITLE_SETTINGS,
           });
           next.autoEnableSubtitles = true;
+        }
+        if (version < 69) {
+          // Site is ad-free — drop the old ads preference.
+          delete (next as Record<string, unknown>).showBannerAds;
+          delete (next as Record<string, unknown>).showAds;
         }
         return next as ISettingsStore;
       },
