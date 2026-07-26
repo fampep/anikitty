@@ -1,0 +1,10 @@
+Update
+```diff
++ Softsubs available on DUB for every provider (not just Juliet)
++ Juliet softsubs work again (ASS → WebVTT)
++ Boxed high-contrast captions as the new default
++ Softsubs stay on when DUB falls back to SUB
++ In-player audio track picker for multi-audio HLS
+! Cue overlay centered properly
+! DUB probes fixed for proxied / multi-audio streams
+```
