@@ -2135,7 +2135,7 @@
       "showFillers": "Show filler episodes",
       "noEpisodes": "No episodes found",
       "focusSheetTitle": "Episodes",
-      "focusSheetDesc": "Pick an episode without leaving the player",
+      "focusSheetDesc": "Pick an episode without leaving the player"
     },
     "commentsPreview": "EP {ep} · {count} comments",
     "commentsPreviewEmpty": "EP {ep} · Be the first to comment",
