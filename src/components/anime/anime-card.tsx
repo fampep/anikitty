@@ -5,12 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { cn, formatSecondsToMMSS } from "@/lib/core/utils";
-import { Captions, Mic, Play, Star } from "lucide-react";
+import { Play, Star } from "lucide-react";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { Progress } from "@/components/ui/progress";
 import { useT } from "@/providers/i18n-provider";
 import LazyPosterImage from "./lazy-poster-image";
 import QuickAddButton from "./quick-add-button";
+import { AudioPill } from "./audio-pills";
 
 type Props = {
   className?: string;
@@ -40,23 +41,6 @@ const STATUS_COLORS: Record<string, string> = {
   NOT_YET_RELEASED: "text-amber-400",
   CANCELLED: "text-red-400",
 };
-
-function AudioPill({ type, count }: { type: "sub" | "dub"; count: number }) {
-  const isSub = type === "sub";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums",
-        isSub
-          ? "bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/25"
-          : "bg-primary/20 text-zinc-100 ring-1 ring-primary/25",
-      )}
-    >
-      {isSub ? <Captions className="h-2.5 w-2.5 shrink-0" /> : <Mic className="h-2.5 w-2.5 shrink-0" />}
-      {count}
-    </span>
-  );
-}
 
 const AnimeCard = ({
   displayDetails = true,

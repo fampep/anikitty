@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Captions, Mic, Play, Star } from "lucide-react";
+import { Play, Star } from "lucide-react";
 import LazyPosterImage from "@/components/anime/lazy-poster-image";
+import { PosterAudioBadges } from "@/components/anime/audio-pills";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { AiringDot, formatAnimeType, scoreLabel } from "./home-shared";
@@ -38,6 +39,11 @@ export default function HomeClassicCard({ anime, href, priority }: Props) {
             <Play className="h-4 w-4 fill-current ml-0.5" aria-hidden />
           </span>
         </div>
+        <PosterAudioBadges
+          sub={sub}
+          dub={dub}
+          className="absolute left-1.5 bottom-1.5 z-10 drop-shadow-md"
+        />
       </div>
 
       <div className="flex flex-col gap-1 min-w-0 px-0.5">
@@ -54,18 +60,6 @@ export default function HomeClassicCard({ anime, href, priority }: Props) {
             <span className="inline-flex items-center gap-0.5 tabular-nums">
               <Star className="h-2.5 w-2.5 fill-amber-400 stroke-amber-400" aria-hidden />
               {rating}
-            </span>
-          ) : null}
-          {sub > 0 ? (
-            <span className="inline-flex items-center gap-0.5">
-              <Captions className="h-2.5 w-2.5" aria-hidden />
-              {sub}
-            </span>
-          ) : null}
-          {dub > 0 ? (
-            <span className="inline-flex items-center gap-0.5">
-              <Mic className="h-2.5 w-2.5" aria-hidden />
-              {dub}
             </span>
           ) : null}
         </div>

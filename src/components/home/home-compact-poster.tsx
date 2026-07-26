@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
 import LazyPosterImage from "@/components/anime/lazy-poster-image";
+import { PosterAudioBadges } from "@/components/anime/audio-pills";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { AiringDot, formatAnimeType, scoreLabel } from "./home-shared";
@@ -18,6 +19,8 @@ type Props = {
 export default function HomeCompactPoster({ anime, className, priority, href, episodeBadge }: Props) {
   const rating = scoreLabel(anime.score);
   const linkHref = href ?? `${ROUTES.ANIME_DETAILS}/${anime.id}`;
+  const sub = anime.episodes?.sub ?? 0;
+  const dub = anime.episodes?.dub ?? 0;
 
   return (
     <Link
@@ -43,6 +46,11 @@ export default function HomeCompactPoster({ anime, className, priority, href, ep
             {rating}
           </span>
         ) : null}
+        <PosterAudioBadges
+          sub={sub}
+          dub={dub}
+          className="absolute left-1 bottom-1 z-10 drop-shadow-md"
+        />
       </div>
       <div className="flex flex-col gap-1 min-w-0">
         <div className="w-full flex items-center justify-between text-xs text-muted-foreground gap-2">
