@@ -216,7 +216,7 @@ async function streamAninekoViaServers(opts: {
   return null;
 }
 
-/** Resolve a named AniNeko server via stream-direct, then servers list. */
+/** Resolve a named AniNeko server via servers list first, then stream-direct. */
 export async function fetchAninekoVideoStream(opts: {
   anilistId: number;
   episode: number;
@@ -230,6 +230,8 @@ export async function fetchAninekoVideoStream(opts: {
     streamByLinkId: fetchAninekoStreamByLinkId,
     streamDirect: () => fetchAninekoStreamDirect(opts),
     streamViaServers: () => streamAninekoViaServers({ ...opts, serverId }),
+    // Named HD-1 / Aurora must win over stream-direct (which races mixed embeds).
+    preferServersBeforeDirect: true,
   });
 }
 

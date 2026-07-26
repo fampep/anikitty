@@ -466,7 +466,7 @@ export function providerIsHardSubOnly(provider: KittyProvider): boolean {
 /**
  * Soft sub · Hard Subs · Dub rows.
  * Hard-only providers (GG, HQ, Bravo, …) list under Hard Subs only.
- * Dual soft+hard (Kilo, …) stay under Sub; their HS: lines appear in the server picker.
+ * Dual soft+hard (Gamma, Guard, Kilo, …) appear under Soft and Hard Subs.
  */
 export function kittyProvidersForAudioMode(
   mode: ProviderAudioMode,
@@ -477,8 +477,7 @@ export function kittyProvidersForAudioMode(
     if (!opts?.includeAdult && p.adultOnly) return false;
     if (normalized === "dub") return p.supportsDub === true;
     if (normalized === "hardsub") {
-      // Provider-grid Hard Subs = hard-only encodes (no soft tracks).
-      return p.hardSub === true && p.softSub !== true;
+      return p.hardSub === true;
     }
     if (normalized === "sub") {
       if (p.supportsSub === false) return false;

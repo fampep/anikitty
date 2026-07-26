@@ -15,7 +15,7 @@ export function buildAvailableProviderSet(
   const audio = mode === "dub" ? "dub" : "sub";
   for (const [id, row] of Object.entries(caps.providers)) {
     if (mode === "hardsub") {
-      if (row.hardSub || (supportsStreamAudioMode(row, "sub") && row.softSub)) {
+      if (row.hardSub) {
         out.add(id as KittyProvider);
       }
       continue;
@@ -76,12 +76,9 @@ export function isProviderAvailableForMode(
   const audio = mode === "dub" ? "dub" : "sub";
   const row = caps.providers[provider];
   if (mode === "hardsub") {
-    if (row && (row.hardSub || (supportsStreamAudioMode(row, "sub") && row.softSub))) return true;
+    if (row?.hardSub) return true;
     if (provider === "MKissa" && caps.mkissaServers) {
-      return Object.values(caps.mkissaServers).some((m) => {
-        if (!m) return false;
-        return m.hardSub || (supportsStreamAudioMode(m, "sub") && m.softSub);
-      });
+      return Object.values(caps.mkissaServers).some((m) => Boolean(m?.hardSub));
     }
     return false;
   }

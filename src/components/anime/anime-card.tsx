@@ -216,6 +216,9 @@ const AnimeCard = ({
                   {hasAudio && (
                     <div className="flex items-center gap-1">
                       {props.sub != null && props.sub > 0 && <AudioPill type="sub" count={props.sub} />}
+                      {props.sub != null && props.sub > 0 && (
+                        <AudioPill type="hardsub" count={props.sub} />
+                      )}
                       {props.dub != null && props.dub > 0 && <AudioPill type="dub" count={props.dub} />}
                     </div>
                   )}

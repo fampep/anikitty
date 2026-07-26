@@ -71,8 +71,19 @@ export function capabilitiesFromProbes(
     dub: hasDub,
     multi: sameFile || (hasSub && hasDub && Boolean(subProbe?.multiAudio)),
     softSub,
+    // Hard-only when no soft tracks; dual soft+hard providers set hardSub via meta overlay.
     hardSub: hasSub && !softSub,
   };
+}
+
+/** Overlay static provider meta so dual soft+hard sources (Gamma, …) expose hardSub. */
+export function applyProviderHardSubMeta(
+  provider: KittyProvider,
+  caps: StreamCapabilities,
+): StreamCapabilities {
+  if (!providerHasHardSub(provider)) return caps;
+  if (!caps.sub && !caps.softSub && !caps.hardSub) return caps;
+  return { ...caps, hardSub: true };
 }
 
 export function mergeEpisodeStreamCapabilities(

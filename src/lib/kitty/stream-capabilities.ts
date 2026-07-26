@@ -1,6 +1,7 @@
 import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
 import {
   EMPTY_STREAM_CAPABILITIES,
+  applyProviderHardSubMeta,
   capabilitiesFromProbes,
   mergeEpisodeStreamCapabilities,
   mergeStreamCapabilities,
@@ -188,7 +189,7 @@ async function probeDirectProviderCapabilities(
     probeStreamDirect(provider, anilistId, episode, "dub", title),
   ]);
   const caps = capabilitiesFromProbes(subProbe, dubProbe);
-  return caps;
+  return applyProviderHardSubMeta(provider, caps);
 }
 
 const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(

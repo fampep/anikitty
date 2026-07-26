@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Captions, Mic } from "lucide-react";
+import { Captions, Mic, Subtitles } from "lucide-react";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
 import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
 import {
@@ -263,7 +263,7 @@ export default function WatchServerPicker({
       <ServerRow
         mode="hardsub"
         label={t("watch.hardSubsShort")}
-        icon={<Captions className="h-3 w-3 shrink-0" />}
+        icon={<Subtitles className="h-3 w-3 shrink-0" />}
         servers={hardSubServers}
         provider={provider}
         activeLinkId={activeLinkId}

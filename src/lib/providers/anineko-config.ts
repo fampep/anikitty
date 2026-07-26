@@ -51,6 +51,7 @@ export const ANINEKO_SERVERS = [
 export type AninekoServerId = (typeof ANINEKO_SERVERS)[number]["id"];
 
 export const DEFAULT_ANINEKO_SERVER: AninekoServerId = "hd-1";
+export const DEFAULT_ANINEKO_SOFT_SERVER: AninekoServerId = "streamhg";
 
 export type AninekoKittyServer = {
   id: string;
@@ -72,8 +73,12 @@ export function isAninekoServerId(value: string | null | undefined): value is An
   return ANINEKO_SERVERS.some((server) => server.id === value);
 }
 
-export function defaultAninekoServerForMode(_mode: ProviderAudioMode): AninekoServerId {
-  return DEFAULT_ANINEKO_SERVER;
+export function defaultAninekoServerForMode(mode: ProviderAudioMode): AninekoServerId {
+  return mode === "hardsub" ? DEFAULT_ANINEKO_SERVER : DEFAULT_ANINEKO_SOFT_SERVER;
+}
+
+export function isAninekoHardSubServer(serverId: AninekoServerId): boolean {
+  return ANINEKO_SERVERS.find((s) => s.id === serverId)?.subType === "hardsub";
 }
 
 export function aninekoServerSubTypeLabel(subType: AninekoServerSubType): string {

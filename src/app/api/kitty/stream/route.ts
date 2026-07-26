@@ -23,6 +23,7 @@ import {
 } from "@/lib/providers/aniwaves-api";
 import {
   DEFAULT_ANINEKO_SERVER,
+  DEFAULT_ANINEKO_SOFT_SERVER,
   fetchAninekoVideoStream,
   isAninekoServerId,
   type AninekoServerId,
@@ -223,7 +224,9 @@ export async function GET(req: Request) {
     isAninekoServerId(aninekoServerParam)
       ? aninekoServerParam
       : provider === "AniNeko"
-        ? DEFAULT_ANINEKO_SERVER
+        ? preferHardSub
+          ? DEFAULT_ANINEKO_SERVER
+          : DEFAULT_ANINEKO_SOFT_SERVER
         : null;
 
   async function finalizeStreamResponse(

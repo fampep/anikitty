@@ -53,7 +53,12 @@ export function anilistSiteSeriesUrl(anilistId: number): `anilist:${number}` {
   return `anilist:${anilistId}`;
 }
 
-/** Hard-sub server lines from anichi.to scrape (`HS: VidPlay-1`, etc.). */
+/** Hard-sub server lines (`HS: VidPlay-1`, AniNeko HD-1/HD-2, etc.). */
 export function isHardSubServerName(name: string): boolean {
-  return /^HS:\s*/i.test(name.trim());
+  const n = name.trim();
+  if (!n) return false;
+  if (/^HS:\s*/i.test(n) || /\bhard\s*-?\s*sub\b/i.test(n)) return true;
+  // Gamma (AniNeko) burned-in servers
+  const token = n.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return token === "hd1" || token === "hd2";
 }
