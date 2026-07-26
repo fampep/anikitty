@@ -175,7 +175,7 @@ const EpisodePlaylist = ({
   const ranges = groupRanges;
   const hasMultipleGroups = ranges.length > 1;
   const layout = isWatch && episodeLayout === "list" ? "compact" : episodeLayout;
-  const gridCols = isWatch ? "grid-cols-6 sm:grid-cols-8" : "grid-cols-5";
+  const gridCols = isWatch ? "grid-cols-4 sm:grid-cols-6 md:grid-cols-8" : "grid-cols-4 sm:grid-cols-5";
 
   const assignEpisodeRef = (episode: Episode) => (el: HTMLDivElement | null) => {
     const idx = episodes.episodes.findIndex((e) => e.episodeId === episode.episodeId);

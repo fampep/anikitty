@@ -9,12 +9,16 @@ import {
 import { clamp } from "./utils";
 
 const VERTICAL_LOCK_PX = 14;
-const HORIZONTAL_ABORT_PX = 22;
+const HORIZONTAL_LOCK_PX = 22;
 const LONG_PRESS_HOLD_MS = 360;
 /** Max drift before a pending long-press is cancelled (avoids accidental 2×). */
 const LONG_PRESS_MOVE_CANCEL_PX = 10;
 /** While holding 2×, cancel if finger slides too far (accidental scrub). */
 const HOLD_SPEED_CANCEL_PX = 48;
+/** Minimum horizontal drag before swipe-seek locks in. */
+const SEEK_LOCK_PX = 28;
+/** Full width ≈ this many seek-steps of time. */
+const SEEK_WIDTH_STEPS = 3.5;
 
 export type SurfaceGestureHandlers = {
   onSeekFlash: (side: "left" | "right") => void;
@@ -29,15 +33,17 @@ export type SurfaceGestureHandlers = {
   onHaptic?: (kind: "seek" | "hold" | "volume") => void;
   seekingActive: () => boolean;
   seekStep: number;
+  /** Horizontal swipe seeks when true; otherwise horizontal motion aborts (episode swipe). */
+  swipeSeekEnabled?: boolean;
   doubleTapMs?: number;
   doubleTapPx?: number;
 };
 
-type GestureMode = "none" | "volume" | "brightness" | "hold-speed";
+type GestureMode = "none" | "volume" | "brightness" | "hold-speed" | "seek";
 
 /**
  * Mobile surface gestures: double-tap seek / FS, vertical volume (right) /
- * brightness (left), and hold-to-2× while playing.
+ * brightness (left), hold-to-2×, and optional horizontal swipe seek.
  */
 export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
   const handlersRef = useRef(handlers);
@@ -48,11 +54,13 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
     id: number;
     startX: number;
     startY: number;
+    lastX: number;
     lastY: number;
     zone: "left" | "right" | "center";
     mode: GestureMode;
     moved: boolean;
     longPressTimer: ReturnType<typeof setTimeout> | null;
+    seekAcc: number;
   } | null>(null);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClickRef = useRef(false);
@@ -89,6 +97,7 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
         id: e.pointerId,
         startX: x,
         startY: y,
+        lastX: x,
         lastY: y,
         zone,
         mode: "none",
@@ -101,6 +110,7 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
           handlersRef.current.onHaptic?.("hold");
           handlersRef.current.onHoldSpeedStart();
         }, LONG_PRESS_HOLD_MS),
+        seekAcc: 0,
       };
     },
     [clearLongPress],
@@ -130,16 +140,49 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
         return;
       }
 
+      if (p.mode === "seek") {
+        const deltaX = x - p.lastX;
+        p.lastX = x;
+        p.lastY = y;
+        const step = handlersRef.current.seekStep;
+        const seconds = (deltaX / Math.max(rect.width, 1)) * step * SEEK_WIDTH_STEPS;
+        p.seekAcc += seconds;
+        if (Math.abs(p.seekAcc) >= 0.35) {
+          const apply = p.seekAcc;
+          p.seekAcc = 0;
+          handlersRef.current.onSeekBy(apply);
+          handlersRef.current.onSeekFlash(apply < 0 ? "left" : "right");
+        }
+        return;
+      }
+
       if (p.mode === "none") {
         // Cancel pending long-press as soon as the finger clearly moves.
         if (p.longPressTimer && dist > LONG_PRESS_MOVE_CANCEL_PX) {
           clearLongPress();
         }
-        if (Math.abs(dx) > HORIZONTAL_ABORT_PX && Math.abs(dx) > Math.abs(dy)) {
-          clearLongPress();
-          pointerRef.current = null;
-          return;
+
+        const horizontalDominant = Math.abs(dx) > Math.abs(dy);
+        if (horizontalDominant && Math.abs(dx) > SEEK_LOCK_PX) {
+          if (handlersRef.current.swipeSeekEnabled) {
+            clearLongPress();
+            p.mode = "seek";
+            p.moved = true;
+            p.lastX = x;
+            suppressClickRef.current = true;
+            lastTapRef.current = null;
+            clearSingleTap();
+            handlersRef.current.onHaptic?.("seek");
+            return;
+          }
+          // Swipe-seek off: abort so episode swipe can own the gesture.
+          if (Math.abs(dx) > HORIZONTAL_LOCK_PX) {
+            clearLongPress();
+            pointerRef.current = null;
+            return;
+          }
         }
+
         if (Math.abs(dy) < VERTICAL_LOCK_PX) return;
         if (Math.abs(dy) <= Math.abs(dx)) return;
 
@@ -172,6 +215,7 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
 
       clearLongPress();
       const mode = p.mode;
+      const leftover = p.seekAcc;
       pointerRef.current = null;
 
       if (mode === "hold-speed") {
@@ -180,7 +224,10 @@ export function useSurfaceGestures(handlers: SurfaceGestureHandlers) {
         return;
       }
 
-      if (mode === "volume" || mode === "brightness") {
+      if (mode === "volume" || mode === "brightness" || mode === "seek") {
+        if (mode === "seek" && Math.abs(leftover) >= 0.2) {
+          handlersRef.current.onSeekBy(leftover);
+        }
         suppressClickRef.current = true;
         return;
       }

@@ -197,6 +197,14 @@ const NavBar = () => {
           </div>
 
           <div className="relative z-20 ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:text-white/55 dark:hover:bg-white/8 dark:hover:text-white lg:hidden"
+              aria-label={t("nav.aria.openSearch")}
+            >
+              <SearchIcon className="h-4 w-4" />
+            </button>
             {user && <KittycoinPill />}
             {user && <NotificationBell />}
             {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}

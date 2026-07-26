@@ -473,6 +473,7 @@ export function AniKittyPlayer({
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
   const liteMode = useEffectiveLiteMode();
   const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
+  const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
   const subtitleDelayOffset = useSettingsStore((s) => s.subtitleSettings.delayOffset);
   const autoSkipRef = useRef(autoSkipIntro);
   const autoNextRef = useRef(autoPlay);
@@ -3358,6 +3359,7 @@ export function AniKittyPlayer({
     },
     seekingActive: () => seekingRef.current,
     seekStep: seekStepSeconds || SEEK_STEP,
+    swipeSeekEnabled: playerTouchSeekEnabled,
     doubleTapMs: TOUCH_DOUBLE_TAP_MS,
     doubleTapPx: TOUCH_DOUBLE_TAP_PX,
   });

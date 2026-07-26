@@ -21,7 +21,7 @@ type Props = {
   isLoading?: boolean;
 };
 
-/** Episode list drawer for Focus watch layout (desktop + mobile). */
+/** Episode list drawer for mobile watch (all layouts) + Focus desktop. */
 export default function WatchPlaylistSheet({
   open,
   onOpenChange,

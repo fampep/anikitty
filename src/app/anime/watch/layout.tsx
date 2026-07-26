@@ -11,6 +11,7 @@ import EpisodePlaylist from "@/components/watch/episode-playlist";
 import WatchCommentsPreview from "@/components/watch/watch-comments-preview";
 import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
 import WatchPlaylistSheet from "@/components/watch/watch-playlist-sheet";
+import WatchPanelSheet from "@/components/watch/watch-panel-sheet";
 import WatchQuickNav from "@/components/watch/watch-quick-nav";
 import { WatchPageProvider } from "@/components/watch/watch-page-context";
 import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
@@ -28,6 +29,7 @@ import {
   MessageSquare,
   ExternalLink,
   Info,
+  Tv2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
@@ -126,21 +128,12 @@ const Layout = (props: Props) => {
   const [mobileCommentScope, setMobileCommentScope] = useState<CommentScope>("episode");
   const [desktopCommentScope, setDesktopCommentScope] = useState<CommentScope>("episode");
   const [mobilePlaylistOpen, setMobilePlaylistOpen] = useState(false);
+  const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
+  const [mobileRelatedOpen, setMobileRelatedOpen] = useState(false);
 
   useEffect(() => {
     setMobilePlaylistOpen(false);
   }, [episodeId]);
-
-  useEffect(() => {
-    if (!mobilePlaylistOpen || isFocusLayout) return;
-    const id = window.requestAnimationFrame(() => {
-      document.getElementById("watch-mobile-playlist")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [mobilePlaylistOpen, isFocusLayout]);
 
   const toggleMobilePlaylist = useCallback(() => {
     setMobilePlaylistOpen((open) => !open);
@@ -250,6 +243,11 @@ const Layout = (props: Props) => {
     else params.set("tab", value);
     router.replace(`${ROUTES.WATCH}?${params.toString()}`, { scroll: false });
 
+    // Desktop scrolls to the section; mobile uses sheets instead.
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      return;
+    }
+
     const scrollTarget =
       value === "comments"
         ? "watch-comments-panel"
@@ -257,11 +255,9 @@ const Layout = (props: Props) => {
           ? "watch-tab-info"
           : value === "related"
             ? "watch-tab-related"
-            : value === "episodes"
-              ? "watch-mobile-playlist"
-              : null;
+            : null;
 
-    if (scrollTarget && !(value === "episodes" && isFocusLayout)) {
+    if (scrollTarget) {
       requestAnimationFrame(() => {
         document.getElementById(scrollTarget)?.scrollIntoView({
           behavior: "smooth",
@@ -298,10 +294,28 @@ const Layout = (props: Props) => {
   }, [theatreMode]);
 
   const handleWatchTabChangeWithMobile = (value: string) => {
-    if (value === "comments" && typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
-      openMobileComments("episode");
-      return;
+    const isMobile =
+      typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
+
+    if (isMobile) {
+      if (value === "comments") {
+        openMobileComments("episode");
+        return;
+      }
+      if (value === "info") {
+        setMobileInfoOpen(true);
+        return;
+      }
+      if (value === "related") {
+        setMobileRelatedOpen(true);
+        return;
+      }
+      if (value === "episodes") {
+        setMobilePlaylistOpen(true);
+        return;
+      }
     }
+
     if (value === "episodes") {
       setMobilePlaylistOpen(true);
     }
@@ -555,34 +569,12 @@ const Layout = (props: Props) => {
             <button
               type="button"
               onClick={() => openComments("episode")}
-              className="fixed bottom-6 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/80 text-white/90 shadow-lg shadow-black/40 backdrop-blur-sm hover:bg-white/10 hover:border-white/25 transition-all"
+              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/80 text-white/90 shadow-lg shadow-black/40 backdrop-blur-sm hover:bg-white/10 hover:border-white/25 transition-all"
               aria-label={t("watch.toolbar.comments")}
             >
               <MessageSquare className="h-5 w-5" />
             </button>
           )}
-
-          {/* Mobile: episode playlist — collapsed until opened from strip / quick nav.
-              Focus layout uses a sheet instead; theatre hides this entirely. */}
-          <div
-            id="watch-mobile-playlist"
-            className={cn(
-              "flex flex-col gap-2 lg:hidden scroll-mt-[calc(var(--nav-total-height)+2.5rem)]",
-              (theatreMode || isFocusLayout) && "hidden",
-              !mobilePlaylistOpen && "hidden",
-            )}
-          >
-            {episodes && (
-              <EpisodePlaylist
-                variant="watch"
-                animeId={animeId as string}
-                title={info.name ?? (moreInfo?.japanese as string)}
-                subOrDub={stats?.episodes}
-                episodes={episodes}
-                isLoading={episodeLoading}
-              />
-            )}
-          </div>
 
           {/* Theater layout: full-width episode list below the player (desktop) */}
           {showTheaterPlaylist && episodes && (
@@ -646,98 +638,23 @@ const Layout = (props: Props) => {
             )}
           </section>
 
-          {/* Info section */}
-          <section id="watch-tab-info" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-3 mt-0.5">
+          {/* Info section (desktop — mobile uses sheet) */}
+          <section id="watch-tab-info" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-3 mt-0.5 hidden lg:block">
             <div className="flex items-center gap-2">
               <Info className="w-3.5 h-3.5 text-muted-foreground dark:text-white/35" />
               <h2 className="text-[13px] font-semibold tracking-tight text-foreground/85 dark:text-white/80">{t("watch.tabs.info")}</h2>
             </div>
 
             <div className="rounded-xl border border-border/50 dark:border-white/[0.06] bg-transparent p-3.5 sm:p-4 space-y-4">
-              {/* Title · native · genres */}
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold tracking-tight text-foreground dark:text-white/95">{info.name}</h3>
-                {moreInfo?.japanese ? (
-                  <p className="mt-0.5 text-[12px] italic text-muted-foreground/65 dark:text-white/30">{moreInfo.japanese as string}</p>
-                ) : null}
-                {Array.isArray(moreInfo?.genres) && (moreInfo!.genres as string[]).length > 0 && (
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {(moreInfo!.genres as string[]).map((g) => (
-                      <Link
-                        key={g}
-                        href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
-                        className="rounded-md border border-border/60 dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-muted-foreground dark:text-white/50 transition-colors hover:bg-muted/55 dark:hover:bg-white/[0.06] hover:text-foreground dark:hover:text-white/75"
-                      >
-                        {g}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Synopsis */}
-              {info.description && (
-                <div>
-                  <AniListRichText
-                    text={info.description as string}
-                    className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
-                  />
-                  <Link
-                    href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
-                    className="inline-flex items-center gap-1 mt-2 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
-                  >
-                    {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              )}
-
-              {/* Details — two columns, "Label: value" */}
-              <div className="grid grid-cols-1 gap-x-10 gap-y-1.5 border-t border-border dark:border-white/[0.06] pt-4 sm:grid-cols-2">
-                {[
-                  { label: t("anime.detailFields.type"), value: stats?.type },
-                  { label: t("anime.detailFields.status"), value: moreInfo?.status },
-                  { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
-                  { label: t("anime.detailFields.duration"), value: (moreInfo as any)?.duration },
-                  { label: t("anime.detailFields.score"), value: malScoreLabel },
-                  { label: t("anime.detailFields.malRank"), value: malMeta?.rank ? `#${malMeta.rank.toLocaleString()}` : null },
-                  { label: t("anime.detailFields.malPopularity"), value: malMeta?.popularity ? `#${malMeta.popularity.toLocaleString()}` : null },
-                  { label: t("anime.detailFields.malMembers"), value: malMeta?.members ? formatMalMemberCount(malMeta.members) : null },
-                  { label: t("anime.detailFields.malContentRating"), value: malMeta?.contentRating },
-                  { label: t("anime.detailFields.malBroadcast"), value: malMeta?.broadcast },
-                  { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
-                  { label: t("anime.detailFields.aired"), value: moreInfo?.aired },
-                  { label: t("anime.detailFields.source"), value: (moreInfo as any)?.source },
-                  { label: t("anime.studios"), value: moreInfo?.studios },
-                ]
-                  .filter((r) => r.value && r.value !== "N/A" && r.value !== "?")
-                  .map((row) => (
-                    <div key={row.label} className="flex items-baseline gap-2 text-[12px]">
-                      <span className="shrink-0 text-muted-foreground/65 dark:text-white/30">{row.label}:</span>
-                      <span className="min-w-0 font-medium text-foreground/85 dark:text-white/75">{row.value}</span>
-                    </div>
-                  ))}
-              </div>
-
-              {/* External database links */}
-              {externalLinks.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 border-t border-border dark:border-white/[0.06] pt-4">
-                  {externalLinks.map((link) => (
-                    <a
-                      key={link.label}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all hover:opacity-80",
-                        link.color,
-                      )}
-                    >
-                      {link.label}
-                      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                    </a>
-                  ))}
-                </div>
-              )}
+              <WatchInfoDetails
+                info={info}
+                moreInfo={moreInfo}
+                stats={stats}
+                malMeta={malMeta}
+                malScoreLabel={malScoreLabel}
+                externalLinks={externalLinks}
+                t={t}
+              />
             </div>
           </section>
 
@@ -786,7 +703,7 @@ const Layout = (props: Props) => {
 
       {/* ── Full-width sections below the player ── */}
       {!theatreMode && hasRelated && (
-      <div className="mt-7 sm:mt-9 space-y-6 border-t border-border/50 dark:border-white/[0.05] pt-6 sm:pt-8">
+      <div className="mt-7 sm:mt-9 space-y-6 border-t border-border/50 dark:border-white/[0.05] pt-6 sm:pt-8 hidden lg:block">
           <section id="watch-tab-related" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-5">
             {(anime?.relatedAnimes?.length ?? 0) > 0 && (
               <AnimeCarousel
@@ -818,7 +735,7 @@ const Layout = (props: Props) => {
         />
       )}
 
-      {isFocusLayout && episodes && animeId && (
+      {episodes && animeId && (
         <WatchPlaylistSheet
           open={mobilePlaylistOpen}
           onOpenChange={setMobilePlaylistOpen}
@@ -829,11 +746,164 @@ const Layout = (props: Props) => {
           isLoading={episodeLoading}
         />
       )}
+
+      <WatchPanelSheet
+        open={mobileInfoOpen}
+        onOpenChange={setMobileInfoOpen}
+        title={t("watch.tabs.info")}
+        icon={Info}
+      >
+        <WatchInfoDetails
+          info={info}
+          moreInfo={moreInfo}
+          stats={stats}
+          malMeta={malMeta}
+          malScoreLabel={malScoreLabel}
+          externalLinks={externalLinks}
+          t={t}
+        />
+      </WatchPanelSheet>
+
+      {hasRelated && (
+        <WatchPanelSheet
+          open={mobileRelatedOpen}
+          onOpenChange={setMobileRelatedOpen}
+          title={t("watch.tabs.related")}
+          icon={Tv2}
+        >
+          <div className="space-y-5">
+            {(anime?.relatedAnimes?.length ?? 0) > 0 && (
+              <AnimeCarousel
+                title={t("common.alsoWatch")}
+                anime={(anime?.relatedAnimes ?? []) as IAnime[]}
+                className="gap-3 [&_h5]:text-base [&_h5]:font-semibold [&_h5]:tracking-tight"
+              />
+            )}
+            {(anime?.recommendedAnimes?.length ?? 0) > 0 && (
+              <AnimeCarousel
+                title={t("common.recommended")}
+                anime={(anime?.recommendedAnimes ?? []) as IAnime[]}
+                className="gap-3 [&_h5]:text-base [&_h5]:font-semibold [&_h5]:tracking-tight"
+              />
+            )}
+          </div>
+        </WatchPanelSheet>
+      )}
     </Container>
     </div>
     </WatchPageProvider>
   );
 };
+
+/** Compact / default sidebar “now watching” header. */
+function WatchInfoDetails({
+  info,
+  moreInfo,
+  stats,
+  malMeta,
+  malScoreLabel,
+  externalLinks,
+  t,
+}: {
+  info: { id: string; name: string; description?: string | null };
+  moreInfo?: Record<string, unknown> | null;
+  stats?: { type?: string; episodes?: { sub?: number; dub?: number } } | null;
+  malMeta?: {
+    rank?: number | null;
+    popularity?: number | null;
+    members?: number | null;
+    contentRating?: string | null;
+    broadcast?: string | null;
+  } | null;
+  malScoreLabel?: string | null;
+  externalLinks: { label: string; url: string; color: string }[];
+  t: ReturnType<typeof useT>;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-base sm:text-lg font-semibold tracking-tight text-foreground dark:text-white/95">{info.name}</h3>
+        {moreInfo?.japanese ? (
+          <p className="mt-0.5 text-[12px] italic text-muted-foreground/65 dark:text-white/30">{moreInfo.japanese as string}</p>
+        ) : null}
+        {Array.isArray(moreInfo?.genres) && (moreInfo!.genres as string[]).length > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {(moreInfo!.genres as string[]).map((g) => (
+              <Link
+                key={g}
+                href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
+                className="rounded-md border border-border/60 dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-muted-foreground dark:text-white/50 transition-colors hover:bg-muted/55 dark:hover:bg-white/[0.06] hover:text-foreground dark:hover:text-white/75"
+              >
+                {g}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {info.description && (
+        <div>
+          <AniListRichText
+            text={info.description as string}
+            className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
+          />
+          <Link
+            href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
+            className="inline-flex items-center gap-1 mt-2 text-[11px] text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/60 transition-colors font-mono"
+          >
+            {t("watch.fullAnimePage")} <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-x-10 gap-y-1.5 border-t border-border dark:border-white/[0.06] pt-4 sm:grid-cols-2">
+        {[
+          { label: t("anime.detailFields.type"), value: stats?.type },
+          { label: t("anime.detailFields.status"), value: moreInfo?.status },
+          { label: t("anime.detailFields.episodes"), value: stats?.episodes?.sub },
+          { label: t("anime.detailFields.duration"), value: (moreInfo as { duration?: string } | undefined)?.duration },
+          { label: t("anime.detailFields.score"), value: malScoreLabel },
+          { label: t("anime.detailFields.malRank"), value: malMeta?.rank ? `#${malMeta.rank.toLocaleString()}` : null },
+          { label: t("anime.detailFields.malPopularity"), value: malMeta?.popularity ? `#${malMeta.popularity.toLocaleString()}` : null },
+          { label: t("anime.detailFields.malMembers"), value: malMeta?.members ? formatMalMemberCount(malMeta.members) : null },
+          { label: t("anime.detailFields.malContentRating"), value: malMeta?.contentRating },
+          { label: t("anime.detailFields.malBroadcast"), value: malMeta?.broadcast },
+          { label: t("anime.detailFields.premiered"), value: moreInfo?.premiered },
+          { label: t("anime.detailFields.aired"), value: moreInfo?.aired },
+          { label: t("anime.detailFields.source"), value: (moreInfo as { source?: string } | undefined)?.source },
+          { label: t("anime.studios"), value: moreInfo?.studios },
+        ]
+          .filter((r) => r.value && r.value !== "N/A" && r.value !== "?")
+          .map((row) => (
+            <div key={row.label} className="flex items-baseline gap-2 text-[12px]">
+              <span className="shrink-0 text-muted-foreground/65 dark:text-white/30">{row.label}:</span>
+              <span className="min-w-0 font-medium text-foreground/85 dark:text-white/75">{String(row.value)}</span>
+            </div>
+          ))}
+      </div>
+
+      {externalLinks.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 border-t border-border dark:border-white/[0.06] pt-4">
+          {externalLinks.map((link) => (
+            <a
+              key={link.label}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all hover:opacity-80",
+                link.color,
+              )}
+            >
+              {link.label}
+              <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Compact / default sidebar “now watching” header. */
 function WatchNowPlayingCard({
