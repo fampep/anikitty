@@ -200,6 +200,20 @@ export function CaptionsIcon(props: IconProps) {
   );
 }
 
+/** Multi-audio track picker — speaker + waveform. */
+export function AudioIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...props}>
+      <path
+        {...stroke}
+        d="M4.5 9.75v4.5h2.85L12 18.5V5.5L7.35 9.75H4.5z"
+      />
+      <path {...stroke} d="M15.35 9.1a3.35 3.35 0 0 1 0 5.8" />
+      <path {...stroke} d="M17.55 6.85a6.1 6.1 0 0 1 0 10.3" />
+    </svg>
+  );
+}
+
 /** Google Cast / Chromecast sender mark. */
 export function CastIcon(props: IconProps) {
   return (

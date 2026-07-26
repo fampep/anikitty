@@ -118,6 +118,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: true,
     nativeSubs: true,
     kittySubs: true,
+    supportsMulti: true,
     hint: "SUB · DUB · soft subs",
   },
   {

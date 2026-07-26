@@ -72,19 +72,19 @@ export const SUBTITLE_DELAY_MAX = 15;
 export const SUBTITLE_DELAY_STEP = 0.25;
 
 export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
-  fontSize: 18,
+  fontSize: 19,
   color: "#ffffff",
   backgroundColor: "#000000",
-  backgroundOpacity: 0,
+  backgroundOpacity: 88,
   fontWeight: 600,
   bottomOffset: 4.5,
-  textShadow: "medium",
-  outlineWidth: 2,
-  letterSpacing: 0.3,
-  lineHeight: 1.45,
-  borderRadius: 4,
+  textShadow: "none",
+  outlineWidth: 0,
+  letterSpacing: 0.4,
+  lineHeight: 1.5,
+  borderRadius: 8,
   fontFamily: "system",
-  displayMode: "standard",
+  displayMode: "boxedLines",
   maxWidthPercent: 92,
   textTransform: "none",
   delayOffset: 0,
@@ -122,6 +122,7 @@ export const SUBTITLE_STYLE_PRESETS: {
       outlineWidth: 0,
       letterSpacing: 0.3,
       borderRadius: 0,
+      displayMode: "standard",
     },
   },
   {
@@ -136,6 +137,7 @@ export const SUBTITLE_STYLE_PRESETS: {
       outlineWidth: 2,
       letterSpacing: 0.2,
       borderRadius: 0,
+      displayMode: "standard",
     },
   },
   {
@@ -149,6 +151,7 @@ export const SUBTITLE_STYLE_PRESETS: {
       textShadow: "soft",
       outlineWidth: 2,
       letterSpacing: 0.2,
+      displayMode: "standard",
     },
   },
   {
@@ -170,15 +173,6 @@ export const SUBTITLE_STYLE_PRESETS: {
     labelKey: "settings.subtitlePresetBoxed",
     settings: {
       ...DEFAULT_SUBTITLE_SETTINGS,
-      fontSize: 16,
-      backgroundOpacity: 88,
-      fontWeight: 600,
-      textShadow: "none",
-      outlineWidth: 0,
-      letterSpacing: 0.4,
-      lineHeight: 1.5,
-      borderRadius: 8,
-      displayMode: "boxedLines",
     },
   },
   {
@@ -213,6 +207,7 @@ export const SUBTITLE_STYLE_PRESETS: {
       outlineWidth: 0,
       letterSpacing: 0.6,
       borderRadius: 4,
+      displayMode: "standard",
     },
   },
 ];

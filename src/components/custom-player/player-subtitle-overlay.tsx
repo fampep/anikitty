@@ -195,7 +195,6 @@ export function PlayerSubtitleOverlay({
 
   const shellStyle = {
     bottom,
-    maxWidth: cueStyles.maxWidth,
   } satisfies CSSProperties;
 
   const textStyle = {
@@ -215,19 +214,19 @@ export function PlayerSubtitleOverlay({
   return (
     <div
       data-ak-subs=""
-      className="pointer-events-none absolute inset-x-0 z-[25] flex justify-center px-[max(0.75rem,env(safe-area-inset-left))] sm:px-4 pr-[max(0.75rem,env(safe-area-inset-right))]"
+      className="pointer-events-none absolute inset-x-0 z-[40] flex justify-center px-3 sm:px-4"
       style={shellStyle}
       aria-hidden
     >
       {boxed ? (
         <div
-          className="flex flex-col items-center gap-1"
+          className="flex w-max max-w-full flex-col items-center gap-1"
           style={{ maxWidth: cueStyles.maxWidth }}
         >
           {lines.map((line, index) => (
             <span
               key={`${index}-${line.slice(0, 24)}`}
-              className="inline-block text-center whitespace-pre-wrap"
+              className="inline-block max-w-full text-center whitespace-pre-wrap"
               style={{
                 ...textStyle,
                 backgroundColor: lineStyles.backgroundColor,
@@ -242,7 +241,7 @@ export function PlayerSubtitleOverlay({
       ) : (
         <div
           className={cn(
-            "text-center whitespace-pre-line",
+            "w-max max-w-full text-center whitespace-pre-line",
             // Keep the familiar soft shell when the user leaves a background on.
             subtitleSettings.backgroundOpacity > 0 &&
               "shadow-[0_4px_20px_rgba(0,0,0,0.4)] ring-1 ring-white/[0.08]",

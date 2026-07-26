@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -12,7 +12,10 @@ import {
 } from "react";
 import Hls from "hls.js";
 
-import { pickHlsAudioTrack } from "@/lib/kitty/hls-audio";
+import {
+  formatHlsAudioTrackLabel,
+  pickHlsAudioTrack,
+} from "@/lib/kitty/hls-audio";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import {
   exitElementFullscreen,
@@ -64,6 +67,7 @@ import {
 import {
   AirPlayConnectedIcon,
   AirPlayIcon,
+  AudioIcon,
   CastConnectedIcon,
   CastIcon,
   EpisodeNextIcon,
@@ -2231,7 +2235,7 @@ export function AniKittyPlayer({
       const audioOpts: HlsAudioOption[] = instance.audioTracks.map(
         (track, index) => ({
           index,
-          label: track.name || track.lang || `Audio ${index + 1}`,
+          label: formatHlsAudioTrackLabel(track, index),
         }),
       );
       setHlsAudioOptions(audioOpts);
@@ -3019,12 +3023,26 @@ export function AniKittyPlayer({
       audioUserPickedRef.current = true;
       hls.audioTrack = index;
       setHlsAudioIndex(index);
+      const label =
+        hlsAudioOptions.find((t) => t.index === index)?.label ?? "Audio";
+      showGestureHint({ label: "Audio", detail: label });
       setMoreOpen(false);
       setAudioOpen(false);
       bumpControls();
     },
-    [bumpControls],
+    [bumpControls, hlsAudioOptions, showGestureHint],
   );
+
+  const onAudioClick = useCallback(() => {
+    if (hlsAudioOptions.length < 2) return;
+    setAudioOpen((v) => !v);
+    setMoreOpen(false);
+    setVolumeOpen(false);
+    setCaptionsOpen(false);
+    setQualityOpen(false);
+    setSpeedOpen(false);
+    bumpControls();
+  }, [bumpControls, hlsAudioOptions.length]);
 
   const selectCaption = useCallback(
     (id: string | null) => {
@@ -3689,10 +3707,6 @@ export function AniKittyPlayer({
 
   const activeAudioLabel =
     hlsAudioOptions.find((t) => t.index === hlsAudioIndex)?.label ?? "Audio";
-  const audioButtonLabel =
-    activeAudioLabel.length > 8
-      ? `${activeAudioLabel.slice(0, 7)}…`
-      : activeAudioLabel;
 
   return (
     <div
@@ -4806,6 +4820,98 @@ export function AniKittyPlayer({
                   </div>
                 ) : null}
 
+                {showAudioMenu ? (
+                  <div className={cn(!coarsePointer && "relative")}>
+                    <IconButton
+                      buttonRef={audioTriggerRef}
+                      label={`Audio: ${activeAudioLabel}. Tap to choose track`}
+                      ariaExpanded={audioOpen}
+                      ariaHasPopup="menu"
+                      onClick={onAudioClick}
+                    >
+                      <AudioIcon className="h-[17px] w-[17px]" />
+                    </IconButton>
+                    {audioOpen ? (
+                      <PlayerOverlayPortal
+                        host={
+                          coarsePointer
+                            ? (getFullscreenTarget() ?? rootRef.current)
+                            : undefined
+                        }
+                      >
+                        {coarsePointer ? (
+                          <div className={PLAYER_SHEET_LAYER_CLASS}>
+                            <button
+                              type="button"
+                              aria-label="Close audio"
+                              className="absolute inset-0 bg-black/55"
+                              onClick={() => setAudioOpen(false)}
+                            />
+                            <div
+                              ref={audioMenuRef}
+                              role="dialog"
+                              aria-label="Audio tracks"
+                              className={cn(
+                                PLAYER_SHEET_CLASS,
+                                !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                              )}
+                            >
+                              <div
+                                className="flex justify-center pb-1 pt-2.5"
+                                aria-hidden
+                              >
+                                <div className="h-1 w-10 rounded-full bg-white/25" />
+                              </div>
+                              <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
+                                <p className="text-[11px] font-semibold tracking-wide text-white">
+                                  Audio
+                                </p>
+                                <span className="text-[10px] tabular-nums text-white/35">
+                                  {activeAudioLabel}
+                                </span>
+                              </div>
+                              <div className="max-h-[min(42dvh,280px)] overflow-y-auto overscroll-contain sm:max-h-[min(58dvh,380px)]">
+                                <MenuSection title="Track">
+                                  {hlsAudioOptions.map((track) => (
+                                    <MenuItem
+                                      key={track.index}
+                                      active={hlsAudioIndex === track.index}
+                                      onClick={() => selectHlsAudio(track.index)}
+                                    >
+                                      {track.label}
+                                    </MenuItem>
+                                  ))}
+                                </MenuSection>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            ref={audioMenuRef}
+                            role="menu"
+                            aria-label="Audio tracks"
+                            className={cn(
+                              "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(50vh,280px)] min-w-[152px] overflow-y-auto py-1",
+                              PLAYER_POPOVER_CLASS,
+                              !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                            )}
+                          >
+                            {hlsAudioOptions.map((track) => (
+                              <MenuItem
+                                key={track.index}
+                                active={hlsAudioIndex === track.index}
+                                onClick={() => selectHlsAudio(track.index)}
+                              >
+                                {track.label}
+                              </MenuItem>
+                            ))}
+                          </div>
+                        )}
+                      </PlayerOverlayPortal>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {airPlayAvailable ? (
                   <IconButton
                     label={
@@ -4988,53 +5094,6 @@ export function AniKittyPlayer({
                     </div>
                   ) : null}
                 </div>
-
-                {showAudioMenu ? (
-                  <div className="relative hidden min-[560px]:block">
-                    <IconButton
-                      buttonRef={audioTriggerRef}
-                      label={`Audio: ${activeAudioLabel}`}
-                      ariaExpanded={audioOpen}
-                      ariaHasPopup="menu"
-                      onClick={() => {
-                        setAudioOpen((v) => !v);
-                        setMoreOpen(false);
-                        setVolumeOpen(false);
-                        setCaptionsOpen(false);
-                        setQualityOpen(false);
-                        setSpeedOpen(false);
-                        bumpControls();
-                      }}
-                      className="w-auto max-w-[4.5rem] min-w-10 px-1.5 sm:max-w-[5.5rem] sm:min-w-9"
-                    >
-                      <span className="truncate select-none text-[11px] font-medium tracking-wide text-white/75 sm:text-[12px]">
-                        {audioButtonLabel}
-                      </span>
-                    </IconButton>
-                    {audioOpen ? (
-                      <div
-                        ref={audioMenuRef}
-                        role="menu"
-                        aria-label="Audio tracks"
-                        className={cn(
-                          "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(50vh,280px)] min-w-[152px] overflow-y-auto py-1",
-                          PLAYER_POPOVER_CLASS,
-                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
-                        )}
-                      >
-                        {hlsAudioOptions.map((track) => (
-                          <MenuItem
-                            key={track.index}
-                            active={hlsAudioIndex === track.index}
-                            onClick={() => selectHlsAudio(track.index)}
-                          >
-                            {track.label}
-                          </MenuItem>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
 
                 <div
                   className={cn(!coarsePointer && "relative")}

@@ -1785,7 +1785,12 @@ const VideoPlayerSection = () => {
     provider,
     serverName: streamData?.server,
   });
-  const allowSoftSubsOverlay = streamAudio === "sub" && (!watchingHardSub || hardSubSoftSubs);
+  // Use what Kitty actually served — dub→sub fallback still carries softsubs.
+  // Juliet/AniZone keeps soft ASS on multi-audio masters even when audio=dub.
+  const servedAudio = streamData?.servedAudio ?? streamAudio;
+  const allowSoftSubsOverlay =
+    (servedAudio === "sub" || providerHasNativeSubs(provider)) &&
+    (!watchingHardSub || hardSubSoftSubs);
   const subtitlesEnabled = allowSoftSubsOverlay && autoEnableSubtitles;
   const tracksForPlayer = allowSoftSubsOverlay
     ? displayTracks

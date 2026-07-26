@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 67,
+      version: 68,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -927,6 +927,13 @@ export const useSettingsStore = create<ISettingsStore>()(
             next.defaultProvider ?? "AniHQ",
             next.providerOrder,
           );
+        }
+        if (version < 68) {
+          // Boxed high-contrast softsubs as the new default (readable on bright frames).
+          next.subtitleSettings = sanitizeSubtitleSettings({
+            ...DEFAULT_SUBTITLE_SETTINGS,
+          });
+          next.autoEnableSubtitles = true;
         }
         return next as ISettingsStore;
       },

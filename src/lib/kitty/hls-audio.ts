@@ -12,6 +12,21 @@ function labelOf(track: StreamAudioTrackLike) {
   return `${track.name ?? track.label ?? ""} ${track.lang ?? track.language ?? ""}`.toLowerCase();
 }
 
+/** Friendly label for the in-player audio picker. */
+export function formatHlsAudioTrackLabel(
+  track: StreamAudioTrackLike,
+  index: number,
+): string {
+  if (isDubLike(track)) return "English";
+  if (isSubLike(track)) return "Japanese";
+  const raw = (track.name || track.label || track.lang || track.language || "")
+    .trim();
+  if (raw) {
+    return raw.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  return `Audio ${index + 1}`;
+}
+
 function isDubLike(track: StreamAudioTrackLike) {
   const text = labelOf(track);
   return (
