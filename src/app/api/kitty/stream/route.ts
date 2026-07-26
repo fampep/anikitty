@@ -315,20 +315,23 @@ export async function GET(req: Request) {
 
     // Don't block first paint on Kitty /subs when the provider already shipped soft subs.
     // Warm the cache in the background so later episodes / language picks stay fast.
-    let fetchedSubs: StreamTrack[] = [];
+    // Juliet (AniWatch/AniZone) always races /subs too — dual-audio soft ASS is the /subs path.
+    let mut fetchedSubs: StreamTrack[] = [];
     const subWarm = {
       ...playbackCtx,
       animeTitle: titleParam,
       streamProvider: providerName,
     };
-    if (preserveInlineSubs && providerSubtitleTracks.length > 0) {
+    const awaitSubsForProvider = providerName === "AniWatch";
+    if (preserveInlineSubs && providerSubtitleTracks.length > 0 && !awaitSubsForProvider) {
       void ensurePlaybackSubtitleCache(subWarm);
     } else {
       fetchedSubs = await Promise.race([
         ensurePlaybackSubtitleCache(subWarm),
         new Promise<StreamTrack[]>((resolve) => {
           // Alpha often needs a bit longer for Kitty /subs when embed tracks are empty.
-          const waitMs = providerName === "AniKuro" ? 4_000 : 2_000;
+          const waitMs =
+            providerName === "AniKuro" || providerName === "AniWatch" ? 4_000 : 2_000;
           setTimeout(() => resolve([]), waitMs);
         }),
       ]);
