@@ -9,6 +9,7 @@ import {
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
+import { unwrapKittyProxyTarget } from "@/lib/kitty/stream-format";
 
 export type StreamCapabilities = {
   sub: boolean;
@@ -61,14 +62,19 @@ type StreamProbeResult = {
   multiAudio?: boolean;
 };
 
-/** Compare stream URLs ignoring proxy/query tokens that differ per request. */
+/**
+ * Compare stream URLs ignoring ephemeral query tokens.
+ * Must unwrap Kitty `/proxy?url=` first — otherwise every stream shares
+ * `vps…/proxy` and real DUB probes get treated as the same file as SUB.
+ */
 export function streamFileIdentity(file: string | undefined | null): string {
   if (!file) return "";
+  const target = unwrapKittyProxyTarget(file);
   try {
-    const u = new URL(file);
+    const u = new URL(target);
     return `${u.hostname}${u.pathname}`.toLowerCase();
   } catch {
-    return file.split("?")[0]?.toLowerCase() ?? "";
+    return target.split("?")[0]?.toLowerCase() ?? "";
   }
 }
 
