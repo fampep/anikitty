@@ -42,7 +42,7 @@ export default function HomeClassicCard({ anime, href, priority }: Props) {
         <PosterAudioBadges
           sub={sub}
           dub={dub}
-          className="absolute left-1.5 bottom-1.5 z-10 drop-shadow-md"
+          className="absolute left-1.5 bottom-1.5 z-10"
         />
       </div>
 

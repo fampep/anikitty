@@ -1,13 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { memo } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
 import { Episode } from "@/types/episodes";
 import { useAnimeStore } from "@/store/anime-store";
 import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
-import { Captions, Check, Flame, Mic, Play } from "lucide-react";
+import { Check, Play } from "lucide-react";
 import Link from "next/link";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { isEpisodePlayable } from "@/lib/anime/episode-availability";
@@ -24,6 +24,34 @@ type Props = {
   animePoster?: string;
   activeStyle?: "default" | "play";
 };
+
+/** Cheap text chips — no Lucide SVGs per episode in long lists. */
+function EpisodeAudioMarks({
+  episodeNumber,
+  subOrDub,
+}: {
+  episodeNumber: number;
+  subOrDub?: { sub: number; dub: number };
+}) {
+  if (!subOrDub) return null;
+  const hasSub = episodeNumber <= subOrDub.sub;
+  const hasDub = episodeNumber <= subOrDub.dub;
+  if (!hasSub && !hasDub) return null;
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-hidden>
+      {hasSub ? (
+        <span className="rounded px-1 py-px text-[8px] font-bold leading-none bg-sky-600/85 text-sky-50">
+          S
+        </span>
+      ) : null}
+      {hasDub ? (
+        <span className="rounded px-1 py-px text-[8px] font-bold leading-none bg-violet-600/85 text-violet-50">
+          D
+        </span>
+      ) : null}
+    </span>
+  );
+}
 
 function EpisodeCardShell({
   playable,
@@ -52,20 +80,19 @@ function EpisodeCardShell({
   );
 }
 
-const EpisodeCard = ({
+const EpisodeCard = memo(function EpisodeCard({
   showCard = false,
   variant = "card",
   ...props
-}: Props) => {
+}: Props) {
   const t = useT();
-  const { selectedEpisode } = useAnimeStore();
+  const isActive = useAnimeStore((s) => s.selectedEpisode === props.episode.episodeId);
   const { hasWatchedEpisode } = useHasAnimeWatched(
     props.animeId,
     props.episode.episodeId,
     props.watchedEpisodes!,
   );
 
-  const isActive = selectedEpisode === props.episode.episodeId;
   const hasMeaningfulTitle =
     props.episode.title &&
     props.episode.title.toLowerCase() !== `episode ${props.episode.number}`;
@@ -83,7 +110,7 @@ const EpisodeCard = ({
         <div
           title={props.episode.isFiller ? `Episode ${props.episode.number} · Filler` : undefined}
           className={cn(
-            "relative aspect-square rounded-lg w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-all",
+            "relative aspect-square rounded-lg w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
             playable ? "cursor-pointer" : "cursor-not-allowed opacity-45",
             playActive
               ? "bg-zinc-200 text-zinc-950 ring-1 ring-zinc-100/80 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
@@ -104,7 +131,7 @@ const EpisodeCard = ({
             </>
           )}
           {props.episode.isFiller && !playActive && (
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400/85 shadow-[0_0_4px_rgba(251,191,36,0.6)]" />
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400/85" />
           )}
         </div>
       </EpisodeCardShell>
@@ -113,7 +140,6 @@ const EpisodeCard = ({
 
   // ── Thumbnail card ────────────────────────────────────────────────
   if (variant === "thumbnail") {
-    // Find resume data for this episode
     const history = props.watchedEpisodes?.find(
       (w) => w.episodeId === props.episode.episodeId,
     );
@@ -129,7 +155,7 @@ const EpisodeCard = ({
       <EpisodeCardShell playable={playable} href={href} title={unreleasedTitle}>
         <div
           className={cn(
-            "group rounded-xl overflow-hidden transition-all duration-200 border",
+            "group rounded-xl overflow-hidden transition-colors duration-150 border",
             playable ? "cursor-pointer" : "cursor-not-allowed opacity-50",
             isActive
               ? "border-zinc-400/40 ring-1 ring-zinc-400/20 dark:border-zinc-300/35 dark:ring-zinc-300/15"
@@ -138,19 +164,17 @@ const EpisodeCard = ({
                 : "border-border dark:border-white/[0.07] hover:border-border dark:hover:border-white/18",
           )}
         >
-          {/* Thumbnail image area */}
           <div className="relative aspect-[16/9] bg-[#0d0d0d] overflow-hidden">
             {episodeImage ? (
               <Image
                 src={episodeImage}
                 alt={`Episode ${props.episode.number}`}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-cover"
                 unoptimized
                 sizes="(max-width: 640px) 50vw, 200px"
               />
             ) : (
-              /* No screenshot available — show a clean dark numbered placeholder */
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
                 <span className="text-3xl font-black font-mono text-muted-foreground/20 dark:text-white/8 select-none">
                   {String(props.episode.number).padStart(2, "0")}
@@ -158,65 +182,51 @@ const EpisodeCard = ({
               </div>
             )}
 
-            {/* Dark overlay for text legibility */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
 
-            {/* Play button on hover */}
             {playable && (
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-xl">
+                <div className="bg-white/90 rounded-full p-2 shadow-xl">
                   <Play className="w-3.5 h-3.5 text-black fill-black" />
                 </div>
               </div>
             )}
 
-            {/* Bottom-left: ep number + filler badge */}
             <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-              <span className="text-[10px] font-mono font-bold text-foreground dark:text-white/85 bg-black/55 backdrop-blur-sm px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-bold text-foreground dark:text-white/85 bg-black/70 px-1.5 py-0.5 rounded">
                 EP {props.episode.number}
               </span>
               {props.episode.isFiller && (
-                <span className="text-[9px] font-mono text-amber-400/80 bg-black/55 px-1 py-0.5 rounded">
+                <span className="text-[9px] font-mono text-amber-400/80 bg-black/70 px-1 py-0.5 rounded">
                   FILLER
                 </span>
               )}
             </div>
 
-            {/* Top-right: sub/dub + completed */}
             <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
               {isCompleted && (
-                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/80 backdrop-blur-sm">
+                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/80">
                   <Check className="w-2.5 h-2.5 text-foreground dark:text-white" />
                 </span>
               )}
               {isInProgress && !isCompleted && (
-                <span className="text-[9px] font-bold font-mono text-amber-300/90 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
+                <span className="text-[9px] font-bold font-mono text-amber-300/90 bg-black/70 px-1.5 py-0.5 rounded">
                   RESUME
                 </span>
               )}
-              {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
-                <>
-                  <Captions className="w-3 h-3 text-sky-400/70" />
-                  <Flame className="w-3 h-3 text-amber-400/80" />
-                </>
-              )}
-              {props.subOrDub && props.episode.number <= props.subOrDub.dub && (
-                <Mic className="w-3 h-3 text-violet-400/70" />
-              )}
+              <EpisodeAudioMarks episodeNumber={props.episode.number} subOrDub={props.subOrDub} />
             </div>
 
-            {/* Progress bar — only shown if in progress */}
             {progressPct > 0 && (
               <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-black/40">
                 <div
-                  className="h-full bg-zinc-300/90 transition-none"
+                  className="h-full bg-zinc-300/90"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
             )}
           </div>
 
-          {/* Title row */}
           <div className="px-2.5 py-1.5 bg-[#0a0a0a] flex items-center gap-2 min-w-0">
             <p className={cn(
               "text-[11px] leading-tight line-clamp-1 font-medium flex-1 min-w-0",
@@ -268,13 +278,11 @@ const EpisodeCard = ({
           hasWatchedEpisode && !isActive && "opacity-55",
         )}
       >
-        {/* Active / filler accent bar */}
         {isActive ? (
           <span className="absolute inset-y-0 left-0 w-[2px] bg-teal-300/90 z-10" />
         ) : props.episode.isFiller ? (
           <span className="absolute inset-y-0 left-0 w-[2px] bg-amber-400/70 z-10" />
         ) : null}
-        {/* Thumbnail */}
         <div className="relative shrink-0 w-[96px] rounded-l-lg overflow-hidden">
           <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
             {props.episode.image ? (
@@ -282,7 +290,7 @@ const EpisodeCard = ({
                 src={props.episode.image}
                 alt={`EP ${props.episode.number}`}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-cover"
                 unoptimized
                 sizes="96px"
               />
@@ -295,19 +303,16 @@ const EpisodeCard = ({
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-            {/* EP badge */}
-            <span className="absolute bottom-1 left-1 text-[9px] font-mono font-bold text-foreground dark:text-white/90 bg-black/65 backdrop-blur-sm px-1.5 py-0.5 rounded">
+            <span className="absolute bottom-1 left-1 text-[9px] font-mono font-bold text-foreground dark:text-white/90 bg-black/70 px-1.5 py-0.5 rounded">
               EP {props.episode.number}
             </span>
 
-            {/* Completed check */}
             {listCompleted && (
               <div className="absolute top-1 left-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-300/90">
                 <Check className="w-2 h-2 text-zinc-950" />
               </div>
             )}
 
-            {/* Progress bar */}
             {listProgressPct > 0 && !listCompleted && (
               <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-black/40">
                 <div className="h-full bg-zinc-300/85" style={{ width: `${listProgressPct}%` }} />
@@ -316,7 +321,6 @@ const EpisodeCard = ({
           </div>
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0 px-2.5 py-2 flex flex-col justify-center gap-1">
           <p
             className={cn(
@@ -337,15 +341,7 @@ const EpisodeCard = ({
                 Filler
               </span>
             )}
-            {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
-              <>
-                <Captions className="w-3 h-3 text-zinc-400/70" />
-                <Flame className="w-3 h-3 text-amber-400/75" />
-              </>
-            )}
-            {props.subOrDub && props.episode.number <= props.subOrDub.dub && (
-              <Mic className="w-3 h-3 text-violet-400/65" />
-            )}
+            <EpisodeAudioMarks episodeNumber={props.episode.number} subOrDub={props.subOrDub} />
             {listInProgress && listCurrent > 0 && (
               <span className="text-[9px] font-mono text-amber-300/60 ml-auto">
                 {Math.floor(listCurrent / 60)}:{String(Math.floor(listCurrent % 60)).padStart(2, "0")}
@@ -371,6 +367,6 @@ const EpisodeCard = ({
       </div>
     </EpisodeCardShell>
   );
-};
+});
 
 export default EpisodeCard;

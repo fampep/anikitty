@@ -42,13 +42,13 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "text-red-400",
 };
 
-const AnimeCard = ({
+const AnimeCard = React.memo(function AnimeCard({
   displayDetails = true,
   variant = "sm",
   compact = false,
   rank,
   ...props
-}: Props) => {
+}: Props) {
   const t = useT();
   const safeCurrent =
     typeof props.watchDetail?.current === "number" ? props.watchDetail.current : 0;
@@ -214,11 +214,8 @@ const AnimeCard = ({
               {props.episodeCard && !props.watchDetail && (
                 <div className="flex items-center gap-1.5 flex-wrap min-h-[18px]">
                   {hasAudio && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
                       {props.sub != null && props.sub > 0 && <AudioPill type="sub" count={props.sub} />}
-                      {props.sub != null && props.sub > 0 && (
-                        <AudioPill type="hardsub" count={props.sub} />
-                      )}
                       {props.dub != null && props.dub > 0 && <AudioPill type="dub" count={props.dub} />}
                     </div>
                   )}
@@ -247,6 +244,6 @@ const AnimeCard = ({
       </div>
     </Link>
   );
-};
+});
 
 export default AnimeCard;

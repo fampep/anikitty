@@ -49,7 +49,7 @@ export default function HomeCompactPoster({ anime, className, priority, href, ep
         <PosterAudioBadges
           sub={sub}
           dub={dub}
-          className="absolute left-1 bottom-1 z-10 drop-shadow-md"
+          className="absolute left-1 bottom-1 z-10"
         />
       </div>
       <div className="flex flex-col gap-1 min-w-0">

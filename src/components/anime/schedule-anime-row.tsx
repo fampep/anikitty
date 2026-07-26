@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Captions, Clock, Film, Mic } from "lucide-react";
+import { Clock, Film } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 import { formatScheduleAiringLabel } from "@/lib/anime/schedule-format";
@@ -28,18 +28,13 @@ function ScheduleAudioBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none",
+        "inline-flex items-center rounded font-bold uppercase leading-none",
         compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
         isSub
-          ? "bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/25"
-          : "bg-primary/20 text-zinc-200 ring-1 ring-primary/25",
+          ? "bg-sky-600/85 text-sky-50"
+          : "bg-violet-600/85 text-violet-50",
       )}
     >
-      {isSub ? (
-        <Captions className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} />
-      ) : (
-        <Mic className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} />
-      )}
       {isSub ? t("card.sub") : t("card.dub")}
     </span>
   );

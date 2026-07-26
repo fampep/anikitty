@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { CalendarDays, Captions, ChevronLeft, ChevronRight, Clock, Mic, RefreshCw } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, RefreshCw } from "lucide-react";
 import { SectionHeading } from "./section-heading";
 import { cn } from "@/lib/core/utils";
 import { useI18n, useT } from "@/providers/i18n-provider";
@@ -156,13 +156,12 @@ export default function HomeScheduleStrip() {
                         <span
                           key={type}
                           className={cn(
-                            "inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase",
+                            "inline-flex items-center rounded px-1 py-px text-[7px] font-bold uppercase",
                             isSub
-                              ? "bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/25"
-                              : "bg-primary/20 text-zinc-200 ring-1 ring-primary/25",
+                              ? "bg-sky-600/85 text-sky-50"
+                              : "bg-violet-600/85 text-violet-50",
                           )}
                         >
-                          {isSub ? <Captions className="h-2 w-2" /> : <Mic className="h-2 w-2" />}
                           {isSub ? t("card.sub") : t("card.dub")}
                         </span>
                       );
