@@ -85,6 +85,13 @@ interface ISettingsStore {
   setTheatreMode: (val: boolean) => void;
   toggleTheatreMode: () => void;
 
+  /**
+   * Mirrored anime-poster ambient wash on the watch page (dark look).
+   * On by default; turn off for a flat page background.
+   */
+  watchPosterTheme: boolean;
+  setWatchPosterTheme: (val: boolean) => void;
+
   /** Auto-switch to next provider when stream fails. */
   providerAutoFallback: boolean;
   setProviderAutoFallback: (val: boolean) => void;
@@ -248,6 +255,9 @@ export const useSettingsStore = create<ISettingsStore>()(
       theatreMode: false,
       setTheatreMode: (theatreMode) => set({ theatreMode }),
       toggleTheatreMode: () => set((state) => ({ theatreMode: !state.theatreMode })),
+
+      watchPosterTheme: true,
+      setWatchPosterTheme: (watchPosterTheme) => set({ watchPosterTheme }),
 
       providerAutoFallback: false,
       setProviderAutoFallback: (providerAutoFallback) => set({ providerAutoFallback }),
@@ -424,7 +434,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 69,
+      version: 70,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -436,6 +446,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         showPlayerControls: state.showPlayerControls,
         playerSettingsOpen: state.playerSettingsOpen,
         theatreMode: state.theatreMode,
+        watchPosterTheme: state.watchPosterTheme,
         providerAutoFallback: state.providerAutoFallback,
         providerOrder: state.providerOrder,
         defaultProvider: state.defaultProvider,
@@ -930,6 +941,10 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Site is ad-free — drop the old ads preference.
           delete (next as Record<string, unknown>).showBannerAds;
           delete (next as Record<string, unknown>).showAds;
+        }
+        if (version < 70) {
+          // Mirrored poster ambient on watch — on by default (dark look).
+          next.watchPosterTheme = next.watchPosterTheme ?? true;
         }
         return next as ISettingsStore;
       },

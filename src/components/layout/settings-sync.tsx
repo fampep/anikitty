@@ -34,6 +34,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     liteMode: s.liteMode,
     autoSkipIntro: s.autoSkipIntro,
     playThemeSong: s.playThemeSong,
+    watchPosterTheme: s.watchPosterTheme,
     siteAccentColor: s.siteAccentColor,
     siteSurfaceTheme: s.siteSurfaceTheme,
     customThemeColors: s.customThemeColors,
@@ -73,6 +74,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.liteMode !== undefined) patch.liteMode = prefs.liteMode;
   if (prefs.autoSkipIntro !== undefined) patch.autoSkipIntro = prefs.autoSkipIntro;
   if (prefs.playThemeSong !== undefined) patch.playThemeSong = prefs.playThemeSong;
+  if (prefs.watchPosterTheme !== undefined) patch.watchPosterTheme = prefs.watchPosterTheme;
   if (prefs.siteAccentColor !== undefined) patch.siteAccentColor = prefs.siteAccentColor;
   if (prefs.siteSurfaceTheme !== undefined) patch.siteSurfaceTheme = prefs.siteSurfaceTheme;
   if (prefs.customThemeColors !== undefined) patch.customThemeColors = prefs.customThemeColors;

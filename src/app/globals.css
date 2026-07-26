@@ -93,6 +93,10 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  /* Horizontally mirrored ambient imagery (watch poster theme). */
+  .mirror {
+    transform: scaleX(-1) scale(1.14);
+  }
   /* Safe-area padding for notched / bottom-bar devices */
   .pb-safe {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));

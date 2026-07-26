@@ -26,6 +26,7 @@ import {
   SkipForward,
   Maximize2,
   MoveHorizontal,
+  ImageIcon,
   Bell,
   AtSign,
   CornerUpLeft,
@@ -734,6 +735,8 @@ function PlaybackSection({
   setAutoSkipIntro,
   theatreMode,
   setTheatreMode,
+  watchPosterTheme,
+  setWatchPosterTheme,
   seekStepSeconds,
   setSeekStepSeconds,
   playerTouchSeekEnabled,
@@ -749,6 +752,8 @@ function PlaybackSection({
   setAutoSkipIntro: (v: boolean) => void;
   theatreMode: boolean;
   setTheatreMode: (v: boolean) => void;
+  watchPosterTheme: boolean;
+  setWatchPosterTheme: (v: boolean) => void;
   seekStepSeconds: PlayerSeekStep;
   setSeekStepSeconds: (v: PlayerSeekStep) => void;
   playerTouchSeekEnabled: boolean;
@@ -791,6 +796,13 @@ function PlaybackSection({
           description={t("settings.theatreModeDesc")}
           value={theatreMode}
           onChange={setTheatreMode}
+        />
+        <ToggleRow
+          icon={<ImageIcon className="w-4 h-4" />}
+          label={t("settings.watchPosterTheme")}
+          description={t("settings.watchPosterThemeDesc")}
+          value={watchPosterTheme}
+          onChange={setWatchPosterTheme}
         />
         <ToggleRow
           icon={<Music2 className="w-4 h-4" />}
@@ -1010,6 +1022,8 @@ export default function SettingsPage() {
     setAutoSkipIntro,
     theatreMode,
     setTheatreMode,
+    watchPosterTheme,
+    setWatchPosterTheme,
     seekStepSeconds,
     setSeekStepSeconds,
     playerTouchSeekEnabled,
@@ -1119,6 +1133,8 @@ export default function SettingsPage() {
                   setAutoSkipIntro={setAutoSkipIntro}
                   theatreMode={theatreMode}
                   setTheatreMode={setTheatreMode}
+                  watchPosterTheme={watchPosterTheme}
+                  setWatchPosterTheme={setWatchPosterTheme}
                   seekStepSeconds={seekStepSeconds}
                   setSeekStepSeconds={setSeekStepSeconds}
                   playerTouchSeekEnabled={playerTouchSeekEnabled}

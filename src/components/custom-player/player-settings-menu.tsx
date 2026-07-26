@@ -12,6 +12,7 @@ import {
   Monitor,
   Moon,
   MoveHorizontal,
+  ImageIcon,
   PanelTop,
   Shuffle,
   Sparkles,
@@ -126,6 +127,8 @@ export default function PlayerSettingsMenu({
   const setShowPlayerControls = useSettingsStore((s) => s.setShowPlayerControls);
   const theatreMode = useSettingsStore((s) => s.theatreMode);
   const toggleTheatreMode = useSettingsStore((s) => s.toggleTheatreMode);
+  const watchPosterTheme = useSettingsStore((s) => s.watchPosterTheme);
+  const setWatchPosterTheme = useSettingsStore((s) => s.setWatchPosterTheme);
   const providerAutoFallback = useSettingsStore((s) => s.providerAutoFallback);
   const setProviderAutoFallback = useSettingsStore((s) => s.setProviderAutoFallback);
   const simpleProviderPicker = useSettingsStore((s) => s.simpleProviderPicker);
@@ -338,6 +341,13 @@ export default function PlayerSettingsMenu({
               description={t("watch.playerSettings.theatre")}
               value={theatreMode}
               onChange={() => toggleTheatreMode()}
+            />
+            <ToggleRow
+              icon={<ImageIcon className="h-3.5 w-3.5" />}
+              label={t("watch.playerSettings.posterTheme")}
+              description={t("watch.playerSettings.posterThemeDesc")}
+              value={watchPosterTheme}
+              onChange={setWatchPosterTheme}
             />
             <ToggleRow
               icon={<PanelTop className="h-3.5 w-3.5" />}

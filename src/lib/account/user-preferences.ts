@@ -37,6 +37,7 @@ export type SyncedUserPreferences = {
   liteMode?: boolean;
   autoSkipIntro?: boolean;
   playThemeSong?: boolean;
+  watchPosterTheme?: boolean;
   siteAccentColor?: string | null;
   siteSurfaceTheme?: SiteSurfaceTheme;
   customThemeColors?: CustomThemeColors;
@@ -83,6 +84,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.liteMode === "boolean") out.liteMode = input.liteMode;
   if (typeof input.autoSkipIntro === "boolean") out.autoSkipIntro = input.autoSkipIntro;
   if (typeof input.playThemeSong === "boolean") out.playThemeSong = input.playThemeSong;
+  if (typeof input.watchPosterTheme === "boolean") out.watchPosterTheme = input.watchPosterTheme;
   if (input.uiFontScale === "small" || input.uiFontScale === "default" || input.uiFontScale === "large") {
     out.uiFontScale = input.uiFontScale;
   }

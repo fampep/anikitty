@@ -80,6 +80,7 @@ const Layout = (props: Props) => {
   const router = useRouter();
   const theatreMode = useSettingsStore((s) => s.theatreMode);
   const watchLayout = useSettingsStore((s) => s.watchLayout);
+  const watchPosterTheme = useSettingsStore((s) => s.watchPosterTheme);
   useTheatreModeEffects(theatreMode);
 
   const isTheaterLayout = !theatreMode && watchLayout === "theater";
@@ -431,10 +432,10 @@ const Layout = (props: Props) => {
       setMobilePlaylistOpen={setMobilePlaylistOpen}
     >
     <div className="relative min-h-screen">
-    {!theatreMode ? (
+    {!theatreMode && watchPosterTheme ? (
       <HomeAmbientBackdrop
         imageUrl={info.poster || mappingData?.images?.poster}
-        variant="page"
+        variant="watch"
       />
     ) : null}
     {theatreMode && (
