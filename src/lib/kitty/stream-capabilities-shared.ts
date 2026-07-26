@@ -104,7 +104,9 @@ export function capabilitiesFromProbes(
       const subKey = streamFileIdentity(subProbe?.file);
       const dubKey = streamFileIdentity(dubProbe?.file);
       if (subKey && dubKey && subKey === dubKey) {
-        hasDub = false;
+        // Same playlist can still be multi-audio (JA+EN) — keep dub when flagged.
+        const multi = Boolean(subProbe?.multiAudio || dubProbe?.multiAudio);
+        if (!multi) hasDub = false;
       }
     }
   }
