@@ -4,44 +4,50 @@ import { cn } from "@/lib/core/utils";
 
 type AudioPillType = "sub" | "dub" | "hardsub";
 
-const PILL_STYLES: Record<AudioPillType, string> = {
-  sub: "bg-sky-600/90 text-sky-50",
-  dub: "bg-violet-600/90 text-violet-50",
-  hardsub: "bg-amber-600/90 text-amber-50",
-};
-
-const PILL_ICON = {
+const ICON = {
   sub: Captions,
   dub: Mic,
   hardsub: Flame,
 } as const;
 
+/** Soft icon colors — same language as the watch episode list. */
+const TONE: Record<AudioPillType, string> = {
+  sub: "text-sky-400",
+  dub: "text-violet-400",
+  hardsub: "text-amber-400",
+};
+
 /**
- * Sub / Hardsub / Dub count pill with Lucide icons.
- * Solid fill (no backdrop-blur) so dense grids stay cheaper to paint.
+ * Icon + count, no chip background — matches episode-list marks on watch.
  */
 export const AudioPill = memo(function AudioPill({
   type,
   count,
+  size = "md",
 }: {
   type: AudioPillType;
   count: number;
+  size?: "sm" | "md";
 }) {
-  const Icon = PILL_ICON[type];
+  const Icon = ICON[type];
+  const iconSize = size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3";
+  const textSize = size === "sm" ? "text-[9px]" : "text-[10px]";
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-bold tabular-nums leading-none",
-        PILL_STYLES[type],
+        "inline-flex items-center gap-0.5 font-semibold tabular-nums leading-none tracking-tight",
+        TONE[type],
+        textSize,
       )}
     >
-      <Icon className="h-2.5 w-2.5 shrink-0 opacity-90" aria-hidden />
+      <Icon className={cn(iconSize, "shrink-0")} strokeWidth={2.25} aria-hidden />
       {count}
     </span>
   );
 });
 
-/** Poster overlay: Sub + Hardsub + Dub totals. */
+/** Poster / catalog cluster: Sub · Hardsub · Dub with light shadow for contrast on art. */
 export const PosterAudioBadges = memo(function PosterAudioBadges({
   sub,
   dub,
@@ -62,7 +68,7 @@ export const PosterAudioBadges = memo(function PosterAudioBadges({
   return (
     <div
       className={cn(
-        "flex items-center gap-0.5 rounded-md bg-black/75 px-1 py-0.5 ring-1 ring-white/10",
+        "flex items-center gap-1.5 [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.9))]",
         className,
       )}
     >
@@ -73,7 +79,7 @@ export const PosterAudioBadges = memo(function PosterAudioBadges({
   );
 });
 
-/** Inline catalog row of Sub / Hardsub / Dub pills. */
+/** Inline catalog row (same marks, no poster shadow). */
 export const AudioCountBadge = memo(function AudioCountBadge({
   sub,
   dub,
@@ -85,23 +91,29 @@ export const AudioCountBadge = memo(function AudioCountBadge({
   hardsub?: number | null;
   className?: string;
 }) {
+  const subCount = sub ?? 0;
+  const dubCount = dub ?? 0;
+  const hardCount = hardsub ?? (subCount > 0 ? subCount : 0);
+  if (subCount <= 0 && dubCount <= 0 && hardCount <= 0) return null;
+
   return (
-    <PosterAudioBadges
-      sub={sub}
-      dub={dub}
-      hardsub={hardsub}
-      className={cn("static", className)}
-    />
+    <div className={cn("flex items-center gap-1.5", className)}>
+      {subCount > 0 ? <AudioPill type="sub" count={subCount} size="sm" /> : null}
+      {hardCount > 0 ? <AudioPill type="hardsub" count={hardCount} size="sm" /> : null}
+      {dubCount > 0 ? <AudioPill type="dub" count={dubCount} size="sm" /> : null}
+    </div>
   );
 });
 
-/** Episode presence icons (Captions / Flame / Mic) without counts. */
+/** Watch episode list marks — bare icons, no backgrounds. */
 export const EpisodeAudioMarks = memo(function EpisodeAudioMarks({
   episodeNumber,
   subOrDub,
+  className,
 }: {
   episodeNumber: number;
   subOrDub?: { sub: number; dub: number } | null;
+  className?: string;
 }) {
   if (!subOrDub) return null;
   const hasSub = episodeNumber <= subOrDub.sub;
@@ -109,14 +121,21 @@ export const EpisodeAudioMarks = memo(function EpisodeAudioMarks({
   if (!hasSub && !hasDub) return null;
 
   return (
-    <span className="inline-flex items-center gap-0.5" aria-hidden>
+    <span
+      className={cn("inline-flex items-center gap-1", className)}
+      aria-label={[hasSub ? "Sub" : null, hasSub ? "Hardsub" : null, hasDub ? "Dub" : null]
+        .filter(Boolean)
+        .join(", ")}
+    >
       {hasSub ? (
         <>
-          <Captions className="h-3 w-3 text-sky-400/80" />
-          <Flame className="h-3 w-3 text-amber-400/80" />
+          <Captions className="h-3 w-3 text-sky-400" strokeWidth={2.25} aria-hidden />
+          <Flame className="h-3 w-3 text-amber-400" strokeWidth={2.25} aria-hidden />
         </>
       ) : null}
-      {hasDub ? <Mic className="h-3 w-3 text-violet-400/80" /> : null}
+      {hasDub ? (
+        <Mic className="h-3 w-3 text-violet-400" strokeWidth={2.25} aria-hidden />
+      ) : null}
     </span>
   );
 });

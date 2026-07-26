@@ -232,35 +232,6 @@ body {
     @apply rounded-xl transition-all hover:brightness-[0.97] dark:hover:brightness-110;
   }
 
-  /* Dense Sub/Dub counts — one shared chrome class for catalog/episode grids */
-  .audio-count-badge {
-    display: inline-block;
-    border-radius: 0.25rem;
-    background: rgba(0, 0, 0, 0.78);
-    padding: 0.125rem 0.3125rem;
-    font-size: 9px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.15;
-    letter-spacing: 0.02em;
-    color: rgba(255, 255, 255, 0.88);
-    white-space: nowrap;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
-  }
-
-  .audio-ep-marks {
-    display: inline-block;
-    border-radius: 0.25rem;
-    background: rgba(0, 0, 0, 0.65);
-    padding: 0.0625rem 0.25rem;
-    font-size: 8px;
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: 0.04em;
-    color: rgba(255, 255, 255, 0.75);
-    white-space: nowrap;
-  }
-
   .home-glass-panel {
     @apply border-0 bg-transparent;
   }

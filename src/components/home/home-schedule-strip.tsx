@@ -150,25 +150,16 @@ export default function HomeScheduleStrip() {
                   <p className="text-[12px] font-semibold text-foreground/85 dark:text-white/75 group-hover:text-foreground dark:group-hover:text-white truncate leading-tight">
                     {item.name}
                   </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30">{t("home.episode", { n: item.episode })}</p>
                     {hasSub ? (
-                      <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase bg-sky-600/90 text-sky-50">
-                        <Captions className="h-2 w-2" aria-hidden />
-                        {t("card.sub")}
-                      </span>
-                    ) : null}
-                    {hasSub ? (
-                      <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase bg-amber-600/90 text-amber-50">
-                        <Flame className="h-2 w-2" aria-hidden />
-                        HS
+                      <span className="inline-flex items-center gap-1" aria-label={`${t("card.sub")}, Hardsub`}>
+                        <Captions className="h-3 w-3 text-sky-400" strokeWidth={2.25} aria-hidden />
+                        <Flame className="h-3 w-3 text-amber-400" strokeWidth={2.25} aria-hidden />
                       </span>
                     ) : null}
                     {hasDub ? (
-                      <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase bg-violet-600/90 text-violet-50">
-                        <Mic className="h-2 w-2" aria-hidden />
-                        {t("card.dub")}
-                      </span>
+                      <Mic className="h-3 w-3 text-violet-400" strokeWidth={2.25} aria-label={t("card.dub")} />
                     ) : null}
                   </div>
                 </div>

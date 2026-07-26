@@ -75,42 +75,30 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
         >
           {anime.name}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-1">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
             {t("home.episode", { n: anime.episode })}
           </span>
           {hasSub ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none bg-sky-600/90 text-sky-50",
-                compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
-              )}
-            >
-              <Captions className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} aria-hidden />
-              {t("card.sub")}
-            </span>
-          ) : null}
-          {hasSub ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none bg-amber-600/90 text-amber-50",
-                compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
-              )}
-            >
-              <Flame className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} aria-hidden />
-              HS
+            <span className="inline-flex items-center gap-1" aria-label={`${t("card.sub")}, Hardsub`}>
+              <Captions
+                className={cn("text-sky-400", compact ? "h-2.5 w-2.5" : "h-3 w-3")}
+                strokeWidth={2.25}
+                aria-hidden
+              />
+              <Flame
+                className={cn("text-amber-400", compact ? "h-2.5 w-2.5" : "h-3 w-3")}
+                strokeWidth={2.25}
+                aria-hidden
+              />
             </span>
           ) : null}
           {hasDub ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none bg-violet-600/90 text-violet-50",
-                compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
-              )}
-            >
-              <Mic className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} aria-hidden />
-              {t("card.dub")}
-            </span>
+            <Mic
+              className={cn("text-violet-400", compact ? "h-2.5 w-2.5" : "h-3 w-3")}
+              strokeWidth={2.25}
+              aria-label={t("card.dub")}
+            />
           ) : null}
         </div>
       </div>
