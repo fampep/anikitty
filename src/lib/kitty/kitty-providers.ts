@@ -19,6 +19,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Animex",
   "Miruro",
   "AnimeGG",
+  "AnimeHeaven",
   "Yenime",
   "Lunar",
   "FlixCloud",
@@ -58,6 +59,7 @@ export const KITTY_PROVIDERS = [
   "Animex",
   "Miruro",
   "AnimeGG",
+  "AnimeHeaven",
   "Yenime",
   "Lunar",
   "FlixCloud",
@@ -207,6 +209,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · hard subs",
   },
   {
+    id: "AnimeHeaven",
+    label: "Heaven",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: false,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · hard subs",
+  },
+  {
     id: "Yenime",
     label: "Yen",
     group: "featured",
@@ -325,6 +339,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Animex",
   "Miruro",
   "AnimeGG",
+  "AnimeHeaven",
   "Yenime",
   "Lunar",
   "FlixCloud",
@@ -384,6 +399,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Bravo") return "MKissa";
   if (value === "Luna") return "Lunar";
   if (value === "Flix") return "FlixCloud";
+  if (value === "Heaven") return "AnimeHeaven";
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";

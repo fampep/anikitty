@@ -434,7 +434,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 70,
+      version: 71,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -945,6 +945,23 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 70) {
           // Mirrored poster ambient on watch — on by default (dark look).
           next.watchPosterTheme = next.watchPosterTheme ?? true;
+        }
+        if (version < 71) {
+          // AnimeHeaven (Heaven) sits right after GG.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "AnimeHeaven");
+          const ggAt = without.indexOf("AnimeGG");
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt = ggAt >= 0 ? ggAt + 1 : hqAt >= 0 ? hqAt + 1 : 1;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "AnimeHeaven",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },
