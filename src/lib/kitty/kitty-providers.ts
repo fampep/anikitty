@@ -174,11 +174,11 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
-    hardSub: true,
+    hardSub: false,
     nativeSubs: true,
     kittySubs: false,
     supportsMulti: true,
-    hint: "SUB · DUB · soft · hard · multi",
+    hint: "SUB · DUB · soft · multi",
   },
   {
     id: "Miruro",
@@ -224,7 +224,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsSub: true,
     supportsDub: true,
     softSub: true,
-    hardSub: true,
+    hardSub: false,
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · Vermillion · FlixCloud sv-2",
@@ -465,9 +465,17 @@ export function providerIsHardSubOnly(provider: KittyProvider): boolean {
 
 /**
  * Soft sub · Hard Subs · Dub rows.
- * Hard-only providers (GG, HQ, Bravo, …) list under Hard Subs only.
- * Dual soft+hard (Gamma, Guard, Kilo, …) appear under Soft and Hard Subs.
+ * Hard-only (GG, HQ, Bravo, …) → Hard Subs only.
+ * Dual soft+hard with real hard servers (Gamma, Guard, Kilo, Echo) → both rows.
+ * Soft-only / soft-primary (Juliet, Whiskey, Xray, Luna, …) → Soft only.
  */
+const DUAL_HARD_SUB_PROVIDER_IDS = new Set([
+  "AniNeko",
+  "Senshi",
+  "Anikoto",
+  "Miruro",
+]);
+
 export function kittyProvidersForAudioMode(
   mode: ProviderAudioMode,
   opts?: { includeAdult?: boolean },
@@ -477,7 +485,9 @@ export function kittyProvidersForAudioMode(
     if (!opts?.includeAdult && p.adultOnly) return false;
     if (normalized === "dub") return p.supportsDub === true;
     if (normalized === "hardsub") {
-      return p.hardSub === true;
+      if (p.hardSub !== true) return false;
+      if (p.softSub !== true) return true; // hard-only
+      return DUAL_HARD_SUB_PROVIDER_IDS.has(p.id);
     }
     if (normalized === "sub") {
       if (p.supportsSub === false) return false;

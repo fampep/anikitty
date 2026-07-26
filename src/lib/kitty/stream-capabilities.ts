@@ -1,10 +1,10 @@
-import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
+import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamAudio, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
 import {
   EMPTY_STREAM_CAPABILITIES,
-  applyProviderHardSubMeta,
   capabilitiesFromProbes,
   mergeEpisodeStreamCapabilities,
   mergeStreamCapabilities,
+  providerMetaForCaps,
   type EpisodeStreamCapabilities,
   type StreamCapabilities,
   type StreamCapabilityTarget,
@@ -97,6 +97,7 @@ async function mapWithConcurrency<T, R>(
 type StreamProbeResult = {
   hasFile: boolean;
   file?: string;
+  servedAudio?: "sub" | "dub";
   subtitleTracks: number;
   multiAudio?: boolean;
 };
@@ -107,13 +108,15 @@ function countSubtitleTracks(tracks: unknown): number {
 }
 
 function probeResultFromPayload(
-  parsed: { file?: string; tracks?: unknown } | null,
+  parsed: { file?: string; tracks?: unknown; audio?: "sub" | "dub" } | null,
+  raw: unknown,
   multiAudio?: boolean,
 ): StreamProbeResult {
   if (!parsed?.file) return { hasFile: false, subtitleTracks: 0 };
   return {
     hasFile: true,
     file: parsed.file,
+    servedAudio: parsed.audio ?? parseKittyStreamAudio(raw),
     subtitleTracks: countSubtitleTracks(parsed.tracks),
     multiAudio: Boolean(multiAudio),
   };
@@ -150,6 +153,7 @@ async function probeStreamDirect(
     const parsed = parseKittyStreamJson(data, res.ok);
     return probeResultFromPayload(
       parsed,
+      data,
       Boolean(
         (data as Record<string, unknown>).multiAudio ??
           (data as Record<string, unknown>).dualAudio ??
@@ -188,8 +192,8 @@ async function probeDirectProviderCapabilities(
     probeStreamDirect(provider, anilistId, episode, "sub", title),
     probeStreamDirect(provider, anilistId, episode, "dub", title),
   ]);
-  const caps = capabilitiesFromProbes(subProbe, dubProbe);
-  return applyProviderHardSubMeta(provider, caps);
+  const caps = capabilitiesFromProbes(subProbe, dubProbe, providerMetaForCaps(provider));
+  return caps;
 }
 
 const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(

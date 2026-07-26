@@ -16,6 +16,7 @@ import {
 export {
   buildKittyAutoStreamPath,
   buildKittyStreamDirectPath,
+  parseKittyStreamAudio,
   parseKittyStreamJson,
   kittyApiHeaders,
   kittyApiPath,

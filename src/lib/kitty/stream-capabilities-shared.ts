@@ -1,8 +1,11 @@
 import type { AllanimeKittyServer, AllanimeMirrorId } from "@/lib/providers/allanime-config";
 import type { AnisnatchServerId } from "@/lib/providers/anisnatch-config";
 import {
+  getKittyProviderMeta,
   normalizeProviderAudioMode,
   providerHasHardSub,
+  providerHasSoftSub,
+  providerIsHardSubOnly,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -52,38 +55,105 @@ export function mergeStreamCapabilities(...items: StreamCapabilities[]): StreamC
 type StreamProbeResult = {
   hasFile: boolean;
   file?: string;
+  /** Declared stream audio from KittyAPI when present. */
+  servedAudio?: "sub" | "dub";
   subtitleTracks: number;
   multiAudio?: boolean;
 };
 
+/** Compare stream URLs ignoring proxy/query tokens that differ per request. */
+export function streamFileIdentity(file: string | undefined | null): string {
+  if (!file) return "";
+  try {
+    const u = new URL(file);
+    return `${u.hostname}${u.pathname}`.toLowerCase();
+  } catch {
+    return file.split("?")[0]?.toLowerCase() ?? "";
+  }
+}
+
+export type ProviderSubMeta = {
+  softSub?: boolean;
+  hardSub?: boolean;
+};
+
+/**
+ * Build episode caps from sub/dub probes.
+ * - DUB only when the dub probe is a real distinct stream (not the same file / not served as sub).
+ * - Hard/soft from provider meta + tracks — soft-only sources never become hardsubs when tracks are missing.
+ */
 export function capabilitiesFromProbes(
   subProbe: StreamProbeResult | null,
   dubProbe: StreamProbeResult | null,
+  meta?: ProviderSubMeta,
 ): StreamCapabilities {
   const hasSub = subProbe?.hasFile ?? false;
-  const hasDub = dubProbe?.hasFile ?? false;
-  const softSub = (subProbe?.subtitleTracks ?? 0) > 0 || (dubProbe?.subtitleTracks ?? 0) > 0;
-  const sameFile =
-    hasSub && hasDub && !!subProbe?.file && subProbe.file === dubProbe?.file;
+  let hasDub = dubProbe?.hasFile ?? false;
+
+  // Provider returned a file for ?audio=dub but it is the sub stream (or labeled sub).
+  if (hasDub) {
+    if (dubProbe?.servedAudio === "sub") {
+      hasDub = false;
+    } else if (hasSub) {
+      const subKey = streamFileIdentity(subProbe?.file);
+      const dubKey = streamFileIdentity(dubProbe?.file);
+      if (subKey && dubKey && subKey === dubKey) {
+        hasDub = false;
+      }
+    }
+  }
+
+  const softTracks =
+    (subProbe?.subtitleTracks ?? 0) > 0 || (dubProbe?.subtitleTracks ?? 0) > 0;
+  const metaSoft = meta?.softSub === true;
+  const metaHard = meta?.hardSub === true;
+  const hardOnly = metaHard && !metaSoft;
+  const softOnly = metaSoft && !metaHard;
+  const dual = metaSoft && metaHard;
+
+  let softSub = false;
+  let hardSub = false;
+  if (hasSub) {
+    if (hardOnly) {
+      hardSub = true;
+    } else if (softOnly) {
+      softSub = true;
+    } else if (dual) {
+      softSub = true;
+      hardSub = true;
+    } else if (metaHard) {
+      hardSub = true;
+      softSub = softTracks;
+    } else if (metaSoft) {
+      softSub = true;
+    } else {
+      // Unknown meta: treat as soft — never invent hardsubs from missing tracks.
+      softSub = true;
+      hardSub = false;
+    }
+  }
+  if (softTracks && !hardOnly) softSub = true;
 
   return {
     sub: hasSub,
     dub: hasDub,
-    multi: sameFile || (hasSub && hasDub && Boolean(subProbe?.multiAudio)),
+    multi: Boolean(hasSub && hasDub && (subProbe?.multiAudio || dubProbe?.multiAudio)),
     softSub,
-    // Hard-only when no soft tracks; dual soft+hard providers set hardSub via meta overlay.
-    hardSub: hasSub && !softSub,
+    hardSub,
   };
 }
 
-/** Overlay static provider meta so dual soft+hard sources (Gamma, …) expose hardSub. */
+/** No-op kept for older call sites; caps come from probe + meta in capabilitiesFromProbes. */
 export function applyProviderHardSubMeta(
-  provider: KittyProvider,
+  _provider: KittyProvider,
   caps: StreamCapabilities,
 ): StreamCapabilities {
-  if (!providerHasHardSub(provider)) return caps;
-  if (!caps.sub && !caps.softSub && !caps.hardSub) return caps;
-  return { ...caps, hardSub: true };
+  return caps;
+}
+
+export function providerMetaForCaps(provider: KittyProvider): ProviderSubMeta {
+  const m = getKittyProviderMeta(provider);
+  return { softSub: m.softSub === true, hardSub: m.hardSub === true };
 }
 
 export function mergeEpisodeStreamCapabilities(
@@ -135,15 +205,20 @@ export function providerVisibleInAudioMode(
   if (normalized === "hardsub") {
     if (!providerHasHardSub(provider)) return false;
     if (!caps) return true;
-    return supportsStreamAudioMode(caps, "sub");
+    return (
+      caps.hardSub === true ||
+      (supportsStreamAudioMode(caps, "sub") && providerIsHardSubOnly(provider))
+    );
   }
 
   if (!caps) return true;
 
   if (normalized === "dub") return supportsStreamAudioMode(caps, "dub");
   if (normalized === "sub") {
-    // Soft sub row: playable sub that is not hard-only for this episode.
-    return supportsStreamAudioMode(caps, "sub") && !(caps.hardSub && !caps.softSub);
+    if (!supportsStreamAudioMode(caps, "sub")) return false;
+    if (providerIsHardSubOnly(provider)) return false;
+    if (caps.hardSub && !caps.softSub && !providerHasSoftSub(provider)) return false;
+    return true;
   }
 
   return false;
@@ -168,8 +243,8 @@ export function supportsStreamAudioMode(
   audio: "sub" | "dub",
 ): boolean {
   if (!caps) return false;
-  if (audio === "dub") return caps.dub || caps.multi;
-  return caps.sub || caps.softSub || caps.hardSub || caps.multi;
+  if (audio === "dub") return caps.dub === true;
+  return caps.sub || caps.softSub || caps.hardSub;
 }
 
 export function canToggleStreamAudio(

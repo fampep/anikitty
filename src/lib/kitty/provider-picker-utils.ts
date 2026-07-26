@@ -12,7 +12,6 @@ export function buildAvailableProviderSet(
 ): Set<KittyProvider> | null {
   if (!caps?.providers || Object.keys(caps.providers).length === 0) return null;
   const out = new Set<KittyProvider>();
-  const audio = mode === "dub" ? "dub" : "sub";
   for (const [id, row] of Object.entries(caps.providers)) {
     if (mode === "hardsub") {
       if (row.hardSub) {
@@ -26,16 +25,16 @@ export function buildAvailableProviderSet(
       }
       continue;
     }
-    if (supportsStreamAudioMode(row, audio)) {
+    // Dub: require a real distinct dub probe — never treat multi-only as dub.
+    if (row.dub) {
       out.add(id as KittyProvider);
       continue;
     }
-    // MKissa provider-level caps can lag mirrors — treat any playable mirror as available.
+    // MKissa provider-level caps can lag mirrors — treat any playable dub mirror as available.
     if (id === "MKissa" && caps.mkissaServers) {
-      const mirrorHit = Object.values(caps.mkissaServers).some((m) =>
-        supportsStreamAudioMode(m, audio),
-      );
-      if (mirrorHit) out.add(id as KittyProvider);
+      if (Object.values(caps.mkissaServers).some((m) => Boolean(m?.dub))) {
+        out.add(id as KittyProvider);
+      }
     }
   }
   return out.size > 0 ? out : null;
@@ -73,7 +72,6 @@ export function isProviderAvailableForMode(
   caps: EpisodeStreamCapabilities | undefined,
 ): boolean {
   if (!caps?.providers) return true;
-  const audio = mode === "dub" ? "dub" : "sub";
   const row = caps.providers[provider];
   if (mode === "hardsub") {
     if (row?.hardSub) return true;
@@ -86,10 +84,10 @@ export function isProviderAvailableForMode(
     if (row && supportsStreamAudioMode(row, "sub") && !(row.hardSub && !row.softSub)) return true;
     return false;
   }
-  if (row && supportsStreamAudioMode(row, audio)) return true;
+  // Dub row
+  if (row?.dub) return true;
   if (provider === "MKissa" && caps.mkissaServers) {
-    return Object.values(caps.mkissaServers).some((m) => supportsStreamAudioMode(m, audio));
+    return Object.values(caps.mkissaServers).some((m) => Boolean(m?.dub));
   }
-  if (!row) return false;
-  return supportsStreamAudioMode(row, audio);
+  return false;
 }

@@ -264,9 +264,9 @@ function buildAnisnatchServerCapabilities(
   return {
     sub: inSub,
     dub: inDub,
-    multi: inSub && inDub,
-    softSub: false,
-    hardSub: inSub,
+    multi: false,
+    softSub: inSub,
+    hardSub: false,
   };
 }
 
