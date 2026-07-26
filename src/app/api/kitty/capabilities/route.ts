@@ -1,6 +1,5 @@
 import {
   fetchActiveProviderStreamCapabilities,
-  fetchEpisodeStreamCapabilities,
   fetchFeaturedEpisodeStreamCapabilities,
   fetchRestEpisodeStreamCapabilities,
   parseStreamCapabilityTarget,
@@ -36,14 +35,13 @@ export async function GET(req: Request) {
 
   try {
     if (scope === "episode") {
+      // Never run featured+rest together — that peaks ~10 full stream JSON bodies.
       const capabilities =
-        tier === "featured"
-          ? await fetchFeaturedEpisodeStreamCapabilities(anilistId, episode, title)
-          : tier === "rest"
-            ? await fetchRestEpisodeStreamCapabilities(anilistId, episode, title)
-            : await fetchEpisodeStreamCapabilities(anilistId, episode, title);
+        tier === "rest"
+          ? await fetchRestEpisodeStreamCapabilities(anilistId, episode, title)
+          : await fetchFeaturedEpisodeStreamCapabilities(anilistId, episode, title);
       return Response.json(capabilities, {
-        headers: { "Cache-Control": "private, max-age=300" },
+        headers: { "Cache-Control": "private, max-age=180" },
       });
     }
 

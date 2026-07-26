@@ -57,11 +57,11 @@ const EMPTY_MULTI_SERVER_FIELDS = {
   mkissaServerRows: [] as AllanimeKittyServer[],
 };
 
-const PROBE_TIMEOUT_MS = 16_000;
+const PROBE_TIMEOUT_MS = 12_000;
 /** Keep capability fan-out light — each probe holds stream JSON in memory. */
-const DIRECT_PROBE_CONCURRENCY = 3;
+const DIRECT_PROBE_CONCURRENCY = 2;
 /** First-pass probes: top of site priority only (rest deferred to `tier=rest`). */
-const FEATURED_PROBE_LIMIT = 6;
+const FEATURED_PROBE_LIMIT = 4;
 
 /**
  * Multi-server providers are probed via `/servers` (mirrors / site lines).
@@ -188,12 +188,10 @@ async function probeDirectProviderCapabilities(
   episode: number,
   title?: string | null,
 ): Promise<StreamCapabilities> {
-  const [subProbe, dubProbe] = await Promise.all([
-    probeStreamDirect(provider, anilistId, episode, "sub", title),
-    probeStreamDirect(provider, anilistId, episode, "dub", title),
-  ]);
-  const caps = capabilitiesFromProbes(subProbe, dubProbe, providerMetaForCaps(provider));
-  return caps;
+  // Sequential sub→dub cuts peak concurrent stream JSON (was Promise.all).
+  const subProbe = await probeStreamDirect(provider, anilistId, episode, "sub", title);
+  const dubProbe = await probeStreamDirect(provider, anilistId, episode, "dub", title);
+  return capabilitiesFromProbes(subProbe, dubProbe, providerMetaForCaps(provider));
 }
 
 const DIRECT_PROBE_PROVIDERS = KITTY_PROVIDERS.filter(

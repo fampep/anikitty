@@ -17,6 +17,7 @@ import {
   getKittyStream,
   isKittyStreamAbortError,
   isKittyNodeFailoverError,
+  KITTY_STREAM_QUERY_KEY,
   KITTY_STREAM_STALE_MS,
   type KittyProvider,
   type KittyTrack,
@@ -71,6 +72,7 @@ import { toast } from "sonner";
 import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/watch-together/w2g-panel";
 import { useT } from "@/providers/i18n-provider";
+import { useEffectiveLiteMode } from "@/hooks/use-effective-lite-mode";
 import LoadingGirl from "@/components/common/loading-girl";
 import WatchErrorPanel from "@/components/watch/watch-error-panel";
 import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
@@ -153,6 +155,7 @@ const VideoPlayerSection = () => {
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
   const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, setSimpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider, watchLayout } = useSettingsStore();
+  const effectiveLiteMode = useEffectiveLiteMode();
   // Lightweight health probes — used only to skip known-dead nodes on failover, not for geo/ping routing.
   const { nodes: proxyNodes } = useKittyNodePing({
     enabled: true,
@@ -162,6 +165,14 @@ const VideoPlayerSection = () => {
   /** `auto` races; pin to a node for HLS remints / quality stickiness on the same episode. */
   const [streamKittyNode, setStreamKittyNode] = useState<KittyStreamNodeParam>("auto");
   const compactProviderPicker = simpleProviderPicker;
+
+  // Drop inactive stream / capability payloads when leaving the watch player.
+  useEffect(() => {
+    return () => {
+      queryClient.removeQueries({ queryKey: [KITTY_STREAM_QUERY_KEY], type: "inactive" });
+      queryClient.removeQueries({ queryKey: ["stream-capabilities"], type: "inactive" });
+    };
+  }, [queryClient]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1064,16 +1075,7 @@ const VideoPlayerSection = () => {
   // Skip on lite mode / low-memory devices — holds a full stream payload in React Query.
   useEffect(() => {
     if (!streamReady || !nextEpisode || !anilistId) return;
-    if (useSettingsStore.getState().liteMode) return;
-    const deviceMemory =
-      typeof navigator !== "undefined"
-        ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
-        : undefined;
-    if (typeof deviceMemory === "number" && deviceMemory <= 4) return;
-    const saveData =
-      typeof navigator !== "undefined" &&
-      Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
-    if (saveData) return;
+    if (effectiveLiteMode) return;
 
     const nextEpNo = String(nextEpisode.number);
     if (parseInt(nextEpNo, 10) <= 0) return;
@@ -1101,6 +1103,7 @@ const VideoPlayerSection = () => {
           preferHardSub,
         ),
       staleTime: KITTY_STREAM_STALE_MS,
+      gcTime: 5 * 60 * 1000,
     });
     }, 45_000);
 
@@ -1114,6 +1117,7 @@ const VideoPlayerSection = () => {
     animeTitle,
     preferHardSub,
     queryClient,
+    effectiveLiteMode,
   ]);
   const streamFailed =
     streamQueryEnabled &&

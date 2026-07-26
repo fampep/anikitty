@@ -54,8 +54,8 @@ export interface KittyStreamResponse {
 }
 
 /** Keep resolved streams briefly — long GC stacks episode/provider payloads in RAM. */
-export const KITTY_STREAM_STALE_MS = 30 * 60 * 1000;
-export const KITTY_STREAM_GC_MS = 90 * 60 * 1000;
+export const KITTY_STREAM_STALE_MS = 5 * 60 * 1000;
+export const KITTY_STREAM_GC_MS = 12 * 60 * 1000;
 
 export const getKittyStream = async (
   anilistId: number,

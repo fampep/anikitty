@@ -88,6 +88,7 @@ import {
   isWebGpuSupported,
 } from "@/lib/player/anime4k";
 import { useSettingsStore } from "@/store/settings-store";
+import { useEffectiveLiteMode } from "@/hooks/use-effective-lite-mode";
 import {
   IconButton,
   MenuItem,
@@ -466,7 +467,7 @@ export function AniKittyPlayer({
   const autoPlay = useSettingsStore((s) => s.autoPlay);
   const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
-  const liteMode = useSettingsStore((s) => s.liteMode);
+  const liteMode = useEffectiveLiteMode();
   const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
   const subtitleDelayOffset = useSettingsStore((s) => s.subtitleSettings.delayOffset);
   const autoSkipRef = useRef(autoSkipIntro);

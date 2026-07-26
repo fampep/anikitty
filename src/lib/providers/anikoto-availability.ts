@@ -85,7 +85,7 @@ type MemoryEntry = {
 };
 
 // Bounded LRU — oldest key evicts first.
-const MEMORY_CACHE_MAX = 2000;
+const MEMORY_CACHE_MAX = 400;
 const memoryCache = new Map<string, MemoryEntry>();
 
 function cacheContext(opts: AudioAvailabilityOpts): AudioCacheContext {
