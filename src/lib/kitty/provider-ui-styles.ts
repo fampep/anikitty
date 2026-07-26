@@ -142,26 +142,19 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-rose-400",
     glow: "from-rose-500/20",
   },
+  AnimeLok: {
+    chip: "border-orange-400/30 bg-orange-500/10 text-orange-100/90",
+    pillActive: "border-orange-400/45 bg-orange-500/20 text-orange-50 shadow-[0_0_12px_-4px_rgba(251,146,60,0.35)]",
+    pillIdle: "border-transparent text-orange-300/45 hover:text-orange-200/80 hover:bg-orange-500/[0.06]",
+    dot: "bg-orange-400",
+    glow: "from-orange-500/20",
+  },
   Yenime: {
     chip: "border-sky-400/30 bg-sky-500/10 text-sky-100/90",
     pillActive: "border-sky-400/45 bg-sky-500/20 text-sky-50 shadow-[0_0_12px_-4px_rgba(56,189,248,0.35)]",
     pillIdle: "border-transparent text-sky-300/45 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
     dot: "bg-sky-400",
     glow: "from-sky-500/20",
-  },
-  Lunar: {
-    chip: "border-indigo-400/30 bg-indigo-500/10 text-indigo-100/90",
-    pillActive: "border-indigo-400/45 bg-indigo-500/20 text-indigo-50 shadow-[0_0_12px_-4px_rgba(129,140,248,0.35)]",
-    pillIdle: "border-transparent text-indigo-300/45 hover:text-indigo-200/80 hover:bg-indigo-500/[0.06]",
-    dot: "bg-indigo-400",
-    glow: "from-indigo-500/20",
-  },
-  FlixCloud: {
-    chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
-    pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",
-    pillIdle: "border-transparent text-amber-300/45 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
-    dot: "bg-amber-400",
-    glow: "from-amber-500/20",
   },
   Zenkai: {
     chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",

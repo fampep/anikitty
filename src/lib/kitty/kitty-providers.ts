@@ -20,9 +20,8 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Miruro",
   "AnimeGG",
   "AnimeHeaven",
+  "AnimeLok",
   "Yenime",
-  "Lunar",
-  "FlixCloud",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
@@ -30,6 +29,8 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "KuroHost",
   "HentaiHaven",
   // Normalize-only aliases / legacy
+  "Lunar",
+  "FlixCloud",
   "MegaPlay",
   "AllAnime",
   "ReAnime",
@@ -60,9 +61,8 @@ export const KITTY_PROVIDERS = [
   "Miruro",
   "AnimeGG",
   "AnimeHeaven",
+  "AnimeLok",
   "Yenime",
-  "Lunar",
-  "FlixCloud",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
@@ -221,8 +221,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · hard subs",
   },
   {
-    id: "Yenime",
-    label: "Yen",
+    id: "AnimeLok",
+    label: "Lok",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -233,29 +233,16 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "Lunar",
-    label: "Luna",
+    id: "Yenime",
+    label: "Yen",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
     hardSub: false,
     nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · Vermillion · FlixCloud sv-2",
-  },
-  {
-    id: "FlixCloud",
-    label: "Flix",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "SUB · DUB · dual audio · site Referer proxy",
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "Anikoto",
@@ -340,9 +327,8 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Miruro",
   "AnimeGG",
   "AnimeHeaven",
+  "AnimeLok",
   "Yenime",
-  "Lunar",
-  "FlixCloud",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
@@ -379,8 +365,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "KickAssAnime",
   "KuroHost",
   "Yenime",
-  "Lunar",
-  "FlixCloud",
+  "AnimeLok",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -397,9 +382,12 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   // UI label mistaken as provider id.
   if (value === "Xray") return "Animex";
   if (value === "Bravo") return "MKissa";
-  if (value === "Luna") return "Lunar";
-  if (value === "Flix") return "FlixCloud";
   if (value === "Heaven") return "AnimeHeaven";
+  if (value === "Lok") return "AnimeLok";
+  // Luna / Flix retired — unreliable streams.
+  if (value === "Luna" || value === "Lunar" || value === "Flix" || value === "FlixCloud") {
+    return DEFAULT_KITTY_PROVIDER;
+  }
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
@@ -484,7 +472,7 @@ export function providerIsHardSubOnly(provider: KittyProvider): boolean {
  * Soft sub · Hard Subs · Dub rows.
  * Hard-only (GG, HQ, Bravo, …) → Hard Subs only.
  * Dual soft+hard with real hard servers (Gamma, Guard, Kilo, Echo) → both rows.
- * Soft-only / soft-primary (Juliet, Whiskey, Xray, Luna, …) → Soft only.
+ * Soft-only / soft-primary (Juliet, Whiskey, Xray, …) → Soft only.
  */
 const DUAL_HARD_SUB_PROVIDER_IDS = new Set([
   "AniNeko",

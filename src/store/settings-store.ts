@@ -434,7 +434,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 71,
+      version: 73,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -956,6 +956,39 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.providerOrder = sanitizeProviderOrder([
             ...without.slice(0, insertAt),
             "AnimeHeaven",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
+        }
+        if (version < 72) {
+          // Drop Lunar (Luna) + FlixCloud (Flix) — unreliable / offline.
+          next.providerOrder = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
+        }
+        if (version < 73) {
+          // AnimeLok (Lok) sits right after Heaven.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "AnimeLok");
+          const heavenAt = without.indexOf("AnimeHeaven");
+          const ggAt = without.indexOf("AnimeGG");
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt =
+            heavenAt >= 0
+              ? heavenAt + 1
+              : ggAt >= 0
+                ? ggAt + 1
+                : hqAt >= 0
+                  ? hqAt + 1
+                  : 1;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "AnimeLok",
             ...without.slice(insertAt),
           ]);
           next.defaultProvider = sanitizeDefaultProvider(
