@@ -142,6 +142,20 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-sky-400",
     glow: "from-sky-500/20",
   },
+  Lunar: {
+    chip: "border-indigo-400/30 bg-indigo-500/10 text-indigo-100/90",
+    pillActive: "border-indigo-400/45 bg-indigo-500/20 text-indigo-50 shadow-[0_0_12px_-4px_rgba(129,140,248,0.35)]",
+    pillIdle: "border-transparent text-indigo-300/45 hover:text-indigo-200/80 hover:bg-indigo-500/[0.06]",
+    dot: "bg-indigo-400",
+    glow: "from-indigo-500/20",
+  },
+  FlixCloud: {
+    chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
+    pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",
+    pillIdle: "border-transparent text-amber-300/45 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    dot: "bg-amber-400",
+    glow: "from-amber-500/20",
+  },
   Zenkai: {
     chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
     pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",

@@ -431,7 +431,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 66,
+      version: 67,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -907,6 +907,26 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Force the published site order for every saved profile.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
+        }
+        if (version < 67) {
+          // Lunar (Luna) + FlixCloud (Flix) after Yen.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "Lunar" && id !== "FlixCloud");
+          const yenAt = without.indexOf("Yenime");
+          const ggAt = without.indexOf("AnimeGG");
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt =
+            yenAt >= 0 ? yenAt + 1 : ggAt >= 0 ? ggAt + 1 : hqAt >= 0 ? hqAt + 1 : 1;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "Lunar",
+            "FlixCloud",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },

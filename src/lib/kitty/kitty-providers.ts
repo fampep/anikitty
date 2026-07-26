@@ -20,6 +20,8 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Miruro",
   "AnimeGG",
   "Yenime",
+  "Lunar",
+  "FlixCloud",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
@@ -57,6 +59,8 @@ export const KITTY_PROVIDERS = [
   "Miruro",
   "AnimeGG",
   "Yenime",
+  "Lunar",
+  "FlixCloud",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
@@ -127,6 +131,31 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft · hard subs",
+  },
+  {
+    id: "Lunar",
+    label: "Luna",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · Vermillion · FlixCloud sv-2",
+  },
+  {
+    id: "FlixCloud",
+    label: "Flix",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · dual audio · site Referer proxy",
   },
   {
     id: "AniWaves",
@@ -214,6 +243,31 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
+    id: "Lunar",
+    label: "Luna",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · Vermillion · FlixCloud sv-2",
+  },
+  {
+    id: "FlixCloud",
+    label: "Flix",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · dual audio · site Referer proxy",
+  },
+  {
     id: "Anikoto",
     label: "Kilo",
     group: "featured",
@@ -296,6 +350,8 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Miruro",
   "AnimeGG",
   "Yenime",
+  "Lunar",
+  "FlixCloud",
   "Anikoto",
   "AniKuro",
   "AniSnatch",
@@ -332,6 +388,8 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "KickAssAnime",
   "KuroHost",
   "Yenime",
+  "Lunar",
+  "FlixCloud",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -348,6 +406,8 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   // UI label mistaken as provider id.
   if (value === "Xray") return "Animex";
   if (value === "Bravo") return "MKissa";
+  if (value === "Luna") return "Lunar";
+  if (value === "Flix") return "FlixCloud";
   if (value === "AniZone") return "AniNeko";
   if (value === "AllAnime") return "MKissa";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
