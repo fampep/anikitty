@@ -325,7 +325,7 @@ export async function GET(req: Request) {
     // Don't block first paint on Kitty /subs when the provider already shipped soft subs.
     // Warm the cache in the background so later episodes / language picks stay fast.
     // Juliet (AniWatch/AniZone) always races /subs too — dual-audio soft ASS is the /subs path.
-    let mut fetchedSubs: StreamTrack[] = [];
+    let fetchedSubs: StreamTrack[] = [];
     const subWarm = {
       ...playbackCtx,
       animeTitle: titleParam,
