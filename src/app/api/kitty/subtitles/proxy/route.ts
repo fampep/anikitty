@@ -1,7 +1,20 @@
 import { isAllowedMediaProxyUrl, sanitizeHeaderValue } from "@/lib/security/security";
 import { withKittyProxyAuthHeaders } from "@/lib/kitty/kitty-api-core";
+import { ensureWebVttForPlayback } from "@/lib/subtitles/ass-to-vtt";
 import { detectSubtitleFormat, subtitleContentType } from "@/lib/subtitles/subtitle-track-utils";
 import { sanitizeVttOrSrtContent } from "@/lib/subtitles/vtt-parse";
+
+function defaultRefererForSubtitleUrl(url: string): string | null {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.includes("vid-cdn.xyz") || host.includes("anizone")) {
+      return "https://anizone.to/";
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -18,7 +31,8 @@ export async function GET(req: Request) {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   };
 
-  const safeReferer = sanitizeHeaderValue(referer);
+  const safeReferer =
+    sanitizeHeaderValue(referer) || defaultRefererForSubtitleUrl(url);
   if (safeReferer) headers.Referer = safeReferer;
 
   try {
@@ -37,17 +51,24 @@ export async function GET(req: Request) {
       return new Response("Empty subtitle", { status: 404 });
     }
 
-    const format = detectSubtitleFormat({ url, content: raw });
+    const detected = detectSubtitleFormat({ url, content: raw });
+    const converted = ensureWebVttForPlayback({
+      content: raw,
+      url,
+      format: detected,
+    });
     const text =
-      format === "ass" ? raw : sanitizeVttOrSrtContent(raw);
+      converted.format === "vtt" || converted.format === "srt"
+        ? sanitizeVttOrSrtContent(converted.content)
+        : converted.content;
 
     return new Response(text, {
       status: 200,
       headers: {
-        "Content-Type": subtitleContentType(format),
+        "Content-Type": subtitleContentType(converted.format),
         "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
         "Access-Control-Allow-Origin": "*",
-        "X-Subtitle-Format": format,
+        "X-Subtitle-Format": converted.format,
       },
     });
   } catch {

@@ -1,4 +1,5 @@
 import { getStoredSubtitleById } from "@/lib/subtitles/subtitle-cache-store";
+import { ensureWebVttForPlayback } from "@/lib/subtitles/ass-to-vtt";
 import {
   buildSubtitleFilename,
   detectSubtitleFormat,
@@ -30,8 +31,23 @@ export async function GET(req: Request) {
     content: row.content,
   });
 
-  const format = detectSubtitleFormat({ label: row.label, content: row.content });
-  const body = format === "ass" ? row.content : sanitizeVttOrSrtContent(row.content);
+  const detected = detectSubtitleFormat({ label: row.label, content: row.content });
+
+  // Downloads keep original ASS; playback converts to WebVTT for <track>.
+  let format = detected;
+  let body = row.content;
+  if (!download) {
+    const converted = ensureWebVttForPlayback({
+      content: row.content,
+      label: row.label,
+      format: detected,
+    });
+    format = converted.format;
+    body =
+      converted.format === "vtt" || converted.format === "srt"
+        ? sanitizeVttOrSrtContent(converted.content)
+        : converted.content;
+  }
 
   const headers: Record<string, string> = {
     "Content-Type": subtitleContentType(format),

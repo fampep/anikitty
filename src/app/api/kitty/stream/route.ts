@@ -303,7 +303,16 @@ export async function GET(req: Request) {
     const inlineSubtitleTracks = (data.tracks ?? []).filter(isSubtitleTrack);
     const preserveInlineSubs = providerHasNativeSubs(providerName);
     const providerSubtitleTracks: StreamTrack[] = preserveInlineSubs
-      ? inlineSubtitleTracks.map((track) => proxyInlineSubtitle(track, data.headers))
+      ? inlineSubtitleTracks.map((track) => {
+          const headers =
+            providerName === "AniWatch"
+              ? {
+                  ...(data.headers ?? {}),
+                  Referer: data.headers?.Referer || data.headers?.referer || "https://anizone.to/",
+                }
+              : data.headers;
+          return proxyInlineSubtitle(track, headers);
+        })
       : [];
 
     data.tracks = stripSubtitleTracks(data.tracks);
