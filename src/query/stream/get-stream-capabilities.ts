@@ -10,8 +10,8 @@ import {
   type StreamCapabilityTarget,
 } from "@/lib/kitty/stream-capabilities-shared";
 
-const CAPABILITIES_STALE_MS = 3 * 60 * 1000;
-const CAPABILITIES_GC_MS = 8 * 60 * 1000;
+const CAPABILITIES_STALE_MS = 2 * 60 * 1000;
+const CAPABILITIES_GC_MS = 5 * 60 * 1000;
 /** Wait before long-tail probes so the active HLS session can settle. */
 const REST_PROBE_DELAY_MS = 22_000;
 

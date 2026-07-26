@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { Play, Star } from "lucide-react";
 import LazyPosterImage from "@/components/anime/lazy-poster-image";
@@ -14,7 +15,7 @@ type Props = {
   priority?: boolean;
 };
 
-export default function HomeClassicCard({ anime, href, priority }: Props) {
+const HomeClassicCard = memo(function HomeClassicCard({ anime, href, priority }: Props) {
   const rating = scoreLabel(anime.score);
   const linkHref = href ?? `${ROUTES.ANIME_DETAILS}/${anime.id}`;
   const sub = anime.episodes?.sub ?? 0;
@@ -26,7 +27,7 @@ export default function HomeClassicCard({ anime, href, priority }: Props) {
       className="home-classic-card group flex flex-col gap-2 min-w-0"
       draggable={false}
     >
-      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-white/5 ring-1 ring-border/40 dark:ring-white/[0.06]">
+      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-white/5 ring-1 ring-border/40 dark:ring-white/[0.06] [content-visibility:auto] [contain-intrinsic-size:auto_180px]">
         <LazyPosterImage
           src={anime.poster}
           alt={anime.name}
@@ -66,4 +67,6 @@ export default function HomeClassicCard({ anime, href, priority }: Props) {
       </div>
     </Link>
   );
-}
+});
+
+export default HomeClassicCard;

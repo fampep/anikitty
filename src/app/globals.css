@@ -228,6 +228,35 @@ body {
     @apply rounded-xl transition-all hover:brightness-[0.97] dark:hover:brightness-110;
   }
 
+  /* Dense Sub/Dub counts — one shared chrome class for catalog/episode grids */
+  .audio-count-badge {
+    display: inline-block;
+    border-radius: 0.25rem;
+    background: rgba(0, 0, 0, 0.78);
+    padding: 0.125rem 0.3125rem;
+    font-size: 9px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.88);
+    white-space: nowrap;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .audio-ep-marks {
+    display: inline-block;
+    border-radius: 0.25rem;
+    background: rgba(0, 0, 0, 0.65);
+    padding: 0.0625rem 0.25rem;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+  }
+
   .home-glass-panel {
     @apply border-0 bg-transparent;
   }
@@ -524,17 +553,17 @@ html.density-compact .site-bottom-nav {
 
 @layer components {
   .site-header {
-    @apply border-b border-border/40 bg-background/80 backdrop-blur-xl;
-    @apply dark:border-white/[0.08] dark:bg-background/80;
+    @apply border-b border-border/40 bg-background/95;
+    @apply dark:border-white/[0.08] dark:bg-background/95;
   }
 
   .site-bottom-nav {
-    @apply rounded-full border border-border/50 bg-background/90 shadow-[0_4px_24px_rgba(0,0,0,0.18)] backdrop-blur-2xl;
-    @apply dark:border-white/10 dark:bg-background/90 dark:shadow-[0_8px_32px_rgba(0,0,0,0.55)];
+    @apply rounded-full border border-border/50 bg-background/95 shadow-[0_4px_24px_rgba(0,0,0,0.18)];
+    @apply dark:border-white/10 dark:bg-background/95 dark:shadow-[0_8px_32px_rgba(0,0,0,0.55)];
   }
 
   .site-panel {
-    @apply rounded-xl border border-border/70 bg-card/90 backdrop-blur-md;
+    @apply rounded-xl border border-border/70 bg-card;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.8),
       0 4px 24px rgba(24, 24, 27, 0.06),

@@ -10,7 +10,7 @@ const homeQueryDefaults = {
   refetchOnWindowFocus: false,
   refetchOnMount: false,
   staleTime: 1000 * 60 * 5,
-  gcTime: 1000 * 60 * 12,
+  gcTime: 1000 * 60 * 6,
 } as const;
 
 function filterAdultList<T extends { isAdult?: boolean }>(

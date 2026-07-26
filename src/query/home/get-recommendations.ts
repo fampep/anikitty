@@ -17,7 +17,7 @@ export const useGetRecommendations = (enabled: boolean) =>
     queryFn: getRecommendations,
     enabled,
     staleTime: 1000 * 60 * 10,
-    gcTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 12,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

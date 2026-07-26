@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/core/utils";
+import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   imageUrl?: string | null;
@@ -10,56 +11,51 @@ type Props = {
   variant?: "hero" | "page";
 };
 
+/**
+ * Soft color wash behind hero / detail pages.
+ * Uses a tiny downscaled image (no CSS blur filter) so we don't keep a
+ * full-viewport blurred bitmap in GPU memory.
+ */
 export default function HomeAmbientBackdrop({
   imageUrl,
   className,
   variant = "hero",
 }: Props) {
+  const liteMode = useSettingsStore((s) => s.liteMode);
   const src = imageUrl?.trim();
-  if (!src) return null;
+  if (!src || liteMode) return null;
 
   return (
     <div
       className={cn(
         "pointer-events-none overflow-hidden",
         variant === "page"
-          ? "absolute inset-x-0 top-0 -z-10 h-[min(100%,960px)] min-h-[min(100dvh,880px)]"
-          : "absolute inset-x-0 top-0 -z-10 h-[min(var(--home-hero-max-h),720px)]",
+          ? "absolute inset-x-0 top-0 -z-10 h-[min(100%,720px)] min-h-[min(70dvh,640px)]"
+          : "absolute inset-x-0 top-0 -z-10 h-[min(var(--home-hero-max-h),560px)]",
         className,
       )}
       aria-hidden
     >
-      <div
-        className={cn(
-          "relative size-full scale-110",
-          variant === "page"
-            ? "blur-3xl brightness-[0.42] dark:brightness-[0.16] saturate-[1.05]"
-            : "blur-2xl brightness-[0.35] dark:brightness-[0.12]",
-        )}
-      >
+      <div className="absolute inset-0 opacity-50 dark:opacity-35">
         <Image
           src={src}
           alt=""
           fill
-          sizes="100vw"
+          sizes="20vw"
+          quality={35}
           className={cn(
-            "object-cover",
+            "object-cover scale-105 brightness-[0.55] dark:brightness-[0.28] saturate-[0.85]",
             variant === "page" ? "object-center" : "object-top",
           )}
-          priority={variant === "hero"}
+          // Never compete with the real hero poster for LCP.
+          priority={false}
         />
       </div>
       <div
         className={cn(
-          "absolute inset-0 bg-gradient-to-b from-transparent to-background dark:to-[#09090b]",
-          variant === "page"
-            ? "via-background/55 dark:via-[#09090b]/70"
-            : "via-background/40 dark:via-[#09090b]/60",
+          "absolute inset-0 bg-gradient-to-b from-background/30 via-background/70 to-background dark:from-[#09090b]/40 dark:via-[#09090b]/80 dark:to-[#09090b]",
         )}
       />
-      {variant === "page" ? (
-        <div className="absolute inset-0 bg-background/25 dark:bg-[#09090b]/35" />
-      ) : null}
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import React from "react";
 import { ROUTES } from "@/constants/routes";
 import AnimeCard from "@/components/anime/anime-card";
-import BlurFade from "@/components/ui/blur-fade";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetSearchAnimeResults } from "@/query/search/get-search-results";
 import Pagination from "@/components/common/pagination";
@@ -489,24 +488,23 @@ const SearchResults = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-          {searchResults?.animes.map((anime, idx) => (
-            <BlurFade key={anime.id} delay={idx * 0.04} inView>
-              <AnimeCard
-                title={anime.name}
-                subTitle={anime.type}
-                poster={anime.poster}
-                href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-                className="self-center justify-self-center w-full"
-                showGenre={false}
-                episodeCard
-                deferImage
-                sub={anime.episodes?.sub}
-                dub={anime.episodes?.dub}
-                score={anime.score}
-                year={anime.year}
-                status={anime.status}
-              />
-            </BlurFade>
+          {searchResults?.animes.map((anime) => (
+            <AnimeCard
+              key={anime.id}
+              title={anime.name}
+              subTitle={anime.type}
+              poster={anime.poster}
+              href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+              className="self-center justify-self-center w-full"
+              showGenre={false}
+              episodeCard
+              deferImage
+              sub={anime.episodes?.sub}
+              dub={anime.episodes?.dub}
+              score={anime.score}
+              year={anime.year}
+              status={anime.status}
+            />
           ))}
           {searchResults?.animes.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">

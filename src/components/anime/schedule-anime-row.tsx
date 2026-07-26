@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Film } from "lucide-react";
+import { Captions, Clock, Film, Flame, Mic } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 import { formatScheduleAiringLabel } from "@/lib/anime/schedule-format";
@@ -14,31 +14,6 @@ type Props = {
   compact?: boolean;
   watchHref?: string;
 };
-
-function ScheduleAudioBadge({
-  type,
-  compact,
-}: {
-  type: "sub" | "dub";
-  compact?: boolean;
-}) {
-  const t = useT();
-  const isSub = type === "sub";
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded font-bold uppercase leading-none",
-        compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
-        isSub
-          ? "bg-sky-600/85 text-sky-50"
-          : "bg-violet-600/85 text-violet-50",
-      )}
-    >
-      {isSub ? t("card.sub") : t("card.dub")}
-    </span>
-  );
-}
 
 export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
   const t = useT();
@@ -54,12 +29,14 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
   const thumbW = compact ? 40 : 48;
   const thumbH = compact ? 56 : 68;
   const audioTypes = anime.audio?.length ? anime.audio : (["sub"] as const);
+  const hasSub = audioTypes.includes("sub");
+  const hasDub = audioTypes.includes("dub");
 
   return (
     <Link
       href={href}
       className={cn(
-        "group flex items-center gap-3 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] transition-colors",
+        "group flex items-center gap-3 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02] transition-colors [content-visibility:auto] [contain-intrinsic-size:auto_72px]",
         "hover:border-white/16 hover:bg-muted/50 dark:bg-white/[0.04]",
         compact ? "px-2.5 py-2" : "px-3 py-2.5",
       )}
@@ -73,7 +50,7 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
             src={anime.poster}
             alt={anime.name}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover"
             unoptimized
             sizes={`${thumbW}px`}
           />
@@ -102,9 +79,39 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
           <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30">
             {t("home.episode", { n: anime.episode })}
           </span>
-          {audioTypes.map((type) => (
-            <ScheduleAudioBadge key={type} type={type} compact={compact} />
-          ))}
+          {hasSub ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none bg-sky-600/90 text-sky-50",
+                compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
+              )}
+            >
+              <Captions className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} aria-hidden />
+              {t("card.sub")}
+            </span>
+          ) : null}
+          {hasSub ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none bg-amber-600/90 text-amber-50",
+                compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
+              )}
+            >
+              <Flame className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} aria-hidden />
+              HS
+            </span>
+          ) : null}
+          {hasDub ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded font-bold uppercase leading-none bg-violet-600/90 text-violet-50",
+                compact ? "px-1 py-px text-[7px]" : "px-1.5 py-0.5 text-[8px]",
+              )}
+            >
+              <Mic className={cn("shrink-0", compact ? "h-2 w-2" : "h-2.5 w-2.5")} aria-hidden />
+              {t("card.dub")}
+            </span>
+          ) : null}
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { isEpisodePlayable } from "@/lib/anime/episode-availability";
 import { useT } from "@/providers/i18n-provider";
+import { EpisodeAudioMarks } from "@/components/anime/audio-pills";
 
 type Props = {
   className?: string;
@@ -24,34 +25,6 @@ type Props = {
   animePoster?: string;
   activeStyle?: "default" | "play";
 };
-
-/** Cheap text chips — no Lucide SVGs per episode in long lists. */
-function EpisodeAudioMarks({
-  episodeNumber,
-  subOrDub,
-}: {
-  episodeNumber: number;
-  subOrDub?: { sub: number; dub: number };
-}) {
-  if (!subOrDub) return null;
-  const hasSub = episodeNumber <= subOrDub.sub;
-  const hasDub = episodeNumber <= subOrDub.dub;
-  if (!hasSub && !hasDub) return null;
-  return (
-    <span className="inline-flex items-center gap-0.5" aria-hidden>
-      {hasSub ? (
-        <span className="rounded px-1 py-px text-[8px] font-bold leading-none bg-sky-600/85 text-sky-50">
-          S
-        </span>
-      ) : null}
-      {hasDub ? (
-        <span className="rounded px-1 py-px text-[8px] font-bold leading-none bg-violet-600/85 text-violet-50">
-          D
-        </span>
-      ) : null}
-    </span>
-  );
-}
 
 function EpisodeCardShell({
   playable,

@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, RefreshCw } from "lucide-react";
+import { CalendarDays, Captions, ChevronLeft, ChevronRight, Clock, Flame, Mic, RefreshCw } from "lucide-react";
 import { SectionHeading } from "./section-heading";
 import { cn } from "@/lib/core/utils";
 import { useI18n, useT } from "@/providers/i18n-provider";
@@ -138,11 +138,13 @@ export default function HomeScheduleStrip() {
           {items.map((item) => {
             const aired = item.secondsUntilAiring <= 0;
             const audioTypes = item.audio?.length ? item.audio : (["sub"] as const);
+            const hasSub = audioTypes.includes("sub");
+            const hasDub = audioTypes.includes("dub");
             return (
               <Link
                 key={`${item.id}-${item.episode}`}
                 href={`${ROUTES.WATCH}?anime=${item.id}`}
-                className="group shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.025] hover:border-border dark:border-white/18 hover:bg-muted/50 dark:bg-white/[0.04] transition-all min-w-[200px] max-w-[280px]"
+                className="group shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.025] hover:border-border dark:border-white/18 hover:bg-muted/50 dark:bg-white/[0.04] transition-all min-w-[200px] max-w-[280px] [content-visibility:auto] [contain-intrinsic-size:auto_56px]"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-[12px] font-semibold text-foreground/85 dark:text-white/75 group-hover:text-foreground dark:group-hover:text-white truncate leading-tight">
@@ -150,22 +152,24 @@ export default function HomeScheduleStrip() {
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-1">
                     <p className="text-[10px] font-mono text-muted-foreground dark:text-white/30">{t("home.episode", { n: item.episode })}</p>
-                    {audioTypes.map((type) => {
-                      const isSub = type === "sub";
-                      return (
-                        <span
-                          key={type}
-                          className={cn(
-                            "inline-flex items-center rounded px-1 py-px text-[7px] font-bold uppercase",
-                            isSub
-                              ? "bg-sky-600/85 text-sky-50"
-                              : "bg-violet-600/85 text-violet-50",
-                          )}
-                        >
-                          {isSub ? t("card.sub") : t("card.dub")}
-                        </span>
-                      );
-                    })}
+                    {hasSub ? (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase bg-sky-600/90 text-sky-50">
+                        <Captions className="h-2 w-2" aria-hidden />
+                        {t("card.sub")}
+                      </span>
+                    ) : null}
+                    {hasSub ? (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase bg-amber-600/90 text-amber-50">
+                        <Flame className="h-2 w-2" aria-hidden />
+                        HS
+                      </span>
+                    ) : null}
+                    {hasDub ? (
+                      <span className="inline-flex items-center gap-0.5 rounded px-1 py-px text-[7px] font-bold uppercase bg-violet-600/90 text-violet-50">
+                        <Mic className="h-2 w-2" aria-hidden />
+                        {t("card.dub")}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <span

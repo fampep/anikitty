@@ -163,7 +163,7 @@ export default function HomeSeasonBrowser({
       ) : (
         <div className="home-classic-grid">
           {pageItems.map((anime, idx) => (
-            <HomeClassicCard key={anime.id ?? idx} anime={anime} priority={page === 1 && idx < 6} />
+            <HomeClassicCard key={anime.id ?? idx} anime={anime} />
           ))}
         </div>
       )}

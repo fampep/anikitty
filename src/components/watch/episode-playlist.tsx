@@ -53,11 +53,12 @@ const EpisodePlaylist = ({
   const searchParams = useSearchParams();
   const episodeId = searchParams.get("episode");
 
-  const { anime } = useAnimeStore();
-  const { episodeLayout, setEpisodeLayout, hideFillers, setHideFillers } = useSettingsStore();
-
+  const animePoster = useAnimeStore((s) => s.anime?.anime?.info?.poster ?? "");
+  const episodeLayout = useSettingsStore((s) => s.episodeLayout);
+  const setEpisodeLayout = useSettingsStore((s) => s.setEpisodeLayout);
+  const hideFillers = useSettingsStore((s) => s.hideFillers);
+  const setHideFillers = useSettingsStore((s) => s.setHideFillers);
   const watchedEpisodes = useEpisodeProgress(animeId);
-  const animePoster = anime?.anime?.info?.poster ?? "";
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const episodeRefs = useRef<(HTMLDivElement | null)[]>([]);

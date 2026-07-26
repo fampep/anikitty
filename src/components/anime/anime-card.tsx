@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { useT } from "@/providers/i18n-provider";
 import LazyPosterImage from "./lazy-poster-image";
 import QuickAddButton from "./quick-add-button";
-import { AudioPill } from "./audio-pills";
+import { AudioCountBadge } from "./audio-pills";
 
 type Props = {
   className?: string;
@@ -77,11 +77,11 @@ const AnimeCard = React.memo(function AnimeCard({
     >
       <div
         className={cn(
-          "rounded-xl overflow-hidden relative cursor-pointer group",
+          "rounded-xl overflow-hidden relative cursor-pointer group [content-visibility:auto] [contain-intrinsic-size:auto_220px]",
           "ring-1 ring-white/[0.09] bg-zinc-950/90",
-          "transition-[transform,box-shadow,ring-color] duration-300 ease-out",
-          "[@media(hover:hover)]:hover:scale-[1.03] [@media(hover:hover)]:hover:ring-primary/35",
-          "[@media(hover:hover)]:hover:shadow-[0_0_0_1px_rgba(255, 255, 255, 0.2),0_20px_48px_rgba(0,0,0,0.55)]",
+          "transition-[box-shadow,ring-color] duration-200 ease-out",
+          "[@media(hover:hover)]:hover:ring-primary/35",
+          "[@media(hover:hover)]:hover:shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_12px_28px_rgba(0,0,0,0.4)]",
           !compact && variant === "sm" &&
             "h-[14rem] min-[380px]:h-[17rem] sm:h-[18rem] w-full max-w-[12.625rem]",
           !compact && variant === "lg" &&
@@ -95,7 +95,7 @@ const AnimeCard = React.memo(function AnimeCard({
             src={props.poster}
             root={props.imageRoot}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
-            imageClassName="transition-transform duration-500 ease-out [@media(hover:hover)]:group-hover:scale-[1.06]"
+            imageClassName="object-cover"
           />
         ) : (
           <Image
@@ -103,22 +103,15 @@ const AnimeCard = React.memo(function AnimeCard({
             alt=""
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
-            className="object-cover transition-transform duration-500 ease-out [@media(hover:hover)]:group-hover:scale-[1.06]"
+            className="object-cover"
           />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/5 opacity-80 transition-opacity duration-300 [@media(hover:hover)]:group-hover:opacity-95" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/5 opacity-85" />
 
         {quickAddId && (
           <QuickAddButton animeId={quickAddId} title={props.title} poster={props.poster} />
         )}
-
-        <div className="absolute inset-0 overflow-hidden opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none hidden [@media(hover:hover)]:block">
-          <div
-            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/[0.07] to-transparent -skew-x-12"
-            style={{ animation: "shimmer 1.2s ease forwards" }}
-          />
-        </div>
 
         {rank != null && (
           <div className="absolute top-0 left-0 z-20">
@@ -169,20 +162,14 @@ const AnimeCard = React.memo(function AnimeCard({
           </div>
         </div>
 
-        <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-all duration-200 pointer-events-none">
-          <div className="relative">
-            <div
-              className="absolute inset-0 rounded-full bg-white/25"
-              style={{ animation: "pulse-ring 0.8s ease-out forwards" }}
-            />
-            <div
-              className={cn(
-                "relative bg-white rounded-full shadow-2xl shadow-black/40 scale-75 [@media(hover:hover)]:group-hover:scale-100 transition-transform duration-200 ring-2 ring-primary/25",
-                compact ? "p-2" : "p-2.5",
-              )}
-            >
-              <Play className={cn("text-black fill-black", compact ? "h-4 w-4" : "h-5 w-5")} />
-            </div>
+        <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
+          <div
+            className={cn(
+              "bg-white rounded-full shadow-xl shadow-black/40 ring-2 ring-primary/25",
+              compact ? "p-2" : "p-2.5",
+            )}
+          >
+            <Play className={cn("text-black fill-black", compact ? "h-4 w-4" : "h-5 w-5")} />
           </div>
         </div>
 
@@ -193,7 +180,7 @@ const AnimeCard = React.memo(function AnimeCard({
             <div className="absolute bottom-0 left-0 right-0 z-20 px-2.5 pb-2.5 pt-6 flex flex-col gap-1.5">
               <h5
                 className={cn(
-                  "line-clamp-2 font-semibold leading-snug text-foreground dark:text-white drop-shadow-md",
+                  "line-clamp-2 font-semibold leading-snug text-foreground dark:text-white",
                   compact ? "text-[10px]" : "text-[11px]",
                 )}
               >
@@ -213,12 +200,9 @@ const AnimeCard = React.memo(function AnimeCard({
 
               {props.episodeCard && !props.watchDetail && (
                 <div className="flex items-center gap-1.5 flex-wrap min-h-[18px]">
-                  {hasAudio && (
-                    <div className="flex items-center gap-0.5">
-                      {props.sub != null && props.sub > 0 && <AudioPill type="sub" count={props.sub} />}
-                      {props.dub != null && props.dub > 0 && <AudioPill type="dub" count={props.dub} />}
-                    </div>
-                  )}
+                  {hasAudio ? (
+                    <AudioCountBadge sub={props.sub} dub={props.dub} />
+                  ) : null}
                   {props.subTitle && (
                     <>
                       {hasAudio && <span className="text-muted-foreground/70 dark:text-white/20 text-[8px]">·</span>}

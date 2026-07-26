@@ -39,13 +39,12 @@ export default function HomeRecentUpdates({ animes, loading }: Props) {
       />
       {animes.length ? (
         <HomeScrollRail>
-          {animes.map((anime, i) => {
+          {animes.map((anime) => {
             const ep = anime.episodes?.sub ?? anime.episodes?.dub ?? 1;
             return (
               <HomeCompactPoster
                 key={anime.id}
                 anime={anime}
-                priority={i < 4}
                 episodeBadge={ep}
                 href={`${ROUTES.WATCH}?anime=${anime.id}&type=latest`}
               />

@@ -40,7 +40,7 @@ export default function HomeTrendingRail({ animes, loading }: Props) {
       {animes.length ? (
         <HomeScrollRail>
           {animes.map((anime, i) => (
-            <HomeCompactPoster key={anime.id} anime={anime} priority={i < 4} />
+            <HomeCompactPoster key={anime.id} anime={anime} />
           ))}
         </HomeScrollRail>
       ) : (

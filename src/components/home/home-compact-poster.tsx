@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import LazyPosterImage from "@/components/anime/lazy-poster-image";
@@ -16,7 +17,13 @@ type Props = {
   episodeBadge?: number;
 };
 
-export default function HomeCompactPoster({ anime, className, priority, href, episodeBadge }: Props) {
+const HomeCompactPoster = memo(function HomeCompactPoster({
+  anime,
+  className,
+  priority,
+  href,
+  episodeBadge,
+}: Props) {
   const rating = scoreLabel(anime.score);
   const linkHref = href ?? `${ROUTES.ANIME_DETAILS}/${anime.id}`;
   const sub = anime.episodes?.sub ?? 0;
@@ -28,7 +35,7 @@ export default function HomeCompactPoster({ anime, className, priority, href, ep
       className={`home-glass-card flex flex-col gap-y-2 shrink-0 w-[7.5rem] xs:w-[8.5rem] md:w-[9.5rem] lg:w-40 overflow-hidden ${className ?? ""}`}
       draggable={false}
     >
-      <div className="flex w-full aspect-[1/1.4] bg-white/10 dark:bg-white/10 relative rounded-xl overflow-hidden">
+      <div className="flex w-full aspect-[1/1.4] bg-white/10 dark:bg-white/10 relative rounded-xl overflow-hidden [content-visibility:auto] [contain-intrinsic-size:auto_140px]">
         <LazyPosterImage
           src={anime.poster}
           alt={anime.name}
@@ -64,4 +71,6 @@ export default function HomeCompactPoster({ anime, className, priority, href, ep
       </div>
     </Link>
   );
-}
+});
+
+export default HomeCompactPoster;
