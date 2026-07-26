@@ -1,6 +1,6 @@
 /**
  * Sub/dub episode counts.
- * Prefers KittyAPI `/audio` (provider catalog totals), then Anikoto API + Postgres cache.
+ * Serve from Postgres first; refresh via KittyAPI `/audio` only when missing/stale.
  */
 
 import {
@@ -370,6 +370,8 @@ async function fetchAndStore(
   await storeAudioAvailability(opts.anilistId, fetched, {
     malId: opts.malId,
     catalogId: fetched.catalogId ?? catalogId,
+    source: "anikoto",
+    status: opts.status ?? null,
   });
 
   return fetched;
@@ -383,9 +385,53 @@ export type AnimeListAudioItem = {
   status?: string | null;
 };
 
-const LIST_REFRESH_BUDGET = 5;
+const LIST_REFRESH_BUDGET = 12;
 
-/** Merge KittyAPI (preferred) + cached Anikoto sub/dub counts into list items. */
+/** Fire-and-forget: pull KittyAPI counts for missing/stale ids and write to Postgres. */
+function refreshAudioCountsInBackground(queue: AudioAvailabilityOpts[]) {
+  if (queue.length === 0) return;
+
+  void (async () => {
+    const ids = queue.map((q) => q.anilistId);
+    const byId = new Map(queue.map((q) => [q.anilistId, q]));
+    let kittyHits = new Map<number, AudioAvailability>();
+
+    try {
+      kittyHits = await fetchKittyAudioBatch(ids);
+    } catch {
+      kittyHits = new Map();
+    }
+
+    for (const [anilistId, counts] of kittyHits) {
+      const opts = byId.get(anilistId);
+      const ctx: AudioCacheContext = opts
+        ? cacheContext(opts)
+        : { anilistEpisodeCount: counts.sub, isAiring: false };
+      remember(anilistId, counts, ctx);
+      await storeAudioAvailability(anilistId, counts, {
+        malId: opts?.malId,
+        source: "kitty",
+        status: opts?.status ?? null,
+      });
+      byId.delete(anilistId);
+    }
+
+    // Anything Kitty missed → Anikoto / AniList fallback (still persisted).
+    for (const opts of byId.values()) {
+      try {
+        await getAudioAvailability(opts);
+      } catch {
+        // ignore background failures
+      }
+    }
+  })().catch(() => {});
+}
+
+/**
+ * Merge DB-cached SUB/DUB counts into list items.
+ * Never blocks on KittyAPI — missing/stale rows refresh in the background and
+ * land in Postgres for the next request.
+ */
 export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
   items: T[],
 ): Promise<T[]> {
@@ -395,20 +441,7 @@ export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
     .map((item) => parseInt(item.id, 10))
     .filter((id) => !Number.isNaN(id) && id > 0);
 
-  const [kittyBatch, stored] = await Promise.all([
-    fetchKittyAudioBatch(ids),
-    getBatchStoredAudioAvailability(ids),
-  ]);
-
-  // Persist Kitty hits into local Postgres so later requests stay fast.
-  for (const [anilistId, counts] of kittyBatch) {
-    remember(anilistId, counts, {
-      anilistEpisodeCount: counts.sub,
-      isAiring: false,
-    });
-    void storeAudioAvailability(anilistId, counts, {}).catch(() => {});
-  }
-
+  const stored = await getBatchStoredAudioAvailability(ids);
   const refreshQueue: AudioAvailabilityOpts[] = [];
 
   const enriched = items.map((item) => {
@@ -420,17 +453,6 @@ export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
       anilistEpisodeCount: fallbackSub,
       isAiring: item.status === "RELEASING",
     };
-
-    const kitty = kittyBatch.get(anilistId);
-    if (kitty) {
-      return {
-        ...item,
-        episodes: {
-          sub: kitty.sub || fallbackSub,
-          dub: kitty.dub,
-        },
-      };
-    }
 
     const row = stored.get(anilistId);
     if (!row) {
@@ -445,8 +467,7 @@ export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
       return item;
     }
 
-    const stale = isAudioCacheStale(row, ctx);
-    if (stale && refreshQueue.length < LIST_REFRESH_BUDGET) {
+    if (isAudioCacheStale(row, ctx) && refreshQueue.length < LIST_REFRESH_BUDGET) {
       refreshQueue.push({
         anilistId,
         titles: [item.name, item.jname],
@@ -454,6 +475,12 @@ export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
         status: item.status,
       });
     }
+
+    remember(
+      anilistId,
+      { sub: row.subCount, dub: row.dubCount, hasSub: row.subCount > 0, hasDub: row.dubCount > 0 },
+      ctx,
+    );
 
     return {
       ...item,
@@ -464,9 +491,7 @@ export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
     };
   });
 
-  for (const opts of refreshQueue) {
-    void getAudioAvailability(opts).catch(() => {});
-  }
+  refreshAudioCountsInBackground(refreshQueue);
 
   return enriched;
 }
@@ -537,12 +562,14 @@ export async function getAudioAvailability(
   }
 
   const stored = await getStoredAudioAvailability(opts.anilistId, ctx);
+
+  // Fresh DB hit — serve immediately (no Kitty/Anikoto round-trip).
   if (stored && !stored.stale) {
     remember(opts.anilistId, stored.value, ctx);
     return stored.value;
   }
 
-  // Prefer KittyAPI /audio (provider catalog totals) before Anikoto scrape.
+  // Stale or missing: refresh from KittyAPI, persist, return.
   try {
     const kitty = await fetchKittyAudio({
       anilistId: opts.anilistId,
@@ -553,6 +580,8 @@ export async function getAudioAvailability(
       await storeAudioAvailability(opts.anilistId, kitty, {
         malId: opts.malId,
         catalogId: stored?.catalogId,
+        source: kitty.source ?? "kitty",
+        status: opts.status ?? null,
       });
       return kitty;
     }
@@ -563,6 +592,7 @@ export async function getAudioAvailability(
   try {
     return await fetchAndStore(opts, stored?.catalogId);
   } catch (err) {
+    // Prefer last known DB counts over failing the request.
     if (stored) {
       remember(opts.anilistId, stored.value, ctx);
       return stored.value;

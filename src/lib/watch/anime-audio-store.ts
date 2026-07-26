@@ -3,10 +3,10 @@ import { getDb } from "@/db";
 import { animeAudioAvailability } from "@/db/schema";
 import type { AudioAvailability } from "@/lib/providers/anikoto-availability";
 
-/** Finished shows — counts rarely change. */
-const FINISHED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-/** Currently airing — new sub/dub episodes can drop any week. */
-const AIRING_TTL_MS = 2 * 60 * 60 * 1000;
+/** Finished / non-airing — still recheck daily for late dub drops or count fixes. */
+const FINISHED_TTL_MS = 24 * 60 * 60 * 1000;
+/** Currently airing — new SUB/DUB episodes can land any day. */
+const AIRING_TTL_MS = 60 * 60 * 1000;
 
 export type AudioCacheContext = {
   /** Latest aired episode count from AniList (sub proxy). */
@@ -19,6 +19,8 @@ export type StoredAudioRow = {
   catalogId: number | null;
   fetchedAt: Date | null;
   stale: boolean;
+  source?: string | null;
+  status?: string | null;
 };
 
 function rowToAvailability(row: {
@@ -45,18 +47,31 @@ export function isAudioCacheStale(
   ctx: AudioCacheContext,
 ): boolean {
   const fetchedAt = row.fetchedAt?.getTime() ?? 0;
+  if (!fetchedAt) return true;
+
   const age = Date.now() - fetchedAt;
   const ttl = ctx.isAiring ? AIRING_TTL_MS : FINISHED_TTL_MS;
 
   if (age > ttl) return true;
 
-  // AniList reports more aired episodes than our cached sub count.
+  // AniList reports more aired episodes than our cached SUB count → refresh.
   if (ctx.anilistEpisodeCount > 0 && ctx.anilistEpisodeCount > row.subCount) {
     return true;
   }
 
-  // Airing shows with dub: refresh periodically so dub catches up after sub-only drops.
-  if (ctx.isAiring && row.dubCount > 0 && age > AIRING_TTL_MS / 2) {
+  // Airing: recheck mid-TTL so DUB can catch up after SUB-only drops.
+  if (ctx.isAiring && age > AIRING_TTL_MS / 2) {
+    return true;
+  }
+
+  // Finished but still missing DUB while AniList has a full SUB catalog —
+  // recheck every 12h in case a dub batch landed.
+  if (
+    !ctx.isAiring &&
+    row.dubCount <= 0 &&
+    row.subCount > 0 &&
+    age > FINISHED_TTL_MS / 2
+  ) {
     return true;
   }
 
@@ -69,6 +84,8 @@ export type StoredAudioBatchRow = {
   dubCount: number;
   catalogId: number | null;
   fetchedAt: Date | null;
+  source?: string | null;
+  status?: string | null;
 };
 
 export async function getBatchStoredAudioAvailability(
@@ -86,6 +103,8 @@ export async function getBatchStoredAudioAvailability(
         dubCount: animeAudioAvailability.dubCount,
         catalogId: animeAudioAvailability.catalogId,
         fetchedAt: animeAudioAvailability.fetchedAt,
+        source: animeAudioAvailability.source,
+        status: animeAudioAvailability.status,
       })
       .from(animeAudioAvailability)
       .where(inArray(animeAudioAvailability.anilistId, unique));
@@ -119,16 +138,25 @@ export async function getStoredAudioAvailability(
       catalogId: row.catalogId,
       fetchedAt: row.fetchedAt,
       stale,
+      source: row.source,
+      status: row.status,
     };
   } catch {
     return null;
   }
 }
 
+export type StoreAudioMeta = {
+  malId?: number | null;
+  catalogId?: number | null;
+  source?: string | null;
+  status?: string | null;
+};
+
 export async function storeAudioAvailability(
   anilistId: number,
   data: AudioAvailability,
-  meta?: { malId?: number | null; catalogId?: number | null },
+  meta?: StoreAudioMeta,
 ): Promise<void> {
   if (!dbAvailable()) return;
 
@@ -140,6 +168,10 @@ export async function storeAudioAvailability(
       .select({
         subCount: animeAudioAvailability.subCount,
         dubCount: animeAudioAvailability.dubCount,
+        malId: animeAudioAvailability.malId,
+        catalogId: animeAudioAvailability.catalogId,
+        source: animeAudioAvailability.source,
+        status: animeAudioAvailability.status,
       })
       .from(animeAudioAvailability)
       .where(eq(animeAudioAvailability.anilistId, anilistId))
@@ -149,24 +181,39 @@ export async function storeAudioAvailability(
       ? { sub: existing.subCount, dub: existing.dubCount }
       : null;
 
+    const nextMalId =
+      meta && "malId" in meta ? (meta.malId ?? null) : (existing?.malId ?? null);
+    const nextCatalogId =
+      meta && "catalogId" in meta
+        ? (meta.catalogId ?? null)
+        : (existing?.catalogId ?? null);
+    const nextSource =
+      meta && "source" in meta ? (meta.source ?? null) : (existing?.source ?? null);
+    const nextStatus =
+      meta && "status" in meta ? (meta.status ?? null) : (existing?.status ?? null);
+
     await db
       .insert(animeAudioAvailability)
       .values({
         anilistId,
-        malId: meta?.malId ?? null,
-        catalogId: meta?.catalogId ?? null,
+        malId: nextMalId,
+        catalogId: nextCatalogId,
         subCount: data.sub,
         dubCount: data.dub,
+        source: nextSource,
+        status: nextStatus,
         fetchedAt: now,
         updatedAt: now,
       })
       .onConflictDoUpdate({
         target: animeAudioAvailability.anilistId,
         set: {
-          malId: meta?.malId ?? null,
-          catalogId: meta?.catalogId ?? null,
+          malId: nextMalId,
+          catalogId: nextCatalogId,
           subCount: data.sub,
           dubCount: data.dub,
+          source: nextSource,
+          status: nextStatus,
           fetchedAt: now,
           updatedAt: now,
         },
@@ -174,7 +221,12 @@ export async function storeAudioAvailability(
 
     if (prev && (data.sub > prev.sub || data.dub > prev.dub)) {
       void import("@/lib/watch/episode-alerts")
-        .then((m) => m.processEpisodeCountChange(anilistId, prev, { sub: data.sub, dub: data.dub }))
+        .then((m) =>
+          m.processEpisodeCountChange(anilistId, prev, {
+            sub: data.sub,
+            dub: data.dub,
+          }),
+        )
         .catch((err) => console.error("[episode-alerts] notify failed:", err));
     }
   } catch (err) {

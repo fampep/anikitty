@@ -281,9 +281,23 @@ export async function migrateDb() {
         catalog_id   INTEGER,
         sub_count    INTEGER NOT NULL DEFAULT 0,
         dub_count    INTEGER NOT NULL DEFAULT 0,
+        source       VARCHAR(40),
+        status       VARCHAR(30),
         fetched_at   TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at   TIMESTAMP NOT NULL DEFAULT NOW()
       )`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS mal_id INTEGER`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS catalog_id INTEGER`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS sub_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS dub_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS source VARCHAR(40)`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS status VARCHAR(30)`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+      `ALTER TABLE anime_audio_availability ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+      `CREATE INDEX IF NOT EXISTS anime_audio_availability_fetched_at_idx
+        ON anime_audio_availability (fetched_at)`,
+      `CREATE INDEX IF NOT EXISTS anime_audio_availability_status_idx
+        ON anime_audio_availability (status)`,
       `CREATE TABLE IF NOT EXISTS episode_subtitles (
         id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         anilist_id   INTEGER NOT NULL,

@@ -7,6 +7,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { migrateDb } = await import("./db/migrate");
     await migrateDb().catch((e) => console.error("[auto-migrate] failed:", e));
+    // anime_audio_availability (+ source/status columns) is created in migrateDb
+    // so SUB/DUB poster counts can persist across requests without hitting KittyAPI.
 
     const { ensureDataEncryptionKey } = await import("./lib/security/data-encryption-key");
     await ensureDataEncryptionKey().catch((e) =>

@@ -485,13 +485,18 @@ export const accountDeletionRequests = pgTable(
   }),
 );
 
-// Cached sub/dub episode counts from Anikoto API (keyed by AniList ID).
+// Cached sub/dub episode counts (KittyAPI /audio + Anikoto fallback), keyed by AniList ID.
+// Created/updated by auto-migrate on server boot (`instrumentation.ts` → `migrateDb`).
 export const animeAudioAvailability = pgTable("anime_audio_availability", {
   anilistId: integer("anilist_id").primaryKey(),
   malId: integer("mal_id"),
   catalogId: integer("catalog_id"),
   subCount: integer("sub_count").notNull().default(0),
   dubCount: integer("dub_count").notNull().default(0),
+  /** Where the last refresh came from (`kitty`, `anikoto`, `anilist`, …). */
+  source: varchar("source", { length: 40 }),
+  /** AniList status at last refresh (`RELEASING`, `FINISHED`, …). */
+  status: varchar("status", { length: 30 }),
   fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
