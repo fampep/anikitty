@@ -7,7 +7,7 @@ import { ROUTES } from "@/constants/routes";
 import { Episode } from "@/types/episodes";
 import { useAnimeStore } from "@/store/anime-store";
 import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
-import { Captions, Check, Mic, Play } from "lucide-react";
+import { Captions, Check, Flame, Mic, Play } from "lucide-react";
 import Link from "next/link";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { isEpisodePlayable } from "@/lib/anime/episode-availability";
@@ -195,10 +195,13 @@ const EpisodeCard = ({
                 </span>
               )}
               {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
-                <Captions className="w-3 h-3 text-sky-400/70" />
+                <>
+                  <Captions className="w-3 h-3 text-sky-400/70" />
+                  <Flame className="w-3 h-3 text-amber-400/80" />
+                </>
               )}
               {props.subOrDub && props.episode.number <= props.subOrDub.dub && (
-                <Mic className="w-3 h-3 text-amber-400/70" />
+                <Mic className="w-3 h-3 text-violet-400/70" />
               )}
             </div>
 
@@ -335,10 +338,13 @@ const EpisodeCard = ({
               </span>
             )}
             {props.subOrDub && props.episode.number <= props.subOrDub.sub && (
-              <Captions className="w-3 h-3 text-zinc-400/70" />
+              <>
+                <Captions className="w-3 h-3 text-zinc-400/70" />
+                <Flame className="w-3 h-3 text-amber-400/75" />
+              </>
             )}
             {props.subOrDub && props.episode.number <= props.subOrDub.dub && (
-              <Mic className="w-3 h-3 text-amber-400/65" />
+              <Mic className="w-3 h-3 text-violet-400/65" />
             )}
             {listInProgress && listCurrent > 0 && (
               <span className="text-[9px] font-mono text-amber-300/60 ml-auto">

@@ -23,6 +23,7 @@ import Select from "@/components/common/select";
 import {
   ExternalLink,
   Film,
+  Flame,
   Heart,
   Radio,
   Star,
@@ -438,6 +439,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                       : `${stats.episodes.sub} ${t("card.sub")}`
                   }
                   teal
+                />
+              )}
+              {stats?.episodes?.sub !== undefined && stats.episodes.sub > 0 && (
+                <StatPill
+                  icon={<Flame className="w-3 h-3" />}
+                  label={`${stats.episodes.sub} ${t("watch.hardSubsShort")}`}
+                  amber
                 />
               )}
               {hasDub && (
@@ -1169,17 +1177,19 @@ function AnimeDetailSkeleton() {
 }
 
 const StatPill = ({
-  icon, label, gold, teal, purple,
+  icon, label, gold, teal, purple, amber,
 }: {
   icon?: React.ReactNode;
   label: string;
   gold?: boolean;
   teal?: boolean;
   purple?: boolean;
+  amber?: boolean;
 }) => (
   <span className={cn(
     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono border font-medium",
     gold ? "bg-amber-500/10 border-amber-500/20 text-amber-400/80"
+      : amber ? "bg-amber-500/10 border-amber-500/20 text-amber-400/80"
       : teal ? "bg-teal-500/10 border-teal-500/20 text-teal-400/80"
       : purple ? "bg-purple-500/10 border-purple-500/20 text-purple-400/80"
       : "bg-muted/50 dark:bg-white/5 border-border dark:border-white/10 text-muted-foreground dark:text-white/45",
