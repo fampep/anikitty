@@ -50,6 +50,7 @@ import {
 } from "@/lib/anime/episode-availability";
 import {
   Captions,
+  Flame,
   Loader2,
   Cat,
 } from "lucide-react";
@@ -2051,6 +2052,7 @@ const VideoPlayerSection = () => {
           )}
         {watchingHardSub && streamAudio === "sub" && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-300/90">
+            <Flame className="w-2.5 h-2.5 shrink-0" aria-hidden />
             {t("watch.hardSubBadge")}
             {hardSubSoftSubs ? ` · ${t("watch.hardSubSoftSubsOn")}` : ""}
           </span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Captions, ChevronDown, ChevronRight, Eye, EyeOff, Mic, Server, Subtitles } from "lucide-react";
+import { Captions, ChevronDown, ChevronRight, Eye, EyeOff, Flame, Mic, Server } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -307,7 +307,7 @@ export function ProviderGrid({
 
   const rowIcons: Partial<Record<ProviderAudioMode, ReactNode>> = {
     sub: <Captions className="w-3 h-3 shrink-0" />,
-    hardsub: <Subtitles className="w-3 h-3 shrink-0" />,
+    hardsub: <Flame className="w-3 h-3 shrink-0" />,
     dub: <Mic className="w-3 h-3 shrink-0" />,
   };
 

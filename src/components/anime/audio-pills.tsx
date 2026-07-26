@@ -1,4 +1,4 @@
-import { Captions, Mic, Subtitles } from "lucide-react";
+import { Captions, Flame, Mic } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 
 type AudioPillType = "sub" | "dub" | "hardsub";
@@ -21,7 +21,7 @@ export function AudioPill({ type, count }: { type: AudioPillType; count: number 
       {type === "sub" ? (
         <Captions className="h-2.5 w-2.5 shrink-0 opacity-90" aria-hidden />
       ) : type === "hardsub" ? (
-        <Subtitles className="h-2.5 w-2.5 shrink-0 opacity-90" aria-hidden />
+        <Flame className="h-2.5 w-2.5 shrink-0 opacity-90" aria-hidden />
       ) : (
         <Mic className="h-2.5 w-2.5 shrink-0 opacity-90" aria-hidden />
       )}
