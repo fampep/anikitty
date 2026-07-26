@@ -8,6 +8,7 @@ import {
   getStoredAudioAvailability,
   isAudioCacheStale,
   storeAudioAvailability,
+  clampAudioCounts,
   type AudioCacheContext,
 } from "@/lib/watch/anime-audio-store";
 import { fetchKittyAudio, fetchKittyAudioBatch } from "@/lib/kitty/kitty-audio-api";
@@ -121,14 +122,13 @@ function typeBonus(type: string): number {
   return 0;
 }
 
-function toCounts(sub: number, dub: number): AudioAvailability {
-  const safeSub = Math.max(0, Math.floor(sub) || 0);
-  const safeDub = Math.max(0, Math.floor(dub) || 0);
+function toCounts(sub: number, dub: number, anilistCap?: number | null): AudioAvailability {
+  const clamped = clampAudioCounts(sub, dub, anilistCap);
   return {
-    sub: safeSub,
-    dub: safeDub,
-    hasSub: safeSub > 0,
-    hasDub: safeDub > 0,
+    sub: clamped.sub,
+    dub: clamped.dub,
+    hasSub: clamped.sub > 0,
+    hasDub: clamped.dub > 0,
   };
 }
 
@@ -260,7 +260,7 @@ function countsFromSeries(series: SeriesAnime, fallbackSub: number): FetchResult
   const sub = series.is_sub ?? fallbackSub;
   const dub = series.is_dub ?? 0;
   return {
-    ...toCounts(sub, dub),
+    ...toCounts(sub, dub, fallbackSub || undefined),
     catalogId: series.id,
     totalEpisodes: parseAnikotoEpisodeTotal(series.episodes),
   };
@@ -291,14 +291,14 @@ async function fetchFromAnikotoApi(opts: AudioAvailabilityOpts): Promise<FetchRe
       } else {
         // Series fetch empty; search hit already matched ani/mal id.
         return {
-          ...toCounts(byIds.sub || fallbackSub, byIds.dub),
+          ...toCounts(byIds.sub || fallbackSub, byIds.dub, fallbackSub || undefined),
           catalogId: byIds.catalogId,
           totalEpisodes: byIds.totalEpisodes,
         };
       }
     } catch {
       return {
-        ...toCounts(byIds.sub || fallbackSub, byIds.dub),
+        ...toCounts(byIds.sub || fallbackSub, byIds.dub, fallbackSub || undefined),
         catalogId: byIds.catalogId,
         totalEpisodes: byIds.totalEpisodes,
       };
@@ -307,7 +307,7 @@ async function fetchFromAnikotoApi(opts: AudioAvailabilityOpts): Promise<FetchRe
 
   const queries = [...new Set(opts.titles.map((t) => t?.trim()).filter(Boolean) as string[])];
   if (queries.length === 0) {
-    return toCounts(fallbackSub, 0);
+    return toCounts(fallbackSub, 0, fallbackSub || undefined);
   }
 
   const candidates = new Map<number, SearchHit & { score: number }>();
@@ -346,10 +346,10 @@ async function fetchFromAnikotoApi(opts: AudioAvailabilityOpts): Promise<FetchRe
 
   const best = ranked[0];
   if (best) {
-    return { ...toCounts(best.sub || fallbackSub, best.dub), catalogId: best.catalogId };
+    return { ...toCounts(best.sub || fallbackSub, best.dub, fallbackSub || undefined), catalogId: best.catalogId };
   }
 
-  return toCounts(fallbackSub, 0);
+  return toCounts(fallbackSub, 0, fallbackSub || undefined);
 }
 
 async function fetchAndStore(
@@ -372,6 +372,7 @@ async function fetchAndStore(
     catalogId: fetched.catalogId ?? catalogId,
     source: "anikoto",
     status: opts.status ?? null,
+    anilistEpisodeCount: opts.fallbackSub,
   });
 
   return fetched;
@@ -412,6 +413,7 @@ function refreshAudioCountsInBackground(queue: AudioAvailabilityOpts[]) {
         malId: opts?.malId,
         source: "kitty",
         status: opts?.status ?? null,
+        anilistEpisodeCount: opts?.fallbackSub ?? counts.sub,
       });
       byId.delete(anilistId);
     }
@@ -476,17 +478,34 @@ export async function enrichAnimeListWithAudio<T extends AnimeListAudioItem>(
       });
     }
 
+    const clamped = clampAudioCounts(row.subCount, row.dubCount, fallbackSub);
     remember(
       anilistId,
-      { sub: row.subCount, dub: row.dubCount, hasSub: row.subCount > 0, hasDub: row.dubCount > 0 },
+      {
+        sub: clamped.sub,
+        dub: clamped.dub,
+        hasSub: clamped.sub > 0,
+        hasDub: clamped.dub > 0,
+      },
       ctx,
     );
+    // Heal poisoned DB rows in the background.
+    if (clamped.sub !== row.subCount || clamped.dub !== row.dubCount) {
+      void storeAudioAvailability(
+        anilistId,
+        { ...clamped, hasSub: clamped.sub > 0, hasDub: clamped.dub > 0 },
+        {
+          status: item.status,
+          anilistEpisodeCount: fallbackSub,
+        },
+      ).catch(() => {});
+    }
 
     return {
       ...item,
       episodes: {
-        sub: row.subCount || fallbackSub,
-        dub: row.dubCount,
+        sub: clamped.sub || fallbackSub,
+        dub: clamped.dub,
       },
     };
   });
@@ -565,8 +584,28 @@ export async function getAudioAvailability(
 
   // Fresh DB hit — serve immediately (no Kitty/Anikoto round-trip).
   if (stored && !stored.stale) {
-    remember(opts.anilistId, stored.value, ctx);
-    return stored.value;
+    const clamped = clampAudioCounts(
+      stored.value.sub,
+      stored.value.dub,
+      opts.fallbackSub,
+    );
+    const value = {
+      ...stored.value,
+      sub: clamped.sub,
+      dub: clamped.dub,
+      hasSub: clamped.sub > 0,
+      hasDub: clamped.dub > 0,
+    };
+    if (clamped.sub !== stored.value.sub || clamped.dub !== stored.value.dub) {
+      void storeAudioAvailability(opts.anilistId, value, {
+        malId: opts.malId,
+        catalogId: stored.catalogId,
+        anilistEpisodeCount: opts.fallbackSub,
+        status: opts.status ?? null,
+      }).catch(() => {});
+    }
+    remember(opts.anilistId, value, ctx);
+    return value;
   }
 
   // Stale or missing: refresh from KittyAPI, persist, return.
@@ -576,14 +615,23 @@ export async function getAudioAvailability(
       title: opts.titles.find((t) => typeof t === "string" && t.trim()) ?? null,
     });
     if (kitty) {
-      remember(opts.anilistId, kitty, ctx);
-      await storeAudioAvailability(opts.anilistId, kitty, {
+      const clamped = clampAudioCounts(kitty.sub, kitty.dub, opts.fallbackSub);
+      const value = {
+        ...kitty,
+        sub: clamped.sub,
+        dub: clamped.dub,
+        hasSub: clamped.sub > 0,
+        hasDub: clamped.dub > 0,
+      };
+      remember(opts.anilistId, value, ctx);
+      await storeAudioAvailability(opts.anilistId, value, {
         malId: opts.malId,
         catalogId: stored?.catalogId,
         source: kitty.source ?? "kitty",
         status: opts.status ?? null,
+        anilistEpisodeCount: opts.fallbackSub,
       });
-      return kitty;
+      return value;
     }
   } catch {
     // fall through to Anikoto

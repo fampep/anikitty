@@ -7,12 +7,31 @@ import type { AudioAvailability } from "@/lib/providers/anikoto-availability";
 const FINISHED_TTL_MS = 24 * 60 * 60 * 1000;
 /** Currently airing — new SUB/DUB episodes can land any day. */
 const AIRING_TTL_MS = 60 * 60 * 1000;
+/** Absolute sanity ceiling (One Piece-scale catalogs). */
+const ABSURD_EPISODE_CAP = 500;
 
 export type AudioCacheContext = {
   /** Latest aired episode count from AniList (sub proxy). */
   anilistEpisodeCount: number;
   isAiring: boolean;
 };
+
+/** Clamp provider counts to AniList aired/planned + hard ceiling. */
+export function clampAudioCounts(
+  sub: number,
+  dub: number,
+  anilistEpisodeCount?: number | null,
+): { sub: number; dub: number } {
+  let safeSub = Math.max(0, Math.floor(sub) || 0);
+  let safeDub = Math.max(0, Math.floor(dub) || 0);
+  const cap =
+    anilistEpisodeCount != null && anilistEpisodeCount > 0
+      ? Math.min(anilistEpisodeCount, ABSURD_EPISODE_CAP)
+      : ABSURD_EPISODE_CAP;
+  safeSub = Math.min(safeSub, cap);
+  safeDub = Math.min(safeDub, safeSub, cap);
+  return { sub: safeSub, dub: safeDub };
+}
 
 export type StoredAudioRow = {
   value: AudioAvailability;
@@ -56,6 +75,19 @@ export function isAudioCacheStale(
 
   // AniList reports more aired episodes than our cached SUB count → refresh.
   if (ctx.anilistEpisodeCount > 0 && ctx.anilistEpisodeCount > row.subCount) {
+    return true;
+  }
+
+  // Cached counts are inflated past AniList aired (franchise scrape / bad map).
+  if (
+    ctx.anilistEpisodeCount > 0 &&
+    (row.subCount > ctx.anilistEpisodeCount + 2 ||
+      row.dubCount > ctx.anilistEpisodeCount + 2)
+  ) {
+    return true;
+  }
+
+  if (row.subCount > ABSURD_EPISODE_CAP || row.dubCount > ABSURD_EPISODE_CAP) {
     return true;
   }
 
@@ -156,13 +188,25 @@ export type StoreAudioMeta = {
 export async function storeAudioAvailability(
   anilistId: number,
   data: AudioAvailability,
-  meta?: StoreAudioMeta,
+  meta?: StoreAudioMeta & { anilistEpisodeCount?: number | null },
 ): Promise<void> {
   if (!dbAvailable()) return;
 
   try {
     const db = getDb();
     const now = new Date();
+    const clamped = clampAudioCounts(
+      data.sub,
+      data.dub,
+      meta?.anilistEpisodeCount,
+    );
+    data = {
+      ...data,
+      sub: clamped.sub,
+      dub: clamped.dub,
+      hasSub: clamped.sub > 0,
+      hasDub: clamped.dub > 0,
+    };
 
     const [existing] = await db
       .select({

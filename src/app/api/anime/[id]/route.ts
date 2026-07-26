@@ -146,6 +146,9 @@ export async function GET(
       hasDub: false,
     }));
 
+    const dubCount =
+      episodeCount > 0 ? Math.min(audio.dub || 0, episodeCount) : Math.min(audio.dub || 0, 500);
+
     const animationStudios = (m.studios?.nodes ?? [])
       .filter((s: any) => s.isAnimationStudio)
       .map((s: any) => s.name);
@@ -186,7 +189,7 @@ export async function GET(
           stats: {
             rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
             quality: "HD",
-            episodes: { sub: episodeCount, dub: audio.dub },
+            episodes: { sub: episodeCount, dub: dubCount },
             type: toFormat(m.format),
             duration: m.duration ? `${m.duration} min` : "N/A",
           },
