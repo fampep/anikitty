@@ -427,7 +427,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 80,
+      version: 81,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1051,6 +1051,14 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Site order: HQ → Kilo → Taku → Megu → Uniform → …; hardsubs = HQ+Heaven only.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
+        }
+        if (version < 81) {
+          // Drop Miruro; order after Uniform: Alpha → Gamma → Guard → GG → Heaven.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider === "Miruro" ? "AniHQ" : (next.defaultProvider ?? "AniHQ"),
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },

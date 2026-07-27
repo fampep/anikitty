@@ -15,13 +15,13 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
+  "AniKuro",
   "AniNeko",
   "Senshi",
-  "Miruro",
   "AnimeGG",
   "AnimeHeaven",
-  "AniKuro",
   // Normalize-only aliases / legacy (retired from picker)
+  "Miruro",
   "AniWatch",
   "AniWaves",
   "MKissa",
@@ -58,12 +58,11 @@ export const KITTY_PROVIDERS = [
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
+  "AniKuro",
   "AniNeko",
   "Senshi",
-  "Miruro",
   "AnimeGG",
   "AnimeHeaven",
-  "AniKuro",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -155,6 +154,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
+    id: "AniKuro",
+    label: "Alpha",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs · mirrors",
+  },
+  {
     id: "AniNeko",
     label: "Gamma",
     group: "featured",
@@ -177,19 +188,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "Miruro",
-    label: "Echo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    supportsMulti: true,
-    hint: "SUB · DUB · soft · pipes",
   },
   {
     id: "AnimeGG",
@@ -215,18 +213,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: false,
     hint: "SUB · hard subs",
   },
-  {
-    id: "AniKuro",
-    label: "Alpha",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs · mirrors",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
@@ -237,12 +223,11 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
+  "AniKuro",
   "AniNeko",
   "Senshi",
-  "Miruro",
   "AnimeGG",
   "AnimeHeaven",
-  "AniKuro",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -262,7 +247,6 @@ export {
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
-  "Miruro",
   "AniKuro",
   "Anikoto",
   "Senshi",
@@ -294,6 +278,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Taku") return "Anitaku";
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
   if (value === "Juliet" || value === "AniWatch") return DEFAULT_KITTY_PROVIDER;
+  if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
   if (value === "HQ") return "AniHQ";
   if (
     value === "Luna" ||
