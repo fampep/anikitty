@@ -199,6 +199,12 @@ interface SkipSubmissionRow {
   malId: number | null;
   animeTitle: string | null;
   episode: number;
+  episodes?: number[] | null;
+  episodesLabel?: string;
+  segmentType?: string;
+  segmentLabel?: string;
+  rangeLabel?: string | null;
+  noSegment?: boolean;
   introStart: number | null;
   introEnd: number | null;
   outroStart: number | null;
@@ -2307,7 +2313,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                         {s.animeTitle ?? `AniList #${s.anilistId}`}
                       </p>
                       <p className="text-xs text-white/45 font-mono mt-0.5">
-                        Episode {s.episode}
+                        {s.segmentLabel ?? "Segment"} · Ep {s.episodesLabel ?? s.episode}
                         {s.username && (
                           <>
                             {" "}
@@ -2328,15 +2334,11 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       {s.createdAt ? timeAgo(s.createdAt) : ""}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg border border-white/8 bg-black/25 px-3 py-2">
-                      <p className="text-[10px] font-mono uppercase tracking-wide text-white/35 mb-1">Intro</p>
-                      <p className="text-white/75 font-mono">{s.introLabel ?? "—"}</p>
-                    </div>
-                    <div className="rounded-lg border border-white/8 bg-black/25 px-3 py-2">
-                      <p className="text-[10px] font-mono uppercase tracking-wide text-white/35 mb-1">Outro / credits</p>
-                      <p className="text-white/75 font-mono">{s.outroLabel ?? "—"}</p>
-                    </div>
+                  <div className="rounded-lg border border-white/8 bg-black/25 px-3 py-2 text-xs">
+                    <p className="text-[10px] font-mono uppercase tracking-wide text-white/35 mb-1">
+                      {s.segmentLabel ?? "Range"}
+                    </p>
+                    <p className="text-white/75 font-mono">{s.rangeLabel ?? s.introLabel ?? s.outroLabel ?? "—"}</p>
                   </div>
                   {s.notes && (
                     <p className="text-xs text-white/50 italic border-l-2 border-primary/30 pl-3">“{s.notes}”</p>

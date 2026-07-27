@@ -903,7 +903,7 @@ export const userReports = pgTable(
   }),
 );
 
-/** User-submitted intro/outro skip timestamps awaiting moderation. */
+/** User-submitted skip timestamp segments awaiting moderation. */
 export const episodeSkipSubmissions = pgTable(
   "episode_skip_submissions",
   {
@@ -914,7 +914,16 @@ export const episodeSkipSubmissions = pgTable(
     anilistId: integer("anilist_id").notNull(),
     malId: integer("mal_id"),
     animeTitle: text("anime_title"),
+    /** First / primary AniList absolute episode (compat + indexing). */
     episode: integer("episode").notNull(),
+    /** Absolute AniList episode numbers covered by this submission. */
+    episodes: integer("episodes").array(),
+    segmentType: varchar("segment_type", { length: 20 }).notNull().default("intro"),
+    startSec: real("start_sec"),
+    endSec: real("end_sec"),
+    durationSec: real("duration_sec"),
+    noSegment: boolean("no_segment").notNull().default(false),
+    /** Legacy columns — kept for backfill / old rows. */
     introStart: real("intro_start"),
     introEnd: real("intro_end"),
     outroStart: real("outro_start"),
@@ -935,7 +944,31 @@ export const episodeSkipSubmissions = pgTable(
   }),
 );
 
-/** Approved community skip timestamps (AniKitty database). */
+/**
+ * Approved community skip segments (AniKitty database).
+ * One row per (anime, absolute episode, segment type).
+ */
+export const episodeSkipSegments = pgTable(
+  "episode_skip_segments",
+  {
+    anilistId: integer("anilist_id").notNull(),
+    episode: integer("episode").notNull(),
+    segmentType: varchar("segment_type", { length: 20 }).notNull(),
+    startSec: real("start_sec"),
+    endSec: real("end_sec"),
+    noSegment: boolean("no_segment").notNull().default(false),
+    submissionId: uuid("submission_id").references(() => episodeSkipSubmissions.id, {
+      onDelete: "set null",
+    }),
+    approvedAt: timestamp("approved_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.anilistId, t.episode, t.segmentType] }),
+  }),
+);
+
+/** @deprecated Prefer episodeSkipSegments — kept for migration/read fallback. */
 export const episodeSkipTimes = pgTable(
   "episode_skip_times",
   {

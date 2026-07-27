@@ -365,7 +365,7 @@ export function SeekPreviewCard({
   ratio: number;
   time: number;
   cue: StoryboardCue | null;
-  skipKind: "intro" | "outro" | null;
+  skipKind: "intro" | "outro" | "recap" | null;
   bufferAheadSecs: number | null;
 }) {
   // Hold the last painted cue until the next sprite sheet finishes loading —
@@ -455,7 +455,7 @@ export function SeekPreviewCard({
                 {formatPlayerTime(time)}
                 {skipKind ? (
                   <span className="ml-1.5 text-white/55">
-                    {skipKind === "intro" ? "Intro" : "Outro"}
+                    {skipKind === "intro" ? "Intro" : skipKind === "recap" ? "Recap" : "Credits"}
                   </span>
                 ) : null}
               </p>
@@ -466,7 +466,7 @@ export function SeekPreviewCard({
             {formatPlayerTime(time)}
             {skipKind ? (
               <span className="ml-1.5 text-white/55">
-                {skipKind === "intro" ? "Intro" : "Outro"}
+                {skipKind === "intro" ? "Intro" : skipKind === "recap" ? "Recap" : "Credits"}
               </span>
             ) : null}
             {bufferAheadSecs != null ? (

@@ -1834,6 +1834,7 @@ const VideoPlayerSection = () => {
         malId={malId}
         animeTitle={animeTitle ?? `Anime #${anilistId}`}
         episode={episodeNumberParsed}
+        episodeTitle={currentEpisodeInfo?.title}
         preferSegment={skipPreferSegment}
         />
     )}

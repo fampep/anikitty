@@ -66,7 +66,7 @@ function TimeChip({
 }: {
   label: string;
   value: string | null;
-  tone: "intro" | "outro";
+  tone: "intro" | "outro" | "recap" | "preview" | "none";
 }) {
   const has = !!value;
   return (
@@ -76,7 +76,13 @@ function TimeChip({
         has
           ? tone === "intro"
             ? "border-teal-500/25 bg-teal-500/10 text-teal-200/90"
-            : "border-zinc-500/30 bg-zinc-500/10 text-zinc-200/85"
+            : tone === "recap"
+              ? "border-sky-500/25 bg-sky-500/10 text-sky-200/90"
+              : tone === "preview"
+                ? "border-violet-500/25 bg-violet-500/10 text-violet-200/90"
+                : tone === "none"
+                  ? "border-amber-500/25 bg-amber-500/10 text-amber-200/90"
+                  : "border-zinc-500/30 bg-zinc-500/10 text-zinc-200/85"
           : "border-white/8 bg-white/[0.02] text-white/25",
       )}
     >
@@ -130,8 +136,44 @@ const EpisodeRow = memo(function EpisodeRow({
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <TimeChip label="OP" value={ep.introLabel} tone="intro" />
-          <TimeChip label="ED" value={ep.outroLabel} tone="outro" />
+          {(ep.segments?.length
+            ? ep.segments
+            : [
+                ...(ep.hasIntro
+                  ? [{ type: "intro", label: "OP", rangeLabel: ep.introLabel, noSegment: false }]
+                  : []),
+                ...(ep.hasOutro
+                  ? [{ type: "credits", label: "ED", rangeLabel: ep.outroLabel, noSegment: false }]
+                  : []),
+              ]
+          ).map((seg) => (
+            <TimeChip
+              key={`${ep.episode}-${seg.type}-${seg.rangeLabel}`}
+              label={
+                seg.type === "intro"
+                  ? "OP"
+                  : seg.type === "credits"
+                    ? "ED"
+                    : seg.type === "recap"
+                      ? "Recap"
+                      : seg.type === "preview"
+                        ? "Prev"
+                        : seg.label
+              }
+              value={seg.noSegment ? "None" : seg.rangeLabel}
+              tone={
+                seg.noSegment
+                  ? "none"
+                  : seg.type === "intro"
+                    ? "intro"
+                    : seg.type === "recap"
+                      ? "recap"
+                      : seg.type === "preview"
+                        ? "preview"
+                        : "outro"
+              }
+            />
+          ))}
         </div>
       </div>
     </div>

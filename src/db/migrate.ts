@@ -656,6 +656,49 @@ export async function migrateDb() {
         updated_at TIMESTAMP DEFAULT NOW(),
         PRIMARY KEY (anilist_id, episode)
       )`,
+      // Segment-based skip model (IntroDB-style, AniList absolute episodes)
+      `ALTER TABLE episode_skip_submissions ADD COLUMN IF NOT EXISTS episodes INTEGER[]`,
+      `ALTER TABLE episode_skip_submissions ADD COLUMN IF NOT EXISTS segment_type VARCHAR(20) NOT NULL DEFAULT 'intro'`,
+      `ALTER TABLE episode_skip_submissions ADD COLUMN IF NOT EXISTS start_sec REAL`,
+      `ALTER TABLE episode_skip_submissions ADD COLUMN IF NOT EXISTS end_sec REAL`,
+      `ALTER TABLE episode_skip_submissions ADD COLUMN IF NOT EXISTS duration_sec REAL`,
+      `ALTER TABLE episode_skip_submissions ADD COLUMN IF NOT EXISTS no_segment BOOLEAN NOT NULL DEFAULT FALSE`,
+      `CREATE TABLE IF NOT EXISTS episode_skip_segments (
+        anilist_id INTEGER NOT NULL,
+        episode INTEGER NOT NULL,
+        segment_type VARCHAR(20) NOT NULL,
+        start_sec REAL,
+        end_sec REAL,
+        no_segment BOOLEAN NOT NULL DEFAULT FALSE,
+        submission_id UUID REFERENCES episode_skip_submissions(id) ON DELETE SET NULL,
+        approved_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (anilist_id, episode, segment_type)
+      )`,
+      // Backfill submissions: legacy intro/outro rows → segment columns
+      `UPDATE episode_skip_submissions
+       SET
+         episodes = ARRAY[episode],
+         segment_type = CASE
+           WHEN intro_start IS NOT NULL AND intro_end IS NOT NULL THEN 'intro'
+           WHEN outro_start IS NOT NULL AND outro_end IS NOT NULL THEN 'credits'
+           ELSE segment_type
+         END,
+         start_sec = COALESCE(start_sec, intro_start, outro_start),
+         end_sec = COALESCE(end_sec, intro_end, outro_end)
+       WHERE episodes IS NULL
+          OR (start_sec IS NULL AND (intro_start IS NOT NULL OR outro_start IS NOT NULL))`,
+      // Backfill live segments from legacy episode_skip_times
+      `INSERT INTO episode_skip_segments (anilist_id, episode, segment_type, start_sec, end_sec, no_segment, submission_id, approved_at, updated_at)
+       SELECT anilist_id, episode, 'intro', intro_start, intro_end, FALSE, submission_id, approved_at, updated_at
+       FROM episode_skip_times
+       WHERE intro_start IS NOT NULL AND intro_end IS NOT NULL
+       ON CONFLICT (anilist_id, episode, segment_type) DO NOTHING`,
+      `INSERT INTO episode_skip_segments (anilist_id, episode, segment_type, start_sec, end_sec, no_segment, submission_id, approved_at, updated_at)
+       SELECT anilist_id, episode, 'credits', outro_start, outro_end, FALSE, submission_id, approved_at, updated_at
+       FROM episode_skip_times
+       WHERE outro_start IS NOT NULL AND outro_end IS NOT NULL
+       ON CONFLICT (anilist_id, episode, segment_type) DO NOTHING`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_online_at TIMESTAMP`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS activity_status VARCHAR(12) NOT NULL DEFAULT 'online'`,
       `ALTER TABLE w2g_rooms ADD COLUMN IF NOT EXISTS name VARCHAR(80)`,

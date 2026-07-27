@@ -1,7 +1,19 @@
 import { getDb } from "@/db";
-import { episodeSkipSubmissions, episodeSkipTimes, userNotifications, users } from "@/db/schema";
+import {
+  episodeSkipSegments,
+  episodeSkipSubmissions,
+  userNotifications,
+  users,
+} from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { rowToSkipTimes, watchEpisodeUrl, intervalLabel, animeDetailUrl } from "@/lib/skip/community-skip";
+import {
+  watchEpisodeUrl,
+  intervalLabel,
+  animeDetailUrl,
+  segmentsToSkipTimes,
+  segmentTypeLabel,
+  type SkipSegmentType,
+} from "@/lib/skip/community-skip";
 import { alias } from "drizzle-orm/pg-core";
 import {
   TIMESTAMP_HELPER_APPROVAL_THRESHOLD,
@@ -24,7 +36,6 @@ export type SkipContributionStats = {
   helperProgress: number;
   helperThreshold: number;
   isTimestampHelper: boolean;
-  /** Current timestamp rank (null if below Rookie). */
   tier: TimestampTier | null;
   nextTier: TimestampTier | null;
   tierProgressPct: number;
@@ -105,6 +116,11 @@ export async function getUserRecentSkipSubmissions(db: Db, userId: string, limit
       anilistId: episodeSkipSubmissions.anilistId,
       animeTitle: episodeSkipSubmissions.animeTitle,
       episode: episodeSkipSubmissions.episode,
+      episodes: episodeSkipSubmissions.episodes,
+      segmentType: episodeSkipSubmissions.segmentType,
+      startSec: episodeSkipSubmissions.startSec,
+      endSec: episodeSkipSubmissions.endSec,
+      noSegment: episodeSkipSubmissions.noSegment,
       status: episodeSkipSubmissions.status,
       introStart: episodeSkipSubmissions.introStart,
       introEnd: episodeSkipSubmissions.introEnd,
@@ -118,11 +134,17 @@ export async function getUserRecentSkipSubmissions(db: Db, userId: string, limit
     .orderBy(desc(episodeSkipSubmissions.createdAt))
     .limit(limit);
 
-  return rows.map((r) => ({
-    ...r,
-    introLabel: intervalLabel(r.introStart, r.introEnd),
-    outroLabel: intervalLabel(r.outroStart, r.outroEnd),
-  }));
+  return rows.map((r) => {
+    const start = r.startSec ?? r.introStart ?? r.outroStart;
+    const end = r.endSec ?? r.introEnd ?? r.outroEnd;
+    return {
+      ...r,
+      segmentLabel: segmentTypeLabel(r.segmentType),
+      rangeLabel: r.noSegment ? "No segment" : intervalLabel(start, end),
+      introLabel: intervalLabel(r.introStart, r.introEnd),
+      outroLabel: intervalLabel(r.outroStart, r.outroEnd),
+    };
+  });
 }
 
 export async function maybeGrantTimestampHelperRole(
@@ -140,7 +162,6 @@ export async function maybeGrantTimestampHelperRole(
     .limit(1);
 
   if (!user) return false;
-  // Never overwrite staff / donator / booster — badge still comes from approved count on profile.
   if (user.role !== "user" && !isTimestampRole(user.role)) return false;
   if (user.role === tier.id) return false;
 
@@ -159,6 +180,13 @@ export async function maybeGrantTimestampHelperRole(
   return true;
 }
 
+export type SkipDatabaseSegmentChip = {
+  type: string;
+  label: string;
+  rangeLabel: string | null;
+  noSegment: boolean;
+};
+
 export type SkipDatabaseEpisode = {
   episode: number;
   episodeTitle?: string | null;
@@ -167,6 +195,7 @@ export type SkipDatabaseEpisode = {
   outroLabel: string | null;
   hasIntro: boolean;
   hasOutro: boolean;
+  segments: SkipDatabaseSegmentChip[];
   submitterUsername: string | null;
   watchUrl: string;
   animeUrl: string;
@@ -192,58 +221,77 @@ export type SkipDatabasePayload = {
   pending: SkipDatabaseAnimeGroup[];
 };
 
-type FlatEpisodeRow = {
+type FlatSegmentRow = {
   anilistId: number;
   episode: number;
   animeTitle: string | null;
-  introStart: number | null;
-  introEnd: number | null;
-  outroStart: number | null;
-  outroEnd: number | null;
+  segmentType: string;
+  startSec: number | null;
+  endSec: number | null;
+  noSegment: boolean;
   submitterUsername: string | null;
   createdAt: Date | null;
   approvedAt: Date | null;
 };
 
-function rowToDatabaseEpisode(row: FlatEpisodeRow): SkipDatabaseEpisode {
-  return {
-    episode: row.episode,
-    introLabel: intervalLabel(row.introStart, row.introEnd),
-    outroLabel: intervalLabel(row.outroStart, row.outroEnd),
-    hasIntro: row.introStart != null && row.introEnd != null,
-    hasOutro: row.outroStart != null && row.outroEnd != null,
-    submitterUsername: row.submitterUsername,
-    watchUrl: watchEpisodeUrl(row.anilistId, row.episode),
-    animeUrl: animeDetailUrl(row.anilistId),
-    createdAt: row.createdAt?.toISOString() ?? null,
-    approvedAt: row.approvedAt?.toISOString() ?? null,
-  };
-}
-
-function groupSkipRows(rows: FlatEpisodeRow[]): SkipDatabaseAnimeGroup[] {
-  const byAnime = new Map<number, SkipDatabaseAnimeGroup>();
+function groupSegmentRows(rows: FlatSegmentRow[]): SkipDatabaseAnimeGroup[] {
+  const byAnime = new Map<number, Map<number, FlatSegmentRow[]>>();
+  const titles = new Map<number, string>();
 
   for (const row of rows) {
-    const title = row.animeTitle?.trim() || `Anime #${row.anilistId}`;
-    let group = byAnime.get(row.anilistId);
-    if (!group) {
-      group = { anilistId: row.anilistId, animeTitle: title, episodes: [] };
-      byAnime.set(row.anilistId, group);
+    titles.set(
+      row.anilistId,
+      row.animeTitle?.trim() || titles.get(row.anilistId) || `Anime #${row.anilistId}`,
+    );
+    let epMap = byAnime.get(row.anilistId);
+    if (!epMap) {
+      epMap = new Map();
+      byAnime.set(row.anilistId, epMap);
     }
-    if (!row.animeTitle?.trim() && title.startsWith("Anime #")) {
-      // keep default
-    } else if (row.animeTitle?.trim()) {
-      group.animeTitle = row.animeTitle.trim();
-    }
-    group.episodes.push(rowToDatabaseEpisode(row));
+    const list = epMap.get(row.episode) ?? [];
+    list.push(row);
+    epMap.set(row.episode, list);
   }
 
-  return [...byAnime.values()]
-    .map((g) => ({
-      ...g,
-      episodes: g.episodes.sort((a, b) => a.episode - b.episode),
-    }))
-    .sort((a, b) => a.animeTitle.localeCompare(b.animeTitle));
+  const groups: SkipDatabaseAnimeGroup[] = [];
+  for (const [anilistId, epMap] of byAnime) {
+    const episodes: SkipDatabaseEpisode[] = [];
+    for (const [episode, segs] of epMap) {
+      const intro = segs.find((s) => s.segmentType === "intro" && !s.noSegment);
+      const credits = segs.find((s) => s.segmentType === "credits" && !s.noSegment);
+      const submitter =
+        segs.find((s) => s.submitterUsername)?.submitterUsername ?? null;
+      const approvedAt = segs.map((s) => s.approvedAt).find(Boolean) ?? null;
+      const createdAt = segs.map((s) => s.createdAt).find(Boolean) ?? null;
+      episodes.push({
+        episode,
+        introLabel: intervalLabel(intro?.startSec ?? null, intro?.endSec ?? null),
+        outroLabel: intervalLabel(credits?.startSec ?? null, credits?.endSec ?? null),
+        hasIntro: !!intro,
+        hasOutro: !!credits,
+        segments: segs.map((s) => ({
+          type: s.segmentType,
+          label: segmentTypeLabel(s.segmentType),
+          rangeLabel: s.noSegment
+            ? "None"
+            : intervalLabel(s.startSec, s.endSec),
+          noSegment: s.noSegment,
+        })),
+        submitterUsername: submitter,
+        watchUrl: watchEpisodeUrl(anilistId, episode),
+        animeUrl: animeDetailUrl(anilistId),
+        createdAt: createdAt?.toISOString() ?? null,
+        approvedAt: approvedAt?.toISOString() ?? null,
+      });
+    }
+    groups.push({
+      anilistId,
+      animeTitle: titles.get(anilistId) ?? `Anime #${anilistId}`,
+      episodes: episodes.sort((a, b) => a.episode - b.episode),
+    });
+  }
+
+  return groups.sort((a, b) => a.animeTitle.localeCompare(b.animeTitle));
 }
 
 export async function getPublicSkipDatabase(db: Db): Promise<SkipDatabasePayload> {
@@ -251,50 +299,80 @@ export async function getPublicSkipDatabase(db: Db): Promise<SkipDatabasePayload
 
   const liveRows = await db
     .select({
-      anilistId: episodeSkipTimes.anilistId,
-      episode: episodeSkipTimes.episode,
+      anilistId: episodeSkipSegments.anilistId,
+      episode: episodeSkipSegments.episode,
       animeTitle: episodeSkipSubmissions.animeTitle,
-      introStart: episodeSkipTimes.introStart,
-      introEnd: episodeSkipTimes.introEnd,
-      outroStart: episodeSkipTimes.outroStart,
-      outroEnd: episodeSkipTimes.outroEnd,
+      segmentType: episodeSkipSegments.segmentType,
+      startSec: episodeSkipSegments.startSec,
+      endSec: episodeSkipSegments.endSec,
+      noSegment: episodeSkipSegments.noSegment,
       submitterUsername: submitter.username,
       createdAt: episodeSkipSubmissions.createdAt,
-      approvedAt: episodeSkipTimes.approvedAt,
+      approvedAt: episodeSkipSegments.approvedAt,
     })
-    .from(episodeSkipTimes)
+    .from(episodeSkipSegments)
     .leftJoin(
       episodeSkipSubmissions,
-      eq(episodeSkipTimes.submissionId, episodeSkipSubmissions.id),
+      eq(episodeSkipSegments.submissionId, episodeSkipSubmissions.id),
     )
     .leftJoin(submitter, eq(episodeSkipSubmissions.userId, submitter.id))
-    .orderBy(desc(episodeSkipTimes.approvedAt));
+    .orderBy(desc(episodeSkipSegments.approvedAt));
 
   const pendingRows = await db
     .select({
       anilistId: episodeSkipSubmissions.anilistId,
       episode: episodeSkipSubmissions.episode,
+      episodes: episodeSkipSubmissions.episodes,
       animeTitle: episodeSkipSubmissions.animeTitle,
+      segmentType: episodeSkipSubmissions.segmentType,
+      startSec: episodeSkipSubmissions.startSec,
+      endSec: episodeSkipSubmissions.endSec,
+      noSegment: episodeSkipSubmissions.noSegment,
+      submitterUsername: submitter.username,
+      createdAt: episodeSkipSubmissions.createdAt,
       introStart: episodeSkipSubmissions.introStart,
       introEnd: episodeSkipSubmissions.introEnd,
       outroStart: episodeSkipSubmissions.outroStart,
       outroEnd: episodeSkipSubmissions.outroEnd,
-      submitterUsername: submitter.username,
-      createdAt: episodeSkipSubmissions.createdAt,
-      approvedAt: sql<Date | null>`null`,
     })
     .from(episodeSkipSubmissions)
     .leftJoin(submitter, eq(episodeSkipSubmissions.userId, submitter.id))
     .where(eq(episodeSkipSubmissions.status, "pending"))
     .orderBy(desc(episodeSkipSubmissions.createdAt));
 
-  const live = groupSkipRows(liveRows as FlatEpisodeRow[]);
-  const pending = groupSkipRows(pendingRows as FlatEpisodeRow[]);
+  const pendingFlat: FlatSegmentRow[] = [];
+  for (const row of pendingRows) {
+    const eps =
+      row.episodes && row.episodes.length > 0 ? row.episodes : [row.episode];
+    const start = row.startSec ?? row.introStart ?? row.outroStart;
+    const end = row.endSec ?? row.introEnd ?? row.outroEnd;
+    const type =
+      row.segmentType ||
+      (row.introStart != null ? "intro" : row.outroStart != null ? "credits" : "intro");
+    for (const ep of eps) {
+      pendingFlat.push({
+        anilistId: row.anilistId,
+        episode: ep,
+        animeTitle: row.animeTitle,
+        segmentType: type,
+        startSec: start,
+        endSec: end,
+        noSegment: row.noSegment,
+        submitterUsername: row.submitterUsername,
+        createdAt: row.createdAt,
+        approvedAt: null,
+      });
+    }
+  }
+
+  const live = groupSegmentRows(liveRows as FlatSegmentRow[]);
+  const pending = groupSegmentRows(pendingFlat);
+  const liveEpisodeCount = new Set(liveRows.map((r) => `${r.anilistId}:${r.episode}`)).size;
 
   return {
     stats: {
-      liveEpisodes: liveRows.length,
-      pendingEpisodes: pendingRows.length,
+      liveEpisodes: liveEpisodeCount,
+      pendingEpisodes: pendingFlat.length,
       liveAnime: live.length,
       pendingAnime: pending.length,
     },
@@ -308,18 +386,62 @@ export async function getApprovedCommunitySkipTimes(
   episode: number,
 ): Promise<SkipTimes> {
   const db = getDb();
-  const [row] = await db
+  const rows = await db
     .select({
-      introStart: episodeSkipTimes.introStart,
-      introEnd: episodeSkipTimes.introEnd,
-      outroStart: episodeSkipTimes.outroStart,
-      outroEnd: episodeSkipTimes.outroEnd,
+      segmentType: episodeSkipSegments.segmentType,
+      startSec: episodeSkipSegments.startSec,
+      endSec: episodeSkipSegments.endSec,
+      noSegment: episodeSkipSegments.noSegment,
     })
-    .from(episodeSkipTimes)
-    .where(and(eq(episodeSkipTimes.anilistId, anilistId), eq(episodeSkipTimes.episode, episode)))
-    .limit(1);
+    .from(episodeSkipSegments)
+    .where(
+      and(
+        eq(episodeSkipSegments.anilistId, anilistId),
+        eq(episodeSkipSegments.episode, episode),
+      ),
+    );
 
-  return row ? rowToSkipTimes(row) : {};
+  return segmentsToSkipTimes(rows);
+}
+
+export async function approveSkipSubmissionToSegments(
+  db: Db,
+  row: typeof episodeSkipSubmissions.$inferSelect,
+) {
+  const episodes =
+    row.episodes && row.episodes.length > 0 ? row.episodes : [row.episode];
+  const segmentType = (row.segmentType || "intro") as SkipSegmentType;
+  const startSec = row.noSegment ? null : (row.startSec ?? row.introStart ?? 0);
+  const endSec = row.noSegment ? null : (row.endSec ?? row.introEnd ?? row.outroEnd);
+
+  for (const episode of episodes) {
+    await db
+      .insert(episodeSkipSegments)
+      .values({
+        anilistId: row.anilistId,
+        episode,
+        segmentType,
+        startSec,
+        endSec,
+        noSegment: row.noSegment,
+        submissionId: row.id,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [
+          episodeSkipSegments.anilistId,
+          episodeSkipSegments.episode,
+          episodeSkipSegments.segmentType,
+        ],
+        set: {
+          startSec,
+          endSec,
+          noSegment: row.noSegment,
+          submissionId: row.id,
+          updatedAt: new Date(),
+        },
+      });
+  }
 }
 
 export async function notifySkipSubmissionDecision(opts: {
@@ -330,12 +452,14 @@ export async function notifySkipSubmissionDecision(opts: {
   animeTitle: string | null;
   approved: boolean;
   rejectReason?: string | null;
+  segmentType?: string | null;
 }) {
   const db = getDb();
   const title = opts.animeTitle?.trim() || `Anime #${opts.anilistId}`;
+  const seg = opts.segmentType ? segmentTypeLabel(opts.segmentType) : "timestamps";
   const body = opts.approved
-    ? `Your skip times for episode ${opts.episode} were approved. Thanks for helping build our timestamp database!`
-    : `Your skip times for episode ${opts.episode} were declined.${
+    ? `Your ${seg.toLowerCase()} for episode ${opts.episode} were approved. Thanks for helping build our timestamp database!`
+    : `Your ${seg.toLowerCase()} for episode ${opts.episode} were declined.${
         opts.rejectReason?.trim() ? ` Reason: ${opts.rejectReason.trim()}` : ""
       }`;
 

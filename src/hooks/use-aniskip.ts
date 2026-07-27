@@ -8,7 +8,10 @@ export interface SkipInterval {
 
 export interface SkipTimes {
   intro?: SkipInterval;
+  /** Credits / ending — stored as credits segment, exposed as outro for the player. */
   outro?: SkipInterval;
+  recap?: SkipInterval;
+  preview?: SkipInterval;
 }
 
 /** Approved AniKitty community skip times only (no third-party APIs). */

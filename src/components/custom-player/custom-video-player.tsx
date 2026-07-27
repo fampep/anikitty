@@ -147,7 +147,7 @@ import {
   type CaptionSizePref,
 } from "./utils";
 
-type SkipSegmentKind = "intro" | "outro";
+type SkipSegmentKind = "intro" | "outro" | "recap";
 
 type SkipSegment = {
   kind: SkipSegmentKind;
@@ -158,6 +158,14 @@ type SkipSegment = {
 function buildSkipSegments(skipTimes?: SkipTimes | null): SkipSegment[] {
   if (!skipTimes) return [];
   const out: SkipSegment[] = [];
+  if (
+    skipTimes.recap &&
+    Number.isFinite(skipTimes.recap.start) &&
+    Number.isFinite(skipTimes.recap.end) &&
+    skipTimes.recap.end > skipTimes.recap.start
+  ) {
+    out.push({ kind: "recap", start: skipTimes.recap.start, end: skipTimes.recap.end });
+  }
   if (
     skipTimes.intro &&
     Number.isFinite(skipTimes.intro.start) &&
@@ -175,6 +183,12 @@ function buildSkipSegments(skipTimes?: SkipTimes | null): SkipSegment[] {
     out.push({ kind: "outro", start: skipTimes.outro.start, end: skipTimes.outro.end });
   }
   return out;
+}
+
+function skipKindLabel(kind: SkipSegmentKind): string {
+  if (kind === "intro") return "Intro";
+  if (kind === "recap") return "Recap";
+  return "Credits";
 }
 
 function segmentAtTime(
@@ -458,6 +472,7 @@ export function AniKittyPlayer({
   const nextEpisodeRef = useRef(nextEpisode);
   const prevEpisodeRef = useRef(prevEpisode);
   const introAutoSkippedRef = useRef(false);
+  const recapAutoSkippedRef = useRef(false);
   const outroAutoSkippedRef = useRef(false);
   const outroFiredRef = useRef(false);
   const endHandledRef = useRef(false);
@@ -686,6 +701,7 @@ export function AniKittyPlayer({
 
   useEffect(() => {
     introAutoSkippedRef.current = false;
+    recapAutoSkippedRef.current = false;
     outroAutoSkippedRef.current = false;
     outroFiredRef.current = false;
     endHandledRef.current = false;
@@ -693,7 +709,7 @@ export function AniKittyPlayer({
     nextNavLockRef.current = false;
     setActiveSkip(null);
     setCountdown(null);
-  }, [src, skipTimes?.intro?.start, skipTimes?.intro?.end, skipTimes?.outro?.start, skipTimes?.outro?.end]);
+  }, [src, skipTimes?.intro?.start, skipTimes?.intro?.end, skipTimes?.outro?.start, skipTimes?.outro?.end, skipTimes?.recap?.start, skipTimes?.recap?.end]);
 
   const resolvedSrc = useMemo(() => {
     const raw = (srcOverride ?? src).trim();
@@ -1403,7 +1419,15 @@ export function AniKittyPlayer({
 
     const st = skipTimesRef.current;
     let nextSkip: SkipSegmentKind | null = null;
-    if (st?.intro && t >= st.intro.start && t < st.intro.end) {
+    if (st?.recap && t >= st.recap.start && t < st.recap.end) {
+      nextSkip = "recap";
+      if (autoSkipRef.current && !recapAutoSkippedRef.current) {
+        recapAutoSkippedRef.current = true;
+        castSeekTo(st.recap.end);
+        setCurrentTime(st.recap.end);
+        nextSkip = null;
+      }
+    } else if (st?.intro && t >= st.intro.start && t < st.intro.end) {
       nextSkip = "intro";
       if (autoSkipRef.current && !introAutoSkippedRef.current) {
         introAutoSkippedRef.current = true;
@@ -1784,6 +1808,18 @@ export function AniKittyPlayer({
       const st = skipTimesRef.current;
       let nextSkip: SkipSegmentKind | null = null;
       if (
+        st?.recap &&
+        video.currentTime >= st.recap.start &&
+        video.currentTime < st.recap.end
+      ) {
+        nextSkip = "recap";
+        if (autoSkipRef.current && !recapAutoSkippedRef.current) {
+          recapAutoSkippedRef.current = true;
+          video.currentTime = st.recap.end;
+          setCurrentTime(st.recap.end);
+          nextSkip = null;
+        }
+      } else if (
         st?.intro &&
         video.currentTime >= st.intro.start &&
         video.currentTime < st.intro.end
@@ -3469,14 +3505,15 @@ export function AniKittyPlayer({
           const interval =
             activeSkip === "intro"
               ? skipTimesRef.current?.intro
-              : skipTimesRef.current?.outro;
+              : activeSkip === "recap"
+                ? skipTimesRef.current?.recap
+                : skipTimesRef.current?.outro;
           if (!interval || !(interval.end > interval.start)) break;
           e.preventDefault();
           seekTo(interval.end);
           setActiveSkip(null);
           showGestureHint({
-            label:
-              activeSkip === "intro" ? "Intro skipped" : "Credits skipped",
+            label: `${skipKindLabel(activeSkip)} skipped`,
           });
           break;
         }
@@ -3606,9 +3643,11 @@ export function AniKittyPlayer({
   const activeSkipInterval =
     activeSkip === "intro"
       ? skipTimes?.intro
-      : activeSkip === "outro"
-        ? skipTimes?.outro
-        : undefined;
+      : activeSkip === "recap"
+        ? skipTimes?.recap
+        : activeSkip === "outro"
+          ? skipTimes?.outro
+          : undefined;
   const skipRemainingSecs =
     activeSkipInterval && Number.isFinite(activeSkipInterval.end)
       ? Math.max(0, Math.ceil(activeSkipInterval.end - displayTime))
@@ -4172,7 +4211,7 @@ export function AniKittyPlayer({
             seekTo(activeSkipInterval.end);
             setActiveSkip(null);
             showGestureHint({
-              label: activeSkip === "intro" ? "Intro skipped" : "Credits skipped",
+              label: `${skipKindLabel(activeSkip)} skipped`,
             });
           }}
           className={cn(
@@ -4191,7 +4230,7 @@ export function AniKittyPlayer({
           )}
         >
           <SeekForwardIcon className="h-3.5 w-3.5 opacity-80" aria-hidden />
-          <span>{activeSkip === "intro" ? "Skip Intro" : "Skip Credits"}</span>
+          <span>Skip {skipKindLabel(activeSkip)}</span>
           {skipRemainingSecs > 0 ? (
             <span className="rounded-md bg-white/10 px-1.5 py-0.5 tabular-nums text-[11px] font-medium text-white/70">
               {formatPlayerTime(skipRemainingSecs)}
@@ -4472,7 +4511,7 @@ export function AniKittyPlayer({
                       return (
                         <div
                           key={`${seg.kind}-range`}
-                          title={seg.kind === "intro" ? "Intro" : "Outro"}
+                          title={skipKindLabel(seg.kind)}
                           aria-hidden
                           className={cn(
                             "absolute top-1/2 z-[1] -translate-y-1/2 rounded-sm transition-[height] duration-150",
@@ -4480,7 +4519,9 @@ export function AniKittyPlayer({
                             seeking && "h-[5px]",
                             seg.kind === "intro"
                               ? "bg-violet-300/45"
-                              : "bg-amber-400/65",
+                              : seg.kind === "recap"
+                                ? "bg-sky-300/45"
+                                : "bg-amber-400/65",
                           )}
                           style={{
                             left: `${left}%`,

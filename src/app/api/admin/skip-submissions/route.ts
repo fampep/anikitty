@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { episodeSkipSubmissions, episodeSkipTimes, users } from "@/db/schema";
+import { episodeSkipSubmissions, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/admin-auth";
-import { notifySkipSubmissionDecision, maybeGrantTimestampHelperRole } from "@/lib/skip/community-skip-server";
-import { intervalLabel } from "@/lib/skip/community-skip";
+import {
+  approveSkipSubmissionToSegments,
+  notifySkipSubmissionDecision,
+  maybeGrantTimestampHelperRole,
+} from "@/lib/skip/community-skip-server";
+import { intervalLabel, segmentTypeLabel } from "@/lib/skip/community-skip";
 import { TIMESTAMP_HELPER_APPROVAL_THRESHOLD } from "@/lib/skip/timestamp-helper-config";
 import { recordAudit } from "@/lib/security/audit-log";
 import { alias } from "drizzle-orm/pg-core";
@@ -23,6 +27,12 @@ export async function GET(req: Request) {
       malId: episodeSkipSubmissions.malId,
       animeTitle: episodeSkipSubmissions.animeTitle,
       episode: episodeSkipSubmissions.episode,
+      episodes: episodeSkipSubmissions.episodes,
+      segmentType: episodeSkipSubmissions.segmentType,
+      startSec: episodeSkipSubmissions.startSec,
+      endSec: episodeSkipSubmissions.endSec,
+      durationSec: episodeSkipSubmissions.durationSec,
+      noSegment: episodeSkipSubmissions.noSegment,
       introStart: episodeSkipSubmissions.introStart,
       introEnd: episodeSkipSubmissions.introEnd,
       outroStart: episodeSkipSubmissions.outroStart,
@@ -55,14 +65,22 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({
-    submissions: rows.map((r) => ({
-      ...r,
-      introLabel: intervalLabel(r.introStart, r.introEnd),
-      outroLabel: intervalLabel(r.outroStart, r.outroEnd),
-      submitterApproved: approvedByUser.get(r.userId) ?? 0,
-      nearTimestampHelper:
-        (approvedByUser.get(r.userId) ?? 0) >= TIMESTAMP_HELPER_APPROVAL_THRESHOLD - 2,
-    })),
+    submissions: rows.map((r) => {
+      const start = r.startSec ?? r.introStart ?? r.outroStart;
+      const end = r.endSec ?? r.introEnd ?? r.outroEnd;
+      const eps = r.episodes && r.episodes.length > 0 ? r.episodes : [r.episode];
+      return {
+        ...r,
+        segmentLabel: segmentTypeLabel(r.segmentType),
+        episodesLabel: eps.join(", "),
+        rangeLabel: r.noSegment ? "No segment" : intervalLabel(start, end),
+        introLabel: intervalLabel(r.introStart, r.introEnd),
+        outroLabel: intervalLabel(r.outroStart, r.outroEnd),
+        submitterApproved: approvedByUser.get(r.userId) ?? 0,
+        nearTimestampHelper:
+          (approvedByUser.get(r.userId) ?? 0) >= TIMESTAMP_HELPER_APPROVAL_THRESHOLD - 2,
+      };
+    }),
   });
 }
 
@@ -90,29 +108,7 @@ export async function PATCH(req: Request) {
   }
 
   if (action === "approve") {
-    await db
-      .insert(episodeSkipTimes)
-      .values({
-        anilistId: row.anilistId,
-        episode: row.episode,
-        introStart: row.introStart,
-        introEnd: row.introEnd,
-        outroStart: row.outroStart,
-        outroEnd: row.outroEnd,
-        submissionId: row.id,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [episodeSkipTimes.anilistId, episodeSkipTimes.episode],
-        set: {
-          introStart: row.introStart,
-          introEnd: row.introEnd,
-          outroStart: row.outroStart,
-          outroEnd: row.outroEnd,
-          submissionId: row.id,
-          updatedAt: new Date(),
-        },
-      });
+    await approveSkipSubmissionToSegments(db, row);
 
     await db
       .update(episodeSkipSubmissions)
@@ -126,6 +122,7 @@ export async function PATCH(req: Request) {
       episode: row.episode,
       animeTitle: row.animeTitle,
       approved: true,
+      segmentType: row.segmentType,
     });
 
     await maybeGrantTimestampHelperRole(db, row.userId);
@@ -154,6 +151,7 @@ export async function PATCH(req: Request) {
       animeTitle: row.animeTitle,
       approved: false,
       rejectReason,
+      segmentType: row.segmentType,
     });
 
     void recordAudit(db, {
