@@ -54,9 +54,9 @@ export default function LandingPage() {
           <Image
             src={SITE_BANNER_LOGO}
             alt="AniKitty"
-            width={180}
-            height={64}
-            className="h-9 sm:h-10 w-auto max-w-[12rem] object-contain transition-opacity group-hover:opacity-95"
+            width={240}
+            height={80}
+            className="h-11 sm:h-12 w-auto max-w-[16rem] object-contain transition-opacity group-hover:opacity-95"
             priority
             unoptimized
           />
