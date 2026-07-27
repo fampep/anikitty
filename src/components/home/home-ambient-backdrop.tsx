@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/core/utils";
-import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   imageUrl?: string | null;
@@ -25,9 +24,8 @@ export default function HomeAmbientBackdrop({
   className,
   variant = "hero",
 }: Props) {
-  const liteMode = useSettingsStore((s) => s.liteMode);
   const src = imageUrl?.trim();
-  if (!src || liteMode) return null;
+  if (!src) return null;
 
   if (variant === "watch") {
     return (

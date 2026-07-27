@@ -145,10 +145,6 @@ interface ISettingsStore {
   applySubtitlePreset: (settings: SubtitleSettings) => void;
   resetSubtitleSettings: () => void;
 
-  /** Disable animations and reduce background polling for slower devices. */
-  liteMode: boolean;
-  setLiteMode: (val: boolean) => void;
-
   /** Automatically skip intro/outro segments when chapter markers exist. */
   autoSkipIntro: boolean;
   setAutoSkipIntro: (val: boolean) => void;
@@ -363,9 +359,6 @@ export const useSettingsStore = create<ISettingsStore>()(
       resetSubtitleSettings: () =>
         set({ subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS } }),
 
-      liteMode: false,
-      setLiteMode: (liteMode) => set({ liteMode }),
-
       autoSkipIntro: true,
       setAutoSkipIntro: (autoSkipIntro) => set({ autoSkipIntro }),
 
@@ -434,7 +427,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 77,
+      version: 78,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -453,7 +446,6 @@ export const useSettingsStore = create<ISettingsStore>()(
         simpleProviderPicker: state.simpleProviderPicker,
         providerSectionHidden: state.providerSectionHidden,
         kittyProxyNode: state.kittyProxyNode,
-        liteMode: state.liteMode,
         autoSkipIntro: state.autoSkipIntro,
         playThemeSong: state.playThemeSong,
         siteAccentColor: state.siteAccentColor,
@@ -531,9 +523,6 @@ export const useSettingsStore = create<ISettingsStore>()(
           if (typeof node !== "string" || !isKittyApiNodeId(node)) {
             next.kittyProxyNode = DEFAULT_KITTY_API_NODE_ID;
           }
-        }
-        if (version < 18) {
-          next.liteMode = next.liteMode ?? false;
         }
         if (version < 19) {
           next.autoSkipIntro = next.autoSkipIntro ?? true;
@@ -1029,6 +1018,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Force site order for everyone; restore Heaven in hardsubs after GG.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
+        }
+        if (version < 78) {
+          delete (next as Record<string, unknown>).liteMode;
         }
         return next as ISettingsStore;
       },

@@ -21,7 +21,6 @@ import {
   EyeOff,
   ExternalLink,
   Coins,
-  Gauge,
   Music2,
   SkipForward,
   Maximize2,
@@ -45,7 +44,6 @@ import AnilistConnect from "@/components/profile/anilist-connect";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile/profile-customization-form";
-import { LiteModeToggle } from "@/components/settings/lite-mode-toggle";
 import ProfileMediaPreview from "@/components/profile/profile-media-preview";
 import { applyUserThemeColor } from "@/lib/core/theme-color";
 import { withAuth } from "@/lib/auth/auth-fetch";
@@ -707,23 +705,6 @@ function WatchLayoutSection({
   );
 }
 
-function PerformanceSection() {
-  const t = useT();
-
-  return (
-    <SectionCard>
-      <SectionHeader
-        icon={<Gauge className="w-4 h-4" />}
-        title={t("settings.performance")}
-        description={t("settings.performanceDesc")}
-      />
-      <SectionBody>
-        <LiteModeToggle />
-      </SectionBody>
-    </SectionCard>
-  );
-}
-
 function PlaybackSection({
   preferDub,
   setPreferDub,
@@ -1099,7 +1080,6 @@ export default function SettingsPage() {
             {activeTab === "general" && (
               <div className="space-y-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
                 {auth && <ShopSection />}
-                <PerformanceSection />
                 <WatchLayoutSection
                   watchLayouts={watchLayouts}
                   watchLayout={watchLayout}

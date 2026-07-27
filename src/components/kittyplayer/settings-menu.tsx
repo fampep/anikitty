@@ -233,7 +233,6 @@ export default function PlayerSettingsMenu({
   const setAnime4kEnabled = useSettingsStore((s) => s.setAnime4kEnabled);
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
   const setAnime4kMode = useSettingsStore((s) => s.setAnime4kMode);
-  const liteMode = useSettingsStore((s) => s.liteMode);
 
   const webGpuReady = isWebGpuSupported();
   const backLabel = t("watch.playerSettings.back");
@@ -407,17 +406,11 @@ export default function PlayerSettingsMenu({
                 <ToggleRow
                   icon={<Sparkles className="h-3.5 w-3.5" />}
                   label={t("watch.anime4k")}
-                  description={
-                    compact
-                      ? undefined
-                      : liteMode
-                        ? t("watch.anime4kLiteDisabled")
-                        : t("watch.anime4kHint")
-                  }
-                  value={anime4kEnabled && !liteMode}
+                  description={compact ? undefined : t("watch.anime4kHint")}
+                  value={anime4kEnabled}
                   onChange={setAnime4kEnabled}
                 />
-                {anime4kEnabled && !liteMode ? (
+                {anime4kEnabled ? (
                   <div className="flex flex-wrap gap-1.5 px-3.5 pb-3">
                     {ANIME4K_MODES.map((mode) => (
                       <button

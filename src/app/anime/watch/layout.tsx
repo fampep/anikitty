@@ -461,7 +461,7 @@ const Layout = (props: Props) => {
       "relative z-[1] pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
       // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
-      // Miruro-style default + theater: near full-bleed player column.
+      // Default + theater: near full-bleed player column.
       (isTheaterLayout || isDefaultLayout) && "max-w-[min(100%,96rem)]",
       isCompactLayout && "watch-layout-compact",
       isFocusLayout && "watch-layout-focus",

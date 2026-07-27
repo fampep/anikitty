@@ -19,7 +19,6 @@ import { ROUTES } from "@/constants/routes";
 import { SpotlightAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { useSettingsStore } from "@/store/settings-store";
 import { useAuthStore } from "@/store/auth-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { trackEvent } from "@/lib/analytics";
@@ -45,8 +44,7 @@ type IHeroSectionProps = {
 const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IHeroSectionProps) => {
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
-  const liteMode = useSettingsStore((s) => s.liteMode);
-  const pauseCarousel = reducedMotion || liteMode;
+  const pauseCarousel = reducedMotion;
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
 

@@ -8,7 +8,6 @@ import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   anime: IAnime[];
@@ -22,7 +21,6 @@ const SCROLL_BY = CARD_W * 4;
 const AnimeCarousel = ({ anime, title, className }: Props) => {
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
-  const liteMode = useSettingsStore((s) => s.liteMode);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(true);
@@ -37,7 +35,7 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
   const scroll = (dir: 1 | -1) => {
     scrollRef.current?.scrollBy({
       left: dir * SCROLL_BY,
-      behavior: reducedMotion || liteMode ? "instant" : "smooth",
+      behavior: reducedMotion ? "instant" : "smooth",
     });
   };
 
@@ -85,7 +83,7 @@ const AnimeCarousel = ({ anime, title, className }: Props) => {
           onScroll={onScroll}
           className={cn(
             "flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
-            !reducedMotion && !liteMode && "scroll-smooth",
+            !reducedMotion && "scroll-smooth",
           )}
         >
           {anime.map((ani) => (

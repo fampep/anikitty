@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSettingsStore } from "@/store/settings-store";
 
 /**
- * Lite Mode OR low-end device / Save-Data — smaller HLS buffers, no stream prefetch.
- * Does not overwrite the user's Lite Mode preference.
+ * Low-end device / Save-Data — smaller HLS buffers, no stream prefetch.
+ * Not a user preference; there is no site-wide Lite mode toggle.
  */
 export function useEffectiveLiteMode(): boolean {
-  const liteMode = useSettingsStore((s) => s.liteMode);
   const [deviceLite, setDeviceLite] = useState(false);
 
   useEffect(() => {
@@ -21,5 +19,5 @@ export function useEffectiveLiteMode(): boolean {
     setDeviceLite(lowRam || saveData);
   }, []);
 
-  return liteMode || deviceLite;
+  return deviceLite;
 }

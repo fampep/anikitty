@@ -18,7 +18,6 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import SiteDisplaySync from "@/components/layout/site-display-sync";
 import PwaRegister from "@/components/pwa/pwa-register";
 import DiscordWelcomePrompt from "@/components/site/discord-welcome-prompt";
-import LiteModeSync from "@/components/layout/lite-mode-sync";
 import SettingsSync from "@/components/layout/settings-sync";
 import OnlinePresence from "@/components/common/online-presence";
 import { buildSurfaceFoucScript } from "@/lib/core/site-surface";
@@ -183,7 +182,6 @@ export default async function RootLayout({
               <MobileBottomNav />
               <ScrollToTop />
               <DiscordWelcomePrompt />
-              <LiteModeSync />
               <SettingsSync />
               <OnlinePresence />
             </QueryProvider>

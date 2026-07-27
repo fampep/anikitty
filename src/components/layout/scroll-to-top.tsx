@@ -5,13 +5,11 @@ import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { useSettingsStore } from "@/store/settings-store";
 
 /** Floating "back to top" button that appears after scrolling down a page. */
 export default function ScrollToTop() {
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
-  const liteMode = useSettingsStore((s) => s.liteMode);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -37,7 +35,7 @@ export default function ScrollToTop() {
       aria-label={t("common.backToTop")}
       title={t("common.backToTop")}
       onClick={() =>
-        window.scrollTo({ top: 0, behavior: reducedMotion || liteMode ? "instant" : "smooth" })
+        window.scrollTo({ top: 0, behavior: reducedMotion ? "instant" : "smooth" })
       }
       className={cn(
         "site-scroll-top fixed bottom-safe right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full touch-target",

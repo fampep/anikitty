@@ -8,7 +8,7 @@ import type { HlsConfig } from "hls.js";
  */
 export function createHlsConfig(opts?: {
   enableWebVTT?: boolean;
-  /** Smaller forward/back buffers for Lite Mode / low-memory devices. */
+  /** Smaller forward/back buffers for low-memory / Save-Data devices. */
   lite?: boolean;
 }): Partial<HlsConfig> {
   const lite = Boolean(opts?.lite);

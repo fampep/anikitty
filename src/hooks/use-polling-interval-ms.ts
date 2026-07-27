@@ -1,10 +1,8 @@
 "use client";
 
 import { resolvePollIntervalMs, type PollIntervalKey } from "@/lib/core/polling-intervals";
-import { useSettingsStore } from "@/store/settings-store";
 
-/** Reactive poll interval that lengthens when lite mode is on. */
+/** Reactive poll interval for a shared cadence key. */
 export function usePollingIntervalMs(key: PollIntervalKey): number {
-  const liteMode = useSettingsStore((s) => s.liteMode);
-  return resolvePollIntervalMs(key, liteMode);
+  return resolvePollIntervalMs(key);
 }

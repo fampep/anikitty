@@ -64,7 +64,6 @@ export default function FaqContent() {
           { q: t("faq.watching.subDubQ"), a: t("faq.watching.subDubA") },
           { q: t("faq.watching.playerSettingsQ"), a: t("faq.watching.playerSettingsA") },
           { q: t("faq.watching.castQ"), a: t("faq.watching.castA") },
-          { q: t("faq.watching.liteModeQ"), a: t("faq.watching.liteModeA") },
           { q: t("faq.watching.continueQ"), a: t("faq.watching.continueA") },
           { q: t("faq.watching.recommendationsQ"), a: t("faq.watching.recommendationsA") },
           { q: t("faq.watching.recentlyViewedQ"), a: t("faq.watching.recentlyViewedA") },

@@ -102,7 +102,6 @@ function latencyBarWidth(ms: number | null, maxMs: number): number {
 
 export default function StatusPageContent() {
   const t = useT();
-  const liteMode = useSettingsStore((s) => s.liteMode);
   const activeNode = useSettingsStore((s) => s.kittyProxyNode);
   const statusPollMs = usePollingIntervalMs("status");
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
@@ -117,7 +116,7 @@ export default function StatusPageContent() {
     refresh();
   }, [refresh]);
 
-  useIntervalWhenVisible(handleRefresh, statusPollMs, !liteMode && statusPollMs > 0);
+  useIntervalWhenVisible(handleRefresh, statusPollMs, statusPollMs > 0);
 
   const overall = useMemo(
     () => resolveOverallStatus(loading, ready, nodes),
@@ -229,9 +228,7 @@ export default function StatusPageContent() {
                 <p className="text-[12px] text-muted-foreground dark:text-white/40 mt-0.5">
                   {lastRefresh
                     ? t("status.lastChecked", { time: lastRefresh.toLocaleTimeString() })
-                    : liteMode
-                      ? t("status.manualRefreshLite")
-                      : t("status.autoRefresh")}
+                    : t("status.autoRefresh")}
                 </p>
               </div>
             </div>

@@ -34,7 +34,6 @@ export type SyncedUserPreferences = {
   simpleProviderPicker?: boolean;
   providerSectionHidden?: Partial<Record<ProviderAudioMode, boolean>>;
   kittyProxyNode?: KittyApiNodeId;
-  liteMode?: boolean;
   autoSkipIntro?: boolean;
   playThemeSong?: boolean;
   watchPosterTheme?: boolean;
@@ -81,7 +80,6 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.defaultProvider === "string") {
     out.defaultProvider = sanitizeDefaultProvider(input.defaultProvider, out.providerOrder);
   }
-  if (typeof input.liteMode === "boolean") out.liteMode = input.liteMode;
   if (typeof input.autoSkipIntro === "boolean") out.autoSkipIntro = input.autoSkipIntro;
   if (typeof input.playThemeSong === "boolean") out.playThemeSong = input.playThemeSong;
   if (typeof input.watchPosterTheme === "boolean") out.watchPosterTheme = input.watchPosterTheme;

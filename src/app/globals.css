@@ -439,44 +439,6 @@ button, a, [role="button"] {
   }
 }
 
-/* Lite mode — user opt-in, same effect as reduced motion */
-html.lite-mode *,
-html.lite-mode *::before,
-html.lite-mode *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-  scroll-behavior: auto !important;
-}
-
-html.lite-mode .animate-ping {
-  animation: none !important;
-}
-
-/* Neutralize hover zoom/scale transforms so lite mode stays fully static */
-html.lite-mode [class*="hover:scale"],
-html.lite-mode [class*="group-hover:scale"] {
-  transform: none !important;
-}
-
-/* Decorative rail edge fades add no value without motion */
-html.lite-mode .home-rail-fade {
-  display: none !important;
-}
-
-html.lite-mode .site-panel,
-html.lite-mode .site-glass,
-html.lite-mode .site-overlay-surface,
-html.lite-mode .site-header,
-html.lite-mode .site-bottom-nav,
-html.lite-mode .watch-sidebar,
-html.lite-mode .watch-sticky-chrome,
-html.lite-mode .anime-sticky-chrome,
-html.lite-mode .site-section-card {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
 /* Custom surface — user-picked palette via inline CSS vars on html[data-surface="custom"].
  * Zinc (no data-surface) keeps the default :root / .dark tokens untouched.
  */
