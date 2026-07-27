@@ -8,7 +8,7 @@ import { genres as GENRE_OPTIONS } from "@/constants/search-filters";
 import Container from "@/components/layout/container";
 import AnimeCard from "@/components/anime/anime-card";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 
 import WatchButton from "@/components/watch/watch-button";
 import { IAnime } from "@/types/anime";
@@ -392,7 +392,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-background/50 dark:via-black/40 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
-        <div className="absolute bottom-4 right-4 left-4 sm:left-auto z-10 flex flex-col items-stretch sm:items-end gap-2.5 sm:max-w-md md:bottom-10 md:right-10">
+        <div className="absolute bottom-4 right-4 left-4 sm:left-auto z-20 flex flex-col items-stretch sm:items-end gap-2.5 sm:max-w-md md:bottom-10 md:right-10 pointer-events-none [&>*]:pointer-events-auto">
           <WatchTrailer videoHref={info.promotionalVideos[0]?.source} inline />
           {info.anilistId && activeTab !== "themes" ? (
             <AnimeThemePlayer anilistId={info.anilistId} slug={slug} />
@@ -593,7 +593,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
         {/* ── Tabs ── */}
         <div id="anime-tabs-panel" className="scroll-mt-[calc(var(--nav-total-height)+0.75rem)] mt-6 sm:mt-10">
-          <div className="anime-sticky-chrome sticky top-[var(--nav-total-height)] z-30 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur-md border-b border-border/80 dark:border-white/10 sm:static sm:mx-0 sm:px-0 sm:py-0 sm:mb-4 sm:bg-transparent sm:backdrop-blur-none sm:border-b-0">
+          <div className="anime-sticky-chrome sticky top-[var(--nav-total-height)] z-30 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur-md border-b border-border/80 dark:border-white/10 sm:mx-0 sm:px-0 sm:mb-4">
             <AnimeQuickNav
               tabs={tabItems}
               activeTab={activeTab}
@@ -602,18 +602,6 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="hidden sm:flex items-center justify-start w-full sm:w-fit h-fit bg-transparent border-b border-border dark:border-white/8 rounded-none gap-0 px-0 pb-0 overflow-x-auto scrollbar-hide">
-            {tabItems.map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="text-sm font-semibold px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-white data-[state=active]:bg-primary/[0.06] text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/65 transition-all bg-transparent whitespace-nowrap"
-              >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
           {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-8 space-y-5">
             <OverviewPanel title={t("anime.synopsis")}>

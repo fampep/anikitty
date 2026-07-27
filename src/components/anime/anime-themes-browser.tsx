@@ -39,6 +39,7 @@ export default function AnimeThemesBrowser({
   const t = useT();
   const { data, isLoading, isError } = useGetAnimeThemes(anilistId);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const userPausedRef = useRef(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -89,6 +90,7 @@ export default function AnimeThemesBrowser({
     const video = videoRef.current;
     if (!video || !active?.videoUrl) return;
 
+    userPausedRef.current = false;
     video.src = active.videoUrl;
     video.load();
     void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
@@ -98,10 +100,12 @@ export default function AnimeThemesBrowser({
     const video = videoRef.current;
     if (!video) return;
     if (!video.paused) {
+      userPausedRef.current = true;
       video.pause();
       setPlaying(false);
       return;
     }
+    userPausedRef.current = false;
     try {
       await video.play();
       setPlaying(true);

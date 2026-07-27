@@ -17,12 +17,17 @@ type AnimeThemePlayerProps = {
   className?: string;
 };
 
+function dismissedKey(anilistId: number) {
+  return `anikitty:theme-dismissed:${anilistId}`;
+}
+
 export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeThemePlayerProps) {
   const t = useT();
   const playThemeSong = useSettingsStore((s) => s.playThemeSong);
   const setPlayThemeSong = useSettingsStore((s) => s.setPlayThemeSong);
   const { data: themes, isLoading } = useGetAnimeThemes(anilistId);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const loadedUrlRef = useRef<string | null>(null);
   /** User explicitly muted — never auto-unmute over this. */
   const userMutedRef = useRef(false);
   /** User explicitly paused — don't fight with autoplay retries. */
@@ -30,7 +35,14 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return sessionStorage.getItem(dismissedKey(anilistId)) === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const playback = themes?.playback;
   const themeCount = themes?.playables?.length ?? 0;
@@ -42,13 +54,11 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
     setMuted(video.muted || video.volume === 0);
   }, []);
 
-  const tryPlay = useCallback(async (opts?: { unmuted?: boolean }) => {
+  const tryPlay = useCallback(async () => {
     const video = videoRef.current;
-    if (!video) return false;
+    if (!video || userPausedRef.current) return false;
 
-    const preferUnmuted = opts?.unmuted ?? !userMutedRef.current;
-
-    if (preferUnmuted) {
+    if (!userMutedRef.current) {
       video.muted = false;
       video.volume = 1;
     } else {
@@ -57,7 +67,6 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
 
     try {
       await video.play();
-      userPausedRef.current = false;
       setNeedsGesture(false);
       syncFromVideo();
       return true;
@@ -66,7 +75,6 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
         video.muted = true;
         try {
           await video.play();
-          userPausedRef.current = false;
           setNeedsGesture(false);
           syncFromVideo();
           return true;
@@ -84,18 +92,14 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!playThemeSong || dismissed || !playback?.videoUrl || !video) return;
+    if (!playThemeSong || dismissed || !playback?.videoUrl || !video) {
+      video?.pause();
+      return;
+    }
 
-    userPausedRef.current = false;
-    userMutedRef.current = false;
-    video.src = playback.videoUrl;
-    video.loop = true;
-    video.volume = 1;
-    video.muted = true;
-    setMuted(true);
-    video.load();
-
-    const onPlay = () => setPlaying(true);
+    const onPlay = () => {
+      if (!userPausedRef.current) setPlaying(true);
+    };
     const onPause = () => setPlaying(false);
     const onVolume = () => setMuted(video.muted || video.volume === 0);
 
@@ -103,26 +107,42 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
     video.addEventListener("pause", onPause);
     video.addEventListener("volumechange", onVolume);
 
-    void (async () => {
-      const ok = await tryPlay({ unmuted: true });
-      if (!ok || userPausedRef.current) return;
-      syncFromVideo();
-    })();
+    const urlChanged = loadedUrlRef.current !== playback.videoUrl;
+    if (urlChanged) {
+      loadedUrlRef.current = playback.videoUrl;
+      userPausedRef.current = false;
+      userMutedRef.current = false;
+      video.src = playback.videoUrl;
+      video.loop = true;
+      video.volume = 1;
+      video.muted = true;
+      setMuted(true);
+      video.load();
+    }
+
+    if (!userPausedRef.current) {
+      void tryPlay();
+    }
 
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("volumechange", onVolume);
-      video.pause();
     };
-  }, [playThemeSong, dismissed, playback?.videoUrl, tryPlay, syncFromVideo]);
+  }, [playThemeSong, dismissed, playback?.videoUrl, tryPlay]);
+
+  useEffect(() => {
+    return () => {
+      videoRef.current?.pause();
+    };
+  }, []);
 
   if (!playThemeSong || dismissed) return null;
   if (isLoading) {
     return (
       <div
         className={cn(
-          "flex items-center gap-2 rounded-xl border border-white/10 bg-black/45 backdrop-blur-md px-3 py-2.5 shadow-lg animate-pulse",
+          "relative z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-black/45 backdrop-blur-md px-3 py-2.5 shadow-lg animate-pulse",
           className,
         )}
       >
@@ -135,7 +155,7 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
 
   const label = formatThemeDisplayLabel(playback);
 
-  const togglePlay = async (event: MouseEvent) => {
+  const togglePlay = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     const video = videoRef.current;
@@ -149,17 +169,19 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
     }
 
     userPausedRef.current = false;
-    try {
-      if (!userMutedRef.current) {
-        video.muted = false;
-        video.volume = 1;
+    void (async () => {
+      try {
+        if (!userMutedRef.current) {
+          video.muted = false;
+          video.volume = 1;
+        }
+        await video.play();
+        setNeedsGesture(false);
+        syncFromVideo();
+      } catch {
+        await tryPlay();
       }
-      await video.play();
-      setNeedsGesture(false);
-      syncFromVideo();
-    } catch {
-      await tryPlay({ unmuted: !userMutedRef.current });
-    }
+    })();
   };
 
   const toggleMute = (event: MouseEvent) => {
@@ -175,12 +197,12 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
     setMuted(nextMuted);
   };
 
-  const handleStart = async (event: MouseEvent) => {
+  const handleStart = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     userPausedRef.current = false;
     userMutedRef.current = false;
-    await tryPlay({ unmuted: true });
+    void tryPlay();
   };
 
   const turnOff = (event: MouseEvent) => {
@@ -188,25 +210,38 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
     event.stopPropagation();
     const video = videoRef.current;
     if (video) {
+      userPausedRef.current = true;
       video.pause();
-      video.removeAttribute("src");
-      video.load();
+      try {
+        video.removeAttribute("src");
+        video.load();
+      } catch {
+        // ignore
+      }
     }
-    userPausedRef.current = true;
+    loadedUrlRef.current = null;
     setPlaying(false);
     setDismissed(true);
+    try {
+      sessionStorage.setItem(dismissedKey(anilistId), "1");
+    } catch {
+      // ignore
+    }
     setPlayThemeSong(false);
   };
 
   const themesHref =
     slug != null ? `${ROUTES.ANIME_DETAILS}/${slug}?tab=themes` : null;
 
+  const controlBtn =
+    "relative z-20 p-2 rounded-lg hover:bg-white/10 text-white/80 transition-colors pointer-events-auto";
+
   return (
     <>
       <video ref={videoRef} className="hidden" playsInline preload="auto" />
       <div
         className={cn(
-          "flex items-center gap-2 sm:gap-3 rounded-xl border border-white/10 bg-black/45 backdrop-blur-md px-3 py-2 sm:px-4 sm:py-2.5 shadow-lg",
+          "relative z-20 flex items-center gap-2 sm:gap-3 rounded-xl border border-white/10 bg-black/45 backdrop-blur-md px-3 py-2 sm:px-4 sm:py-2.5 shadow-lg pointer-events-auto",
           playing && muted && "ring-1 ring-primary/30",
           className,
         )}
@@ -231,6 +266,7 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
             <Link
               href={themesHref}
               className="text-[10px] text-white/50 hover:text-white/80 truncate inline-flex items-center gap-1 transition-colors"
+              onClick={(e) => e.stopPropagation()}
             >
               <ListMusic className="w-3 h-3" />
               {t("anime.themesBrowseAll", { n: themeCount })}
@@ -241,44 +277,49 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
         {needsGesture ? (
           <button
             type="button"
-            onClick={(e) => void handleStart(e)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-white/90 transition-colors shrink-0"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={handleStart}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-white/90 transition-colors shrink-0 pointer-events-auto"
           >
             <Play className="w-3.5 h-3.5" />
             {t("anime.themePlay")}
           </button>
         ) : (
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0 relative z-20 pointer-events-auto">
             {themesHref ? (
               <Link
                 href={themesHref}
-                className="p-2 rounded-lg hover:bg-white/10 text-white/80 transition-colors"
+                className={controlBtn}
                 aria-label={t("anime.themesPageTitle")}
                 title={t("anime.themesPageTitle")}
+                onClick={(e) => e.stopPropagation()}
               >
                 <ListMusic className="w-4 h-4" />
               </Link>
             ) : null}
             <button
               type="button"
-              onClick={(e) => void togglePlay(e)}
-              className="p-2 rounded-lg hover:bg-white/10 text-white/80 transition-colors"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={togglePlay}
+              className={controlBtn}
               aria-label={playing ? t("anime.themePause") : t("anime.themePlay")}
             >
               {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={toggleMute}
-              className="p-2 rounded-lg hover:bg-white/10 text-white/80 transition-colors"
+              className={controlBtn}
               aria-label={muted ? t("anime.themeUnmute") : t("anime.themeMuted")}
             >
               {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={turnOff}
-              className="p-2 rounded-lg hover:bg-white/10 text-white/80 transition-colors"
+              className={controlBtn}
               aria-label={t("anime.themeTurnOff")}
               title={t("anime.themeTurnOff")}
             >
