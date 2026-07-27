@@ -4724,7 +4724,7 @@ export function KittyPlayer({
                   </div>
                 ) : null}
 
-                {airPlayAvailable && !compactChrome ? (
+                {airPlayAvailable ? (
                   <IconButton
                     label={
                       airPlayPreparing
@@ -4752,7 +4752,7 @@ export function KittyPlayer({
                   </IconButton>
                 ) : null}
 
-                {castAvailable && !compactChrome ? (
+                {castAvailable ? (
                   <IconButton
                     label={
                       casting
@@ -5311,88 +5311,6 @@ export function KittyPlayer({
                                     >
                                       {inPip ? "Exit PiP" : "Picture-in-picture"}
                                     </MenuItem>
-                                    {airPlayAvailable ? (
-                                      <MenuItem
-                                        dense
-                                        active={
-                                          airPlayConnected || airPlayPreparing
-                                        }
-                                        onClick={() => {
-                                          if (airPlayPreparing) return;
-                                          showAirPlayPicker();
-                                          bumpControls();
-                                          setMoreOpen(false);
-                                        }}
-                                      >
-                                        {airPlayPreparing
-                                          ? "Preparing AirPlay…"
-                                          : airPlayConnected
-                                            ? "AirPlay connected"
-                                            : "AirPlay"}
-                                      </MenuItem>
-                                    ) : null}
-                                    {castAvailable ? (
-                                      <MenuItem
-                                        dense
-                                        active={casting || castConnecting}
-                                        onClick={() => {
-                                          void toggleCast();
-                                          bumpControls();
-                                          setMoreOpen(false);
-                                        }}
-                                      >
-                                        {casting
-                                          ? castDeviceName
-                                            ? `Stop cast · ${castDeviceName}`
-                                            : "Stop casting"
-                                          : castConnecting
-                                            ? "Connecting…"
-                                            : "Cast"}
-                                      </MenuItem>
-                                    ) : null}
-                                  </MenuSection>
-                                ) : compactChrome &&
-                                  (airPlayAvailable || castAvailable) ? (
-                                  <MenuSection title="Cast" dense>
-                                    {airPlayAvailable ? (
-                                      <MenuItem
-                                        dense
-                                        active={
-                                          airPlayConnected || airPlayPreparing
-                                        }
-                                        onClick={() => {
-                                          if (airPlayPreparing) return;
-                                          showAirPlayPicker();
-                                          bumpControls();
-                                          setMoreOpen(false);
-                                        }}
-                                      >
-                                        {airPlayPreparing
-                                          ? "Preparing AirPlay…"
-                                          : airPlayConnected
-                                            ? "AirPlay connected"
-                                            : "AirPlay"}
-                                      </MenuItem>
-                                    ) : null}
-                                    {castAvailable ? (
-                                      <MenuItem
-                                        dense
-                                        active={casting || castConnecting}
-                                        onClick={() => {
-                                          void toggleCast();
-                                          bumpControls();
-                                          setMoreOpen(false);
-                                        }}
-                                      >
-                                        {casting
-                                          ? castDeviceName
-                                            ? `Stop cast · ${castDeviceName}`
-                                            : "Stop casting"
-                                          : castConnecting
-                                            ? "Connecting…"
-                                            : "Cast"}
-                                      </MenuItem>
-                                    ) : null}
                                   </MenuSection>
                                 ) : null}
 
