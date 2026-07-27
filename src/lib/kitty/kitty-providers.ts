@@ -11,24 +11,24 @@ import {
 export const ALL_KITTY_PROVIDER_IDS = [
   // Active (live on KittyAPI) — site priority first
   "AniHQ",
-  "AniWatch",
   "Anikoto",
   "AniNeko",
-  "AniWaves",
   "Senshi",
-  "MKissa",
-  "Animex",
   "Miruro",
   "AnimeGG",
+  "AniKuro",
+  "KickAssAnime",
+  // Normalize-only aliases / legacy (retired from picker)
+  "AniWatch",
+  "AniWaves",
+  "MKissa",
+  "Animex",
   "AnimeHeaven",
   "AnimeLok",
   "Yenime",
-  "AniKuro",
   "AniSnatch",
-  "KickAssAnime",
   "KuroHost",
   "HentaiHaven",
-  // Normalize-only aliases / legacy
   "Lunar",
   "FlixCloud",
   "MegaPlay",
@@ -52,23 +52,13 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniHQ",
-  "AniWatch",
   "Anikoto",
   "AniNeko",
-  "AniWaves",
   "Senshi",
-  "MKissa",
-  "Animex",
   "Miruro",
   "AnimeGG",
-  "AnimeHeaven",
-  "AnimeLok",
-  "Yenime",
   "AniKuro",
-  "AniSnatch",
   "KickAssAnime",
-  "KuroHost",
-  "HentaiHaven",
 ] as const;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
@@ -112,18 +102,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · hard subs",
   },
   {
-    id: "AniWatch",
-    label: "Juliet",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
     id: "Anikoto",
     label: "Kilo",
     group: "featured",
@@ -148,17 +126,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft · hard subs",
   },
   {
-    id: "AniWaves",
-    label: "Whiskey",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
     id: "Senshi",
     label: "Guard",
     group: "featured",
@@ -169,31 +136,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft · hard subs",
-  },
-  {
-    id: "MKissa",
-    label: "Bravo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · DUB · hard subs · mirrors",
-  },
-  {
-    id: "Animex",
-    label: "Xray",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    supportsMulti: true,
-    hint: "SUB · DUB · soft · multi",
   },
   {
     id: "Miruro",
@@ -221,42 +163,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · hard subs",
   },
   {
-    id: "AnimeHeaven",
-    label: "Heaven",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · hard subs",
-  },
-  {
-    id: "AnimeLok",
-    label: "Lok",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "Yenime",
-    label: "Yen",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
     id: "AniKuro",
     label: "Alpha",
     group: "featured",
@@ -266,17 +172,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs · mirrors",
-  },
-  {
-    id: "AniSnatch",
-    label: "Sierra",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs",
   },
   {
     id: "KickAssAnime",
@@ -289,51 +184,19 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     hint: "SUB · DUB · soft subs",
   },
-  {
-    id: "KuroHost",
-    label: "Hotel",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: true,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · soft EN subs",
-  },
-  {
-    id: "HentaiHaven",
-    label: "Haven",
-    group: "other",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: false,
-    nativeSubs: false,
-    kittySubs: false,
-    adultOnly: true,
-    hint: "18+ · SUB · HLS",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniHQ",
-  "AniWatch",
   "Anikoto",
   "AniNeko",
-  "AniWaves",
   "Senshi",
-  "MKissa",
-  "Animex",
   "Miruro",
   "AnimeGG",
-  "AnimeHeaven",
-  "AnimeLok",
-  "Yenime",
   "AniKuro",
-  "AniSnatch",
   "KickAssAnime",
-  "KuroHost",
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
@@ -355,17 +218,10 @@ export {
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Miruro",
   "AniKuro",
-  "AniWaves",
-  "Animex",
-  "AniSnatch",
   "Anikoto",
-  "AniWatch",
   "Senshi",
   "AniNeko",
   "KickAssAnime",
-  "KuroHost",
-  "Yenime",
-  "AnimeLok",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -379,20 +235,33 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 }
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
-  // UI label mistaken as provider id.
-  if (value === "Xray") return "Animex";
-  if (value === "Bravo") return "MKissa";
-  if (value === "Heaven") return "AnimeHeaven";
-  if (value === "Lok") return "AnimeLok";
-  // Luna / Flix retired — unreliable streams.
-  if (value === "Luna" || value === "Lunar" || value === "Flix" || value === "FlixCloud") {
+  // UI labels / retired ids → active keep-list.
+  if (value === "AniZone") return "AniNeko";
+  if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
+  if (value === "AllAnime" || value === "Bravo" || value === "MKissa") return "AnimeGG";
+  if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return "AniKuro";
+  if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
+  if (value === "Heaven" || value === "AnimeHeaven") return "AnimeGG";
+  if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
+  if (value === "Juliet" || value === "AniWatch") return DEFAULT_KITTY_PROVIDER;
+  if (value === "HQ") return "AniHQ";
+  if (
+    value === "Luna" ||
+    value === "Lunar" ||
+    value === "Flix" ||
+    value === "FlixCloud" ||
+    value === "Zenkai" ||
+    value === "Yenime" ||
+    value === "Yen" ||
+    value === "AniWaves" ||
+    value === "Whiskey" ||
+    value === "AniSnatch" ||
+    value === "Sierra" ||
+    value === "HentaiHaven" ||
+    value === "Haven"
+  ) {
     return DEFAULT_KITTY_PROVIDER;
   }
-  if (value === "AniZone") return "AniNeko";
-  if (value === "AllAnime") return "MKissa";
-  if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
-  if (value === "ReAnime") return "KuroHost";
-  if (value === "Zenkai") return DEFAULT_KITTY_PROVIDER;
   // MegaPlay + pre-unification ids → Anikoto (MegaPlay class removed from API).
   if (value === MEGAPLAY_PROVIDER_ID || (value && LEGACY_MEGAPLAY_PROVIDERS.has(value))) {
     return "Anikoto";

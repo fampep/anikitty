@@ -26,15 +26,15 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
     for (const item of raw) {
       if (typeof item !== "string") continue;
       if (item === "AllAnime") {
-        push("MKissa");
+        push("AnimeGG");
         continue;
       }
       if (item === "AnimeStream" || item === "KaaLt") {
         push("KickAssAnime");
         continue;
       }
-      if (item === "ReAnime") {
-        push("KuroHost");
+      if (item === "ReAnime" || item === "KuroHost") {
+        push("AniKuro");
         continue;
       }
       if (item === "AniZone") {
@@ -42,6 +42,23 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         continue;
       }
       if (item === "Zenkai") {
+        continue;
+      }
+      if (
+        item === "Lunar" ||
+        item === "Luna" ||
+        item === "FlixCloud" ||
+        item === "Flix" ||
+        item === "AniWatch" ||
+        item === "AniWaves" ||
+        item === "MKissa" ||
+        item === "Animex" ||
+        item === "AnimeHeaven" ||
+        item === "AnimeLok" ||
+        item === "Yenime" ||
+        item === "AniSnatch" ||
+        item === "HentaiHaven"
+      ) {
         continue;
       }
       push(item);

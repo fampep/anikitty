@@ -71,7 +71,7 @@ const FEATURED_PROBE_LIMIT = 4;
 const MULTI_SERVER_PROBE_PROVIDERS = new Set<KittyProvider>(["MKissa", "AniSnatch"]);
 
 /** Providers that often only succeed on non-primary KittyAPI nodes (sequential). */
-const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["AniWatch"]);
+const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["Anikoto"]);
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],

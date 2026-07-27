@@ -434,7 +434,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 74,
+      version: 76,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -840,11 +840,12 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 61) {
           // Drop abandoned WCOStream / GogoAnime leftovers from saved orders.
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const dropped = new Set(["WCOStream", "GogoAnime"]);
           next.providerOrder = sanitizeProviderOrder(
-            order.filter((id) => id !== "WCOStream" && id !== "GogoAnime"),
+            order.filter((id) => !dropped.has(id)),
           );
           next.defaultProvider = sanitizeDefaultProvider(
-            ["WCOStream", "GogoAnime"].includes(String(next.defaultProvider ?? ""))
+            dropped.has(String(next.defaultProvider ?? ""))
               ? "AniHQ"
               : (next.defaultProvider ?? "AniHQ"),
             next.providerOrder,
@@ -853,8 +854,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 62) {
           // AnimeGG (GG) sits right after HQ.
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const dropped = new Set(["WCOStream", "GogoAnime"]);
           const without = order.filter(
-            (id) => id !== "AnimeGG" && id !== "WCOStream" && id !== "GogoAnime",
+            (id) => id !== "AnimeGG" && !dropped.has(id),
           );
           const hqAt = without.indexOf("AniHQ");
           const insertAt = hqAt >= 0 ? hqAt + 1 : 1;
@@ -1012,6 +1014,16 @@ export const useSettingsStore = create<ISettingsStore>()(
             next.defaultProvider ?? "AniHQ",
             next.providerOrder,
           );
+        }
+        if (version < 75) {
+          // Keep-list only: Kilo, Gamma, Guard, Echo, GG, Alpha, Uniform.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("Anikoto", next.providerOrder);
+        }
+        if (version < 76) {
+          // HQ default; Kilo sits immediately after.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
         }
         return next as ISettingsStore;
       },
