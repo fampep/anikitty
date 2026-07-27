@@ -1,4 +1,4 @@
-import { clamp } from "./utils";
+import { clamp } from "./clamp";
 
 /** Gain multiplier range (1 = off / unity, 3 = 300%). */
 export const VOLUME_BOOST_MIN = 1;

@@ -19,7 +19,7 @@ import {
   type CastLoadResult,
   type CastMediaRequest,
   type CastTextTrackRequest,
-} from "./google-cast";
+} from "../cast/google-cast";
 
 export type UseGoogleCastOptions = {
   /** When false, skip SDK load (e.g. SSR / disabled). Default true. */

@@ -108,16 +108,20 @@ import {
   ShortcutsPanel,
   UpNextCountdown,
   VerticalSliderPopover,
-} from "./player-chrome";
-import { PlayerSubtitleOverlay } from "./player-subtitle-overlay";
-import PlayerSettingsMenu from "./player-settings-menu";
-import { useAirPlay } from "./use-airplay";
-import { isLikelyCastWebVttUrl, prepareCastMediaUrl } from "./google-cast";
+} from "./chrome";
+import { PlayerSubtitleOverlay } from "./subtitle-overlay";
+import PlayerSettingsMenu from "./settings-menu";
+import { useAirPlay } from "./hooks/use-airplay";
+import { useChromeIdle } from "./hooks/use-chrome-idle";
+import { usePlayerFullscreen } from "./hooks/use-fullscreen";
+import { isLikelyCastWebVttUrl, prepareCastMediaUrl } from "./cast/google-cast";
 import {
   buildCastMediaRequest,
   useGoogleCast,
-} from "./use-google-cast";
-import { useSurfaceGestures } from "./use-surface-gestures";
+} from "./hooks/use-google-cast";
+import { useSurfaceGestures } from "./hooks/use-surface-gestures";
+import { QualityMenuContent } from "./menus/quality-menu";
+import { SpeedMenuContent } from "./menus/speed-menu";
 import {
   AudioBoostController,
   formatVolumeBoost,
@@ -126,137 +130,74 @@ import {
   VOLUME_BOOST_MIN,
 } from "./audio-boost";
 import {
+  BUFFER_SPINNER_MS,
+  CLICK_DELAY_MS,
+  EMPTY_HEADERS,
+  EMPTY_QUALITIES,
+  EMPTY_TRACKS,
+  FINE_SCRUB_WINDOW_SECS,
+  GESTURE_HINT_MS,
+  HOLD_SPEED_RATE,
+  IDLE_AFTER_PLAY_MS,
+  IDLE_MS,
+  LONG_PRESS_MS,
+  PREFS_SAVE_MS,
+  SEEK_FLASH_MS,
+  SEEK_STEP,
+  SEEK_STEP_FINE,
+  TOUCH_DOUBLE_TAP_MS,
+  TOUCH_DOUBLE_TAP_PX,
+} from "./constants";
+import {
+  buildSkipSegments,
+  segmentAtTime,
+  skipKindLabel,
+  type SkipSegment,
+  type SkipSegmentKind,
+} from "./skip-segments";
+import {
+  isResolutionQualityLadder,
+  parseHeight,
+  resolveTrackSrc,
+} from "./quality";
+import type {
+  AniKittyPlayerProps,
+  BufferedRange,
+  CaptionOption,
+  CustomVideoPlayerProps,
+  GestureHint,
+  HlsAudioOption,
+  HlsLevelOption,
+  KittyPlayerProps,
+  WebkitVideo,
+} from "./types";
+import {
   bufferedRangesEqual,
   CAPTION_OFFSET_OPTIONS,
   captionPositionCss,
   captionPositionLine,
   captionSizeCss,
   clamp,
-  CUSTOM_PLAYER_SPEEDS,
+  KITTY_PLAYER_SPEEDS,
   formatPlayerTime,
   isAppleTouchDevice,
-  loadCustomPlayerPrefs,
-  nextCustomPlayerSpeed,
+  loadKittyPlayerPrefs,
+  nextKittyPlayerSpeed,
   prefersCoarsePointer,
   prefersCssFullscreen,
   pulsePlayerHaptic,
   resolveStreamAttachMode,
-  saveCustomPlayerPrefs,
+  saveKittyPlayerPrefs,
   sniffIsHlsPlaylist,
   type CaptionPositionPref,
   type CaptionSizePref,
 } from "./utils";
 
-type SkipSegmentKind = "intro" | "outro" | "recap";
-
-type SkipSegment = {
-  kind: SkipSegmentKind;
-  start: number;
-  end: number;
-};
-
-function buildSkipSegments(skipTimes?: SkipTimes | null): SkipSegment[] {
-  if (!skipTimes) return [];
-  const out: SkipSegment[] = [];
-  if (
-    skipTimes.recap &&
-    Number.isFinite(skipTimes.recap.start) &&
-    Number.isFinite(skipTimes.recap.end) &&
-    skipTimes.recap.end > skipTimes.recap.start
-  ) {
-    out.push({ kind: "recap", start: skipTimes.recap.start, end: skipTimes.recap.end });
-  }
-  if (
-    skipTimes.intro &&
-    Number.isFinite(skipTimes.intro.start) &&
-    Number.isFinite(skipTimes.intro.end) &&
-    skipTimes.intro.end > skipTimes.intro.start
-  ) {
-    out.push({ kind: "intro", start: skipTimes.intro.start, end: skipTimes.intro.end });
-  }
-  if (
-    skipTimes.outro &&
-    Number.isFinite(skipTimes.outro.start) &&
-    Number.isFinite(skipTimes.outro.end) &&
-    skipTimes.outro.end > skipTimes.outro.start
-  ) {
-    out.push({ kind: "outro", start: skipTimes.outro.start, end: skipTimes.outro.end });
-  }
-  return out;
-}
-
-function skipKindLabel(kind: SkipSegmentKind): string {
-  if (kind === "intro") return "Intro";
-  if (kind === "recap") return "Recap";
-  return "Credits";
-}
-
-function segmentAtTime(
-  segments: SkipSegment[],
-  time: number,
-): SkipSegment | undefined {
-  return segments.find((seg) => time >= seg.start && time < seg.end);
-}
-
-const SEEK_STEP = 10;
-const SEEK_STEP_FINE = 5;
-/** Hide chrome after pointer idle while playing. */
-const IDLE_MS = 2000;
-/** Faster hide after play/resume so subtitles aren't blocked. */
-const IDLE_AFTER_PLAY_MS = 1000;
-const CLICK_DELAY_MS = 280;
-const SEEK_FLASH_MS = 780;
-const GESTURE_HINT_MS = 900;
-const BUFFER_SPINNER_MS = 280;
-const TOUCH_DOUBLE_TAP_MS = 280;
-const TOUCH_DOUBLE_TAP_PX = 36;
-const LONG_PRESS_MS = 420;
-const HOLD_SPEED_RATE = 2;
-const PREFS_SAVE_MS = 400;
-/** Shift-scrub maps full track width to this many seconds either side. */
-const FINE_SCRUB_WINDOW_SECS = 45;
-
-const EMPTY_TRACKS: StreamTrack[] = [];
-const EMPTY_QUALITIES: KittyStreamQuality[] = [];
-const EMPTY_HEADERS: Record<string, string> = {};
-
-type BufferedRange = { start: number; end: number };
-
-type GestureHint = {
-  label: string;
-  detail?: string;
-  /** Optional 0–1 meter under the hint (volume / brightness). */
-  meter?: number;
-};
-
-type WebkitVideo = HTMLVideoElement & {
-  webkitEnterFullscreen?: () => void;
-  webkitExitFullscreen?: () => void;
-  webkitDisplayingFullscreen?: boolean;
-  webkitSupportsFullscreen?: boolean;
-  webkitSetPresentationMode?: (
-    mode: "inline" | "picture-in-picture" | "fullscreen",
-  ) => void;
-  webkitPresentationMode?: string;
-};
-
-function resolveTrackSrc(file: string): string {
-  if (!file) return file;
-  if (/^https?:\/\//i.test(file)) return file;
-  if (typeof window !== "undefined" && file.startsWith("/")) {
-    return `${window.location.origin}${file}`;
-  }
-  return file;
-}
-
-function parseHeight(quality: string): number | undefined {
-  const n = parseInt(quality.replace(/\D/g, ""), 10);
-  return Number.isFinite(n) && n > 0 ? n : undefined;
-}
-
-function isResolutionQualityLadder(qualities: KittyStreamQuality[]): boolean {
-  return qualities.some((entry) => Boolean(parseHeight(entry.quality)));
-}
+export type {
+  AniKittyPlayerProps,
+  CustomVideoPlayerProps,
+  KittyPlayerProps,
+} from "./types";
 
 function exitPictureInPictureSafe(video: HTMLVideoElement | null) {
   if (typeof document === "undefined" || !video) return;
@@ -278,95 +219,7 @@ function exitPictureInPictureSafe(video: HTMLVideoElement | null) {
   }
 }
 
-export type AniKittyPlayerProps = {
-  src: string;
-  poster?: string;
-  title?: string;
-  /** Anime / series name for Chromecast MediaInfo (and chrome). */
-  seriesTitle?: string;
-  /** Episode number for Chromecast TvShow metadata. */
-  episodeNumber?: number;
-  className?: string;
-  /** Soft subtitle / caption tracks (VTT preferred). */
-  tracks?: StreamTrack[];
-  /** MegaPlay-style `allServers` ladder when HLS has no useful levels. */
-  qualities?: KittyStreamQuality[];
-  /** Headers used when minting / resolving Kitty HLS. */
-  headers?: Record<string, string>;
-  /** Preferred Kitty CDN node for URL resolution (passthrough). */
-  kittyNodeId?: KittyApiNodeId;
-  /** Resume / deep-link start position (seconds). */
-  startTime?: number;
-  /** Intro/outro ranges from AniKitty community skip DB (seconds). */
-  skipTimes?: SkipTimes;
-  /**
-   * Storyboard WebVTT URL for seek hover previews (ReAnime/FlixCloud
-   * `thumbnails` / `thumbnails_vtt`, or a `kind: thumbnails` track).
-   */
-  thumbnails?: string | null;
-  /** Auto-enable the first (or default) subtitle track. */
-  preferSubtitles?: boolean;
-  /** Prefer English/dub HLS audio when the master exposes multiple tracks. */
-  preferDubAudio?: boolean;
-  /** Enter fullscreen once the first frame is ready (mobile episode swipe). */
-  autoFullscreen?: boolean;
-  /**
-   * Persistent element to fullscreen (e.g. watch-page wrapper). When set,
-   * episode remounts of this player keep document fullscreen because the
-   * target does not unmount between episodes.
-   */
-  fullscreenContainerRef?: RefObject<HTMLElement | null>;
-  /** Next-episode card / autoplay countdown target. */
-  nextEpisode?: { id: string; number: number; title: string; image?: string | null };
-  /** Previous episode for chrome skip controls. */
-  prevEpisode?: { id: string; number: number; title: string } | null;
-  /** Called when the user picks an allServers quality (parent remounts src). */
-  onSelectQuality?: (entry: KittyStreamQuality) => void;
-  onStart?: () => void;
-  onProgress?: (current: number, duration: number) => void;
-  onLiveTime?: (current: number, duration: number) => void;
-  onNextEpisode?: () => void;
-  onPrevEpisode?: () => void;
-  /** Fired once when playback enters the outro skip range. */
-  onOutroStart?: (duration: number) => void;
-  onEnded?: () => void;
-  onFatalError?: (info: { type: string; details?: string; status?: number }) => void;
-  onPlayerReady?: (player: PlayerController) => void;
-  /** Watch-together host/guest sync. */
-  w2g?: {
-    isHost: boolean;
-    syncState?: W2gSyncState | null;
-    onPlaybackSync?: (state: { isPlaying: boolean; currentTime: number }) => void;
-  };
-  /** Optional copy for the HLS / decode failure banner. */
-  playbackIssueHint?: string;
-  /** Soft-sub overlay on hard-sub streams (watch settings). */
-  watchingHardSub?: boolean;
-};
-
-/** @deprecated Use AniKittyPlayerProps */
-export type CustomVideoPlayerProps = AniKittyPlayerProps;
-
-type HlsLevelOption = {
-  index: number;
-  label: string;
-  height?: number;
-};
-
-type HlsAudioOption = {
-  index: number;
-  label: string;
-};
-
-type CaptionOption = {
-  id: string;
-  label: string;
-  src: string;
-  language: string;
-  isDefault?: boolean;
-};
-
-export function AniKittyPlayer({
+export function KittyPlayer({
   src,
   poster,
   title,
@@ -399,7 +252,7 @@ export function AniKittyPlayer({
   w2g,
   playbackIssueHint,
   watchingHardSub = false,
-}: AniKittyPlayerProps) {
+}: KittyPlayerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -419,7 +272,6 @@ export function AniKittyPlayer({
   const hlsRef = useRef<Hls | null>(null);
   /** Kick HLS when `waiting` sticks after resume / buffer stall. */
   const stallWatchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gestureHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -448,11 +300,11 @@ export function AniKittyPlayer({
     resetAt: number;
   } | null>(null);
   const prefsSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPrefsPatchRef = useRef<Parameters<typeof saveCustomPlayerPrefs>[0] | null>(null);
+  const pendingPrefsPatchRef = useRef<Parameters<typeof saveKittyPlayerPrefs>[0] | null>(null);
   const holdSpeedActiveRef = useRef(false);
   const rateBeforeHoldRef = useRef(1);
   const initialPrefsRef = useRef(
-    typeof window !== "undefined" ? loadCustomPlayerPrefs() : null,
+    typeof window !== "undefined" ? loadKittyPlayerPrefs() : null,
   );
   const playbackRateRef = useRef(initialPrefsRef.current?.playbackRate ?? 1);
   const onLiveTimeRef = useRef(onLiveTime);
@@ -544,19 +396,11 @@ export function AniKittyPlayer({
   );
   const captionTrackOffsetsRef = useRef(new WeakMap<TextTrack, number>());
   const captionOffsetSrcRef = useRef<string | null>(null);
-  const [fullscreen, setFullscreen] = useState(false);
-  /** iOS / fallback: fixed-viewport FS that keeps custom chrome (no native <video> FS). */
-  const [cssFullscreen, setCssFullscreen] = useState(false);
-  const cssFullscreenRef = useRef(false);
   /** Avoid reclaim loops when the UA keeps promoting bare <video> fullscreen. */
   const reclaimHostFsRef = useRef(false);
   const [pipSupported, setPipSupported] = useState(false);
   const [pipBlocked, setPipBlocked] = useState(false);
   const [inPip, setInPip] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const controlsVisibleRef = useRef(controlsVisible);
-  /** Ignore hide-on-tap until after the reveal tap finishes (mobile show→hide race). */
-  const revealGuardUntilRef = useRef(0);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [captionsOpen, setCaptionsOpen] = useState(false);
@@ -645,63 +489,6 @@ export function AniKittyPlayer({
   }, [fullscreenContainerRef]);
 
   useEffect(() => {
-    cssFullscreenRef.current = cssFullscreen;
-  }, [cssFullscreen]);
-
-  // CSS fullscreen: cover the real viewport (escape .site-page z-1 under nav).
-  // Prefer the player root so chrome stays in the fullscreen layer; when the
-  // persistent host is used (fallback), keep sticky teardown guards.
-  useEffect(() => {
-    const host = getFullscreenTarget();
-    if (!host) return;
-
-    const root = document.documentElement;
-    const body = document.body;
-    const persistentHost = fullscreenContainerRef?.current === host;
-
-    if (!cssFullscreen) {
-      // Episode remount: leave the persistent host in CSS FS for the next mount.
-      if (persistentHost && peekPersistCssFullscreen()) {
-        return;
-      }
-      host.classList.remove("anikitty-fs-host--active");
-      // Player root also uses this class when it is the CSS FS host.
-      root.classList.remove("anikitty-css-fs");
-      body.classList.remove("anikitty-css-fs");
-      return;
-    }
-
-    host.classList.add("anikitty-fs-host--active");
-    root.classList.add("anikitty-css-fs");
-    body.classList.add("anikitty-css-fs");
-    markPersistCssFullscreen(false);
-
-    // Reparent to <body> so fixed inset escapes main.site-page (z-1) and
-    // actually covers the navbar / bottom nav / rest of the watch page.
-    let marker: Comment | null = null;
-    const homeParent = host.parentNode;
-    if (homeParent && homeParent !== body) {
-      marker = document.createComment("anikitty-fs-home");
-      homeParent.insertBefore(marker, host);
-      body.appendChild(host);
-    }
-
-    return () => {
-      // Keep CSS FS chrome on the persistent wrapper across player remounts.
-      if (persistentHost && peekPersistCssFullscreen()) {
-        return;
-      }
-      host.classList.remove("anikitty-fs-host--active");
-      root.classList.remove("anikitty-css-fs");
-      body.classList.remove("anikitty-css-fs");
-      if (marker?.parentNode) {
-        marker.parentNode.insertBefore(host, marker);
-        marker.parentNode.removeChild(marker);
-      }
-    };
-  }, [cssFullscreen, getFullscreenTarget, fullscreenContainerRef]);
-
-  useEffect(() => {
     introAutoSkippedRef.current = false;
     recapAutoSkippedRef.current = false;
     outroAutoSkippedRef.current = false;
@@ -775,13 +562,6 @@ export function AniKittyPlayer({
 
   const displayTime = seekPreview ?? currentTime;
 
-  const clearIdleTimer = useCallback(() => {
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current);
-      idleTimerRef.current = null;
-    }
-  }, []);
-
   const closePopovers = useCallback(() => {
     setVolumeOpen(false);
     setMoreOpen(false);
@@ -792,64 +572,92 @@ export function AniKittyPlayer({
     setHelpOpen(false);
   }, []);
 
-  controlsVisibleRef.current = controlsVisible;
+  const {
+    controlsVisible,
+    setControlsVisible,
+    controlsVisibleRef,
+    idleTimerRef,
+    revealGuardUntilRef,
+    clearIdleTimer,
+    bumpControls,
+    revealControlsFromTouch,
+    hideControls,
+  } = useChromeIdle({
+    videoRef,
+    seekingRef,
+    chromePinnedRef,
+    popoverOpenRef,
+    castingRef,
+    castRemotePlayingRef,
+    closePopovers,
+  });
 
-  const bumpControls = useCallback((opts?: { hideAfterMs?: number }) => {
-    setControlsVisible(true);
-    clearIdleTimer();
-    if (seekingRef.current) return;
-    if (chromePinnedRef.current || popoverOpenRef.current) return;
-    const hideAfterMs = opts?.hideAfterMs ?? IDLE_MS;
-    if (castingRef.current) {
-      if (!castRemotePlayingRef.current) return;
-      idleTimerRef.current = setTimeout(() => {
-        // Keep chrome up while a menu / slider is open or pointer is on the bar.
-        if (popoverOpenRef.current || chromePinnedRef.current) return;
-        setControlsVisible(false);
-        closePopovers();
-      }, hideAfterMs);
+  const {
+    fullscreen,
+    setFullscreen,
+    cssFullscreen,
+    setCssFullscreen,
+    cssFullscreenRef,
+    enterCssFullscreen,
+    toggleFullscreen,
+  } = usePlayerFullscreen({
+    rootRef,
+    videoRef,
+    getFullscreenTarget,
+    autoFullscreen,
+    bumpControls,
+    setControlsVisible,
+  });
+
+  useEffect(() => {
+    cssFullscreenRef.current = cssFullscreen;
+  }, [cssFullscreen, cssFullscreenRef]);
+
+  // CSS fullscreen: cover the real viewport (escape .site-page z-1 under nav).
+  useEffect(() => {
+    const host = getFullscreenTarget();
+    if (!host) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const persistentHost = fullscreenContainerRef?.current === host;
+
+    if (!cssFullscreen) {
+      if (persistentHost && peekPersistCssFullscreen()) {
+        return;
+      }
+      host.classList.remove("anikitty-fs-host--active");
+      root.classList.remove("anikitty-css-fs");
+      body.classList.remove("anikitty-css-fs");
       return;
     }
-    const video = videoRef.current;
-    if (!video || video.paused) return;
-    idleTimerRef.current = setTimeout(() => {
-      if (popoverOpenRef.current || chromePinnedRef.current) return;
-      setControlsVisible(false);
-      closePopovers();
-    }, hideAfterMs);
-  }, [clearIdleTimer, closePopovers]);
 
-  const revealControlsFromTouch = useCallback(() => {
-    const wasHidden = !controlsVisibleRef.current;
-    bumpControls();
-    // touchstart shows chrome; the delayed single-tap must not immediately hide it.
-    if (wasHidden) {
-      revealGuardUntilRef.current = Date.now() + TOUCH_DOUBLE_TAP_MS + 120;
+    host.classList.add("anikitty-fs-host--active");
+    root.classList.add("anikitty-css-fs");
+    body.classList.add("anikitty-css-fs");
+    markPersistCssFullscreen(false);
+
+    let marker: Comment | null = null;
+    const homeParent = host.parentNode;
+    if (homeParent && homeParent !== body) {
+      marker = document.createComment("anikitty-fs-home");
+      homeParent.insertBefore(marker, host);
+      body.appendChild(host);
     }
-  }, [bumpControls]);
 
-  const hideControls = useCallback(() => {
-    if (popoverOpenRef.current || seekingRef.current) return;
-    clearIdleTimer();
-    setControlsVisible(false);
-    closePopovers();
-  }, [clearIdleTimer, closePopovers]);
-
-  const enterCssFullscreen = useCallback(() => {
-    setCssFullscreen(true);
-    setFullscreen(true);
-    void tryLockLandscapeOrientation();
-    setControlsVisible(true);
-    bumpControls();
-  }, [bumpControls]);
-
-  // Reclaim sticky CSS fullscreen after an episode remount (iOS / CSS FS path).
-  useEffect(() => {
-    if (!autoFullscreen) return;
-    if (!(consumePersistCssFullscreen() || isCssFullscreenActive())) return;
-    if (!(prefersCssFullscreen() || isCssFullscreenActive())) return;
-    enterCssFullscreen();
-  }, [autoFullscreen, enterCssFullscreen]);
+    return () => {
+      if (persistentHost && peekPersistCssFullscreen()) {
+        return;
+      }
+      host.classList.remove("anikitty-fs-host--active");
+      root.classList.remove("anikitty-css-fs");
+      body.classList.remove("anikitty-css-fs");
+      if (marker?.parentNode) {
+        marker.parentNode.insertBefore(host, marker);
+        marker.parentNode.removeChild(marker);
+      }
+    };
+  }, [cssFullscreen, getFullscreenTarget, fullscreenContainerRef]);
 
   const showSeekFlash = useCallback((side: "left" | "right", secs?: number) => {
     const fromAccum =
@@ -927,7 +735,7 @@ export function AniKittyPlayer({
     audioOpen ||
     helpOpen;
 
-  const schedulePrefsSave = useCallback((patch: Parameters<typeof saveCustomPlayerPrefs>[0]) => {
+  const schedulePrefsSave = useCallback((patch: Parameters<typeof saveKittyPlayerPrefs>[0]) => {
     pendingPrefsPatchRef.current = {
       ...(pendingPrefsPatchRef.current ?? {}),
       ...patch,
@@ -937,7 +745,7 @@ export function AniKittyPlayer({
       prefsSaveTimerRef.current = null;
       const pending = pendingPrefsPatchRef.current;
       pendingPrefsPatchRef.current = null;
-      if (pending) saveCustomPlayerPrefs(pending);
+      if (pending) saveKittyPlayerPrefs(pending);
     }, PREFS_SAVE_MS);
   }, []);
 
@@ -950,7 +758,7 @@ export function AniKittyPlayer({
       }
       const pending = pendingPrefsPatchRef.current;
       pendingPrefsPatchRef.current = null;
-      if (pending) saveCustomPlayerPrefs(pending);
+      if (pending) saveKittyPlayerPrefs(pending);
     };
   }, []);
 
@@ -1478,7 +1286,7 @@ export function AniKittyPlayer({
       setSelectedCaptionId(null);
       return;
     }
-    const prefs = loadCustomPlayerPrefs();
+    const prefs = loadKittyPlayerPrefs();
     if (prefs.captionsOn === false) {
       setSelectedCaptionId(null);
       return;
@@ -2790,64 +2598,6 @@ export function AniKittyPlayer({
     [bumpControls, schedulePrefsSave, showGestureHint],
   );
 
-  const toggleFullscreen = useCallback(async () => {
-    const target = getFullscreenTarget();
-    const video = videoRef.current as WebkitVideo | null;
-    if (!target) return;
-
-    const inCss = cssFullscreenRef.current;
-    const inDoc =
-      isElementFullscreen(target) ||
-      isElementFullscreen(rootRef.current) ||
-      Boolean(getFullscreenElement());
-    const inWebkit = Boolean(video?.webkitDisplayingFullscreen);
-
-    try {
-      if (inCss || inDoc || inWebkit) {
-        if (inCss) {
-          setCssFullscreen(false);
-          setFullscreen(false);
-        }
-        if (inWebkit && video?.webkitExitFullscreen) {
-          video.webkitExitFullscreen();
-        } else if (inDoc) {
-          await exitElementFullscreen();
-        }
-        bumpControls();
-        return;
-      }
-
-      // iOS: CSS FS (no reliable host Fullscreen API).
-      // Android: document FS on the player container (video + chrome together).
-      if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
-        enterCssFullscreen();
-        return;
-      }
-
-      try {
-        await requestElementFullscreen(target);
-        // If the UA promoted bare <video>, reclaim the container (keeps chrome).
-        const videoEl = videoRef.current;
-        if (videoEl && getFullscreenElement() === videoEl) {
-          await exitElementFullscreen();
-          await requestElementFullscreen(target);
-        }
-        await tryLockLandscapeOrientation();
-        if (videoEl && getFullscreenElement() === videoEl) {
-          await exitElementFullscreen();
-          await requestElementFullscreen(target);
-        }
-        setFullscreen(true);
-        setControlsVisible(true);
-      } catch {
-        enterCssFullscreen();
-      }
-    } catch {
-      /* browser may deny fullscreen without gesture */
-    }
-    bumpControls();
-  }, [bumpControls, enterCssFullscreen, getFullscreenTarget]);
-
   const exitFullscreen = useCallback(async () => {
     const video = videoRef.current as WebkitVideo | null;
     try {
@@ -2929,7 +2679,7 @@ export function AniKittyPlayer({
       playbackRateRef.current = rate;
       setPlaybackRateState(rate);
       if (opts?.persist !== false) {
-        saveCustomPlayerPrefs({ playbackRate: rate });
+        saveKittyPlayerPrefs({ playbackRate: rate });
       }
       if (opts?.hint) {
         showGestureHint({
@@ -2944,7 +2694,7 @@ export function AniKittyPlayer({
 
   const nudgePlaybackRate = useCallback(
     (direction: 1 | -1) => {
-      const speeds = CUSTOM_PLAYER_SPEEDS;
+      const speeds = KITTY_PLAYER_SPEEDS;
       const current = playbackRateRef.current;
       let idx = speeds.findIndex((r) => Math.abs(r - current) < 0.001);
       if (idx < 0) idx = speeds.indexOf(1);
@@ -2971,7 +2721,7 @@ export function AniKittyPlayer({
   const applyCaptionSize = useCallback(
     (size: CaptionSizePref) => {
       setCaptionSize(size);
-      saveCustomPlayerPrefs({ captionSize: size });
+      saveKittyPlayerPrefs({ captionSize: size });
       bumpControls();
     },
     [bumpControls],
@@ -2980,7 +2730,7 @@ export function AniKittyPlayer({
   const applyCaptionPosition = useCallback(
     (position: CaptionPositionPref) => {
       setCaptionPosition(position);
-      saveCustomPlayerPrefs({ captionPosition: position });
+      saveKittyPlayerPrefs({ captionPosition: position });
       bumpControls();
     },
     [bumpControls],
@@ -2990,7 +2740,7 @@ export function AniKittyPlayer({
     (offset: number) => {
       const next = clamp(Math.round(offset * 2) / 2, -5, 5);
       setCaptionOffset(next);
-      saveCustomPlayerPrefs({ captionOffset: next });
+      saveKittyPlayerPrefs({ captionOffset: next });
       showGestureHint({
         label: "Caption timing",
         detail:
@@ -3108,9 +2858,9 @@ export function AniKittyPlayer({
         id == null
           ? null
           : captionOptions.find((c) => c.id === id)?.label ?? null;
-      saveCustomPlayerPrefs({
+      saveKittyPlayerPrefs({
         captionsOn: id != null,
-        captionLabel: label ?? loadCustomPlayerPrefs().captionLabel,
+        captionLabel: label ?? loadKittyPlayerPrefs().captionLabel,
       });
       setMoreOpen(false);
       setCaptionsOpen(false);
@@ -3248,7 +2998,7 @@ export function AniKittyPlayer({
     playLongPressRef.current = setTimeout(() => {
       playLongPressFiredRef.current = true;
       playLongPressRef.current = null;
-      const next = nextCustomPlayerSpeed(playbackRateRef.current);
+      const next = nextKittyPlayerSpeed(playbackRateRef.current);
       applyPlaybackRate(next, { hint: true });
     }, LONG_PRESS_MS);
   }, [applyPlaybackRate, clearPlayLongPress]);
@@ -3773,7 +3523,7 @@ export function AniKittyPlayer({
       ref={rootRef}
       tabIndex={0}
       role="region"
-      aria-label={title ? `AniKitty player: ${title}` : "AniKitty player"}
+      aria-label={title ? `KittyPlayer: ${title}` : "KittyPlayer"}
       className={cn(
         "anikitty-player group/player relative aspect-video w-full overflow-hidden rounded-lg bg-black outline-none",
         "focus-visible:ring-2 focus-visible:ring-white/40",
@@ -3785,7 +3535,7 @@ export function AniKittyPlayer({
         className,
       )}
       style={cueStyle}
-      onMouseMove={bumpControls}
+      onMouseMove={() => bumpControls()}
       onPointerDown={(e) => {
         if (e.pointerType === "touch" || e.pointerType === "pen") {
           revealControlsFromTouch();
@@ -5065,42 +4815,15 @@ export function AniKittyPlayer({
                           !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                         )}
                       >
-                        {serverQualities.length > 1 ? (
-                          <MenuSection title="Source">
-                            {serverQualities.map((entry) => (
-                              <MenuItem
-                                key={entry.file}
-                                active={activeSrc === entry.file}
-                                onClick={() => selectServerQuality(entry)}
-                              >
-                                {formatStreamQualityLabel(entry.quality)}
-                              </MenuItem>
-                            ))}
-                          </MenuSection>
-                        ) : null}
-                        {showHlsQualityMenu ? (
-                          <MenuSection title="Quality">
-                            <MenuItem
-                              active={hlsLevelIndex < 0}
-                              onClick={() => selectHlsLevel(-1)}
-                            >
-                              Auto
-                            </MenuItem>
-                            {[...hlsLevels]
-                              .sort(
-                                (a, b) => (b.height ?? 0) - (a.height ?? 0),
-                              )
-                              .map((level) => (
-                                <MenuItem
-                                  key={level.index}
-                                  active={hlsLevelIndex === level.index}
-                                  onClick={() => selectHlsLevel(level.index)}
-                                >
-                                  {level.label}
-                                </MenuItem>
-                              ))}
-                          </MenuSection>
-                        ) : null}
+                        <QualityMenuContent
+                          activeSrc={activeSrc}
+                          serverQualities={serverQualities}
+                          showHlsQualityMenu={showHlsQualityMenu}
+                          hlsLevels={hlsLevels}
+                          hlsLevelIndex={hlsLevelIndex}
+                          onSelectServer={selectServerQuality}
+                          onSelectHls={selectHlsLevel}
+                        />
                       </div>
                     ) : null}
                   </div>
@@ -5142,18 +4865,14 @@ export function AniKittyPlayer({
                           !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                         )}
                       >
-                        {CUSTOM_PLAYER_SPEEDS.map((rate) => (
-                          <MenuItem
-                            key={rate}
-                            active={playbackRate === rate}
-                            onClick={() => {
-                              applyPlaybackRate(rate, { hint: true });
-                              setSpeedOpen(false);
-                            }}
-                          >
-                            {rate === 1 ? "Normal" : `${rate}×`}
-                          </MenuItem>
-                        ))}
+                        <SpeedMenuContent
+                          playbackRate={playbackRate}
+                          showTitle={false}
+                          onSelect={(rate) => {
+                            applyPlaybackRate(rate, { hint: true });
+                            setSpeedOpen(false);
+                          }}
+                        />
                       </div>
                     ) : null}
                   </div>
@@ -5342,7 +5061,7 @@ export function AniKittyPlayer({
                       <div
                         className={
                           coarsePointer || compactChrome
-                            ? PLAYER_SHEET_LAYER_CLASS
+                            ? "absolute inset-0 z-[90] flex items-center justify-center overflow-hidden p-3 sm:p-4"
                             : undefined
                         }
                       >
@@ -5350,7 +5069,7 @@ export function AniKittyPlayer({
                           <button
                             type="button"
                             aria-label="Close settings"
-                            className="absolute inset-0 bg-black/55"
+                            className="absolute inset-0 bg-black/45"
                             onClick={() => setMoreOpen(false)}
                           />
                         ) : null}
@@ -5360,21 +5079,16 @@ export function AniKittyPlayer({
                           aria-label="Settings"
                           className={cn(
                             coarsePointer || compactChrome
-                              ? "absolute inset-x-2 bottom-2 z-[80] flex max-h-[min(62dvh,24rem)] w-auto flex-col overflow-hidden overscroll-contain rounded-2xl border border-white/[0.14] bg-zinc-950/92 py-0 pb-[max(0.35rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-8px_36px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/88 sm:inset-x-4 sm:bottom-3"
+                              ? "relative z-[80] flex max-h-[min(58%,19rem)] w-[min(17.5rem,82%)] flex-col overflow-hidden overscroll-contain rounded-xl border border-white/[0.14] bg-zinc-950/92 py-0.5 text-xs text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/88"
                               : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,20rem)] overflow-hidden py-0",
                             !(coarsePointer || compactChrome) &&
                               PLAYER_POPOVER_CLASS,
-                            !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                            !reduceMotion &&
+                              (coarsePointer || compactChrome
+                                ? "animate-in fade-in zoom-in-95 duration-200"
+                                : PLAYER_POPOVER_MOTION_CLASS),
                           )}
                         >
-                          {coarsePointer || compactChrome ? (
-                            <div
-                              className="flex justify-center pb-0.5 pt-2"
-                              aria-hidden
-                            >
-                              <div className="h-1 w-8 rounded-full bg-white/25" />
-                            </div>
-                          ) : null}
                           <PlayerSettingsMenu
                             className={
                               coarsePointer || compactChrome
@@ -5414,67 +5128,22 @@ export function AniKittyPlayer({
                             }
                             qualityPanel={
                               showQualityPicker ? (
-                                <>
-                                  {serverQualities.length > 1 ? (
-                                    <MenuSection
-                                      title="Source"
-                                      dense={coarsePointer || compactChrome}
-                                    >
-                                      {serverQualities.map((entry) => (
-                                        <MenuItem
-                                          key={entry.file}
-                                          dense={coarsePointer || compactChrome}
-                                          active={activeSrc === entry.file}
-                                          onClick={() => {
-                                            selectServerQuality(entry);
-                                            setMoreOpen(false);
-                                          }}
-                                        >
-                                          {formatStreamQualityLabel(entry.quality)}
-                                        </MenuItem>
-                                      ))}
-                                    </MenuSection>
-                                  ) : null}
-                                  {showHlsQualityMenu ? (
-                                    <MenuSection
-                                      title="Quality"
-                                      dense={coarsePointer || compactChrome}
-                                    >
-                                      <MenuItem
-                                        dense={coarsePointer || compactChrome}
-                                        active={hlsLevelIndex < 0}
-                                        onClick={() => {
-                                          selectHlsLevel(-1);
-                                          setMoreOpen(false);
-                                        }}
-                                      >
-                                        Auto
-                                      </MenuItem>
-                                      {[...hlsLevels]
-                                        .sort(
-                                          (a, b) => (b.height ?? 0) - (a.height ?? 0),
-                                        )
-                                        .map((level) => (
-                                          <MenuItem
-                                            key={level.index}
-                                            dense={coarsePointer || compactChrome}
-                                            active={hlsLevelIndex === level.index}
-                                            onClick={() => {
-                                              selectHlsLevel(level.index);
-                                              setMoreOpen(false);
-                                            }}
-                                          >
-                                            {level.label}
-                                          </MenuItem>
-                                        ))}
-                                    </MenuSection>
-                                  ) : null}
-                                  {!serverQualities.length && !showHlsQualityMenu ? (
-                                    <p className="px-3 py-4 text-center text-[11px] text-white/40">
-                                      No alternate qualities for this stream
-                                    </p>
-                                  ) : null}
-                                </>
+                                <QualityMenuContent
+                                  dense={coarsePointer || compactChrome}
+                                  activeSrc={activeSrc}
+                                  serverQualities={serverQualities}
+                                  showHlsQualityMenu={showHlsQualityMenu}
+                                  hlsLevels={hlsLevels}
+                                  hlsLevelIndex={hlsLevelIndex}
+                                  onSelectServer={(entry) => {
+                                    selectServerQuality(entry);
+                                    setMoreOpen(false);
+                                  }}
+                                  onSelectHls={(index) => {
+                                    selectHlsLevel(index);
+                                    setMoreOpen(false);
+                                  }}
+                                />
                               ) : (
                                 <p className="px-3 py-4 text-center text-[11px] text-white/40">
                                   No alternate qualities for this stream
@@ -5482,24 +5151,14 @@ export function AniKittyPlayer({
                               )
                             }
                             speedPanel={
-                              <MenuSection
-                                title="Speed"
+                              <SpeedMenuContent
                                 dense={coarsePointer || compactChrome}
-                              >
-                                {CUSTOM_PLAYER_SPEEDS.map((rate) => (
-                                  <MenuItem
-                                    key={rate}
-                                    dense={coarsePointer || compactChrome}
-                                    active={playbackRate === rate}
-                                    onClick={() => {
-                                      applyPlaybackRate(rate, { hint: true });
-                                      setMoreOpen(false);
-                                    }}
-                                  >
-                                    {rate === 1 ? "Normal" : `${rate}×`}
-                                  </MenuItem>
-                                ))}
-                              </MenuSection>
+                                playbackRate={playbackRate}
+                                onSelect={(rate) => {
+                                  applyPlaybackRate(rate, { hint: true });
+                                  setMoreOpen(false);
+                                }}
+                              />
                             }
                             displayExtras={
                               <>
@@ -5801,4 +5460,7 @@ export function AniKittyPlayer({
 
 
 /** @deprecated Prefer AniKittyPlayer */
-export const CustomVideoPlayer = AniKittyPlayer;
+/** @deprecated Prefer KittyPlayer */
+export const AniKittyPlayer = KittyPlayer;
+/** @deprecated Prefer KittyPlayer */
+export const CustomVideoPlayer = KittyPlayer;

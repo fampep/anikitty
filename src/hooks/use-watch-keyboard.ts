@@ -2,7 +2,10 @@
 
 import { useEffect } from "react";
 import type { PlayerController } from "@/lib/player/player-controller";
-import { CUSTOM_PLAYER_SPEEDS, saveCustomPlayerPrefs } from "@/components/custom-player/utils";
+import {
+  KITTY_PLAYER_SPEEDS,
+  saveKittyPlayerPrefs,
+} from "@/components/kittyplayer";
 
 type Options = {
   enabled?: boolean;
@@ -66,14 +69,14 @@ function isAniKittyPlayerActive(target: EventTarget | null): boolean {
 }
 
 function nudgeRate(video: HTMLVideoElement, direction: 1 | -1) {
-  const speeds = CUSTOM_PLAYER_SPEEDS;
+  const speeds = KITTY_PLAYER_SPEEDS;
   const current = video.playbackRate || 1;
   let idx = speeds.findIndex((r) => Math.abs(r - current) < 0.001);
   if (idx < 0) idx = speeds.indexOf(1);
   const nextIdx = Math.min(speeds.length - 1, Math.max(0, idx + direction));
   const next = speeds[nextIdx] ?? 1;
   video.playbackRate = next;
-  saveCustomPlayerPrefs({ playbackRate: next });
+  saveKittyPlayerPrefs({ playbackRate: next });
 }
 
 export function useWatchKeyboard({

@@ -32,9 +32,9 @@ import {
   VOLUME_BOOST_MIN,
   formatVolumeBoost,
   sanitizeVolumeBoost,
-} from "@/components/custom-player/audio-boost";
+} from "@/components/kittyplayer/audio-boost";
 import { ANIME4K_MODES, isWebGpuSupported } from "@/lib/player/anime4k";
-import { MenuItem, MenuSection } from "@/components/custom-player/player-chrome";
+import { MenuItem, MenuSection } from "@/components/kittyplayer/chrome";
 
 export type PlayerSettingsPanelId =
   | "root"

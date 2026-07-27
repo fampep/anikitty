@@ -114,9 +114,9 @@ import {
   markPersistCssFullscreen,
 } from "@/lib/kitty/fullscreen-persist";
 
-const AniKittyPlayer = dynamic(
+const KittyPlayer = dynamic(
   () =>
-    import("@/components/custom-player").then((m) => m.AniKittyPlayer),
+    import("@/components/kittyplayer").then((m) => m.KittyPlayer),
   {
     ssr: false,
     loading: () => <PlayerSkeleton />,
@@ -1858,7 +1858,7 @@ const VideoPlayerSection = () => {
         </div>
       ) : (
       <>
-      <AniKittyPlayer
+      <KittyPlayer
         key={displayPlayerKey}
         src={displayFile}
         poster={currentEpisodeInfo?.image || animePoster || undefined}

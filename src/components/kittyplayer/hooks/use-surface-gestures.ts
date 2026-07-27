@@ -6,7 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
-import { clamp } from "./utils";
+import { clamp } from "../clamp";
 
 const VERTICAL_LOCK_PX = 14;
 const HORIZONTAL_LOCK_PX = 22;
