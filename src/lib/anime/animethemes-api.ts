@@ -28,15 +28,30 @@ export type AnimeThemeTrack = {
   entries: AnimeThemeEntry[];
 };
 
+export type AnimeThemePlayback = {
+  key: string;
+  themeId: number;
+  entryId: number;
+  label: string;
+  version: number;
+  versionLabel: string;
+  episodes: string | null;
+  videoUrl: string;
+  songTitle: string | null;
+  artists: string[];
+  type: string;
+  sequence: number | null;
+  nc: boolean;
+  lyrics: boolean;
+  resolution: number;
+};
+
 export type AnimeThemesResult = {
   animeName: string;
   themes: AnimeThemeTrack[];
-  playback: {
-    label: string;
-    videoUrl: string;
-    songTitle: string | null;
-    type: string;
-  } | null;
+  /** Flattened playable rows (one per entry / version). */
+  playables: AnimeThemePlayback[];
+  playback: AnimeThemePlayback | null;
 };
 
 type RawVideo = {
@@ -85,6 +100,24 @@ function pickBestVideo(videos: AnimeThemeVideo[]): AnimeThemeVideo | null {
   return [...videos].sort((a, b) => b.resolution - a.resolution)[0] ?? null;
 }
 
+/** e.g. OP1, ED2, OP */
+export function formatThemeTypeLabel(type: string, sequence: number | null): string {
+  const seq = sequence != null ? String(sequence) : "";
+  return `${type}${seq}`;
+}
+
+/** e.g. v1, v2 — AnimeThemes entry version */
+export function formatThemeVersionLabel(version: number): string {
+  return `v${version}`;
+}
+
+export function formatThemeDisplayLabel(playable: Pick<AnimeThemePlayback, "label" | "versionLabel" | "songTitle">): string {
+  const base = playable.songTitle
+    ? `${playable.label} · ${playable.songTitle}`
+    : playable.label;
+  return `${base} · ${playable.versionLabel}`;
+}
+
 function normalizeTheme(theme: RawTheme): AnimeThemeTrack | null {
   if (!theme.id || !theme.type) return null;
   const entries = (theme.animethemeentries ?? [])
@@ -125,31 +158,50 @@ function normalizeTheme(theme: RawTheme): AnimeThemeTrack | null {
   };
 }
 
-function pickDefaultPlayback(themes: AnimeThemeTrack[]): AnimeThemesResult["playback"] {
-  const sorted = [...themes].sort((a, b) => {
-    const rank = (t: AnimeThemeTrack) => {
-      if (t.type === "OP") return t.sequence ?? 1;
-      if (t.type === "ED") return 100 + (t.sequence ?? 1);
-      return 200;
-    };
-    return rank(a) - rank(b);
-  });
+function themeSortRank(t: AnimeThemeTrack): number {
+  if (t.type === "OP") return t.sequence ?? 1;
+  if (t.type === "ED") return 100 + (t.sequence ?? 1);
+  if (t.type === "IN") return 200 + (t.sequence ?? 1);
+  return 300;
+}
+
+/** One playable row per AnimeThemes entry (version). */
+export function flattenThemePlayables(themes: AnimeThemeTrack[]): AnimeThemePlayback[] {
+  const sorted = [...themes].sort((a, b) => themeSortRank(a) - themeSortRank(b));
+  const out: AnimeThemePlayback[] = [];
 
   for (const theme of sorted) {
-    for (const entry of theme.entries) {
+    const entries = [...theme.entries].sort((a, b) => a.version - b.version);
+    for (const entry of entries) {
       const video = pickBestVideo(entry.videos);
       if (!video) continue;
-      const seq = theme.sequence != null ? `${theme.sequence}` : "";
-      return {
-        label: `${theme.type}${seq}`,
+      const label = formatThemeTypeLabel(theme.type, theme.sequence);
+      const versionLabel = formatThemeVersionLabel(entry.version);
+      out.push({
+        key: `${theme.id}-${entry.id}`,
+        themeId: theme.id,
+        entryId: entry.id,
+        label,
+        version: entry.version,
+        versionLabel,
+        episodes: entry.episodes,
         videoUrl: video.link,
         songTitle: theme.song?.title ?? null,
+        artists: theme.song?.artists ?? [],
         type: theme.type,
-      };
+        sequence: theme.sequence,
+        nc: video.nc,
+        lyrics: video.lyrics,
+        resolution: video.resolution,
+      });
     }
   }
 
-  return null;
+  return out;
+}
+
+function pickDefaultPlayback(playables: AnimeThemePlayback[]): AnimeThemePlayback | null {
+  return playables[0] ?? null;
 }
 
 function parseAnimePayload(anime: RawAnime | null | undefined): AnimeThemesResult | null {
@@ -160,10 +212,13 @@ function parseAnimePayload(anime: RawAnime | null | undefined): AnimeThemesResul
 
   if (!themes.length) return null;
 
+  const playables = flattenThemePlayables(themes);
+
   return {
     animeName: anime.name,
     themes,
-    playback: pickDefaultPlayback(themes),
+    playables,
+    playback: pickDefaultPlayback(playables),
   };
 }
 
@@ -195,4 +250,49 @@ export async function fetchAnimeThemesByAnilistId(
 
   const anime = data.anime?.[0] ?? null;
   return parseAnimePayload(anime);
+}
+
+/** Search AnimeThemes by anime / song title. */
+export async function searchAnimeThemes(query: string, limit = 12): Promise<
+  { name: string; slug: string; year: number | null; anilistId: number | null }[]
+> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  const params = new URLSearchParams({
+    q,
+    "page[limit]": String(Math.min(Math.max(limit, 1), 20)),
+    "include[anime]": "resources",
+  });
+
+  const res = await fetch(`${API_BASE}/search?${params}`, {
+    signal: AbortSignal.timeout(12_000),
+    headers: FETCH_HEADERS,
+    next: { revalidate: 3600 },
+  });
+
+  if (!res.ok) return [];
+
+  const data = (await res.json()) as {
+    search?: {
+      anime?: {
+        name?: string;
+        slug?: string;
+        year?: number;
+        resources?: { site?: string; external_id?: number }[];
+      }[];
+    };
+  };
+
+  return (data.search?.anime ?? [])
+    .filter((a) => a.name && a.slug)
+    .map((a) => {
+      const anilist = a.resources?.find((r) => r.site === "Anilist" || r.site === "AniList");
+      return {
+        name: a.name!,
+        slug: a.slug!,
+        year: a.year ?? null,
+        anilistId: anilist?.external_id ?? null,
+      };
+    });
 }

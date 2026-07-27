@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { fetchAnimeThemesByAnilistId } from "@/lib/anime/animethemes-api";
 import { proxiedThemeVideoUrl } from "@/lib/anime/animethemes-proxy";
 
+function proxyPlayableVideoUrl<T extends { videoUrl: string }>(item: T): T {
+  return { ...item, videoUrl: proxiedThemeVideoUrl(item.videoUrl) };
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -18,16 +22,22 @@ export async function GET(
       return NextResponse.json({ themes: null });
     }
 
-    const themes =
-      result.playback?.videoUrl != null
-        ? {
-            ...result,
-            playback: {
-              ...result.playback,
-              videoUrl: proxiedThemeVideoUrl(result.playback.videoUrl),
-            },
-          }
-        : result;
+    const playables = result.playables.map(proxyPlayableVideoUrl);
+    const themes = {
+      ...result,
+      playables,
+      playback: result.playback ? proxyPlayableVideoUrl(result.playback) : null,
+      themes: result.themes.map((theme) => ({
+        ...theme,
+        entries: theme.entries.map((entry) => ({
+          ...entry,
+          videos: entry.videos.map((video) => ({
+            ...video,
+            link: proxiedThemeVideoUrl(video.link),
+          })),
+        })),
+      })),
+    };
 
     return NextResponse.json({ themes });
   } catch {

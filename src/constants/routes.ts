@@ -23,6 +23,7 @@ export const ROUTES = {
   TIMESTAMPS: "/timestamps",
   VOICE_ACTOR: "/voice-actor",
   VOICE_ACTORS: "/voice-actors",
+  animeThemes: (slug: string | number) => `/anime/${slug}/themes`,
   profile: (username: string) => `/profile/${encodeURIComponent(username)}`,
   profileComments: (username: string) => `/profile/${encodeURIComponent(username)}/comments`,
 };

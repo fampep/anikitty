@@ -56,6 +56,10 @@ import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
 });
+const AnimeThemesBrowser = dynamic(() => import("@/components/anime/anime-themes-browser"), {
+  ssr: false,
+  loading: () => <div className="h-64 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
+});
 
 const WatchTrailer = dynamic(() => import("@/components/watch/watch-trailer"), { ssr: false });
 const AnimeEpisodeAlertButton = dynamic(() => import("@/components/anime/anime-episode-alert-button"), {
@@ -147,6 +151,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       "overview",
       "episodes",
       "subtitles",
+      "themes",
       "media",
       "art",
       "characters",
@@ -350,6 +355,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       ...(totalEpisodeCount > 0 ? { badge: totalEpisodeCount } : {}),
     },
     { value: "subtitles", label: t("anime.tabs.subtitles") },
+    ...(info.anilistId
+      ? [{ value: "themes", label: t("anime.tabs.themes") }]
+      : []),
     { value: "media", label: t("anime.tabs.media") },
     ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
     ...(info.charactersVoiceActors.length > 0
@@ -386,7 +394,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
         <div className="absolute bottom-4 right-4 left-4 sm:left-auto z-10 flex flex-col items-stretch sm:items-end gap-2.5 sm:max-w-md md:bottom-10 md:right-10">
           <WatchTrailer videoHref={info.promotionalVideos[0]?.source} inline />
-          {info.anilistId ? <AnimeThemePlayer anilistId={info.anilistId} /> : null}
+          {info.anilistId && activeTab !== "themes" ? (
+            <AnimeThemePlayer anilistId={info.anilistId} slug={slug} />
+          ) : null}
         </div>
       </div>
 
@@ -900,6 +910,18 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           <TabsContent value="subtitles" className="mt-6">
             <AnimeSubtitles anilistId={info.anilistId} title={info.name} />
           </TabsContent>
+
+          {/* ── Themes ── */}
+          {info.anilistId ? (
+            <TabsContent value="themes" className="mt-6">
+              <AnimeThemesBrowser
+                slug={slug}
+                anilistId={info.anilistId}
+                animeTitle={info.name}
+                embedded
+              />
+            </TabsContent>
+          ) : null}
 
           {/* ── Media ── */}
           <TabsContent value="media" className="mt-6">
