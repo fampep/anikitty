@@ -26,7 +26,7 @@ export const PLAYER_POPOVER_MOTION_CLASS =
 
 /** Mobile bottom-sheet surface inside the player / fullscreen host. */
 export const PLAYER_SHEET_CLASS =
-  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(48%,14rem)] w-full overflow-y-auto overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92";
+  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(58dvh,20rem)] w-full overflow-y-auto overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92";
 
 /**
  * Portal overlays into the player host (or fullscreen wrapper) so sheets stay
@@ -53,14 +53,29 @@ export function MenuSection({
   title,
   children,
   className,
+  dense,
 }: {
   title: string;
   children: ReactNode;
   className?: string;
+  dense?: boolean;
 }) {
   return (
-    <div className={cn("border-b border-white/[0.08] py-1 last:border-b-0", className)}>
-      <p className="px-3 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
+    <div
+      className={cn(
+        "border-b border-white/[0.08] last:border-b-0",
+        dense ? "py-0.5" : "py-1",
+        className,
+      )}
+    >
+      <p
+        className={cn(
+          "font-medium uppercase tracking-[0.08em] text-white/35",
+          dense
+            ? "px-2.5 pb-0.5 pt-1 text-[9px]"
+            : "px-3 pb-1 pt-1.5 text-[10px]",
+        )}
+      >
         {title}
       </p>
       {children}
@@ -72,10 +87,15 @@ export function MenuItem({
   children,
   active,
   onClick,
+  className,
+  dense,
 }: {
   children: ReactNode;
   active?: boolean;
   onClick: () => void;
+  className?: string;
+  /** Tighter padding for narrow / sheet menus. */
+  dense?: boolean;
 }) {
   return (
     <button
@@ -83,8 +103,12 @@ export function MenuItem({
       role="menuitemradio"
       aria-checked={active}
       className={cn(
-        "relative flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99] sm:px-3 sm:py-2",
+        "relative flex w-full items-center justify-between text-left text-white/75 transition-[color,background-color,transform] duration-150 hover:bg-white/[0.07] hover:text-white focus-visible:bg-white/[0.07] focus-visible:text-white focus-visible:outline-none active:scale-[0.99]",
+        dense
+          ? "gap-2 px-2.5 py-1.5 text-[11px]"
+          : "gap-3 px-3 py-2.5 sm:px-3 sm:py-2",
         active && "bg-white/[0.09] font-medium text-white",
+        className,
       )}
       onClick={onClick}
     >

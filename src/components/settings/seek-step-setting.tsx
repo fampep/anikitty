@@ -9,9 +9,16 @@ type Props = {
   value: PlayerSeekStep;
   onChange: (value: PlayerSeekStep) => void;
   compact?: boolean;
+  /** Hide helper text (player sheet). */
+  hideDescription?: boolean;
 };
 
-export default function SeekStepSetting({ value, onChange, compact }: Props) {
+export default function SeekStepSetting({
+  value,
+  onChange,
+  compact,
+  hideDescription,
+}: Props) {
   const t = useT();
 
   return (
@@ -19,6 +26,7 @@ export default function SeekStepSetting({ value, onChange, compact }: Props) {
       className={cn(
         "rounded-xl border border-border bg-muted/40 dark:border-white/[0.08] dark:bg-white/[0.03]",
         compact ? "px-3 py-2.5" : "px-4 py-3",
+        hideDescription && compact && "px-2 py-1.5",
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -29,15 +37,24 @@ export default function SeekStepSetting({ value, onChange, compact }: Props) {
           <p className={cn("font-medium text-foreground/90 dark:text-white/80", compact ? "text-[13px]" : "text-sm")}>
             {t("settings.seekStepSeconds")}
           </p>
-          <p
+          {!hideDescription ? (
+            <p
+              className={cn(
+                "mt-0.5 font-mono leading-snug text-muted-foreground dark:text-white/30",
+                compact ? "text-[10px]" : "text-[11px]",
+              )}
+            >
+              {t("settings.seekStepSecondsDesc")}
+            </p>
+          ) : null}
+          <div
             className={cn(
-              "mt-0.5 font-mono leading-snug text-muted-foreground dark:text-white/30",
-              compact ? "text-[10px]" : "text-[11px]",
+              "flex flex-wrap gap-1.5",
+              hideDescription ? "mt-1.5" : "mt-2.5",
             )}
+            role="group"
+            aria-label={t("settings.seekStepSeconds")}
           >
-            {t("settings.seekStepSecondsDesc")}
-          </p>
-          <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label={t("settings.seekStepSeconds")}>
             {PLAYER_SEEK_STEP_OPTIONS.map((seconds) => {
               const active = value === seconds;
               return (

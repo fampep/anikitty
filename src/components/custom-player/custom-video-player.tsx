@@ -601,6 +601,8 @@ export function AniKittyPlayer({
   const playLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playLongPressFiredRef = useRef(false);
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
+  /** Narrow player chrome (minimized / side column) — hide non-essential bar icons. */
+  const [compactChrome, setCompactChrome] = useState(false);
   const [iosVolumeLocked] = useState(() => isAppleTouchDevice());
   const [attachNonce, setAttachNonce] = useState(0);
   /** Cookie-free absolute URL for AirPlay native HLS (MSE cannot be AirPlayed). */
@@ -1715,6 +1717,23 @@ export function AniKittyPlayer({
     }
     void tryUnlockScreenOrientation();
   }, [fullscreen, cssFullscreen]);
+
+  /** Match embed players: slim the bar by player width, not viewport. */
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof ResizeObserver === "undefined") return;
+    const COMPACT_MAX_PX = 580;
+    const update = (width: number) => {
+      setCompactChrome(width > 0 && width < COMPACT_MAX_PX);
+    };
+    update(root.getBoundingClientRect().width);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      update(w);
+    });
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -4589,9 +4608,9 @@ export function AniKittyPlayer({
                 >
                   <SeekForwardIcon className="h-[17px] w-[17px]" />
                 </IconButton>
-                {onPrevEpisode || onNextEpisode ? (
+                {!compactChrome && (onPrevEpisode || onNextEpisode) ? (
                   <>
-                    <span className="mx-0.5 hidden h-4 w-px shrink-0 bg-white/15 sm:block" aria-hidden />
+                    <span className="mx-0.5 h-4 w-px shrink-0 bg-white/15" aria-hidden />
                     <IconButton
                       label={
                         prevEpisode
@@ -4863,7 +4882,7 @@ export function AniKittyPlayer({
                   </div>
                 ) : null}
 
-                {showAudioMenu ? (
+                {showAudioMenu && !compactChrome ? (
                   <div className={cn(!coarsePointer && "relative")}>
                     <IconButton
                       buttonRef={audioTriggerRef}
@@ -4955,7 +4974,7 @@ export function AniKittyPlayer({
                   </div>
                 ) : null}
 
-                {airPlayAvailable ? (
+                {airPlayAvailable && !compactChrome ? (
                   <IconButton
                     label={
                       airPlayPreparing
@@ -4983,7 +5002,7 @@ export function AniKittyPlayer({
                   </IconButton>
                 ) : null}
 
-                {castAvailable ? (
+                {castAvailable && !compactChrome ? (
                   <IconButton
                     label={
                       casting
@@ -5013,8 +5032,8 @@ export function AniKittyPlayer({
                   </IconButton>
                 ) : null}
 
-                {showQualityPicker ? (
-                  <div className="relative hidden min-[520px]:block">
+                {showQualityPicker && !compactChrome ? (
+                  <div className="relative">
                     <IconButton
                       buttonRef={qualityTriggerRef}
                       label={`Quality: ${qualityButtonLabel}`}
@@ -5087,61 +5106,63 @@ export function AniKittyPlayer({
                   </div>
                 ) : null}
 
-                <div className="relative hidden min-[480px]:block">
-                  <IconButton
-                    buttonRef={speedTriggerRef}
-                    label={`Speed: ${speedButtonLabel}`}
-                    ariaExpanded={speedOpen}
-                    ariaHasPopup="menu"
-                    onClick={() => {
-                      setSpeedOpen((v) => !v);
-                      setMoreOpen(false);
-                      setVolumeOpen(false);
-                      setCaptionsOpen(false);
-                      setQualityOpen(false);
-                      setAudioOpen(false);
-                      bumpControls();
-                    }}
-                    className={cn(
-                      "w-auto min-w-10 px-1.5 sm:min-w-9",
-                      Math.abs(playbackRate - 1) > 0.001 && "text-white",
-                    )}
-                  >
-                    <span className="select-none text-[11px] font-medium tabular-nums tracking-wide text-white/75 sm:text-[12px]">
-                      {speedButtonLabel}
-                    </span>
-                  </IconButton>
-                  {speedOpen ? (
-                    <div
-                      ref={speedMenuRef}
-                      role="menu"
-                      aria-label="Playback speed"
+                {!compactChrome ? (
+                  <div className="relative">
+                    <IconButton
+                      buttonRef={speedTriggerRef}
+                      label={`Speed: ${speedButtonLabel}`}
+                      ariaExpanded={speedOpen}
+                      ariaHasPopup="menu"
+                      onClick={() => {
+                        setSpeedOpen((v) => !v);
+                        setMoreOpen(false);
+                        setVolumeOpen(false);
+                        setCaptionsOpen(false);
+                        setQualityOpen(false);
+                        setAudioOpen(false);
+                        bumpControls();
+                      }}
                       className={cn(
-                        "absolute bottom-full right-0 z-50 mb-2.5 min-w-[116px] overflow-y-auto py-1",
-                        PLAYER_POPOVER_CLASS,
-                        !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                        "w-auto min-w-10 px-1.5 sm:min-w-9",
+                        Math.abs(playbackRate - 1) > 0.001 && "text-white",
                       )}
                     >
-                      {CUSTOM_PLAYER_SPEEDS.map((rate) => (
-                        <MenuItem
-                          key={rate}
-                          active={playbackRate === rate}
-                          onClick={() => {
-                            applyPlaybackRate(rate, { hint: true });
-                            setSpeedOpen(false);
-                          }}
-                        >
-                          {rate === 1 ? "Normal" : `${rate}×`}
-                        </MenuItem>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+                      <span className="select-none text-[11px] font-medium tabular-nums tracking-wide text-white/75 sm:text-[12px]">
+                        {speedButtonLabel}
+                      </span>
+                    </IconButton>
+                    {speedOpen ? (
+                      <div
+                        ref={speedMenuRef}
+                        role="menu"
+                        aria-label="Playback speed"
+                        className={cn(
+                          "absolute bottom-full right-0 z-50 mb-2.5 min-w-[116px] overflow-y-auto py-1",
+                          PLAYER_POPOVER_CLASS,
+                          !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                        )}
+                      >
+                        {CUSTOM_PLAYER_SPEEDS.map((rate) => (
+                          <MenuItem
+                            key={rate}
+                            active={playbackRate === rate}
+                            onClick={() => {
+                              applyPlaybackRate(rate, { hint: true });
+                              setSpeedOpen(false);
+                            }}
+                          >
+                            {rate === 1 ? "Normal" : `${rate}×`}
+                          </MenuItem>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div
-                  className={cn(!coarsePointer && "relative")}
+                  className={cn(!coarsePointer && !compactChrome && "relative")}
                   onMouseEnter={() => {
-                    if (prefersCoarsePointer()) return;
+                    if (compactChrome || prefersCoarsePointer()) return;
                     setVolumeOpen(true);
                     setMoreOpen(false);
                     setCaptionsOpen(false);
@@ -5150,41 +5171,44 @@ export function AniKittyPlayer({
                     setAudioOpen(false);
                   }}
                   onMouseLeave={() => {
-                    if (!prefersCoarsePointer()) setVolumeOpen(false);
+                    if (compactChrome || prefersCoarsePointer()) return;
+                    setVolumeOpen(false);
                   }}
                 >
-                  <IconButton
-                    label={
-                      prefersCoarsePointer()
-                        ? effectiveMuted
-                          ? "Unmute. Long-press for volume"
-                          : "Mute. Long-press for volume"
-                        : effectiveMuted
-                          ? "Unmute"
-                          : "Mute"
-                    }
-                    onClick={onVolumeButtonClick}
-                    onPointerDown={onVolumePointerDown}
-                    onPointerUp={onVolumePointerUp}
-                    onPointerCancel={onVolumePointerUp}
-                  >
-                    {effectiveMuted ? (
-                      <VolumeMuteIcon className="h-[18px] w-[18px]" />
-                    ) : effectiveVolume < 0.5 ? (
-                      <VolumeLowIcon className="h-[18px] w-[18px]" />
-                    ) : (
-                      <VolumeIcon className="h-[18px] w-[18px]" />
-                    )}
-                  </IconButton>
+                  {!compactChrome ? (
+                    <IconButton
+                      label={
+                        prefersCoarsePointer()
+                          ? effectiveMuted
+                            ? "Unmute. Long-press for volume"
+                            : "Mute. Long-press for volume"
+                          : effectiveMuted
+                            ? "Unmute"
+                            : "Mute"
+                      }
+                      onClick={onVolumeButtonClick}
+                      onPointerDown={onVolumePointerDown}
+                      onPointerUp={onVolumePointerUp}
+                      onPointerCancel={onVolumePointerUp}
+                    >
+                      {effectiveMuted ? (
+                        <VolumeMuteIcon className="h-[18px] w-[18px]" />
+                      ) : effectiveVolume < 0.5 ? (
+                        <VolumeLowIcon className="h-[18px] w-[18px]" />
+                      ) : (
+                        <VolumeIcon className="h-[18px] w-[18px]" />
+                      )}
+                    </IconButton>
+                  ) : null}
                   {volumeOpen ? (
                     <PlayerOverlayPortal
                       host={
-                        coarsePointer
+                        coarsePointer || compactChrome
                           ? (getFullscreenTarget() ?? rootRef.current)
                           : undefined
                       }
                     >
-                      {coarsePointer ? (
+                      {coarsePointer || compactChrome ? (
                         <div className={PLAYER_SHEET_LAYER_CLASS}>
                           <button
                             type="button"
@@ -5310,17 +5334,19 @@ export function AniKittyPlayer({
                   {moreOpen ? (
                     <PlayerOverlayPortal
                       host={
-                        coarsePointer
+                        coarsePointer || compactChrome
                           ? (getFullscreenTarget() ?? rootRef.current)
                           : undefined
                       }
                     >
                       <div
                         className={
-                          coarsePointer ? PLAYER_SHEET_LAYER_CLASS : undefined
+                          coarsePointer || compactChrome
+                            ? PLAYER_SHEET_LAYER_CLASS
+                            : undefined
                         }
                       >
-                        {coarsePointer ? (
+                        {coarsePointer || compactChrome ? (
                           <button
                             type="button"
                             aria-label="Close settings"
@@ -5333,14 +5359,15 @@ export function AniKittyPlayer({
                           role="menu"
                           aria-label="Settings"
                           className={cn(
-                            coarsePointer
-                              ? "absolute inset-x-0 bottom-0 z-[80] max-h-[min(40%,12.75rem)] w-full overflow-hidden overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92 flex flex-col"
+                            coarsePointer || compactChrome
+                              ? "absolute inset-x-0 bottom-0 z-[80] flex max-h-[min(58dvh,22rem)] w-full flex-col overflow-hidden overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92"
                               : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,22rem)] overflow-hidden py-0",
-                            !coarsePointer && PLAYER_POPOVER_CLASS,
+                            !(coarsePointer || compactChrome) &&
+                              PLAYER_POPOVER_CLASS,
                             !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                           )}
                         >
-                          {coarsePointer ? (
+                          {coarsePointer || compactChrome ? (
                             <div
                               className="flex justify-center pb-0.5 pt-1.5"
                               aria-hidden
@@ -5349,8 +5376,12 @@ export function AniKittyPlayer({
                             </div>
                           ) : null}
                           <PlayerSettingsMenu
-                            className={coarsePointer ? "min-h-0 flex-1 overflow-hidden" : undefined}
-                            compact={coarsePointer}
+                            className={
+                              coarsePointer || compactChrome
+                                ? "min-h-0 flex-1 overflow-hidden"
+                                : undefined
+                            }
+                            compact={coarsePointer || compactChrome}
                             watchingHardSub={watchingHardSub}
                             showQualityTab={showQualityPicker}
                             captionsTrackLabel={
@@ -5371,10 +5402,14 @@ export function AniKittyPlayer({
                               showQualityPicker ? (
                                 <>
                                   {serverQualities.length > 1 ? (
-                                    <MenuSection title="Source">
+                                    <MenuSection
+                                      title="Source"
+                                      dense={coarsePointer || compactChrome}
+                                    >
                                       {serverQualities.map((entry) => (
                                         <MenuItem
                                           key={entry.file}
+                                          dense={coarsePointer || compactChrome}
                                           active={activeSrc === entry.file}
                                           onClick={() => {
                                             selectServerQuality(entry);
@@ -5387,8 +5422,12 @@ export function AniKittyPlayer({
                                     </MenuSection>
                                   ) : null}
                                   {showHlsQualityMenu ? (
-                                    <MenuSection title="Quality">
+                                    <MenuSection
+                                      title="Quality"
+                                      dense={coarsePointer || compactChrome}
+                                    >
                                       <MenuItem
+                                        dense={coarsePointer || compactChrome}
                                         active={hlsLevelIndex < 0}
                                         onClick={() => {
                                           selectHlsLevel(-1);
@@ -5404,6 +5443,7 @@ export function AniKittyPlayer({
                                         .map((level) => (
                                           <MenuItem
                                             key={level.index}
+                                            dense={coarsePointer || compactChrome}
                                             active={hlsLevelIndex === level.index}
                                             onClick={() => {
                                               selectHlsLevel(level.index);
@@ -5428,10 +5468,14 @@ export function AniKittyPlayer({
                               )
                             }
                             speedPanel={
-                              <MenuSection title="Speed">
+                              <MenuSection
+                                title="Speed"
+                                dense={coarsePointer || compactChrome}
+                              >
                                 {CUSTOM_PLAYER_SPEEDS.map((rate) => (
                                   <MenuItem
                                     key={rate}
+                                    dense={coarsePointer || compactChrome}
                                     active={playbackRate === rate}
                                     onClick={() => {
                                       applyPlaybackRate(rate, { hint: true });
@@ -5445,30 +5489,70 @@ export function AniKittyPlayer({
                             }
                             displayExtras={
                               <>
-                                <MenuSection title="Brightness">
-                                  {[
-                                    { label: "Dim", value: 0.7 },
-                                    { label: "Normal", value: 1 },
-                                    { label: "Bright", value: 1.35 },
-                                  ].map((opt) => (
-                                    <MenuItem
-                                      key={opt.label}
-                                      active={Math.abs(brightness - opt.value) < 0.05}
-                                      onClick={() => {
-                                        setBrightnessLevel(opt.value, { hint: true });
-                                        setMoreOpen(false);
-                                      }}
-                                    >
-                                      {opt.label}
-                                    </MenuItem>
-                                  ))}
+                                <MenuSection
+                                  title="Brightness"
+                                  dense={coarsePointer || compactChrome}
+                                >
+                                  {(coarsePointer || compactChrome) ? (
+                                    <div className="flex gap-1 px-2 pb-1.5 pt-0.5">
+                                      {[
+                                        { label: "Dim", value: 0.7 },
+                                        { label: "Normal", value: 1 },
+                                        { label: "Bright", value: 1.35 },
+                                      ].map((opt) => (
+                                        <button
+                                          key={opt.label}
+                                          type="button"
+                                          onClick={() => {
+                                            setBrightnessLevel(opt.value, {
+                                              hint: true,
+                                            });
+                                            setMoreOpen(false);
+                                          }}
+                                          className={cn(
+                                            "min-h-8 flex-1 rounded-md border text-[11px] font-medium transition-colors",
+                                            Math.abs(brightness - opt.value) < 0.05
+                                              ? "border-white/25 bg-white text-zinc-950"
+                                              : "border-white/10 text-white/55 hover:bg-white/[0.06] hover:text-white/85",
+                                          )}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    [
+                                      { label: "Dim", value: 0.7 },
+                                      { label: "Normal", value: 1 },
+                                      { label: "Bright", value: 1.35 },
+                                    ].map((opt) => (
+                                      <MenuItem
+                                        key={opt.label}
+                                        active={
+                                          Math.abs(brightness - opt.value) < 0.05
+                                        }
+                                        onClick={() => {
+                                          setBrightnessLevel(opt.value, {
+                                            hint: true,
+                                          });
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {opt.label}
+                                      </MenuItem>
+                                    ))
+                                  )}
                                 </MenuSection>
 
                                 {showAudioMenu ? (
-                                  <MenuSection title="Audio">
+                                  <MenuSection
+                                    title="Audio"
+                                    dense={coarsePointer || compactChrome}
+                                  >
                                     {hlsAudioOptions.map((track) => (
                                       <MenuItem
                                         key={track.index}
+                                        dense={coarsePointer || compactChrome}
                                         active={hlsAudioIndex === track.index}
                                         onClick={() => {
                                           selectHlsAudio(track.index);
@@ -5481,63 +5565,85 @@ export function AniKittyPlayer({
                                   </MenuSection>
                                 ) : null}
 
-                                <MenuSection title="Volume" className="sm:hidden">
-                                  <MenuItem
-                                    active={!effectiveMuted}
-                                    onClick={() => {
-                                      toggleMute();
-                                      setMoreOpen(false);
-                                    }}
-                                  >
-                                    {effectiveMuted ? "Unmute" : "Mute"}
-                                  </MenuItem>
-                                  <MenuItem
-                                    onClick={() => {
-                                      setMoreOpen(false);
-                                      setVolumeOpen(true);
-                                      bumpControls();
-                                    }}
-                                  >
-                                    Volume slider
-                                  </MenuItem>
-                                  {!casting ? (
+                                {compactChrome &&
+                                (onPrevEpisode || onNextEpisode) ? (
+                                  <MenuSection title="Episodes" dense>
+                                    {onPrevEpisode ? (
+                                      <MenuItem
+                                        dense
+                                        onClick={() => {
+                                          if (!prevEpisode) return;
+                                          goToPrevEpisode();
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {prevEpisode
+                                          ? `Previous · Ep ${prevEpisode.number}`
+                                          : "Previous unavailable"}
+                                      </MenuItem>
+                                    ) : null}
+                                    {onNextEpisode ? (
+                                      <MenuItem
+                                        dense
+                                        onClick={() => {
+                                          if (!nextEpisode) return;
+                                          goToNextEpisode();
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {nextEpisode
+                                          ? `Next · Ep ${nextEpisode.number}`
+                                          : "Next unavailable"}
+                                      </MenuItem>
+                                    ) : null}
+                                  </MenuSection>
+                                ) : null}
+
+                                {compactChrome ? (
+                                  <MenuSection title="Volume" dense>
                                     <MenuItem
-                                      active={volumeBoost > 1}
+                                      dense
+                                      active={!effectiveMuted}
+                                      onClick={() => {
+                                        toggleMute();
+                                        setMoreOpen(false);
+                                      }}
+                                    >
+                                      {effectiveMuted ? "Unmute" : "Mute"}
+                                    </MenuItem>
+                                    <MenuItem
+                                      dense
                                       onClick={() => {
                                         setMoreOpen(false);
                                         setVolumeOpen(true);
                                         bumpControls();
                                       }}
                                     >
-                                      Sound boost
-                                      {volumeBoost > 1
-                                        ? ` · ${formatVolumeBoost(volumeBoost)}`
-                                        : ""}
+                                      Adjust volume
                                     </MenuItem>
-                                  ) : null}
-                                </MenuSection>
+                                  </MenuSection>
+                                ) : null}
 
-                                {pipSupported && !pipBlocked ? (
-                                  <MenuSection title="Picture-in-picture">
+                                {compactChrome &&
+                                pipSupported &&
+                                !pipBlocked ? (
+                                  <MenuSection title="More" dense>
                                     <MenuItem
+                                      dense
                                       active={inPip}
                                       onClick={() => {
                                         void togglePip();
                                         setMoreOpen(false);
                                       }}
                                     >
-                                      {inPip
-                                        ? "Exit picture-in-picture"
-                                        : "Picture-in-picture"}
+                                      {inPip ? "Exit PiP" : "Picture-in-picture"}
                                     </MenuItem>
-                                  </MenuSection>
-                                ) : null}
-
-                                {airPlayAvailable || castAvailable ? (
-                                  <MenuSection title="Cast" className="sm:hidden">
                                     {airPlayAvailable ? (
                                       <MenuItem
-                                        active={airPlayConnected || airPlayPreparing}
+                                        dense
+                                        active={
+                                          airPlayConnected || airPlayPreparing
+                                        }
                                         onClick={() => {
                                           if (airPlayPreparing) return;
                                           showAirPlayPicker();
@@ -5554,6 +5660,7 @@ export function AniKittyPlayer({
                                     ) : null}
                                     {castAvailable ? (
                                       <MenuItem
+                                        dense
                                         active={casting || castConnecting}
                                         onClick={() => {
                                           void toggleCast();
@@ -5567,14 +5674,61 @@ export function AniKittyPlayer({
                                             : "Stop casting"
                                           : castConnecting
                                             ? "Connecting…"
-                                            : "Cast to device"}
+                                            : "Cast"}
+                                      </MenuItem>
+                                    ) : null}
+                                  </MenuSection>
+                                ) : compactChrome &&
+                                  (airPlayAvailable || castAvailable) ? (
+                                  <MenuSection title="Cast" dense>
+                                    {airPlayAvailable ? (
+                                      <MenuItem
+                                        dense
+                                        active={
+                                          airPlayConnected || airPlayPreparing
+                                        }
+                                        onClick={() => {
+                                          if (airPlayPreparing) return;
+                                          showAirPlayPicker();
+                                          bumpControls();
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {airPlayPreparing
+                                          ? "Preparing AirPlay…"
+                                          : airPlayConnected
+                                            ? "AirPlay connected"
+                                            : "AirPlay"}
+                                      </MenuItem>
+                                    ) : null}
+                                    {castAvailable ? (
+                                      <MenuItem
+                                        dense
+                                        active={casting || castConnecting}
+                                        onClick={() => {
+                                          void toggleCast();
+                                          bumpControls();
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {casting
+                                          ? castDeviceName
+                                            ? `Stop cast · ${castDeviceName}`
+                                            : "Stop casting"
+                                          : castConnecting
+                                            ? "Connecting…"
+                                            : "Cast"}
                                       </MenuItem>
                                     ) : null}
                                   </MenuSection>
                                 ) : null}
 
-                                <MenuSection title="Help">
+                                <MenuSection
+                                  title="Help"
+                                  dense={coarsePointer || compactChrome}
+                                >
                                   <MenuItem
+                                    dense={coarsePointer || compactChrome}
                                     onClick={() => {
                                       setMoreOpen(false);
                                       popoverOpenRef.current = true;
@@ -5582,7 +5736,7 @@ export function AniKittyPlayer({
                                       bumpControls();
                                     }}
                                   >
-                                    Keyboard shortcuts (?)
+                                    Keyboard shortcuts
                                   </MenuItem>
                                 </MenuSection>
                               </>
@@ -5594,7 +5748,7 @@ export function AniKittyPlayer({
                   ) : null}
                 </div>
 
-                {pipSupported && !pipBlocked ? (
+                {pipSupported && !pipBlocked && !compactChrome ? (
                   <IconButton
                     label={
                       inPip
