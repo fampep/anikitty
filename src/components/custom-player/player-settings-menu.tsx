@@ -2,8 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 import {
+  Accessibility,
   AudioLines,
   Captions,
+  ChevronLeft,
+  ChevronRight,
   ChevronsRight,
   Clapperboard,
   Gauge,
@@ -12,6 +15,7 @@ import {
   Monitor,
   Moon,
   MoveHorizontal,
+  Music2,
   ImageIcon,
   PanelTop,
   Shuffle,
@@ -23,15 +27,88 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import SeekStepSetting from "@/components/settings/seek-step-setting";
+import {
+  VOLUME_BOOST_MAX,
+  VOLUME_BOOST_MIN,
+  formatVolumeBoost,
+  sanitizeVolumeBoost,
+} from "@/components/custom-player/audio-boost";
 import { ANIME4K_MODES, isWebGpuSupported } from "@/lib/player/anime4k";
 import { MenuItem, MenuSection } from "@/components/custom-player/player-chrome";
 
-export type PlayerSettingsTabId =
+export type PlayerSettingsPanelId =
+  | "root"
+  | "boost"
   | "playback"
   | "captions"
-  | "quality"
   | "speed"
+  | "quality"
   | "display";
+
+function formatBoostOffset(boost: number): string {
+  const pct = Math.round((sanitizeVolumeBoost(boost) - 1) * 100);
+  if (pct === 0) return "0%";
+  return pct > 0 ? `+${pct}%` : `${pct}%`;
+}
+
+function NavRow({
+  icon,
+  label,
+  value,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-11 w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-white/[0.06] active:bg-white/[0.09]"
+    >
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-white/90" aria-hidden>
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-white/95">
+        {label}
+      </span>
+      {value ? (
+        <span className="max-w-[42%] shrink-0 truncate text-[12px] text-white/45">
+          {value}
+        </span>
+      ) : null}
+      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+    </button>
+  );
+}
+
+function SubHeader({
+  title,
+  onBack,
+  backLabel,
+}: {
+  title: string;
+  onBack: () => void;
+  backLabel: string;
+}) {
+  return (
+    <div className="sticky top-0 z-[1] flex items-center gap-1 border-b border-white/[0.08] bg-zinc-950/95 px-1 py-1 backdrop-blur-md">
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label={backLabel}
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white"
+      >
+        <ChevronLeft className="h-5 w-5" aria-hidden />
+      </button>
+      <p className="min-w-0 flex-1 truncate pr-2 text-[13px] font-semibold text-white">
+        {title}
+      </p>
+    </div>
+  );
+}
 
 function ToggleRow({
   icon,
@@ -39,71 +116,48 @@ function ToggleRow({
   description,
   value,
   onChange,
-  dense,
 }: {
   icon: ReactNode;
   label: string;
   description?: string;
   value: boolean;
   onChange: (v: boolean) => void;
-  dense?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={value}
-      className={cn(
-        "flex w-full items-center justify-between text-left transition-colors hover:bg-white/[0.06]",
-        dense
-          ? "gap-2 px-2 py-1.5"
-          : "gap-2.5 px-2.5 py-2 sm:gap-3 sm:px-3 sm:py-2.5",
-      )}
+      className="flex min-h-11 w-full items-center justify-between gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
       onClick={() => onChange(!value)}
     >
-      <div className={cn("flex min-w-0 items-center", dense ? "gap-1.5" : "gap-2 sm:gap-2.5")}>
+      <div className="flex min-w-0 items-center gap-2.5">
         <span
           className={cn(
-            "flex shrink-0 items-center justify-center rounded-lg",
-            dense ? "h-6 w-6" : "h-7 w-7 sm:h-8 sm:w-8",
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
             value ? "bg-teal-500/20 text-teal-200" : "bg-white/[0.05] text-white/40",
           )}
         >
           {icon}
         </span>
         <div className="min-w-0">
-          <p
-            className={cn(
-              "font-medium leading-tight text-white/85",
-              dense ? "text-[11px]" : "text-[12px]",
-            )}
-          >
-            {label}
-          </p>
-          {description && !dense ? (
-            <p className="mt-0.5 hidden text-[10px] leading-snug text-white/35 sm:block">
-              {description}
-            </p>
+          <p className="text-[13px] font-medium leading-tight text-white/90">{label}</p>
+          {description ? (
+            <p className="mt-0.5 text-[10px] leading-snug text-white/35">{description}</p>
           ) : null}
         </div>
       </div>
       <div
         className={cn(
-          "relative shrink-0 rounded-full transition-colors duration-200",
-          dense ? "h-4 w-7" : "h-5 w-9",
+          "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200",
           value ? "bg-teal-500/70" : "bg-white/15",
         )}
         aria-hidden
       >
         <div
           className={cn(
-            "absolute rounded-full bg-white shadow-sm transition-transform duration-200",
-            dense ? "top-0.5 h-3 w-3" : "top-0.5 h-4 w-4",
-            value
-              ? dense
-                ? "translate-x-[14px]"
-                : "translate-x-[18px]"
-              : "translate-x-0.5",
+            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
+            value ? "translate-x-[18px]" : "translate-x-0.5",
           )}
         />
       </div>
@@ -119,8 +173,15 @@ type Props = {
   displayExtras?: ReactNode;
   onOpenCaptionsTracks?: () => void;
   captionsTrackLabel?: string;
+  /** Short value for root Captions row (e.g. English / Off). */
+  captionsValue?: string;
+  speedLabel?: string;
+  qualityLabel?: string;
+  volumeBoost?: number;
+  onVolumeBoostChange?: (level: number) => void;
+  volumeBoostDisabled?: boolean;
   className?: string;
-  /** Phone / narrow player: denser layout, fewer nested panels. */
+  /** Phone / narrow player denser sheet — same list UX, slightly tighter. */
   compact?: boolean;
 };
 
@@ -132,11 +193,17 @@ export default function PlayerSettingsMenu({
   displayExtras,
   onOpenCaptionsTracks,
   captionsTrackLabel,
+  captionsValue,
+  speedLabel = "Normal",
+  qualityLabel = "Auto",
+  volumeBoost = 1,
+  onVolumeBoostChange,
+  volumeBoostDisabled = false,
   className,
   compact = false,
 }: Props) {
   const t = useT();
-  const [tab, setTab] = useState<PlayerSettingsTabId>("playback");
+  const [panel, setPanel] = useState<PlayerSettingsPanelId>("root");
 
   const autoPlay = useSettingsStore((s) => s.autoPlay);
   const setAutoPlay = useSettingsStore((s) => s.setAutoPlay);
@@ -169,116 +236,158 @@ export default function PlayerSettingsMenu({
   const liteMode = useSettingsStore((s) => s.liteMode);
 
   const webGpuReady = isWebGpuSupported();
+  const backLabel = t("watch.playerSettings.back");
+  const goRoot = () => setPanel("root");
 
-  const tabs: { id: PlayerSettingsTabId; label: string; icon: typeof ListVideo; hidden?: boolean }[] = [
-    { id: "playback", label: t("watch.playerSettings.tabPlayback"), icon: ListVideo },
-    { id: "captions", label: t("watch.playerSettings.tabCaptions"), icon: Captions },
-    {
-      id: "quality",
-      label: t("watch.playerSettings.tabQuality"),
-      icon: Clapperboard,
-      hidden: !showQualityTab,
-    },
-    { id: "speed", label: t("watch.playerSettings.tabSpeed"), icon: Gauge },
-    { id: "display", label: t("watch.playerSettings.tabDisplay"), icon: Monitor },
-  ];
+  const captionsRootValue =
+    captionsValue ??
+    (preferDub
+      ? t("watch.playerSettings.captionsHidden")
+      : captionsTrackLabel?.replace(/^Tracks ·\s*/i, "") ??
+        t("watch.playerSettings.captionsOff"));
 
-  const visibleTabs = tabs.filter((entry) => !entry.hidden);
-  const activeTab =
-    visibleTabs.some((entry) => entry.id === tab) ? tab : (visibleTabs[0]?.id ?? "playback");
+  const panelTitle: Record<Exclude<PlayerSettingsPanelId, "root">, string> = {
+    boost: t("watch.playerSettings.volumeBoost"),
+    playback: t("watch.playerSettings.tabPlayback"),
+    captions: t("watch.playerSettings.tabCaptions"),
+    speed: t("watch.playerSettings.tabSpeed"),
+    quality: t("watch.playerSettings.tabQuality"),
+    display: t("watch.playerSettings.tabDisplay"),
+  };
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
-      <div
-        className={cn(
-          "sticky top-0 z-[1] flex border-b border-white/[0.08] bg-zinc-950/95 backdrop-blur-md",
-          compact ? "gap-0 px-0.5 py-0.5" : "gap-0.5 overflow-x-auto px-1 py-1 sm:px-1.5 sm:py-1.5",
-        )}
-      >
-        {visibleTabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            aria-label={label}
-            aria-pressed={activeTab === id}
-            title={label}
-            className={cn(
-              "inline-flex shrink-0 items-center justify-center font-semibold transition-colors",
-              compact
-                ? "h-9 flex-1 rounded-md"
-                : "gap-1 rounded-lg px-2 py-1.5 text-[10px]",
-              activeTab === id
-                ? "bg-white text-zinc-950"
-                : "text-white/45 hover:bg-white/[0.06] hover:text-white/80",
-            )}
-          >
-            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            <span className={cn(compact ? "sr-only" : "hidden min-[380px]:inline")}>
-              {label}
-            </span>
-          </button>
-        ))}
-      </div>
+      {panel !== "root" ? (
+        <SubHeader
+          title={panelTitle[panel]}
+          onBack={goRoot}
+          backLabel={backLabel}
+        />
+      ) : null}
 
       <div
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain",
-          compact
-            ? "max-h-none"
-            : "max-h-[min(42vh,16rem)] sm:max-h-[min(60vh,26rem)] sm:flex-none",
+          !compact && "max-h-[min(52vh,22rem)] sm:max-h-[min(60vh,26rem)] sm:flex-none",
         )}
       >
-        {activeTab === "playback" && (
+        {panel === "root" ? (
+          <div className="divide-y divide-white/[0.06] py-0.5">
+            {!volumeBoostDisabled ? (
+              <NavRow
+                icon={<Music2 className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+                label={t("watch.playerSettings.volumeBoost")}
+                value={formatBoostOffset(volumeBoost)}
+                onClick={() => setPanel("boost")}
+              />
+            ) : null}
+            <NavRow
+              icon={<Accessibility className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+              label={t("watch.playerSettings.tabPlayback")}
+              onClick={() => setPanel("playback")}
+            />
+            <NavRow
+              icon={<Captions className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+              label={t("watch.playerSettings.tabCaptions")}
+              value={captionsRootValue}
+              onClick={() => setPanel("captions")}
+            />
+            <NavRow
+              icon={<Gauge className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+              label={t("watch.playerSettings.tabSpeed")}
+              value={speedLabel}
+              onClick={() => setPanel("speed")}
+            />
+            {showQualityTab ? (
+              <NavRow
+                icon={<Clapperboard className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+                label={t("watch.playerSettings.tabQuality")}
+                value={qualityLabel}
+                onClick={() => setPanel("quality")}
+              />
+            ) : null}
+            <NavRow
+              icon={<Monitor className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+              label={t("watch.playerSettings.tabDisplay")}
+              onClick={() => setPanel("display")}
+            />
+          </div>
+        ) : null}
+
+        {panel === "boost" ? (
+          <div className="space-y-3 px-3.5 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[12px] text-white/55">
+                {t("watch.playerSettings.volumeBoostHint")}
+              </p>
+              <span className="tabular-nums text-[13px] font-semibold text-white">
+                {formatVolumeBoost(volumeBoost)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={VOLUME_BOOST_MIN}
+              max={VOLUME_BOOST_MAX}
+              step={0.05}
+              value={volumeBoost}
+              aria-label={t("watch.playerSettings.volumeBoost")}
+              onChange={(e) =>
+                onVolumeBoostChange?.(sanitizeVolumeBoost(Number(e.target.value)))
+              }
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-white"
+            />
+            <div className="flex justify-between text-[10px] tabular-nums text-white/35">
+              <span>100%</span>
+              <span>300%</span>
+            </div>
+            <button
+              type="button"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 text-[12px] font-medium text-white/80 transition-colors hover:bg-white/[0.08]"
+              onClick={() => onVolumeBoostChange?.(1)}
+            >
+              {t("watch.playerSettings.volumeBoostReset")}
+            </button>
+          </div>
+        ) : null}
+
+        {panel === "playback" ? (
           <div className="divide-y divide-white/[0.06] py-0.5">
             <ToggleRow
-              dense={compact}
               icon={<ListVideo className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.autoNext")}
-              description={t("settings.autoPlayDesc")}
+              description={compact ? undefined : t("settings.autoPlayDesc")}
               value={autoPlay}
               onChange={setAutoPlay}
             />
             <ToggleRow
-              dense={compact}
               icon={<ChevronsRight className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.autoSkip")}
-              description={t("settings.autoSkipIntroDesc")}
+              description={compact ? undefined : t("settings.autoSkipIntroDesc")}
               value={autoSkipIntro}
               onChange={setAutoSkipIntro}
             />
             <ToggleRow
-              dense={compact}
               icon={<AudioLines className="h-3.5 w-3.5" />}
               label={t("settings.preferDub")}
-              description={t("settings.preferDubDesc")}
+              description={compact ? undefined : t("settings.preferDubDesc")}
               value={preferDub}
               onChange={setPreferDub}
             />
-            {!compact ? (
-              <>
-                <ToggleRow
-                  icon={<Shuffle className="h-3.5 w-3.5" />}
-                  label={t("watch.playerSettings.autoFallback")}
-                  description={t("watch.playerSettings.autoFallbackDesc")}
-                  value={providerAutoFallback}
-                  onChange={setProviderAutoFallback}
-                />
-                <ToggleRow
-                  icon={<LayoutList className="h-3.5 w-3.5" />}
-                  label={t("watch.playerSettings.simplePicker")}
-                  description={t("watch.playerSettings.simplePickerDesc")}
-                  value={simpleProviderPicker}
-                  onChange={setSimpleProviderPicker}
-                />
-              </>
-            ) : null}
-            <div
-              className={cn(
-                "[&_div]:border-white/10 [&_div]:bg-white/[0.04] [&_p]:text-white/80 [&_span]:text-white/35",
-                compact ? "px-1.5 py-1" : "px-2 py-1.5 sm:py-2",
-              )}
-            >
+            <ToggleRow
+              icon={<Shuffle className="h-3.5 w-3.5" />}
+              label={t("watch.playerSettings.autoFallback")}
+              description={compact ? undefined : t("watch.playerSettings.autoFallbackDesc")}
+              value={providerAutoFallback}
+              onChange={setProviderAutoFallback}
+            />
+            <ToggleRow
+              icon={<LayoutList className="h-3.5 w-3.5" />}
+              label={t("watch.playerSettings.simplePicker")}
+              description={compact ? undefined : t("watch.playerSettings.simplePickerDesc")}
+              value={simpleProviderPicker}
+              onChange={setSimpleProviderPicker}
+            />
+            <div className="px-2 py-2 [&_div]:border-white/10 [&_div]:bg-white/[0.04] [&_p]:text-white/80 [&_span]:text-white/35">
               <SeekStepSetting
                 value={seekStepSeconds}
                 onChange={setSeekStepSeconds}
@@ -287,27 +396,29 @@ export default function PlayerSettingsMenu({
               />
             </div>
             <ToggleRow
-              dense={compact}
               icon={<MoveHorizontal className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.touchSeek")}
-              description={t("watch.playerSettings.touchSeekDesc")}
+              description={compact ? undefined : t("watch.playerSettings.touchSeekDesc")}
               value={playerTouchSeekEnabled}
               onChange={setPlayerTouchSeekEnabled}
             />
             {webGpuReady ? (
               <>
                 <ToggleRow
-                  dense={compact}
                   icon={<Sparkles className="h-3.5 w-3.5" />}
                   label={t("watch.anime4k")}
                   description={
-                    liteMode ? t("watch.anime4kLiteDisabled") : t("watch.anime4kHint")
+                    compact
+                      ? undefined
+                      : liteMode
+                        ? t("watch.anime4kLiteDisabled")
+                        : t("watch.anime4kHint")
                   }
                   value={anime4kEnabled && !liteMode}
                   onChange={setAnime4kEnabled}
                 />
-                {anime4kEnabled && !liteMode && !compact ? (
-                  <div className="flex flex-wrap gap-1.5 px-2.5 pb-2 sm:px-3 sm:pb-2.5">
+                {anime4kEnabled && !liteMode ? (
+                  <div className="flex flex-wrap gap-1.5 px-3.5 pb-3">
                     {ANIME4K_MODES.map((mode) => (
                       <button
                         key={mode}
@@ -327,33 +438,37 @@ export default function PlayerSettingsMenu({
                   </div>
                 ) : null}
               </>
-            ) : !compact ? (
-              <p className="px-3 py-2 text-[10px] text-white/35">{t("watch.anime4kUnsupported")}</p>
-            ) : null}
+            ) : (
+              <p className="px-3.5 py-2 text-[10px] text-white/35">
+                {t("watch.anime4kUnsupported")}
+              </p>
+            )}
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "captions" &&
-          (preferDub ? (
-            <div className="px-3 py-5 text-center text-[12px] text-white/40">
+        {panel === "captions" ? (
+          preferDub ? (
+            <div className="px-3.5 py-6 text-center text-[12px] text-white/40">
               {t("watch.playerSettings.subtitlesDubHint")}
             </div>
           ) : (
-            <div className={cn("space-y-0.5", compact ? "py-0.5" : "py-0.5 sm:space-y-1 sm:py-1")}>
+            <div className="space-y-0.5 py-0.5">
               <ToggleRow
-                dense={compact}
                 icon={<Captions className="h-3.5 w-3.5" />}
                 label={t("watch.playerSettings.autoEnableSubtitles")}
-                description={t("watch.playerSettings.autoEnableSubtitlesDesc")}
+                description={
+                  compact ? undefined : t("watch.playerSettings.autoEnableSubtitlesDesc")
+                }
                 value={autoEnableSubtitles}
                 onChange={setAutoEnableSubtitles}
               />
               {watchingHardSub ? (
                 <ToggleRow
-                  dense={compact}
                   icon={<Subtitles className="h-3.5 w-3.5" />}
                   label={t("watch.playerSettings.hardSubSoftSubs")}
-                  description={t("watch.playerSettings.hardSubSoftSubsDesc")}
+                  description={
+                    compact ? undefined : t("watch.playerSettings.hardSubSoftSubsDesc")
+                  }
                   value={hardSubSoftSubs}
                   onChange={setHardSubSoftSubs}
                 />
@@ -366,47 +481,46 @@ export default function PlayerSettingsMenu({
                 </MenuSection>
               ) : null}
               {!compact ? (
-                <div className="border-t border-white/[0.06] px-1.5 py-1.5 sm:px-2 sm:py-2 [&_*]:border-white/10">
+                <div className="border-t border-white/[0.06] px-2 py-2 [&_*]:border-white/10">
                   <SubtitleSettingsPanel compact />
                 </div>
               ) : null}
             </div>
-          ))}
+          )
+        ) : null}
 
-        {activeTab === "quality" && (qualityPanel ?? null)}
+        {panel === "speed" ? (speedPanel ?? null) : null}
 
-        {activeTab === "speed" && (speedPanel ?? null)}
+        {panel === "quality" ? (qualityPanel ?? null) : null}
 
-        {activeTab === "display" && (
+        {panel === "display" ? (
           <div className="divide-y divide-white/[0.06] py-0.5">
             <ToggleRow
-              dense={compact}
               icon={<Moon className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.lightsOff")}
-              description={t("watch.playerSettings.theatre")}
+              description={compact ? undefined : t("watch.playerSettings.theatre")}
               value={theatreMode}
               onChange={() => toggleTheatreMode()}
             />
-            {!compact ? (
-              <ToggleRow
-                icon={<ImageIcon className="h-3.5 w-3.5" />}
-                label={t("watch.playerSettings.posterTheme")}
-                description={t("watch.playerSettings.posterThemeDesc")}
-                value={watchPosterTheme}
-                onChange={setWatchPosterTheme}
-              />
-            ) : null}
             <ToggleRow
-              dense={compact}
+              icon={<ImageIcon className="h-3.5 w-3.5" />}
+              label={t("watch.playerSettings.posterTheme")}
+              description={compact ? undefined : t("watch.playerSettings.posterThemeDesc")}
+              value={watchPosterTheme}
+              onChange={setWatchPosterTheme}
+            />
+            <ToggleRow
               icon={<PanelTop className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.showProvidersShort")}
-              description={t("watch.playerSettings.providersToggleDesc")}
+              description={
+                compact ? undefined : t("watch.playerSettings.providersToggleDesc")
+              }
               value={showPlayerControls}
               onChange={setShowPlayerControls}
             />
             {displayExtras}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

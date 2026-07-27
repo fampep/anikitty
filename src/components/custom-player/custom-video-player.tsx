@@ -5360,8 +5360,8 @@ export function AniKittyPlayer({
                           aria-label="Settings"
                           className={cn(
                             coarsePointer || compactChrome
-                              ? "absolute inset-x-0 bottom-0 z-[80] flex max-h-[min(58dvh,22rem)] w-full flex-col overflow-hidden overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/97 py-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/92"
-                              : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,22rem)] overflow-hidden py-0",
+                              ? "absolute inset-x-2 bottom-2 z-[80] flex max-h-[min(62dvh,24rem)] w-auto flex-col overflow-hidden overscroll-contain rounded-2xl border border-white/[0.14] bg-zinc-950/92 py-0 pb-[max(0.35rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_-8px_36px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/88 sm:inset-x-4 sm:bottom-3"
+                              : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,20rem)] overflow-hidden py-0",
                             !(coarsePointer || compactChrome) &&
                               PLAYER_POPOVER_CLASS,
                             !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
@@ -5369,7 +5369,7 @@ export function AniKittyPlayer({
                         >
                           {coarsePointer || compactChrome ? (
                             <div
-                              className="flex justify-center pb-0.5 pt-1.5"
+                              className="flex justify-center pb-0.5 pt-2"
                               aria-hidden
                             >
                               <div className="h-1 w-8 rounded-full bg-white/25" />
@@ -5384,6 +5384,20 @@ export function AniKittyPlayer({
                             compact={coarsePointer || compactChrome}
                             watchingHardSub={watchingHardSub}
                             showQualityTab={showQualityPicker}
+                            speedLabel={speedButtonLabel}
+                            qualityLabel={qualityButtonLabel}
+                            volumeBoost={volumeBoost}
+                            volumeBoostDisabled={casting}
+                            onVolumeBoostChange={(level) =>
+                              setVolumeBoostLevel(level, { hint: true })
+                            }
+                            captionsValue={
+                              selectedCaptionId
+                                ? (captionOptions.find(
+                                    (c) => c.id === selectedCaptionId,
+                                  )?.label ?? "On")
+                                : "Off"
+                            }
                             captionsTrackLabel={
                               selectedCaptionId
                                 ? `Tracks · ${captionOptions.find((c) => c.id === selectedCaptionId)?.label ?? "On"}`
