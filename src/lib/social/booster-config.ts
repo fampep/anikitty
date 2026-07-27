@@ -11,5 +11,12 @@ export const BOOSTER_PROTECTED_ROLES = new Set([
   "admin",
   "moderator",
   "donator",
+  "timestamp_rookie",
   "timestamp_helper",
+  "timestamp_scout",
+  "timestamp_curator",
+  "timestamp_veteran",
+  "timestamp_master",
+  "timestamp_legend",
+  "timestamp_oracle",
 ]);

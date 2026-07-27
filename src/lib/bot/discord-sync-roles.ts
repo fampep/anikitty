@@ -8,11 +8,7 @@ import {
   BOOSTER_ROLE,
 } from "@/lib/social/booster-config";
 import { DONATOR_ROLE } from "@/lib/social/donation-config";
-import {
-  TIMESTAMP_HELPER_COLOR,
-  TIMESTAMP_HELPER_DISPLAY,
-  TIMESTAMP_HELPER_ROLE,
-} from "@/lib/skip/timestamp-helper-config";
+import { TIMESTAMP_TIERS } from "@/lib/skip/timestamp-helper-config";
 import { LEVEL_TIERS } from "@/lib/user/user-level";
 
 export type DiscordSyncRoleKind = "staff" | "level";
@@ -34,6 +30,15 @@ export type DiscordSyncRoleDef = {
 export function levelTierDiscordKey(tierName: string): string {
   return `level_${tierName.trim().toLowerCase().replace(/\s+/g, "_")}`;
 }
+
+const TIMESTAMP_DEFS: Omit<DiscordSyncRoleDef, "rank">[] = [...TIMESTAMP_TIERS]
+  .reverse()
+  .map((tier) => ({
+    key: tier.id,
+    name: tier.name,
+    color: tier.color,
+    kind: "staff" as const,
+  }));
 
 const STAFF_DEFS: Omit<DiscordSyncRoleDef, "rank">[] = [
   {
@@ -60,12 +65,7 @@ const STAFF_DEFS: Omit<DiscordSyncRoleDef, "rank">[] = [
     color: ROLE_BUILTIN_COLORS.booster ?? BOOSTER_COLOR,
     kind: "staff",
   },
-  {
-    key: TIMESTAMP_HELPER_ROLE,
-    name: TIMESTAMP_HELPER_DISPLAY,
-    color: TIMESTAMP_HELPER_COLOR,
-    kind: "staff",
-  },
+  ...TIMESTAMP_DEFS,
 ];
 
 /** Level tiers highest-first (Deity → Newcomer) so Discord order matches prestige. */

@@ -767,6 +767,25 @@ export async function migrateDb() {
       ON CONFLICT (name) DO NOTHING
     `.catch((e: unknown) => console.error("[migrate] timestamp_helper role seed failed:", e));
 
+    for (const tier of [
+      { name: "timestamp_rookie", color: "#7dd3fc" },
+      { name: "timestamp_helper", color: "#38bdf8" },
+      { name: "timestamp_scout", color: "#0ea5e9" },
+      { name: "timestamp_curator", color: "#6366f1" },
+      { name: "timestamp_veteran", color: "#8b5cf6" },
+      { name: "timestamp_master", color: "#d946ef" },
+      { name: "timestamp_legend", color: "#f59e0b" },
+      { name: "timestamp_oracle", color: "#f43f5e" },
+    ] as const) {
+      await client`
+        INSERT INTO roles (name, color, permissions)
+        VALUES (${tier.name}, ${tier.color}, '[]'::jsonb)
+        ON CONFLICT (name) DO UPDATE SET color = EXCLUDED.color
+      `.catch((e: unknown) =>
+        console.error("[migrate] timestamp tier seed failed:", tier.name, e),
+      );
+    }
+
     await client`
       INSERT INTO roles (name, color, permissions)
       VALUES ('booster', '#ff73fa', '[]'::jsonb)

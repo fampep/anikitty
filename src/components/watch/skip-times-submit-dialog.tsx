@@ -22,6 +22,8 @@ import {
   validateSkipInterval,
 } from "@/lib/skip/community-skip";
 import { TIMESTAMP_HELPER_DISPLAY } from "@/lib/skip/timestamp-helper-config";
+import { TIMESTAMP_TIER_ICONS } from "@/lib/skip/timestamp-tier-icons";
+import type { TimestampTier } from "@/lib/skip/timestamp-helper-config";
 import type { SkipTimes } from "@/hooks/use-aniskip";
 import { useT } from "@/providers/i18n-provider";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
@@ -45,6 +47,9 @@ type SkipStats = {
   helperProgress: number;
   helperThreshold: number;
   isTimestampHelper: boolean;
+  tier?: TimestampTier | null;
+  nextTier?: TimestampTier | null;
+  tierProgressPct?: number;
 };
 
 type RecentSubmission = {
@@ -174,7 +179,7 @@ export default function SkipTimesSubmitDialog({
   const [recent, setRecent] = useState<RecentSubmission[]>([]);
   const [liveTimes, setLiveTimes] = useState<SkipTimes | null>(null);
   const [leaderboard, setLeaderboard] = useState<
-    { username: string; approved: number; role: string }[]
+    { username: string; approved: number; role: string; tier?: { id: string; name: string; color: string; icon: string } | null }[]
   >([]);
 
   useEffect(() => {
@@ -339,26 +344,49 @@ export default function SkipTimesSubmitDialog({
                 <div className="rounded-xl border border-primary/20 bg-primary/8 p-3 space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-                      <Timer className="h-3.5 w-3.5" />
-                      {stats.isTimestampHelper
-                        ? t("skipSubmit.helperUnlocked", { role: TIMESTAMP_HELPER_DISPLAY })
-                        : t("skipSubmit.helperProgress", {
-                            current: stats.helperProgress,
-                            total: stats.helperThreshold,
-                            role: TIMESTAMP_HELPER_DISPLAY,
-                          })}
+                      {(() => {
+                        const TierIcon =
+                          (stats.tier?.icon && TIMESTAMP_TIER_ICONS[stats.tier.icon]) || Timer;
+                        return <TierIcon className="h-3.5 w-3.5" style={{ color: stats.tier?.color }} />;
+                      })()}
+                      {stats.tier
+                        ? t("skipSubmit.currentRank", { rank: stats.tier.name })
+                        : stats.nextTier
+                          ? t("skipSubmit.helperProgress", {
+                              current: stats.approved,
+                              total: stats.nextTier.minApproved,
+                              role: stats.nextTier.name,
+                            })
+                          : t("skipSubmit.helperProgress", {
+                              current: stats.helperProgress,
+                              total: stats.helperThreshold,
+                              role: TIMESTAMP_HELPER_DISPLAY,
+                            })}
                     </p>
                     <span className="text-[10px] font-mono text-zinc-300/70 tabular-nums">
                       {stats.approved} {t("skipSubmit.approvedShort")}
                     </span>
                   </div>
-                  {!stats.isTimestampHelper && (
-                    <div className="h-1.5 rounded-full bg-black/30 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-zinc-400 to-white transition-all"
-                        style={{ width: `${helperPct}%` }}
-                      />
-                    </div>
+                  {stats.nextTier && (
+                    <>
+                      <div className="h-1.5 rounded-full bg-black/30 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-sky-400 to-white transition-all"
+                          style={{ width: `${stats.tierProgressPct ?? helperPct}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] font-mono text-white/45">
+                        {t("skipSubmit.nextRank", {
+                          rank: stats.nextTier.name,
+                          remaining: Math.max(0, stats.nextTier.minApproved - stats.approved),
+                        })}
+                      </p>
+                    </>
+                  )}
+                  {!stats.nextTier && stats.tier && (
+                    <p className="text-[10px] font-mono text-amber-200/80">
+                      {t("skipSubmit.maxRank")}
+                    </p>
                   )}
                   <div className="flex flex-wrap gap-2 text-[10px] font-mono text-white/40">
                     <span>{stats.pending} {t("skipSubmit.pendingShort")}</span>
@@ -483,17 +511,27 @@ export default function SkipTimesSubmitDialog({
                     {t("skipSubmit.leaderboard")}
                   </p>
                   <div className="space-y-1">
-                    {leaderboard.map((c, i) => (
-                      <div key={c.username} className="flex items-center justify-between text-[11px] text-white/55">
-                        <span className="truncate">
-                          <span className="text-white/30 font-mono mr-1.5">#{i + 1}</span>
-                          <Link href={`/profile/${c.username}`} className="hover:text-sky-300 transition-colors">
+                    {leaderboard.map((c, i) => {
+                      const TierIcon =
+                        (c.tier?.icon && TIMESTAMP_TIER_ICONS[c.tier.icon]) || null;
+                      return (
+                      <div key={c.username} className="flex items-center justify-between text-[11px] text-white/55 gap-2">
+                        <span className="truncate min-w-0 flex items-center gap-1.5">
+                          <span className="text-white/30 font-mono shrink-0">#{i + 1}</span>
+                          {TierIcon && c.tier ? (
+                            <TierIcon className="w-3 h-3 shrink-0" style={{ color: c.tier.color }} />
+                          ) : null}
+                          <Link href={`/profile/${c.username}`} className="hover:text-sky-300 transition-colors truncate">
                             {c.username}
                           </Link>
+                          {c.tier?.name ? (
+                            <span className="text-[9px] text-white/35 truncate hidden sm:inline">{c.tier.name}</span>
+                          ) : null}
                         </span>
-                        <span className="font-mono tabular-nums text-sky-300/80">{c.approved}</span>
+                        <span className="font-mono tabular-nums text-sky-300/80 shrink-0">{c.approved}</span>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

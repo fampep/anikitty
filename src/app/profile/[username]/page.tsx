@@ -293,6 +293,8 @@ function ProfilePage() {
     approved: number;
     pending: number;
     isTimestampHelper: boolean;
+    tierId?: string | null;
+    tierName?: string | null;
   } | null>(null);
   const countsRefreshSkip = useRef(watchlistVersion);
   const ownLevelData = useUserLevel();
@@ -315,7 +317,14 @@ function ProfilePage() {
     accountBadges?: AccountBadges | null;
     follow?: FollowSummary | null;
     blocked?: boolean;
-    skipContributions?: { approved: number; pending: number; isTimestampHelper: boolean } | null;
+    skipContributions?: {
+      approved: number;
+      pending: number;
+      isTimestampHelper: boolean;
+      tier?: { id: string; name: string } | null;
+      tierId?: string | null;
+      tierName?: string | null;
+    } | null;
   }) => {
     if (!data?.user) return;
     setProfile(data.user);
@@ -324,7 +333,18 @@ function ProfilePage() {
     setAccountBadges(data.accountBadges ?? null);
     if (data.follow) setFollow(data.follow);
     setBlocked(Boolean(data.blocked));
-    setSkipContributions(data.skipContributions ?? null);
+    const skip = data.skipContributions;
+    setSkipContributions(
+      skip
+        ? {
+            approved: skip.approved,
+            pending: skip.pending,
+            isTimestampHelper: skip.isTimestampHelper,
+            tierId: skip.tier?.id ?? skip.tierId ?? null,
+            tierName: skip.tier?.name ?? skip.tierName ?? null,
+          }
+        : null,
+    );
   };
 
   const toggleBlock = useCallback(async () => {
@@ -810,11 +830,13 @@ function ProfilePage() {
                   )}
                 </div>
 
-                {(accountBadges || displayLevel) && (
+                {(accountBadges || displayLevel || skipContributions) && (
                   <ProfileBadgesRow
                     accountBadges={accountBadges}
                     level={displayLevel?.level}
                     currentTierName={displayLevel?.tier.name ?? displayLevel?.levelRole}
+                    timestampApproved={skipContributions?.approved}
+                    timestampTierId={skipContributions?.tierId}
                   />
                 )}
 
@@ -1059,7 +1081,7 @@ function ProfilePage() {
                 {skipContributions.isTimestampHelper && (
                   <p className="mt-2 text-[11px] text-sky-300/90 flex items-center gap-1.5">
                     <Timer className="w-3.5 h-3.5" />
-                    {t("profile.timestampHelper")}
+                    {skipContributions.tierName || t("profile.timestampHelper")}
                   </p>
                 )}
               </div>

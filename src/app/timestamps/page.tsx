@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import SkipDatabaseBrowser from "@/components/timestamps/skip-database-browser";
 
 export const metadata: Metadata = {
-  title: "Skip Timestamps | AniKitty",
+  title: "Timestamps | AniKitty",
   description:
-    "Browse community intro and end-credit skip timestamps on AniKitty — live approved times and submissions awaiting review.",
+    "Browse community opening and ending skip timestamps on AniKitty — live times used by the player after review.",
 };
 
 export default function TimestampsPage() {

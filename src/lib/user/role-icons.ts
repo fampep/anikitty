@@ -1,5 +1,5 @@
 import type { ElementType } from "react";
-import { Crown, Heart, Rocket, Shield, Timer } from "lucide-react";
+import { Crown, Heart, Rocket, Shield } from "lucide-react";
 import {
   BOOSTER_COLOR,
   BOOSTER_DESCRIPTION,
@@ -7,17 +7,19 @@ import {
   BOOSTER_ROLE,
 } from "@/lib/social/booster-config";
 import {
-  TIMESTAMP_HELPER_COLOR,
-  TIMESTAMP_HELPER_DISPLAY,
-  TIMESTAMP_HELPER_ROLE,
+  TIMESTAMP_TIERS,
+  isTimestampRole,
 } from "@/lib/skip/timestamp-helper-config";
+import { TIMESTAMP_TIER_ICONS } from "@/lib/skip/timestamp-tier-icons";
 
 export const ROLE_ICONS: Record<string, ElementType> = {
   admin: Shield,
   moderator: Crown,
   donator: Heart,
   [BOOSTER_ROLE]: Rocket,
-  [TIMESTAMP_HELPER_ROLE]: Timer,
+  ...Object.fromEntries(
+    TIMESTAMP_TIERS.map((tier) => [tier.id, TIMESTAMP_TIER_ICONS[tier.icon] ?? Shield]),
+  ),
 };
 
 export const ROLE_DISPLAY_NAMES: Record<string, string> = {
@@ -25,7 +27,7 @@ export const ROLE_DISPLAY_NAMES: Record<string, string> = {
   moderator: "Moderator",
   donator: "Donator",
   [BOOSTER_ROLE]: BOOSTER_DISPLAY,
-  [TIMESTAMP_HELPER_ROLE]: TIMESTAMP_HELPER_DISPLAY,
+  ...Object.fromEntries(TIMESTAMP_TIERS.map((tier) => [tier.id, tier.name])),
 };
 
 export const ROLE_BUILTIN_COLORS: Record<string, string> = {
@@ -33,7 +35,7 @@ export const ROLE_BUILTIN_COLORS: Record<string, string> = {
   moderator: "#4d9fff",
   donator: "#f472b6",
   [BOOSTER_ROLE]: BOOSTER_COLOR,
-  [TIMESTAMP_HELPER_ROLE]: TIMESTAMP_HELPER_COLOR,
+  ...Object.fromEntries(TIMESTAMP_TIERS.map((tier) => [tier.id, tier.color])),
 };
 
 export const ROLE_DESCRIPTIONS: Record<string, string> = {
@@ -41,7 +43,7 @@ export const ROLE_DESCRIPTIONS: Record<string, string> = {
   moderator: "Community moderation and comment tools",
   donator: "Supports AniKitty through Ko-fi",
   [BOOSTER_ROLE]: BOOSTER_DESCRIPTION,
-  [TIMESTAMP_HELPER_ROLE]: "Helps curate community skip timestamps",
+  ...Object.fromEntries(TIMESTAMP_TIERS.map((tier) => [tier.id, tier.description])),
 };
 
 export function roleDescription(role: string): string | null {
@@ -55,3 +57,5 @@ export function roleDisplayName(role: string): string {
 export function roleIconFor(role: string): ElementType | null {
   return ROLE_ICONS[role] ?? null;
 }
+
+export { isTimestampRole };

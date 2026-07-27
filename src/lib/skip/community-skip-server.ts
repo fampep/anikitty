@@ -5,8 +5,12 @@ import { rowToSkipTimes, watchEpisodeUrl, intervalLabel, animeDetailUrl } from "
 import { alias } from "drizzle-orm/pg-core";
 import {
   TIMESTAMP_HELPER_APPROVAL_THRESHOLD,
-  TIMESTAMP_HELPER_DISPLAY,
-  TIMESTAMP_HELPER_ROLE,
+  getEarnedTimestampTiers,
+  getNextTimestampTier,
+  getTimestampTierForApproved,
+  getTimestampTierProgress,
+  isTimestampRole,
+  type TimestampTier,
 } from "@/lib/skip/timestamp-helper-config";
 import type { SkipTimes } from "@/hooks/use-aniskip";
 
@@ -20,6 +24,11 @@ export type SkipContributionStats = {
   helperProgress: number;
   helperThreshold: number;
   isTimestampHelper: boolean;
+  /** Current timestamp rank (null if below Rookie). */
+  tier: TimestampTier | null;
+  nextTier: TimestampTier | null;
+  tierProgressPct: number;
+  earnedTiers: TimestampTier[];
 };
 
 export async function getUserSkipContributionStats(
@@ -43,16 +52,23 @@ export async function getUserSkipContributionStats(
     .limit(1);
 
   const approved = row?.approved ?? 0;
-  const isTimestampHelper = user?.role === TIMESTAMP_HELPER_ROLE;
+  const tier = getTimestampTierForApproved(approved);
+  const nextTier = getNextTimestampTier(approved);
+  const progress = getTimestampTierProgress(approved);
+  const isTimestampHelper = isTimestampRole(user?.role) || tier != null;
 
   return {
     approved,
     pending: row?.pending ?? 0,
     rejected: row?.rejected ?? 0,
     total: row?.total ?? 0,
-    helperProgress: Math.min(approved, TIMESTAMP_HELPER_APPROVAL_THRESHOLD),
-    helperThreshold: TIMESTAMP_HELPER_APPROVAL_THRESHOLD,
+    helperProgress: Math.min(approved, nextTier?.minApproved ?? TIMESTAMP_HELPER_APPROVAL_THRESHOLD),
+    helperThreshold: nextTier?.minApproved ?? tier?.minApproved ?? TIMESTAMP_HELPER_APPROVAL_THRESHOLD,
     isTimestampHelper,
+    tier,
+    nextTier,
+    tierProgressPct: progress.progressPct,
+    earnedTiers: getEarnedTimestampTiers(approved),
   };
 }
 
@@ -78,6 +94,7 @@ export async function getSkipContributorLeaderboard(db: Db, limit = 10) {
     avatarUrl: r.avatarUrl,
     role: r.role,
     approved: r.approved,
+    tier: getTimestampTierForApproved(r.approved),
   }));
 }
 
@@ -113,7 +130,8 @@ export async function maybeGrantTimestampHelperRole(
   userId: string,
 ): Promise<boolean> {
   const stats = await getUserSkipContributionStats(db, userId);
-  if (stats.approved < TIMESTAMP_HELPER_APPROVAL_THRESHOLD) return false;
+  const tier = stats.tier;
+  if (!tier) return false;
 
   const [user] = await db
     .select({ role: users.role })
@@ -121,18 +139,21 @@ export async function maybeGrantTimestampHelperRole(
     .where(eq(users.id, userId))
     .limit(1);
 
-  if (!user || user.role !== "user") return false;
+  if (!user) return false;
+  // Never overwrite staff / donator / booster — badge still comes from approved count on profile.
+  if (user.role !== "user" && !isTimestampRole(user.role)) return false;
+  if (user.role === tier.id) return false;
 
-  await db.update(users).set({ role: TIMESTAMP_HELPER_ROLE }).where(eq(users.id, userId));
+  await db.update(users).set({ role: tier.id }).where(eq(users.id, userId));
 
   await db.insert(userNotifications).values({
     userId,
     type: "skip_role_granted",
-    title: `${TIMESTAMP_HELPER_DISPLAY} role unlocked`,
-    body: `You've had ${stats.approved} skip timestamps approved. Thanks for helping build AniKitty's timestamp database — you now have the ${TIMESTAMP_HELPER_DISPLAY} role!`,
-    linkUrl: "/settings",
+    title: `${tier.name} unlocked`,
+    body: `You've had ${stats.approved} skip timestamps approved. New rank: ${tier.name}. Keep submitting to climb the timestamp ranks!`,
+    linkUrl: "/timestamps",
     referenceType: "role",
-    referenceId: TIMESTAMP_HELPER_ROLE,
+    referenceId: tier.id,
   });
 
   return true;
