@@ -379,24 +379,30 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         imageUrl={info.poster || mapImages?.poster || bannerSrc}
         variant="page"
       />
-      {/* ── Banner ── */}
-      <div className="h-[40vh] sm:h-[44vh] md:h-[58vh] w-full relative z-[1]">
-        <Image
-          src={bannerSrc}
-          alt={info.name}
-          fill
-          className="object-cover object-top"
-          unoptimized
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-background/50 dark:via-black/40 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
-        <div className="absolute bottom-4 right-4 left-4 sm:left-auto z-20 flex flex-col items-stretch sm:items-end gap-2.5 sm:max-w-md md:bottom-10 md:right-10 pointer-events-none [&>*]:pointer-events-auto">
-          <WatchTrailer videoHref={info.promotionalVideos[0]?.source} inline />
-          {info.anilistId && activeTab !== "themes" ? (
-            <AnimeThemePlayer anilistId={info.anilistId} slug={slug} />
-          ) : null}
+      {/* Banner + theme tray share one relative wrapper so controls can sit above the hero. */}
+      <div className="relative">
+        <div className="h-[40vh] sm:h-[44vh] md:h-[58vh] w-full relative">
+          <Image
+            src={bannerSrc}
+            alt={info.name}
+            fill
+            className="object-cover object-top"
+            unoptimized
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-background/50 dark:via-black/40 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
+        </div>
+
+        {/* z-30 beats the hero Container (z-[1]) so pause/mute clicks actually hit the buttons. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 sm:bottom-6 md:bottom-10 z-30 flex justify-end px-4 md:px-10">
+          <div className="pointer-events-auto flex w-full sm:w-auto sm:max-w-sm flex-col items-stretch sm:items-end gap-2.5">
+            <WatchTrailer videoHref={info.promotionalVideos[0]?.source} inline />
+            {info.anilistId && activeTab !== "themes" ? (
+              <AnimeThemePlayer anilistId={info.anilistId} slug={slug} />
+            ) : null}
+          </div>
         </div>
       </div>
 

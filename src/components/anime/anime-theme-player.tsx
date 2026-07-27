@@ -28,9 +28,7 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
   const { data: themes, isLoading } = useGetAnimeThemes(anilistId);
   const videoRef = useRef<HTMLVideoElement>(null);
   const loadedUrlRef = useRef<string | null>(null);
-  /** User explicitly muted — never auto-unmute over this. */
   const userMutedRef = useRef(false);
-  /** User explicitly paused — don't fight with autoplay retries. */
   const userPausedRef = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -142,12 +140,11 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
     return (
       <div
         className={cn(
-          "relative z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-black/45 backdrop-blur-md px-3 py-2.5 shadow-lg animate-pulse",
+          "w-full max-w-sm rounded-xl border border-white/10 bg-black/70 backdrop-blur-md px-3 py-2.5 shadow-lg animate-pulse",
           className,
         )}
       >
-        <Music2 className="w-4 h-4 text-zinc-300/50 shrink-0" />
-        <div className="h-8 flex-1 rounded bg-white/10" />
+        <div className="h-10 rounded bg-white/10" />
       </div>
     );
   }
@@ -155,9 +152,9 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
 
   const label = formatThemeDisplayLabel(playback);
 
-  const togglePlay = (event: MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const togglePlay = (event?: MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
 
@@ -234,99 +231,95 @@ export default function AnimeThemePlayer({ anilistId, slug, className }: AnimeTh
     slug != null ? `${ROUTES.ANIME_DETAILS}/${slug}?tab=themes` : null;
 
   const controlBtn =
-    "relative z-20 p-2 rounded-lg hover:bg-white/10 text-white/80 transition-colors pointer-events-auto";
+    "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors";
 
   return (
     <>
       <video ref={videoRef} className="hidden" playsInline preload="auto" />
       <div
         className={cn(
-          "relative z-20 flex items-center gap-2 sm:gap-3 rounded-xl border border-white/10 bg-black/45 backdrop-blur-md px-3 py-2 sm:px-4 sm:py-2.5 shadow-lg pointer-events-auto",
-          playing && muted && "ring-1 ring-primary/30",
+          "w-full max-w-sm rounded-xl border border-white/15 bg-black/75 backdrop-blur-md shadow-xl overflow-hidden",
+          playing && muted && "ring-1 ring-primary/40",
           className,
         )}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
       >
-        <Music2
-          className={cn(
-            "w-4 h-4 text-zinc-300 shrink-0",
-            playing && !needsGesture && "animate-pulse",
-          )}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-white/45">
-            {t("anime.themeNowPlaying")}
-            {playback.versionLabel ? ` · ${playback.versionLabel}` : ""}
-          </p>
-          <p className="text-xs sm:text-sm font-semibold text-white/90 truncate">{label}</p>
-          {playing && muted ? (
-            <p className="text-[10px] text-white/40 truncate">{t("anime.themeTapToUnmute")}</p>
-          ) : themesHref && themeCount > 1 ? (
-            <Link
-              href={themesHref}
-              className="text-[10px] text-white/50 hover:text-white/80 truncate inline-flex items-center gap-1 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ListMusic className="w-3 h-3" />
-              {t("anime.themesBrowseAll", { n: themeCount })}
-            </Link>
-          ) : null}
-        </div>
-
-        {needsGesture ? (
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={handleStart}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-white/90 transition-colors shrink-0 pointer-events-auto"
-          >
-            <Play className="w-3.5 h-3.5" />
-            {t("anime.themePlay")}
-          </button>
-        ) : (
-          <div className="flex items-center gap-0.5 shrink-0 relative z-20 pointer-events-auto">
-            {themesHref ? (
+        <div className="flex items-start gap-2.5 px-3 pt-2.5 pb-2">
+          <Music2
+            className={cn(
+              "w-4 h-4 text-zinc-300 shrink-0 mt-0.5",
+              playing && !needsGesture && "animate-pulse",
+            )}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-white/45">
+              {t("anime.themeNowPlaying")}
+              {playback.versionLabel ? ` · ${playback.versionLabel}` : ""}
+            </p>
+            <p className="text-xs sm:text-sm font-semibold text-white/95 truncate">{label}</p>
+            {playing && muted ? (
+              <p className="text-[10px] text-white/40 truncate">{t("anime.themeTapToUnmute")}</p>
+            ) : themesHref && themeCount > 1 ? (
               <Link
                 href={themesHref}
-                className={controlBtn}
-                aria-label={t("anime.themesPageTitle")}
-                title={t("anime.themesPageTitle")}
-                onClick={(e) => e.stopPropagation()}
+                className="text-[10px] text-white/55 hover:text-white/85 truncate inline-flex items-center gap-1 transition-colors mt-0.5"
               >
-                <ListMusic className="w-4 h-4" />
+                <ListMusic className="w-3 h-3" />
+                {t("anime.themesBrowseAll", { n: themeCount })}
               </Link>
             ) : null}
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={togglePlay}
-              className={controlBtn}
-              aria-label={playing ? t("anime.themePause") : t("anime.themePlay")}
-            >
-              {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </button>
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={toggleMute}
-              className={controlBtn}
-              aria-label={muted ? t("anime.themeUnmute") : t("anime.themeMuted")}
-            >
-              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={turnOff}
-              className={controlBtn}
-              aria-label={t("anime.themeTurnOff")}
-              title={t("anime.themeTurnOff")}
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
-        )}
+        </div>
+
+        <div className="flex items-center gap-1.5 border-t border-white/10 bg-black/40 px-2 py-1.5">
+          {needsGesture ? (
+            <button
+              type="button"
+              onClick={handleStart}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 px-3 py-2 text-[11px] font-semibold text-white transition-colors"
+            >
+              <Play className="w-3.5 h-3.5" />
+              {t("anime.themePlay")}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={(e) => togglePlay(e)}
+                className={cn(controlBtn, "flex-1 max-w-[3rem]")}
+                aria-label={playing ? t("anime.themePause") : t("anime.themePlay")}
+              >
+                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={toggleMute}
+                className={controlBtn}
+                aria-label={muted ? t("anime.themeUnmute") : t("anime.themeMuted")}
+              >
+                {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              {themesHref ? (
+                <Link
+                  href={themesHref}
+                  className={controlBtn}
+                  aria-label={t("anime.themesPageTitle")}
+                  title={t("anime.themesPageTitle")}
+                >
+                  <ListMusic className="w-4 h-4" />
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={turnOff}
+                className={controlBtn}
+                aria-label={t("anime.themeTurnOff")}
+                title={t("anime.themeTurnOff")}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </>
   );
