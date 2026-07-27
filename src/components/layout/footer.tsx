@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
-import { SITE_LOGO } from "@/lib/seo/site-seo";
+import { SITE_BANNER_LOGO } from "@/lib/seo/site-seo";
 import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
 import { ROUTES } from "@/constants/routes";
 import SiteVersionLabel from "@/components/layout/site-version-label";
@@ -32,11 +32,11 @@ const Footer = () => {
 
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">
             <Image
-              src={SITE_LOGO}
+              src={SITE_BANNER_LOGO}
               alt="AniKitty"
-              width={120}
-              height={44}
-              className="h-8 w-auto object-contain"
+              width={160}
+              height={56}
+              className="h-8 w-auto max-w-[11rem] object-contain"
               unoptimized
             />
             <p className="text-[11px] text-muted-foreground font-mono leading-relaxed max-w-[180px]">

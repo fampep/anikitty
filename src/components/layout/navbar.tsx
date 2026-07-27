@@ -17,7 +17,7 @@ import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 import Image from "next/image";
-import { SITE_LOGO } from "@/lib/seo/site-seo";
+import { SITE_BANNER_LOGO } from "@/lib/seo/site-seo";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 
 function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
@@ -182,11 +182,11 @@ const NavBar = () => {
         <div className="flex h-[var(--nav-height)] items-center gap-3">
           <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center">
             <Image
-              src={SITE_LOGO}
+              src={SITE_BANNER_LOGO}
               alt="AniKitty"
-              width={132}
-              height={48}
-              className="h-7 w-auto max-w-[6.5rem] object-contain opacity-95 transition-opacity group-hover:opacity-100 sm:h-8 sm:max-w-none"
+              width={160}
+              height={56}
+              className="h-7 w-auto max-w-[9rem] object-contain opacity-95 transition-opacity group-hover:opacity-100 sm:h-8 sm:max-w-[11rem]"
               priority
               unoptimized
             />

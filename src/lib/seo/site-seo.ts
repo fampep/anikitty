@@ -6,14 +6,16 @@ export const APP_DESCRIPTION = "Free anime streaming. Sub & dub. Ad-free.";
 export const APP_DEFAULT_TITLE = "AniKitty — Free Anime Streaming";
 
 /** Bump when brand assets change so browsers / PWA / OG refresh the icon. */
-export const SITE_ICON_VERSION = "20260721b";
+export const SITE_ICON_VERSION = "20260727a";
 
 function brandAsset(path: string): string {
   return `${path}?v=${SITE_ICON_VERSION}`;
 }
 
-/** Full wordmark / brand mark for navbar, cast, and UI chrome. */
+/** Cat-face brand mark for icons, cast, and compact chrome. */
 export const SITE_LOGO = brandAsset("/anikitty-logo.png");
+/** Wide wordmark / banner logo for header and footer. */
+export const SITE_BANNER_LOGO = brandAsset("/anikitty-banner-logo.png");
 export const SITE_LOGO_OG = brandAsset("/og-share.png");
 export const SITE_FAVICON = brandAsset("/favicon.png");
 export const SITE_APPLE_ICON = brandAsset("/apple-touch-icon.png");
