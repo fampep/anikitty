@@ -35,53 +35,128 @@ type Props = {
   preferSegment?: "intro" | "outro";
 };
 
-type Segment = "intro" | "outro";
-
 function livePlayerTime(): number {
   return usePlayerSeekStore.getState().getCurrentTime?.() ?? 0;
 }
 
-function MarkButton({
+function TimeField({
   label,
   value,
-  onMark,
-  filled,
-  markHint,
-  updateHint,
+  onChange,
+  onUseNow,
+  nowLabel,
 }: {
   label: string;
   value: string;
-  onMark: () => void;
-  filled: boolean;
-  markHint: string;
-  updateHint: string;
+  onChange: (v: string) => void;
+  onUseNow: () => void;
+  nowLabel: string;
+}) {
+  const filled = !!value.trim();
+  return (
+    <div className="flex flex-col gap-1 min-w-0">
+      <label className="text-[10px] font-mono uppercase tracking-wide text-white/35">
+        {label}
+      </label>
+      <div className="flex gap-1.5">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="1:30"
+          spellCheck={false}
+          autoComplete="off"
+          className={cn(
+            "flex-1 min-w-0 rounded-md px-2.5 py-2 text-sm font-mono tabular-nums",
+            "bg-white/[0.05] border text-white placeholder:text-white/25",
+            "focus:outline-none focus:ring-1 focus:ring-teal-400/25",
+            filled
+              ? "border-teal-400/35 focus:border-teal-400/50"
+              : "border-white/10 focus:border-teal-400/40",
+          )}
+        />
+        <button
+          type="button"
+          onClick={onUseNow}
+          title={nowLabel}
+          className="shrink-0 px-2.5 py-2 rounded-md border border-white/10 text-[11px] font-semibold text-white/55 hover:text-teal-100 hover:border-teal-400/35 hover:bg-teal-500/15 transition-colors"
+        >
+          {nowLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SegmentBlock({
+  title,
+  accent,
+  ready,
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+  onStartNow,
+  onEndNow,
+  startLabel,
+  endLabel,
+  nowLabel,
+}: {
+  title: string;
+  accent: "intro" | "outro";
+  ready: boolean;
+  start: string;
+  end: string;
+  onStartChange: (v: string) => void;
+  onEndChange: (v: string) => void;
+  onStartNow: () => void;
+  onEndNow: () => void;
+  startLabel: string;
+  endLabel: string;
+  nowLabel: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onMark}
+    <div
       className={cn(
-        "group flex flex-col items-start gap-1 rounded-lg border px-3 py-3 text-left transition-colors w-full",
-        filled
-          ? "border-teal-400/35 bg-teal-500/10 hover:bg-teal-500/15"
-          : "border-white/10 bg-white/[0.03] hover:border-teal-400/30 hover:bg-teal-500/[0.07]",
+        "rounded-lg border p-3 space-y-2.5",
+        accent === "intro"
+          ? "border-teal-400/20 bg-teal-500/[0.04]"
+          : "border-white/10 bg-white/[0.02]",
       )}
     >
-      <span className="text-[10px] font-mono uppercase tracking-wide text-white/40 group-hover:text-teal-200/70">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "text-lg font-mono tabular-nums tracking-tight",
-          filled ? "text-teal-100" : "text-white/30",
-        )}
-      >
-        {value || "—:—"}
-      </span>
-      <span className="text-[11px] font-semibold text-white/45 group-hover:text-teal-200/80">
-        {filled ? updateHint : markHint}
-      </span>
-    </button>
+      <div className="flex items-center justify-between gap-2">
+        <p
+          className={cn(
+            "text-[11px] font-semibold uppercase tracking-wide",
+            accent === "intro" ? "text-teal-300/80" : "text-white/45",
+          )}
+        >
+          {title}
+        </p>
+        {ready ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-mono text-teal-300/80">
+            <Check className="w-3 h-3" />
+          </span>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <TimeField
+          label={startLabel}
+          value={start}
+          onChange={onStartChange}
+          onUseNow={onStartNow}
+          nowLabel={nowLabel}
+        />
+        <TimeField
+          label={endLabel}
+          value={end}
+          onChange={onEndChange}
+          onUseNow={onEndNow}
+          nowLabel={nowLabel}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -96,7 +171,6 @@ export default function SkipTimesSubmitDialog({
 }: Props) {
   const t = useT();
   const { auth } = useAuthStore();
-  const [segment, setSegment] = useState<Segment>(preferSegment ?? "intro");
   const [introStart, setIntroStart] = useState("");
   const [introEnd, setIntroEnd] = useState("");
   const [outroStart, setOutroStart] = useState("");
@@ -104,11 +178,6 @@ export default function SkipTimesSubmitDialog({
   const [submitting, setSubmitting] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [clock, setClock] = useState("0:00");
-
-  useEffect(() => {
-    if (!open) return;
-    setSegment(preferSegment ?? "intro");
-  }, [open, preferSegment]);
 
   useEffect(() => {
     if (!open) return;
@@ -153,20 +222,12 @@ export default function SkipTimesSubmitDialog({
     };
   }, [open, auth, anilistId, episode]);
 
-  const mark = (which: "start" | "end") => {
-    const stamp = formatSkipSeconds(livePlayerTime());
-    if (segment === "intro") {
-      if (which === "start") setIntroStart(stamp);
-      else setIntroEnd(stamp);
-    } else if (which === "start") setOutroStart(stamp);
-    else setOutroEnd(stamp);
+  const useNow = (setter: (v: string) => void) => {
+    setter(formatSkipSeconds(livePlayerTime()));
   };
 
-  const startValue = segment === "intro" ? introStart : outroStart;
-  const endValue = segment === "intro" ? introEnd : outroEnd;
-
-  const introReady = !!(introStart && introEnd);
-  const outroReady = !!(outroStart && outroEnd);
+  const introReady = !!(introStart.trim() && introEnd.trim());
+  const outroReady = !!(outroStart.trim() && outroEnd.trim());
   const canSubmit = introReady || outroReady;
 
   const summary = useMemo(() => {
@@ -233,6 +294,42 @@ export default function SkipTimesSubmitDialog({
     }
   };
 
+  const showIntroFirst = preferSegment !== "outro";
+
+  const introBlock = (
+    <SegmentBlock
+      title={t("skipSubmit.intro")}
+      accent="intro"
+      ready={introReady}
+      start={introStart}
+      end={introEnd}
+      onStartChange={setIntroStart}
+      onEndChange={setIntroEnd}
+      onStartNow={() => useNow(setIntroStart)}
+      onEndNow={() => useNow(setIntroEnd)}
+      startLabel={t("skipSubmit.start")}
+      endLabel={t("skipSubmit.end")}
+      nowLabel={t("skipSubmit.usePlayer")}
+    />
+  );
+
+  const outroBlock = (
+    <SegmentBlock
+      title={t("skipSubmit.outro")}
+      accent="outro"
+      ready={outroReady}
+      start={outroStart}
+      end={outroEnd}
+      onStartChange={setOutroStart}
+      onEndChange={setOutroEnd}
+      onStartNow={() => useNow(setOutroStart)}
+      onEndNow={() => useNow(setOutroEnd)}
+      startLabel={t("skipSubmit.start")}
+      endLabel={t("skipSubmit.end")}
+      nowLabel={t("skipSubmit.usePlayer")}
+    />
+  );
+
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!submitting) onOpenChange(next); }}>
       <DialogContent className="border border-white/10 bg-[#0a0a0c] rounded-xl max-w-md w-[calc(100%-2rem)] p-0 overflow-hidden shadow-2xl shadow-black/50 [&>button:last-child]:hidden">
@@ -248,7 +345,7 @@ export default function SkipTimesSubmitDialog({
             </span>
           </div>
           <DialogDescription className="text-white/45 text-sm leading-relaxed">
-            {t("skipSubmit.descriptionMark", { episode })}{" "}
+            {t("skipSubmit.descriptionType", { episode })}{" "}
             <Link
               href={ROUTES.TIMESTAMPS}
               className="text-teal-300/85 hover:text-teal-200 underline-offset-2 hover:underline"
@@ -258,7 +355,7 @@ export default function SkipTimesSubmitDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-5 py-4 space-y-4">
+        <div className="px-5 py-4 space-y-3">
           {!auth ? (
             <div className="rounded-lg border border-white/10 bg-white/[0.02] p-5 text-center space-y-3">
               <p className="text-sm text-white/50">{t("skipSubmit.signIn")}</p>
@@ -282,53 +379,17 @@ export default function SkipTimesSubmitDialog({
                 </p>
               )}
 
-              <div className="inline-flex w-full rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setSegment("intro")}
-                  className={cn(
-                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
-                    segment === "intro"
-                      ? "bg-teal-500/20 text-teal-100"
-                      : "text-white/40 hover:text-white/70",
-                  )}
-                >
-                  {t("skipSubmit.intro")}
-                  {introReady ? <Check className="w-3 h-3 text-teal-300" /> : null}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSegment("outro")}
-                  className={cn(
-                    "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
-                    segment === "outro"
-                      ? "bg-white/10 text-white"
-                      : "text-white/40 hover:text-white/70",
-                  )}
-                >
-                  {t("skipSubmit.outro")}
-                  {outroReady ? <Check className="w-3 h-3 text-white/70" /> : null}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <MarkButton
-                  label={t("skipSubmit.start")}
-                  value={startValue}
-                  filled={!!startValue}
-                  onMark={() => mark("start")}
-                  markHint={t("skipSubmit.markHint")}
-                  updateHint={t("skipSubmit.updateHint")}
-                />
-                <MarkButton
-                  label={t("skipSubmit.end")}
-                  value={endValue}
-                  filled={!!endValue}
-                  onMark={() => mark("end")}
-                  markHint={t("skipSubmit.markHint")}
-                  updateHint={t("skipSubmit.updateHint")}
-                />
-              </div>
+              {showIntroFirst ? (
+                <>
+                  {introBlock}
+                  {outroBlock}
+                </>
+              ) : (
+                <>
+                  {outroBlock}
+                  {introBlock}
+                </>
+              )}
 
               {summary ? (
                 <p className="text-[11px] font-mono text-white/40 tabular-nums">
@@ -336,7 +397,7 @@ export default function SkipTimesSubmitDialog({
                 </p>
               ) : (
                 <p className="text-[11px] text-white/30 leading-relaxed">
-                  {t("skipSubmit.hintMark")}
+                  {t("skipSubmit.hintType")}
                 </p>
               )}
             </>
