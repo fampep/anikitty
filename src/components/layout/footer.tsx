@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity, Mic, Scale, History, Timer } from "lucide-react";
@@ -9,10 +8,10 @@ import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
-import { SITE_BANNER_LOGO } from "@/lib/seo/site-seo";
 import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
 import { ROUTES } from "@/constants/routes";
 import SiteVersionLabel from "@/components/layout/site-version-label";
+import SiteBrandWordmark from "@/components/layout/site-brand-wordmark";
 import TelegramIcon from "@/icons/telegram";
 
 const Footer = () => {
@@ -31,14 +30,9 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-10 border-b border-border dark:border-white/[0.06]">
 
           <div className="col-span-2 md:col-span-1 flex flex-col gap-3">
-            <Image
-              src={SITE_BANNER_LOGO}
-              alt="AniKitty"
-              width={440}
-              height={144}
-              className="h-20 w-auto max-w-[30rem] object-contain"
-              unoptimized
-            />
+            <Link href={ROUTES.HOME} className="inline-flex w-fit transition-opacity hover:opacity-90">
+              <SiteBrandWordmark size="footer" />
+            </Link>
             <p className="text-[11px] text-muted-foreground font-mono leading-relaxed max-w-[180px]">
               {t("footer.tagline")}
             </p>

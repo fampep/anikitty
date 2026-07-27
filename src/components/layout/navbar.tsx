@@ -16,9 +16,8 @@ import { hasLikelyAuthSession } from "@/lib/auth/auth-fetch";
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
-import Image from "next/image";
-import { SITE_BANNER_LOGO } from "@/lib/seo/site-seo";
 import { useKittycoins } from "@/hooks/use-kittycoins";
+import SiteBrandWordmark from "@/components/layout/site-brand-wordmark";
 
 function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
   const t = useT();
@@ -180,16 +179,11 @@ const NavBar = () => {
         )}
 
         <div className="flex h-[var(--nav-height)] items-center gap-3">
-          <Link href={ROUTES.HOME} className="group relative z-20 flex shrink-0 items-center">
-            <Image
-              src={SITE_BANNER_LOGO}
-              alt="AniKitty"
-              width={440}
-              height={144}
-              className="h-[4.5rem] w-auto max-w-[25rem] object-contain opacity-95 transition-opacity group-hover:opacity-100 sm:h-20 sm:max-w-[30rem]"
-              priority
-              unoptimized
-            />
+          <Link
+            href={ROUTES.HOME}
+            className="group relative z-20 flex shrink-0 items-center py-0.5 transition-opacity hover:opacity-90"
+          >
+            <SiteBrandWordmark size="nav" />
           </Link>
 
           <div className="hidden min-w-0 flex-1 justify-center lg:flex">

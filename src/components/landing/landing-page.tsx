@@ -9,7 +9,7 @@ import { nightTokyo } from "@/utils/fonts";
 import { useAuthStore } from "@/store/auth-store";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useT } from "@/providers/i18n-provider";
-import { SITE_BANNER_LOGO } from "@/lib/seo/site-seo";
+import SiteBrandWordmark from "@/components/layout/site-brand-wordmark";
 import { ROUTES } from "@/constants/routes";
 import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
 import TelegramIcon from "@/icons/telegram";
@@ -50,16 +50,8 @@ export default function LandingPage() {
       </div>
 
       <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5">
-        <Link href="/" className="flex items-center group">
-          <Image
-            src={SITE_BANNER_LOGO}
-            alt="AniKitty"
-            width={480}
-            height={160}
-            className="h-[5.5rem] sm:h-24 w-auto max-w-[32rem] object-contain transition-opacity group-hover:opacity-95"
-            priority
-            unoptimized
-          />
+        <Link href="/" className="flex items-center group transition-opacity hover:opacity-90">
+          <SiteBrandWordmark size="landing" />
         </Link>
         <div className="flex items-center gap-2">
           <Link

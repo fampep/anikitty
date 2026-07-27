@@ -14,8 +14,6 @@ function brandAsset(path: string): string {
 
 /** Cat-face brand mark for icons, cast, and compact chrome. */
 export const SITE_LOGO = brandAsset("/anikitty-logo.png");
-/** Wide wordmark / banner logo for header and footer. */
-export const SITE_BANNER_LOGO = brandAsset("/anikitty-banner-logo.png");
 export const SITE_LOGO_OG = brandAsset("/og-share.png");
 export const SITE_FAVICON = brandAsset("/favicon.png");
 export const SITE_APPLE_ICON = brandAsset("/apple-touch-icon.png");
