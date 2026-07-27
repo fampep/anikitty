@@ -434,7 +434,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 73,
+      version: 74,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -989,6 +989,23 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.providerOrder = sanitizeProviderOrder([
             ...without.slice(0, insertAt),
             "AnimeLok",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
+        }
+        if (version < 74) {
+          // Kilo (Anikoto) sits right after Juliet (AniWatch).
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "Anikoto");
+          const julietAt = without.indexOf("AniWatch");
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt = julietAt >= 0 ? julietAt + 1 : hqAt >= 0 ? hqAt + 1 : 1;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "Anikoto",
             ...without.slice(insertAt),
           ]);
           next.defaultProvider = sanitizeDefaultProvider(
