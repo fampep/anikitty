@@ -1340,6 +1340,7 @@
     "emptyPending": "The review queue is empty.",
     "loadFailed": "Could not load timestamps.",
     "retry": "Try again",
+    "showMore": "Show more ({remaining})",
     "footerHint": "Submit times from any episode using Submit skip times on the watch player."
   },
   "messages": {

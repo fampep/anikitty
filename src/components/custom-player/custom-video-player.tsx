@@ -283,7 +283,7 @@ export type AniKittyPlayerProps = {
   kittyNodeId?: KittyApiNodeId;
   /** Resume / deep-link start position (seconds). */
   startTime?: number;
-  /** Intro/outro ranges from AniSkip / community / provider (seconds). */
+  /** Intro/outro ranges from AniKitty community skip DB (seconds). */
   skipTimes?: SkipTimes;
   /**
    * Storyboard WebVTT URL for seek hover previews (ReAnime/FlixCloud

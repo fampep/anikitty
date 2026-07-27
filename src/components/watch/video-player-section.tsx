@@ -40,7 +40,7 @@ import { isHardSubPlayback } from "@/lib/player/hard-sub-playback";
 import { ProviderQuickPick } from "@/components/player/provider-select";
 import { isSubtitleTrack } from "@/lib/subtitles/subtitle-track-utils";
 
-import { useSkipTimes, useCommunitySkipTimes, mergeSkipTimesPriority } from "@/hooks/use-aniskip";
+import { useCommunitySkipTimes } from "@/hooks/use-aniskip";
 import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import {
@@ -872,7 +872,7 @@ const VideoPlayerSection = () => {
     refreshWatchlistIfLastEpisode();
   }, [saveProgress, refreshWatchlistIfLastEpisode]);
 
-  // Video ended → also mark as fully watched (covers episodes with no AniSkip data)
+  // Video ended → also mark as fully watched (covers episodes with no skip times)
   const handleEnded = useCallback(() => {
     const dur = liveDurationRef.current;
     if (dur > 0) saveProgress(dur, dur);
@@ -1208,24 +1208,8 @@ const VideoPlayerSection = () => {
 
   const episodeNumberParsed = parseInt(episodeNo) || undefined;
   const { data: communitySkipTimes } = useCommunitySkipTimes(anilistId, episodeNumberParsed);
-
-  const { data: externalSkipTimes } = useSkipTimes(
-    streamData?.tracks,
-    streamData?.file,
-    streamData?.headers?.Referer ?? streamData?.headers?.referer ?? "",
-    malId,
-    anilistId,
-    episodeNumberParsed,
-    communitySkipTimes,
-  );
-
-  const skipTimes = useMemo(() => {
-    return mergeSkipTimesPriority(
-      communitySkipTimes,
-      streamData?.skipTimes,
-      externalSkipTimes,
-    );
-  }, [streamData?.skipTimes, communitySkipTimes, externalSkipTimes]);
+  // Player skips use AniKitty community DB only (no AniSkip / provider / VTT fallbacks).
+  const skipTimes = communitySkipTimes ?? {};
 
   useEffect(() => {
     if (!streamReady || !streamData?.file || !episodeId) return;
