@@ -434,7 +434,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 76,
+      version: 77,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1022,6 +1022,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 76) {
           // HQ default; Kilo sits immediately after.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
+        }
+        if (version < 77) {
+          // Force site order for everyone; restore Heaven in hardsubs after GG.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
         }

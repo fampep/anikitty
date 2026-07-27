@@ -16,6 +16,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Senshi",
   "Miruro",
   "AnimeGG",
+  "AnimeHeaven",
   "AniKuro",
   "KickAssAnime",
   // Normalize-only aliases / legacy (retired from picker)
@@ -23,7 +24,6 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniWaves",
   "MKissa",
   "Animex",
-  "AnimeHeaven",
   "AnimeLok",
   "Yenime",
   "AniSnatch",
@@ -57,6 +57,7 @@ export const KITTY_PROVIDERS = [
   "Senshi",
   "Miruro",
   "AnimeGG",
+  "AnimeHeaven",
   "AniKuro",
   "KickAssAnime",
 ] as const;
@@ -163,6 +164,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · hard subs",
   },
   {
+    id: "AnimeHeaven",
+    label: "Heaven",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: false,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · hard subs",
+  },
+  {
     id: "AniKuro",
     label: "Alpha",
     group: "featured",
@@ -195,6 +208,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Senshi",
   "Miruro",
   "AnimeGG",
+  "AnimeHeaven",
   "AniKuro",
   "KickAssAnime",
 ];
@@ -241,7 +255,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "AllAnime" || value === "Bravo" || value === "MKissa") return "AnimeGG";
   if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return "AniKuro";
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
-  if (value === "Heaven" || value === "AnimeHeaven") return "AnimeGG";
+  if (value === "Heaven") return "AnimeHeaven";
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
   if (value === "Juliet" || value === "AniWatch") return DEFAULT_KITTY_PROVIDER;
   if (value === "HQ") return "AniHQ";

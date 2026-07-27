@@ -53,7 +53,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "AniWaves" ||
         item === "MKissa" ||
         item === "Animex" ||
-        item === "AnimeHeaven" ||
         item === "AnimeLok" ||
         item === "Yenime" ||
         item === "AniSnatch" ||
