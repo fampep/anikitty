@@ -142,6 +142,20 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-rose-400",
     glow: "from-rose-500/20",
   },
+  MeguAnime: {
+    chip: "border-amber-400/30 bg-amber-500/10 text-amber-100/90",
+    pillActive: "border-amber-400/45 bg-amber-500/20 text-amber-50 shadow-[0_0_12px_-4px_rgba(251,191,36,0.35)]",
+    pillIdle: "border-transparent text-amber-300/45 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    dot: "bg-amber-400",
+    glow: "from-amber-500/20",
+  },
+  Anitaku: {
+    chip: "border-lime-400/30 bg-lime-500/10 text-lime-100/90",
+    pillActive: "border-lime-400/45 bg-lime-500/20 text-lime-50 shadow-[0_0_12px_-4px_rgba(163,230,53,0.35)]",
+    pillIdle: "border-transparent text-lime-300/45 hover:text-lime-200/80 hover:bg-lime-500/[0.06]",
+    dot: "bg-lime-400",
+    glow: "from-lime-500/20",
+  },
   AnimeLok: {
     chip: "border-orange-400/30 bg-orange-500/10 text-orange-100/90",
     pillActive: "border-orange-400/45 bg-orange-500/20 text-orange-50 shadow-[0_0_12px_-4px_rgba(251,146,60,0.35)]",

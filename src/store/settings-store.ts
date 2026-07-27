@@ -427,7 +427,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 78,
+      version: 80,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1021,6 +1021,36 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 78) {
           delete (next as Record<string, unknown>).liteMode;
+        }
+        if (version < 79) {
+          // MeguAnime (Megu) sits right after Heaven.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "MeguAnime");
+          const heavenAt = without.indexOf("AnimeHeaven");
+          const ggAt = without.indexOf("AnimeGG");
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt =
+            heavenAt >= 0
+              ? heavenAt + 1
+              : ggAt >= 0
+                ? ggAt + 1
+                : hqAt >= 0
+                  ? hqAt + 1
+                  : 1;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "MeguAnime",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
+        }
+        if (version < 80) {
+          // Site order: HQ → Kilo → Taku → Megu → Uniform → …; hardsubs = HQ+Heaven only.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniHQ", next.providerOrder);
         }
         return next as ISettingsStore;
       },
