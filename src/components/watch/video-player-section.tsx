@@ -58,6 +58,7 @@ import {
 import WatchPlayerActions from "@/components/watch/watch-player-actions";
 import WatchPlayerToolbar from "@/components/watch/watch-player-toolbar";
 import SkipTimesSubmitDialog from "@/components/watch/skip-times-submit-dialog";
+import SkipTimesHelpBanner from "@/components/watch/skip-times-help-banner";
 import WatchResumePrompt from "@/components/watch/watch-resume-prompt";
 import WatchKeyboardHelp from "@/components/watch/watch-keyboard-help";
 import WatchSimpleProviderRow from "@/components/watch/watch-simple-provider-row";
@@ -394,6 +395,7 @@ const VideoPlayerSection = () => {
   }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [skipSubmitOpen, setSkipSubmitOpen] = useState(false);
+  const [skipPreferSegment, setSkipPreferSegment] = useState<"intro" | "outro">("intro");
   const triedProvidersRef = useRef(new Set<KittyProvider>());
   const triedKittyNodesRef = useRef(new Set<KittyApiNodeId>());
   const fallbackBusyRef = useRef(false);
@@ -1812,6 +1814,17 @@ const VideoPlayerSection = () => {
 
   return (
     <div className="flex flex-col gap-3 sm:gap-3.5">
+    {/* Stable hooks for PreMiD / Discord Rich Presence scrapers */}
+    <div
+      id="anikitty-presence"
+      hidden
+      aria-hidden
+      data-anikitty-title={animeName ?? ""}
+      data-anikitty-episode={currentEpisodeInfo?.number ?? episodeNo ?? ""}
+      data-anikitty-episode-title={currentEpisodeInfo?.title ?? ""}
+      data-anikitty-season={currentEpisodeInfo?.seasonNumber ?? ""}
+      data-anikitty-poster={currentEpisodeInfo?.image || animePoster || ""}
+    />
     <WatchKeyboardHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} seekStepSeconds={seekStepSeconds} />
     {anilistId && episodeNumberParsed != null && (
       <SkipTimesSubmitDialog
@@ -1821,6 +1834,7 @@ const VideoPlayerSection = () => {
         malId={malId}
         animeTitle={animeTitle ?? `Anime #${anilistId}`}
         episode={episodeNumberParsed}
+        preferSegment={skipPreferSegment}
         />
     )}
 
@@ -1908,6 +1922,20 @@ const VideoPlayerSection = () => {
       )}
       </div>
     </div>
+    {anilistId && episodeNumberParsed != null && (
+      <SkipTimesHelpBanner
+        onSubmit={() => {
+          setSkipPreferSegment(
+            !displaySkipTimes?.intro ? "intro" : "outro",
+          );
+          setSkipSubmitOpen(true);
+        }}
+        anilistId={anilistId}
+        episode={episodeNumberParsed}
+        missingIntro={!displaySkipTimes?.intro}
+        missingOutro={!displaySkipTimes?.outro}
+      />
+    )}
     </div>
 
     {/* Title + actions row (AniDap: sits outside the black player frame) */}
