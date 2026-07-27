@@ -184,9 +184,9 @@ const NavBar = () => {
             <Image
               src={SITE_BANNER_LOGO}
               alt="AniKitty"
-              width={220}
-              height={72}
-              className="h-9 w-auto max-w-[12.5rem] object-contain opacity-95 transition-opacity group-hover:opacity-100 sm:h-10 sm:max-w-[15rem]"
+              width={440}
+              height={144}
+              className="h-[4.5rem] w-auto max-w-[25rem] object-contain opacity-95 transition-opacity group-hover:opacity-100 sm:h-20 sm:max-w-[30rem]"
               priority
               unoptimized
             />

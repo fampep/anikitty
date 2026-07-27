@@ -34,9 +34,9 @@ const Footer = () => {
             <Image
               src={SITE_BANNER_LOGO}
               alt="AniKitty"
-              width={220}
-              height={72}
-              className="h-10 w-auto max-w-[15rem] object-contain"
+              width={440}
+              height={144}
+              className="h-20 w-auto max-w-[30rem] object-contain"
               unoptimized
             />
             <p className="text-[11px] text-muted-foreground font-mono leading-relaxed max-w-[180px]">
