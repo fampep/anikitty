@@ -1,12 +1,20 @@
 "use client";
 
+import { useRef } from "react";
 import { PackagePlus } from "lucide-react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import HomeCompactPoster from "./home-compact-poster";
-import { HomeRailEmpty, HomeScrollRail, HomeSectionLink } from "./home-shared";
+import {
+  HomePosterSkeletonRail,
+  HomeRailArrows,
+  HomeRailEmpty,
+  HomeScrollRail,
+  HomeSectionLink,
+  useHomeRailScroll,
+} from "./home-shared";
 
 type Props = {
   animes: IAnime[];
@@ -15,16 +23,14 @@ type Props = {
 
 export default function HomeRecentlyAdded({ animes, loading }: Props) {
   const t = useT();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { canScrollLeft, canScrollRight, scrollByDir } = useHomeRailScroll(scrollRef);
 
   if (loading) {
     return (
       <Container className="flex flex-col gap-4 py-2">
         <div className="h-7 w-40 rounded-lg bg-muted/50 dark:bg-white/10 animate-pulse" />
-        <div className="flex gap-4 overflow-hidden">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="shrink-0 w-36 aspect-[1/1.4] rounded-xl bg-muted/40 dark:bg-white/8 animate-pulse" />
-          ))}
-        </div>
+        <HomePosterSkeletonRail />
       </Container>
     );
   }
@@ -33,12 +39,21 @@ export default function HomeRecentlyAdded({ animes, loading }: Props) {
     <Container id="recently-added" className="flex flex-col gap-3 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
       <HomeSectionLink
         href={`${ROUTES.SEARCH}?sort=recently-added`}
-        title={t("home.recentlyAdded")}
+        title={t("home.newReleases")}
+        subtitle={t("home.newReleasesDesc")}
         icon={<PackagePlus className="w-4 h-4" />}
         compact
+        actions={
+          <HomeRailArrows
+            canScrollLeft={canScrollLeft}
+            canScrollRight={canScrollRight}
+            onLeft={() => scrollByDir("left")}
+            onRight={() => scrollByDir("right")}
+          />
+        }
       />
       {animes.length ? (
-        <HomeScrollRail>
+        <HomeScrollRail scrollRef={scrollRef}>
           {animes.map((anime) => (
             <HomeCompactPoster key={anime.id} anime={anime} />
           ))}

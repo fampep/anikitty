@@ -14,20 +14,21 @@ import {
 
 const LABEL_KEYS: Record<HomeSectionId, string> = {
   continue: "continueWatching",
-  trending: "trendingNow",
-  "new-episodes": "newEpisodes",
+  "new-episodes": "latestEpisodes",
+  upcoming: "upcomingAnime",
+  "recently-added": "newReleases",
+  completed: "justCompleted",
+  rankings: "topRankings",
   seasonal: "thisSeason",
-  "recently-added": "recentlyAdded",
+  discovery: "discoverMore",
   recommended: "recommendedForYou",
   "because-you-watched": "becauseYouWatchedShort",
   "recently-viewed": "recentlyViewed",
   collections: "popularCollections",
   "community-picks": "communityPicks",
-  upcoming: "topUpcoming",
   studios: "featuredStudios",
   "voice-actors": "featuredVoiceActors",
   schedule: "estimatedSchedule",
-  completed: "latestCompleted",
 };
 
 export default function HomeCustomizeButton() {

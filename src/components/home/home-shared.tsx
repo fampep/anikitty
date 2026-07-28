@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/core/utils";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { useT } from "@/providers/i18n-provider";
 
 export function HomeSectionLink({
@@ -13,6 +21,7 @@ export function HomeSectionLink({
   icon,
   subtitle,
   compact = false,
+  actions,
 }: {
   href?: string;
   title: string;
@@ -20,77 +29,163 @@ export function HomeSectionLink({
   icon?: ReactNode;
   subtitle?: string;
   compact?: boolean;
+  actions?: ReactNode;
 }) {
   const t = useT();
 
-  const heading = (
-    <div className={cn("flex items-center gap-2.5 min-w-0 flex-1", className)}>
-      <div
-        className={cn(
-          "w-0.5 rounded-full bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-700/30 shrink-0 shadow-[0_0_12px_rgba(255, 255, 255, 0.35)] transition-shadow duration-300 group-hover:shadow-[0_0_16px_rgba(255, 255, 255, 0.5)]",
-          compact ? "h-5" : "h-8",
-        )}
-      />
-      {icon ? (
-        <span className={cn("text-zinc-300/80 flex items-center shrink-0", compact && "scale-90")}>{icon}</span>
-      ) : null}
-      <div className="min-w-0 flex-1">
-        <span
+  return (
+    <div className={cn("flex items-center gap-2 w-full min-w-0", className)}>
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div
           className={cn(
-            "font-bold text-foreground dark:text-white tracking-tight leading-tight block",
-            compact ? "text-base sm:text-lg" : "text-xl xl:text-2xl",
+            "w-0.5 rounded-full bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-700/30 shrink-0 shadow-[0_0_12px_rgba(255, 255, 255, 0.35)]",
+            compact ? "h-5" : "h-8",
           )}
-        >
-          {title}
-        </span>
-        {subtitle && !compact ? (
-          <p className="text-[11px] text-muted-foreground dark:text-white/40 font-medium mt-0.5">{subtitle}</p>
+        />
+        {icon ? (
+          <span className={cn("text-zinc-300/80 flex items-center shrink-0", compact && "scale-90")}>
+            {icon}
+          </span>
         ) : null}
+        <div className="min-w-0 flex-1">
+          <span
+            className={cn(
+              "font-bold text-foreground dark:text-white tracking-tight leading-tight block",
+              compact ? "text-base sm:text-lg" : "text-xl xl:text-2xl",
+            )}
+          >
+            {title}
+          </span>
+          {subtitle && !compact ? (
+            <p className="text-[11px] text-muted-foreground dark:text-white/40 font-medium mt-0.5">
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
       </div>
       {href ? (
-        <span
+        <Link
+          href={href}
           className={cn(
-            "ml-auto flex items-center gap-1 text-[11px] font-semibold text-muted-foreground dark:text-white/40 shrink-0 group rounded-lg border border-border dark:border-white/[0.08] bg-muted/50 dark:bg-white/[0.04] group-hover:border-primary/30 group-hover:bg-primary/[0.1] transition-all",
+            "shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground dark:text-white/40 rounded-lg border border-border dark:border-white/[0.08] bg-muted/50 dark:bg-white/[0.04] hover:border-primary/30 hover:bg-primary/[0.1] hover:text-foreground dark:hover:text-white/80 transition-all",
             compact ? "px-2.5 py-1.5" : "px-3.5 py-2 rounded-xl",
           )}
         >
           {t("common.viewAll")}
-          <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
-        </span>
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       ) : null}
+      {actions}
     </div>
   );
+}
 
-  if (href) {
-    return (
-      <Link href={href} className="group block w-full hover:opacity-95 transition-opacity">
-        {heading}
-      </Link>
-    );
-  }
+export function HomeRailArrows({
+  canScrollLeft,
+  canScrollRight,
+  onLeft,
+  onRight,
+}: {
+  canScrollLeft: boolean;
+  canScrollRight: boolean;
+  onLeft: () => void;
+  onRight: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="flex items-center gap-1 shrink-0">
+      <button
+        type="button"
+        onClick={onLeft}
+        disabled={!canScrollLeft}
+        aria-label={t("common.scrollLeft")}
+        className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/80 hover:border-border dark:hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none site-focus"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onRight}
+        disabled={!canScrollRight}
+        aria-label={t("common.scrollRight")}
+        className="h-7 w-7 rounded-full border border-border dark:border-white/12 flex items-center justify-center text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/80 hover:border-border dark:hover:border-white/30 transition-all disabled:opacity-20 disabled:pointer-events-none site-focus"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
-  return heading;
+export function useHomeRailScroll(scrollRef: RefObject<HTMLDivElement | null>) {
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const update = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 8);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  }, [scrollRef]);
+
+  useEffect(() => {
+    update();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+    };
+  }, [scrollRef, update]);
+
+  const scrollByDir = useCallback(
+    (dir: "left" | "right") => {
+      scrollRef.current?.scrollBy({
+        left: dir === "left" ? -420 : 420,
+        behavior: "smooth",
+      });
+    },
+    [scrollRef],
+  );
+
+  return { canScrollLeft, canScrollRight, scrollByDir, update };
 }
 
 export function HomeScrollRail({
   children,
   className,
   edgeFade = true,
+  scrollRef: externalRef,
+  onScrollState,
 }: {
   children: ReactNode;
   className?: string;
   edgeFade?: boolean;
+  scrollRef?: RefObject<HTMLDivElement | null>;
+  onScrollState?: (state: { canScrollLeft: boolean; canScrollRight: boolean }) => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const ref = externalRef ?? internalRef;
   const [fadeLeft, setFadeLeft] = useState(false);
   const [fadeRight, setFadeRight] = useState(false);
+  const drag = useRef<{ active: boolean; startX: number; startScroll: number; moved: boolean }>({
+    active: false,
+    startX: 0,
+    startScroll: 0,
+    moved: false,
+  });
 
-  const update = () => {
+  const update = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    setFadeLeft(el.scrollLeft > 8);
-    setFadeRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
-  };
+    const left = el.scrollLeft > 8;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 8;
+    setFadeLeft(left);
+    setFadeRight(right);
+    onScrollState?.({ canScrollLeft: left, canScrollRight: right });
+  }, [ref, onScrollState]);
 
   useEffect(() => {
     update();
@@ -103,7 +198,62 @@ export function HomeScrollRail({
       el.removeEventListener("scroll", update);
       ro.disconnect();
     };
-  }, [children]);
+  }, [children, ref, update]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [ref]);
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const el = ref.current;
+    if (!el) return;
+    drag.current = {
+      active: true,
+      startX: e.clientX,
+      startScroll: el.scrollLeft,
+      moved: false,
+    };
+    el.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag.current.active) return;
+    const el = ref.current;
+    if (!el) return;
+    const dx = e.clientX - drag.current.startX;
+    if (Math.abs(dx) > 4) drag.current.moved = true;
+    el.scrollLeft = drag.current.startScroll - dx;
+  };
+
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag.current.active) return;
+    drag.current.active = false;
+    try {
+      ref.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (drag.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      drag.current.moved = false;
+    }
+  };
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -124,8 +274,13 @@ export function HomeScrollRail({
         </>
       ) : null}
       <div
-        ref={ref}
-        className="flex w-full overflow-x-auto scrollbar-hide scroll-momentum gap-3 sm:gap-4 cursor-grab active:cursor-grabbing select-none"
+        ref={ref as RefObject<HTMLDivElement>}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
+        className="flex w-full overflow-x-auto scrollbar-hide scroll-momentum gap-3 sm:gap-4 cursor-grab active:cursor-grabbing select-none touch-pan-x"
       >
         {children}
       </div>
@@ -137,6 +292,19 @@ export function HomeRailEmpty({ message }: { message: string }) {
   return (
     <div className="flex items-center justify-center rounded-xl border border-dashed border-border dark:border-white/10 py-10 text-sm text-muted-foreground dark:text-white/40">
       {message}
+    </div>
+  );
+}
+
+export function HomePosterSkeletonRail({ count = 8 }: { count?: number }) {
+  return (
+    <div className="flex gap-4 overflow-hidden">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="shrink-0 w-36 aspect-[1/1.4] rounded-xl bg-muted/40 dark:bg-white/8 animate-pulse"
+        />
+      ))}
     </div>
   );
 }
@@ -162,4 +330,24 @@ export function formatAnimeType(type?: string | null) {
 export function scoreLabel(score?: number | null) {
   if (score == null || score <= 0) return null;
   return (score / 10).toFixed(1);
+}
+
+export function formatCountdown(airingAt?: number | null): string | null {
+  if (!airingAt) return null;
+  const ms = airingAt * 1000 - Date.now();
+  if (ms <= 0) return null;
+  const days = Math.floor(ms / 86_400_000);
+  const hours = Math.floor((ms % 86_400_000) / 3_600_000);
+  if (days > 30) return `${Math.floor(days / 30)}mo`;
+  if (days > 0) return `${days}d ${hours}h`;
+  const mins = Math.floor((ms % 3_600_000) / 60_000);
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${Math.max(1, mins)}m`;
+}
+
+export function formatShortDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }

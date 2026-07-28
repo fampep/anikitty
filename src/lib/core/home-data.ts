@@ -87,11 +87,15 @@ const DISCOVERY_QUERY = `
     latest: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: END_DATE_DESC, status: FINISHED) {
         id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
+        endDate { year month day }
       }
     }
     upcoming: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: POPULARITY_DESC, status: NOT_YET_RELEASED) {
         id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
+        startDate { year month day }
+        studios(isMain: true) { nodes { name isAnimationStudio } }
+        nextAiringEpisode { episode airingAt }
       }
     }
     nextSeason: Page(page: 1, perPage: 15) {
@@ -145,6 +149,17 @@ function hasStreamableEpisodes(episodes: { sub: number | null; dub: number | nul
   return (episodes.sub ?? 0) > 0 || (episodes.dub ?? 0) > 0;
 }
 
+function anilistDateToIso(date?: {
+  year?: number | null;
+  month?: number | null;
+  day?: number | null;
+} | null): string | null {
+  if (!date?.year) return null;
+  const m = String(date.month ?? 1).padStart(2, "0");
+  const d = String(date.day ?? 1).padStart(2, "0");
+  return `${date.year}-${m}-${d}`;
+}
+
 export function toAnime(m: {
   id: number;
   title?: { english?: string | null; romaji?: string | null };
@@ -157,7 +172,12 @@ export function toAnime(m: {
   status?: string | null;
   isAdult?: boolean | null;
   nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
+  startDate?: { year?: number | null; month?: number | null; day?: number | null } | null;
+  endDate?: { year?: number | null; month?: number | null; day?: number | null } | null;
+  studios?: { nodes?: Array<{ name?: string | null; isAnimationStudio?: boolean }> } | null;
 }) {
+  const studioNode =
+    (m.studios?.nodes ?? []).find((s) => s.isAnimationStudio) ?? m.studios?.nodes?.[0];
   return {
     id: String(m.id),
     name: toTitle(m.title ?? {}),
@@ -176,6 +196,10 @@ export function toAnime(m: {
     year: m.seasonYear ?? null,
     status: m.status ?? null,
     isAdult: Boolean(m.isAdult),
+    studio: studioNode?.name ?? null,
+    airingAt: m.nextAiringEpisode?.airingAt ?? null,
+    startDate: anilistDateToIso(m.startDate),
+    endDate: anilistDateToIso(m.endDate),
   };
 }
 
@@ -446,15 +470,15 @@ async function fetchHomeDataUncached(): Promise<IAnimeData> {
   };
 }
 
-export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v4"], {
+export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v5"], {
   revalidate: 300,
 });
 
-export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v4"], {
+export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v5"], {
   revalidate: 300,
 });
 
-export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v6"], {
+export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v7"], {
   revalidate: 300,
 });
 

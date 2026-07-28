@@ -1,19 +1,20 @@
 export const HOME_SECTION_IDS = [
   "continue",
-  "trending",
   "new-episodes",
-  "seasonal",
+  "upcoming",
   "recently-added",
+  "completed",
+  "rankings",
+  "seasonal",
+  "discovery",
   "recommended",
   "because-you-watched",
   "recently-viewed",
   "collections",
   "community-picks",
-  "upcoming",
   "studios",
   "voice-actors",
   "schedule",
-  "completed",
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];

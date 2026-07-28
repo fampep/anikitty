@@ -10,7 +10,6 @@ import HomeRecentUpdates from "@/components/home/home-recent-updates";
 import HomeRecentlyAdded from "@/components/home/home-recently-added";
 import HomeSchedulePanel from "@/components/home/home-schedule-panel";
 import HomeSeasonalRails from "@/components/home/home-seasonal-rails";
-import HomeTrendingRail from "@/components/home/home-trending-rail";
 import HomeSocialBanner from "@/components/home/home-social-banner";
 import HomeCollections from "@/components/home/home-collections";
 import HomeFeaturedStudios from "@/components/home/home-featured-studios";
@@ -44,6 +43,9 @@ const HomeRecommendations = dynamic(() => import("@/components/home/home-recomme
 const RecentlyViewed = dynamic(() => import("@/components/home/recently-viewed"));
 const HomeUpcomingRail = dynamic(() => import("@/components/home/home-upcoming-rail"));
 const AnimeSections = dynamic(() => import("@/components/home/anime-sections"));
+const HomeRankings = dynamic(() => import("@/components/home/home-rankings"));
+const HomeJustCompleted = dynamic(() => import("@/components/home/home-just-completed"));
+const HomeDiscoveryRows = dynamic(() => import("@/components/home/home-discovery-rows"));
 
 const HOME_RAIL_LIMIT = 12;
 
@@ -103,6 +105,16 @@ export default function Home() {
       .slice(0, HOME_RAIL_LIMIT);
   }, [discovery?.topRatedAnimes, trending]);
 
+  const discoveryPool = useMemo(() => {
+    const map = new Map<string, IAnime>();
+    for (const list of [trending, popular, topRated, recentlyAdded, latestEpisodes, completed, favorites]) {
+      for (const anime of list) {
+        if (!map.has(anime.id)) map.set(anime.id, anime);
+      }
+    }
+    return [...map.values()];
+  }, [trending, popular, topRated, recentlyAdded, latestEpisodes, completed, favorites]);
+
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: [GET_HOME_CRITICAL] });
     refetch();
@@ -131,23 +143,38 @@ export default function Home() {
   }
 
   const sectionNodes: Partial<Record<HomeSectionId, ReactNode>> = {
-    trending: (
-      <LazyMount rootMargin="280px 0px" keepMounted minHeight={220}>
-        <HomeTrendingRail
-          trending={trending}
-          popular={popular}
-          rated={topRated}
-          loading={isLoading}
-        />
-      </LazyMount>
-    ),
     "new-episodes": (
-      <LazyMount rootMargin="320px 0px" keepMounted minHeight={220}>
+      <LazyMount rootMargin="200px 0px" keepMounted minHeight={260}>
         <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
       </LazyMount>
     ),
+    upcoming: (
+      <LazyMount rootMargin="280px 0px" keepMounted minHeight={260}>
+        <HomeUpcomingRail animes={upcoming} loading={discoveryLoadingState} />
+      </LazyMount>
+    ),
+    "recently-added": (
+      <LazyMount rootMargin="320px 0px" keepMounted minHeight={220}>
+        <HomeRecentlyAdded animes={recentlyAdded} loading={isLoading} />
+      </LazyMount>
+    ),
+    completed: (
+      <LazyMount rootMargin="360px 0px" keepMounted minHeight={260}>
+        <HomeJustCompleted animes={completed} loading={discoveryLoadingState} />
+      </LazyMount>
+    ),
+    rankings: (
+      <LazyMount rootMargin="400px 0px" keepMounted minHeight={260}>
+        <HomeRankings
+          trending={trending}
+          popular={popular}
+          rated={topRated}
+          loading={isLoading || discoveryLoadingState}
+        />
+      </LazyMount>
+    ),
     seasonal: (
-      <LazyMount rootMargin="400px 0px" keepMounted minHeight={280}>
+      <LazyMount rootMargin="450px 0px" keepMounted minHeight={280}>
         <HomeSeasonalRails
           currentAnimes={currentSeason.length ? currentSeason : recentlyAdded}
           nextAnimes={nextSeason}
@@ -157,35 +184,41 @@ export default function Home() {
         />
       </LazyMount>
     ),
-    "recently-added": (
-      <LazyMount rootMargin="450px 0px" minHeight={220}>
-        <HomeRecentlyAdded animes={recentlyAdded} loading={isLoading} />
+    discovery: (
+      <LazyMount rootMargin="500px 0px" keepMounted minHeight={240}>
+        <HomeDiscoveryRows
+          pool={discoveryPool}
+          favorites={favorites}
+          rated={topRated}
+          trending={trending}
+          popular={popular}
+        />
       </LazyMount>
     ),
     recommended: (
-      <LazyMount rootMargin="500px 0px" minHeight={200}>
+      <LazyMount rootMargin="520px 0px" minHeight={200}>
         <div id="recommended">
           <HomeRecommendations />
         </div>
       </LazyMount>
     ),
     "because-you-watched": (
-      <LazyMount rootMargin="520px 0px" minHeight={200}>
+      <LazyMount rootMargin="540px 0px" minHeight={200}>
         <HomeBecauseYouWatched />
       </LazyMount>
     ),
     "recently-viewed": (
-      <LazyMount rootMargin="540px 0px" minHeight={180}>
+      <LazyMount rootMargin="560px 0px" minHeight={180}>
         <RecentlyViewed />
       </LazyMount>
     ),
     collections: (
-      <LazyMount rootMargin="560px 0px" minHeight={160}>
+      <LazyMount rootMargin="580px 0px" minHeight={160}>
         <HomeCollections />
       </LazyMount>
     ),
     "community-picks": (
-      <LazyMount rootMargin="580px 0px" minHeight={220}>
+      <LazyMount rootMargin="600px 0px" minHeight={220}>
         <AnimeSections
           sectionId="community-picks"
           title={t("home.communityPicks")}
@@ -195,11 +228,6 @@ export default function Home() {
           showRanks
           seeAllHref={ROUTES.SEARCH}
         />
-      </LazyMount>
-    ),
-    upcoming: (
-      <LazyMount rootMargin="600px 0px" minHeight={240}>
-        <HomeUpcomingRail animes={upcoming} loading={discoveryLoadingState} />
       </LazyMount>
     ),
     studios: (
@@ -228,17 +256,6 @@ export default function Home() {
             <HomeSchedulePanel />
           </div>
         </Container>
-      </LazyMount>
-    ),
-    completed: (
-      <LazyMount rootMargin="700px 0px" minHeight={220}>
-        <AnimeSections
-          sectionId="completed"
-          title={t("home.latestCompleted")}
-          trendingAnime={completed}
-          loading={discoveryLoadingState}
-          layout="row"
-        />
       </LazyMount>
     ),
   };

@@ -47,6 +47,14 @@ export interface IAnime {
   year?: number | null;
   status?: string | null;
   isAdult?: boolean;
+  /** Main studio name when available from AniList. */
+  studio?: string | null;
+  /** Unix seconds for next/first airing, when known. */
+  airingAt?: number | null;
+  /** ISO-ish start date (YYYY-MM-DD) when known. */
+  startDate?: string | null;
+  /** ISO-ish end date (YYYY-MM-DD) when known. */
+  endDate?: string | null;
 }
 
 export interface IAnimeSearch {

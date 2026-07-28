@@ -114,22 +114,46 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
   useEffect(() => {
     if (!api || !spotlightAnime?.length || pauseCarousel) return;
     const root = document.querySelector(".home-hero-carousel");
-    if (!root || typeof IntersectionObserver === "undefined") {
+    if (!root) {
       const timer = setInterval(() => {
         if (document.visibilityState === "visible") api.scrollNext();
-      }, 8000);
+      }, 9000);
       return () => clearInterval(timer);
     }
 
     let timer: ReturnType<typeof setInterval> | null = null;
+    let hovering = false;
+
+    const start = () => {
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => {
+        if (document.visibilityState === "visible" && !hovering) api.scrollNext();
+      }, 9000);
+    };
+
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+
+    const onEnter = () => {
+      hovering = true;
+      stop();
+    };
+    const onLeave = () => {
+      hovering = false;
+      if (root.getAttribute("data-in-view") === "1") start();
+    };
+
+    root.addEventListener("pointerenter", onEnter);
+    root.addEventListener("pointerleave", onLeave);
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (timer) clearInterval(timer);
-        timer = null;
-        if (!entry?.isIntersecting) return;
-        timer = setInterval(() => {
-          if (document.visibilityState === "visible") api.scrollNext();
-        }, 8000);
+        const inView = Boolean(entry?.isIntersecting);
+        root.setAttribute("data-in-view", inView ? "1" : "0");
+        stop();
+        if (inView && !hovering) start();
       },
       { threshold: 0.25 },
     );
@@ -137,14 +161,16 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
 
     return () => {
       observer.disconnect();
-      if (timer) clearInterval(timer);
+      stop();
+      root.removeEventListener("pointerenter", onEnter);
+      root.removeEventListener("pointerleave", onLeave);
     };
   }, [api, spotlightAnime?.length, pauseCarousel]);
 
   if (isDataLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="home-hero-carousel group/spotlight relative w-full overflow-hidden pointer-events-none">
+    <div className="home-hero-carousel group/spotlight relative w-full overflow-hidden pointer-events-auto">
       <Carousel className="w-full h-full" setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="h-full">
           {spotlightAnime?.map((anime, index) => (

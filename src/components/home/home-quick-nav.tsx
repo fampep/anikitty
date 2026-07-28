@@ -22,8 +22,8 @@ const SCROLL_OFFSET = 150;
 const LINKS = [
   { id: "continue", href: `${ROUTES.HOME}#continue`, icon: History, key: "continue" },
   { id: "new-episodes", href: `${ROUTES.HOME}#new-episodes`, icon: Tv2, key: "latest" },
-  { id: "trending", href: `${ROUTES.HOME}#trending`, icon: Flame, key: "trending" },
-  { id: "seasonal", href: `${ROUTES.HOME}#seasonal`, icon: Compass, key: "discover" },
+  { id: "rankings", href: `${ROUTES.HOME}#rankings`, icon: Flame, key: "trending" },
+  { id: "discovery", href: `${ROUTES.HOME}#discovery`, icon: Compass, key: "discover" },
   { id: "schedule", href: `${ROUTES.HOME}#schedule`, icon: CalendarDays, key: "today" },
 ] as const;
 
