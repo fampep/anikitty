@@ -4387,12 +4387,6 @@ export function KittyPlayer({
                                 !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                               )}
                             >
-                              <div
-                                className="flex justify-center pb-1 pt-2.5"
-                                aria-hidden
-                              >
-                                <div className="h-1 w-10 rounded-full bg-white/25" />
-                              </div>
                               <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
                                 <p className="text-[11px] font-semibold tracking-wide text-white">
                                   Captions
@@ -4405,13 +4399,9 @@ export function KittyPlayer({
                                     : "Off"}
                                 </span>
                               </div>
-                              <div className="max-h-[min(42dvh,280px)] overflow-y-auto overscroll-contain sm:max-h-[min(58dvh,380px)]">
-                                <MenuSection
-                                  dense={coarsePointer || compactChrome}
-                                  title="Language"
-                                >
+                              <div className="max-h-[min(52vh,320px)] overflow-y-auto overscroll-contain">
+                                <MenuSection title="Language">
                                   <MenuItem
-                                    dense={coarsePointer || compactChrome}
                                     active={selectedCaptionId == null}
                                     onClick={() => selectCaption(null)}
                                   >
@@ -4420,7 +4410,6 @@ export function KittyPlayer({
                                   {captionOptions.map((track) => (
                                     <MenuItem
                                       key={track.id}
-                                      dense={coarsePointer || compactChrome}
                                       active={selectedCaptionId === track.id}
                                       onClick={() => selectCaption(track.id)}
                                     >
@@ -4433,7 +4422,6 @@ export function KittyPlayer({
                                     Appearance
                                   </p>
                                   <SegmentedChoice
-                                    dense={coarsePointer || compactChrome}
                                     label="Size"
                                     value={captionSize}
                                     onChange={applyCaptionSize}
@@ -4446,7 +4434,6 @@ export function KittyPlayer({
                                     }
                                   />
                                   <SegmentedChoice
-                                    dense={coarsePointer || compactChrome}
                                     label="Position"
                                     value={captionPosition}
                                     onChange={applyCaptionPosition}
@@ -4459,14 +4446,10 @@ export function KittyPlayer({
                                     }
                                   />
                                 </div>
-                                <MenuSection
-                                  dense={coarsePointer || compactChrome}
-                                  title="Timing"
-                                >
+                                <MenuSection title="Timing">
                                   {CAPTION_OFFSET_OPTIONS.map((offset) => (
                                     <MenuItem
                                       key={offset}
-                                      dense={coarsePointer || compactChrome}
                                       active={
                                         Math.abs(captionOffset - offset) < 0.001
                                       }
@@ -4508,7 +4491,7 @@ export function KittyPlayer({
                                   : "Off"}
                               </span>
                             </div>
-                            <div className="max-h-[min(52vh,320px)] overflow-y-auto">
+                              <div className="max-h-[min(52vh,320px)] overflow-y-auto">
                               <MenuSection title="Language">
                                 <MenuItem
                                   active={selectedCaptionId == null}
@@ -4531,7 +4514,6 @@ export function KittyPlayer({
                                   Appearance
                                 </p>
                                 <SegmentedChoice
-                                  dense={coarsePointer || compactChrome}
                                   label="Size"
                                   value={captionSize}
                                   onChange={applyCaptionSize}
@@ -4544,7 +4526,6 @@ export function KittyPlayer({
                                   }
                                 />
                                 <SegmentedChoice
-                                  dense={coarsePointer || compactChrome}
                                   label="Position"
                                   value={captionPosition}
                                   onChange={applyCaptionPosition}
@@ -4557,14 +4538,10 @@ export function KittyPlayer({
                                   }
                                 />
                               </div>
-                              <MenuSection
-                                dense={coarsePointer || compactChrome}
-                                title="Timing"
-                              >
+                              <MenuSection title="Timing">
                                 {CAPTION_OFFSET_OPTIONS.map((offset) => (
                                   <MenuItem
                                     key={offset}
-                                    dense={coarsePointer || compactChrome}
                                     active={
                                       Math.abs(captionOffset - offset) < 0.001
                                     }
