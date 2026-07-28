@@ -14,8 +14,10 @@ import {
 import {
   DEFAULT_KITTY_PROVIDER,
   getKittyProviderLabel,
+  getKittyProviderNumber,
   kittyProvidersByGroup,
   kittyProvidersForAudioMode,
+  RECOMMENDED_PROVIDER_COUNT,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
@@ -128,7 +130,10 @@ export default function ProviderSelect({
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <Server className="w-3.5 h-3.5 shrink-0 opacity-50" />
           <SelectValue placeholder={t("watch.providerSelect")}>
-            {getKittyProviderLabel(value)}
+            {(() => {
+              const num = getKittyProviderNumber(value, providerOrder);
+              return num > 0 ? `${num} · ${getKittyProviderLabel(value)}` : getKittyProviderLabel(value);
+            })()}
           </SelectValue>
         </div>
       </SelectTrigger>
@@ -150,15 +155,22 @@ export default function ProviderSelect({
                   ? t("watch.providerGroupFeatured")
                   : t("watch.providerGroupOther")}
               </SelectLabel>
-              {items.map((p) => (
+              {items.map((p) => {
+                const num = getKittyProviderNumber(p.id, providerOrder);
+                return (
                 <SelectItem
                   key={p.id}
                   value={p.id}
-                  textValue={p.label}
+                  textValue={`${num} ${p.label}`}
                   className="text-xs text-foreground/90 dark:text-white/80 focus:bg-accent dark:bg-white/[0.06] focus:text-foreground dark:text-white py-2.5"
                 >
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {num > 0 && (
+                        <span className="font-mono text-[10px] tabular-nums text-muted-foreground/80 dark:text-white/35 w-4 shrink-0">
+                          {num}
+                        </span>
+                      )}
                       <span className="font-semibold">{p.label}</span>
                       <ProviderDefaultBadge id={p.id} />
                     </div>
@@ -167,7 +179,8 @@ export default function ProviderSelect({
                     )}
                   </div>
                 </SelectItem>
-              ))}
+                );
+              })}
             </SelectGroup>
           );
         })}
@@ -329,22 +342,20 @@ export function ProviderGrid({
         const isHidden = providerSectionHidden[mode] ?? false;
         const activeItem = items.find((p) => provider === p.id && audioMode === mode);
 
-        const rowExpanded = !!expandedRows[mode];
-        const defaultVisible = compact ? 6 : 9;
-        const collapsible = items.length > defaultVisible + 2;
-        let visibleItems = items;
-        if (collapsible && !rowExpanded) {
-          visibleItems = items.slice(0, defaultVisible);
-          if (activeItem && !visibleItems.some((p) => p.id === activeItem.id)) {
-            visibleItems = [...visibleItems, activeItem];
-          }
-        }
-        const hiddenCount = items.length - visibleItems.length;
+        const recommendedItems = items.filter((p) => {
+          const n = getKittyProviderNumber(p.id, providerOrder);
+          return n > 0 && n <= RECOMMENDED_PROVIDER_COUNT;
+        });
+        const moreItems = items.filter((p) => {
+          const n = getKittyProviderNumber(p.id, providerOrder);
+          return n === 0 || n > RECOMMENDED_PROVIDER_COUNT;
+        });
 
-        const providerPills = visibleItems.map((p) => {
+        const renderPill = (p: (typeof items)[number]) => {
           const isActive = provider === p.id && audioMode === mode;
           const rowCaps = resolveProviderBadgeCaps(streamCaps, p.id);
           const badges = providerCapabilityBadges(rowCaps);
+          const num = getKittyProviderNumber(p.id, providerOrder);
 
           return (
             <button
@@ -356,12 +367,27 @@ export function ProviderGrid({
               aria-pressed={isActive}
               className={providerPillClass(compact, isActive, styles, p.id)}
             >
+              {num > 0 && (
+                <span className="font-mono tabular-nums opacity-70 shrink-0">{num}</span>
+              )}
               <span className="truncate max-w-[9.5rem] sm:max-w-none">{p.label}</span>
               <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
               <ProviderDefaultBadge id={p.id} compact />
             </button>
           );
-        });
+        };
+
+        const rowExpanded = !!expandedRows[mode];
+        const defaultVisibleMore = compact ? 4 : 6;
+        const collapsible = moreItems.length > defaultVisibleMore + 1;
+        let visibleMore = moreItems;
+        if (collapsible && !rowExpanded) {
+          visibleMore = moreItems.slice(0, defaultVisibleMore);
+          if (activeItem && moreItems.some((p) => p.id === activeItem.id) && !visibleMore.some((p) => p.id === activeItem.id)) {
+            visibleMore = [...visibleMore, activeItem];
+          }
+        }
+        const hiddenCount = moreItems.length - visibleMore.length;
 
         const moreToggle = collapsible ? (
           <button
@@ -378,6 +404,30 @@ export function ProviderGrid({
             <ChevronDown className={cn("w-3 h-3 opacity-60 transition-transform", rowExpanded && "rotate-180")} />
           </button>
         ) : null;
+
+        const providerPills = (
+          <>
+            {recommendedItems.length > 0 && (
+              <div className={cn("flex flex-col gap-1.5 min-w-0", compact ? "w-max" : "w-full")}>
+                <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/30 px-0.5">
+                  {t("watch.providerGroupFeatured")}
+                </span>
+                <div className="flex flex-wrap gap-1.5">{recommendedItems.map(renderPill)}</div>
+              </div>
+            )}
+            {moreItems.length > 0 && (
+              <div className={cn("flex flex-col gap-1.5 min-w-0", compact ? "w-max" : "w-full")}>
+                <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/30 px-0.5">
+                  {t("watch.providerGroupOther")}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {visibleMore.map(renderPill)}
+                  {moreToggle}
+                </div>
+              </div>
+            )}
+          </>
+        );
 
         const sectionLabel = rowLabels[mode] ?? mode;
         const sectionIcon = rowIcons[mode];
@@ -410,7 +460,9 @@ export function ProviderGrid({
                 <div className="flex items-center gap-2 shrink-0">
                   {isHidden && activeItem && (
                     <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-md border", styles.active)}>
-                      {activeItem.label}
+                      {getKittyProviderNumber(activeItem.id, providerOrder) > 0
+                        ? `${getKittyProviderNumber(activeItem.id, providerOrder)} · ${activeItem.label}`
+                        : activeItem.label}
                     </span>
                   )}
                   {isHidden ? (
@@ -427,10 +479,7 @@ export function ProviderGrid({
                 </div>
               </button>
               {!isHidden && (
-                <ProviderScrollRow compact>
-                  {providerPills}
-                  {moreToggle}
-                </ProviderScrollRow>
+                <div className="px-2.5 pb-2.5 pt-0.5 flex flex-col gap-2.5">{providerPills}</div>
               )}
             </div>
           );
@@ -463,10 +512,7 @@ export function ProviderGrid({
               <span className="truncate">{sectionLabel}</span>
             </button>
             {!isHidden ? (
-              <ProviderScrollRow compact={false}>
-                {providerPills}
-                {moreToggle}
-              </ProviderScrollRow>
+              <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-0.5">{providerPills}</div>
             ) : activeItem ? (
               <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 pt-0.5">
                 <span
@@ -475,6 +521,11 @@ export function ProviderGrid({
                     styles.active,
                   )}
                 >
+                  {getKittyProviderNumber(activeItem.id, providerOrder) > 0 && (
+                    <span className="font-mono tabular-nums opacity-70">
+                      {getKittyProviderNumber(activeItem.id, providerOrder)}
+                    </span>
+                  )}
                   {activeItem.label}
                 </span>
               </div>

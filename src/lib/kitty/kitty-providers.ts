@@ -13,6 +13,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniWatch",
   "AniBD",
   "Anikoto",
+  "Animeya",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -23,6 +24,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AnimeHeaven",
   // Normalize-only aliases / legacy (retired from picker)
   "AniHQ",
+  "VidNest",
   "Miruro",
   "AniWaves",
   "MKissa",
@@ -57,6 +59,7 @@ export const KITTY_PROVIDERS = [
   "AniWatch",
   "AniBD",
   "Anikoto",
+  "Animeya",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -66,6 +69,9 @@ export const KITTY_PROVIDERS = [
   "AnimeGG",
   "AnimeHeaven",
 ] as const;
+
+/** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
+export const RECOMMENDED_PROVIDER_COUNT = 4;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -133,9 +139,21 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
+    id: "Animeya",
+    label: "Ya",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs · VidNest",
+  },
+  {
     id: "Anitaku",
     label: "Taku",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
@@ -147,7 +165,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
     id: "MeguAnime",
     label: "Megu",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
@@ -159,7 +177,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
     id: "KickAssAnime",
     label: "Uniform",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
@@ -171,7 +189,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
     id: "AniKuro",
     label: "Alpha",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
@@ -183,7 +201,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
     id: "AniNeko",
     label: "Gamma",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
@@ -195,7 +213,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
     id: "Senshi",
     label: "Guard",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
@@ -207,7 +225,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
     id: "AnimeGG",
     label: "GG",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: false,
@@ -219,7 +237,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
     id: "AnimeHeaven",
     label: "Heaven",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: false,
     softSub: false,
@@ -231,12 +249,13 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. AniWatch (AniZone/Juliet) is default;
+ * tries these before anything else. Top 4 are Recommended; Animeya is #4, Anitaku #5.
  * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniWatch",
   "AniBD",
   "Anikoto",
+  "Animeya",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -246,6 +265,24 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AnimeGG",
   "AnimeHeaven",
 ];
+
+/** 1-based rank in the given order (0 if missing). */
+export function getKittyProviderNumber(
+  id: KittyProvider,
+  order?: readonly KittyProvider[] | null,
+): number {
+  const list = order?.length ? order : DEFAULT_PROVIDER_PRIORITY;
+  const idx = list.indexOf(id);
+  return idx >= 0 ? idx + 1 : 0;
+}
+
+export function isRecommendedKittyProvider(
+  id: KittyProvider,
+  order?: readonly KittyProvider[] | null,
+): boolean {
+  const n = getKittyProviderNumber(id, order);
+  return n > 0 && n <= RECOMMENDED_PROVIDER_COUNT;
+}
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
 
@@ -276,6 +313,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "KickAssAnime",
   "MeguAnime",
   "Anitaku",
+  "Animeya",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -297,6 +335,9 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
   if (value === "Heaven") return "AnimeHeaven";
   if (value === "Megu" || value === "MeguAnimes") return "MeguAnime";
+  if (value === "Ya" || value === "VidNest" || value === "Mp4Upload" || value === "MP4Upload") {
+    return "Animeya";
+  }
   if (value === "Taku") return "Anitaku";
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
   if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;

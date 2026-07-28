@@ -438,7 +438,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 84,
+      version: 85,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1097,6 +1097,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 84) {
           // Drop HQ; Juliet (AniWatch / AniZone) is the site default. Soft-sub BD stays second.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniWatch", next.providerOrder);
+        }
+        if (version < 85) {
+          // Animeya #4 recommended, Anitaku #5; reset to site priority for numbers/sections.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniWatch", next.providerOrder);
         }

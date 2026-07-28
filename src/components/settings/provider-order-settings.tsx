@@ -3,7 +3,12 @@
 import { useRef, useState } from "react";
 import { ChevronDown, ChevronUp, GripVertical, RotateCcw, Star } from "lucide-react";
 import { cn } from "@/lib/core/utils";
-import { getKittyProviderLabel, getKittyProviderMeta, type KittyProvider } from "@/lib/kitty/kitty-providers";
+import {
+  getKittyProviderLabel,
+  getKittyProviderMeta,
+  RECOMMENDED_PROVIDER_COUNT,
+  type KittyProvider,
+} from "@/lib/kitty/kitty-providers";
 import {
   isSiteDefaultProviderOrder,
   moveProviderInOrder,
@@ -83,6 +88,104 @@ export default function ProviderOrderSettings() {
     clearDrag();
   };
 
+  const renderRow = (id: KittyProvider, index: number) => {
+    const meta = getKittyProviderMeta(id);
+    const isFirst = index === 0;
+    const isLast = index === order.length - 1;
+    const isPreferred = id === preferred;
+    const isDragging = draggingIndex === index;
+    const isDropTarget = dragOverIndex === index && draggingIndex !== index;
+    const btn =
+      "inline-flex h-7 w-7 items-center justify-center rounded-md border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.04] text-muted-foreground dark:text-white/45 transition-colors hover:bg-accent dark:hover:bg-white/[0.1] hover:text-foreground dark:hover:text-white/85 disabled:opacity-30 disabled:pointer-events-none";
+
+    return (
+      <li
+        key={id}
+        data-provider-index={index}
+        className={cn(
+          "flex items-center gap-1.5 sm:gap-2 rounded-xl border px-2 py-2 sm:px-2.5 transition-colors select-none",
+          isDragging
+            ? "border-border dark:border-white/20 bg-muted/50 dark:bg-white/[0.06] opacity-60"
+            : isDropTarget
+              ? "border-teal-400/40 dark:border-teal-400/35 bg-teal-500/10 dark:bg-teal-500/[0.08]"
+              : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.03]",
+        )}
+      >
+        <button
+          type="button"
+          aria-label={t("settings.providerOrderDrag")}
+          title={t("settings.providerOrderDrag")}
+          onPointerDown={(e) => onGripPointerDown(e, index)}
+          onPointerMove={onGripPointerMove}
+          onPointerUp={onGripPointerUp}
+          onPointerCancel={clearDrag}
+          className={cn(
+            "inline-flex h-11 w-11 sm:h-8 sm:w-8 shrink-0 cursor-grab active:cursor-grabbing items-center justify-center rounded-md",
+            "text-muted-foreground/80 dark:text-white/40 touch-none",
+            "hover:bg-accent dark:hover:bg-white/[0.08] hover:text-foreground dark:hover:text-white/70",
+            isDragging && "bg-accent dark:bg-white/[0.1]",
+          )}
+        >
+          <GripVertical className="w-5 h-5 sm:w-4 sm:h-4 pointer-events-none" />
+        </button>
+        <span className="w-6 shrink-0 text-center text-[11px] font-mono tabular-nums text-muted-foreground/80 dark:text-white/30">
+          {index + 1}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground/90 dark:text-white/85 truncate">
+            {getKittyProviderLabel(id)}
+          </p>
+          <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/25 truncate">
+            {meta.hint ?? ""}
+            {isPreferred
+              ? `${meta.hint ? " · " : ""}${t("settings.providerOrderDefault")}`
+              : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            aria-label={
+              isPreferred
+                ? t("settings.providerOrderIsDefault")
+                : t("settings.providerOrderSetDefault")
+            }
+            aria-pressed={isPreferred}
+            onClick={() => setDefaultProvider(id)}
+            className={cn(
+              btn,
+              isPreferred &&
+                "border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100",
+            )}
+          >
+            <Star className={cn("w-3.5 h-3.5", isPreferred && "fill-current")} />
+          </button>
+          <button
+            type="button"
+            aria-label={t("settings.providerOrderMoveUp")}
+            disabled={isFirst}
+            onClick={() => applyMove(id, "up")}
+            className={btn}
+          >
+            <ChevronUp className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            aria-label={t("settings.providerOrderMoveDown")}
+            disabled={isLast}
+            onClick={() => applyMove(id, "down")}
+            className={btn}
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </li>
+    );
+  };
+
+  const recommended = order.slice(0, RECOMMENDED_PROVIDER_COUNT);
+  const more = order.slice(RECOMMENDED_PROVIDER_COUNT);
+
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -105,102 +208,28 @@ export default function ProviderOrderSettings() {
         </button>
       </div>
 
-      <ol className="flex flex-col gap-1.5">
-        {order.map((id, index) => {
-          const meta = getKittyProviderMeta(id);
-          const isFirst = index === 0;
-          const isLast = index === order.length - 1;
-          const isPreferred = id === preferred;
-          const isDragging = draggingIndex === index;
-          const isDropTarget = dragOverIndex === index && draggingIndex !== index;
-          const btn =
-            "inline-flex h-7 w-7 items-center justify-center rounded-md border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.04] text-muted-foreground dark:text-white/45 transition-colors hover:bg-accent dark:hover:bg-white/[0.1] hover:text-foreground dark:hover:text-white/85 disabled:opacity-30 disabled:pointer-events-none";
-
-          return (
-            <li
-              key={id}
-              data-provider-index={index}
-              className={cn(
-                "flex items-center gap-1.5 sm:gap-2 rounded-xl border px-2 py-2 sm:px-2.5 transition-colors select-none",
-                isDragging
-                  ? "border-border dark:border-white/20 bg-muted/50 dark:bg-white/[0.06] opacity-60"
-                  : isDropTarget
-                    ? "border-teal-400/40 dark:border-teal-400/35 bg-teal-500/10 dark:bg-teal-500/[0.08]"
-                    : "border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.03]",
-              )}
-            >
-              <button
-                type="button"
-                aria-label={t("settings.providerOrderDrag")}
-                title={t("settings.providerOrderDrag")}
-                onPointerDown={(e) => onGripPointerDown(e, index)}
-                onPointerMove={onGripPointerMove}
-                onPointerUp={onGripPointerUp}
-                onPointerCancel={clearDrag}
-                className={cn(
-                  "inline-flex h-11 w-11 sm:h-8 sm:w-8 shrink-0 cursor-grab active:cursor-grabbing items-center justify-center rounded-md",
-                  "text-muted-foreground/80 dark:text-white/40 touch-none",
-                  "hover:bg-accent dark:hover:bg-white/[0.08] hover:text-foreground dark:hover:text-white/70",
-                  isDragging && "bg-accent dark:bg-white/[0.1]",
-                )}
-              >
-                <GripVertical className="w-5 h-5 sm:w-4 sm:h-4 pointer-events-none" />
-              </button>
-              <span className="w-6 shrink-0 text-center text-[11px] font-mono tabular-nums text-muted-foreground/80 dark:text-white/30">
-                {index + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground/90 dark:text-white/85 truncate">
-                  {getKittyProviderLabel(id)}
-                </p>
-                <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/25 truncate">
-                  {meta.hint ?? ""}
-                  {isPreferred
-                    ? `${meta.hint ? " · " : ""}${t("settings.providerOrderDefault")}`
-                    : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-0.5 shrink-0">
-                <button
-                  type="button"
-                  aria-label={
-                    isPreferred
-                      ? t("settings.providerOrderIsDefault")
-                      : t("settings.providerOrderSetDefault")
-                  }
-                  aria-pressed={isPreferred}
-                  onClick={() => setDefaultProvider(id)}
-                  className={cn(
-                    btn,
-                    isPreferred &&
-                      "border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100",
-                  )}
-                >
-                  <Star className={cn("w-3.5 h-3.5", isPreferred && "fill-current")} />
-                </button>
-                <button
-                  type="button"
-                  aria-label={t("settings.providerOrderMoveUp")}
-                  disabled={isFirst}
-                  onClick={() => applyMove(id, "up")}
-                  className={btn}
-                >
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={t("settings.providerOrderMoveDown")}
-                  disabled={isLast}
-                  onClick={() => applyMove(id, "down")}
-                  className={btn}
-                >
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="space-y-3">
+        {recommended.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/35 px-0.5">
+              {t("watch.providerGroupFeatured")}
+            </p>
+            <ol className="flex flex-col gap-1.5">
+              {recommended.map((id, i) => renderRow(id, i))}
+            </ol>
+          </div>
+        )}
+        {more.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/35 px-0.5">
+              {t("watch.providerGroupOther")}
+            </p>
+            <ol className="flex flex-col gap-1.5" start={RECOMMENDED_PROVIDER_COUNT + 1}>
+              {more.map((id, i) => renderRow(id, i + RECOMMENDED_PROVIDER_COUNT))}
+            </ol>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
