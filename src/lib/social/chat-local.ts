@@ -1,4 +1,5 @@
 import type { ChatMessage } from "@/lib/social/chat";
+import { withAuth } from "@/lib/auth/auth-fetch";
 
 const DRAFT_KEY = "anikitty:chat:draft";
 const PINS_KEY = "anikitty:chat:pins";
@@ -57,6 +58,19 @@ export function savePinnedMessages(pins: ChatPinnedMessage[]) {
   }
 }
 
+export async function fetchPinnedMessages(): Promise<ChatPinnedMessage[]> {
+  try {
+    const res = await fetch("/api/chat/pins", withAuth());
+    if (!res.ok) return loadPinnedMessages();
+    const data = (await res.json()) as { pins?: ChatPinnedMessage[] };
+    const pins = Array.isArray(data.pins) ? data.pins : [];
+    savePinnedMessages(pins);
+    return pins;
+  } catch {
+    return loadPinnedMessages();
+  }
+}
+
 export function pinChatMessage(message: ChatMessage): ChatPinnedMessage[] {
   const pins = loadPinnedMessages().filter((p) => p.id !== message.id);
   pins.unshift({
@@ -69,12 +83,35 @@ export function pinChatMessage(message: ChatMessage): ChatPinnedMessage[] {
     pinnedAt: Date.now(),
   });
   savePinnedMessages(pins);
+  void fetch(
+    "/api/chat/pins",
+    withAuth({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: message.id,
+        body: message.body,
+        gifUrl: message.gifUrl,
+        username: message.username,
+        avatarUrl: message.avatarUrl,
+        createdAt: message.createdAt,
+      }),
+    }),
+  ).catch(() => {
+    /* guest / offline */
+  });
   return pins;
 }
 
 export function unpinChatMessage(id: string): ChatPinnedMessage[] {
   const pins = loadPinnedMessages().filter((p) => p.id !== id);
   savePinnedMessages(pins);
+  void fetch(
+    `/api/chat/pins?messageId=${encodeURIComponent(id)}`,
+    withAuth({ method: "DELETE" }),
+  ).catch(() => {
+    /* guest / offline */
+  });
   return pins;
 }
 
@@ -97,7 +134,7 @@ export function saveLastReadMessageId(id: string | null) {
   }
 }
 
-/** Device-local reactions until a server reactions API ships. */
+/** Device-local reaction cache; server is source of truth when signed in. */
 export function loadLocalReactions(): ChatReactionMap {
   if (typeof window === "undefined") return {};
   try {
@@ -118,6 +155,24 @@ export function saveLocalReactions(map: ChatReactionMap) {
   }
 }
 
+export async function fetchReactionsForMessages(messageIds: string[]): Promise<ChatReactionMap> {
+  const ids = messageIds.filter(Boolean).slice(0, 200);
+  if (ids.length === 0) return {};
+  try {
+    const res = await fetch(
+      `/api/chat/reactions?ids=${ids.map(encodeURIComponent).join(",")}`,
+      withAuth(),
+    );
+    if (!res.ok) return loadLocalReactions();
+    const data = (await res.json()) as { reactions?: ChatReactionMap };
+    const map = data.reactions && typeof data.reactions === "object" ? data.reactions : {};
+    saveLocalReactions(map);
+    return map;
+  } catch {
+    return loadLocalReactions();
+  }
+}
+
 export function toggleLocalReaction(
   map: ChatReactionMap,
   messageId: string,
@@ -132,6 +187,16 @@ export function toggleLocalReaction(
   else next[messageId][emoji] = Array.from(users);
   if (Object.keys(next[messageId]).length === 0) delete next[messageId];
   saveLocalReactions(next);
+  void fetch(
+    "/api/chat/reactions",
+    withAuth({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageId, emoji }),
+    }),
+  ).catch(() => {
+    /* offline */
+  });
   return next;
 }
 

@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import { LEVEL_TIERS } from "@/lib/user/user-level";
 import { DEFAULT_BUILTIN_PERMISSIONS, ROLE_PERMISSIONS_KEY } from "@/lib/security/permissions";
+import { FAQ_SEED_ARTICLES, FAQ_SEED_CATEGORIES } from "@/db/faq-seed";
 
 export async function migrateDb() {
   const url = process.env.DATABASE_URL;
@@ -790,10 +791,129 @@ export async function migrateDb() {
       )`,
       `CREATE INDEX IF NOT EXISTS user_recovery_codes_user_idx ON user_recovery_codes (user_id)`,
       `CREATE INDEX IF NOT EXISTS user_recovery_codes_hash_idx ON user_recovery_codes (code_hash)`,
+      // FAQ help center
+      `CREATE TABLE IF NOT EXISTS faq_categories (
+        id VARCHAR(64) PRIMARY KEY,
+        label_key VARCHAR(120) NOT NULL,
+        icon VARCHAR(48) NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      )`,
+      `CREATE INDEX IF NOT EXISTS faq_categories_sort_idx ON faq_categories (sort_order)`,
+      `CREATE TABLE IF NOT EXISTS faq_articles (
+        id VARCHAR(96) PRIMARY KEY,
+        category_id VARCHAR(64) NOT NULL REFERENCES faq_categories(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+        related_slugs JSONB NOT NULL DEFAULT '[]'::jsonb,
+        popularity INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        published BOOLEAN NOT NULL DEFAULT TRUE
+      )`,
+      `CREATE INDEX IF NOT EXISTS faq_articles_category_idx ON faq_articles (category_id, sort_order)`,
+      `CREATE INDEX IF NOT EXISTS faq_articles_published_pop_idx ON faq_articles (published, popularity)`,
+      `CREATE TABLE IF NOT EXISTS faq_feedback (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        article_id VARCHAR(96) NOT NULL REFERENCES faq_articles(id) ON DELETE CASCADE,
+        helpful BOOLEAN NOT NULL,
+        note TEXT,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        visitor_key VARCHAR(80),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS faq_feedback_article_idx ON faq_feedback (article_id)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS faq_feedback_user_article
+        ON faq_feedback (user_id, article_id) WHERE user_id IS NOT NULL`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS faq_feedback_visitor_article
+        ON faq_feedback (visitor_key, article_id) WHERE visitor_key IS NOT NULL`,
+      // History dashboard per-user anime notes
+      `CREATE TABLE IF NOT EXISTS user_anime_notes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        anime_id VARCHAR(255) NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        CONSTRAINT user_anime_notes_user_anime UNIQUE (user_id, anime_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS user_anime_notes_user_idx ON user_anime_notes (user_id)`,
+      // Per-user chat pins (snapshot — messages TTL-expire)
+      `CREATE TABLE IF NOT EXISTS chat_pins (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        message_id UUID NOT NULL,
+        body TEXT NOT NULL DEFAULT '',
+        gif_url TEXT,
+        username VARCHAR(25) NOT NULL,
+        avatar_url TEXT,
+        message_created_at TIMESTAMP,
+        pinned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        CONSTRAINT chat_pins_user_message UNIQUE (user_id, message_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS chat_pins_user_pinned_idx ON chat_pins (user_id, pinned_at DESC)`,
+      // Shared chat reactions (cascade when message sweeps)
+      `CREATE TABLE IF NOT EXISTS chat_reactions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        message_id UUID NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        emoji VARCHAR(32) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        CONSTRAINT chat_reactions_message_user_emoji UNIQUE (message_id, user_id, emoji)
+      )`,
+      `CREATE INDEX IF NOT EXISTS chat_reactions_message_idx ON chat_reactions (message_id)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>
         console.error("[migrate] alter failed:", sql, e),
+      );
+    }
+
+    // Seed / refresh FAQ content so fresh deploys get the full help center.
+    for (const cat of FAQ_SEED_CATEGORIES) {
+      await client`
+        INSERT INTO faq_categories (id, label_key, icon, sort_order)
+        VALUES (${cat.id}, ${cat.labelKey}, ${cat.icon}, ${cat.order})
+        ON CONFLICT (id) DO UPDATE SET
+          label_key = EXCLUDED.label_key,
+          icon = EXCLUDED.icon,
+          sort_order = EXCLUDED.sort_order
+      `.catch((e: unknown) =>
+        console.error("[migrate] faq category seed failed:", cat.id, e),
+      );
+    }
+    for (const art of FAQ_SEED_ARTICLES) {
+      const tags = JSON.stringify(art.tags);
+      const related = JSON.stringify(art.relatedIds);
+      await client`
+        INSERT INTO faq_articles (
+          id, category_id, title, answer, tags, related_slugs,
+          popularity, sort_order, updated_at, published
+        )
+        VALUES (
+          ${art.id},
+          ${art.category},
+          ${art.title},
+          ${art.answer},
+          ${tags}::jsonb,
+          ${related}::jsonb,
+          ${art.popularity},
+          ${art.order},
+          ${art.updatedAt}::timestamp,
+          TRUE
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          category_id = EXCLUDED.category_id,
+          title = EXCLUDED.title,
+          answer = EXCLUDED.answer,
+          tags = EXCLUDED.tags,
+          related_slugs = EXCLUDED.related_slugs,
+          popularity = EXCLUDED.popularity,
+          sort_order = EXCLUDED.sort_order,
+          updated_at = EXCLUDED.updated_at,
+          published = TRUE
+      `.catch((e: unknown) =>
+        console.error("[migrate] faq article seed failed:", art.id, e),
       );
     }
 

@@ -7,11 +7,13 @@ import {
   boolean,
   timestamp,
   unique,
+  uniqueIndex,
   index,
   jsonb,
   real,
   primaryKey,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -1096,3 +1098,131 @@ export const discordChatXp = pgTable("discord_chat_xp", {
   lastGuildId: varchar("last_guild_id", { length: 32 }),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// ── FAQ (help center) ──────────────────────────────────────────────────────
+export const faqCategories = pgTable(
+  "faq_categories",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    labelKey: varchar("label_key", { length: 120 }).notNull(),
+    icon: varchar("icon", { length: 48 }).notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => ({
+    sortIdx: index("faq_categories_sort_idx").on(t.sortOrder),
+  }),
+);
+
+export const faqArticles = pgTable(
+  "faq_articles",
+  {
+    id: varchar("id", { length: 96 }).primaryKey(),
+    categoryId: varchar("category_id", { length: 64 })
+      .notNull()
+      .references(() => faqCategories.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    answer: text("answer").notNull(),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    relatedSlugs: jsonb("related_slugs").$type<string[]>().notNull().default([]),
+    popularity: integer("popularity").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    published: boolean("published").notNull().default(true),
+  },
+  (t) => ({
+    categoryIdx: index("faq_articles_category_idx").on(t.categoryId, t.sortOrder),
+    publishedPopIdx: index("faq_articles_published_pop_idx").on(t.published, t.popularity),
+  }),
+);
+
+/** Helpful / not-helpful votes on FAQ articles (logged-in or anon visitor key). */
+export const faqFeedback = pgTable(
+  "faq_feedback",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    articleId: varchar("article_id", { length: 96 })
+      .notNull()
+      .references(() => faqArticles.id, { onDelete: "cascade" }),
+    helpful: boolean("helpful").notNull(),
+    note: text("note"),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    visitorKey: varchar("visitor_key", { length: 80 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    articleIdx: index("faq_feedback_article_idx").on(t.articleId),
+    userArticle: uniqueIndex("faq_feedback_user_article")
+      .on(t.userId, t.articleId)
+      .where(sql`${t.userId} IS NOT NULL`),
+    visitorArticle: uniqueIndex("faq_feedback_visitor_article")
+      .on(t.visitorKey, t.articleId)
+      .where(sql`${t.visitorKey} IS NOT NULL`),
+  }),
+);
+
+/** Per-user private notes on anime (History dashboard). */
+export const userAnimeNotes = pgTable(
+  "user_anime_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    animeId: varchar("anime_id", { length: 255 }).notNull(),
+    note: text("note").notNull().default(""),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    userAnime: unique("user_anime_notes_user_anime").on(t.userId, t.animeId),
+    userIdx: index("user_anime_notes_user_idx").on(t.userId),
+  }),
+);
+
+/**
+ * Per-user chat pins. Snapshots body/username because live messages TTL-expire.
+ */
+export const chatPins = pgTable(
+  "chat_pins",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    messageId: uuid("message_id").notNull(),
+    body: text("body").notNull().default(""),
+    gifUrl: text("gif_url"),
+    username: varchar("username", { length: 25 }).notNull(),
+    avatarUrl: text("avatar_url"),
+    messageCreatedAt: timestamp("message_created_at"),
+    pinnedAt: timestamp("pinned_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    userMessage: unique("chat_pins_user_message").on(t.userId, t.messageId),
+    userPinnedIdx: index("chat_pins_user_pinned_idx").on(t.userId, t.pinnedAt),
+  }),
+);
+
+/** Shared emoji reactions on live chat messages. */
+export const chatReactions = pgTable(
+  "chat_reactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => chatMessages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: varchar("emoji", { length: 32 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    messageUserEmoji: unique("chat_reactions_message_user_emoji").on(
+      t.messageId,
+      t.userId,
+      t.emoji,
+    ),
+    messageIdx: index("chat_reactions_message_idx").on(t.messageId),
+  }),
+);

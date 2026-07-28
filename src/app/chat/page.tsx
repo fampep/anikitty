@@ -34,8 +34,9 @@ import { useT } from "@/providers/i18n-provider";
 import { formatChatTtlLabel, type ChatMessage } from "@/lib/social/chat";
 import { buildChatListItems } from "@/lib/social/chat-list";
 import {
+  fetchPinnedMessages,
+  fetchReactionsForMessages,
   loadLocalReactions,
-  loadPinnedMessages,
   pinChatMessage,
   summarizeReactions,
   toggleLocalReaction,
@@ -73,9 +74,34 @@ export default function ChatPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setPins(loadPinnedMessages());
+    let cancelled = false;
+    void fetchPinnedMessages().then((next) => {
+      if (!cancelled) setPins(next);
+    });
     setReactions(loadLocalReactions());
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [auth?.id]);
+
+  const messageIdsKey = useMemo(() => messages.map((m) => m.id).join(","), [messages]);
+
+  useEffect(() => {
+    if (!messageIdsKey) return;
+    let cancelled = false;
+    const ids = messageIdsKey.split(",").filter(Boolean);
+    const load = () => {
+      void fetchReactionsForMessages(ids).then((map) => {
+        if (!cancelled) setReactions(map);
+      });
+    };
+    load();
+    const timer = window.setInterval(load, 15_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [messageIdsKey]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

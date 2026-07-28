@@ -1,162 +1,158 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { HelpCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Container from "@/components/layout/container";
-import { ROUTES } from "@/constants/routes";
-import { DISCORD_INVITE_URL, FAQ_LAST_UPDATED } from "@/constants/site-meta";
-import { useT } from "@/providers/i18n-provider";
+import FaqSearch from "@/components/faq/faq-search";
+import FaqSidebar from "@/components/faq/faq-sidebar";
+import FaqPopular from "@/components/faq/faq-popular";
+import FaqAccordionItem from "@/components/faq/faq-accordion-item";
+import FaqHelpFooter from "@/components/faq/faq-help-footer";
 import {
-  HelpCircle,
-  Tv2,
-  User,
-  MessageSquare,
-  Shield,
-  Database,
-  ExternalLink,
-  Coffee,
-  Search,
-} from "lucide-react";
-import { cn } from "@/lib/core/utils";
+  categoriesWithContent,
+  getPopularFaqItems,
+} from "@/lib/faq/faq-helpers";
+import { toFaqCategoryMeta } from "@/lib/faq/faq-icons";
+import type { FaqCategoryId, FaqItem, FaqPayload } from "@/lib/faq/types";
+import { FAQ_LAST_UPDATED, DISCORD_INVITE_URL } from "@/constants/site-meta";
+import { ROUTES } from "@/constants/routes";
+import { useT } from "@/providers/i18n-provider";
 
-type FaqItem = { q: string; a: string };
-type FaqSection = { id: string; title: string; icon: React.ReactNode; items: FaqItem[] };
-
-function FaqBlock({ item }: { item: FaqItem }) {
-  return (
-    <details className="group site-panel overflow-hidden">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold text-foreground dark:text-white/85 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-colors [&::-webkit-details-marker]:hidden">
-        <span>{item.q}</span>
-        <span className="text-muted-foreground/80 dark:text-white/25 text-lg leading-none group-open:rotate-45 transition-transform shrink-0">
-          +
-        </span>
-      </summary>
-      <div className="px-5 pb-4 pt-0 text-sm text-muted-foreground dark:text-white/50 leading-relaxed border-t border-border dark:border-white/[0.06]">
-        <div className="pt-3 whitespace-pre-wrap">{item.a}</div>
-      </div>
-    </details>
-  );
+function matchesQuery(item: FaqItem, q: string) {
+  if (!q) return true;
+  const hay = `${item.title}\n${item.answer}\n${item.tags.join(" ")}\n${item.category}`.toLowerCase();
+  return hay.includes(q);
 }
 
-export default function FaqContent() {
+async function fetchFaq(): Promise<FaqPayload> {
+  const res = await fetch("/api/faq");
+  if (!res.ok) throw new Error("Failed to load FAQ");
+  return res.json();
+}
+
+type Props = {
+  initialData: FaqPayload;
+};
+
+export default function FaqContent({ initialData }: Props) {
   const t = useT();
   const [query, setQuery] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const sections: FaqSection[] = useMemo(
-    () => [
-      {
-        id: "basics",
-        title: t("faq.sections.basics"),
-        icon: <HelpCircle className="w-4 h-4" />,
-        items: [
-          { q: t("faq.basics.whatIsQ"), a: t("faq.basics.whatIsA") },
-          { q: t("faq.basics.accountQ"), a: t("faq.basics.accountA") },
-          { q: t("faq.basics.freeQ"), a: t("faq.basics.freeA") },
-        ],
-      },
-      {
-        id: "watching",
-        title: t("faq.sections.watching"),
-        icon: <Tv2 className="w-4 h-4" />,
-        items: [
-          { q: t("faq.watching.streamingQ"), a: t("faq.watching.streamingA") },
-          { q: t("faq.watching.providersQ"), a: t("faq.watching.providersA") },
-          { q: t("faq.watching.subDubQ"), a: t("faq.watching.subDubA") },
-          { q: t("faq.watching.playerSettingsQ"), a: t("faq.watching.playerSettingsA") },
-          { q: t("faq.watching.castQ"), a: t("faq.watching.castA") },
-          { q: t("faq.watching.continueQ"), a: t("faq.watching.continueA") },
-          { q: t("faq.watching.recommendationsQ"), a: t("faq.watching.recommendationsA") },
-          { q: t("faq.watching.recentlyViewedQ"), a: t("faq.watching.recentlyViewedA") },
-          { q: t("faq.watching.voiceActorsQ"), a: t("faq.watching.voiceActorsA") },
-          { q: t("faq.watching.anilistQ"), a: t("faq.watching.anilistA") },
-          { q: t("faq.watching.subtitlesQ"), a: t("faq.watching.subtitlesA") },
-          { q: t("faq.watching.scheduleQ"), a: t("faq.watching.scheduleA") },
-        ],
-      },
-      {
-        id: "account",
-        title: t("faq.sections.account"),
-        icon: <User className="w-4 h-4" />,
-        items: [
-          { q: t("faq.accountSection.createQ"), a: t("faq.accountSection.createA") },
-          { q: t("faq.accountSection.profileQ"), a: t("faq.accountSection.profileA") },
-          { q: t("faq.accountSection.ninjaQ"), a: t("faq.accountSection.ninjaA") },
-          { q: t("faq.accountSection.levelsQ"), a: t("faq.accountSection.levelsA") },
-          { q: t("faq.accountSection.achievementsQ"), a: t("faq.accountSection.achievementsA") },
-          { q: t("faq.accountSection.passkeysQ"), a: t("faq.accountSection.passkeysA") },
-          { q: t("faq.accountSection.twoFactorQ"), a: t("faq.accountSection.twoFactorA") },
-          { q: t("faq.accountSection.sessionsQ"), a: t("faq.accountSection.sessionsA") },
-        ],
-      },
-      {
-        id: "community",
-        title: t("faq.sections.community"),
-        icon: <MessageSquare className="w-4 h-4" />,
-        items: [
-          { q: t("faq.community.chatQ"), a: t("faq.community.chatA") },
-          { q: t("faq.community.forumQ"), a: t("faq.community.forumA") },
-          { q: t("faq.community.commentsQ"), a: t("faq.community.commentsA") },
-          { q: t("faq.community.followQ"), a: t("faq.community.followA") },
-          { q: t("faq.community.friendsQ"), a: t("faq.community.friendsA") },
-          { q: t("faq.community.notificationsQ"), a: t("faq.community.notificationsA") },
-          { q: t("faq.community.blockQ"), a: t("faq.community.blockA") },
-          { q: t("faq.community.reportQ"), a: t("faq.community.reportA") },
-          { q: t("faq.community.w2gQ"), a: t("faq.community.w2gA") },
-          { q: t("faq.community.onlineQ"), a: t("faq.community.onlineA") },
-        ],
-      },
-      {
-        id: "support",
-        title: t("faq.sections.support"),
-        icon: <Coffee className="w-4 h-4" />,
-        items: [
-          { q: t("faq.support.kofiQ"), a: t("faq.support.kofiA") },
-          { q: t("faq.support.donatorQ"), a: t("faq.support.donatorA") },
-        ],
-      },
-      {
-        id: "privacy",
-        title: t("faq.sections.privacy"),
-        icon: <Database className="w-4 h-4" />,
-        items: [
-          { q: t("faq.privacy.dataQ"), a: t("faq.privacy.dataA") },
-          { q: t("faq.privacy.browserQ"), a: t("faq.privacy.browserA") },
-          { q: t("faq.privacy.thirdPartyQ"), a: t("faq.privacy.thirdPartyA") },
-          { q: t("faq.privacy.notDoQ"), a: t("faq.privacy.notDoA") },
-          { q: t("faq.privacy.deleteQ"), a: t("faq.privacy.deleteA") },
-          { q: t("faq.privacy.cookiesQ"), a: t("faq.privacy.cookiesA") },
-        ],
-      },
-      {
-        id: "security",
-        title: t("faq.sections.security"),
-        icon: <Shield className="w-4 h-4" />,
-        items: [
-          { q: t("faq.security.passwordQ"), a: t("faq.security.passwordA") },
-          { q: t("faq.security.httpsQ"), a: t("faq.security.httpsA") },
-          { q: t("faq.security.rateLimitQ"), a: t("faq.security.rateLimitA") },
-          { q: t("faq.security.moderationQ"), a: t("faq.security.moderationA") },
-        ],
-      },
-    ],
-    [t],
+  const { data } = useQuery({
+    queryKey: ["faq-content"],
+    queryFn: fetchFaq,
+    initialData,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const articles = data?.articles ?? [];
+  const categoryMeta = useMemo(
+    () => (data?.categories ?? []).map(toFaqCategoryMeta),
+    [data?.categories],
   );
 
   const normalizedQuery = query.trim().toLowerCase();
-  const visibleSections = useMemo(() => {
-    if (!normalizedQuery) return sections;
-    return sections
-      .map((section) => ({
-        ...section,
-        items: section.items.filter(
-          (item) =>
-            item.q.toLowerCase().includes(normalizedQuery) ||
-            item.a.toLowerCase().includes(normalizedQuery) ||
-            section.title.toLowerCase().includes(normalizedQuery),
-        ),
-      }))
-      .filter((section) => section.items.length > 0);
-  }, [normalizedQuery, sections]);
+  const popular = useMemo(() => getPopularFaqItems(articles, 6), [articles]);
+
+  const filteredItems = useMemo(
+    () =>
+      articles
+        .filter((item) => matchesQuery(item, normalizedQuery))
+        .sort((a, b) => a.order - b.order || b.popularity - a.popularity),
+    [articles, normalizedQuery],
+  );
+
+  const categories = useMemo(
+    () => categoriesWithContent(categoryMeta, filteredItems),
+    [categoryMeta, filteredItems],
+  );
+
+  const grouped = useMemo(() => {
+    const map = new Map<FaqCategoryId, FaqItem[]>();
+    for (const cat of categories) map.set(cat.id, []);
+    for (const item of filteredItems) {
+      const list = map.get(item.category);
+      if (list) list.push(item);
+    }
+    return categories
+      .map((cat) => ({ cat, items: map.get(cat.id) ?? [] }))
+      .filter((g) => g.items.length > 0);
+  }, [categories, filteredItems]);
+
+  const counts = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const { cat, items } of grouped) out[cat.id] = items.length;
+    return out;
+  }, [grouped]);
+
+  const openQuestion = useCallback(
+    (id: string, opts?: { scroll?: boolean; replaceHash?: boolean }) => {
+      setOpenId(id);
+      const item = articles.find((x) => x.id === id);
+      if (item) setActiveCategory(item.category);
+      if (opts?.replaceHash !== false) {
+        const url = `${ROUTES.FAQ}#${id}`;
+        window.history.replaceState(null, "", url);
+      }
+      if (opts?.scroll !== false) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(id);
+          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+          el?.querySelector<HTMLElement>("button[aria-expanded]")?.focus({ preventScroll: true });
+        });
+      }
+    },
+    [articles],
+  );
+
+  useEffect(() => {
+    const applyHash = () => {
+      const hash = window.location.hash.replace(/^#/, "");
+      if (!hash) return;
+      if (articles.some((item) => item.id === hash)) {
+        openQuestion(hash, { replaceHash: false });
+      } else if (categoryMeta.some((c) => c.id === hash)) {
+        setActiveCategory(hash);
+        document.getElementById(`faq-cat-${hash}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, [openQuestion, articles, categoryMeta]);
+
+  useEffect(() => {
+    if (normalizedQuery) return;
+    const sectionEls = grouped
+      .map(({ cat }) => document.getElementById(`faq-cat-${cat.id}`))
+      .filter((el): el is HTMLElement => Boolean(el));
+    if (sectionEls.length === 0 || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]?.target.id) {
+          setActiveCategory(visible[0].target.id.replace(/^faq-cat-/, ""));
+        }
+      },
+      { rootMargin: "-20% 0px -65% 0px", threshold: [0, 0.25, 0.5] },
+    );
+    for (const el of sectionEls) observer.observe(el);
+    return () => observer.disconnect();
+  }, [grouped, normalizedQuery]);
+
+  const navigateCategory = useCallback((categoryId: string) => {
+    setActiveCategory(categoryId);
+    window.history.replaceState(null, "", `${ROUTES.FAQ}#${categoryId}`);
+    document.getElementById(`faq-cat-${categoryId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const lastUpdated = t("faq.lastUpdated", {
     date: new Date(FAQ_LAST_UPDATED).toLocaleDateString(undefined, {
@@ -166,101 +162,138 @@ export default function FaqContent() {
     }),
   });
 
+  const empty = filteredItems.length === 0;
+
   return (
-    <div className="min-h-screen pt-8 pb-24">
-      <Container className="max-w-3xl">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-0.5 h-6 bg-muted/30 dark:bg-white/35 shrink-0" />
-          <HelpCircle className="w-5 h-5 text-muted-foreground dark:text-white/50" />
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground dark:text-white tracking-tight">
-            {t("faq.title")}
-          </h1>
-        </div>
-        <p className="text-sm text-muted-foreground dark:text-white/35 font-mono ml-[1.375rem] pl-8 mb-6 max-w-2xl leading-relaxed">
-          {t("faq.subtitle")} {lastUpdated}.
-        </p>
-
-        <label className="relative mb-8 block ml-[1.375rem] pl-8 max-w-xl">
-          <span className="sr-only">{t("faq.searchPlaceholder")}</span>
-          <Search className="pointer-events-none absolute left-11 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground dark:text-white/35" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("faq.searchPlaceholder")}
-            className="w-full rounded-xl border border-border/70 dark:border-white/[0.1] bg-muted/30 dark:bg-white/[0.03] py-2.5 pl-9 pr-3 text-sm text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/30 outline-none focus:border-border dark:focus:border-white/20 focus:bg-muted/40 dark:focus:bg-white/[0.045] transition-colors"
-          />
-        </label>
-
-        {!normalizedQuery ? (
-          <nav className="flex flex-wrap gap-2 mb-10">
-            {sections.map((s) => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border dark:border-white/10 bg-muted/40 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground/90 dark:hover:text-white/80 hover:border-border dark:hover:border-white/20 transition-colors"
-              >
-                {s.icon}
-                {s.title}
-              </a>
-            ))}
-          </nav>
-        ) : null}
-
-        {visibleSections.length === 0 ? (
-          <p className="text-sm text-muted-foreground dark:text-white/40 font-mono py-10 text-center">
-            {t("faq.noSearchResults")}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-12">
-            {visibleSections.map((section) => (
-              <section key={section.id} id={section.id} className="scroll-mt-24">
-                <div className="flex items-center gap-2.5 mb-4">
-                  <span className="text-zinc-400/70">{section.icon}</span>
-                  <h2 className="text-lg font-bold text-foreground dark:text-white/90">{section.title}</h2>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {section.items.map((item) => (
-                    <FaqBlock key={item.q} item={item} />
-                  ))}
-                </div>
-              </section>
-            ))}
+    <div className="min-h-screen pb-24 pt-8">
+      <Container className="max-w-6xl">
+        <header className="mb-6 md:mb-8">
+          <div className="mb-2 flex items-center gap-3">
+            <div className="h-6 w-0.5 shrink-0 bg-muted/30 dark:bg-white/35" />
+            <HelpCircle className="h-5 w-5 text-muted-foreground dark:text-white/50" />
+            <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-white md:text-3xl">
+              {t("faq.title")}
+            </h1>
           </div>
-        )}
+          <p className="ml-[1.375rem] max-w-2xl pl-8 font-mono text-sm leading-relaxed text-muted-foreground dark:text-white/35">
+            {t("faq.subtitle")} {lastUpdated}.
+          </p>
+        </header>
 
-        <div className={cn("mt-14 site-panel p-5 sm:p-6")}>
-          <p className="text-sm font-semibold text-foreground/90 dark:text-white/80 mb-2">
-            {t("faq.stillQuestions")}
-          </p>
-          <p className="text-sm text-muted-foreground dark:text-white/45 leading-relaxed mb-4">
-            {t("faq.contactDesc")}
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href={DISCORD_INVITE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
-            >
-              {t("footer.discord")}
-              <ExternalLink className="w-3.5 h-3.5 opacity-50" />
-            </a>
-            <a
-              href="https://github.com/fampep/anikitty"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 dark:bg-white/5 border border-border dark:border-white/12 text-sm text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/8 hover:text-foreground dark:hover:text-white transition-colors"
-            >
-              {t("footer.github")}
-              <ExternalLink className="w-3.5 h-3.5 opacity-50" />
-            </a>
-            <Link
-              href={ROUTES.SETTINGS}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 border border-primary/25 text-sm text-zinc-200 hover:bg-primary/30 transition-colors"
-            >
-              {t("faq.accountSettings")}
-            </Link>
+        <FaqSearch
+          value={query}
+          onChange={setQuery}
+          sticky
+          resultCount={normalizedQuery ? filteredItems.length : null}
+          className="mb-6 max-w-2xl md:mb-8"
+        />
+
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8">
+          {!empty ? (
+            <FaqSidebar
+              categories={categories}
+              activeId={activeCategory}
+              counts={counts}
+              onNavigate={navigateCategory}
+            />
+          ) : (
+            <div className="hidden lg:block" />
+          )}
+
+          <div className="min-w-0">
+            {!normalizedQuery ? (
+              <FaqPopular
+                items={popular}
+                onSelect={(id) => openQuestion(id)}
+                className="mb-8 animate-in fade-in slide-in-from-bottom-1 duration-300"
+              />
+            ) : null}
+
+            {empty ? (
+              <div className="site-panel animate-in fade-in duration-200 space-y-6 p-6 text-center sm:p-8">
+                <p className="font-mono text-sm text-muted-foreground dark:text-white/40">
+                  {t("faq.noSearchResults")}
+                </p>
+                <FaqPopular
+                  items={popular}
+                  onSelect={(id) => {
+                    setQuery("");
+                    openQuestion(id);
+                  }}
+                  titleKey="faq.popularFallback"
+                  className="border-0 bg-transparent p-0 shadow-none"
+                />
+                <div className="flex flex-wrap justify-center gap-2 pt-1">
+                  <a
+                    href={DISCORD_INVITE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="site-ghost-btn px-3 py-2 text-xs"
+                  >
+                    {t("footer.discord")}
+                  </a>
+                  <a
+                    href="https://github.com/fampep/anikitty/issues/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="site-ghost-btn px-3 py-2 text-xs"
+                  >
+                    {t("faq.reportBug")}
+                  </a>
+                  <Link href={ROUTES.CHAT} className="site-ghost-btn px-3 py-2 text-xs">
+                    {t("faq.openChat")}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-10">
+                {grouped.map(({ cat, items }) => {
+                  const Icon = cat.icon;
+                  return (
+                    <section
+                      key={cat.id}
+                      id={`faq-cat-${cat.id}`}
+                      className="scroll-mt-28 animate-in fade-in slide-in-from-bottom-1 duration-300"
+                    >
+                      <div className="mb-3.5 flex items-center gap-2.5">
+                        <span className="text-muted-foreground/80 dark:text-white/40">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <h2 className="text-lg font-bold text-foreground dark:text-white/90">
+                          {t(cat.labelKey)}
+                        </h2>
+                        <span className="font-mono text-[10px] text-muted-foreground/70 dark:text-white/25">
+                          {items.length}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2" role="list">
+                        {items.map((item) => (
+                          <div key={item.id} role="listitem">
+                            <FaqAccordionItem
+                              item={item}
+                              allItems={articles}
+                              open={openId === item.id}
+                              highlight={normalizedQuery || undefined}
+                              onToggle={() => {
+                                if (openId === item.id) {
+                                  setOpenId(null);
+                                  window.history.replaceState(null, "", ROUTES.FAQ);
+                                } else {
+                                  openQuestion(item.id, { scroll: false });
+                                }
+                              }}
+                              onOpenRelated={(id) => openQuestion(id)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            )}
+
+            <FaqHelpFooter />
           </div>
         </div>
       </Container>

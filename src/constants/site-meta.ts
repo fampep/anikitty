@@ -16,5 +16,5 @@ export const OFFICIAL_DOMAINS = [
   { host: "anikitty.online", href: "https://anikitty.online" },
 ] as const;
 
-/** ISO date for the FAQ & privacy page — update when content changes. */
-export const FAQ_LAST_UPDATED = "2026-07-25";
+/** ISO date for the FAQ help center — update when content changes. */
+export const FAQ_LAST_UPDATED = "2026-07-28";

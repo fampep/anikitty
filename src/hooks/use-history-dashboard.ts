@@ -6,7 +6,7 @@ import { useWatchlistStore } from "@/store/watchlist-store";
 import { useProgressStore } from "@/store/progress-store";
 import { anisurgeContinue, anisurgeWatchlist, folderToStatus } from "@/lib/oauth/anisurge";
 import { getRecentlyViewed, type RecentlyViewedAnime } from "@/lib/core/recently-viewed";
-import { getHistoryNotes, setHistoryNote, type HistoryNotesMap } from "@/lib/history/notes";
+import { getHistoryNotes, loadHistoryNotes, setHistoryNote, type HistoryNotesMap } from "@/lib/history/notes";
 import {
   buildAggregates,
   buildActivity,
@@ -229,7 +229,10 @@ export function useHistoryDashboard() {
   }, [load, watchlistVersion, localVersion]);
 
   useEffect(() => {
-    setNotes(getHistoryNotes());
+    let cancelled = false;
+    void loadHistoryNotes(!!auth).then((n) => {
+      if (!cancelled) setNotes(n);
+    });
     setRecentlyViewed(getRecentlyViewed());
     const onNotes = () => setNotes(getHistoryNotes());
     const onViewed = () => setRecentlyViewed(getRecentlyViewed());
@@ -237,11 +240,12 @@ export function useHistoryDashboard() {
     window.addEventListener("anikitty:recently-viewed", onViewed);
     window.addEventListener("storage", onNotes);
     return () => {
+      cancelled = true;
       window.removeEventListener("anikitty:history-notes", onNotes);
       window.removeEventListener("anikitty:recently-viewed", onViewed);
       window.removeEventListener("storage", onNotes);
     };
-  }, []);
+  }, [auth]);
 
   const aggregates = useMemo(
     () => buildAggregates(episodes, watchlist, notes),

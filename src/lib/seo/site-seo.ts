@@ -90,8 +90,8 @@ export const PAGE_SEO = {
     path: "/watch-together",
   },
   faq: {
-    title: "FAQ | AniKitty",
-    description: "How AniKitty works — streaming, accounts, and privacy.",
+    title: "Help Center | AniKitty",
+    description: "Search AniKitty help — watching, accounts, watchlists, privacy, and troubleshooting.",
     path: "/faq",
   },
   history: {
