@@ -155,11 +155,12 @@ body {
 
   .home-cinema {
     --home-hero-max-h: 56lvh;
+    --home-section-gap: 3.25rem;
     @apply relative isolate;
   }
 
   .home-cinema--compact {
-    --home-section-gap: 1.35rem;
+    --home-section-gap: 1.75rem;
     --home-hero-max-h: 48lvh;
   }
 

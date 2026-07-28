@@ -469,6 +469,15 @@
     "latestEpisodesDesc": "Fresh drops across sub and dub",
     "newReleases": "New Releases",
     "newReleasesDesc": "Recently added TV, movies, OVA & ONA",
+    "newAndUpcoming": "New & Upcoming",
+    "newAndUpcomingDesc": "Fresh additions and upcoming premieres",
+    "browseGenresHint": "Explore Romance, Action, Comedy, and more",
+    "sectionWhatsNewDesc": "Latest episodes and new titles",
+    "sectionTopAnime": "Top Anime",
+    "sectionTopAnimeDesc": "Rankings and picks for you",
+    "sectionMoreDesc": "Optional extras you turned on",
+    "showOptionalSections": "Show optional sections…",
+    "hideOptionalSections": "Hide optional sections",
     "justCompleted": "Just Completed",
     "justCompletedDesc": "Recently finished airing",
     "finalEp": "Final EP {n}",
@@ -566,7 +575,8 @@
     "quickNav": {
       "label": "Jump to section",
       "continue": "Continue",
-      "latest": "Latest episodes",
+      "latest": "Latest",
+      "newUpcoming": "New & Upcoming",
       "trending": "Rankings",
       "today": "Schedule",
       "discover": "Discover",
@@ -574,9 +584,9 @@
     },
     "feedSections": {
       "forYou": "For you",
-      "fresh": "Fresh picks",
+      "fresh": "What's New",
       "today": "Schedule & community",
-      "explore": "Explore more"
+      "explore": "More"
     },
     "promos": {
       "shop": { "title": "Kittycoins shop", "desc": "Stickers, frames & profile flair" },
@@ -598,7 +608,7 @@
     "upcomingSeasonNamed": "Coming · {season}",
     "customize": "Customize",
     "customizeHome": "Customize Home",
-    "customizeHint": "Hide or reorder rails. Saved in this browser.",
+    "customizeHint": "Essentials on by default. Optional rails stay off until you enable them.",
     "hideSection": "Hide section",
     "showSection": "Show section",
     "resetLayout": "Reset layout",

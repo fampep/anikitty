@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Eye, EyeOff, GripVertical, Settings2, X } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 import {
   DEFAULT_HOME_LAYOUT,
+  HOME_PRIMARY_SECTIONS,
+  isPrimaryHomeSection,
   readHomeLayoutPrefs,
   writeHomeLayoutPrefs,
   type HomeLayoutPrefs,
@@ -15,6 +17,7 @@ import {
 const LABEL_KEYS: Record<HomeSectionId, string> = {
   continue: "continueWatching",
   "new-episodes": "latestEpisodes",
+  "new-upcoming": "newAndUpcoming",
   upcoming: "upcomingAnime",
   "recently-added": "newReleases",
   completed: "justCompleted",
@@ -35,6 +38,7 @@ export default function HomeCustomizeButton() {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState<HomeLayoutPrefs>(DEFAULT_HOME_LAYOUT);
+  const [showOptional, setShowOptional] = useState(false);
 
   useEffect(() => {
     setPrefs(readHomeLayoutPrefs());
@@ -65,6 +69,12 @@ export default function HomeCustomizeButton() {
   };
 
   const reset = () => persist(DEFAULT_HOME_LAYOUT);
+
+  const visibleRows = useMemo(() => {
+    if (showOptional) return prefs.order;
+    const primary = new Set(HOME_PRIMARY_SECTIONS);
+    return prefs.order.filter((id) => primary.has(id));
+  }, [prefs.order, showOptional]);
 
   return (
     <>
@@ -103,7 +113,8 @@ export default function HomeCustomizeButton() {
             </div>
 
             <div className="overflow-y-auto p-3 flex flex-col gap-1.5">
-              {prefs.order.map((id, index) => {
+              {visibleRows.map((id) => {
+                const index = prefs.order.indexOf(id);
                 const hidden = prefs.hidden.includes(id);
                 const labelKey = LABEL_KEYS[id];
                 return (
@@ -112,6 +123,7 @@ export default function HomeCustomizeButton() {
                     className={cn(
                       "flex items-center gap-2 rounded-xl border border-border/60 dark:border-white/[0.07] px-2.5 py-2",
                       hidden && "opacity-50",
+                      !isPrimaryHomeSection(id) && "border-dashed",
                     )}
                   >
                     <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" aria-hidden />
@@ -121,7 +133,7 @@ export default function HomeCustomizeButton() {
                     <button
                       type="button"
                       className="size-7 rounded-md border border-border dark:border-white/10 flex items-center justify-center disabled:opacity-30"
-                      disabled={index === 0}
+                      disabled={index <= 0}
                       onClick={() => move(id, -1)}
                       aria-label={t("common.previous")}
                     >
@@ -130,7 +142,7 @@ export default function HomeCustomizeButton() {
                     <button
                       type="button"
                       className="size-7 rounded-md border border-border dark:border-white/10 flex items-center justify-center disabled:opacity-30"
-                      disabled={index === prefs.order.length - 1}
+                      disabled={index < 0 || index >= prefs.order.length - 1}
                       onClick={() => move(id, 1)}
                       aria-label={t("common.next")}
                     >
@@ -147,6 +159,14 @@ export default function HomeCustomizeButton() {
                   </div>
                 );
               })}
+
+              <button
+                type="button"
+                onClick={() => setShowOptional((v) => !v)}
+                className="mt-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground px-1 py-2 text-left"
+              >
+                {showOptional ? t("home.hideOptionalSections") : t("home.showOptionalSections")}
+              </button>
             </div>
 
             <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border dark:border-white/8">

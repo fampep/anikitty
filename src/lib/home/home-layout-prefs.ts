@@ -1,20 +1,21 @@
 export const HOME_SECTION_IDS = [
   "continue",
   "new-episodes",
+  "new-upcoming",
+  "rankings",
+  "recommended",
+  "schedule",
   "upcoming",
   "recently-added",
   "completed",
-  "rankings",
   "seasonal",
   "discovery",
-  "recommended",
   "because-you-watched",
   "recently-viewed",
   "collections",
   "community-picks",
   "studios",
   "voice-actors",
-  "schedule",
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
@@ -25,18 +26,52 @@ export type HomeLayoutPrefs = {
   compact: boolean;
 };
 
-const STORAGE_KEY = "kitty:home-layout";
+/** v2: slim default home — invalidates cluttered v1 localStorage layouts. */
+const STORAGE_KEY = "kitty:home-layout-v2";
 
-const DEFAULT_ORDER: HomeSectionId[] = [...HOME_SECTION_IDS];
+/** Default home: essential rails only. Everything else stays opt-in via Customize. */
+export const DEFAULT_VISIBLE_SECTIONS: HomeSectionId[] = [
+  "continue",
+  "new-episodes",
+  "new-upcoming",
+  "rankings",
+  "recommended",
+];
+
+export const DEFAULT_HIDDEN_SECTIONS: HomeSectionId[] = HOME_SECTION_IDS.filter(
+  (id) => !DEFAULT_VISIBLE_SECTIONS.includes(id),
+);
+
+const DEFAULT_ORDER: HomeSectionId[] = [
+  ...DEFAULT_VISIBLE_SECTIONS,
+  ...DEFAULT_HIDDEN_SECTIONS,
+];
 
 export const DEFAULT_HOME_LAYOUT: HomeLayoutPrefs = {
   order: DEFAULT_ORDER,
-  hidden: [],
+  hidden: [...DEFAULT_HIDDEN_SECTIONS],
   compact: false,
 };
 
+/** Primary sections shown first in the customize panel. */
+export const HOME_PRIMARY_SECTIONS: HomeSectionId[] = [...DEFAULT_VISIBLE_SECTIONS, "schedule"];
+
 function isSectionId(value: unknown): value is HomeSectionId {
   return typeof value === "string" && (HOME_SECTION_IDS as readonly string[]).includes(value);
+}
+
+function normalizeOrder(order: HomeSectionId[]): HomeSectionId[] {
+  const seen = new Set<HomeSectionId>();
+  const next: HomeSectionId[] = [];
+  for (const id of order) {
+    if (!isSectionId(id) || seen.has(id)) continue;
+    seen.add(id);
+    next.push(id);
+  }
+  for (const id of DEFAULT_ORDER) {
+    if (!seen.has(id)) next.push(id);
+  }
+  return next;
 }
 
 export function readHomeLayoutPrefs(): HomeLayoutPrefs {
@@ -46,9 +81,11 @@ export function readHomeLayoutPrefs(): HomeLayoutPrefs {
     if (!raw) return DEFAULT_HOME_LAYOUT;
     const parsed = JSON.parse(raw) as Partial<HomeLayoutPrefs>;
     const order = Array.isArray(parsed.order)
-      ? ([...parsed.order.filter(isSectionId), ...DEFAULT_ORDER.filter((id) => !parsed.order?.includes(id))] as HomeSectionId[])
+      ? normalizeOrder(parsed.order.filter(isSectionId))
       : DEFAULT_ORDER;
-    const hidden = Array.isArray(parsed.hidden) ? parsed.hidden.filter(isSectionId) : [];
+    const hidden = Array.isArray(parsed.hidden)
+      ? parsed.hidden.filter(isSectionId)
+      : [...DEFAULT_HIDDEN_SECTIONS];
     return {
       order,
       hidden,
@@ -75,4 +112,8 @@ export function isHomeSectionVisible(prefs: HomeLayoutPrefs, id: HomeSectionId):
 
 export function orderedVisibleSections(prefs: HomeLayoutPrefs): HomeSectionId[] {
   return prefs.order.filter((id) => !prefs.hidden.includes(id));
+}
+
+export function isPrimaryHomeSection(id: HomeSectionId): boolean {
+  return HOME_PRIMARY_SECTIONS.includes(id);
 }

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, WifiOff } from "lucide-react";
+import { Compass, RefreshCw, WifiOff } from "lucide-react";
+import Link from "next/link";
 import ContinueWatching from "@/components/home/continue-watching";
 import HomeAmbientBackdrop from "@/components/home/home-ambient-backdrop";
 import HomeRecentUpdates from "@/components/home/home-recent-updates";
@@ -15,6 +16,7 @@ import HomeCollections from "@/components/home/home-collections";
 import HomeFeaturedStudios from "@/components/home/home-featured-studios";
 import HomeFeaturedVas from "@/components/home/home-featured-vas";
 import HomeBecauseYouWatched from "@/components/home/home-because-you-watched";
+import HomeNewUpcoming from "@/components/home/home-new-upcoming";
 import Container from "@/components/layout/container";
 import LazyMount from "@/components/shared/lazy-mount";
 import { GET_HOME_CRITICAL } from "@/constants/query-keys";
@@ -49,6 +51,29 @@ const HomeDiscoveryRows = dynamic(() => import("@/components/home/home-discovery
 
 const HOME_RAIL_LIMIT = 12;
 
+type HomeGroupId = "whats-new" | "top-anime" | "more";
+
+const SECTION_GROUP: Partial<Record<HomeSectionId, HomeGroupId>> = {
+  "new-episodes": "whats-new",
+  "new-upcoming": "whats-new",
+  upcoming: "whats-new",
+  "recently-added": "whats-new",
+  completed: "whats-new",
+  schedule: "whats-new",
+  rankings: "top-anime",
+  recommended: "top-anime",
+  seasonal: "top-anime",
+  discovery: "more",
+  "because-you-watched": "more",
+  "recently-viewed": "more",
+  collections: "more",
+  "community-picks": "more",
+  studios: "more",
+  "voice-actors": "more",
+};
+
+const GROUP_ORDER: HomeGroupId[] = ["whats-new", "top-anime", "more"];
+
 function useHomeLayoutPrefs() {
   const [prefs, setPrefs] = useState<HomeLayoutPrefs>(DEFAULT_HOME_LAYOUT);
   useEffect(() => {
@@ -58,6 +83,48 @@ function useHomeLayoutPrefs() {
     return () => window.removeEventListener("anikitty:home-layout", sync);
   }, []);
   return prefs;
+}
+
+function HomeGroupHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <Container className="pt-2 pb-0">
+      <div className="flex flex-col gap-0.5 border-b border-border/50 dark:border-white/[0.06] pb-3">
+        <h2 className="text-sm font-bold tracking-wide uppercase text-muted-foreground dark:text-white/45">
+          {title}
+        </h2>
+        {subtitle ? (
+          <p className="text-[11px] text-muted-foreground/80 dark:text-white/30 font-medium">{subtitle}</p>
+        ) : null}
+      </div>
+    </Container>
+  );
+}
+
+function BrowseGenresLink() {
+  const t = useT();
+  return (
+    <Container>
+      <Link
+        href={ROUTES.SEARCH}
+        className="site-panel flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-muted/40 dark:hover:bg-white/[0.03] transition-colors site-focus"
+      >
+        <span className="inline-flex items-center gap-2.5 min-w-0">
+          <Compass className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-foreground dark:text-white/85">
+              {t("home.browseByGenre")}
+            </span>
+            <span className="block text-[11px] text-muted-foreground dark:text-white/35 mt-0.5">
+              {t("home.browseGenresHint")}
+            </span>
+          </span>
+        </span>
+        <span className="text-xs font-semibold text-muted-foreground dark:text-white/40 shrink-0">
+          {t("home.allGenres")}
+        </span>
+      </Link>
+    </Container>
+  );
 }
 
 export default function Home() {
@@ -146,6 +213,15 @@ export default function Home() {
     "new-episodes": (
       <LazyMount rootMargin="200px 0px" keepMounted minHeight={260}>
         <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
+      </LazyMount>
+    ),
+    "new-upcoming": (
+      <LazyMount rootMargin="280px 0px" keepMounted minHeight={260}>
+        <HomeNewUpcoming
+          recentlyAdded={recentlyAdded}
+          upcoming={upcoming}
+          loading={isLoading || discoveryLoadingState}
+        />
       </LazyMount>
     ),
     upcoming: (
@@ -262,6 +338,30 @@ export default function Home() {
 
   const visibleOrder = orderedVisibleSections(prefs).filter((id) => id !== "continue");
 
+  const grouped = useMemo(() => {
+    const buckets: Record<HomeGroupId, HomeSectionId[]> = {
+      "whats-new": [],
+      "top-anime": [],
+      more: [],
+    };
+    for (const id of visibleOrder) {
+      const group = SECTION_GROUP[id] ?? "more";
+      buckets[group].push(id);
+    }
+    return GROUP_ORDER.map((group) => ({
+      group,
+      ids: buckets[group],
+    })).filter((g) => g.ids.length > 0);
+  }, [visibleOrder]);
+
+  const groupCopy: Record<HomeGroupId, { title: string; subtitle?: string }> = {
+    "whats-new": { title: t("home.feedSections.fresh"), subtitle: t("home.sectionWhatsNewDesc") },
+    "top-anime": { title: t("home.sectionTopAnime"), subtitle: t("home.sectionTopAnimeDesc") },
+    more: { title: t("home.feedSections.explore"), subtitle: t("home.sectionMoreDesc") },
+  };
+
+  const showBrowseGenres = !isHomeSectionVisible(prefs, "discovery");
+
   return (
     <div
       className={cn(
@@ -295,16 +395,25 @@ export default function Home() {
       <div
         className={cn(
           "home-cinema-body relative z-[5] flex flex-col p-2 pt-0.5 sm:pt-1 pb-8",
-          prefs.compact ? "gap-5 sm:gap-6" : "gap-[var(--home-section-gap)]",
+          prefs.compact ? "gap-6 sm:gap-8" : "gap-[var(--home-section-gap)]",
         )}
       >
         <HomeWelcomeBar />
 
-        {visibleOrder.map((id) => {
-          const node = sectionNodes[id];
-          if (!node) return null;
-          return <div key={id}>{node}</div>;
-        })}
+        {grouped.map(({ group, ids }) => (
+          <section key={group} className="flex flex-col gap-8 sm:gap-10" aria-label={groupCopy[group].title}>
+            <HomeGroupHeading title={groupCopy[group].title} subtitle={groupCopy[group].subtitle} />
+            <div className="flex flex-col gap-8 sm:gap-10">
+              {ids.map((id) => {
+                const node = sectionNodes[id];
+                if (!node) return null;
+                return <div key={id}>{node}</div>;
+              })}
+            </div>
+          </section>
+        ))}
+
+        {showBrowseGenres ? <BrowseGenresLink /> : null}
       </div>
     </div>
   );

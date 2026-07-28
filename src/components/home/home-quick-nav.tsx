@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  CalendarDays,
   Compass,
   Flame,
   History,
@@ -22,9 +21,8 @@ const SCROLL_OFFSET = 150;
 const LINKS = [
   { id: "continue", href: `${ROUTES.HOME}#continue`, icon: History, key: "continue" },
   { id: "new-episodes", href: `${ROUTES.HOME}#new-episodes`, icon: Tv2, key: "latest" },
+  { id: "new-upcoming", href: `${ROUTES.HOME}#new-upcoming`, icon: Sparkles, key: "newUpcoming" },
   { id: "rankings", href: `${ROUTES.HOME}#rankings`, icon: Flame, key: "trending" },
-  { id: "discovery", href: `${ROUTES.HOME}#discovery`, icon: Compass, key: "discover" },
-  { id: "schedule", href: `${ROUTES.HOME}#schedule`, icon: CalendarDays, key: "today" },
 ] as const;
 
 export default function HomeQuickNav() {
@@ -94,8 +92,8 @@ export default function HomeQuickNav() {
             href={ROUTES.SEARCH}
             className="site-chip snap-start shrink-0 py-1.5 text-xs border-dashed dark:border-white/12 dark:text-white/30 dark:hover:text-white/65"
           >
-            <Sparkles className="w-3 h-3" />
-            {t("home.browseAll")} →
+            <Compass className="w-3 h-3" />
+            {t("home.browseByGenre")}
           </Link>
         </nav>
       </div>
