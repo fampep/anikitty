@@ -5228,12 +5228,8 @@ export function KittyPlayer({
                                   </MenuSection>
                                 ) : null}
 
-                                <MenuSection
-                                  title="Help"
-                                  dense={coarsePointer || compactChrome}
-                                >
+                                <MenuSection title="Help">
                                   <MenuItem
-                                    dense={coarsePointer || compactChrome}
                                     onClick={() => {
                                       setMoreOpen(false);
                                       popoverOpenRef.current = true;
