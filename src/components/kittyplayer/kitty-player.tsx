@@ -4599,12 +4599,6 @@ export function KittyPlayer({
                                 !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                               )}
                             >
-                              <div
-                                className="flex justify-center pb-1 pt-2.5"
-                                aria-hidden
-                              >
-                                <div className="h-1 w-10 rounded-full bg-white/25" />
-                              </div>
                               <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
                                 <p className="text-[11px] font-semibold tracking-wide text-white">
                                   Audio
@@ -4613,7 +4607,7 @@ export function KittyPlayer({
                                   {activeAudioLabel}
                                 </span>
                               </div>
-                              <div className="max-h-[min(42dvh,280px)] overflow-y-auto overscroll-contain sm:max-h-[min(58dvh,380px)]">
+                              <div className="max-h-[min(52vh,320px)] overflow-y-auto overscroll-contain">
                                 <MenuSection title="Track">
                                   {hlsAudioOptions.map((track) => (
                                     <MenuItem
@@ -4873,12 +4867,6 @@ export function KittyPlayer({
                               !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                             )}
                           >
-                            <div
-                              className="flex justify-center pb-2 pt-1"
-                              aria-hidden
-                            >
-                              <div className="h-1 w-10 rounded-full bg-white/25" />
-                            </div>
                             <p className="mb-3 text-center text-[11px] font-semibold tracking-wide text-white">
                               Volume
                             </p>
