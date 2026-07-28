@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { episodeSkipSubmissions } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
-import { checkRateLimit } from "@/lib/security/rate-limit";
 import {
   isSkipSegmentType,
   parseEpisodeList,
@@ -88,9 +87,6 @@ export async function POST(req: Request) {
   const token = extractToken(req);
   const payload = token ? await verifyToken(token) : null;
   if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const limited = checkRateLimit(`skip-submit:${payload.userId}`, 6, 60 * 60 * 1000);
-  if (limited) return limited;
 
   const raw = await req.json().catch(() => ({}));
   const anilistId = parseInt(String(raw.anilistId ?? ""), 10);
