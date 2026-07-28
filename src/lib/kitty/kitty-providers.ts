@@ -10,7 +10,8 @@ import {
  */
 export const ALL_KITTY_PROVIDER_IDS = [
   // Active (live on KittyAPI) — site priority first
-  "AniHQ",
+  "AniWatch",
+  "AniBD",
   "Anikoto",
   "Anitaku",
   "MeguAnime",
@@ -21,8 +22,8 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AnimeGG",
   "AnimeHeaven",
   // Normalize-only aliases / legacy (retired from picker)
+  "AniHQ",
   "Miruro",
-  "AniWatch",
   "AniWaves",
   "MKissa",
   "Animex",
@@ -53,7 +54,8 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
 export const KITTY_PROVIDERS = [
-  "AniHQ",
+  "AniWatch",
+  "AniBD",
   "Anikoto",
   "Anitaku",
   "MeguAnime",
@@ -94,16 +96,29 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
-    id: "AniHQ",
-    label: "HQ",
+    id: "AniWatch",
+    label: "Juliet",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · DUB · hard subs",
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
+    hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "AniBD",
+    label: "BD",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: false,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · soft subs",
   },
   {
     id: "Anikoto",
@@ -216,9 +231,11 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. */
+ * tries these before anything else. AniWatch (AniZone/Juliet) is default;
+ * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
-  "AniHQ",
+  "AniWatch",
+  "AniBD",
   "Anikoto",
   "Anitaku",
   "MeguAnime",
@@ -231,6 +248,9 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
 ];
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
+
+/** Soft-sub row / Soft Subs section default (overall playback default is Juliet). */
+export const DEFAULT_SOFT_SUB_PROVIDER: KittyProvider = "AniBD";
 
 /** KittyAPI unified MegaPlay provider. */
 export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([MEGAPLAY_PROVIDER_ID]);
@@ -247,6 +267,8 @@ export {
 
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
+  "AniWatch",
+  "AniBD",
   "AniKuro",
   "Anikoto",
   "Senshi",
@@ -268,7 +290,7 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   // UI labels / retired ids → active keep-list.
-  if (value === "AniZone") return "AniNeko";
+  if (value === "AniZone" || value === "Juliet") return "AniWatch";
   if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
   if (value === "AllAnime" || value === "Bravo" || value === "MKissa") return "AnimeGG";
   if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return "AniKuro";
@@ -277,9 +299,10 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Megu" || value === "MeguAnimes") return "MeguAnime";
   if (value === "Taku") return "Anitaku";
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
-  if (value === "Juliet" || value === "AniWatch") return DEFAULT_KITTY_PROVIDER;
   if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
-  if (value === "HQ") return "AniHQ";
+  // HQ retired — map legacy saves to Juliet (AniZone).
+  if (value === "HQ" || value === "AniHQ") return "AniWatch";
+  if (value === "BD" || value === "AniBd" || value === "Anibd") return "AniBD";
   if (
     value === "Luna" ||
     value === "Lunar" ||
@@ -367,15 +390,15 @@ export function normalizeProviderAudioMode(
   return fallback;
 }
 
-/** Burned-in only — no soft tracks (HQ, Heaven). */
+/** Burned-in only — no soft tracks (Heaven). */
 export function providerIsHardSubOnly(provider: KittyProvider): boolean {
   return providerHasHardSub(provider) && !providerHasSoftSub(provider);
 }
 
 /**
  * Soft sub · Hard Subs · Dub rows.
- * Hard-only (HQ, Heaven) → Hard Subs only.
- * Soft providers → Soft only (hardSub cleared site-wide except HQ/Heaven).
+ * Hard-only (Heaven) → Hard Subs only.
+ * Soft providers → Soft only (hardSub cleared site-wide except Heaven).
  */
 const DUAL_HARD_SUB_PROVIDER_IDS = new Set<string>([]);
 

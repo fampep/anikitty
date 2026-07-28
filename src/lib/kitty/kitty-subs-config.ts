@@ -9,6 +9,7 @@ export const KITTY_SUB_SOURCE_PROVIDER = "KittySubs";
  * Providers with Kitty `/subs` support per KittyAPI reference.
  */
 export const KITTY_SUB_PROVIDERS_FALLBACK = [
+  "AniBD",
   "Anikoto",
   "Senshi",
   "AniNeko",
